@@ -1,0 +1,49 @@
+#!/bin/bash
+set -eEuo pipefail
+# adjust current dir to script dir
+cd "$(dirname "$(readlink -f "$0")")"
+
+source bash-buddy/lib/trap_error_info.sh
+source bash-buddy/lib/common_utils.sh
+source bash-buddy/lib/java_build_utils.sh
+
+readonly nl=$'\n' # new line
+
+# shellcheck disable=SC2154
+[ $# -ne 1 ] && cu::die "need only 1 argument for version!$nl${nl}usage:$nl  $0 4.x.y"
+readonly bump_version="$1"
+
+(
+    cu::head_line_echo "bump cola version of cola-components to $bump_version"
+    cd ../cola-components/
+
+    jvb::mvn_cmd \
+        org.codehaus.mojo:versions-maven-plugin:2.16.2:set \
+        -DgenerateBackupPoms=false \
+        -DprocessAllModules=true \
+        -DnewVersion="$bump_version"
+)
+
+(
+    cu::head_line_echo "bump cola version of cola-archetypes to $bump_version"
+    cd ../cola-archetypes/
+
+    jvb::mvn_cmd \
+        org.codehaus.mojo:versions-maven-plugin:2.16.2:set \
+        -DgenerateBackupPoms=false \
+        -DnewVersion="$bump_version"
+
+    cu::log_then_run -s \
+        sed -ri 's~(<cola.components.version>)(.*)(</cola.components.version>)~\1'"$bump_version"'\3~' \
+        cola-archetype-service/src/main/resources/archetype-resources/pom.xml \
+        cola-archetype-web/src/main/resources/archetype-resources/pom.xml
+)
+
+(
+    cu::head_line_echo "bump cola version of samples to $bump_version"
+    cd ../cola-samples/
+
+    cu::log_then_run -s \
+        sed -ri 's~(<cola.components.version>)(.*)(</cola.components.version>)~\1'"$bump_version"'\3~' \
+        craftsman/pom.xml
+)

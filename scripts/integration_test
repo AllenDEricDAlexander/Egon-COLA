@@ -1,0 +1,147 @@
+#!/bin/bash
+set -eEuo pipefail
+cd "$(dirname "$(readlink -f "$0")")"
+
+BASH_BUDDY_ROOT="$(readlink -f bash-buddy)"
+readonly BASH_BUDDY_ROOT
+source "$BASH_BUDDY_ROOT/lib/trap_error_info.sh"
+source "$BASH_BUDDY_ROOT/lib/common_utils.sh"
+source "$BASH_BUDDY_ROOT/lib/java_build_utils.sh"
+
+################################################################################
+# ci build logic
+################################################################################
+
+readonly default_build_jdk_version=17
+# shellcheck disable=SC2034
+readonly JDK_VERSIONS=(
+  "$default_build_jdk_version"
+)
+readonly default_jh_var_name="JAVA${default_build_jdk_version}_HOME"
+
+# Here use `-D performRelease` intendedly to check release operations.
+#
+# De-activate a maven profile from command line
+#   https://stackoverflow.com/questions/25201430
+#
+# shellcheck disable=SC2034
+JVB_MVN_OPTS=(
+  "${JVB_DEFAULT_MVN_OPTS[@]}"
+  -DperformRelease -P'!gen-sign'
+  ${CI_MORE_MVN_OPTS:+${CI_MORE_MVN_OPTS}}
+)
+
+################################################################################
+# ci build logic
+################################################################################
+
+cd ..
+
+extractFirstElementValueFromPom() {
+  (($# == 2)) || die "${FUNCNAME[0]} need only 2 arguments, actual arguments: $*"
+
+  local element=$1
+  local pom_file=$2
+  grep \<"$element"'>.*</'"$element"\> "$pom_file" | awk -F'</?'"$element"\> 'NR==1 {print $2}'
+}
+
+test_cola_archetype() {
+  (
+    JVB_MVN_OPTS=("${JVB_DEFAULT_MVN_OPTS[@]}")
+    readonly archetype_name=cola-framework-archetype-service
+
+    cu::head_line_echo "test archetype:generate by $archetype_name"
+
+    # NOTE: DO NOT declare archetypeVersion var as readonly, its value is supplied by subshell.
+    archetypeVersion=$(extractFirstElementValueFromPom version cola-archetypes/cola-archetype-service/pom.xml)
+
+    # shellcheck disable=SC2030
+    readonly demo_dir="cola-archetypes/target/$archetype_name-demo"
+    rm -rf "$demo_dir"
+    mkdir -p "$demo_dir"
+    cd "$demo_dir"
+
+    # shellcheck disable=SC2030
+    readonly artifactId=demo-service
+
+    jvb::mvn_cmd archetype:generate \
+      -DgroupId=com.alibaba.cola.demo.archetype-service \
+      -DartifactId="$artifactId" \
+      -Dversion=1.0.0-SNAPSHOT \
+      -Dpackage=com.alibaba.cola.demo.service \
+      -DarchetypeGroupId=com.alibaba.cola \
+      -DarchetypeArtifactId=$archetype_name \
+      -DarchetypeVersion="$archetypeVersion" \
+      -DinteractiveMode=false \
+      -DarchetypeCatalog=local
+
+    cd "$artifactId"
+    jvb::mvn_cmd install
+  )
+
+  (
+    JVB_MVN_OPTS=("${JVB_DEFAULT_MVN_OPTS[@]}")
+    readonly archetype_name=cola-framework-archetype-web
+
+    cu::head_line_echo "test archetype:generate by $archetype_name"
+
+    # NOTE: DO NOT declare archetypeVersion var as readonly, its value is supplied by subshell.
+    archetypeVersion=$(extractFirstElementValueFromPom version cola-archetypes/cola-archetype-web/pom.xml)
+
+    # shellcheck disable=SC2031
+    readonly demo_dir="cola-archetypes/target/$archetype_name-demo"
+    rm -rf "$demo_dir"
+    mkdir -p "$demo_dir"
+    cd "$demo_dir"
+
+    # shellcheck disable=SC2031
+    readonly artifactId=demo-web
+
+    jvb::mvn_cmd archetype:generate \
+      -DgroupId=com.alibaba.cola.demo.archetype-web \
+      -DartifactId="$artifactId" \
+      -Dversion=1.0.0-SNAPSHOT \
+      -Dpackage=com.alibaba.cola.demo.web \
+      -DarchetypeGroupId=com.alibaba.cola \
+      -DarchetypeArtifactId=$archetype_name \
+      -DarchetypeVersion="$archetypeVersion" \
+      -DinteractiveMode=false \
+      -DarchetypeCatalog=local
+
+    cd "$artifactId"
+    jvb::mvn_cmd install
+  )
+}
+
+########################################
+# default jdk 11, do build and test
+########################################
+
+[ -d "${!default_jh_var_name:-}" ] || cu::die "\$${default_jh_var_name}(${!default_jh_var_name:-}) dir is not existed!"
+export JAVA_HOME="${!default_jh_var_name}"
+
+cu::head_line_echo "build and test with Java $default_build_jdk_version: $JAVA_HOME"
+
+jvb::mvn_cmd clean install
+
+test_cola_archetype
+
+########################################
+# test by multiply version jdks
+########################################
+
+for jdk_version in "${JDK_VERSIONS[@]}"; do
+  # skip default jdk, already tested above
+  [ "$jdk_version" = "$default_build_jdk_version" ] && continue
+
+  jh_var_name="JAVA${jdk_version}_HOME"
+  [ -d "${!jh_var_name:-}" ] || cu::die "\$${jh_var_name}(${!jh_var_name:-}) dir is not existed!"
+  export JAVA_HOME="${!jh_var_name}"
+
+  cu::head_line_echo "test with Java $jdk_version: $JAVA_HOME"
+
+  # just test without build
+  jvb::mvn_cmd surefire:test
+
+  test_cola_archetype
+done

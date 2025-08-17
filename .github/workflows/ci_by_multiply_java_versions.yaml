@@ -1,0 +1,36 @@
+# Quickstart for GitHub Actions
+# https://docs.github.com/en/actions/quickstart
+
+name: Strong CI with multiply java versions
+on: [ push, pull_request, workflow_dispatch ]
+jobs:
+  test:
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#choosing-github-hosted-runners
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    name: test by multiply java versions
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          # https://github.com/actions/setup-java?tab=readme-ov-file#install-multiple-jdks
+          java-version: |
+            17
+            21
+            22
+          distribution: zulu
+          cache: maven
+
+      - run: scripts/integration_test
+        env:
+          JAVA17_HOME: ${{ env.JAVA_HOME_17_X64 }}
+          JAVA21_HOME: ${{ env.JAVA_HOME_21_X64 }}
+          JAVA22_HOME: ${{ env.JAVA_HOME_22_X64 }}
+
+      - name: remove cola self maven install files
+        run: rm -rf $HOME/.m2/repository/com/alibaba/{cola,craftsman}

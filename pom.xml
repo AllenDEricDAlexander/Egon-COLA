@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        a dummy aggregation parent pom for development.
+
+        simplify the development process for all cola modules including examples modules, e.g.
+        - maven test/install
+        - import to IDE
+    -->
+    <groupId>com.alibaba.cola</groupId>
+    <artifactId>cola-dummy-aggregation-parent</artifactId>
+    <version>dummy-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>cola-components</module>
+        <module>cola-archetypes</module>
+
+        <module>cola-samples/craftsman</module>
+        <!-- A test failed module is better to get out. -->
+        <!--
+        <module>cola-samples/charge</module>
+        -->
+    </modules>
+</project>
