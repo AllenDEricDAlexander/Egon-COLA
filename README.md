@@ -27,9 +27,9 @@ cd .\cola-archetypes\
   
 mvn clean install -DperformRelease
 
-# cd sample 目录 生成新工程，采用本地仓库的cola
+# 生成新工程，采用本地仓库的cola
 
-cd ..\cola-samples\
+cd 《需要的工程目录》
 
 mvn archetype:'generate' `
     # 去本地仓库找脚手架
