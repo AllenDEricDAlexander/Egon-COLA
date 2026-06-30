@@ -9,8 +9,8 @@
 
     <artifactId>cola-component-domain-starter</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-component-domain-starter</name>
+    <description>cola-component-domain-starter</description>
     <url>https://github.com/alibaba/COLA</url>
 
     <licenses>

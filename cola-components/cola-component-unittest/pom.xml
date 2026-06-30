@@ -9,8 +9,8 @@
 
     <artifactId>cola-component-unittest</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}:${project.version}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-component-unittest</name>
+    <description>cola-component-unittest</description>
     <url>https://github.com/alibaba/COLA</url>
 
     <properties>
@@ -91,7 +91,7 @@
             <artifactId>lombok</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.cola</groupId>
+            <groupId>top.egon</groupId>
             <artifactId>cola-component-test-container</artifactId>
             <version>5.x-SNAPSHOT</version>
             <scope>test</scope>

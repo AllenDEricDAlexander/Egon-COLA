@@ -9,8 +9,8 @@
 
     <artifactId>cola-component-catchlog-starter</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-component-catchlog-starter</name>
+    <description>cola-component-catchlog-starter</description>
     <url>https://github.com/alibaba/COLA</url>
 
     <licenses>
@@ -80,12 +80,12 @@
 
         <!-- cola组件依赖 -->
         <dependency>
-            <groupId>com.alibaba.cola</groupId>
+            <groupId>top.egon</groupId>
             <artifactId>cola-component-dto</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.alibaba.cola</groupId>
+            <groupId>top.egon</groupId>
             <artifactId>cola-component-exception</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -9,8 +9,8 @@
 
     <artifactId>cola-component-test-container</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-component-test-container</name>
+    <description>cola-component-test-container</description>
     <url>https://github.com/alibaba/COLA</url>
 
     <licenses>

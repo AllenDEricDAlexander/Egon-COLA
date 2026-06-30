@@ -9,8 +9,8 @@
 
     <artifactId>cola-component-ruleengine</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}:${project.version}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-component-job</name>
+    <description>cola-component-job</description>
     <url>https://github.com/alibaba/COLA</url>
 
     <licenses>

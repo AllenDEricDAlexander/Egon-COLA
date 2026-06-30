@@ -12,8 +12,8 @@
     <artifactId>cola-components-bom</artifactId>
     <version>5.x-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>${project.artifactId}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-components-bom</name>
+    <description>cola-components-bom</description>
     <url>https://github.com/alibaba/COLA</url>
 
     <licenses>
@@ -60,32 +60,32 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.alibaba.cola</groupId>
+                <groupId>top.egon</groupId>
                 <artifactId>cola-component-dto</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.alibaba.cola</groupId>
+                <groupId>top.egon</groupId>
                 <artifactId>cola-component-exception</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.alibaba.cola</groupId>
+                <groupId>top.egon</groupId>
                 <artifactId>cola-component-statemachine</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.alibaba.cola</groupId>
+                <groupId>top.egon</groupId>
                 <artifactId>cola-component-domain-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.alibaba.cola</groupId>
+                <groupId>top.egon</groupId>
                 <artifactId>cola-component-extension-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.alibaba.cola</groupId>
+                <groupId>top.egon</groupId>
                 <artifactId>cola-component-catchlog-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
