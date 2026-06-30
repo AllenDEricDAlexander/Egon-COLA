@@ -59,6 +59,7 @@ TODO：这个约束应该要去掉。使用`JDK 8`能发布挺好 :")
 
 更新版本操作可以通过脚本[`bump_cola_version`](bump_cola_version)来统一完成。
 
+
 在[COLA Archetype的根目录](../cola-archetypes)，执行发布
 
 ```bash

@@ -10,16 +10,15 @@
         - maven test/install
         - import to IDE
     -->
-    <groupId>com.alibaba.cola</groupId>
-    <artifactId>cola-dummy-aggregation-parent</artifactId>
-    <version>dummy-SNAPSHOT</version>
+    <groupId>top.egon</groupId>
+    <artifactId>cola-mario-aggregation-parent</artifactId>
+    <version>mario-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
         <module>cola-components</module>
         <module>cola-archetypes</module>
 
-        <module>cola-samples/craftsman</module>
         <!-- A test failed module is better to get out. -->
         <!--
         <module>cola-samples/charge</module>

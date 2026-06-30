@@ -9,8 +9,8 @@
 
     <artifactId>cola-framework-archetype-web</artifactId>
     <packaging>maven-archetype</packaging>
-    <name>${project.artifactId}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-framework-archetype-web</name>
+    <description>cola-framework-archetype-web</description>
     <url>https://github.com/alibaba/COLAhttps://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>

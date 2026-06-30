@@ -10,7 +10,7 @@
         </dependency>
     </dependencies>
     <parent>
-        <groupId>com.alibaba.cola</groupId>
+        <groupId>top.egon</groupId>
         <artifactId>cola-components-parent</artifactId>
         <version>5.x-SNAPSHOT</version>
     </parent>

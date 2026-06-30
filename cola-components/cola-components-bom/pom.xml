@@ -8,7 +8,7 @@
         Maven BOM Template
         https://github.com/anliksim/maven-template-bom
     -->
-    <groupId>com.alibaba.cola</groupId>
+    <groupId>top.egon</groupId>
     <artifactId>cola-components-bom</artifactId>
     <version>5.x-SNAPSHOT</version>
     <packaging>pom</packaging>

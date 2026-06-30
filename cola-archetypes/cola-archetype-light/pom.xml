@@ -10,8 +10,8 @@
 
     <artifactId>cola-archetype-light</artifactId>
     <packaging>maven-archetype</packaging>
-    <name>${project.artifactId}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-archetype-light</name>
+    <description>cola-archetype-light</description>
     <url>https://github.com/alibaba/COLAhttps://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>

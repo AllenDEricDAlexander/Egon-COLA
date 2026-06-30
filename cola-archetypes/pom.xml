@@ -7,8 +7,8 @@
     <artifactId>cola-framework-archetypes-parent</artifactId>
     <version>5.1.1</version>
     <packaging>pom</packaging>
-    <name>${project.artifactId}</name>
-    <description>${project.artifactId}</description>
+    <name>cola-framework-archetypes-parent</name>
+    <description>cola-framework-archetypes-parent</description>
     <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>
