@@ -58,7 +58,7 @@ mvn archetype:'generate' `
 
 [![Fast CI](https://img.shields.io/github/actions/workflow/status/alibaba/cola/ci.yaml?branch=master&logo=github&logoColor=white&label=fast%20ci)](https://github.com/alibaba/cola/actions/workflows/ci.yaml)
 [![Multiply Java versions CI](https://img.shields.io/github/actions/workflow/status/alibaba/cola/ci_by_multiply_java_versions.yaml?branch=master&logo=github&logoColor=white&label=strong%20ci)](https://github.com/alibaba/cola/actions/workflows/ci_by_multiply_java_versions.yaml)
-[![License](https://img.shields.io/badge/license-LGPL--2.1-4EB1BA.svg?color=4D7A97&logo=apache)](LICENSE)
+[![License](https://img.shields.io/badge/license-LGPL--2.1-4EB1BA.svg?color=4D7A97&logo=apache)](LICENSE-GPL-2.1)
 [![Java support](https://img.shields.io/badge/Java-17+-339933?logo=OpenJDK&logoColor=white)](https://openjdk.java.net/)
 [![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.cola/cola-component-dto.svg?logo=apache-maven&label=maven%20central)](https://central.sonatype.com/namespace/com.alibaba.cola)
 [![GitHub Releases](https://img.shields.io/github/release/alibaba/COLA.svg)](https://github.com/alibaba/COLA/releases)

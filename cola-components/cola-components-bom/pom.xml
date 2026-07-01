@@ -22,6 +22,11 @@
             <url>https://opensource.org/licenses/MIT</url>
             <distribution>repo</distribution>
         </license>
+        <license>
+            <name>GNU Lesser General Public License v2.1</name>
+            <url>https://github.com/alibaba/COLA/blob/master/LICENSE</url>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <scm>
         <connection>scm:git@github.com:AllenDEricDAlexander/Egon-COLA.git</connection>
