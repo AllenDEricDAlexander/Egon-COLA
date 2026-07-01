@@ -12,7 +12,7 @@
     <packaging>maven-archetype</packaging>
     <name>cola-archetype-light</name>
     <description>cola-archetype-light</description>
-    <url>https://github.com/alibaba/COLAhttps://github.com/AllenDEricDAlexander/Egon-COLA</url>
+    <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>
         <license>
@@ -22,14 +22,15 @@
         </license>
         <license>
             <name>GNU Lesser General Public License v2.1</name>
-            <url>https://github.com/alibaba/COLA/blob/master/LICENSE</url>
+            <url>https://github.com/AllenDEricDAlexander/Egon-COLA/blob/master/LICENSE-GPL-2.1</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
     <scm>
-        <connection>scm:git@github.com:AllenDEricDAlexander/Egon-COLA.git</connection>
-        <developerConnection>scm:git@github.com:AllenDEricDAlexander/Egon-COLA.git</developerConnection>
+        <connection>scm:git:https://github.com/AllenDEricDAlexander/Egon-COLA.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/AllenDEricDAlexander/Egon-COLA.git</developerConnection>
         <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
+        <tag>HEAD</tag>
     </scm>
     <issueManagement>
         <url>https://github.com/AllenDEricDAlexander/Egon-COLA/issues</url>
