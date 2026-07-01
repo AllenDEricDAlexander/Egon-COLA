@@ -220,4 +220,11 @@ https://blog.csdn.net/significantfrank/article/details/100074716
 
 https://blog.csdn.net/significantfrank/article/details/85785565
 
+## License
 
+This project is dual-licensed under the MIT License and the GNU General Public License v3.0 or later.
+
+You may choose either license:
+
+- MIT License, see [LICENSE-MIT](./LICENSE-MIT)
+- GNU GPL v3.0 or later, see [LICENSE-GPL-3.0-or-later](./LICENSE-GPL-3.0-or-later)
