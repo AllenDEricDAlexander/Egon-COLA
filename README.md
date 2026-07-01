@@ -25,7 +25,7 @@ win powershell
 # cd .\cola-archetypes 目录 这一步会把包打到本地仓库
 cd .\cola-archetypes\
   
-mvn clean install -DperformRelease
+mvn clean install -Prelease -Dgpg.skip=true
 
 # 生成新工程，采用本地仓库的cola
 
@@ -60,7 +60,7 @@ mvn archetype:'generate' `
 [![Multiply Java versions CI](https://img.shields.io/github/actions/workflow/status/alibaba/cola/ci_by_multiply_java_versions.yaml?branch=master&logo=github&logoColor=white&label=strong%20ci)](https://github.com/alibaba/cola/actions/workflows/ci_by_multiply_java_versions.yaml)
 [![License](https://img.shields.io/badge/license-LGPL--2.1-4EB1BA.svg?color=4D7A97&logo=apache)](LICENSE-GPL-2.1)
 [![Java support](https://img.shields.io/badge/Java-17+-339933?logo=OpenJDK&logoColor=white)](https://openjdk.java.net/)
-[![Maven Central](https://img.shields.io/maven-central/v/com.alibaba.cola/cola-component-dto.svg?logo=apache-maven&label=maven%20central)](https://central.sonatype.com/namespace/com.alibaba.cola)
+[![Maven Central](https://img.shields.io/maven-central/v/top.egon/cola-component-dto.svg?logo=apache-maven&label=maven%20central)](https://central.sonatype.com/namespace/top.egon)
 [![GitHub Releases](https://img.shields.io/github/release/alibaba/COLA.svg)](https://github.com/alibaba/COLA/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/alibaba/COLA?style=flat)](https://github.com/alibaba/COLA/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/alibaba/COLA?style=flat)](https://github.com/alibaba/COLA/fork)
@@ -177,12 +177,12 @@ mvn archetype:'generate' `
 
 ```bash
 mvn archetype:generate \
-    -DgroupId=com.alibaba.cola.demo.service \
+    -DgroupId=top.egon.demo.service \
     -DartifactId=demo-service \
     -Dversion=1.0.0-SNAPSHOT \
     -Dpackage=com.alibaba.demo \
     -DarchetypeArtifactId=cola-framework-archetype-service \
-    -DarchetypeGroupId=com.alibaba.cola \
+    -DarchetypeGroupId=top.egon \
     -DarchetypeVersion=5.0.0
 ```
 

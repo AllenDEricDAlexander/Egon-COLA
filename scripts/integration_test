@@ -19,7 +19,7 @@ readonly JDK_VERSIONS=(
 )
 readonly default_jh_var_name="JAVA${default_build_jdk_version}_HOME"
 
-# Here use `-D performRelease` intendedly to check release operations.
+# Here use `-Prelease -Dgpg.skip=true` intentionally to check release profile operations without signing.
 #
 # De-activate a maven profile from command line
 #   https://stackoverflow.com/questions/25201430
@@ -27,7 +27,7 @@ readonly default_jh_var_name="JAVA${default_build_jdk_version}_HOME"
 # shellcheck disable=SC2034
 JVB_MVN_OPTS=(
   "${JVB_DEFAULT_MVN_OPTS[@]}"
-  -DperformRelease -P'!gen-sign'
+  -Prelease -Dgpg.skip=true
   ${CI_MORE_MVN_OPTS:+${CI_MORE_MVN_OPTS}}
 )
 
@@ -65,11 +65,11 @@ test_cola_archetype() {
     readonly artifactId=demo-service
 
     jvb::mvn_cmd archetype:generate \
-      -DgroupId=com.alibaba.cola.demo.archetype-service \
+      -DgroupId=top.egon.demo.archetype-service \
       -DartifactId="$artifactId" \
       -Dversion=1.0.0-SNAPSHOT \
-      -Dpackage=com.alibaba.cola.demo.service \
-      -DarchetypeGroupId=com.alibaba.cola \
+      -Dpackage=top.egon.demo.service \
+      -DarchetypeGroupId=top.egon \
       -DarchetypeArtifactId=$archetype_name \
       -DarchetypeVersion="$archetypeVersion" \
       -DinteractiveMode=false \
@@ -98,11 +98,11 @@ test_cola_archetype() {
     readonly artifactId=demo-web
 
     jvb::mvn_cmd archetype:generate \
-      -DgroupId=com.alibaba.cola.demo.archetype-web \
+      -DgroupId=top.egon.demo.archetype-web \
       -DartifactId="$artifactId" \
       -Dversion=1.0.0-SNAPSHOT \
-      -Dpackage=com.alibaba.cola.demo.web \
-      -DarchetypeGroupId=com.alibaba.cola \
+      -Dpackage=top.egon.demo.web \
+      -DarchetypeGroupId=top.egon \
       -DarchetypeArtifactId=$archetype_name \
       -DarchetypeVersion="$archetypeVersion" \
       -DinteractiveMode=false \
