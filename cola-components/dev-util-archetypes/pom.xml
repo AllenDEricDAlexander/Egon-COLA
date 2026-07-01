@@ -4,15 +4,20 @@
 
     <parent>
         <groupId>top.egon</groupId>
-        <artifactId>cola-dev-util-component-archetype</artifactId>
+        <artifactId>cola-components-parent</artifactId>
         <version>5.1.1</version>
     </parent>
 
     <groupId>top.egon</groupId>
-    <artifactId>cola-starter-component-archetype</artifactId>
+    <artifactId>cola-dev-util-component-archetype</artifactId>
     <version>5.1.1</version>
-    <packaging>jar</packaging>
-    <name>cola-starter-component-archetype</name>
+    <packaging>pom</packaging>
+    <name>cola-dev-util-component-archetype</name>
+
+    <modules>
+        <module>cola-normal-component-archetype</module>
+        <module>cola-starter-component-archetype</module>
+    </modules>
 
     <build>
         <extensions>

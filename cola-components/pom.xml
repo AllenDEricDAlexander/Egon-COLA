@@ -60,6 +60,7 @@
         <module>cola-component-ruleengine</module>
         <module>cola-component-unittest</module>
         <module>cola-component-job</module>
+        <module>dev-util-archetypes</module>
     </modules>
 
     <properties>
