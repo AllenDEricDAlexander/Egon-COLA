@@ -55,7 +55,7 @@
     </modules>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -169,7 +169,7 @@
                     <plugin>
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <configuration>
-                            <source>17</source>
+                            <source>21</source>
                             <show>protected</show>
                             <charset>UTF-8</charset>
                             <encoding>UTF-8</encoding>
@@ -221,7 +221,7 @@
                                 <configuration>
                                     <rules>
                                         <requireJavaVersion>
-                                            <version>17</version>
+                                            <version>[21,)</version>
                                         </requireJavaVersion>
                                     </rules>
                                 </configuration>
