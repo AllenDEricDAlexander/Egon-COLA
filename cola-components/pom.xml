@@ -9,7 +9,7 @@
     <packaging>pom</packaging>
     <name>cola-components-parent</name>
     <description>cola-components-parent</description>
-    <url>https://github.com/alibaba/COLA</url>
+    <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>
         <license>
@@ -19,14 +19,15 @@
         </license>
         <license>
             <name>GNU Lesser General Public License v2.1</name>
-            <url>https://github.com/alibaba/COLA/blob/master/LICENSE</url>
+            <url>https://github.com/AllenDEricDAlexander/Egon-COLA/blob/master/LICENSE-GPL-2.1</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
     <scm>
-        <connection>scm:git@github.com:AllenDEricDAlexander/Egon-COLA.git</connection>
-        <developerConnection>scm:git@github.com:AllenDEricDAlexander/Egon-COLA.git</developerConnection>
+        <connection>scm:git:https://github.com/AllenDEricDAlexander/Egon-COLA.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/AllenDEricDAlexander/Egon-COLA.git</developerConnection>
         <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
+        <tag>HEAD</tag>
     </scm>
     <issueManagement>
         <url>https://github.com/AllenDEricDAlexander/Egon-COLA/issues</url>
@@ -77,6 +78,11 @@
         <wiremock.version>3.5.4</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
+        <central.server.id>central</central.server.id>
+        <central.publishing.maven.plugin.version>0.11.0</central.publishing.maven.plugin.version>
+        <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.7.0</maven.javadoc.plugin.version>
+        <maven.gpg.plugin.version>3.1.0</maven.gpg.plugin.version>
     </properties>
 
     <dependencies>
@@ -266,15 +272,15 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>${maven.source.plugin.version}</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.7.0</version>
+                    <version>${maven.javadoc.plugin.version}</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-gpg-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>${maven.gpg.plugin.version}</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-enforcer-plugin</artifactId>
@@ -287,10 +293,10 @@
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
                     <artifactId>central-publishing-maven-plugin</artifactId>
-                    <version>0.11.0</version>
+                    <version>${central.publishing.maven.plugin.version}</version>
                     <extensions>true</extensions>
                     <configuration>
-                        <publishingServerId>ossrh</publishingServerId>
+                        <publishingServerId>${central.server.id}</publishingServerId>
                         <autoPublish>true</autoPublish>
                         <waitUntil>published</waitUntil>
                     </configuration>
@@ -317,65 +323,13 @@
 
     <distributionManagement>
         <snapshotRepository>
-            <id>ossrh</id>
+            <id>${central.server.id}</id>
+            <name>Central Portal Snapshots</name>
             <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
     <profiles>
-        <profile>
-            <id>gen-java-src</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-source-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>gen-java-doc</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>attach-javadoc</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <source>17</source>
-                            <show>protected</show>
-                            <charset>UTF-8</charset>
-                            <encoding>UTF-8</encoding>
-                            <docencoding>UTF-8</docencoding>
-                            <additionalJOptions>
-                                <additionalJOption>-quiet</additionalJOption>
-                                <additionalJOption>-J-Duser.language=en</additionalJOption>
-                                <additionalJOption>-J-Duser.country=US</additionalJOption>
-                                <additionalJOption>-Xdoclint:none</additionalJOption>
-                            </additionalJOptions>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
         <profile>
             <id>gen-code-cov</id>
             <activation>
@@ -412,17 +366,55 @@
             </build>
         </profile>
         <profile>
-            <id>gen-sign</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
+            <id>release</id>
             <build>
                 <plugins>
                     <plugin>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <source>17</source>
+                            <show>protected</show>
+                            <charset>UTF-8</charset>
+                            <encoding>UTF-8</encoding>
+                            <docencoding>UTF-8</docencoding>
+                            <doclint>none</doclint>
+                            <additionalJOptions>
+                                <additionalJOption>-quiet</additionalJOption>
+                                <additionalJOption>-J-Duser.language=en</additionalJOption>
+                                <additionalJOption>-J-Duser.country=US</additionalJOption>
+                                <additionalJOption>-Xdoclint:none</additionalJOption>
+                            </additionalJOptions>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
                         <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -433,77 +425,11 @@
                             </execution>
                         </executions>
                     </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>gen-git-properties</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <!--
-                                            Maven plugin which includes build-time git repository information into an POJO / *.properties).
-                                            Make your apps tell you which version exactly they were built from! Priceless in large distributed deployments.
-                                                https://github.com/ktoso/maven-git-commit-id-plugin
-                                        -->
-                    <plugin>
-                        <groupId>pl.project13.maven</groupId>
-                        <artifactId>git-commit-id-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>get-the-git-infos</id>
-                                <goals>
-                                    <goal>revision</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>validate-the-git-infos</id>
-                                <goals>
-                                    <goal>validateRevision</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <validationProperties>
-                                <!-- verify that the current repository is not dirty -->
-                                <validationProperty>
-                                    <name>validating git dirty</name>
-                                    <value>${git.dirty}</value>
-                                    <shouldMatchTo>false</shouldMatchTo>
-                                </validationProperty>
-                            </validationProperties>
-                            <generateGitPropertiesFile>true</generateGitPropertiesFile>
-                            <generateGitPropertiesFilename>
-                                ${project.build.outputDirectory}/META-INF/scm/${project.groupId}/${project.artifactId}/git.properties
-                            </generateGitPropertiesFilename>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>force-jdk11-when-release</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <!--
-                        add maven-enforce-plugin to make sure the right jdk is used
-                        https://stackoverflow.com/a/18420462/922688
-                    -->
                     <plugin>
                         <artifactId>maven-enforcer-plugin</artifactId>
                         <executions>
                             <execution>
+                                <id>enforce-jdk-versions</id>
                                 <goals>
                                     <goal>enforce</goal>
                                 </goals>
@@ -517,28 +443,9 @@
                             </execution>
                         </executions>
                     </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>deploy-settings</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <publishingServerId>ossrh</publishingServerId>
-                            <autoPublish>true</autoPublish>
-                            <waitUntil>published</waitUntil>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
