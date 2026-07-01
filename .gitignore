@@ -28,3 +28,4 @@ out/
 .DS_Store
 .vscode/settings.json
 ${project.build.directory}
+.worktrees/
