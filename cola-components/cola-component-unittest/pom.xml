@@ -11,7 +11,20 @@
     <packaging>jar</packaging>
     <name>cola-component-unittest</name>
     <description>cola-component-unittest</description>
-    <url>https://github.com/alibaba/COLA</url>
+    <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+        <license>
+            <name>GNU Lesser General Public License v2.1</name>
+            <url>https://github.com/AllenDEricDAlexander/Egon-COLA/blob/master/LICENSE-GPL-2.1</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <properties>
         <maven.test.skip>true</maven.test.skip>

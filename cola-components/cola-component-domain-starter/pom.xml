@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
     <name>cola-component-domain-starter</name>
     <description>cola-component-domain-starter</description>
-    <url>https://github.com/alibaba/COLA</url>
+    <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>
         <license>
@@ -21,7 +21,7 @@
         </license>
         <license>
             <name>GNU Lesser General Public License v2.1</name>
-            <url>https://github.com/alibaba/COLA/blob/master/LICENSE</url>
+            <url>https://github.com/AllenDEricDAlexander/Egon-COLA/blob/master/LICENSE-GPL-2.1</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
