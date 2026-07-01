@@ -16,8 +16,8 @@
 
     <licenses>
         <license>
-            <name>GNU Lesser General Public License v2.1</name>
-            <url>https://github.com/alibaba/COLA/blob/master/LICENSE</url>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -33,24 +33,16 @@
 
     <developers>
         <developer>
+            <id>egon</id>
             <name>egon</name>
             <email>mqa010225@gmail.com</email>
             <timezone>+8</timezone>
             <roles>
                 <role>Developer</role>
+                <role>Architect</role>
+                <role>CI/SCM Engineer</role>
             </roles>
             <url>https://github.com/AllenDEricDAlexander</url>
-        </developer>
-        <developer>
-            <id>significantfrank</id>
-            <name>Frank Zhang</name>
-            <email>25216348(at)qq.com</email>
-            <roles>
-                <role>Developer</role>
-                <role>Architect</role>
-            </roles>
-            <timezone>+8</timezone>
-            <url>https://github.com/significantfrank</url>
         </developer>
     </developers>
 </project>

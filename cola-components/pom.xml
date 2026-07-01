@@ -13,42 +13,32 @@
 
     <licenses>
         <license>
-            <name>GNU Lesser General Public License v2.1</name>
-            <url>https://github.com/alibaba/COLA/blob/master/LICENSE</url>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:https://github.com/alibaba/COLA.git</connection>
-        <developerConnection>scm:git:https://github.com/alibaba/COLA.git</developerConnection>
-        <url>https://github.com/alibaba/COLA</url>
+        <connection>scm:git@github.com:AllenDEricDAlexander/Egon-COLA.git</connection>
+        <developerConnection>scm:git@github.com:AllenDEricDAlexander/Egon-COLA.git</developerConnection>
+        <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
     </scm>
     <issueManagement>
-        <url>https://github.com/alibaba/COLA/issues</url>
+        <url>https://github.com/AllenDEricDAlexander/Egon-COLA/issues</url>
         <system>GitHub Issues</system>
     </issueManagement>
     <developers>
         <developer>
-            <id>significantfrank</id>
-            <name>Frank Zhang</name>
-            <email>25216348(at)qq.com</email>
+            <id>egon</id>
+            <name>egon</name>
+            <email>mqa010225@gmail.com</email>
+            <timezone>+8</timezone>
             <roles>
                 <role>Developer</role>
                 <role>Architect</role>
-            </roles>
-            <timezone>+8</timezone>
-            <url>https://github.com/significantfrank</url>
-        </developer>
-        <developer>
-            <id>oldratlee</id>
-            <name>Jerry Lee</name>
-            <email>oldratlee(at)gmail.com</email>
-            <roles>
-                <role>Developer</role>
                 <role>CI/SCM Engineer</role>
             </roles>
-            <timezone>+8</timezone>
-            <url>https://github.com/oldratlee</url>
+            <url>https://github.com/AllenDEricDAlexander</url>
         </developer>
     </developers>
 

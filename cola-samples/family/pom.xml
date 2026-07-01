@@ -19,10 +19,16 @@
 
     <developers>
         <developer>
-            <name>maqingao</name>
-            <email>mqa010225@163.com</email>
-            <organization>Dev-YCYD</organization>
-            <organizationUrl>https://github.com/AllenDEricDAlexander</organizationUrl>
+            <id>egon</id>
+            <name>egon</name>
+            <email>mqa010225@gmail.com</email>
+            <timezone>+8</timezone>
+            <roles>
+                <role>Developer</role>
+                <role>Architect</role>
+                <role>CI/SCM Engineer</role>
+            </roles>
+            <url>https://github.com/AllenDEricDAlexander</url>
         </developer>
     </developers>
 
