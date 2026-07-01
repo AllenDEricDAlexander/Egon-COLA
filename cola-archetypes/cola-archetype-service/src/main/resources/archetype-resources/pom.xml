@@ -53,7 +53,6 @@
 
     <modules>
         <module>${rootArtifactId}-client</module>
-        <module>${rootArtifactId}-adapter</module>
         <module>${rootArtifactId}-app</module>
         <module>${rootArtifactId}-domain</module>
         <module>${rootArtifactId}-infrastructure</module>
@@ -71,11 +70,6 @@
     <dependencyManagement>
         <dependencies>
             <!--Project modules-->
-            <dependency>
-                <groupId>${groupId}</groupId>
-                <artifactId>${rootArtifactId}-adapter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <dependency>
                 <groupId>${groupId}</groupId>
                 <artifactId>${rootArtifactId}-client</artifactId>

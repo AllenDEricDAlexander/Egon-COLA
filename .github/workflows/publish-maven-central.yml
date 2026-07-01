@@ -48,15 +48,14 @@ jobs:
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          TEST_ARG=""
+          MVN_ARGS=(-B -ntp -Prelease "-Dgpg.passphrase=${GPG_PASSPHRASE}")
           if [ "${{ inputs.skip_tests }}" = "true" ]; then
-            TEST_ARG="-DskipTests"
+            MVN_ARGS+=("-DskipTests")
           fi
-
-          MVN_ARGS="-B -ntp -Prelease -Dgpg.passphrase=${GPG_PASSPHRASE} ${TEST_ARG} clean deploy"
+          MVN_ARGS+=(clean deploy)
 
           if [ "${{ inputs.target }}" = "all" ]; then
-            bash ./mvnw ${MVN_ARGS}
+            bash ./mvnw "${MVN_ARGS[@]}"
           else
-            bash ./mvnw -f ${{ inputs.target }}/pom.xml ${MVN_ARGS}
+            bash ./mvnw -f "${{ inputs.target }}/pom.xml" "${MVN_ARGS[@]}"
           fi

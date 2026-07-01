@@ -16,24 +16,32 @@ jobs:
     name: fast test on Java ${{ matrix.java }} OS ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
           distribution: zulu
           cache: maven
 
       - name: Build with Maven
+        shell: bash
         run: ./mvnw -V --no-transfer-progress clean install
 
       - name: remove cola self maven install files for OS *nix
-        run: rm -rf $HOME/.m2/repository/com/alibaba/{cola,craftsman}
+        run: |
+          rm -rf \
+            "$HOME/.m2/repository/top/egon" \
+            "$HOME/.m2/repository/com/alibaba/cola" \
+            "$HOME/.m2/repository/com/alibaba/craftsman"
         # https://docs.github.com/en/actions/learn-github-actions/variables#detecting-the-operating-system
         # https://docs.github.com/en/actions/learn-github-actions/expressions
         if: runner.os != 'Windows'
       - name: remove cola self maven install files for OS Windows
         run: |
-          Remove-Item -Recurse -Force $home/.m2/repository/com/alibaba/cola
-          Remove-Item -Recurse -Force $home/.m2/repository/com/alibaba/craftsman
+          $paths = @(
+            "$home/.m2/repository/top/egon",
+            "$home/.m2/repository/com/alibaba/cola",
+            "$home/.m2/repository/com/alibaba/craftsman"
+          )
+          Remove-Item -Path $paths -Recurse -Force -ErrorAction SilentlyContinue
         if: runner.os == 'Windows'
-

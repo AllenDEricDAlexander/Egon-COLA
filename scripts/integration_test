@@ -16,6 +16,8 @@ readonly default_build_jdk_version=17
 # shellcheck disable=SC2034
 readonly JDK_VERSIONS=(
   "$default_build_jdk_version"
+  21
+  22
 )
 readonly default_jh_var_name="JAVA${default_build_jdk_version}_HOME"
 
@@ -114,7 +116,7 @@ test_cola_archetype() {
 }
 
 ########################################
-# default jdk 11, do build and test
+# default jdk 17, do build and test
 ########################################
 
 [ -d "${!default_jh_var_name:-}" ] || cu::die "\$${default_jh_var_name}(${!default_jh_var_name:-}) dir is not existed!"
