@@ -27,15 +27,15 @@
     </developers>
 
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.deploy.skip>true</maven.deploy.skip>
 
-        <cola.components.version>5.x-SNAPSHOT</cola.components.version>
+        <cola.components.version>5.1.1</cola.components.version>
 
-        <java.version>17</java.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <spring-ai.version>1.0.0</spring-ai.version>
         <spring-ai-alibaba.version>1.0.0.2</spring-ai-alibaba.version>
@@ -93,7 +93,7 @@
             <!--Project modules End-->
 
             <dependency>
-                <groupId>com.alibaba.cola</groupId>
+                <groupId>top.egon</groupId>
                 <artifactId>cola-components-bom</artifactId>
                 <version>${cola.components.version}</version>
                 <type>pom</type>
@@ -154,11 +154,11 @@
             <plugins>
                 <plugin>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.3.1</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.10.1</version>
+                    <version>3.13.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-source-plugin</artifactId>
@@ -166,11 +166,11 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.4.0</version>
+                    <version>3.7.0</version>
                 </plugin>
                 <plugin>
-                     <artifactId>maven-deploy-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.1.1</version>
                 </plugin>
 
                 <plugin>
