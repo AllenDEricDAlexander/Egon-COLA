@@ -19,9 +19,10 @@
 
 由于当前没有发布到中央仓库，需要本地进行。
 
-win powershell
-
 ```bash
+# 整体打包发布central
+./mvnw -B -ntp -f cola-components/pom.xml -Prelease -DskipTests clean deploy
+
 # cd .\cola-archetypes 目录 这一步会把包打到本地仓库
 cd .\cola-archetypes\
   
