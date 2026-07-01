@@ -4,7 +4,7 @@
     <parent>
         <groupId>top.egon</groupId>
         <artifactId>cola-components-parent</artifactId>
-        <version>5.x-SNAPSHOT</version>
+        <version>5.1.1</version>
     </parent>
 
     <artifactId>cola-component-extension-starter</artifactId>
@@ -89,18 +89,15 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>cola-component-dto</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>cola-component-exception</artifactId>
-            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>cola-component-domain-starter</artifactId>
-            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
 

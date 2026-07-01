@@ -4,7 +4,7 @@
     <parent>
         <groupId>top.egon</groupId>
         <artifactId>cola-components-parent</artifactId>
-        <version>5.x-SNAPSHOT</version>
+        <version>5.1.1</version>
     </parent>
 
     <artifactId>cola-component-catchlog-starter</artifactId>
@@ -82,12 +82,10 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>cola-component-dto</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>cola-component-exception</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <!-- 测试包 -->
         <dependency>

@@ -4,13 +4,13 @@
     <parent>
         <groupId>top.egon</groupId>
         <artifactId>cola-components-parent</artifactId>
-        <version>5.x-SNAPSHOT</version>
+        <version>5.1.1</version>
     </parent>
 
     <artifactId>cola-component-ruleengine</artifactId>
     <packaging>jar</packaging>
-    <name>cola-component-job</name>
-    <description>cola-component-job</description>
+    <name>cola-component-ruleengine</name>
+    <description>cola-component-ruleengine</description>
     <url>https://github.com/alibaba/COLA</url>
 
     <licenses>
