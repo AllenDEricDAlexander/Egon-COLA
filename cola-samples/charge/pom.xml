@@ -63,7 +63,7 @@
         <!-- Unit Test Support start-->
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>cola-component-test-container</artifactId>
+            <artifactId>egon-cola-component-test-container</artifactId>
             <version>${cola.components.version}</version>
         </dependency>
         <!--this for embedded database unit test-->

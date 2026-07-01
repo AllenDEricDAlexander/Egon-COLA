@@ -100,7 +100,7 @@
 
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>cola-components-bom</artifactId>
+                <artifactId>egon-cola-components-bom</artifactId>
                 <version>${cola.components.version}</version>
                 <type>pom</type>
                 <scope>import</scope>

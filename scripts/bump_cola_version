@@ -14,8 +14,8 @@ readonly nl=$'\n' # new line
 readonly bump_version="$1"
 
 (
-    cu::head_line_echo "bump cola version of cola-components to $bump_version"
-    cd ../cola-components/
+    cu::head_line_echo "bump cola version of egon-cola-components to $bump_version"
+    cd ../egon-cola-components/
 
     jvb::mvn_cmd \
         org.codehaus.mojo:versions-maven-plugin:2.16.2:set \
@@ -25,8 +25,8 @@ readonly bump_version="$1"
 )
 
 (
-    cu::head_line_echo "bump cola version of cola-archetypes to $bump_version"
-    cd ../cola-archetypes/
+    cu::head_line_echo "bump cola version of egon-cola-archetypes to $bump_version"
+    cd ../egon-cola-archetypes/
 
     jvb::mvn_cmd \
         org.codehaus.mojo:versions-maven-plugin:2.16.2:set \
@@ -35,8 +35,9 @@ readonly bump_version="$1"
 
     cu::log_then_run -s \
         sed -ri 's~(<cola.components.version>)(.*)(</cola.components.version>)~\1'"$bump_version"'\3~' \
-        cola-archetype-service/src/main/resources/archetype-resources/pom.xml \
-        cola-archetype-web/src/main/resources/archetype-resources/pom.xml
+        egon-cola-archetype-light/src/main/resources/archetype-resources/pom.xml \
+        egon-cola-archetype-service/src/main/resources/archetype-resources/pom.xml \
+        egon-cola-archetype-web/src/main/resources/archetype-resources/pom.xml
 )
 
 (
@@ -45,5 +46,6 @@ readonly bump_version="$1"
 
     cu::log_then_run -s \
         sed -ri 's~(<cola.components.version>)(.*)(</cola.components.version>)~\1'"$bump_version"'\3~' \
-        craftsman/pom.xml
+        family/pom.xml \
+        charge/pom.xml
 )

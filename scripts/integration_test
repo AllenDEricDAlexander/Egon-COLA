@@ -12,11 +12,10 @@ source "$BASH_BUDDY_ROOT/lib/java_build_utils.sh"
 # ci build logic
 ################################################################################
 
-readonly default_build_jdk_version=17
+readonly default_build_jdk_version=21
 # shellcheck disable=SC2034
 readonly JDK_VERSIONS=(
   "$default_build_jdk_version"
-  21
   22
 )
 readonly default_jh_var_name="JAVA${default_build_jdk_version}_HOME"
@@ -50,15 +49,15 @@ extractFirstElementValueFromPom() {
 test_cola_archetype() {
   (
     JVB_MVN_OPTS=("${JVB_DEFAULT_MVN_OPTS[@]}")
-    readonly archetype_name=cola-framework-archetype-service
+    readonly archetype_name=egon-cola-archetype-service
 
     cu::head_line_echo "test archetype:generate by $archetype_name"
 
     # NOTE: DO NOT declare archetypeVersion var as readonly, its value is supplied by subshell.
-    archetypeVersion=$(extractFirstElementValueFromPom version cola-archetypes/cola-archetype-service/pom.xml)
+    archetypeVersion=$(extractFirstElementValueFromPom version egon-cola-archetypes/egon-cola-archetype-service/pom.xml)
 
     # shellcheck disable=SC2030
-    readonly demo_dir="cola-archetypes/target/$archetype_name-demo"
+    readonly demo_dir="egon-cola-archetypes/target/$archetype_name-demo"
     rm -rf "$demo_dir"
     mkdir -p "$demo_dir"
     cd "$demo_dir"
@@ -83,15 +82,15 @@ test_cola_archetype() {
 
   (
     JVB_MVN_OPTS=("${JVB_DEFAULT_MVN_OPTS[@]}")
-    readonly archetype_name=cola-framework-archetype-web
+    readonly archetype_name=egon-cola-archetype-web
 
     cu::head_line_echo "test archetype:generate by $archetype_name"
 
     # NOTE: DO NOT declare archetypeVersion var as readonly, its value is supplied by subshell.
-    archetypeVersion=$(extractFirstElementValueFromPom version cola-archetypes/cola-archetype-web/pom.xml)
+    archetypeVersion=$(extractFirstElementValueFromPom version egon-cola-archetypes/egon-cola-archetype-web/pom.xml)
 
     # shellcheck disable=SC2031
-    readonly demo_dir="cola-archetypes/target/$archetype_name-demo"
+    readonly demo_dir="egon-cola-archetypes/target/$archetype_name-demo"
     rm -rf "$demo_dir"
     mkdir -p "$demo_dir"
     cd "$demo_dir"
@@ -116,7 +115,7 @@ test_cola_archetype() {
 }
 
 ########################################
-# default jdk 17, do build and test
+# default jdk 21, do build and test
 ########################################
 
 [ -d "${!default_jh_var_name:-}" ] || cu::die "\$${default_jh_var_name}(${!default_jh_var_name:-}) dir is not existed!"

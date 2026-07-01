@@ -57,22 +57,22 @@ GPG_PASSPHRASE
 
 ```bash
 bash ./mvnw -B -ntp -DskipTests validate
-bash ./mvnw -B -ntp -f cola-components/pom.xml -Prelease -DskipTests verify
-bash ./mvnw -B -ntp -f cola-archetypes/pom.xml -Prelease -DskipTests verify
+bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests verify
+bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests verify
 ```
 
 如果只想验证 profile 绑定但不签名：
 
 ```bash
-bash ./mvnw -B -ntp -f cola-components/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
-bash ./mvnw -B -ntp -f cola-archetypes/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
+bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
+bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
 ```
 
 验证 deploy 生命周期但不上传到 Central：
 
 ```bash
-bash ./mvnw -B -ntp -f cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
-bash ./mvnw -B -ntp -f cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 ```
 
 注意：`-Dgpg.skip=true` 只能用于本地 verify，不能用于真实 deploy。真实发布必须生成 `.asc` 签名文件。
@@ -82,7 +82,7 @@ bash ./mvnw -B -ntp -f cola-archetypes/pom.xml -Prelease -DskipTests -DskipPubli
 确认版本号不是 `SNAPSHOT`，然后执行：
 
 ```bash
-bash ./mvnw -B -ntp -f cola-components/pom.xml -Prelease -DskipTests clean deploy
+bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
 ```
 
 ## 3. 发布 Archetypes
@@ -90,7 +90,7 @@ bash ./mvnw -B -ntp -f cola-components/pom.xml -Prelease -DskipTests clean deplo
 建议先发布 components，等待 Maven Central 可解析后再发布 archetypes：
 
 ```bash
-bash ./mvnw -B -ntp -f cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
+bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 ```
 
 ## 4. GitHub Actions 手动发布
@@ -100,8 +100,8 @@ bash ./mvnw -B -ntp -f cola-archetypes/pom.xml -Prelease -DskipTests clean deplo
 可选目标：
 
 ```text
-cola-components
-cola-archetypes
+egon-cola-components
+egon-cola-archetypes
 all
 ```
 

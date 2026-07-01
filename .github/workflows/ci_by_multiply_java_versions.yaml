@@ -20,7 +20,6 @@ jobs:
         with:
           # https://github.com/actions/setup-java?tab=readme-ov-file#install-multiple-jdks
           java-version: |
-            17
             21
             22
           distribution: zulu
@@ -28,7 +27,6 @@ jobs:
 
       - run: scripts/integration_test
         env:
-          JAVA17_HOME: ${{ env.JAVA_HOME_17_X64 }}
           JAVA21_HOME: ${{ env.JAVA_HOME_21_X64 }}
           JAVA22_HOME: ${{ env.JAVA_HOME_22_X64 }}
 

@@ -4,11 +4,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>top.egon</groupId>
-    <artifactId>cola-mario-aggregation-parent</artifactId>
+    <artifactId>egon-cola-aggregation-parent</artifactId>
     <version>mario-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>cola-mario-aggregation-parent</name>
-    <description>cola-mario-aggregation-parent</description>
+    <name>egon-cola-aggregation-parent</name>
+    <description>egon-cola-aggregation-parent</description>
     <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
     <licenses>
         <license>
@@ -48,8 +48,8 @@
     </developers>
 
     <modules>
-        <module>cola-components</module>
-        <module>cola-archetypes</module>
+        <module>egon-cola-components</module>
+        <module>egon-cola-archetypes</module>
     </modules>
 
     <build>

@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>cola-component-dto</artifactId>
+            <artifactId>egon-cola-component-dto</artifactId>
         </dependency>
 
     </dependencies>

@@ -24,7 +24,7 @@
 
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>cola-component-catchlog-starter</artifactId>
+            <artifactId>egon-cola-component-catchlog-starter</artifactId>
         </dependency>
 
     </dependencies>

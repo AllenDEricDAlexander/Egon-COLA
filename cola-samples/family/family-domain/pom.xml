@@ -21,11 +21,11 @@
         <!-- COLA components -->
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>cola-component-domain-starter</artifactId>
+            <artifactId>egon-cola-component-domain-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>cola-component-exception</artifactId>
+            <artifactId>egon-cola-component-exception</artifactId>
         </dependency>
         <!-- COLA components End-->
     </dependencies>

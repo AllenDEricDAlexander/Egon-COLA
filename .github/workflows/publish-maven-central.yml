@@ -6,11 +6,11 @@ on:
       target:
         description: "Module to publish"
         required: true
-        default: "cola-components"
+        default: "egon-cola-components"
         type: choice
         options:
-          - cola-components
-          - cola-archetypes
+          - egon-cola-components
+          - egon-cola-archetypes
           - all
       skip_tests:
         description: "Skip tests"
@@ -34,7 +34,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: "17"
+          java-version: "21"
           cache: maven
           server-id: central
           server-username: CENTRAL_USERNAME
