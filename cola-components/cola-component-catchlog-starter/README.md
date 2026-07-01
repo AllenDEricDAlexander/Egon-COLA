@@ -4,7 +4,7 @@
 通过Spring Boot的autoConfig机制进行加载，无需手动配置，只需要添加如下依赖即可：
 ```xml
         <dependency>
-            <groupId>com.alibaba.cola</groupId>
+            <groupId>top.egon</groupId>
             <artifactId>cola-component-catchlog-starter</artifactId>
         </dependency>
 ```
@@ -49,4 +49,3 @@ DEBUG c.a.c.catchlog.CatchLogAspect - REQUEST : 257
 DEBUG c.a.c.catchlog.CatchLogAspect - RESPONSE : {"errCode":"UNKNOWN_ERROR"...}
 DEBUG c.a.c.catchlog.CatchLogAspect - COST : 1329ms
 ```
-
