@@ -28,10 +28,10 @@ The sample flow creates a user, creates a school class, and assigns the user to 
 
 ```text
 starter -> adapter, infrastructure
-adapter -> application, facade, common
-application -> domain, common
+adapter -> application, facade
+application -> domain
 domain -> common
-infrastructure -> domain, application, common
+infrastructure -> application
 facade -> validation and JDK only
 common -> JDK only
 ```

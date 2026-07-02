@@ -139,6 +139,26 @@ def assertNoDependency = { deps, artifactId ->
     assert !deps.any { it.artifactId == artifactId }: "Unexpected dependency ${artifactId}"
 }
 
+def moduleArtifactIds = [
+    "student-management-organization-common",
+    "student-management-organization-facade",
+    "student-management-organization-domain",
+    "student-management-organization-application",
+    "student-management-organization-infrastructure",
+    "student-management-organization-adapter",
+    "student-management-organization-starter"
+] as Set
+
+def moduleDependencies = { deps ->
+    deps.findAll { moduleArtifactIds.contains(it.artifactId) }
+            .collect { it.artifactId } as Set
+}
+
+def assertModuleDependencies = { deps, expected ->
+    def actual = moduleDependencies(deps)
+    assert actual == (expected as Set): "Expected module dependencies ${expected}, but got ${actual}"
+}
+
 def commonPom = modulePom("common")
 def facadePom = modulePom("facade")
 def domainPom = modulePom("domain")
@@ -162,19 +182,33 @@ def infrastructureDependencies = dependencies(infrastructurePom)
 def adapterDependencies = dependencies(adapterPom)
 def starterDependencies = dependencies(starterPom)
 
+assertModuleDependencies(dependencies(commonPom), [])
+assertModuleDependencies(facadeDependencies, [])
+assertModuleDependencies(domainDependencies, ["student-management-organization-common"])
+assertModuleDependencies(applicationDependencies, ["student-management-organization-domain"])
+assertModuleDependencies(infrastructureDependencies, ["student-management-organization-application"])
+assertModuleDependencies(adapterDependencies, [
+    "student-management-organization-application",
+    "student-management-organization-facade"
+])
+assertModuleDependencies(starterDependencies, [
+    "student-management-organization-adapter",
+    "student-management-organization-infrastructure"
+])
+
 assertDependency(facadeDependencies, "spring-boot-starter-validation")
 
 assertDependency(domainDependencies, "student-management-organization-common")
 
 assertDependency(applicationDependencies, "student-management-organization-domain")
-assertDependency(applicationDependencies, "student-management-organization-common")
 assertDependency(applicationDependencies, "spring-context")
 assertDependency(applicationDependencies, "spring-tx")
+assertNoDependency(applicationDependencies, "student-management-organization-common")
 assertNoDependency(applicationDependencies, "student-management-organization-infrastructure")
 
-assertDependency(infrastructureDependencies, "student-management-organization-domain")
 assertDependency(infrastructureDependencies, "student-management-organization-application")
-assertDependency(infrastructureDependencies, "student-management-organization-common")
+assertNoDependency(infrastructureDependencies, "student-management-organization-domain")
+assertNoDependency(infrastructureDependencies, "student-management-organization-common")
 assertDependency(infrastructureDependencies, "spring-boot-starter-data-jpa")
 assertDependency(infrastructureDependencies, "flyway-core")
 assertScopedDependency(infrastructureDependencies, "h2", "runtime")
@@ -182,7 +216,7 @@ assertScopedDependency(infrastructureDependencies, "postgresql", "runtime")
 
 assertDependency(adapterDependencies, "student-management-organization-application")
 assertDependency(adapterDependencies, "student-management-organization-facade")
-assertDependency(adapterDependencies, "student-management-organization-common")
+assertNoDependency(adapterDependencies, "student-management-organization-common")
 assertDependency(adapterDependencies, "spring-boot-starter-web")
 assertDependency(adapterDependencies, "spring-boot-starter-validation")
 assertNoDependency(adapterDependencies, "student-management-organization-infrastructure")
