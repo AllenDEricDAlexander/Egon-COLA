@@ -52,7 +52,19 @@ mvn archetype:'generate' `
     -DarchetypeVersion='5.1.1' `
     -DinteractiveMode='false'
     
-    
+# lite archtype
+mvn -B archetype:generate \
+  -DgroupId='top.egon' \
+  -DartifactId='light' \
+  -Dversion='1.0.0-SNAPSHOT' \
+  -Dpackage='top.egon.light' \
+  -DarchetypeArtifactId='egon-cola-archetype-light' \
+  -DarchetypeGroupId='top.egon' \
+  -DarchetypeVersion='5.1.1' \
+  -DarchetypeCatalog='local' \
+  -DinteractiveMode='false'     
+
+# service archtype    
 mvn -B archetype:generate \
   -DgroupId='top.egon' \
   -DartifactId='fable' \
@@ -63,6 +75,8 @@ mvn -B archetype:generate \
   -DarchetypeVersion='5.1.1' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false' 
+  
+  
 ```
 
 项目创建结束后，.\cola-samples\family\ 直接拷贝走，idea 打开根pom.xml as project。添加git仓库，关联远程仓库。
