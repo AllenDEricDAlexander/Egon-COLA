@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>${groupId}</groupId>
         <artifactId>${rootArtifactId}-parent</artifactId>
@@ -8,25 +11,14 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>${artifactId}</artifactId>
+    <artifactId>${rootArtifactId}-domain</artifactId>
     <packaging>jar</packaging>
-    <name>${artifactId}</name>
+    <name>${rootArtifactId}-domain</name>
 
     <dependencies>
         <dependency>
             <groupId>${groupId}</groupId>
-            <artifactId>${rootArtifactId}-client</artifactId>
+            <artifactId>${rootArtifactId}-common</artifactId>
         </dependency>
-
-        <!-- COLA components -->
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-domain-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-exception</artifactId>
-        </dependency>
-        <!-- COLA components End-->
     </dependencies>
 </project>
