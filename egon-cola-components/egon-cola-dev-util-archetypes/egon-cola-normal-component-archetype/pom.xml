@@ -5,12 +5,12 @@
     <parent>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-dev-util-archetypes</artifactId>
-        <version>5.1.1</version>
+        <version>5.1.2</version>
     </parent>
 
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-normal-component-archetype</artifactId>
-    <version>5.1.1</version>
+    <version>5.1.2</version>
     <packaging>jar</packaging>
     <name>egon-cola-normal-component-archetype</name>
     <description>COLA normal component archetype</description>
