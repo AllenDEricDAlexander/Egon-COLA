@@ -1,0 +1,53 @@
+def assertFile = { path ->
+    def file = new File(basedir, path)
+    assert file.isFile(): "Expected file ${path}"
+    file
+}
+
+def assertDir = { path ->
+    def file = new File(basedir, path)
+    assert file.isDirectory(): "Expected directory ${path}"
+    file
+}
+
+assertFile("pom.xml")
+assertFile("mvnw")
+assertFile("mvnw.cmd")
+assertFile(".mvn/wrapper/maven-wrapper.properties")
+assertFile(".gitignore")
+assertFile(".gitattributes")
+assertFile("README.md")
+
+["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each {
+    assertDir("student-management-evaluation-${it}")
+}
+
+assert !new File(basedir, "student-management-evaluation-client").exists()
+assert !new File(basedir, "student-management-evaluation-app").exists()
+assert !new File(basedir, "start").exists()
+assert !new File(basedir, "student-management-organization").exists()
+
+def forbiddenPaths = ["controller", "web", "filter", "graphql", "vo"].collect { "/${it}/" }
+def generatedFiles = basedir.traverse(type: groovy.io.FileType.FILES).collect {
+    it.absolutePath.replace(File.separatorChar, '/' as char)
+}
+forbiddenPaths.each { forbidden ->
+    assert !generatedFiles.any { it.contains(forbidden) }: "Forbidden path segment ${forbidden}"
+}
+
+def pom = assertFile("pom.xml").text
+assert pom.contains("<artifactId>spring-boot-starter-parent</artifactId>")
+assert pom.contains("<version>3.5.16</version>")
+assert pom.contains("<java.version>21</java.version>")
+assert pom.contains("<module>student-management-evaluation-common</module>")
+assert pom.contains("<module>student-management-evaluation-facade</module>")
+assert pom.contains("<module>student-management-evaluation-domain</module>")
+assert pom.contains("<module>student-management-evaluation-application</module>")
+assert pom.contains("<module>student-management-evaluation-infrastructure</module>")
+assert pom.contains("<module>student-management-evaluation-adapter</module>")
+assert pom.contains("<module>student-management-evaluation-starter</module>")
+assert !pom.contains("spring-boot-starter-web")
+assert !pom.contains("spring-boot-starter-webflux")
+
+def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
+assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")

@@ -1,0 +1,3 @@
+# ${rootArtifactId}
+
+${rootArtifactId} service project.
