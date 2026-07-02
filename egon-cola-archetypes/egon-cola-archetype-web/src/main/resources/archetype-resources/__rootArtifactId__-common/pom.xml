@@ -11,14 +11,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>${rootArtifactId}-domain</artifactId>
+    <artifactId>${rootArtifactId}-common</artifactId>
     <packaging>jar</packaging>
-    <name>${rootArtifactId}-domain</name>
-
-    <dependencies>
-        <dependency>
-            <groupId>${groupId}</groupId>
-            <artifactId>${rootArtifactId}-common</artifactId>
-        </dependency>
-    </dependencies>
+    <name>${rootArtifactId}-common</name>
 </project>
