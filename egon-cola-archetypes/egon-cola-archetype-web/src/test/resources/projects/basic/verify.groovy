@@ -155,5 +155,14 @@ assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/e
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/SchoolClass.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java")
+assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java")
+assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java")
+assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java")
+assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/ArchitectureDependencyTest.java")
+
+def migrationDir = new File(projectDir, "student-management-organization-infrastructure/src/main/resources/db/migration")
+assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 1
 
 null
