@@ -16,6 +16,48 @@ def assertMissing = { path ->
     assert !new File(projectDir, path).exists(): "Unexpected stale path ${path}"
 }
 
+def relativePath = { file ->
+    projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
+}
+
+def isGeneratedOrVcsPath = { path ->
+    path.tokenize("/").any { it == "target" || it == ".git" }
+}
+
+def sourceConfigDocNames = ["README.md", "pom.xml", ".gitignore", ".gitattributes"] as Set
+def sourceConfigDocExtensions = [".java", ".xml", ".yml", ".yaml", ".properties", ".md", ".sql"]
+def isSourceConfigDocFile = { file ->
+    def path = relativePath(file)
+    if (isGeneratedOrVcsPath(path)) {
+        return false
+    }
+    sourceConfigDocNames.contains(file.name) || sourceConfigDocExtensions.any { file.name.endsWith(it) }
+}
+
+def collectSourceConfigDocFiles
+collectSourceConfigDocFiles = { dir, files ->
+    dir.listFiles()?.each { file ->
+        def path = relativePath(file)
+        if (file.isDirectory()) {
+            if (!isGeneratedOrVcsPath(path)) {
+                collectSourceConfigDocFiles(file, files)
+            }
+        } else if (isSourceConfigDocFile(file)) {
+            files << file
+        }
+    }
+}
+
+def assertNoStaleText = { files, token ->
+    def matches = []
+    files.each { file ->
+        if (matches.size() < 5 && file.getText("UTF-8").contains(token)) {
+            matches << relativePath(file)
+        }
+    }
+    assert matches.isEmpty(): "Unexpected stale token '${token}' in first matching relative paths: ${matches.join(', ')}"
+}
+
 assertFile("pom.xml")
 assertFile("mvnw")
 assertFile("mvnw.cmd")
@@ -28,10 +70,14 @@ assertFile("README.md")
     assertDir("student-management-organization-${it}")
 }
 
-assert !new File(projectDir, "student-management-organization-client").exists()
-assert !new File(projectDir, "student-management-organization-app").exists()
-assert !new File(projectDir, "start").exists()
-assert !new File(projectDir, "student-management-evaluation").exists()
+[
+    "student-management-organization-client",
+    "student-management-organization-app",
+    "start",
+    "student-management-evaluation"
+].each {
+    assertMissing(it)
+}
 
 [
     "student-management-organization-adapter/src/main/java/mobile",
@@ -164,5 +210,39 @@ assertFile("student-management-organization-starter/src/test/java/it/pkg/starter
 
 def migrationDir = new File(projectDir, "student-management-organization-infrastructure/src/main/resources/db/migration")
 assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 1
+
+def readme = assertFile("README.md").text
+assert readme.contains("Student Management Organization")
+assert readme.contains("one independent Project")
+assert readme.contains("user")
+assert readme.contains("teaching")
+assert readme.contains("bash ./mvnw test")
+assert !readme.contains("\n./mvnw ")
+assert !readme.contains("student-management-evaluation")
+
+def scannedFiles = []
+collectSourceConfigDocFiles(projectDir, scannedFiles)
+[
+    "__rootArtifactId__-client",
+    'dir="__rootArtifactId__-app"',
+    'name="${rootArtifactId}-app"',
+    "student-management-organization-client",
+    "<module>student-management-organization-app</module>",
+    "<artifactId>student-management-organization-app</artifactId>",
+    "<name>student-management-organization-app</name>",
+    "<module>start</module>",
+    "app1",
+    "app2",
+    "examing",
+    "student-management-evaluation",
+    "package it.pkg.customer",
+    "package it.pkg.order",
+    "import it.pkg.customer",
+    "import it.pkg.order",
+    "/customer/",
+    "/order/"
+].each { token ->
+    assertNoStaleText(scannedFiles, token)
+}
 
 null

@@ -15,12 +15,12 @@
             <directory></directory>
             <includes>
                 <include>pom.xml</include>
-                <include>README.md</include>
             </includes>
         </fileSet>
         <fileSet encoding="UTF-8">
             <directory></directory>
             <includes>
+                <include>README.md</include>
                 <include>__gitignore__</include>
                 <include>.gitattributes</include>
                 <include>mvnw</include>
@@ -146,7 +146,7 @@
                 </fileSet>
             </fileSets>
         </module>
-        <module id="${rootArtifactId}-application" dir="__rootArtifactId__-application" name="${rootArtifactId}-application">
+        <module id="${rootArtifactId}-application" dir="__rootArtifactId__-&#97;pplication" name="${rootArtifactId}-application">
             <fileSets>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory></directory>
