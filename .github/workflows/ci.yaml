@@ -23,9 +23,9 @@ jobs:
           distribution: zulu
           cache: maven
 
-      - name: Build with Maven
+      - name: Build and test with Maven
         shell: bash
-        run: ./mvnw -V --no-transfer-progress clean install
+        run: ./mvnw -V --no-transfer-progress -DtrimStackTrace=false clean install
 
       - name: remove cola self maven install files for OS *nix
         run: |

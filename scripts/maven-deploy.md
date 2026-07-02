@@ -56,26 +56,26 @@ GPG_PASSPHRASE
 不执行真实发布：
 
 ```bash
-bash ./mvnw -B -ntp -DskipTests validate
-bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests verify
-bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests verify
+./mvnw -B -ntp -DskipTests validate
+./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests verify
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests verify
 ```
 
 如果只想验证 profile 绑定但不签名：
 
 ```bash
-bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
-bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
+./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
 ```
 
 验证 deploy 生命周期但不上传到 Central：
 
 ```bash
-bash ./mvnw -B -ntp -N -Prelease -DskipTests -DskipPublishing=true clean deploy
-bash ./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
-bash ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
-bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
-bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+./mvnw -B -ntp -N -Prelease -DskipTests -DskipPublishing=true clean deploy
+./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 ```
 
 注意：`-Dgpg.skip=true` 只能用于本地 verify，不能用于真实 deploy。真实发布必须生成 `.asc` 签名文件。
@@ -85,9 +85,9 @@ bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -Dskip
 三个父 POM 都支持独立发布。第一次发布时建议按依赖顺序执行：先发布 aggregation parent，再发布 components parent 和 archetypes parent。
 
 ```bash
-bash ./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
-bash ./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
-bash ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 ```
 
 ## 3. 发布 Components
@@ -95,7 +95,7 @@ bash ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests cle
 确认版本号不是 `SNAPSHOT`，然后执行：
 
 ```bash
-bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
 ```
 
 ## 4. 发布 Archetypes
@@ -103,7 +103,7 @@ bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean 
 建议先发布 components，等待 Maven Central 可解析后再发布 archetypes：
 
 ```bash
-bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 ```
 
 ## 5. GitHub Actions 手动发布
@@ -123,6 +123,8 @@ all
 
 ## 6. 常见失败
 
+- Fast CI 在 `egon-cola-component-statemachine` 报 `TestEngine with ID 'junit-jupiter' failed to discover tests`：通常是 JUnit Jupiter 与 JUnit Platform 版本不一致。组件父 POM 需要保持 `junit.jupiter.version` 与 Spring Boot BOM 解析出的 JUnit 版本一致，`junit.platform.version` 也要对应同一代版本。
+- Strong CI 报 `scripts/bash-buddy/lib/java_build_utils.sh: No such file or directory`：脚本已经改为加载 bash-buddy 当前存在的 `java_utils.sh` 和 `maven_utils.sh`；如果重新出现，先检查 `scripts/bash-buddy` 子模块是否完整初始化。
 - `401 Unauthorized`：`central` server id 缺失、Central Token 错误、或 Secret 未注入。
 - `403 Forbidden`：`top.egon` namespace 未验证，或版本已经发布过。
 - `repository element was not specified`：没有启用 `-Prelease`，或 release profile 没有加载；Central Portal release 发布必须走 `central-publishing-maven-plugin`，不能走默认 `maven-deploy-plugin` 的 release repository。

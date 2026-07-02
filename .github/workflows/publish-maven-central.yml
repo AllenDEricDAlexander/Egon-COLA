@@ -51,7 +51,7 @@ jobs:
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          MVN_ARGS=(-B -ntp -Prelease "-Dgpg.passphrase=${GPG_PASSPHRASE}")
+          MVN_ARGS=(-B -ntp -Prelease -DtrimStackTrace=false "-Dgpg.passphrase=${GPG_PASSPHRASE}")
           if [ "${{ inputs.skip_tests }}" = "true" ]; then
             MVN_ARGS+=("-DskipTests")
           fi
@@ -59,18 +59,18 @@ jobs:
 
           case "${{ inputs.target }}" in
             egon-cola-aggregation-parent)
-              bash ./mvnw -N "${MVN_ARGS[@]}"
+              ./mvnw -N "${MVN_ARGS[@]}"
               ;;
             egon-cola-components-parent)
-              bash ./mvnw -N -f egon-cola-components/pom.xml "${MVN_ARGS[@]}"
+              ./mvnw -N -f egon-cola-components/pom.xml "${MVN_ARGS[@]}"
               ;;
             egon-cola-archetypes-parent)
-              bash ./mvnw -N -f egon-cola-archetypes/pom.xml "${MVN_ARGS[@]}"
+              ./mvnw -N -f egon-cola-archetypes/pom.xml "${MVN_ARGS[@]}"
               ;;
             all)
-              bash ./mvnw "${MVN_ARGS[@]}"
+              ./mvnw "${MVN_ARGS[@]}"
               ;;
             *)
-              bash ./mvnw -f "${{ inputs.target }}/pom.xml" "${MVN_ARGS[@]}"
+              ./mvnw -f "${{ inputs.target }}/pom.xml" "${MVN_ARGS[@]}"
               ;;
           esac

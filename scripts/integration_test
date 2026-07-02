@@ -1,12 +1,26 @@
 #!/bin/bash
 set -eEuo pipefail
-cd "$(dirname "$(readlink -f "$0")")"
 
-BASH_BUDDY_ROOT="$(readlink -f bash-buddy)"
+SELF_PATH=$(realpath -- "$0")
+readonly SELF_PATH
+SELF_DIR=${SELF_PATH%/*}
+readonly SELF_DIR
+cd "$SELF_DIR"
+
+BASH_BUDDY_ROOT="$(realpath -- bash-buddy)"
 readonly BASH_BUDDY_ROOT
+# shellcheck disable=SC1091
 source "$BASH_BUDDY_ROOT/lib/trap_error_info.sh"
+# shellcheck disable=SC1091
 source "$BASH_BUDDY_ROOT/lib/common_utils.sh"
-source "$BASH_BUDDY_ROOT/lib/java_build_utils.sh"
+# shellcheck disable=SC1091
+source "$BASH_BUDDY_ROOT/lib/java_utils.sh"
+# shellcheck disable=SC1091
+source "$BASH_BUDDY_ROOT/lib/maven_utils.sh"
+
+PROJECT_ROOT_DIR="$(realpath -- "$SELF_DIR/..")"
+readonly PROJECT_ROOT_DIR
+export PROJECT_ROOT_DIR
 
 ################################################################################
 # ci build logic
@@ -18,37 +32,38 @@ readonly JDK_VERSIONS=(
   "$default_build_jdk_version"
   22
 )
-readonly default_jh_var_name="JAVA${default_build_jdk_version}_HOME"
 
 # Here use `-Prelease -Dgpg.skip=true` intentionally to check release profile operations without signing.
 #
 # De-activate a maven profile from command line
 #   https://stackoverflow.com/questions/25201430
 #
-# shellcheck disable=SC2034
-JVB_MVN_OPTS=(
-  "${JVB_DEFAULT_MVN_OPTS[@]}"
+MVU_MVN_OPTS=(
+  "${MVU_DEFAULT_MVN_OPTS[@]}"
   -Prelease -Dgpg.skip=true
-  ${CI_MORE_MVN_OPTS:+${CI_MORE_MVN_OPTS}}
 )
+if [ -n "${CI_MORE_MVN_OPTS:-}" ]; then
+  # shellcheck disable=SC2206
+  MVU_MVN_OPTS+=(${CI_MORE_MVN_OPTS})
+fi
 
 ################################################################################
 # ci build logic
 ################################################################################
 
-cd ..
+cd "$PROJECT_ROOT_DIR"
 
 extractFirstElementValueFromPom() {
-  (($# == 2)) || die "${FUNCNAME[0]} need only 2 arguments, actual arguments: $*"
+  (($# == 2)) || cu::die "${FUNCNAME[0]} need only 2 arguments, actual arguments: $*"
 
   local element=$1
   local pom_file=$2
-  grep \<"$element"'>.*</'"$element"\> "$pom_file" | awk -F'</?'"$element"\> 'NR==1 {print $2}'
+  sed -nE "s~.*<$element>([^<]+)</$element>.*~\1~p" "$pom_file" | head -n 1
 }
 
 test_cola_archetype() {
   (
-    JVB_MVN_OPTS=("${JVB_DEFAULT_MVN_OPTS[@]}")
+    MVU_MVN_OPTS=("${MVU_DEFAULT_MVN_OPTS[@]}")
     readonly archetype_name=egon-cola-archetype-service
 
     cu::head_line_echo "test archetype:generate by $archetype_name"
@@ -65,7 +80,7 @@ test_cola_archetype() {
     # shellcheck disable=SC2030
     readonly artifactId=demo-service
 
-    jvb::mvn_cmd archetype:generate \
+    mvu::mvn_cmd archetype:generate \
       -DgroupId=top.egon.demo.archetype-service \
       -DartifactId="$artifactId" \
       -Dversion=1.0.0-SNAPSHOT \
@@ -77,11 +92,11 @@ test_cola_archetype() {
       -DarchetypeCatalog=local
 
     cd "$artifactId"
-    jvb::mvn_cmd install
+    mvu::mvn_cmd install
   )
 
   (
-    JVB_MVN_OPTS=("${JVB_DEFAULT_MVN_OPTS[@]}")
+    MVU_MVN_OPTS=("${MVU_DEFAULT_MVN_OPTS[@]}")
     readonly archetype_name=egon-cola-archetype-web
 
     cu::head_line_echo "test archetype:generate by $archetype_name"
@@ -98,7 +113,7 @@ test_cola_archetype() {
     # shellcheck disable=SC2031
     readonly artifactId=demo-web
 
-    jvb::mvn_cmd archetype:generate \
+    mvu::mvn_cmd archetype:generate \
       -DgroupId=top.egon.demo.archetype-web \
       -DartifactId="$artifactId" \
       -Dversion=1.0.0-SNAPSHOT \
@@ -110,7 +125,7 @@ test_cola_archetype() {
       -DarchetypeCatalog=local
 
     cd "$artifactId"
-    jvb::mvn_cmd install
+    mvu::mvn_cmd install
   )
 }
 
@@ -118,12 +133,11 @@ test_cola_archetype() {
 # default jdk 21, do build and test
 ########################################
 
-[ -d "${!default_jh_var_name:-}" ] || cu::die "\$${default_jh_var_name}(${!default_jh_var_name:-}) dir is not existed!"
-export JAVA_HOME="${!default_jh_var_name}"
+jvu::switch_to_jdk "$default_build_jdk_version"
 
 cu::head_line_echo "build and test with Java $default_build_jdk_version: $JAVA_HOME"
 
-jvb::mvn_cmd clean install
+mvu::mvn_cmd clean install
 
 test_cola_archetype
 
@@ -135,14 +149,12 @@ for jdk_version in "${JDK_VERSIONS[@]}"; do
   # skip default jdk, already tested above
   [ "$jdk_version" = "$default_build_jdk_version" ] && continue
 
-  jh_var_name="JAVA${jdk_version}_HOME"
-  [ -d "${!jh_var_name:-}" ] || cu::die "\$${jh_var_name}(${!jh_var_name:-}) dir is not existed!"
-  export JAVA_HOME="${!jh_var_name}"
+  jvu::switch_to_jdk "$jdk_version"
 
   cu::head_line_echo "test with Java $jdk_version: $JAVA_HOME"
 
   # just test without build
-  jvb::mvn_cmd surefire:test
+  mvu::mvn_cmd surefire:test
 
   test_cola_archetype
 done

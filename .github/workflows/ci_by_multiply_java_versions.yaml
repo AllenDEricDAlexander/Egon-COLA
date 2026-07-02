@@ -25,7 +25,9 @@ jobs:
           distribution: zulu
           cache: maven
 
-      - run: scripts/integration_test
+      - name: Run integration test script
+        shell: bash
+        run: scripts/integration_test
         env:
           JAVA21_HOME: ${{ env.JAVA_HOME_21_X64 }}
           JAVA22_HOME: ${{ env.JAVA_HOME_22_X64 }}

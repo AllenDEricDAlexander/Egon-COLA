@@ -74,8 +74,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.boot.version>3.5.16</spring.boot.version>
         <lombok.version>1.18.46</lombok.version>
-        <junit.platform.version>1.9.3</junit.platform.version>
-        <junit.jupiter.version>5.10.2</junit.jupiter.version>
+        <junit.platform.version>1.12.2</junit.platform.version>
+        <junit.jupiter.version>5.12.2</junit.jupiter.version>
         <embedded.redis.version>0.7.3</embedded.redis.version>
         <jedis.version>5.1.0</jedis.version>
         <spring.test.dbunit.version>5.2.0</spring.test.dbunit.version>
