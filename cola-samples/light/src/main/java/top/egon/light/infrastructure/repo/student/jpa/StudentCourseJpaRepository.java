@@ -1,7 +1,7 @@
 package top.egon.light.infrastructure.repo.student.jpa;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import top.egon.light.infrastructure.repo.student.po.StudentCoursePo;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 

@@ -1,13 +1,13 @@
 package top.egon.light.application;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import top.egon.light.application.manage.student.StudentManage;
 import top.egon.light.application.manage.student.StudentView;
 import top.egon.light.application.manage.teaching.CourseManage;
 import top.egon.light.application.manage.teaching.CourseView;
 import top.egon.light.start.StudentManagementApplication;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

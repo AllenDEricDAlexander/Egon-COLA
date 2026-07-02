@@ -1,7 +1,5 @@
 package top.egon.light.application.manage.teaching.impl;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import top.egon.light.application.manage.teaching.CourseManage;
 import top.egon.light.application.manage.teaching.CourseView;
 import top.egon.light.common.constants.ErrorCodes;
@@ -13,6 +11,8 @@ import top.egon.light.domain.student.service.StudentDomainService;
 import top.egon.light.domain.teaching.model.Course;
 import top.egon.light.domain.teaching.repos.CourseRepository;
 import top.egon.light.domain.teaching.service.CourseDomainService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CourseManageImpl implements CourseManage {

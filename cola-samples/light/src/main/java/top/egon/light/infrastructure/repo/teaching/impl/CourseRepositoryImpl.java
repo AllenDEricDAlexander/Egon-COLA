@@ -1,10 +1,10 @@
 package top.egon.light.infrastructure.repo.teaching.impl;
 
-import org.springframework.stereotype.Repository;
 import top.egon.light.domain.teaching.model.Course;
 import top.egon.light.domain.teaching.repos.CourseRepository;
 import top.egon.light.infrastructure.repo.teaching.converter.CoursePoConverter;
 import top.egon.light.infrastructure.repo.teaching.jpa.CourseJpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 

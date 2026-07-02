@@ -31,15 +31,7 @@ public class StudentCoursePo {
         this.createdAt = createdAt;
     }
 
-    public String getStudentId() {
-        return studentId;
-    }
-
-    public String getCourseId() {
-        return courseId;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    public String getStudentId() { return studentId; }
+    public String getCourseId() { return courseId; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

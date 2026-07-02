@@ -76,7 +76,18 @@ mvn -B archetype:generate \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false' 
   
-  
+
+# web archtype    
+mvn -B archetype:generate \
+  -DgroupId='top.egon' \
+  -DartifactId='fable-web' \
+  -Dversion='1.0.0-SNAPSHOT' \
+  -Dpackage='top.egon.fable-web' \
+  -DarchetypeArtifactId='egon-cola-archetype-web' \
+  -DarchetypeGroupId='top.egon' \
+  -DarchetypeVersion='5.1.1' \
+  -DarchetypeCatalog='local' \
+  -DinteractiveMode='false'
 ```
 
 项目创建结束后，.\cola-samples\family\ 直接拷贝走，idea 打开根pom.xml as project。添加git仓库，关联远程仓库。

@@ -6,8 +6,8 @@ import top.egon.fable.adapter.handler.ServiceExceptionHandler;
 import top.egon.fable.application.manage.examing.ExamManage;
 import top.egon.fable.application.view.examing.ExamResultView;
 import top.egon.fable.common.exception.BizException;
-import top.egon.fable.common.response.SingleResponse;
 import top.egon.fable.facade.dto.examing.ExamResultDTO;
+import top.egon.fable.facade.dto.SingleResponse;
 import org.springframework.stereotype.Component;
 
 @Component

@@ -9,10 +9,10 @@ CREATE TABLE students
 
 CREATE TABLE courses
 (
-    id          VARCHAR(64) PRIMARY KEY,
-    name        VARCHAR(120) NOT NULL,
+    id         VARCHAR(64) PRIMARY KEY,
+    name       VARCHAR(120) NOT NULL,
     description VARCHAR(500),
-    created_at  TIMESTAMP    NOT NULL
+    created_at TIMESTAMP    NOT NULL
 );
 
 CREATE TABLE student_course_assignments

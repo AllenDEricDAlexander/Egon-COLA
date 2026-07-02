@@ -15,15 +15,7 @@ public class Course {
         return new Course(id, name, description);
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public String getDescription() { return description; }
 }

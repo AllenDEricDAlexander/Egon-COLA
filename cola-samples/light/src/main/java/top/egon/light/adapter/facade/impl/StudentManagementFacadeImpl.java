@@ -1,6 +1,5 @@
 package top.egon.light.adapter.facade.impl;
 
-import org.springframework.stereotype.Service;
 import top.egon.light.adapter.convertor.CourseAdapterConverter;
 import top.egon.light.adapter.convertor.StudentAdapterConverter;
 import top.egon.light.application.manage.student.StudentManage;
@@ -11,6 +10,7 @@ import top.egon.light.facade.dto.CourseDTO;
 import top.egon.light.facade.dto.CreateCourseRequest;
 import top.egon.light.facade.dto.RegisterStudentRequest;
 import top.egon.light.facade.dto.StudentDTO;
+import org.springframework.stereotype.Service;
 
 @Service
 public class StudentManagementFacadeImpl implements StudentManagementFacade {

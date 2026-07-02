@@ -8,6 +8,7 @@ The project demonstrates a large-monolith light domain architecture. The layers 
 start / adapter / facade / application / infrastructure / common / domain
 ```
 
+
 `start` contains the Spring Boot entry point and boot-level configuration.
 
 `adapter` handles inbound HTTP requests and facade implementations.
@@ -21,6 +22,7 @@ start / adapter / facade / application / infrastructure / common / domain
 `infrastructure` implements repository ports with Spring Data JPA.
 
 `common` contains project-local response, exception, constant, and utility types.
+
 
 The main call direction is:
 

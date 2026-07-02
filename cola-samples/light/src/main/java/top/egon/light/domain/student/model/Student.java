@@ -35,23 +35,9 @@ public class Student {
         return courseIds.contains(courseId);
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public StudentStatus getStatus() {
-        return status;
-    }
-
-    public List<String> getCourseIds() {
-        return Collections.unmodifiableList(courseIds);
-    }
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+    public StudentStatus getStatus() { return status; }
+    public List<String> getCourseIds() { return Collections.unmodifiableList(courseIds); }
 }

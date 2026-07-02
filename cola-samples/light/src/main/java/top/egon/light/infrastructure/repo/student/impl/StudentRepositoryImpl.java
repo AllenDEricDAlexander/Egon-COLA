@@ -1,6 +1,5 @@
 package top.egon.light.infrastructure.repo.student.impl;
 
-import org.springframework.stereotype.Repository;
 import top.egon.light.domain.student.model.Student;
 import top.egon.light.domain.student.repos.StudentRepository;
 import top.egon.light.infrastructure.repo.student.converter.StudentPoConverter;
@@ -8,6 +7,7 @@ import top.egon.light.infrastructure.repo.student.jpa.StudentCourseJpaRepository
 import top.egon.light.infrastructure.repo.student.jpa.StudentJpaRepository;
 import top.egon.light.infrastructure.repo.student.po.StudentCoursePo;
 import top.egon.light.infrastructure.repo.student.po.StudentPo;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;

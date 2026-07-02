@@ -1,8 +1,5 @@
 package top.egon.light.application.manage.student.impl;
 
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import top.egon.light.application.manage.student.StudentManage;
 import top.egon.light.application.manage.student.StudentView;
 import top.egon.light.common.constants.ErrorCodes;
@@ -12,6 +9,9 @@ import top.egon.light.common.utils.IdGenerator;
 import top.egon.light.domain.student.model.Student;
 import top.egon.light.domain.student.repos.StudentRepository;
 import top.egon.light.domain.student.service.StudentDomainService;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StudentManageImpl implements StudentManage {

@@ -1,8 +1,8 @@
 package top.egon.fable.adapter.handler;
 
 import top.egon.fable.common.exception.BizException;
-import top.egon.fable.common.response.Response;
-import top.egon.fable.common.response.SingleResponse;
+import top.egon.fable.facade.dto.Response;
+import top.egon.fable.facade.dto.SingleResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Component;
