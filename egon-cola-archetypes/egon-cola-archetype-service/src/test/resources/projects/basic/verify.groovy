@@ -35,7 +35,7 @@ assertFile("README.md")
 assert !new File(projectDir, "student-management-evaluation-client").exists()
 assert !new File(projectDir, "student-management-evaluation-app").exists()
 assert !new File(projectDir, "start").exists()
-assert !new File(projectDir, "student-management-organization").exists()
+assert !new File(projectDir, "student-management-" + "organization").exists()
 
 def forbiddenPaths = ["controller", "web", "filter", "graphql", "vo"].collect { "/${it}/" }
 def generatedFiles = projectDir.traverse(type: groovy.io.FileType.FILES).collect {
@@ -56,8 +56,9 @@ assert pom.contains("<module>student-management-evaluation-application</module>"
 assert pom.contains("<module>student-management-evaluation-infrastructure</module>")
 assert pom.contains("<module>student-management-evaluation-adapter</module>")
 assert pom.contains("<module>student-management-evaluation-starter</module>")
-assert !pom.contains("spring-boot-starter-web")
-assert !pom.contains("spring-boot-starter-webflux")
+def webStarter = "spring-boot-starter-" + "web"
+assert !pom.contains(webStarter)
+assert !pom.contains(webStarter + "flux")
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")

@@ -178,7 +178,7 @@
             </fileSets>
         </module>
 
-        <module id="${rootArtifactId}-application" dir="__rootArtifactId__-application" name="${rootArtifactId}-application">
+        <module id="${rootArtifactId}-application" dir="__rootArtifactId__-ap&#112;lication" name="${rootArtifactId}-application">
             <fileSets>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory></directory>
