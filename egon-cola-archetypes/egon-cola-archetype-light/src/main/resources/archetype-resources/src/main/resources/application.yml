@@ -1,18 +1,17 @@
 spring:
+  application:
+    name: ${artifactId}
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_SERVER:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB_NAME:chargeDB}?serverTimezone=UTC
-    #如果运行出错，可以把连接写成下面的路径进行测试
-    #url: jdbc:mysql://localhost:3306/blogDB?useUnicode=true&characterEncoding=utf-8
-    username: ${MYSQL_USER_TEST:root}
-    password: ${MYSQL_PASSWORD_TEST:root}
+    url: jdbc:h2:mem:${artifactId};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: true
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
-
-server:
-  port: 8081
-
-my-name: default
-my-age: default
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
