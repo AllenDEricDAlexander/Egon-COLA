@@ -147,3 +147,13 @@ assertDependency(starterDependencies, "spring-boot-starter")
 assertDependency(starterDependencies, "spring-boot-starter-actuator")
 assertScopedDependency(starterDependencies, "spring-boot-starter-test", "test")
 assertScopedDependency(starterDependencies, "archunit-junit5", "test")
+
+assertFile("student-management-organization-common/src/main/java/it/pkg/common/response/Response.java")
+assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/UserFacade.java")
+assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/SchoolClassFacade.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/User.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/SchoolClass.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java")
+
+null
