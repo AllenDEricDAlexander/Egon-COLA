@@ -3,9 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>top.egon</groupId>
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-aggregation-parent</artifactId>
+        <version>5.1.1</version>
+    </parent>
+
     <artifactId>egon-cola-archetypes-parent</artifactId>
-    <version>5.1.1</version>
     <packaging>pom</packaging>
     <name>egon-cola-archetypes-parent</name>
     <description>egon-cola-archetypes-parent</description>
@@ -74,6 +78,14 @@
                 <version>3.2.1</version>
             </extension>
         </extensions>
+        <plugins>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
         <pluginManagement>
             <plugins>
                 <plugin>

@@ -9,6 +9,9 @@ on:
         default: "egon-cola-components"
         type: choice
         options:
+          - egon-cola-aggregation-parent
+          - egon-cola-components-parent
+          - egon-cola-archetypes-parent
           - egon-cola-components
           - egon-cola-archetypes
           - all
@@ -54,8 +57,20 @@ jobs:
           fi
           MVN_ARGS+=(clean deploy)
 
-          if [ "${{ inputs.target }}" = "all" ]; then
-            bash ./mvnw "${MVN_ARGS[@]}"
-          else
-            bash ./mvnw -f "${{ inputs.target }}/pom.xml" "${MVN_ARGS[@]}"
-          fi
+          case "${{ inputs.target }}" in
+            egon-cola-aggregation-parent)
+              bash ./mvnw -N "${MVN_ARGS[@]}"
+              ;;
+            egon-cola-components-parent)
+              bash ./mvnw -N -f egon-cola-components/pom.xml "${MVN_ARGS[@]}"
+              ;;
+            egon-cola-archetypes-parent)
+              bash ./mvnw -N -f egon-cola-archetypes/pom.xml "${MVN_ARGS[@]}"
+              ;;
+            all)
+              bash ./mvnw "${MVN_ARGS[@]}"
+              ;;
+            *)
+              bash ./mvnw -f "${{ inputs.target }}/pom.xml" "${MVN_ARGS[@]}"
+              ;;
+          esac

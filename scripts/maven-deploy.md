@@ -71,13 +71,26 @@ bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -Dgpg.
 验证 deploy 生命周期但不上传到 Central：
 
 ```bash
+bash ./mvnw -B -ntp -N -Prelease -DskipTests -DskipPublishing=true clean deploy
+bash ./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+bash ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 ```
 
 注意：`-Dgpg.skip=true` 只能用于本地 verify，不能用于真实 deploy。真实发布必须生成 `.asc` 签名文件。
 
-## 2. 发布 Components
+## 2. 发布父 POM
+
+三个父 POM 都支持独立发布。第一次发布时建议按依赖顺序执行：先发布 aggregation parent，再发布 components parent 和 archetypes parent。
+
+```bash
+bash ./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
+bash ./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
+bash ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
+```
+
+## 3. 发布 Components
 
 确认版本号不是 `SNAPSHOT`，然后执行：
 
@@ -85,7 +98,7 @@ bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -Dskip
 bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
 ```
 
-## 3. 发布 Archetypes
+## 4. 发布 Archetypes
 
 建议先发布 components，等待 Maven Central 可解析后再发布 archetypes：
 
@@ -93,23 +106,26 @@ bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean 
 bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 ```
 
-## 4. GitHub Actions 手动发布
+## 5. GitHub Actions 手动发布
 
 使用 `.github/workflows/publish-maven-central.yml` 的 `workflow_dispatch` 手动触发。
 
 可选目标：
 
 ```text
+egon-cola-aggregation-parent
+egon-cola-components-parent
+egon-cola-archetypes-parent
 egon-cola-components
 egon-cola-archetypes
 all
 ```
 
-## 5. 常见失败
+## 6. 常见失败
 
 - `401 Unauthorized`：`central` server id 缺失、Central Token 错误、或 Secret 未注入。
 - `403 Forbidden`：`top.egon` namespace 未验证，或版本已经发布过。
-- `repository element was not specified`：没有启用 `-Prelease`，Maven 退回到默认 `maven-deploy-plugin`，找不到 release repository。
+- `repository element was not specified`：没有启用 `-Prelease`，或 release profile 没有加载；Central Portal release 发布必须走 `central-publishing-maven-plugin`，不能走默认 `maven-deploy-plugin` 的 release repository。
 - Missing Signature：GPG 私钥或 `GPG_PASSPHRASE` 不可用。
 - Missing Signature 且命令里有 `-Dgpg.skip=true`：这是本地跳过签名参数，不可用于真实发布。
 - Missing Sources/Javadocs：`-Prelease` 未生效。
