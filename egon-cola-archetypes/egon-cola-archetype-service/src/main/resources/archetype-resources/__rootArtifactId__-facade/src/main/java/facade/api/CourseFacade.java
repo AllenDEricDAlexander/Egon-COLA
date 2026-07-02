@@ -3,7 +3,7 @@
 #set( $symbol_escape = '\\' )
 package ${package}.facade.api;
 
-import ${package}.common.response.SingleResponse;
+import ${package}.facade.dto.SingleResponse;
 import ${package}.facade.dto.course.CourseDTO;
 import ${package}.facade.dto.course.CreateCourseRequest;
 

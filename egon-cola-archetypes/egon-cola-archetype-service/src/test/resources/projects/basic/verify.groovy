@@ -32,6 +32,10 @@ assertFile("README.md")
     assertDir("student-management-evaluation-${it}")
 }
 
+["utils", "enums", "exceptions", "dto"].each {
+    assertDir("student-management-evaluation-facade/src/main/java/it/pkg/facade/${it}")
+}
+
 assert !new File(projectDir, "student-management-evaluation-client").exists()
 assert !new File(projectDir, "student-management-evaluation-app").exists()
 assert !new File(projectDir, "start").exists()
@@ -62,3 +66,19 @@ assert !pom.contains(webStarter + "flux")
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
+
+def modulePomDependencies = { module ->
+    def pomText = assertFile("student-management-evaluation-${module}/pom.xml").text
+    def dependenciesText = (pomText =~ /(?s)<dependencies>(.*)<\/dependencies>/)
+    if (!dependenciesText.find()) {
+        return []
+    }
+    (dependenciesText.group(1) =~ /<artifactId>student-management-evaluation-([^<]+)<\/artifactId>/).collect { it[1] }
+}
+
+assert modulePomDependencies("facade") == []
+assert modulePomDependencies("domain") == ["common"]
+assert modulePomDependencies("application") == ["domain"]
+assert modulePomDependencies("adapter") == ["application", "facade"]
+assert modulePomDependencies("infrastructure") == ["application"]
+assert modulePomDependencies("starter") == ["adapter", "infrastructure"]

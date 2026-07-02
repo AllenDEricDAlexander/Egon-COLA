@@ -4,8 +4,8 @@
 package ${package}.adapter.handler;
 
 import ${package}.common.exception.BizException;
-import ${package}.common.response.Response;
-import ${package}.common.response.SingleResponse;
+import ${package}.facade.dto.Response;
+import ${package}.facade.dto.SingleResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Component;
