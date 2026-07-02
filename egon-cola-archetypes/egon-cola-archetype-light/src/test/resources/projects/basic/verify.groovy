@@ -49,4 +49,21 @@ assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as Filename
 
 assertFile("src/test/java/it/pkg/ArchitectureDependencyTest.java")
 assertFile("src/test/java/it/pkg/application/StudentManagementFlowTest.java")
+
+def readme = assertFile("README.md").text
+assert readme.contains("Student Management")
+assert readme.contains("single Maven module")
+assert readme.contains("start / adapter / facade / application / infrastructure / common / domain")
+assert !readme.contains("计费")
+assert !readme.contains("Charge")
+
+def allFiles = []
+new File(generatedProjectDir, "src").eachFileRecurse { file ->
+    if (file.isFile()) {
+        allFiles << file
+    }
+}
+assert allFiles.every { !it.name.contains("Charge") }
+assert !new File(generatedProjectDir, "img.png").exists()
+assert !new File(generatedProjectDir, "img_1.png").exists()
 true
