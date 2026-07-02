@@ -26,7 +26,7 @@ MQ: after selecting Kafka, RocketMQ, or RabbitMQ, add concrete consumer annotati
 ${symbol_pound}${symbol_pound} Commands
 
 ```bash
-./mvnw test
-./mvnw -DskipTests package
-./mvnw -pl ${rootArtifactId}-starter spring-boot:run
+bash ./mvnw test
+bash ./mvnw -DskipTests package
+bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
 ```

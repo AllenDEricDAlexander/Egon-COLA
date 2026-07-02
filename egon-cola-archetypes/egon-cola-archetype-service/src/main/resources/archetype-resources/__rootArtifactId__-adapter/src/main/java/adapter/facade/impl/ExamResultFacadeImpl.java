@@ -35,6 +35,15 @@ public class ExamResultFacadeImpl implements ExamResultFacade {
         if (request == null) {
             return serviceExceptionHandler.handleSingle(new BizException("record exam result request must not be null"));
         }
+        if (request.courseId() == null || request.courseId().isBlank()) {
+            return serviceExceptionHandler.handleSingle(new BizException("course id must not be blank"));
+        }
+        if (request.studentId() == null || request.studentId().isBlank()) {
+            return serviceExceptionHandler.handleSingle(new BizException("student id must not be blank"));
+        }
+        if (request.score() < 0 || request.score() > 100) {
+            return serviceExceptionHandler.handleSingle(new BizException("invalid exam result"));
+        }
         try {
             ExamResultView examResultView = examManage.record(request.courseId(), request.studentId(), request.score());
             return SingleResponse.of(examResultAdapterConvertor.toDTO(examResultView));

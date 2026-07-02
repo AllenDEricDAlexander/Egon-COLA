@@ -21,6 +21,7 @@ import ${package}.facade.api.ExamResultFacade;
 import ${package}.facade.dto.course.CourseDTO;
 import ${package}.facade.dto.course.CreateCourseRequest;
 import ${package}.facade.dto.examing.ExamResultDTO;
+import ${package}.facade.dto.examing.RecordExamResultRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -69,6 +70,21 @@ class EvaluationFlowTest {
         assertBizFailure(courseFacade.getCourse(" "));
         assertBizFailure(examResultFacade.getResult(null));
         assertBizFailure(examResultFacade.getResult(" "));
+    }
+
+    @Test
+    void shouldRejectInvalidExamPayloadFieldsAsBizFailures() {
+        assertBizFailure(examResultFacade.record(new RecordExamResultRequest(null, "student-001", 90)));
+        assertBizFailure(examResultFacade.record(new RecordExamResultRequest(" ", "student-001", 90)));
+        assertBizFailure(examResultFacade.record(new RecordExamResultRequest("course-001", null, 90)));
+        assertBizFailure(examResultFacade.record(new RecordExamResultRequest("course-001", " ", 90)));
+        assertBizFailure(examResultFacade.record(new RecordExamResultRequest("course-001", "student-001", 101)));
+
+        assertBizFailure(examResultMessageConsumer.consume(new ExamResultMessage(null, "student-001", 90)));
+        assertBizFailure(examResultMessageConsumer.consume(new ExamResultMessage(" ", "student-001", 90)));
+        assertBizFailure(examResultMessageConsumer.consume(new ExamResultMessage("course-001", null, 90)));
+        assertBizFailure(examResultMessageConsumer.consume(new ExamResultMessage("course-001", " ", 90)));
+        assertBizFailure(examResultMessageConsumer.consume(new ExamResultMessage("course-001", "student-001", -1)));
     }
 
     @Test

@@ -33,6 +33,15 @@ public class ExamResultMessageConsumer {
         if (message == null) {
             return serviceExceptionHandler.handleSingle(new BizException("exam result message must not be null"));
         }
+        if (message.courseId() == null || message.courseId().isBlank()) {
+            return serviceExceptionHandler.handleSingle(new BizException("course id must not be blank"));
+        }
+        if (message.studentId() == null || message.studentId().isBlank()) {
+            return serviceExceptionHandler.handleSingle(new BizException("student id must not be blank"));
+        }
+        if (message.score() < 0 || message.score() > 100) {
+            return serviceExceptionHandler.handleSingle(new BizException("invalid exam result"));
+        }
         try {
             ExamResultView examResultView = examManage.record(message.courseId(), message.studentId(), message.score());
             return SingleResponse.of(examResultAdapterConvertor.toDTO(examResultView));
