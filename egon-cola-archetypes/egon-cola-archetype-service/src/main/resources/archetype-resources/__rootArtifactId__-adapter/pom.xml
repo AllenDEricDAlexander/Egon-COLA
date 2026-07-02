@@ -11,14 +11,32 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>${rootArtifactId}-domain</artifactId>
+    <artifactId>${rootArtifactId}-adapter</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>${groupId}</groupId>
+            <artifactId>${rootArtifactId}-application</artifactId>
+            <version>${version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${groupId}</groupId>
+            <artifactId>${rootArtifactId}-facade</artifactId>
+            <version>${version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${groupId}</groupId>
             <artifactId>${rootArtifactId}-common</artifactId>
             <version>${version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
         </dependency>
     </dependencies>
 </project>

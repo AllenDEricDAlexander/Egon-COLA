@@ -11,14 +11,13 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>${rootArtifactId}-domain</artifactId>
+    <artifactId>${rootArtifactId}-facade</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
-            <groupId>${groupId}</groupId>
-            <artifactId>${rootArtifactId}-common</artifactId>
-            <version>${version}</version>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
         </dependency>
     </dependencies>
 </project>
