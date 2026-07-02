@@ -336,10 +336,6 @@
             <build>
                 <plugins>
                     <plugin>
-                        <!--
-                            plugin docs: http://eclemma.org/jacoco/trunk/doc/
-                            for codecov.io, config example https://github.com/codecov/example-java
-                        -->
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <executions>
