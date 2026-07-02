@@ -46,3 +46,7 @@ assert !new File(generatedProjectDir, "src/test/charge.http").exists()
 
 def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migration")
 assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 1
+
+assertFile("src/test/java/it/pkg/ArchitectureDependencyTest.java")
+assertFile("src/test/java/it/pkg/application/StudentManagementFlowTest.java")
+true
