@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: ${rootArtifactId}
+  datasource:
+    url: jdbc:h2:mem:${rootArtifactId};MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

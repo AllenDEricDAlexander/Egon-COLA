@@ -1,11 +1,21 @@
+def projectDir = [
+    new File(basedir, "project/student-management-evaluation"),
+    new File(basedir, "student-management-evaluation"),
+    basedir
+].find {
+    new File(it, "pom.xml").isFile() && new File(it, "student-management-evaluation-starter").isDirectory()
+}
+
+assert projectDir != null: "Expected generated project directory"
+
 def assertFile = { path ->
-    def file = new File(basedir, path)
+    def file = new File(projectDir, path)
     assert file.isFile(): "Expected file ${path}"
     file
 }
 
 def assertDir = { path ->
-    def file = new File(basedir, path)
+    def file = new File(projectDir, path)
     assert file.isDirectory(): "Expected directory ${path}"
     file
 }
@@ -22,13 +32,13 @@ assertFile("README.md")
     assertDir("student-management-evaluation-${it}")
 }
 
-assert !new File(basedir, "student-management-evaluation-client").exists()
-assert !new File(basedir, "student-management-evaluation-app").exists()
-assert !new File(basedir, "start").exists()
-assert !new File(basedir, "student-management-organization").exists()
+assert !new File(projectDir, "student-management-evaluation-client").exists()
+assert !new File(projectDir, "student-management-evaluation-app").exists()
+assert !new File(projectDir, "start").exists()
+assert !new File(projectDir, "student-management-organization").exists()
 
 def forbiddenPaths = ["controller", "web", "filter", "graphql", "vo"].collect { "/${it}/" }
-def generatedFiles = basedir.traverse(type: groovy.io.FileType.FILES).collect {
+def generatedFiles = projectDir.traverse(type: groovy.io.FileType.FILES).collect {
     it.absolutePath.replace(File.separatorChar, '/' as char)
 }
 forbiddenPaths.each { forbidden ->
