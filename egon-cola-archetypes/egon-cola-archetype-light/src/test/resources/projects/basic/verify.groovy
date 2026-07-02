@@ -26,3 +26,23 @@ assert !pom.contains("mcp")
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
+
+assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java")
+assertFile("src/main/java/it/pkg/adapter/controller/student/StudentController.java")
+assertFile("src/main/java/it/pkg/adapter/controller/teaching/CourseController.java")
+assertFile("src/main/java/it/pkg/facade/api/StudentManagementFacade.java")
+assertFile("src/main/java/it/pkg/application/manage/student/StudentManage.java")
+assertFile("src/main/java/it/pkg/application/manage/teaching/CourseManage.java")
+assertFile("src/main/java/it/pkg/domain/student/model/Student.java")
+assertFile("src/main/java/it/pkg/domain/teaching/model/Course.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/student/impl/StudentRepositoryImpl.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/impl/CourseRepositoryImpl.java")
+assertFile("src/main/resources/application.yml")
+assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
+
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeController.java").exists()
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
+assert !new File(generatedProjectDir, "src/test/charge.http").exists()
+
+def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migration")
+assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 1
