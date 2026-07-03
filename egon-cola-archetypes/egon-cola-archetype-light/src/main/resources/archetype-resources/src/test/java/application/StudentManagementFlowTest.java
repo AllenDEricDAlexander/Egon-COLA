@@ -3,10 +3,14 @@
 #set( $symbol_escape = '\' )
 package ${package}.application;
 
+import ${package}.adapter.convertor.CourseAdapterConverter;
+import ${package}.adapter.convertor.StudentAdapterConverter;
 import ${package}.application.manage.student.StudentManage;
-import ${package}.application.manage.student.StudentView;
 import ${package}.application.manage.teaching.CourseManage;
-import ${package}.application.manage.teaching.CourseView;
+import ${package}.domain.student.model.Student;
+import ${package}.domain.teaching.model.Course;
+import ${package}.facade.dto.CourseDTO;
+import ${package}.facade.dto.StudentDTO;
 import ${package}.start.StudentManagementApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,15 +26,27 @@ class StudentManagementFlowTest {
     @Autowired
     private CourseManage courseManage;
 
+    @Autowired
+    private StudentAdapterConverter studentAdapterConverter;
+
+    @Autowired
+    private CourseAdapterConverter courseAdapterConverter;
+
     @Test
     void register_student_and_assign_course() {
-        StudentView student = studentManage.register("Mario", "mario@example.com");
-        CourseView course = courseManage.create("Architecture", "Large monolith light domain architecture");
+        Student student = studentManage.register("Mario", "mario@example.com");
+        Course course = courseManage.create("Architecture", "Large monolith light domain architecture");
 
-        courseManage.assignCourse(student.id(), course.id());
+        courseManage.assignCourse(student.getId(), course.getId());
 
-        StudentView saved = studentManage.getById(student.id());
-        assertThat(saved.email()).isEqualTo("mario@example.com");
-        assertThat(saved.courseIds()).containsExactly(course.id());
+        Student saved = studentManage.getById(student.getId());
+        assertThat(saved.getEmail()).isEqualTo("mario@example.com");
+        assertThat(saved.getCourseIds()).containsExactly(course.getId());
+
+        StudentDTO studentDTO = studentAdapterConverter.toDto(saved);
+        CourseDTO courseDTO = courseAdapterConverter.toDto(course);
+        assertThat(studentDTO.getStatus()).isEqualTo(saved.getStatus().name());
+        assertThat(studentDTO.getCourseIds()).containsExactly(course.getId());
+        assertThat(courseDTO.getId()).isEqualTo(course.getId());
     }
 }

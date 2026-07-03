@@ -47,6 +47,7 @@ class ArchitectureDependencyTest {
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "${package}.adapter..",
                         "${package}.facade..",
+                        "${package}.common.response..",
                         "${package}.infrastructure..",
                         "${package}.start..")
                 .check(classes);
@@ -56,7 +57,6 @@ class ArchitectureDependencyTest {
     void adapter_only_depends_on_application_facade_and_common() {
         noClasses().that().resideInAPackage("${package}.adapter..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "${package}.domain..",
                         "${package}.infrastructure..",
                         "${package}.start..")
                 .check(classes);
