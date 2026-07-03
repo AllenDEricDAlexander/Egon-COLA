@@ -19,6 +19,7 @@
                 <include>__gitignore__</include>
                 <include>.gitattributes</include>
                 <include>README.md</include>
+                <include>lombok.config</include>
             </includes>
         </fileSet>
         <fileSet filtered="true" encoding="UTF-8">

@@ -19,10 +19,27 @@ def pom = assertFile("pom.xml").text
 assert pom.contains("<artifactId>spring-boot-starter-parent</artifactId>")
 assert pom.contains("<version>3.5.16</version>")
 assert pom.contains("<java.version>21</java.version>")
+assert pom.contains("<lombok.version>1.18.38</lombok.version>")
+assert pom.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
+assert pom.contains("<dubbo.version>3.3.6</dubbo.version>")
+assert pom.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
+assert pom.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
+assert pom.contains("<artifactId>mapstruct-plus-processor</artifactId>")
 assert !pom.contains("spring-boot-dependencies")
 assert !pom.contains("spring-ai")
 assert !pom.contains("drools")
 assert !pom.contains("mcp")
+
+assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+
+def applicationYaml = assertFile("src/main/resources/application.yml").text
+assert applicationYaml.contains("dubbo:")
+assert applicationYaml.contains('name: ${spring.application.name}')
+assert applicationYaml.contains('${DUBBO_REGISTRY_ADDRESS:N/A}')
+assert applicationYaml.contains("name: tri")
+assert applicationYaml.contains('${DUBBO_PORT:50051}')
+assert applicationYaml.contains("timeout: 3000")
+assert applicationYaml.contains("retries: 0")
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
