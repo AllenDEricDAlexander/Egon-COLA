@@ -20,6 +20,8 @@
                 <include>.gitattributes</include>
                 <include>README.md</include>
                 <include>lombok.config</include>
+                <include>Dockerfile</include>
+                <include>.dockerignore</include>
             </includes>
         </fileSet>
         <fileSet filtered="true" encoding="UTF-8">
@@ -343,6 +345,7 @@
                         <include>**/*.yaml</include>
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
+                        <include>META-INF/**</include>
                         <include>.gitkeep</include>
                     </includes>
                 </fileSet>

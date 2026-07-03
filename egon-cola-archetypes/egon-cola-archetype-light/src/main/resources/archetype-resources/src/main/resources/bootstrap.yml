@@ -1,0 +1,30 @@
+#set( $symbol_dollar = '$' )
+spring:
+  application:
+    name: ${symbol_dollar}{APP_NAME:${artifactId}}
+  profiles:
+    default: local
+  cloud:
+    discovery:
+      enabled: ${symbol_dollar}{DISCOVERY_ENABLED:false}
+    nacos:
+      username: ${symbol_dollar}{NACOS_USERNAME:}
+      password: ${symbol_dollar}{NACOS_PASSWORD:}
+      config:
+        enabled: ${symbol_dollar}{NACOS_CONFIG_ENABLED:false}
+        server-addr: ${symbol_dollar}{NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${symbol_dollar}{NACOS_NAMESPACE:local}
+        group: ${symbol_dollar}{NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+        refresh-enabled: ${symbol_dollar}{NACOS_CONFIG_REFRESH_ENABLED:false}
+      discovery:
+        enabled: ${symbol_dollar}{NACOS_DISCOVERY_ENABLED:false}
+        server-addr: ${symbol_dollar}{NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${symbol_dollar}{NACOS_NAMESPACE:local}
+        group: ${symbol_dollar}{NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+
+dubbo:
+  application:
+    name: ${symbol_dollar}{spring.application.name}
+  registry:
+    address: ${symbol_dollar}{DUBBO_REGISTRY_ADDRESS:N/A}

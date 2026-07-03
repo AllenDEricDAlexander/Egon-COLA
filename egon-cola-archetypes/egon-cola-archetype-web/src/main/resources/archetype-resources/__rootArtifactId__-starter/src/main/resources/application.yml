@@ -1,23 +1,64 @@
 #set( $symbol_dollar = '$' )
 spring:
-  application:
-    name: ${rootArtifactId}
-  datasource:
-    url: jdbc:h2:mem:${rootArtifactId};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  flyway:
-    enabled: true
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
+  profiles:
+    default: local
+  config:
+    import:
+      - optional:file:./config/application-secrets.yml
+      - optional:configtree:/run/secrets/
+  threads:
+    virtual:
+      enabled: ${symbol_dollar}{SPRING_THREADS_VIRTUAL_ENABLED:true}
+  lifecycle:
+    timeout-per-shutdown-phase: ${symbol_dollar}{SHUTDOWN_TIMEOUT:30s}
+  task:
+    execution:
+      thread-name-prefix: ${symbol_dollar}{ASYNC_THREAD_NAME_PREFIX:egon-async-}
+      shutdown:
+        await-termination: true
+        await-termination-period: ${symbol_dollar}{ASYNC_AWAIT_TERMINATION:30s}
+      pool:
+        core-size: ${symbol_dollar}{ASYNC_CORE_SIZE:8}
+        max-size: ${symbol_dollar}{ASYNC_MAX_SIZE:32}
+        queue-capacity: ${symbol_dollar}{ASYNC_QUEUE_CAPACITY:500}
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: ${symbol_dollar}{APP_TIME_ZONE:Asia/Shanghai}
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+server:
+  port: ${symbol_dollar}{SERVER_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: ${symbol_dollar}{TOMCAT_THREADS_MAX:200}
+      min-spare: ${symbol_dollar}{TOMCAT_THREADS_MIN_SPARE:20}
+    accept-count: ${symbol_dollar}{TOMCAT_ACCEPT_COUNT:100}
+    max-connections: ${symbol_dollar}{TOMCAT_MAX_CONNECTIONS:8192}
+    connection-timeout: ${symbol_dollar}{TOMCAT_CONNECTION_TIMEOUT:20s}
+    keep-alive-timeout: ${symbol_dollar}{TOMCAT_KEEP_ALIVE_TIMEOUT:20s}
+    max-keep-alive-requests: ${symbol_dollar}{TOMCAT_MAX_KEEP_ALIVE_REQUESTS:100}
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: ${symbol_dollar}{MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${symbol_dollar}{MANAGEMENT_HEALTH_SHOW_DETAILS:never}
+  health:
+    readinessstate:
+      enabled: true
+    livenessstate:
+      enabled: true
 
 dubbo:
   application:

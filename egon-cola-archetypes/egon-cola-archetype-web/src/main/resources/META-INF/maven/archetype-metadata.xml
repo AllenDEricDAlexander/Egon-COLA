@@ -16,6 +16,8 @@
             <includes>
                 <include>pom.xml</include>
                 <include>lombok.config</include>
+                <include>Dockerfile</include>
+                <include>.dockerignore</include>
             </includes>
         </fileSet>
         <fileSet encoding="UTF-8">
@@ -202,6 +204,7 @@
                     <directory>src/main/resources</directory>
                     <includes>
                         <include>**/*.yml</include>
+                        <include>**/*.properties</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
                     </includes>
@@ -276,8 +279,10 @@
                     <directory>src/main/resources</directory>
                     <includes>
                         <include>**/*.yml</include>
+                        <include>**/*.properties</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
+                        <include>META-INF/**</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">

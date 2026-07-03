@@ -1,0 +1,13 @@
+spring:
+  cloud:
+    discovery:
+      enabled: false
+    nacos:
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+
+dubbo:
+  registry:
+    address: N/A

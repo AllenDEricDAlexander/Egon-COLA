@@ -12,6 +12,23 @@ def assertDir = { path ->
     file
 }
 
+def assertRuntimeConfigFiles = { resourcesDir ->
+    [
+        "bootstrap.yml",
+        "bootstrap-local.yml",
+        "bootstrap-dev.yml",
+        "bootstrap-test.yml",
+        "bootstrap-prod.yml",
+        "application.yml",
+        "application-local.yml",
+        "application-dev.yml",
+        "application-test.yml",
+        "application-prod.yml"
+    ].each {
+        assertFile("${resourcesDir}/${it}")
+    }
+}
+
 def javaFileTexts = { path ->
     def dir = new File(projectDir, path)
     assert dir.isDirectory(): "Expected directory ${path}"
@@ -128,6 +145,10 @@ assert rootPomText.contains("<java.version>21</java.version>")
 assert rootPomText.contains("<lombok.version>1.18.38</lombok.version>")
 assert rootPomText.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
 assert rootPomText.contains("<dubbo.version>3.3.6</dubbo.version>")
+assert rootPomText.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
+assert rootPomText.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
+assert rootPomText.contains("<artifactId>spring-cloud-dependencies</artifactId>")
+assert rootPomText.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
 assert rootPomText.contains("<artifactId>dubbo-bom</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-processor</artifactId>")
@@ -138,6 +159,8 @@ assert !rootPomText.contains("drools")
 assert !rootPomText.contains("mcp")
 
 assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+
+assertRuntimeConfigFiles("student-management-organization-starter/src/main/resources")
 
 def webApplicationYaml = assertFile("student-management-organization-starter/src/main/resources/application.yml").text
 assert webApplicationYaml.contains("dubbo:")
@@ -203,6 +226,7 @@ def applicationPom = modulePom("application")
 def infrastructurePom = modulePom("infrastructure")
 def adapterPom = modulePom("adapter")
 def starterPom = modulePom("starter")
+def starterPomText = assertFile("student-management-organization-starter/pom.xml").text
 
 assert commonPom.artifactId.text() == "student-management-organization-common"
 assert facadePom.artifactId.text() == "student-management-organization-facade"
@@ -271,6 +295,10 @@ assertDependency(starterDependencies, "spring-boot-starter")
 assertDependency(starterDependencies, "spring-boot-starter-actuator")
 assertScopedDependency(starterDependencies, "spring-boot-starter-test", "test")
 assertScopedDependency(starterDependencies, "archunit-junit5", "test")
+assert starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</artifactId>")
+assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
+assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
+assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
 
 assertFile("student-management-organization-common/src/main/java/it/pkg/common/response/Response.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/UserFacade.java")

@@ -1,0 +1,23 @@
+#set( $symbol_dollar = '$' )
+spring:
+  cloud:
+    discovery:
+      enabled: ${symbol_dollar}{DISCOVERY_ENABLED:true}
+    nacos:
+      username: ${symbol_dollar}{NACOS_USERNAME:}
+      password: ${symbol_dollar}{NACOS_PASSWORD:}
+      config:
+        enabled: ${symbol_dollar}{NACOS_CONFIG_ENABLED:true}
+        server-addr: ${symbol_dollar}{NACOS_SERVER_ADDR}
+        namespace: ${symbol_dollar}{NACOS_NAMESPACE:dev}
+        group: ${symbol_dollar}{NACOS_CONFIG_GROUP:DEV_GROUP}
+        refresh-enabled: ${symbol_dollar}{NACOS_CONFIG_REFRESH_ENABLED:true}
+      discovery:
+        enabled: ${symbol_dollar}{NACOS_DISCOVERY_ENABLED:true}
+        server-addr: ${symbol_dollar}{NACOS_SERVER_ADDR}
+        namespace: ${symbol_dollar}{NACOS_NAMESPACE:dev}
+        group: ${symbol_dollar}{NACOS_DISCOVERY_GROUP:DEV_GROUP}
+
+dubbo:
+  registry:
+    address: ${symbol_dollar}{DUBBO_REGISTRY_ADDRESS:nacos://${symbol_dollar}{NACOS_SERVER_ADDR}}

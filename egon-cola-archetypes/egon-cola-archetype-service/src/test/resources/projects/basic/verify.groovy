@@ -20,6 +20,23 @@ def assertDir = { path ->
     file
 }
 
+def assertRuntimeConfigFiles = { resourcesDir ->
+    [
+        "bootstrap.yml",
+        "bootstrap-local.yml",
+        "bootstrap-dev.yml",
+        "bootstrap-test.yml",
+        "bootstrap-prod.yml",
+        "application.yml",
+        "application-local.yml",
+        "application-dev.yml",
+        "application-test.yml",
+        "application-prod.yml"
+    ].each {
+        assertFile("${resourcesDir}/${it}")
+    }
+}
+
 def javaFileTexts = { path ->
     def dir = new File(projectDir, path)
     assert dir.isDirectory(): "Expected directory ${path}"
@@ -76,6 +93,10 @@ assert pom.contains("<java.version>21</java.version>")
 assert pom.contains("<lombok.version>1.18.38</lombok.version>")
 assert pom.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
 assert pom.contains("<dubbo.version>3.3.6</dubbo.version>")
+assert pom.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
+assert pom.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
+assert pom.contains("<artifactId>spring-cloud-dependencies</artifactId>")
+assert pom.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
 assert pom.contains("<artifactId>dubbo-bom</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-processor</artifactId>")
@@ -92,6 +113,8 @@ assert !pom.contains(webStarter + "flux")
 
 assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
 
+assertRuntimeConfigFiles("student-management-evaluation-starter/src/main/resources")
+
 def adapterPomText = assertFile("student-management-evaluation-adapter/pom.xml").text
 assert adapterPomText.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
 assert adapterPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
@@ -102,6 +125,12 @@ assert applicationPomText.contains("<artifactId>lombok</artifactId>")
 
 def infrastructurePomText = assertFile("student-management-evaluation-infrastructure/pom.xml").text
 assert infrastructurePomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
+
+def starterPomText = assertFile("student-management-evaluation-starter/pom.xml").text
+assert starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</artifactId>")
+assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
+assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
+assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
 
 def assertPomContainsProvidedLombok = { pomPath ->
     def pomXml = new groovy.xml.XmlSlurper(false, false).parse(assertFile(pomPath))

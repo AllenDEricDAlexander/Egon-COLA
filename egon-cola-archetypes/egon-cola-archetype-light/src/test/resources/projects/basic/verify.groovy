@@ -6,6 +6,23 @@ def assertFile = { path ->
     file
 }
 
+def assertRuntimeConfigFiles = { resourcesDir ->
+    [
+        "bootstrap.yml",
+        "bootstrap-local.yml",
+        "bootstrap-dev.yml",
+        "bootstrap-test.yml",
+        "bootstrap-prod.yml",
+        "application.yml",
+        "application-local.yml",
+        "application-dev.yml",
+        "application-test.yml",
+        "application-prod.yml"
+    ].each {
+        assertFile("${resourcesDir}/${it}")
+    }
+}
+
 def javaFileTexts = { path ->
     def dir = new File(generatedProjectDir, path)
     assert dir.isDirectory(): "Expected directory ${path}"
@@ -42,15 +59,27 @@ assert pom.contains("<java.version>21</java.version>")
 assert pom.contains("<lombok.version>1.18.38</lombok.version>")
 assert pom.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
 assert pom.contains("<dubbo.version>3.3.6</dubbo.version>")
+assert pom.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
+assert pom.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
+assert pom.contains("<artifactId>spring-cloud-dependencies</artifactId>")
+assert pom.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-processor</artifactId>")
-assert !pom.contains("spring-boot-dependencies")
+assert pom.contains("<artifactId>spring-boot-dependencies</artifactId>")
 assert !pom.contains("spring-ai")
 assert !pom.contains("drools")
 assert !pom.contains("mcp")
 
+def starterPomText = pom
+assert starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</artifactId>")
+assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
+assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
+assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
+
 assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+
+assertRuntimeConfigFiles("src/main/resources")
 
 def applicationYaml = assertFile("src/main/resources/application.yml").text
 assert applicationYaml.contains("dubbo:")
