@@ -8,6 +8,7 @@ import ${package}.facade.api.StudentManagementFacade;
 import ${package}.facade.dto.AssignCourseRequest;
 import ${package}.facade.dto.CourseDTO;
 import ${package}.facade.dto.CreateCourseRequest;
+import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.RegisterStudentRequest;
 import ${package}.facade.dto.StudentDTO;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,11 @@ public class StudentManagementFacadeImpl implements StudentManagementFacade {
     @Override
     public StudentDTO getStudent(String studentId) {
         return studentAdapterConverter.toDto(studentManage.getById(studentId));
+    }
+
+    @Override
+    public PageResponse<StudentDTO> getStudents(int currentPage, int pageSize) {
+        return studentAdapterConverter.toPageResponse(studentManage.getPage(currentPage, pageSize));
     }
 
     @Override

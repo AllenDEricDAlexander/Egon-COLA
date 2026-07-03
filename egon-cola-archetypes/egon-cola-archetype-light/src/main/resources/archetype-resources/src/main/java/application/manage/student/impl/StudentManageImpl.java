@@ -5,6 +5,7 @@ import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.exceptions.NotFoundException;
 import ${package}.common.utils.IdGenerator;
+import ${package}.domain.common.Page;
 import ${package}.domain.student.model.Student;
 import ${package}.domain.student.repos.StudentRepository;
 import ${package}.domain.student.service.StudentDomainService;
@@ -42,5 +43,11 @@ public class StudentManageImpl implements StudentManage {
     public Student getById(String studentId) {
         return studentRepository.findById(studentId)
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.STUDENT_NOT_FOUND, "student not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Student> getPage(int currentPage, int pageSize) {
+        return studentRepository.findPage(currentPage, pageSize);
     }
 }

@@ -7,16 +7,20 @@ import ${package}.adapter.convertor.CourseAdapterConverter;
 import ${package}.adapter.convertor.StudentAdapterConverter;
 import ${package}.application.manage.student.StudentManage;
 import ${package}.application.manage.teaching.CourseManage;
+import ${package}.domain.common.Page;
 import ${package}.domain.student.model.Student;
 import ${package}.domain.teaching.model.Course;
 import ${package}.facade.api.StudentManagementFacade;
-import ${package}.facade.dto.RegisterStudentRequest;
 import ${package}.facade.dto.CourseDTO;
+import ${package}.facade.dto.PageResponse;
+import ${package}.facade.dto.RegisterStudentRequest;
 import ${package}.facade.dto.StudentDTO;
 import ${package}.start.StudentManagementApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,5 +61,29 @@ class StudentManagementFlowTest {
         StudentDTO facadeStudent = studentManagementFacade.registerStudent(
                 new RegisterStudentRequest("Luigi", "luigi@example.com"));
         assertThat(facadeStudent.getEmail()).isEqualTo("luigi@example.com");
+    }
+
+    @Test
+    void get_student_page_returns_domain_page_and_facade_page() {
+        String suffix = UUID.randomUUID().toString();
+        String marioEmail = "mario-" + suffix + "@example.com";
+        String luigiEmail = "luigi-" + suffix + "@example.com";
+
+        studentManage.register("Mario", marioEmail);
+        studentManagementFacade.registerStudent(new RegisterStudentRequest("Luigi", luigiEmail));
+
+        Page<Student> studentPage = studentManage.getPage(1, 10);
+        assertThat(studentPage.records()).extracting(Student::getEmail)
+                .contains(marioEmail, luigiEmail);
+        assertThat(studentPage.currentPage()).isEqualTo(1);
+        assertThat(studentPage.pageSize()).isEqualTo(10);
+        assertThat(studentPage.totalCount()).isGreaterThanOrEqualTo(2);
+
+        PageResponse<StudentDTO> facadePage = studentManagementFacade.getStudents(1, 10);
+        assertThat(facadePage.records()).extracting(StudentDTO::getEmail)
+                .contains(marioEmail, luigiEmail);
+        assertThat(facadePage.currentPage()).isEqualTo(1);
+        assertThat(facadePage.pageSize()).isEqualTo(10);
+        assertThat(facadePage.totalCount()).isGreaterThanOrEqualTo(2);
     }
 }

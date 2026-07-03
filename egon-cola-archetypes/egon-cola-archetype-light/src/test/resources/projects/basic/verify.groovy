@@ -131,7 +131,7 @@ assert studentRepositoryText.contains("Page<Student> findPage(int currentPage, i
 assert studentRepositoryText.contains("import it.pkg.domain.common.Page;")
 
 def studentControllerText = assertFile("src/main/java/it/pkg/adapter/controller/student/StudentController.java").text
-assert studentControllerText.contains("PageResponse<StudentDTO> getPage")
+assert studentControllerText.contains("SingleResponse<PageResponse<StudentDTO>> getPage")
 assert studentControllerText.contains("studentAdapterConverter.toPageResponse(studentManage.getPage(currentPage, pageSize))")
 
 def studentFacadeText = assertFile("src/main/java/it/pkg/facade/api/StudentManagementFacade.java").text

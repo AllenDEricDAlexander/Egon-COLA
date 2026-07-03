@@ -39,9 +39,11 @@ ${symbol_pound}${symbol_pound} Clean Architecture Boundary Rules
 
 - `application.manage` returns domain models or simple values only.
 - `adapter` converts domain models to HTTP, RPC, or MQ-facing objects.
+- Application pagination returns `Page<DomainModel>`; adapter converts it to external `PageResponse<DTO>` for HTTP and Dubbo.
 - `facade` defines Dubbo3 RPC contracts.
 - `adapter` exposes facade implementations through Dubbo3 Triple.
 - Converters use MapStruct Plus for flat model mapping and explicit Java code for semantic mapping.
+- Converter wrappers use concrete MapStruct Plus mapper components, not the generic `Converter` bean.
 - Spring Beans are named ordinary classes using Lombok `@RequiredArgsConstructor`; injected dependencies use `@Qualifier`.
 - The generated project does not include native grpc-java services.
 

@@ -3,6 +3,7 @@ package ${package}.adapter.controller.student;
 import ${package}.adapter.convertor.StudentAdapterConverter;
 import ${package}.application.manage.student.StudentManage;
 import ${package}.common.response.SingleResponse;
+import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.RegisterStudentRequest;
 import ${package}.facade.dto.StudentDTO;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController("studentController")
@@ -33,5 +35,12 @@ public class StudentController {
     @GetMapping("/{studentId}")
     public SingleResponse<StudentDTO> getById(@PathVariable String studentId) {
         return SingleResponse.of(studentAdapterConverter.toDto(studentManage.getById(studentId)));
+    }
+
+    @GetMapping
+    public SingleResponse<PageResponse<StudentDTO>> getPage(
+            @RequestParam(defaultValue = "1") int currentPage,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return SingleResponse.of(studentAdapterConverter.toPageResponse(studentManage.getPage(currentPage, pageSize)));
     }
 }

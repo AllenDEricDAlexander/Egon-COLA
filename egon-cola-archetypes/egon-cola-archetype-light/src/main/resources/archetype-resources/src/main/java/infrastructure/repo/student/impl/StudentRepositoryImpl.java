@@ -1,5 +1,6 @@
 package ${package}.infrastructure.repo.student.impl;
 
+import ${package}.domain.common.Page;
 import ${package}.domain.student.model.Student;
 import ${package}.domain.student.repos.StudentRepository;
 import ${package}.infrastructure.repo.student.converter.StudentPoConverter;
@@ -9,6 +10,8 @@ import ${package}.infrastructure.repo.student.po.StudentCoursePo;
 import ${package}.infrastructure.repo.student.po.StudentPo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -41,6 +44,22 @@ public class StudentRepositoryImpl implements StudentRepository {
     public Optional<Student> findById(String studentId) {
         return studentJpaRepository.findById(studentId)
                 .map(studentPo -> studentPoConverter.toDomain(studentPo, studentCourseJpaRepository.findByStudentId(studentId)));
+    }
+
+    @Override
+    public Page<Student> findPage(int currentPage, int pageSize) {
+        Pageable pageable = PageRequest.of(Math.max(currentPage, 1) - 1, pageSize);
+        org.springframework.data.domain.Page<StudentPo> page = studentJpaRepository.findAll(pageable);
+        return Page.of(
+                page.getContent().stream()
+                        .map(studentPo -> studentPoConverter.toDomain(
+                                studentPo,
+                                studentCourseJpaRepository.findByStudentId(studentPo.getId())))
+                        .toList(),
+                currentPage,
+                page.getTotalPages(),
+                pageSize,
+                page.getTotalElements());
     }
 
     @Override
