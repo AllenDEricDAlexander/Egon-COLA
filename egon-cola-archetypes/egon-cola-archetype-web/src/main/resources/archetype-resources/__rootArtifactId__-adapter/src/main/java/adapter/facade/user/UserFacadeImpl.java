@@ -2,6 +2,7 @@ package ${package}.adapter.facade.user;
 
 import ${package}.adapter.convertor.UserAdapterConverter;
 import ${package}.application.manage.user.UserManage;
+import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.user.CreateUserRequest;
 import ${package}.facade.dto.user.UserDTO;
 import ${package}.facade.user.UserFacade;
@@ -32,5 +33,10 @@ public class UserFacadeImpl implements UserFacade {
     @Override
     public UserDTO getUser(String userId) {
         return userAdapterConverter.toDto(userManage.getById(userId));
+    }
+
+    @Override
+    public PageResponse<UserDTO> getUsers(int currentPage, int pageSize) {
+        return userAdapterConverter.toPageResponse(userManage.getPage(currentPage, pageSize));
     }
 }

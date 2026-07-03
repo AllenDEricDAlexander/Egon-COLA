@@ -5,6 +5,7 @@ import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.exceptions.NotFoundException;
 import ${package}.common.utils.IdGenerator;
+import ${package}.domain.common.Page;
 import ${package}.domain.entities.user.User;
 import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.service.user.UserDomainService;
@@ -37,5 +38,11 @@ public class UserManageImpl implements UserManage {
     public User getById(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.USER_NOT_FOUND, "user not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<User> getPage(int currentPage, int pageSize) {
+        return userRepository.findPage(currentPage, pageSize);
     }
 }

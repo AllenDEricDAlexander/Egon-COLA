@@ -9,9 +9,13 @@ import ${package}.application.manage.user.UserManage;
 import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.response.Response;
+import ${package}.domain.common.Page;
 import ${package}.domain.entities.teaching.SchoolClass;
 import ${package}.domain.entities.user.User;
+import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.teaching.AssignUserToClassRequest;
+import ${package}.facade.dto.user.CreateUserRequest;
+import ${package}.facade.dto.user.UserDTO;
 import ${package}.facade.teaching.SchoolClassFacade;
 import ${package}.facade.user.UserFacade;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassUserJpaRepository;
@@ -24,6 +28,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -67,6 +73,30 @@ class OrganizationFlowTest {
         User saved = userManage.getById(user.getId());
         assertThat(saved.getEmail()).isEqualTo("mario@example.com");
         assertThat(saved.getSchoolClassIds()).containsExactly(schoolClass.getId());
+    }
+
+    @Test
+    void get_user_page_returns_domain_page_and_facade_page() {
+        String suffix = UUID.randomUUID().toString();
+        String marioEmail = "mario-" + suffix + "@example.com";
+        String luigiEmail = "luigi-" + suffix + "@example.com";
+
+        userManage.create("Mario", marioEmail);
+        userFacade.createUser(new CreateUserRequest("Luigi", luigiEmail));
+
+        Page<User> userPage = userManage.getPage(1, 10);
+        assertThat(userPage.records()).extracting(User::getEmail)
+                .contains(marioEmail, luigiEmail);
+        assertThat(userPage.currentPage()).isEqualTo(1);
+        assertThat(userPage.pageSize()).isEqualTo(10);
+        assertThat(userPage.totalCount()).isGreaterThanOrEqualTo(2);
+
+        PageResponse<UserDTO> facadePage = userFacade.getUsers(1, 10);
+        assertThat(facadePage.records()).extracting(UserDTO::getEmail)
+                .contains(marioEmail, luigiEmail);
+        assertThat(facadePage.currentPage()).isEqualTo(1);
+        assertThat(facadePage.pageSize()).isEqualTo(10);
+        assertThat(facadePage.totalCount()).isGreaterThanOrEqualTo(2);
     }
 
     @Test

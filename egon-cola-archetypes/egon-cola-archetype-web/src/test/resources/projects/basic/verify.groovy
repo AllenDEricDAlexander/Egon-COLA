@@ -347,7 +347,7 @@ assert userRepositoryText.contains("Page<User> findPage(int currentPage, int pag
 assert userRepositoryText.contains("import it.pkg.domain.common.Page;")
 
 def userControllerText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java").text
-assert userControllerText.contains("PageResponse<UserDTO> getPage")
+assert userControllerText.contains("SingleResponse<PageResponse<UserDTO>> getPage")
 assert userControllerText.contains("userAdapterConverter.toPageResponse(userManage.getPage(currentPage, pageSize))")
 
 def userFacadeTextAfterPage = assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/UserFacade.java").text
