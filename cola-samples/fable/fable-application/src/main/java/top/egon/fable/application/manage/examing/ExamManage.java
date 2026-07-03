@@ -1,10 +1,10 @@
 package top.egon.fable.application.manage.examing;
 
-import top.egon.fable.application.view.examing.ExamResultView;
+import top.egon.fable.domain.entities.examing.ExamResult;
 
 public interface ExamManage {
 
-    ExamResultView record(String courseId, String studentId, int score);
+    ExamResult record(String courseId, String studentId, int score);
 
-    ExamResultView getById(String examResultId);
+    ExamResult getById(String examResultId);
 }

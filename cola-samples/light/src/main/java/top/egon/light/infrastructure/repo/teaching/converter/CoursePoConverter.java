@@ -2,18 +2,27 @@ package top.egon.light.infrastructure.repo.teaching.converter;
 
 import top.egon.light.domain.teaching.model.Course;
 import top.egon.light.infrastructure.repo.teaching.po.CoursePo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-public final class CoursePoConverter {
-    private CoursePoConverter() {
+@Component("coursePoConverter")
+@RequiredArgsConstructor
+public class CoursePoConverter {
+    @Qualifier("coursePoMapperImpl")
+    private final CoursePoMapper coursePoMapper;
+
+    @Qualifier("courseDomainMapperImpl")
+    private final CourseDomainMapper courseDomainMapper;
+
+    public CoursePo toPo(Course course) {
+        CoursePo coursePo = coursePoMapper.convert(course);
+        return new CoursePo(coursePo.getId(), coursePo.getName(), coursePo.getDescription(), LocalDateTime.now());
     }
 
-    public static CoursePo toPo(Course course) {
-        return new CoursePo(course.getId(), course.getName(), course.getDescription(), LocalDateTime.now());
-    }
-
-    public static Course toDomain(CoursePo coursePo) {
-        return Course.create(coursePo.getId(), coursePo.getName(), coursePo.getDescription());
+    public Course toDomain(CoursePo coursePo) {
+        return courseDomainMapper.convert(coursePo);
     }
 }

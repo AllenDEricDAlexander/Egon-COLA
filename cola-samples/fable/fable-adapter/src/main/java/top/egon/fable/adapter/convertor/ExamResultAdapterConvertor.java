@@ -1,25 +1,29 @@
 package top.egon.fable.adapter.convertor;
 
-import top.egon.fable.application.view.examing.ExamResultView;
+import top.egon.fable.domain.entities.examing.ExamResult;
+import top.egon.fable.domain.enums.ExamResultStatus;
 import top.egon.fable.facade.dto.examing.ExamResultDTO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("examResultAdapterConvertor")
+@RequiredArgsConstructor
 public class ExamResultAdapterConvertor {
 
-    public ExamResultDTO toDTO(ExamResultView examResultView) {
-        return new ExamResultDTO(
-                examResultView.id(),
-                examResultView.courseId(),
-                examResultView.studentId(),
-                examResultView.score(),
-                toFacadeStatus(examResultView.status(), examResultView.score()));
+    @Qualifier("examResultAdapterMapperImpl")
+    private final ExamResultAdapterMapper examResultAdapterMapper;
+
+    public ExamResultDTO toDTO(ExamResult examResult) {
+        ExamResultDTO examResultDTO = examResultAdapterMapper.convert(examResult);
+        examResultDTO.setStatus(toFacadeStatus(examResult.getStatus(), examResult.getScore()));
+        return examResultDTO;
     }
 
-    private String toFacadeStatus(String status, int score) {
-        if ("RECORDED".equals(status)) {
+    private String toFacadeStatus(ExamResultStatus status, int score) {
+        if (ExamResultStatus.RECORDED == status) {
             return score >= 60 ? "PASSED" : "FAILED";
         }
-        return status;
+        return status.name();
     }
 }

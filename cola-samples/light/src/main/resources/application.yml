@@ -15,3 +15,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:N/A}
+  protocol:
+    name: tri
+    port: ${DUBBO_PORT:50051}
+  provider:
+    timeout: 3000
+    retries: 0

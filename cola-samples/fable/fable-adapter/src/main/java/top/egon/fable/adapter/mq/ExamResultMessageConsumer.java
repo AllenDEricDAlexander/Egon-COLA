@@ -4,27 +4,26 @@ import top.egon.fable.adapter.convertor.ExamResultAdapterConvertor;
 import top.egon.fable.adapter.dto.ExamResultMessage;
 import top.egon.fable.adapter.handler.ServiceExceptionHandler;
 import top.egon.fable.application.manage.examing.ExamManage;
-import top.egon.fable.application.view.examing.ExamResultView;
 import top.egon.fable.common.exception.BizException;
+import top.egon.fable.domain.entities.examing.ExamResult;
 import top.egon.fable.facade.dto.examing.ExamResultDTO;
 import top.egon.fable.facade.dto.SingleResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("examResultMessageConsumer")
+@RequiredArgsConstructor
 public class ExamResultMessageConsumer {
 
+    @Qualifier("examManage")
     private final ExamManage examManage;
 
+    @Qualifier("examResultAdapterConvertor")
     private final ExamResultAdapterConvertor examResultAdapterConvertor;
 
+    @Qualifier("serviceExceptionHandler")
     private final ServiceExceptionHandler serviceExceptionHandler;
-
-    public ExamResultMessageConsumer(ExamManage examManage, ExamResultAdapterConvertor examResultAdapterConvertor,
-            ServiceExceptionHandler serviceExceptionHandler) {
-        this.examManage = examManage;
-        this.examResultAdapterConvertor = examResultAdapterConvertor;
-        this.serviceExceptionHandler = serviceExceptionHandler;
-    }
 
     public SingleResponse<ExamResultDTO> consume(ExamResultMessage message) {
         if (message == null) {
@@ -40,8 +39,8 @@ public class ExamResultMessageConsumer {
             return serviceExceptionHandler.handleSingle(new BizException("invalid exam result"));
         }
         try {
-            ExamResultView examResultView = examManage.record(message.courseId(), message.studentId(), message.score());
-            return SingleResponse.of(examResultAdapterConvertor.toDTO(examResultView));
+            ExamResult examResult = examManage.record(message.courseId(), message.studentId(), message.score());
+            return SingleResponse.of(examResultAdapterConvertor.toDTO(examResult));
         } catch (BizException exception) {
             return serviceExceptionHandler.handleSingle(exception);
         } catch (Exception exception) {

@@ -44,8 +44,20 @@ class ArchitectureDependencyTest {
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "top.egon.light.adapter..",
                         "top.egon.light.facade..",
+                        "top.egon.light.common.response..",
                         "top.egon.light.infrastructure..",
                         "top.egon.light.start..")
+                .check(classes);
+    }
+
+    @Test
+    void application_should_not_depend_on_external_models() {
+        noClasses().that().resideInAPackage("top.egon.light.application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "top.egon.light.adapter..",
+                        "top.egon.light.facade.dto..",
+                        "top.egon.light.common.response..",
+                        "org.springframework.web..")
                 .check(classes);
     }
 
@@ -53,7 +65,6 @@ class ArchitectureDependencyTest {
     void adapter_only_depends_on_application_facade_and_common() {
         noClasses().that().resideInAPackage("top.egon.light.adapter..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "top.egon.light.domain..",
                         "top.egon.light.infrastructure..",
                         "top.egon.light.start..")
                 .check(classes);

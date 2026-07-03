@@ -7,7 +7,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("serviceExceptionHandler")
 public class ServiceExceptionHandler {
 
     private static final Log LOGGER = LogFactory.getLog(ServiceExceptionHandler.class);

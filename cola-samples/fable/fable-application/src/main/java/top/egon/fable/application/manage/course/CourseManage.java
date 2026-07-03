@@ -1,10 +1,13 @@
 package top.egon.fable.application.manage.course;
 
-import top.egon.fable.application.view.course.CourseView;
+import top.egon.fable.domain.common.Page;
+import top.egon.fable.domain.entities.course.Course;
 
 public interface CourseManage {
 
-    CourseView create(String name, int credit);
+    Course create(String name, int credit);
 
-    CourseView getById(String courseId);
+    Course getById(String courseId);
+
+    Page<Course> getPage(int currentPage, int pageSize);
 }

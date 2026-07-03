@@ -3,29 +3,32 @@ package top.egon.fable.adapter.facade.impl;
 import top.egon.fable.adapter.convertor.ExamResultAdapterConvertor;
 import top.egon.fable.adapter.handler.ServiceExceptionHandler;
 import top.egon.fable.application.manage.examing.ExamManage;
-import top.egon.fable.application.view.examing.ExamResultView;
 import top.egon.fable.common.exception.BizException;
+import top.egon.fable.domain.entities.examing.ExamResult;
 import top.egon.fable.facade.api.ExamResultFacade;
 import top.egon.fable.facade.dto.SingleResponse;
 import top.egon.fable.facade.dto.examing.ExamResultDTO;
 import top.egon.fable.facade.dto.examing.RecordExamResultRequest;
-import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.annotation.Qualifier;
 
-@Component
+@DubboService(
+        interfaceClass = ExamResultFacade.class,
+        version = "1.0.0",
+        group = "exam-result"
+)
+@RequiredArgsConstructor
 public class ExamResultFacadeImpl implements ExamResultFacade {
 
+    @Qualifier("examManage")
     private final ExamManage examManage;
 
+    @Qualifier("examResultAdapterConvertor")
     private final ExamResultAdapterConvertor examResultAdapterConvertor;
 
+    @Qualifier("serviceExceptionHandler")
     private final ServiceExceptionHandler serviceExceptionHandler;
-
-    public ExamResultFacadeImpl(ExamManage examManage, ExamResultAdapterConvertor examResultAdapterConvertor,
-            ServiceExceptionHandler serviceExceptionHandler) {
-        this.examManage = examManage;
-        this.examResultAdapterConvertor = examResultAdapterConvertor;
-        this.serviceExceptionHandler = serviceExceptionHandler;
-    }
 
     @Override
     public SingleResponse<ExamResultDTO> record(RecordExamResultRequest request) {
@@ -42,8 +45,8 @@ public class ExamResultFacadeImpl implements ExamResultFacade {
             return serviceExceptionHandler.handleSingle(new BizException("invalid exam result"));
         }
         try {
-            ExamResultView examResultView = examManage.record(request.courseId(), request.studentId(), request.score());
-            return SingleResponse.of(examResultAdapterConvertor.toDTO(examResultView));
+            ExamResult examResult = examManage.record(request.courseId(), request.studentId(), request.score());
+            return SingleResponse.of(examResultAdapterConvertor.toDTO(examResult));
         } catch (BizException exception) {
             return serviceExceptionHandler.handleSingle(exception);
         } catch (Exception exception) {

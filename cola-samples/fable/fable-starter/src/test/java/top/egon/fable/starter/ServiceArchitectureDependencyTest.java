@@ -44,7 +44,8 @@ class ServiceArchitectureDependencyTest {
                         "org.springframework.amqp..",
                         "com.rabbitmq..",
                         "org.apache.dubbo..",
-                        "io.grpc..")
+                        "io.grpc..",
+                        "top.egon.fable..grpc..")
                 .check(importedClasses);
     }
 
@@ -55,6 +56,27 @@ class ServiceArchitectureDependencyTest {
                         "top.egon.fable.adapter..",
                         "top.egon.fable.infrastructure..",
                         "top.egon.fable.facade..",
+                        "top.egon.fable.facade.dto..",
+                        "top.egon.fable.common.response..",
+                        "org.springframework.web..",
+                        "top.egon.fable.starter..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void projectShouldNotDependOnNativeGrpc() {
+        noClasses().should().dependOnClassesThat().resideInAnyPackage("io.grpc..", "top.egon.fable..grpc..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void facadeShouldNotDependOnImplementationLayers() {
+        noClasses().that().resideInAPackage("top.egon.fable.facade..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "top.egon.fable.domain..",
+                        "top.egon.fable.application..",
+                        "top.egon.fable.adapter..",
+                        "top.egon.fable.infrastructure..",
                         "top.egon.fable.starter..")
                 .check(importedClasses);
     }

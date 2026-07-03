@@ -6,25 +6,28 @@ import java.util.Optional;
 
 import top.egon.fable.common.constants.ErrorCodes;
 import top.egon.fable.common.exception.BizException;
+import top.egon.fable.domain.common.Page;
 import top.egon.fable.domain.entities.course.Course;
 import top.egon.fable.domain.repos.course.CourseRepository;
 import top.egon.fable.infrastructure.repo.course.converter.CourseConverter;
 import top.egon.fable.infrastructure.repo.course.jpa.CourseJpaRepository;
 import top.egon.fable.infrastructure.repo.course.po.CoursePo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
-@Repository
+@Repository("courseRepositoryImpl")
+@RequiredArgsConstructor
 public class CourseRepositoryImpl implements CourseRepository {
 
+    @Qualifier("courseJpaRepository")
     private final CourseJpaRepository courseJpaRepository;
 
+    @Qualifier("courseConverter")
     private final CourseConverter courseConverter;
-
-    public CourseRepositoryImpl(CourseJpaRepository courseJpaRepository, CourseConverter courseConverter) {
-        this.courseJpaRepository = courseJpaRepository;
-        this.courseConverter = courseConverter;
-    }
 
     @Override
     public Course save(Course course) {
@@ -46,6 +49,20 @@ public class CourseRepositoryImpl implements CourseRepository {
     @Override
     public Optional<Course> findById(String courseId) {
         return courseJpaRepository.findById(courseId).map(courseConverter::toDomain);
+    }
+
+    @Override
+    public Page<Course> findPage(int currentPage, int pageSize) {
+        Pageable pageable = PageRequest.of(Math.max(currentPage, 1) - 1, pageSize);
+        org.springframework.data.domain.Page<CoursePo> page = courseJpaRepository.findAll(pageable);
+        return Page.of(
+                page.getContent().stream()
+                        .map(courseConverter::toDomain)
+                        .toList(),
+                currentPage,
+                page.getTotalPages(),
+                pageSize,
+                page.getTotalElements());
     }
 
     @Override

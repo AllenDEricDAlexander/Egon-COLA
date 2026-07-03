@@ -8,6 +8,7 @@ The project demonstrates a large-monolith light domain architecture. The layers 
 start / adapter / facade / application / infrastructure / common / domain
 ```
 
+## Package Roles
 
 `start` contains the Spring Boot entry point and boot-level configuration.
 
@@ -23,6 +24,7 @@ start / adapter / facade / application / infrastructure / common / domain
 
 `common` contains project-local response, exception, constant, and utility types.
 
+## Dependency Direction
 
 The main call direction is:
 
@@ -33,9 +35,27 @@ adapter -> application -> domain -> common
 Infrastructure implements domain repository ports. Domain code must not depend on infrastructure, adapter, or
 application code. Facade code must stay independent from internal layers.
 
+## Clean Architecture Boundary Rules
+
+- `application.manage` returns domain models or simple values only.
+- `adapter` converts domain models to HTTP, RPC, or MQ-facing objects.
+- Application pagination returns `Page<DomainModel>`; adapter converts it to external `PageResponse<DTO>` for HTTP and
+  Dubbo.
+- `facade` defines Dubbo3 RPC contracts.
+- `adapter` exposes facade implementations through Dubbo3 Triple.
+- Converters use MapStruct Plus for flat model mapping and explicit Java code for semantic mapping.
+- Converter wrappers use concrete MapStruct Plus mapper components, not the generic `Converter` bean.
+- Spring Beans are named ordinary classes using Lombok `@RequiredArgsConstructor`; injected dependencies use
+  `@Qualifier`.
+- The generated project does not include native grpc-java services.
+
+## Sample Use Cases
+
 - Register a student.
 - Create a course.
 - Assign a course to a student through application-layer orchestration.
+
+## Local Commands
 
 ```bash
 ./mvnw test

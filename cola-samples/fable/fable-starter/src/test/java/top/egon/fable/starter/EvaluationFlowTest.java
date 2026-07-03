@@ -7,13 +7,16 @@ import java.util.UUID;
 
 import top.egon.fable.adapter.dto.ExamResultMessage;
 import top.egon.fable.adapter.mq.ExamResultMessageConsumer;
+import top.egon.fable.application.manage.course.CourseManage;
 import top.egon.fable.common.constants.ErrorCodes;
 import top.egon.fable.common.exception.BizException;
+import top.egon.fable.domain.common.Page;
 import top.egon.fable.domain.entities.course.Course;
 import top.egon.fable.domain.enums.CourseStatus;
 import top.egon.fable.domain.repos.course.CourseRepository;
 import top.egon.fable.facade.api.CourseFacade;
 import top.egon.fable.facade.api.ExamResultFacade;
+import top.egon.fable.facade.dto.PageResponse;
 import top.egon.fable.facade.dto.SingleResponse;
 import top.egon.fable.facade.dto.course.CourseDTO;
 import top.egon.fable.facade.dto.course.CreateCourseRequest;
@@ -37,6 +40,9 @@ class EvaluationFlowTest {
     private ExamResultMessageConsumer examResultMessageConsumer;
 
     @Autowired
+    private CourseManage courseManage;
+
+    @Autowired
     private CourseRepository courseRepository;
 
     @Test
@@ -44,14 +50,14 @@ class EvaluationFlowTest {
         SingleResponse<CourseDTO> courseResponse = courseFacade.createCourse(new CreateCourseRequest("Mathematics", 3));
 
         assertThat(courseResponse.isSuccess()).isTrue();
-        assertThat(courseResponse.getData().status()).isEqualTo("ENABLED");
+        assertThat(courseResponse.getData().getStatus()).isEqualTo("ENABLED");
 
         CourseDTO course = courseResponse.getData();
         SingleResponse<ExamResultDTO> examResultResponse = examResultMessageConsumer.consume(
-                new ExamResultMessage(course.id(), "student-001", 90));
+                new ExamResultMessage(course.getId(), "student-001", 90));
 
         assertThat(examResultResponse.isSuccess()).isTrue();
-        assertThat(examResultResponse.getData().status()).isEqualTo("PASSED");
+        assertThat(examResultResponse.getData().getStatus()).isEqualTo("PASSED");
     }
 
     @Test
@@ -102,6 +108,29 @@ class EvaluationFlowTest {
 
         assertThatThrownBy(() -> courseRepository.save(invalidCourse))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void shouldReturnCoursePageFromApplicationAndFacade() {
+        Course firstCourse = courseManage.create("Course-" + UUID.randomUUID(), 2);
+        Course secondCourse = courseManage.create("Course-" + UUID.randomUUID(), 3);
+
+        Page<Course> coursePage = courseManage.getPage(1, 10);
+        assertThat(coursePage.records()).extracting(Course::getName)
+                .contains(firstCourse.getName(), secondCourse.getName());
+        assertThat(coursePage.currentPage()).isEqualTo(1);
+        assertThat(coursePage.pageSize()).isEqualTo(10);
+        assertThat(coursePage.totalCount()).isGreaterThanOrEqualTo(2);
+
+        SingleResponse<PageResponse<CourseDTO>> facadeResponse = courseFacade.getCourses(1, 10);
+        assertThat(facadeResponse.isSuccess()).isTrue();
+
+        PageResponse<CourseDTO> facadePage = facadeResponse.getData();
+        assertThat(facadePage.records()).extracting(CourseDTO::getName)
+                .contains(firstCourse.getName(), secondCourse.getName());
+        assertThat(facadePage.currentPage()).isEqualTo(1);
+        assertThat(facadePage.pageSize()).isEqualTo(10);
+        assertThat(facadePage.totalCount()).isGreaterThanOrEqualTo(2);
     }
 
     private void assertBizFailure(SingleResponse<?> response) {

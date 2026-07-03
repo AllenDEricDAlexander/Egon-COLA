@@ -1,33 +1,38 @@
 package top.egon.fable.infrastructure.repo.examing.converter;
 
-import java.time.LocalDateTime;
-
 import top.egon.fable.domain.entities.examing.ExamResult;
 import top.egon.fable.domain.enums.ExamResultStatus;
 import top.egon.fable.infrastructure.repo.examing.po.ExamResultPo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-@Component
+import java.time.LocalDateTime;
+
+@Component("examResultConverter")
+@RequiredArgsConstructor
 public class ExamResultConverter {
 
+    @Qualifier("examResultPoMapperImpl")
+    private final ExamResultPoMapper examResultPoMapper;
+
+    @Qualifier("examResultDomainMapperImpl")
+    private final ExamResultDomainMapper examResultDomainMapper;
+
     public ExamResultPo toPo(ExamResult examResult, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        ExamResultPo examResultPo = new ExamResultPo();
-        examResultPo.setId(examResult.getId());
-        examResultPo.setCourseId(examResult.getCourseId());
-        examResultPo.setStudentId(examResult.getStudentId());
-        examResultPo.setScore(examResult.getScore());
-        examResultPo.setStatus(examResult.getStatus().name());
-        examResultPo.setCreatedAt(createdAt);
-        examResultPo.setUpdatedAt(updatedAt);
-        return examResultPo;
+        ExamResultPo examResultPo = examResultPoMapper.convert(examResult);
+        return new ExamResultPo(
+                examResultPo.getId(),
+                examResultPo.getCourseId(),
+                examResultPo.getStudentId(),
+                examResultPo.getScore(),
+                examResult.getStatus().name(),
+                createdAt,
+                updatedAt);
     }
 
     public ExamResult toDomain(ExamResultPo examResultPo) {
-        ExamResult examResult = new ExamResult();
-        examResult.setId(examResultPo.getId());
-        examResult.setCourseId(examResultPo.getCourseId());
-        examResult.setStudentId(examResultPo.getStudentId());
-        examResult.setScore(examResultPo.getScore());
+        ExamResult examResult = examResultDomainMapper.convert(examResultPo);
         examResult.setStatus(ExamResultStatus.valueOf(examResultPo.getStatus()));
         return examResult;
     }

@@ -7,24 +7,27 @@ import top.egon.light.common.response.SingleResponse;
 import top.egon.light.facade.dto.CourseDTO;
 import top.egon.light.facade.dto.CreateCourseRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@RestController("courseController")
 @RequestMapping("/courses")
+@RequiredArgsConstructor
 public class CourseController {
+    @Qualifier("courseManage")
     private final CourseManage courseManage;
 
-    public CourseController(CourseManage courseManage) {
-        this.courseManage = courseManage;
-    }
+    @Qualifier("courseAdapterConverter")
+    private final CourseAdapterConverter courseAdapterConverter;
 
     @PostMapping
     public SingleResponse<CourseDTO> create(@Valid @RequestBody CreateCourseRequest request) {
-        return SingleResponse.of(CourseAdapterConverter.toDto(courseManage.create(request.name(), request.description())));
+        return SingleResponse.of(courseAdapterConverter.toDto(courseManage.create(request.name(), request.description())));
     }
 
     @PostMapping("/{courseId}/students/{studentId}")

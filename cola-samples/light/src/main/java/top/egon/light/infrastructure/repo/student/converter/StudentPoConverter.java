@@ -1,25 +1,34 @@
 package top.egon.light.infrastructure.repo.student.converter;
 
 import top.egon.light.domain.student.model.Student;
-import top.egon.light.domain.student.model.StudentStatus;
 import top.egon.light.infrastructure.repo.student.po.StudentCoursePo;
 import top.egon.light.infrastructure.repo.student.po.StudentPo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public final class StudentPoConverter {
-    private StudentPoConverter() {
+@Component("studentPoConverter")
+@RequiredArgsConstructor
+public class StudentPoConverter {
+    @Qualifier("studentPoMapperImpl")
+    private final StudentPoMapper studentPoMapper;
+
+    @Qualifier("studentDomainMapperImpl")
+    private final StudentDomainMapper studentDomainMapper;
+
+    public StudentPo toPo(Student student) {
+        StudentPo studentPo = studentPoMapper.convert(student);
+        return new StudentPo(studentPo.getId(), studentPo.getName(), studentPo.getEmail(), student.getStatus().name(), LocalDateTime.now());
     }
 
-    public static StudentPo toPo(Student student) {
-        return new StudentPo(student.getId(), student.getName(), student.getEmail(), student.getStatus().name(), LocalDateTime.now());
-    }
-
-    public static Student toDomain(StudentPo studentPo, List<StudentCoursePo> coursePos) {
+    public Student toDomain(StudentPo studentPo, List<StudentCoursePo> coursePos) {
         List<String> courseIds = coursePos.stream()
                 .map(StudentCoursePo::getCourseId)
                 .toList();
-        return Student.restore(studentPo.getId(), studentPo.getName(), studentPo.getEmail(), StudentStatus.valueOf(studentPo.getStatus()), courseIds);
+        Student student = studentDomainMapper.convert(studentPo);
+        return Student.restore(student.getId(), student.getName(), student.getEmail(), student.getStatus(), courseIds);
     }
 }
