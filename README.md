@@ -361,6 +361,14 @@ Egon-COLA 使用 Sonatype Central Portal 发布流程。发布前建议先本地
 | [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md)                                                                                             | 多组件工程结构规范。                |
 | [scripts/maven-deploy.md](scripts/maven-deploy.md)                                                                                                                                                                 | Maven Central 发布操作说明。     |
 
+## Project Origin
+
+Egon-COLA was originally forked from [alibaba/COLA](https://github.com/alibaba/COLA).
+
+This repository is now maintained as an independent architecture project.
+The original fork relationship has been intentionally detached to avoid accidental upstream synchronization and to keep
+the project direction independent.
+
 ## License
 
 This project is dual-licensed under the MIT License and the GNU Lesser General Public License v2.1.
