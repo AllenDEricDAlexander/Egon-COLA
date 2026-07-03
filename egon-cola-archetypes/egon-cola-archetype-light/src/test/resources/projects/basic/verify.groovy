@@ -94,6 +94,17 @@ def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
 assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java")
+assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptor.java")
+assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptException.java")
+assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptKeyProvider.java")
+assertFile("src/main/java/it/pkg/start/config/encryption/AesGcmConfigDecryptor.java")
+assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptEnvironmentPostProcessor.java")
+assertFile("src/main/java/it/pkg/start/config/encryption/ConfigCipherCli.java")
+def springFactories = assertFile("src/main/resources/META-INF/spring.factories").text
+assert springFactories.contains("org.springframework.boot.env.EnvironmentPostProcessor")
+assert springFactories.contains("it.pkg.start.config.encryption.ConfigDecryptEnvironmentPostProcessor")
+assertFile("src/test/java/it/pkg/start/config/encryption/AesGcmConfigDecryptorTest.java")
+assertFile("src/test/java/it/pkg/start/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
 def starterText = assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java").text
 assert starterText.contains("@EnableDubbo")
 assert starterText.contains('scanBasePackages = "it.pkg.adapter.facade"')

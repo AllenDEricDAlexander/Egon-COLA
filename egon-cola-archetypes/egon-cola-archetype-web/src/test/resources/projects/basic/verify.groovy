@@ -311,6 +311,17 @@ assertFile("student-management-organization-infrastructure/src/main/resources/db
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java")
 assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java")
+assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/ConfigDecryptor.java")
+assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/ConfigDecryptException.java")
+assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/ConfigDecryptKeyProvider.java")
+assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/AesGcmConfigDecryptor.java")
+assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/ConfigDecryptEnvironmentPostProcessor.java")
+assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/ConfigCipherCli.java")
+def springFactories = assertFile("student-management-organization-starter/src/main/resources/META-INF/spring.factories").text
+assert springFactories.contains("org.springframework.boot.env.EnvironmentPostProcessor")
+assert springFactories.contains("it.pkg.starter.config.encryption.ConfigDecryptEnvironmentPostProcessor")
+assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/AesGcmConfigDecryptorTest.java")
+assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/ArchitectureDependencyTest.java")
 
