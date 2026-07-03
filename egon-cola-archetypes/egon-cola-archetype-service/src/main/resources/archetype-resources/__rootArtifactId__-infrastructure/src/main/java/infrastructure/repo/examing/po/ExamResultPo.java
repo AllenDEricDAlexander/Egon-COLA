@@ -36,59 +36,45 @@ public class ExamResultPo {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public String getId() {
-        return id;
+    protected ExamResultPo() {
     }
 
-    public void setId(String id) {
+    public ExamResultPo(String id, String courseId, String studentId, int score, String status,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
+        this.courseId = courseId;
+        this.studentId = studentId;
+        this.score = score;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getCourseId() {
         return courseId;
     }
 
-    public void setCourseId(String courseId) {
-        this.courseId = courseId;
-    }
-
     public String getStudentId() {
         return studentId;
-    }
-
-    public void setStudentId(String studentId) {
-        this.studentId = studentId;
     }
 
     public int getScore() {
         return score;
     }
 
-    public void setScore(int score) {
-        this.score = score;
-    }
-
     public String getStatus() {
         return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

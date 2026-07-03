@@ -94,6 +94,7 @@ def assertPomContainsProvidedLombok = { pomPath ->
 
 assertPomContainsProvidedLombok("student-management-evaluation-adapter/pom.xml")
 assertPomContainsProvidedLombok("student-management-evaluation-application/pom.xml")
+assertPomContainsProvidedLombok("student-management-evaluation-facade/pom.xml")
 assertPomContainsProvidedLombok("student-management-evaluation-infrastructure/pom.xml")
 
 def serviceApplicationYaml = assertFile("student-management-evaluation-starter/src/main/resources/application.yml").text
@@ -123,3 +124,209 @@ assert modulePomDependencies("application") == ["domain"]
 assert modulePomDependencies("adapter") == ["application", "facade"]
 assert modulePomDependencies("infrastructure") == ["domain"]
 assert modulePomDependencies("starter") == ["adapter", "infrastructure"]
+
+def assertNoMatch = { text, pattern, message ->
+    assert !(text =~ pattern).find(): message
+}
+
+def assertContainsAll = { text, values, label ->
+    values.each {
+        assert text.contains(it): "Expected ${label} to contain ${it}"
+    }
+}
+
+def javaTextUnder = { path ->
+    def dir = new File(projectDir, path)
+    assert dir.isDirectory(): "Expected directory ${path}"
+    dir.traverse(type: groovy.io.FileType.FILES)
+            .findAll { it.name.endsWith(".java") }
+            .collect { it.text }
+            .join("\n")
+}
+
+assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java")
+assert !new File(projectDir, "student-management-evaluation-application/src/main/java/it/pkg/application/view/course/CourseView.java").exists()
+assert !new File(projectDir, "student-management-evaluation-application/src/main/java/it/pkg/application/view/examing/ExamResultView.java").exists()
+
+def courseManageText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/course/CourseManage.java").text
+assertContainsAll(courseManageText, [
+        "import it.pkg.domain.entities.course.Course;",
+        "Course create(String name, int credit);",
+        "Course getById(String courseId);"
+], "CourseManage")
+assert !courseManageText.contains("CourseView")
+
+def examManageText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing/ExamManage.java").text
+assertContainsAll(examManageText, [
+        "import it.pkg.domain.entities.examing.ExamResult;",
+        "ExamResult record(String courseId, String studentId, int score);",
+        "ExamResult getById(String examResultId);"
+], "ExamManage")
+assert !examManageText.contains("ExamResultView")
+
+def courseManageImplText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/course/impl/CourseManageImpl.java").text
+assertContainsAll(courseManageImplText, [
+        '@Service("courseManage")',
+        "@RequiredArgsConstructor",
+        '@Qualifier("courseRepositoryImpl")',
+        '@Qualifier("courseDomainService")'
+], "CourseManageImpl")
+
+def examManageImplText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing/impl/ExamManageImpl.java").text
+assertContainsAll(examManageImplText, [
+        '@Service("examManage")',
+        "@RequiredArgsConstructor",
+        '@Qualifier("examResultRepositoryImpl")',
+        '@Qualifier("examDomainService")'
+], "ExamManageImpl")
+
+def domainServiceConfigurationText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java").text
+assertContainsAll(domainServiceConfigurationText, [
+        '@Bean("courseDomainService")',
+        '@Bean("examDomainService")',
+        '@Qualifier("courseRepositoryImpl") CourseRepository courseRepository',
+        "new CourseDomainService(courseRepository)",
+        "new ExamDomainService(courseRepository)"
+], "DomainServiceConfiguration")
+
+def courseFacadeImplText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/CourseFacadeImpl.java").text
+assertContainsAll(courseFacadeImplText, [
+        "@DubboService(",
+        "interfaceClass = CourseFacade.class",
+        'version = "1.0.0"',
+        'group = "course"',
+        "@RequiredArgsConstructor",
+        '@Qualifier("courseManage")',
+        '@Qualifier("courseAdapterConvertor")',
+        '@Qualifier("serviceExceptionHandler")'
+], "CourseFacadeImpl")
+
+def examFacadeImplText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/ExamResultFacadeImpl.java").text
+assertContainsAll(examFacadeImplText, [
+        "@DubboService(",
+        "interfaceClass = ExamResultFacade.class",
+        'version = "1.0.0"',
+        'group = "exam-result"',
+        "@RequiredArgsConstructor",
+        '@Qualifier("examManage")',
+        '@Qualifier("examResultAdapterConvertor")',
+        '@Qualifier("serviceExceptionHandler")'
+], "ExamResultFacadeImpl")
+
+def courseAdapterConvertorText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/CourseAdapterConvertor.java").text
+assertContainsAll(courseAdapterConvertorText, [
+        'import io.github.linpeilie.Converter;',
+        'import io.github.linpeilie.BaseMapper;',
+        '@Component("courseAdapterConvertor")',
+        '@Qualifier("converter")',
+        'interface CourseMapper extends BaseMapper<Course, CourseDTO>',
+        '@Mapping(target = "status", ignore = true)'
+], "CourseAdapterConvertor")
+
+def examAdapterConvertorText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/ExamResultAdapterConvertor.java").text
+assertContainsAll(examAdapterConvertorText, [
+        'import io.github.linpeilie.Converter;',
+        'import io.github.linpeilie.BaseMapper;',
+        '@Component("examResultAdapterConvertor")',
+        '@Qualifier("converter")',
+        'interface ExamResultMapper extends BaseMapper<ExamResult, ExamResultDTO>',
+        '@Mapping(target = "status", ignore = true)'
+], "ExamResultAdapterConvertor")
+
+def courseConverterText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CourseConverter.java").text
+assertContainsAll(courseConverterText, [
+        'import io.github.linpeilie.Converter;',
+        'import io.github.linpeilie.BaseMapper;',
+        '@Component("courseConverter")',
+        '@Qualifier("converter")',
+        'interface CourseMapper extends BaseMapper<Course, CoursePo>',
+        'interface CourseDomainMapper extends BaseMapper<CoursePo, Course>',
+        'CoursePo convert(Course course, @MappingTarget CoursePo coursePo);',
+        'Course convert(CoursePo coursePo, @MappingTarget Course course);',
+        'CourseStatus.valueOf(coursePo.getStatus())'
+], "CourseConverter")
+
+def examConverterText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultConverter.java").text
+assertContainsAll(examConverterText, [
+        'import io.github.linpeilie.Converter;',
+        'import io.github.linpeilie.BaseMapper;',
+        '@Component("examResultConverter")',
+        '@Qualifier("converter")',
+        'interface ExamResultMapper extends BaseMapper<ExamResult, ExamResultPo>',
+        'interface ExamResultDomainMapper extends BaseMapper<ExamResultPo, ExamResult>',
+        'ExamResultPo convert(ExamResult examResult, @MappingTarget ExamResultPo examResultPo);',
+        'ExamResult convert(ExamResultPo examResultPo, @MappingTarget ExamResult examResult);',
+        'ExamResultStatus.valueOf(examResultPo.getStatus())'
+], "ExamResultConverter")
+
+def courseRepositoryImplText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/impl/CourseRepositoryImpl.java").text
+assertContainsAll(courseRepositoryImplText, [
+        '@Repository("courseRepositoryImpl")',
+        "@RequiredArgsConstructor",
+        '@Qualifier("courseJpaRepository")',
+        '@Qualifier("courseConverter")'
+], "CourseRepositoryImpl")
+
+def examRepositoryImplText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/impl/ExamResultRepositoryImpl.java").text
+assertContainsAll(examRepositoryImplText, [
+        '@Repository("examResultRepositoryImpl")',
+        "@RequiredArgsConstructor",
+        '@Qualifier("examResultJpaRepository")',
+        '@Qualifier("examResultConverter")'
+], "ExamResultRepositoryImpl")
+
+def mqConsumerText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/mq/ExamResultMessageConsumer.java").text
+assertContainsAll(mqConsumerText, [
+        '@Component("examResultMessageConsumer")',
+        "@RequiredArgsConstructor",
+        '@Qualifier("examManage")',
+        '@Qualifier("examResultAdapterConvertor")',
+        '@Qualifier("serviceExceptionHandler")',
+        "examResultAdapterConvertor.toDTO(examResult)"
+], "ExamResultMessageConsumer")
+
+def handlerText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/handler/ServiceExceptionHandler.java").text
+assert handlerText.contains('@Component("serviceExceptionHandler")')
+
+def courseDtoText = assertFile("student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course/CourseDTO.java").text
+assertContainsAll(courseDtoText, [
+        "implements Serializable",
+        "@Data",
+        "@Builder",
+        "@NoArgsConstructor",
+        "@AllArgsConstructor",
+        "private String id;",
+        "private String name;",
+        "private int credit;",
+        "private String status;"
+], "CourseDTO")
+
+def examDtoText = assertFile("student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/examing/ExamResultDTO.java").text
+assertContainsAll(examDtoText, [
+        "implements Serializable",
+        "@Data",
+        "@Builder",
+        "@NoArgsConstructor",
+        "@AllArgsConstructor",
+        "private String id;",
+        "private String courseId;",
+        "private String studentId;",
+        "private int score;",
+        "private String status;"
+], "ExamResultDTO")
+
+def applicationJavaText = javaTextUnder("student-management-evaluation-application/src/main/java")
+assertNoMatch(applicationJavaText, /\bView\b/, "Application layer must not contain View contracts")
+assert !applicationJavaText.contains("facade.dto")
+assert !applicationJavaText.contains("common.response")
+
+def facadeJavaText = javaTextUnder("student-management-evaluation-facade/src/main/java/it/pkg/facade")
+assert !facadeJavaText.contains("import it.pkg.domain.")
+assert !facadeJavaText.contains("@AutoMapper")
+assert !facadeJavaText.contains("ObjectFactory")
+assert !facadeJavaText.contains("@Component")
+
+def allGeneratedPathText = generatedFiles.join("\n")
+assert !allGeneratedPathText.contains(".proto")
+assert !allGeneratedPathText.contains("/grpc/")
+assert !allGeneratedPathText.contains("/grpcjava/")

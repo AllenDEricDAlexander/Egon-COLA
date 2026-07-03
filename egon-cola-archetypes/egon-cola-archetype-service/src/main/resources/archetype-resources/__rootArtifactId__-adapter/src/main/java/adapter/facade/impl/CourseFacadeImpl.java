@@ -6,29 +6,32 @@ package ${package}.adapter.facade.impl;
 import ${package}.adapter.convertor.CourseAdapterConvertor;
 import ${package}.adapter.handler.ServiceExceptionHandler;
 import ${package}.application.manage.course.CourseManage;
-import ${package}.application.view.course.CourseView;
 import ${package}.common.exception.BizException;
+import ${package}.domain.entities.course.Course;
 import ${package}.facade.api.CourseFacade;
 import ${package}.facade.dto.SingleResponse;
 import ${package}.facade.dto.course.CourseDTO;
 import ${package}.facade.dto.course.CreateCourseRequest;
-import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.annotation.Qualifier;
 
-@Component
+@DubboService(
+        interfaceClass = CourseFacade.class,
+        version = "1.0.0",
+        group = "course"
+)
+@RequiredArgsConstructor
 public class CourseFacadeImpl implements CourseFacade {
 
+    @Qualifier("courseManage")
     private final CourseManage courseManage;
 
+    @Qualifier("courseAdapterConvertor")
     private final CourseAdapterConvertor courseAdapterConvertor;
 
+    @Qualifier("serviceExceptionHandler")
     private final ServiceExceptionHandler serviceExceptionHandler;
-
-    public CourseFacadeImpl(CourseManage courseManage, CourseAdapterConvertor courseAdapterConvertor,
-            ServiceExceptionHandler serviceExceptionHandler) {
-        this.courseManage = courseManage;
-        this.courseAdapterConvertor = courseAdapterConvertor;
-        this.serviceExceptionHandler = serviceExceptionHandler;
-    }
 
     @Override
     public SingleResponse<CourseDTO> createCourse(CreateCourseRequest request) {
@@ -36,8 +39,8 @@ public class CourseFacadeImpl implements CourseFacade {
             return serviceExceptionHandler.handleSingle(new BizException("create course request must not be null"));
         }
         try {
-            CourseView courseView = courseManage.create(request.name(), request.credit());
-            return SingleResponse.of(courseAdapterConvertor.toDTO(courseView));
+            Course course = courseManage.create(request.name(), request.credit());
+            return SingleResponse.of(courseAdapterConvertor.toDTO(course));
         } catch (BizException exception) {
             return serviceExceptionHandler.handleSingle(exception);
         } catch (Exception exception) {

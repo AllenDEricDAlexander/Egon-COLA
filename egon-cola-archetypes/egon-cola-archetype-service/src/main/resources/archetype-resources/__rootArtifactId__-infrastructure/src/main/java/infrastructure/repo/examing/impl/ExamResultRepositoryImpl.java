@@ -11,20 +11,19 @@ import ${package}.domain.repos.examing.ExamResultRepository;
 import ${package}.infrastructure.repo.examing.converter.ExamResultConverter;
 import ${package}.infrastructure.repo.examing.jpa.ExamResultJpaRepository;
 import ${package}.infrastructure.repo.examing.po.ExamResultPo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
-@Repository
+@Repository("examResultRepositoryImpl")
+@RequiredArgsConstructor
 public class ExamResultRepositoryImpl implements ExamResultRepository {
 
+    @Qualifier("examResultJpaRepository")
     private final ExamResultJpaRepository examResultJpaRepository;
 
+    @Qualifier("examResultConverter")
     private final ExamResultConverter examResultConverter;
-
-    public ExamResultRepositoryImpl(ExamResultJpaRepository examResultJpaRepository,
-            ExamResultConverter examResultConverter) {
-        this.examResultJpaRepository = examResultJpaRepository;
-        this.examResultConverter = examResultConverter;
-    }
 
     @Override
     public ExamResult save(ExamResult examResult) {

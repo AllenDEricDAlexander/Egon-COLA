@@ -58,6 +58,19 @@ class ServiceArchitectureDependencyTest {
                         "${package}.adapter..",
                         "${package}.infrastructure..",
                         "${package}.facade..",
+                        "${package}.common.response..",
+                        "${package}.starter..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void facadeShouldNotDependOnImplementationLayers() {
+        noClasses().that().resideInAPackage("${package}.facade..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.domain..",
+                        "${package}.application..",
+                        "${package}.adapter..",
+                        "${package}.infrastructure..",
                         "${package}.starter..")
                 .check(importedClasses);
     }
