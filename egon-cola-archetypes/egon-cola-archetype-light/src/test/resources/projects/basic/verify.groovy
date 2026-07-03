@@ -64,13 +64,23 @@ assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --laye
 assert dockerfileText.contains("USER app")
 assert dockerfileText.contains("EXPOSE 8080 50051")
 assert dockerfileText.contains("JarLauncher")
-def dockerignoreText = assertFile(".dockerignore").text
+def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",
+    ".gitignore",
     ".github",
+    ".idea",
+    ".vscode",
+    "*.iml",
+    ".DS_Store",
+    "",
     "**/target",
     "**/build",
     "**/.mvn/wrapper/maven-wrapper.jar",
+    "",
+    "logs",
+    "*.log",
+    "",
     ".env",
     ".env.*",
     "config/*secret*",
@@ -78,9 +88,9 @@ def dockerignoreText = assertFile(".dockerignore").text
     "*.pem",
     "*.key"
 ].each {
-    assert dockerignoreText.contains(it): "Expected .dockerignore to contain ${it}"
+    assert dockerignoreLines.contains(it): "Expected .dockerignore to contain line ${it}"
 }
-def gitignoreText = assertFile(".gitignore").text
+def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 [
     ".env",
     ".env.*",
@@ -89,7 +99,7 @@ def gitignoreText = assertFile(".gitignore").text
     "*.pem",
     "*.key"
 ].each {
-    assert gitignoreText.contains(it): "Expected .gitignore to contain ${it}"
+    assert gitignoreLines.contains(it): "Expected .gitignore to contain line ${it}"
 }
 
 def pom = assertFile("pom.xml").text

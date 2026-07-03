@@ -69,7 +69,6 @@ assertFile("Dockerfile")
 assertFile(".dockerignore")
 assert assertFile("README.md").text.contains("Docker")
 assert assertFile("README.md").text.contains("docker build -t student-management-evaluation:local .")
-assert assertFile(".gitignore").text.contains(".env")
 def dockerfileText = assertFile("Dockerfile").text
 assert dockerfileText.contains("FROM eclipse-temurin:21-jdk-jammy AS builder")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
@@ -79,13 +78,23 @@ assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --laye
 assert dockerfileText.contains("USER app")
 assert dockerfileText.contains("EXPOSE 8081 50051")
 assert dockerfileText.contains("JarLauncher")
-def dockerignoreText = assertFile(".dockerignore").text
+def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",
+    ".gitignore",
     ".github",
+    ".idea",
+    ".vscode",
+    "*.iml",
+    ".DS_Store",
+    "",
     "**/target",
     "**/build",
     "**/.mvn/wrapper/maven-wrapper.jar",
+    "",
+    "logs",
+    "*.log",
+    "",
     ".env",
     ".env.*",
     "config/*secret*",
@@ -93,9 +102,9 @@ def dockerignoreText = assertFile(".dockerignore").text
     "*.pem",
     "*.key"
 ].each {
-    assert dockerignoreText.contains(it): "Expected .dockerignore to contain ${it}"
+    assert dockerignoreLines.contains(it): "Expected .dockerignore to contain line ${it}"
 }
-def gitignoreText = assertFile(".gitignore").text
+def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 [
     ".env",
     ".env.*",
@@ -104,7 +113,7 @@ def gitignoreText = assertFile(".gitignore").text
     "*.pem",
     "*.key"
 ].each {
-    assert gitignoreText.contains(it): "Expected .gitignore to contain ${it}"
+    assert gitignoreLines.contains(it): "Expected .gitignore to contain line ${it}"
 }
 
 ["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each {
@@ -161,6 +170,19 @@ def adapterPomText = assertFile("student-management-evaluation-adapter/pom.xml")
 assert adapterPomText.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
 assert adapterPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert !adapterPomText.contains(webStarter)
+assert !adapterPomText.contains("spring-boot-starter-webflux")
+
+def serviceStarterPomText = assertFile("student-management-evaluation-starter/pom.xml").text
+
+def allServiceJavaPaths = []
+new File(projectDir, "student-management-evaluation-adapter/src/main/java").eachFileRecurse { file ->
+    if (file.isFile() && file.name.endsWith(".java")) {
+        allServiceJavaPaths << projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
+    }
+}
+assert allServiceJavaPaths.every { !it.contains("/controller/") }: "Service adapter must not contain controller package"
+assert allServiceJavaPaths.every { !it.contains("/web/") }: "Service adapter must not contain web package"
+assert allServiceJavaPaths.every { !it.contains("/filter/") }: "Service adapter must not contain filter package"
 
 def applicationPomText = assertFile("student-management-evaluation-application/pom.xml").text
 assert applicationPomText.contains("<artifactId>lombok</artifactId>")
@@ -168,7 +190,7 @@ assert applicationPomText.contains("<artifactId>lombok</artifactId>")
 def infrastructurePomText = assertFile("student-management-evaluation-infrastructure/pom.xml").text
 assert infrastructurePomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 
-def starterPomText = assertFile("student-management-evaluation-starter/pom.xml").text
+def starterPomText = serviceStarterPomText
 def starterPom = new groovy.xml.XmlSlurper(false, false).parse(assertFile("student-management-evaluation-starter/pom.xml"))
 def assertSpringBootLayeredJarPlugin = { pomModel ->
     def bootPlugin = pomModel.build.plugins.plugin.find {
@@ -282,6 +304,7 @@ def domainDependencies = dependencies(modulePom("domain"))
 def applicationDependencies = dependencies(modulePom("application"))
 def infrastructureDependencies = dependencies(modulePom("infrastructure"))
 def adapterDependencies = dependencies(modulePom("adapter"))
+def starterDependencies = dependencies(modulePom("starter"))
 
 assertDependency(facadeDependencies, "jakarta.validation-api")
 assertNoDependency(facadeDependencies, "spring-boot-starter-validation")
@@ -290,6 +313,9 @@ assertDependency(applicationDependencies, "spring-boot-starter-validation")
 assertDependency(infrastructureDependencies, "spring-boot-starter-validation")
 assertDependency(adapterDependencies, "spring-boot-starter-validation")
 assertNoDependency(adapterDependencies, webStarter)
+assertNoDependency(adapterDependencies, "spring-boot-starter-webflux")
+assertDependency(starterDependencies, webStarter)
+assertDependency(starterDependencies, "spring-boot-starter-actuator")
 
 def assertNoMatch = { text, pattern, message ->
     assert !(text =~ pattern).find(): message
