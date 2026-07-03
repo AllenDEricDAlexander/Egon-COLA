@@ -44,3 +44,22 @@ bash ./mvnw test
 bash ./mvnw -DskipTests package
 bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
 ```
+
+${symbol_pound}${symbol_pound} Runtime Baseline
+
+The generated project defaults to `local` profile. `local` and `test` do not require Nacos. `dev` and `prod` can connect to Nacos and Dubbo registry through environment variables.
+
+Build:
+
+```bash
+./mvnw -V --no-transfer-progress clean test
+./mvnw -V --no-transfer-progress -DskipTests package
+```
+
+Docker build:
+
+```bash
+docker build -t ${rootArtifactId}:local .
+```
+
+Sensitive configuration must be provided through environment variables, mounted files, `config/application-secrets.yml`, or `configtree:/run/secrets/`. Do not commit real credentials or decryption keys.

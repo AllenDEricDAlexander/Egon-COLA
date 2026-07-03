@@ -58,12 +58,54 @@ def assertNoGenericMapStructConverterInjection = { path ->
 }
 
 assertFile("pom.xml")
-assertFile("mvnw")
+def mvnw = assertFile("mvnw")
+assert mvnw.canExecute(): "Expected mvnw to be executable"
 assertFile("mvnw.cmd")
 assertFile(".mvn/wrapper/maven-wrapper.properties")
 assertFile(".gitignore")
 assertFile(".gitattributes")
 assertFile("README.md")
+assertFile("Dockerfile")
+assertFile(".dockerignore")
+assert assertFile("README.md").text.contains("Docker")
+assert assertFile("README.md").text.contains("docker build -t student-management-evaluation:local .")
+assert assertFile(".gitignore").text.contains(".env")
+def dockerfileText = assertFile("Dockerfile").text
+assert dockerfileText.contains("FROM eclipse-temurin:21-jdk-jammy AS builder")
+assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
+assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS runtime")
+assert dockerfileText.contains("dependency:go-offline")
+assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
+assert dockerfileText.contains("USER app")
+assert dockerfileText.contains("EXPOSE 8081 50051")
+assert dockerfileText.contains("JarLauncher")
+def dockerignoreText = assertFile(".dockerignore").text
+[
+    ".git",
+    ".github",
+    "**/target",
+    "**/build",
+    "**/.mvn/wrapper/maven-wrapper.jar",
+    ".env",
+    ".env.*",
+    "config/*secret*",
+    "secrets",
+    "*.pem",
+    "*.key"
+].each {
+    assert dockerignoreText.contains(it): "Expected .dockerignore to contain ${it}"
+}
+def gitignoreText = assertFile(".gitignore").text
+[
+    ".env",
+    ".env.*",
+    "config/application-secrets.yml",
+    "secrets/",
+    "*.pem",
+    "*.key"
+].each {
+    assert gitignoreText.contains(it): "Expected .gitignore to contain ${it}"
+}
 
 ["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each {
     assertDir("student-management-evaluation-${it}")
@@ -127,6 +169,21 @@ def infrastructurePomText = assertFile("student-management-evaluation-infrastruc
 assert infrastructurePomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 
 def starterPomText = assertFile("student-management-evaluation-starter/pom.xml").text
+def starterPom = new groovy.xml.XmlSlurper(false, false).parse(assertFile("student-management-evaluation-starter/pom.xml"))
+def assertSpringBootLayeredJarPlugin = { pomModel ->
+    def bootPlugin = pomModel.build.plugins.plugin.find {
+        it.artifactId.text() == "spring-boot-maven-plugin"
+    }
+    assert bootPlugin.artifactId.text() == "spring-boot-maven-plugin": "Expected spring-boot-maven-plugin"
+    assert bootPlugin.configuration.layers.enabled.text() == "true"
+    assert bootPlugin.configuration.excludes.exclude.any {
+        it.groupId.text() == "org.projectlombok" && it.artifactId.text() == "lombok"
+    }: "Expected spring-boot-maven-plugin to exclude org.projectlombok:lombok"
+}
+assert starterPomText.contains("<artifactId>spring-boot-maven-plugin</artifactId>")
+assert starterPomText.contains("<layers>")
+assert starterPomText.contains("<enabled>true</enabled>")
+assertSpringBootLayeredJarPlugin(starterPom)
 assert starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</artifactId>")
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")

@@ -15,6 +15,7 @@
             <directory></directory>
             <includes>
                 <include>pom.xml</include>
+                <include>README.md</include>
                 <include>lombok.config</include>
                 <include>Dockerfile</include>
                 <include>.dockerignore</include>
@@ -23,7 +24,6 @@
         <fileSet encoding="UTF-8">
             <directory></directory>
             <includes>
-                <include>README.md</include>
                 <include>__gitignore__</include>
                 <include>.gitattributes</include>
                 <include>mvnw</include>

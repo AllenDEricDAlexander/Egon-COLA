@@ -39,3 +39,7 @@ Thumbs.db
 .env
 .env.*
 application-local.yml
+config/application-secrets.yml
+secrets/
+*.pem
+*.key

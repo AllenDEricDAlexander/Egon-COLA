@@ -5,3 +5,11 @@ target/
 .vscode/
 .DS_Store
 .mvn/timing.properties
+
+### Local env ###
+.env
+.env.*
+config/application-secrets.yml
+secrets/
+*.pem
+*.key

@@ -96,12 +96,60 @@ def assertNoStaleText = { files, token ->
 }
 
 assertFile("pom.xml")
-assertFile("mvnw")
+def mvnw = assertFile("mvnw")
+assert mvnw.canExecute(): "Expected mvnw to be executable"
 assertFile("mvnw.cmd")
 assertFile(".mvn/wrapper/maven-wrapper.properties")
 assertFile(".gitignore")
 assertFile(".gitattributes")
 assertFile("README.md")
+assertFile("Dockerfile")
+assertFile(".dockerignore")
+assert assertFile("README.md").text.contains("Docker")
+assert assertFile("README.md").text.contains("## Modules")
+assert assertFile("README.md").text.contains("## Domains")
+assert assertFile("README.md").text.contains("## Dependency Direction")
+assert assertFile("README.md").text.contains("## Clean Architecture Boundary Rules")
+assert assertFile("README.md").text.contains("## Commands")
+assert assertFile("README.md").text.contains("## Runtime Baseline")
+assert assertFile("README.md").text.contains("docker build -t student-management-organization:local .")
+assert assertFile(".gitignore").text.contains(".env")
+def dockerfileText = assertFile("Dockerfile").text
+assert dockerfileText.contains("FROM eclipse-temurin:21-jdk-jammy AS builder")
+assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
+assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS runtime")
+assert dockerfileText.contains("dependency:go-offline")
+assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
+assert dockerfileText.contains("USER app")
+assert dockerfileText.contains("EXPOSE 8080 50051")
+assert dockerfileText.contains("JarLauncher")
+def dockerignoreText = assertFile(".dockerignore").text
+[
+    ".git",
+    ".github",
+    "**/target",
+    "**/build",
+    "**/.mvn/wrapper/maven-wrapper.jar",
+    ".env",
+    ".env.*",
+    "config/*secret*",
+    "secrets",
+    "*.pem",
+    "*.key"
+].each {
+    assert dockerignoreText.contains(it): "Expected .dockerignore to contain ${it}"
+}
+def gitignoreText = assertFile(".gitignore").text
+[
+    ".env",
+    ".env.*",
+    "config/application-secrets.yml",
+    "secrets/",
+    "*.pem",
+    "*.key"
+].each {
+    assert gitignoreText.contains(it): "Expected .gitignore to contain ${it}"
+}
 
 ["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each {
     assertDir("student-management-organization-${it}")
@@ -207,6 +255,17 @@ def assertNoDependency = { deps, artifactId ->
     assert !deps.any { it.artifactId == artifactId }: "Unexpected dependency ${artifactId}"
 }
 
+def assertSpringBootLayeredJarPlugin = { pomModel ->
+    def bootPlugin = pomModel.build.plugins.plugin.find {
+        it.artifactId.text() == "spring-boot-maven-plugin"
+    }
+    assert bootPlugin.artifactId.text() == "spring-boot-maven-plugin": "Expected spring-boot-maven-plugin"
+    assert bootPlugin.configuration.layers.enabled.text() == "true"
+    assert bootPlugin.configuration.excludes.exclude.any {
+        it.groupId.text() == "org.projectlombok" && it.artifactId.text() == "lombok"
+    }: "Expected spring-boot-maven-plugin to exclude org.projectlombok:lombok"
+}
+
 def moduleArtifactIds = [
     "student-management-organization-common",
     "student-management-organization-facade",
@@ -235,6 +294,10 @@ def infrastructurePom = modulePom("infrastructure")
 def adapterPom = modulePom("adapter")
 def starterPom = modulePom("starter")
 def starterPomText = assertFile("student-management-organization-starter/pom.xml").text
+assert starterPomText.contains("<artifactId>spring-boot-maven-plugin</artifactId>")
+assert starterPomText.contains("<layers>")
+assert starterPomText.contains("<enabled>true</enabled>")
+assertSpringBootLayeredJarPlugin(starterPom)
 
 assert commonPom.artifactId.text() == "student-management-organization-common"
 assert facadePom.artifactId.text() == "student-management-organization-facade"
