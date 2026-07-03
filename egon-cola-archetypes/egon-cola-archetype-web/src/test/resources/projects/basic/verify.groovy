@@ -257,14 +257,17 @@ assertModuleDependencies(starterDependencies, [
     "student-management-organization-infrastructure"
 ])
 
-assertDependency(facadeDependencies, "spring-boot-starter-validation")
+assertDependency(facadeDependencies, "jakarta.validation-api")
+assertNoDependency(facadeDependencies, "spring-boot-starter-validation")
 assertScopedDependency(facadeDependencies, "lombok", "provided")
 
 assertDependency(domainDependencies, "student-management-organization-common")
+assertDependency(domainDependencies, "spring-boot-starter-validation")
 
 assertDependency(applicationDependencies, "student-management-organization-domain")
 assertDependency(applicationDependencies, "spring-context")
 assertDependency(applicationDependencies, "spring-tx")
+assertDependency(applicationDependencies, "spring-boot-starter-validation")
 assertScopedDependency(applicationDependencies, "lombok", "provided")
 assertNoDependency(applicationDependencies, "student-management-organization-common")
 assertNoDependency(applicationDependencies, "student-management-organization-infrastructure")
@@ -272,6 +275,7 @@ assertNoDependency(applicationDependencies, "student-management-organization-inf
 assertDependency(infrastructureDependencies, "student-management-organization-application")
 assertNoDependency(infrastructureDependencies, "student-management-organization-domain")
 assertNoDependency(infrastructureDependencies, "student-management-organization-common")
+assertDependency(infrastructureDependencies, "spring-boot-starter-validation")
 assertDependency(infrastructureDependencies, "mapstruct-plus-spring-boot-starter")
 assertDependency(infrastructureDependencies, "spring-boot-starter-data-jpa")
 assertDependency(infrastructureDependencies, "flyway-core")
@@ -310,6 +314,7 @@ assertFile("student-management-organization-application/src/main/java/it/pkg/app
 assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/validation/ValidatorUtils.java")
 assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java")
 assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/ConfigDecryptor.java")
 assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/encryption/ConfigDecryptException.java")

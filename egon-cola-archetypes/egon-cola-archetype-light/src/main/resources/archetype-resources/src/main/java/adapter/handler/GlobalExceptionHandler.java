@@ -1,8 +1,10 @@
 package ${package}.adapter.handler;
 
+import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.exceptions.NotFoundException;
 import ${package}.common.response.Response;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -32,6 +34,12 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("request validation failed");
-        return Response.fail("VALIDATION_ERROR", message);
+        return Response.fail(ErrorCodes.VALIDATION_ERROR, message);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Response handleValidationException(ValidationException exception) {
+        return Response.fail(ErrorCodes.VALIDATION_ERROR, "validation error");
     }
 }

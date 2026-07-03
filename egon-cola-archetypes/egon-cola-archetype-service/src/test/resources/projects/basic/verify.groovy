@@ -169,6 +169,27 @@ assert serviceApplicationYaml.contains("retries: 0")
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
+def modulePom = { module ->
+    new groovy.xml.XmlSlurper(false, false).parse(assertFile("student-management-evaluation-${module}/pom.xml"))
+}
+
+def dependencies = { moduleXml ->
+    moduleXml.dependencies.dependency.collect {
+        [
+            artifactId: it.artifactId.text(),
+            scope: it.scope.text() ?: "compile"
+        ]
+    }
+}
+
+def assertDependency = { deps, artifactId ->
+    assert deps.any { it.artifactId == artifactId }: "Expected dependency ${artifactId}"
+}
+
+def assertNoDependency = { deps, artifactId ->
+    assert !deps.any { it.artifactId == artifactId }: "Unexpected dependency ${artifactId}"
+}
+
 def modulePomDependencies = { module ->
     def pomText = assertFile("student-management-evaluation-${module}/pom.xml").text
     def dependenciesText = (pomText =~ /(?s)<dependencies>(.*)<\/dependencies>/)
@@ -184,6 +205,20 @@ assert modulePomDependencies("application") == ["domain"]
 assert modulePomDependencies("adapter") == ["application", "facade"]
 assert modulePomDependencies("infrastructure") == ["domain"]
 assert modulePomDependencies("starter") == ["adapter", "infrastructure"]
+
+def facadeDependencies = dependencies(modulePom("facade"))
+def domainDependencies = dependencies(modulePom("domain"))
+def applicationDependencies = dependencies(modulePom("application"))
+def infrastructureDependencies = dependencies(modulePom("infrastructure"))
+def adapterDependencies = dependencies(modulePom("adapter"))
+
+assertDependency(facadeDependencies, "jakarta.validation-api")
+assertNoDependency(facadeDependencies, "spring-boot-starter-validation")
+assertDependency(domainDependencies, "spring-boot-starter-validation")
+assertDependency(applicationDependencies, "spring-boot-starter-validation")
+assertDependency(infrastructureDependencies, "spring-boot-starter-validation")
+assertDependency(adapterDependencies, "spring-boot-starter-validation")
+assertNoDependency(adapterDependencies, webStarter)
 
 def assertNoMatch = { text, pattern, message ->
     assert !(text =~ pattern).find(): message
@@ -278,6 +313,7 @@ assertNoGenericMapStructConverterInjection("student-management-evaluation-infras
 
 assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/CourseAdapterMapper.java")
 assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/ExamResultAdapterMapper.java")
+assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/validation/ValidatorUtils.java")
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CoursePoMapper.java")
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CourseDomainMapper.java")
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultPoMapper.java")

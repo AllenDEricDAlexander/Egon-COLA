@@ -11,11 +11,14 @@ import ${package}.domain.common.Page;
 import ${package}.domain.student.model.Student;
 import ${package}.domain.teaching.model.Course;
 import ${package}.facade.api.StudentManagementFacade;
+import ${package}.facade.dto.AssignCourseRequest;
 import ${package}.facade.dto.CourseDTO;
+import ${package}.facade.dto.CreateCourseRequest;
 import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.RegisterStudentRequest;
 import ${package}.facade.dto.StudentDTO;
 import ${package}.start.StudentManagementApplication;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(classes = StudentManagementApplication.class)
 class StudentManagementFlowTest {
@@ -85,5 +89,26 @@ class StudentManagementFlowTest {
         assertThat(facadePage.currentPage()).isEqualTo(1);
         assertThat(facadePage.pageSize()).isEqualTo(10);
         assertThat(facadePage.totalCount()).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    void null_facade_requests_are_rejected_by_validation() {
+        assertThatThrownBy(() -> studentManagementFacade.registerStudent(null))
+                .isInstanceOf(ConstraintViolationException.class);
+        assertThatThrownBy(() -> studentManagementFacade.createCourse(null))
+                .isInstanceOf(ConstraintViolationException.class);
+        assertThatThrownBy(() -> studentManagementFacade.assignCourse(null))
+                .isInstanceOf(ConstraintViolationException.class);
+    }
+
+    @Test
+    void invalid_facade_requests_are_rejected_by_validation() {
+        assertThatThrownBy(() -> studentManagementFacade.registerStudent(
+                new RegisterStudentRequest(" ", "invalid-email")))
+                .isInstanceOf(ConstraintViolationException.class);
+        assertThatThrownBy(() -> studentManagementFacade.createCourse(new CreateCourseRequest(" ", "description")))
+                .isInstanceOf(ConstraintViolationException.class);
+        assertThatThrownBy(() -> studentManagementFacade.assignCourse(new AssignCourseRequest(" ", "course-001")))
+                .isInstanceOf(ConstraintViolationException.class);
     }
 }

@@ -79,12 +79,12 @@ class EvaluationFlowTest {
     }
 
     @Test
-    void shouldRejectInvalidExamPayloadFieldsAsBizFailures() {
-        assertBizFailure(examResultFacade.record(new RecordExamResultRequest(null, "student-001", 90)));
-        assertBizFailure(examResultFacade.record(new RecordExamResultRequest(" ", "student-001", 90)));
-        assertBizFailure(examResultFacade.record(new RecordExamResultRequest("course-001", null, 90)));
-        assertBizFailure(examResultFacade.record(new RecordExamResultRequest("course-001", " ", 90)));
-        assertBizFailure(examResultFacade.record(new RecordExamResultRequest("course-001", "student-001", 101)));
+    void shouldRejectInvalidExamPayloadFields() {
+        assertValidationFailure(examResultFacade.record(new RecordExamResultRequest(null, "student-001", 90)));
+        assertValidationFailure(examResultFacade.record(new RecordExamResultRequest(" ", "student-001", 90)));
+        assertValidationFailure(examResultFacade.record(new RecordExamResultRequest("course-001", null, 90)));
+        assertValidationFailure(examResultFacade.record(new RecordExamResultRequest("course-001", " ", 90)));
+        assertValidationFailure(examResultFacade.record(new RecordExamResultRequest("course-001", "student-001", 101)));
 
         assertBizFailure(examResultMessageConsumer.consume(new ExamResultMessage(null, "student-001", 90)));
         assertBizFailure(examResultMessageConsumer.consume(new ExamResultMessage(" ", "student-001", 90)));
@@ -139,5 +139,10 @@ class EvaluationFlowTest {
     private void assertBizFailure(SingleResponse<?> response) {
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.getCode()).isEqualTo("BIZ_ERROR");
+    }
+
+    private void assertValidationFailure(SingleResponse<?> response) {
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getCode()).isEqualTo("VALIDATION_ERROR");
     }
 }

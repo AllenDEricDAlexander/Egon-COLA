@@ -4,6 +4,7 @@ import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.response.Response;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,6 +25,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public Response handleConstraintViolationException(ConstraintViolationException exception) {
+        return Response.fail(ErrorCodes.VALIDATION_ERROR, "validation error");
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public Response handleValidationException(ValidationException exception) {
         return Response.fail(ErrorCodes.VALIDATION_ERROR, "validation error");
     }
 }

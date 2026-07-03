@@ -14,12 +14,14 @@ import ${package}.facade.dto.StudentDTO;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.validation.annotation.Validated;
 
 @DubboService(
         interfaceClass = StudentManagementFacade.class,
         version = "1.0.0",
         group = "student-management"
 )
+@Validated
 @RequiredArgsConstructor
 public class StudentManagementFacadeImpl implements StudentManagementFacade {
     @Qualifier("studentManage")

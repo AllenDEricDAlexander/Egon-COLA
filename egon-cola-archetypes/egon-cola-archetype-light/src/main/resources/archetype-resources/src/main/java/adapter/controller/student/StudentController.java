@@ -9,6 +9,7 @@ import ${package}.facade.dto.StudentDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController("studentController")
 @RequestMapping("/students")
+@Validated
 @RequiredArgsConstructor
 public class StudentController {
     @Qualifier("studentManage")
