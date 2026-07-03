@@ -7,6 +7,7 @@ import ${package}.application.manage.course.CourseManage;
 import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exception.NotFoundException;
 import ${package}.common.util.IdGenerator;
+import ${package}.domain.common.Page;
 import ${package}.domain.entities.course.Course;
 import ${package}.domain.repos.course.CourseRepository;
 import ${package}.domain.service.course.CourseDomainService;
@@ -38,5 +39,11 @@ public class CourseManageImpl implements CourseManage {
     public Course getById(String courseId) {
         return courseRepository.findById(courseId)
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.COURSE_NOT_FOUND, "course not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Course> getPage(int currentPage, int pageSize) {
+        return courseRepository.findPage(currentPage, pageSize);
     }
 }

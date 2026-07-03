@@ -10,13 +10,16 @@ import java.util.UUID;
 
 import ${package}.adapter.dto.ExamResultMessage;
 import ${package}.adapter.mq.ExamResultMessageConsumer;
+import ${package}.application.manage.course.CourseManage;
 import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exception.BizException;
+import ${package}.domain.common.Page;
 import ${package}.domain.entities.course.Course;
 import ${package}.domain.enums.CourseStatus;
 import ${package}.domain.repos.course.CourseRepository;
 import ${package}.facade.api.CourseFacade;
 import ${package}.facade.api.ExamResultFacade;
+import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.SingleResponse;
 import ${package}.facade.dto.course.CourseDTO;
 import ${package}.facade.dto.course.CreateCourseRequest;
@@ -38,6 +41,9 @@ class EvaluationFlowTest {
 
     @Autowired
     private ExamResultMessageConsumer examResultMessageConsumer;
+
+    @Autowired
+    private CourseManage courseManage;
 
     @Autowired
     private CourseRepository courseRepository;
@@ -105,6 +111,29 @@ class EvaluationFlowTest {
 
         assertThatThrownBy(() -> courseRepository.save(invalidCourse))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void shouldReturnCoursePageFromApplicationAndFacade() {
+        Course firstCourse = courseManage.create("Course-" + UUID.randomUUID(), 2);
+        Course secondCourse = courseManage.create("Course-" + UUID.randomUUID(), 3);
+
+        Page<Course> coursePage = courseManage.getPage(1, 10);
+        assertThat(coursePage.records()).extracting(Course::getName)
+                .contains(firstCourse.getName(), secondCourse.getName());
+        assertThat(coursePage.currentPage()).isEqualTo(1);
+        assertThat(coursePage.pageSize()).isEqualTo(10);
+        assertThat(coursePage.totalCount()).isGreaterThanOrEqualTo(2);
+
+        SingleResponse<PageResponse<CourseDTO>> facadeResponse = courseFacade.getCourses(1, 10);
+        assertThat(facadeResponse.isSuccess()).isTrue();
+
+        PageResponse<CourseDTO> facadePage = facadeResponse.getData();
+        assertThat(facadePage.records()).extracting(CourseDTO::getName)
+                .contains(firstCourse.getName(), secondCourse.getName());
+        assertThat(facadePage.currentPage()).isEqualTo(1);
+        assertThat(facadePage.pageSize()).isEqualTo(10);
+        assertThat(facadePage.totalCount()).isGreaterThanOrEqualTo(2);
     }
 
     private void assertBizFailure(SingleResponse<?> response) {

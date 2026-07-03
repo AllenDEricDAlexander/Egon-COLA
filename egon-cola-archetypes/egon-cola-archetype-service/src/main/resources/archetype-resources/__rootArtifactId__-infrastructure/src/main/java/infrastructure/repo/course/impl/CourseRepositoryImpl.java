@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exception.BizException;
+import ${package}.domain.common.Page;
 import ${package}.domain.entities.course.Course;
 import ${package}.domain.repos.course.CourseRepository;
 import ${package}.infrastructure.repo.course.converter.CourseConverter;
@@ -17,6 +18,8 @@ import ${package}.infrastructure.repo.course.po.CoursePo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository("courseRepositoryImpl")
@@ -49,6 +52,20 @@ public class CourseRepositoryImpl implements CourseRepository {
     @Override
     public Optional<Course> findById(String courseId) {
         return courseJpaRepository.findById(courseId).map(courseConverter::toDomain);
+    }
+
+    @Override
+    public Page<Course> findPage(int currentPage, int pageSize) {
+        Pageable pageable = PageRequest.of(Math.max(currentPage, 1) - 1, pageSize);
+        org.springframework.data.domain.Page<CoursePo> page = courseJpaRepository.findAll(pageable);
+        return Page.of(
+                page.getContent().stream()
+                        .map(courseConverter::toDomain)
+                        .toList(),
+                currentPage,
+                page.getTotalPages(),
+                pageSize,
+                page.getTotalElements());
     }
 
     @Override

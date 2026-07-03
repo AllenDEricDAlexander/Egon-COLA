@@ -9,6 +9,7 @@ import ${package}.application.manage.course.CourseManage;
 import ${package}.common.exception.BizException;
 import ${package}.domain.entities.course.Course;
 import ${package}.facade.api.CourseFacade;
+import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.SingleResponse;
 import ${package}.facade.dto.course.CourseDTO;
 import ${package}.facade.dto.course.CreateCourseRequest;
@@ -55,6 +56,17 @@ public class CourseFacadeImpl implements CourseFacade {
         }
         try {
             return SingleResponse.of(courseAdapterConvertor.toDTO(courseManage.getById(courseId)));
+        } catch (BizException exception) {
+            return serviceExceptionHandler.handleSingle(exception);
+        } catch (Exception exception) {
+            return serviceExceptionHandler.handleSingle(exception);
+        }
+    }
+
+    @Override
+    public SingleResponse<PageResponse<CourseDTO>> getCourses(int currentPage, int pageSize) {
+        try {
+            return SingleResponse.of(courseAdapterConvertor.toPageResponse(courseManage.getPage(currentPage, pageSize)));
         } catch (BizException exception) {
             return serviceExceptionHandler.handleSingle(exception);
         } catch (Exception exception) {

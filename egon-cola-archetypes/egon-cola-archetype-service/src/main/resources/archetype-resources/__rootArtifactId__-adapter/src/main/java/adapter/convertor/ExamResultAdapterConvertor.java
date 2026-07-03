@@ -6,11 +6,7 @@ package ${package}.adapter.convertor;
 import ${package}.domain.entities.examing.ExamResult;
 import ${package}.domain.enums.ExamResultStatus;
 import ${package}.facade.dto.examing.ExamResultDTO;
-import io.github.linpeilie.BaseMapper;
-import io.github.linpeilie.Converter;
 import lombok.RequiredArgsConstructor;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -18,11 +14,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ExamResultAdapterConvertor {
 
-    @Qualifier("converter")
-    private final Converter converter;
+    @Qualifier("examResultAdapterMapperImpl")
+    private final ExamResultAdapterMapper examResultAdapterMapper;
 
     public ExamResultDTO toDTO(ExamResult examResult) {
-        ExamResultDTO examResultDTO = converter.convert(examResult, ExamResultDTO.class);
+        ExamResultDTO examResultDTO = examResultAdapterMapper.convert(examResult);
         examResultDTO.setStatus(toFacadeStatus(examResult.getStatus(), examResult.getScore()));
         return examResultDTO;
     }
@@ -32,13 +28,5 @@ public class ExamResultAdapterConvertor {
             return score >= 60 ? "PASSED" : "FAILED";
         }
         return status.name();
-    }
-
-    @Mapper(componentModel = "spring")
-    public interface ExamResultMapper extends BaseMapper<ExamResult, ExamResultDTO> {
-
-        @Override
-        @Mapping(target = "status", ignore = true)
-        ExamResultDTO convert(ExamResult examResult);
     }
 }

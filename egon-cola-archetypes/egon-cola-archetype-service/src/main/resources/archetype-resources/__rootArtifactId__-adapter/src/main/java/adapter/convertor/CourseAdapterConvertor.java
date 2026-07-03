@@ -3,14 +3,12 @@
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.convertor;
 
+import ${package}.domain.common.Page;
 import ${package}.domain.entities.course.Course;
 import ${package}.domain.enums.CourseStatus;
+import ${package}.facade.dto.PageResponse;
 import ${package}.facade.dto.course.CourseDTO;
-import io.github.linpeilie.BaseMapper;
-import io.github.linpeilie.Converter;
 import lombok.RequiredArgsConstructor;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -18,13 +16,22 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CourseAdapterConvertor {
 
-    @Qualifier("converter")
-    private final Converter converter;
+    @Qualifier("courseAdapterMapperImpl")
+    private final CourseAdapterMapper courseAdapterMapper;
 
     public CourseDTO toDTO(Course course) {
-        CourseDTO courseDTO = converter.convert(course, CourseDTO.class);
+        CourseDTO courseDTO = courseAdapterMapper.convert(course);
         courseDTO.setStatus(toFacadeStatus(course.getStatus()));
         return courseDTO;
+    }
+
+    public PageResponse<CourseDTO> toPageResponse(Page<Course> page) {
+        return PageResponse.of(
+                page.records().stream().map(this::toDTO).toList(),
+                page.currentPage(),
+                page.totalPages(),
+                page.pageSize(),
+                page.totalCount());
     }
 
     private String toFacadeStatus(CourseStatus status) {
@@ -32,13 +39,5 @@ public class CourseAdapterConvertor {
             return "ENABLED";
         }
         return status.name();
-    }
-
-    @Mapper(componentModel = "spring")
-    public interface CourseMapper extends BaseMapper<Course, CourseDTO> {
-
-        @Override
-        @Mapping(target = "status", ignore = true)
-        CourseDTO convert(Course course);
     }
 }
