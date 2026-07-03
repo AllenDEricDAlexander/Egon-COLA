@@ -82,6 +82,14 @@ assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.spr
 assertRuntimeConfigFiles("src/main/resources")
 
 def applicationYaml = assertFile("src/main/resources/application.yml").text
+assert applicationYaml.contains("threads:")
+assert applicationYaml.contains("virtual:")
+assert applicationYaml.contains('${SPRING_THREADS_VIRTUAL_ENABLED:true}')
+assert applicationYaml.contains("timeout-per-shutdown-phase")
+assert applicationYaml.contains("write-dates-as-timestamps: false")
+assert applicationYaml.contains("prometheus")
+assert applicationYaml.contains("tomcat:")
+assert applicationYaml.contains('${TOMCAT_MAX_CONNECTIONS:8192}')
 assert applicationYaml.contains("dubbo:")
 assert applicationYaml.contains('name: ${spring.application.name}')
 assert applicationYaml.contains('${DUBBO_REGISTRY_ADDRESS:N/A}')
@@ -94,6 +102,11 @@ def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
 assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java")
+def asyncConfigurationText = assertFile("src/main/java/it/pkg/start/config/async/AsyncConfiguration.java").text
+assert asyncConfigurationText.contains("implements AsyncConfigurer")
+assert asyncConfigurationText.contains("getAsyncUncaughtExceptionHandler")
+assert !asyncConfigurationText.contains("ThreadPoolTaskExecutorBuilder")
+assert !asyncConfigurationText.contains("applicationTaskExecutor(")
 assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptor.java")
 assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptException.java")
 assertFile("src/main/java/it/pkg/start/config/encryption/ConfigDecryptKeyProvider.java")
