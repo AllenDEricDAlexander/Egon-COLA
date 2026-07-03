@@ -20,6 +20,26 @@ def assertDir = { path ->
     file
 }
 
+def javaFileTexts = { path ->
+    def dir = new File(projectDir, path)
+    assert dir.isDirectory(): "Expected directory ${path}"
+    def files = []
+    dir.traverse(type: groovy.io.FileType.FILES) { file ->
+        if (file.name.endsWith(".java")) {
+            files << file
+        }
+    }
+    files.collect { it.text }
+}
+
+def assertNoGenericMapStructConverterInjection = { path ->
+    javaFileTexts(path).each { text ->
+        assert !text.contains("import io.github.linpeilie.Converter;")
+        assert !text.contains("private final Converter converter;")
+        assert !text.contains('@Qualifier("converter")')
+    }
+}
+
 assertFile("pom.xml")
 assertFile("mvnw")
 assertFile("mvnw.cmd")
@@ -213,51 +233,37 @@ assertContainsAll(examFacadeImplText, [
         '@Qualifier("serviceExceptionHandler")'
 ], "ExamResultFacadeImpl")
 
-def courseAdapterConvertorText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/CourseAdapterConvertor.java").text
-assertContainsAll(courseAdapterConvertorText, [
-        'import io.github.linpeilie.Converter;',
-        'import io.github.linpeilie.BaseMapper;',
-        '@Component("courseAdapterConvertor")',
-        '@Qualifier("converter")',
-        'interface CourseMapper extends BaseMapper<Course, CourseDTO>',
-        '@Mapping(target = "status", ignore = true)'
-], "CourseAdapterConvertor")
+assertNoGenericMapStructConverterInjection("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor")
+assertNoGenericMapStructConverterInjection("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo")
 
-def examAdapterConvertorText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/ExamResultAdapterConvertor.java").text
-assertContainsAll(examAdapterConvertorText, [
-        'import io.github.linpeilie.Converter;',
-        'import io.github.linpeilie.BaseMapper;',
-        '@Component("examResultAdapterConvertor")',
-        '@Qualifier("converter")',
-        'interface ExamResultMapper extends BaseMapper<ExamResult, ExamResultDTO>',
-        '@Mapping(target = "status", ignore = true)'
-], "ExamResultAdapterConvertor")
+assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/CourseAdapterMapper.java")
+assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/ExamResultAdapterMapper.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CoursePoMapper.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CourseDomainMapper.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultPoMapper.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultDomainMapper.java")
+assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/common/Page.java")
+assertFile("student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/PageResponse.java")
 
-def courseConverterText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CourseConverter.java").text
-assertContainsAll(courseConverterText, [
-        'import io.github.linpeilie.Converter;',
-        'import io.github.linpeilie.BaseMapper;',
-        '@Component("courseConverter")',
-        '@Qualifier("converter")',
-        'interface CourseMapper extends BaseMapper<Course, CoursePo>',
-        'interface CourseDomainMapper extends BaseMapper<CoursePo, Course>',
-        'CoursePo convert(Course course, @MappingTarget CoursePo coursePo);',
-        'Course convert(CoursePo coursePo, @MappingTarget Course course);',
-        'CourseStatus.valueOf(coursePo.getStatus())'
-], "CourseConverter")
+assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/CourseAdapterMapper.java").text.contains("BaseMapper<Course, CourseDTO>")
+assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor/ExamResultAdapterMapper.java").text.contains("BaseMapper<ExamResult, ExamResultDTO>")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CoursePoMapper.java").text.contains("BaseMapper<Course, CoursePo>")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultPoMapper.java").text.contains("BaseMapper<ExamResult, ExamResultPo>")
 
-def examConverterText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultConverter.java").text
-assertContainsAll(examConverterText, [
-        'import io.github.linpeilie.Converter;',
-        'import io.github.linpeilie.BaseMapper;',
-        '@Component("examResultConverter")',
-        '@Qualifier("converter")',
-        'interface ExamResultMapper extends BaseMapper<ExamResult, ExamResultPo>',
-        'interface ExamResultDomainMapper extends BaseMapper<ExamResultPo, ExamResult>',
-        'ExamResultPo convert(ExamResult examResult, @MappingTarget ExamResultPo examResultPo);',
-        'ExamResult convert(ExamResultPo examResultPo, @MappingTarget ExamResult examResult);',
-        'ExamResultStatus.valueOf(examResultPo.getStatus())'
-], "ExamResultConverter")
+def courseManageTextAfterPage = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/course/CourseManage.java").text
+assert courseManageTextAfterPage.contains("Page<Course> getPage(int currentPage, int pageSize)")
+assert courseManageTextAfterPage.contains("import it.pkg.domain.common.Page;")
+
+def courseRepositoryText = assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/course/CourseRepository.java").text
+assert courseRepositoryText.contains("Page<Course> findPage(int currentPage, int pageSize)")
+assert courseRepositoryText.contains("import it.pkg.domain.common.Page;")
+
+def courseFacadeTextAfterPage = assertFile("student-management-evaluation-facade/src/main/java/it/pkg/facade/api/CourseFacade.java").text
+assert courseFacadeTextAfterPage.contains("SingleResponse<PageResponse<CourseDTO>> getCourses(int currentPage, int pageSize)")
+
+def courseFacadeImplTextAfterPage = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/CourseFacadeImpl.java").text
+assert courseFacadeImplTextAfterPage.contains("SingleResponse<PageResponse<CourseDTO>> getCourses")
+assert courseFacadeImplTextAfterPage.contains("SingleResponse.of(courseAdapterConvertor.toPageResponse(courseManage.getPage(currentPage, pageSize)))")
 
 def courseRepositoryImplText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/impl/CourseRepositoryImpl.java").text
 assertContainsAll(courseRepositoryImplText, [

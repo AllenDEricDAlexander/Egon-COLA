@@ -6,6 +6,26 @@ def assertFile = { path ->
     file
 }
 
+def javaFileTexts = { path ->
+    def dir = new File(generatedProjectDir, path)
+    assert dir.isDirectory(): "Expected directory ${path}"
+    def files = []
+    dir.traverse(type: groovy.io.FileType.FILES) { file ->
+        if (file.name.endsWith(".java")) {
+            files << file
+        }
+    }
+    files.collect { it.text }
+}
+
+def assertNoGenericMapStructConverterInjection = { path ->
+    javaFileTexts(path).each { text ->
+        assert !text.contains("import io.github.linpeilie.Converter;")
+        assert !text.contains("private final Converter converter;")
+        assert !text.contains('@Qualifier("converter")')
+    }
+}
+
 assertFile("pom.xml")
 def mvnw = assertFile("mvnw")
 assert mvnw.canExecute(): "Expected mvnw to be executable"
@@ -83,16 +103,43 @@ assert lightFacadeText.contains("@RequiredArgsConstructor")
 assert lightFacadeText.contains("@Qualifier(\"studentManage\")")
 assert lightFacadeText.contains("@Qualifier(\"studentAdapterConverter\")")
 
-def lightConverterText = assertFile("src/main/java/it/pkg/adapter/convertor/StudentAdapterConverter.java").text
-assert lightConverterText.contains("io.github.linpeilie.Converter")
-assert lightConverterText.contains("@Component(\"studentAdapterConverter\")")
-assert lightConverterText.contains("BaseMapper<Student, StudentDTO>")
-assert !lightConverterText.contains("static StudentDTO")
+assertNoGenericMapStructConverterInjection("src/main/java/it/pkg/adapter/convertor")
+assertNoGenericMapStructConverterInjection("src/main/java/it/pkg/infrastructure/repo")
 
-def courseConverterText = assertFile("src/main/java/it/pkg/adapter/convertor/CourseAdapterConverter.java").text
-assert courseConverterText.contains("io.github.linpeilie.Converter")
-assert courseConverterText.contains("@Component(\"courseAdapterConverter\")")
-assert courseConverterText.contains("BaseMapper<Course, CourseDTO>")
+assertFile("src/main/java/it/pkg/adapter/convertor/StudentAdapterMapper.java")
+assertFile("src/main/java/it/pkg/adapter/convertor/CourseAdapterMapper.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentPoMapper.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentDomainMapper.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentDomainFactory.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CoursePoMapper.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CourseDomainMapper.java")
+assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CourseDomainFactory.java")
+assertFile("src/main/java/it/pkg/domain/common/Page.java")
+assertFile("src/main/java/it/pkg/facade/dto/PageResponse.java")
+
+assertFile("src/main/java/it/pkg/adapter/convertor/StudentAdapterMapper.java").text.contains("BaseMapper<Student, StudentDTO>")
+assertFile("src/main/java/it/pkg/adapter/convertor/CourseAdapterMapper.java").text.contains("BaseMapper<Course, CourseDTO>")
+assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentPoMapper.java").text.contains("BaseMapper<Student, StudentPo>")
+assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CoursePoMapper.java").text.contains("BaseMapper<Course, CoursePo>")
+
+studentManageText = assertFile("src/main/java/it/pkg/application/manage/student/StudentManage.java").text
+assert studentManageText.contains("Page<Student> getPage(int currentPage, int pageSize)")
+assert studentManageText.contains("import it.pkg.domain.common.Page;")
+
+def studentRepositoryText = assertFile("src/main/java/it/pkg/domain/student/repos/StudentRepository.java").text
+assert studentRepositoryText.contains("Page<Student> findPage(int currentPage, int pageSize)")
+assert studentRepositoryText.contains("import it.pkg.domain.common.Page;")
+
+def studentControllerText = assertFile("src/main/java/it/pkg/adapter/controller/student/StudentController.java").text
+assert studentControllerText.contains("PageResponse<StudentDTO> getPage")
+assert studentControllerText.contains("studentAdapterConverter.toPageResponse(studentManage.getPage(currentPage, pageSize))")
+
+def studentFacadeText = assertFile("src/main/java/it/pkg/facade/api/StudentManagementFacade.java").text
+assert studentFacadeText.contains("PageResponse<StudentDTO> getStudents(int currentPage, int pageSize)")
+
+def lightFacadeImplTextAfterPage = assertFile("src/main/java/it/pkg/adapter/facade/impl/StudentManagementFacadeImpl.java").text
+assert lightFacadeImplTextAfterPage.contains("PageResponse<StudentDTO> getStudents")
+assert lightFacadeImplTextAfterPage.contains("studentAdapterConverter.toPageResponse(studentManage.getPage(currentPage, pageSize))")
 
 def facadeJavaFiles = []
 new File(generatedProjectDir, "src/main/java/it/pkg/facade").eachFileRecurse { file ->
