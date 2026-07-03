@@ -9,6 +9,8 @@ import ${package}.application.manage.student.StudentManage;
 import ${package}.application.manage.teaching.CourseManage;
 import ${package}.domain.student.model.Student;
 import ${package}.domain.teaching.model.Course;
+import ${package}.facade.api.StudentManagementFacade;
+import ${package}.facade.dto.RegisterStudentRequest;
 import ${package}.facade.dto.CourseDTO;
 import ${package}.facade.dto.StudentDTO;
 import ${package}.start.StudentManagementApplication;
@@ -32,6 +34,9 @@ class StudentManagementFlowTest {
     @Autowired
     private CourseAdapterConverter courseAdapterConverter;
 
+    @Autowired
+    private StudentManagementFacade studentManagementFacade;
+
     @Test
     void register_student_and_assign_course() {
         Student student = studentManage.register("Mario", "mario@example.com");
@@ -48,5 +53,9 @@ class StudentManagementFlowTest {
         assertThat(studentDTO.getStatus()).isEqualTo(saved.getStatus().name());
         assertThat(studentDTO.getCourseIds()).containsExactly(course.getId());
         assertThat(courseDTO.getId()).isEqualTo(course.getId());
+
+        StudentDTO facadeStudent = studentManagementFacade.registerStudent(
+                new RegisterStudentRequest("Luigi", "luigi@example.com"));
+        assertThat(facadeStudent.getEmail()).isEqualTo("luigi@example.com");
     }
 }

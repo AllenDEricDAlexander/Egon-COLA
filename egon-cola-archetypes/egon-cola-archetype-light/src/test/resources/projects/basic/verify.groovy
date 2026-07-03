@@ -45,6 +45,9 @@ def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
 assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java")
+def starterText = assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java").text
+assert starterText.contains("@EnableDubbo")
+assert starterText.contains('scanBasePackages = "it.pkg.adapter.facade"')
 assertFile("src/main/java/it/pkg/adapter/controller/student/StudentController.java")
 assertFile("src/main/java/it/pkg/adapter/controller/teaching/CourseController.java")
 assertFile("src/main/java/it/pkg/facade/api/StudentManagementFacade.java")
