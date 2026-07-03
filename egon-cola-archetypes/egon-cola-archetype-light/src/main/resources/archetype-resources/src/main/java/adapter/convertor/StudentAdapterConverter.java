@@ -1,13 +1,31 @@
 package ${package}.adapter.convertor;
 
-import ${package}.application.manage.student.StudentView;
+import ${package}.domain.student.model.Student;
 import ${package}.facade.dto.StudentDTO;
+import io.github.linpeilie.BaseMapper;
+import io.github.linpeilie.Converter;
+import lombok.RequiredArgsConstructor;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
-public final class StudentAdapterConverter {
-    private StudentAdapterConverter() {
+@Component("studentAdapterConverter")
+@RequiredArgsConstructor
+public class StudentAdapterConverter {
+    @Qualifier("converter")
+    private final Converter converter;
+
+    public StudentDTO toDto(Student student) {
+        StudentDTO dto = converter.convert(student, StudentDTO.class);
+        dto.setStatus(student.getStatus().name());
+        return dto;
     }
 
-    public static StudentDTO toDto(StudentView view) {
-        return new StudentDTO(view.id(), view.name(), view.email(), view.status(), view.courseIds());
+    @Mapper(componentModel = "spring")
+    public interface StudentMapper extends BaseMapper<Student, StudentDTO> {
+        @Override
+        @Mapping(target = "status", ignore = true)
+        StudentDTO convert(Student student);
     }
 }

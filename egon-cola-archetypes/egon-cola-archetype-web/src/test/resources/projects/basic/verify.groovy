@@ -105,11 +105,28 @@ def rootPomText = assertFile("pom.xml").text
 assert rootPomText.contains("<artifactId>spring-boot-starter-parent</artifactId>")
 assert rootPomText.contains("<version>3.5.16</version>")
 assert rootPomText.contains("<java.version>21</java.version>")
+assert rootPomText.contains("<lombok.version>1.18.38</lombok.version>")
+assert rootPomText.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
+assert rootPomText.contains("<dubbo.version>3.3.6</dubbo.version>")
+assert rootPomText.contains("<artifactId>dubbo-bom</artifactId>")
+assert rootPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
+assert rootPomText.contains("<artifactId>mapstruct-plus-processor</artifactId>")
 assert rootPomText.contains("<module>student-management-organization-common</module>")
 assert rootPomText.contains("<module>student-management-organization-starter</module>")
 assert !rootPomText.contains("spring-ai")
 assert !rootPomText.contains("drools")
 assert !rootPomText.contains("mcp")
+
+assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+
+def webApplicationYaml = assertFile("student-management-organization-starter/src/main/resources/application.yml").text
+assert webApplicationYaml.contains("dubbo:")
+assert webApplicationYaml.contains('name: ${spring.application.name}')
+assert webApplicationYaml.contains('${DUBBO_REGISTRY_ADDRESS:N/A}')
+assert webApplicationYaml.contains("name: tri")
+assert webApplicationYaml.contains('${DUBBO_PORT:50051}')
+assert webApplicationYaml.contains("timeout: 3000")
+assert webApplicationYaml.contains("retries: 0")
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
@@ -197,28 +214,35 @@ assertModuleDependencies(starterDependencies, [
 ])
 
 assertDependency(facadeDependencies, "spring-boot-starter-validation")
+assertScopedDependency(facadeDependencies, "lombok", "provided")
 
 assertDependency(domainDependencies, "student-management-organization-common")
 
 assertDependency(applicationDependencies, "student-management-organization-domain")
 assertDependency(applicationDependencies, "spring-context")
 assertDependency(applicationDependencies, "spring-tx")
+assertScopedDependency(applicationDependencies, "lombok", "provided")
 assertNoDependency(applicationDependencies, "student-management-organization-common")
 assertNoDependency(applicationDependencies, "student-management-organization-infrastructure")
 
 assertDependency(infrastructureDependencies, "student-management-organization-application")
 assertNoDependency(infrastructureDependencies, "student-management-organization-domain")
 assertNoDependency(infrastructureDependencies, "student-management-organization-common")
+assertDependency(infrastructureDependencies, "mapstruct-plus-spring-boot-starter")
 assertDependency(infrastructureDependencies, "spring-boot-starter-data-jpa")
 assertDependency(infrastructureDependencies, "flyway-core")
 assertScopedDependency(infrastructureDependencies, "h2", "runtime")
 assertScopedDependency(infrastructureDependencies, "postgresql", "runtime")
+assertScopedDependency(infrastructureDependencies, "lombok", "provided")
 
 assertDependency(adapterDependencies, "student-management-organization-application")
 assertDependency(adapterDependencies, "student-management-organization-facade")
 assertNoDependency(adapterDependencies, "student-management-organization-common")
 assertDependency(adapterDependencies, "spring-boot-starter-web")
 assertDependency(adapterDependencies, "spring-boot-starter-validation")
+assertDependency(adapterDependencies, "dubbo-spring-boot-starter")
+assertDependency(adapterDependencies, "mapstruct-plus-spring-boot-starter")
+assertScopedDependency(adapterDependencies, "lombok", "provided")
 assertNoDependency(adapterDependencies, "student-management-organization-infrastructure")
 
 assertDependency(starterDependencies, "student-management-organization-adapter")
@@ -241,6 +265,69 @@ assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter
 assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/ArchitectureDependencyTest.java")
+
+def organizationApplicationText = assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
+assert organizationApplicationText.contains("@EnableDubbo")
+assert organizationApplicationText.contains('scanBasePackages = "it.pkg.adapter.facade"')
+
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java")
+assertMissing("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserView.java")
+assertMissing("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassView.java")
+
+def userManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java").text
+assert userManageText.contains("User create(String name, String email)")
+assert userManageText.contains("User getById(String userId)")
+assert !userManageText.contains("UserView")
+
+def schoolClassManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java").text
+assert schoolClassManageText.contains("SchoolClass create(String name, String gradeName)")
+assert !schoolClassManageText.contains("SchoolClassView")
+
+def userFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/user/UserFacadeImpl.java").text
+assert userFacadeText.contains("@DubboService")
+assert userFacadeText.contains("interfaceClass = UserFacade.class")
+assert userFacadeText.contains('version = "1.0.0"')
+assert userFacadeText.contains('group = "user"')
+assert userFacadeText.contains("@Qualifier(\"userManage\")")
+assert userFacadeText.contains("@Qualifier(\"userAdapterConverter\")")
+
+def schoolClassFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/teaching/SchoolClassFacadeImpl.java").text
+assert schoolClassFacadeText.contains("@DubboService")
+assert schoolClassFacadeText.contains("interfaceClass = SchoolClassFacade.class")
+assert schoolClassFacadeText.contains('version = "1.0.0"')
+assert schoolClassFacadeText.contains('group = "school-class"')
+assert schoolClassFacadeText.contains("@Qualifier(\"schoolClassManage\")")
+assert schoolClassFacadeText.contains("@Qualifier(\"schoolClassAdapterConverter\")")
+
+def userAdapterConverterText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/UserAdapterConverter.java").text
+assert userAdapterConverterText.contains("@Component(\"userAdapterConverter\")")
+assert userAdapterConverterText.contains("io.github.linpeilie.Converter")
+assert userAdapterConverterText.contains("BaseMapper<User, UserDTO>")
+
+def schoolClassAdapterConverterText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/SchoolClassAdapterConverter.java").text
+assert schoolClassAdapterConverterText.contains("@Component(\"schoolClassAdapterConverter\")")
+assert schoolClassAdapterConverterText.contains("io.github.linpeilie.Converter")
+assert schoolClassAdapterConverterText.contains("BaseMapper<SchoolClass, SchoolClassDTO>")
+
+def applicationJava = []
+new File(projectDir, "student-management-organization-application/src/main/java").eachFileRecurse { file ->
+    if (file.isFile() && file.name.endsWith(".java")) {
+        applicationJava << file
+    }
+}
+assert applicationJava.every { !it.text.contains("View") }
+assert applicationJava.every { !it.text.contains("facade.dto") }
+assert applicationJava.every { !it.text.contains("common.response") }
+
+def facadeJava = []
+new File(projectDir, "student-management-organization-facade/src/main/java").eachFileRecurse { file ->
+    if (file.isFile() && file.name.endsWith(".java")) {
+        facadeJava << file
+    }
+}
+assert facadeJava.every { !it.text.contains("import it.pkg.domain.") }
+assert facadeJava.every { !it.text.contains("@AutoMapper") }
+assert facadeJava.every { !it.text.contains("@Component") }
 
 def migrationDir = new File(projectDir, "student-management-organization-infrastructure/src/main/resources/db/migration")
 assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 1

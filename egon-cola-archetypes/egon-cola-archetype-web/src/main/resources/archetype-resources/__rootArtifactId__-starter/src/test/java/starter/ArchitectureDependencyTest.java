@@ -41,6 +41,29 @@ class ArchitectureDependencyTest {
     }
 
     @Test
+    void application_does_not_depend_on_external_or_infrastructure_layers() {
+        noClasses().that().resideInAPackage("${package}.application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.facade..",
+                        "${package}.adapter..",
+                        "${package}.infrastructure..",
+                        "${package}.common.response..",
+                        "${package}.starter..")
+                .check(classes);
+    }
+
+    @Test
+    void application_should_not_depend_on_external_models() {
+        noClasses().that().resideInAPackage("${package}.application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.adapter..",
+                        "${package}.facade.dto..",
+                        "${package}.common.response..",
+                        "org.springframework.web..")
+                .check(classes);
+    }
+
+    @Test
     void adapter_does_not_depend_on_infrastructure() {
         noClasses().that().resideInAPackage("${package}.adapter..")
                 .should().dependOnClassesThat().resideInAPackage("${package}.infrastructure..")

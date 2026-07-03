@@ -3,26 +3,42 @@
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.convertor;
 
-import ${package}.application.view.examing.ExamResultView;
+import ${package}.domain.entities.examing.ExamResult;
+import ${package}.domain.enums.ExamResultStatus;
 import ${package}.facade.dto.examing.ExamResultDTO;
+import io.github.linpeilie.BaseMapper;
+import io.github.linpeilie.Converter;
+import lombok.RequiredArgsConstructor;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("examResultAdapterConvertor")
+@RequiredArgsConstructor
 public class ExamResultAdapterConvertor {
 
-    public ExamResultDTO toDTO(ExamResultView examResultView) {
-        return new ExamResultDTO(
-                examResultView.id(),
-                examResultView.courseId(),
-                examResultView.studentId(),
-                examResultView.score(),
-                toFacadeStatus(examResultView.status(), examResultView.score()));
+    @Qualifier("converter")
+    private final Converter converter;
+
+    public ExamResultDTO toDTO(ExamResult examResult) {
+        ExamResultDTO examResultDTO = converter.convert(examResult, ExamResultDTO.class);
+        examResultDTO.setStatus(toFacadeStatus(examResult.getStatus(), examResult.getScore()));
+        return examResultDTO;
     }
 
-    private String toFacadeStatus(String status, int score) {
-        if ("RECORDED".equals(status)) {
+    private String toFacadeStatus(ExamResultStatus status, int score) {
+        if (ExamResultStatus.RECORDED == status) {
             return score >= 60 ? "PASSED" : "FAILED";
         }
-        return status;
+        return status.name();
+    }
+
+    @Mapper(componentModel = "spring")
+    public interface ExamResultMapper extends BaseMapper<ExamResult, ExamResultDTO> {
+
+        @Override
+        @Mapping(target = "status", ignore = true)
+        ExamResultDTO convert(ExamResult examResult);
     }
 }

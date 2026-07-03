@@ -14,20 +14,20 @@ import ${package}.domain.repos.course.CourseRepository;
 import ${package}.infrastructure.repo.course.converter.CourseConverter;
 import ${package}.infrastructure.repo.course.jpa.CourseJpaRepository;
 import ${package}.infrastructure.repo.course.po.CoursePo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
-@Repository
+@Repository("courseRepositoryImpl")
+@RequiredArgsConstructor
 public class CourseRepositoryImpl implements CourseRepository {
 
+    @Qualifier("courseJpaRepository")
     private final CourseJpaRepository courseJpaRepository;
 
+    @Qualifier("courseConverter")
     private final CourseConverter courseConverter;
-
-    public CourseRepositoryImpl(CourseJpaRepository courseJpaRepository, CourseConverter courseConverter) {
-        this.courseJpaRepository = courseJpaRepository;
-        this.courseConverter = courseConverter;
-    }
 
     @Override
     public Course save(Course course) {

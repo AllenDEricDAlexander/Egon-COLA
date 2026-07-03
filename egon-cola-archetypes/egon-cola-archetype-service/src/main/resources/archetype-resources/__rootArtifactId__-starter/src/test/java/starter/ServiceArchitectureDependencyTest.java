@@ -47,7 +47,8 @@ class ServiceArchitectureDependencyTest {
                         "org.springframework.amqp..",
                         "com.rabbitmq..",
                         "org.apache.dubbo..",
-                        "io.grpc..")
+                        "io.grpc..",
+                        "${package}..grpc..")
                 .check(importedClasses);
     }
 
@@ -58,6 +59,27 @@ class ServiceArchitectureDependencyTest {
                         "${package}.adapter..",
                         "${package}.infrastructure..",
                         "${package}.facade..",
+                        "${package}.facade.dto..",
+                        "${package}.common.response..",
+                        "org.springframework.web..",
+                        "${package}.starter..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void projectShouldNotDependOnNativeGrpc() {
+        noClasses().should().dependOnClassesThat().resideInAnyPackage("io.grpc..", "${package}..grpc..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void facadeShouldNotDependOnImplementationLayers() {
+        noClasses().that().resideInAPackage("${package}.facade..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.domain..",
+                        "${package}.application..",
+                        "${package}.adapter..",
+                        "${package}.infrastructure..",
                         "${package}.starter..")
                 .check(importedClasses);
     }

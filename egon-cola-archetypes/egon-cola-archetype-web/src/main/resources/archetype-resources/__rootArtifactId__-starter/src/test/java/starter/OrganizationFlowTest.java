@@ -6,10 +6,11 @@ package ${package}.starter;
 import ${package}.adapter.handler.GlobalExceptionHandler;
 import ${package}.application.manage.teaching.SchoolClassManage;
 import ${package}.application.manage.user.UserManage;
-import ${package}.application.manage.user.UserView;
 import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.response.Response;
+import ${package}.domain.entities.teaching.SchoolClass;
+import ${package}.domain.entities.user.User;
 import ${package}.facade.dto.teaching.AssignUserToClassRequest;
 import ${package}.facade.teaching.SchoolClassFacade;
 import ${package}.facade.user.UserFacade;
@@ -58,26 +59,26 @@ class OrganizationFlowTest {
 
     @Test
     void create_user_and_assign_to_school_class() {
-        UserView user = userManage.create("Mario", "mario@example.com");
-        var schoolClass = schoolClassManage.create("Class One", "Grade One");
+        User user = userManage.create("Mario", "mario@example.com");
+        SchoolClass schoolClass = schoolClassManage.create("Class One", "Grade One");
 
-        schoolClassManage.assignUser(user.id(), schoolClass.id());
+        schoolClassManage.assignUser(user.getId(), schoolClass.getId());
 
-        UserView saved = userManage.getById(user.id());
-        assertThat(saved.email()).isEqualTo("mario@example.com");
-        assertThat(saved.schoolClassIds()).containsExactly(schoolClass.id());
+        User saved = userManage.getById(user.getId());
+        assertThat(saved.getEmail()).isEqualTo("mario@example.com");
+        assertThat(saved.getSchoolClassIds()).containsExactly(schoolClass.getId());
     }
 
     @Test
     void duplicate_assignment_returns_duplicate_error() {
-        UserView user = userManage.create("Luigi", "luigi@example.com");
-        var schoolClass = schoolClassManage.create("Class Two", "Grade One");
+        User user = userManage.create("Luigi", "luigi@example.com");
+        SchoolClass schoolClass = schoolClassManage.create("Class Two", "Grade One");
         doThrow(new DataIntegrityViolationException("uk_school_class_user"))
                 .when(schoolClassUserJpaRepository)
                 .saveAndFlush(any());
 
         Throwable thrown = catchThrowable(() ->
-                schoolClassFacade.assignUser(new AssignUserToClassRequest(user.id(), schoolClass.id())));
+                schoolClassFacade.assignUser(new AssignUserToClassRequest(user.getId(), schoolClass.getId())));
 
         assertThat(thrown).isInstanceOf(BizException.class);
         Response response = globalExceptionHandler.handleBizException((BizException) thrown);

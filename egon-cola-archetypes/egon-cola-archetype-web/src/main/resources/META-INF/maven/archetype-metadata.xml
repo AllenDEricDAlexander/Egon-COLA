@@ -15,6 +15,7 @@
             <directory></directory>
             <includes>
                 <include>pom.xml</include>
+                <include>lombok.config</include>
             </includes>
         </fileSet>
         <fileSet encoding="UTF-8">

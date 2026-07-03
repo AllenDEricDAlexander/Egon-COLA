@@ -1,3 +1,4 @@
+#set( $symbol_dollar = '$' )
 spring:
   application:
     name: ${artifactId}
@@ -15,3 +16,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+dubbo:
+  application:
+    name: ${symbol_dollar}{spring.application.name}
+  registry:
+    address: ${symbol_dollar}{DUBBO_REGISTRY_ADDRESS:N/A}
+  protocol:
+    name: tri
+    port: ${symbol_dollar}{DUBBO_PORT:50051}
+  provider:
+    timeout: 3000
+    retries: 0

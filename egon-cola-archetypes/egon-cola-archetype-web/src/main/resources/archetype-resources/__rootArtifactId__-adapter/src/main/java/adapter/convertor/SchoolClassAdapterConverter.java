@@ -1,17 +1,25 @@
 package ${package}.adapter.convertor;
 
-import ${package}.application.manage.teaching.SchoolClassView;
+import ${package}.domain.entities.teaching.SchoolClass;
 import ${package}.facade.dto.teaching.SchoolClassDTO;
+import io.github.linpeilie.BaseMapper;
+import io.github.linpeilie.Converter;
+import lombok.RequiredArgsConstructor;
+import org.mapstruct.Mapper;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
-public final class SchoolClassAdapterConverter {
-    private SchoolClassAdapterConverter() {
+@Component("schoolClassAdapterConverter")
+@RequiredArgsConstructor
+public class SchoolClassAdapterConverter {
+    @Qualifier("converter")
+    private final Converter converter;
+
+    public SchoolClassDTO toDto(SchoolClass schoolClass) {
+        return converter.convert(schoolClass, SchoolClassDTO.class);
     }
 
-    public static SchoolClassDTO toDto(SchoolClassView schoolClassView) {
-        return new SchoolClassDTO(
-                schoolClassView.id(),
-                schoolClassView.name(),
-                schoolClassView.gradeName(),
-                schoolClassView.userIds());
+    @Mapper(componentModel = "spring")
+    public interface SchoolClassMapper extends BaseMapper<SchoolClass, SchoolClassDTO> {
     }
 }

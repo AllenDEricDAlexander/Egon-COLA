@@ -3,11 +3,11 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.manage.course;
 
-import ${package}.application.view.course.CourseView;
+import ${package}.domain.entities.course.Course;
 
 public interface CourseManage {
 
-    CourseView create(String name, int credit);
+    Course create(String name, int credit);
 
-    CourseView getById(String courseId);
+    Course getById(String courseId);
 }

@@ -47,14 +47,14 @@ class EvaluationFlowTest {
         SingleResponse<CourseDTO> courseResponse = courseFacade.createCourse(new CreateCourseRequest("Mathematics", 3));
 
         assertThat(courseResponse.isSuccess()).isTrue();
-        assertThat(courseResponse.getData().status()).isEqualTo("ENABLED");
+        assertThat(courseResponse.getData().getStatus()).isEqualTo("ENABLED");
 
         CourseDTO course = courseResponse.getData();
         SingleResponse<ExamResultDTO> examResultResponse = examResultMessageConsumer.consume(
-                new ExamResultMessage(course.id(), "student-001", 90));
+                new ExamResultMessage(course.getId(), "student-001", 90));
 
         assertThat(examResultResponse.isSuccess()).isTrue();
-        assertThat(examResultResponse.getData().status()).isEqualTo("PASSED");
+        assertThat(examResultResponse.getData().getStatus()).isEqualTo("PASSED");
     }
 
     @Test

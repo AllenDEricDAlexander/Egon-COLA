@@ -4,11 +4,13 @@ import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.response.Response;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice
+@RestControllerAdvice(name = "globalExceptionHandler")
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
     @ExceptionHandler(BizException.class)
     public Response handleBizException(BizException exception) {
