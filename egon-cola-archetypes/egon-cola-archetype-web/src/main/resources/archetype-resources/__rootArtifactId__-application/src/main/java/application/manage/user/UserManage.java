@@ -1,6 +1,9 @@
 package ${package}.application.manage.user;
 
+import ${package}.domain.entities.user.User;
+
 public interface UserManage {
-    UserView create(String name, String email);
-    UserView getById(String userId);
+    User create(String name, String email);
+
+    User getById(String userId);
 }

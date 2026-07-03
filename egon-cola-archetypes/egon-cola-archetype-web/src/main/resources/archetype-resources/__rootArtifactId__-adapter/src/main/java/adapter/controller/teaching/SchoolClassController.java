@@ -7,24 +7,27 @@ import ${package}.common.response.SingleResponse;
 import ${package}.facade.dto.teaching.CreateSchoolClassRequest;
 import ${package}.facade.dto.teaching.SchoolClassDTO;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@RestController("schoolClassController")
 @RequestMapping("/school-classes")
+@RequiredArgsConstructor
 public class SchoolClassController {
+    @Qualifier("schoolClassManage")
     private final SchoolClassManage schoolClassManage;
 
-    public SchoolClassController(SchoolClassManage schoolClassManage) {
-        this.schoolClassManage = schoolClassManage;
-    }
+    @Qualifier("schoolClassAdapterConverter")
+    private final SchoolClassAdapterConverter schoolClassAdapterConverter;
 
     @PostMapping
     public SingleResponse<SchoolClassDTO> create(@Valid @RequestBody CreateSchoolClassRequest request) {
-        return SingleResponse.of(SchoolClassAdapterConverter.toDto(schoolClassManage.create(request.name(), request.gradeName())));
+        return SingleResponse.of(schoolClassAdapterConverter.toDto(schoolClassManage.create(request.name(), request.gradeName())));
     }
 
     @PostMapping("/{schoolClassId}/users/{userId}")

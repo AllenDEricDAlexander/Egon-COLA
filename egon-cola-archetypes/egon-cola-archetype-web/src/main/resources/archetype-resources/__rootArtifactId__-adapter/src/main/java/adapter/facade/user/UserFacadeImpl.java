@@ -5,25 +5,32 @@ import ${package}.application.manage.user.UserManage;
 import ${package}.facade.dto.user.CreateUserRequest;
 import ${package}.facade.dto.user.UserDTO;
 import ${package}.facade.user.UserFacade;
-import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 
-@Service
+@DubboService(
+        interfaceClass = UserFacade.class,
+        version = "1.0.0",
+        group = "user"
+)
 @Validated
+@RequiredArgsConstructor
 public class UserFacadeImpl implements UserFacade {
+    @Qualifier("userManage")
     private final UserManage userManage;
 
-    public UserFacadeImpl(UserManage userManage) {
-        this.userManage = userManage;
-    }
+    @Qualifier("userAdapterConverter")
+    private final UserAdapterConverter userAdapterConverter;
 
     @Override
     public UserDTO createUser(CreateUserRequest request) {
-        return UserAdapterConverter.toDto(userManage.create(request.name(), request.email()));
+        return userAdapterConverter.toDto(userManage.create(request.name(), request.email()));
     }
 
     @Override
     public UserDTO getUser(String userId) {
-        return UserAdapterConverter.toDto(userManage.getById(userId));
+        return userAdapterConverter.toDto(userManage.getById(userId));
     }
 }

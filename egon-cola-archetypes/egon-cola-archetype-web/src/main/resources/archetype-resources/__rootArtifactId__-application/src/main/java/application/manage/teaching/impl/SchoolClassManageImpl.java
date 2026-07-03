@@ -1,7 +1,6 @@
 package ${package}.application.manage.teaching.impl;
 
 import ${package}.application.manage.teaching.SchoolClassManage;
-import ${package}.application.manage.teaching.SchoolClassView;
 import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exceptions.BizException;
 import ${package}.common.exceptions.NotFoundException;
@@ -12,26 +11,31 @@ import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
 import ${package}.domain.service.user.UserDomainService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
+@Service("schoolClassManage")
+@RequiredArgsConstructor
 public class SchoolClassManageImpl implements SchoolClassManage {
+    @Qualifier("schoolClassRepositoryImpl")
     private final SchoolClassRepository schoolClassRepository;
-    private final UserRepository userRepository;
-    private final SchoolClassDomainService schoolClassDomainService = new SchoolClassDomainService();
-    private final UserDomainService userDomainService = new UserDomainService();
 
-    public SchoolClassManageImpl(SchoolClassRepository schoolClassRepository, UserRepository userRepository) {
-        this.schoolClassRepository = schoolClassRepository;
-        this.userRepository = userRepository;
-    }
+    @Qualifier("userRepositoryImpl")
+    private final UserRepository userRepository;
+
+    @Qualifier("schoolClassDomainService")
+    private final SchoolClassDomainService schoolClassDomainService;
+
+    @Qualifier("userDomainService")
+    private final UserDomainService userDomainService;
 
     @Override
     @Transactional
-    public SchoolClassView create(String name, String gradeName) {
+    public SchoolClass create(String name, String gradeName) {
         SchoolClass schoolClass = schoolClassDomainService.create(IdGenerator.nextId(), name, gradeName);
-        return toView(schoolClassRepository.save(schoolClass));
+        return schoolClassRepository.save(schoolClass);
     }
 
     @Override
@@ -46,9 +50,5 @@ public class SchoolClassManageImpl implements SchoolClassManage {
         }
         schoolClassRepository.save(schoolClassDomainService.assignUser(schoolClass, userId));
         userRepository.save(userDomainService.assignClass(user, schoolClassId));
-    }
-
-    private SchoolClassView toView(SchoolClass schoolClass) {
-        return new SchoolClassView(schoolClass.getId(), schoolClass.getName(), schoolClass.getGradeName(), schoolClass.getUserIds());
     }
 }

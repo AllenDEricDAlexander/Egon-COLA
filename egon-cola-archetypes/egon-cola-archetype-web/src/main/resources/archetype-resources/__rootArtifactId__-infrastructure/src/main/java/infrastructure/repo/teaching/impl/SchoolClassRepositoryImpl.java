@@ -9,6 +9,8 @@ import ${package}.infrastructure.repo.teaching.jpa.SchoolClassJpaRepository;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassUserJpaRepository;
 import ${package}.infrastructure.repo.teaching.po.SchoolClassPo;
 import ${package}.infrastructure.repo.teaching.po.SchoolClassUserPo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -17,21 +19,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-@Repository
+@Repository("schoolClassRepositoryImpl")
+@RequiredArgsConstructor
 public class SchoolClassRepositoryImpl implements SchoolClassRepository {
+    @Qualifier("schoolClassJpaRepository")
     private final SchoolClassJpaRepository schoolClassJpaRepository;
+
+    @Qualifier("schoolClassUserJpaRepository")
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
 
-    public SchoolClassRepositoryImpl(
-            SchoolClassJpaRepository schoolClassJpaRepository,
-            SchoolClassUserJpaRepository schoolClassUserJpaRepository) {
-        this.schoolClassJpaRepository = schoolClassJpaRepository;
-        this.schoolClassUserJpaRepository = schoolClassUserJpaRepository;
-    }
+    @Qualifier("schoolClassPoConverter")
+    private final SchoolClassPoConverter schoolClassPoConverter;
 
     @Override
     public SchoolClass save(SchoolClass schoolClass) {
-        SchoolClassPo saved = schoolClassJpaRepository.save(SchoolClassPoConverter.toPo(schoolClass));
+        SchoolClassPo saved = schoolClassJpaRepository.save(schoolClassPoConverter.toPo(schoolClass));
         schoolClass.getUserIds().forEach(userId -> {
             if (!schoolClassUserJpaRepository.existsByUserIdAndSchoolClassId(userId, schoolClass.getId())) {
                 saveSchoolClassUser(userId, schoolClass.getId());
@@ -66,6 +68,6 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
                 .stream()
                 .map(SchoolClassUserPo::getUserId)
                 .toList();
-        return SchoolClassPoConverter.toEntity(schoolClassPo, userIds);
+        return schoolClassPoConverter.toEntity(schoolClassPo, userIds);
     }
 }

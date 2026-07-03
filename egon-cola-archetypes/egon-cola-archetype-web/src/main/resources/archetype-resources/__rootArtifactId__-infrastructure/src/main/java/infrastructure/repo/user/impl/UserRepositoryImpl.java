@@ -9,6 +9,8 @@ import ${package}.infrastructure.repo.teaching.po.SchoolClassUserPo;
 import ${package}.infrastructure.repo.user.converter.UserPoConverter;
 import ${package}.infrastructure.repo.user.jpa.UserJpaRepository;
 import ${package}.infrastructure.repo.user.po.UserPo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -17,19 +19,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-@Repository
+@Repository("userRepositoryImpl")
+@RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
+    @Qualifier("userJpaRepository")
     private final UserJpaRepository userJpaRepository;
+
+    @Qualifier("schoolClassUserJpaRepository")
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
 
-    public UserRepositoryImpl(UserJpaRepository userJpaRepository, SchoolClassUserJpaRepository schoolClassUserJpaRepository) {
-        this.userJpaRepository = userJpaRepository;
-        this.schoolClassUserJpaRepository = schoolClassUserJpaRepository;
-    }
+    @Qualifier("userPoConverter")
+    private final UserPoConverter userPoConverter;
 
     @Override
     public User save(User user) {
-        UserPo saved = userJpaRepository.save(UserPoConverter.toPo(user));
+        UserPo saved = userJpaRepository.save(userPoConverter.toPo(user));
         user.getSchoolClassIds().forEach(schoolClassId -> {
             if (!schoolClassUserJpaRepository.existsByUserIdAndSchoolClassId(user.getId(), schoolClassId)) {
                 saveSchoolClassUser(user.getId(), schoolClassId);
@@ -69,6 +73,6 @@ public class UserRepositoryImpl implements UserRepository {
                 .stream()
                 .map(SchoolClassUserPo::getSchoolClassId)
                 .toList();
-        return UserPoConverter.toEntity(userPo, schoolClassIds);
+        return userPoConverter.toEntity(userPo, schoolClassIds);
     }
 }
