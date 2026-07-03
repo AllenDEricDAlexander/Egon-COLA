@@ -1,38 +1,118 @@
-# Quickstart for GitHub Actions
-# https://docs.github.com/en/actions/quickstart
+name: CI Java Compatibility
 
-name: Strong CI with multiple java versions
-on: [ push, pull_request, workflow_dispatch ]
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#choosing-github-hosted-runners
+  build-and-verify:
+    name: Build & Verify / JDK ${{ matrix.java-version }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    name: test by multiple java versions
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version:
+          - 21
+          - 22
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Setup Java
+      - name: Setup Java ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
-          # https://github.com/actions/setup-java?tab=readme-ov-file#install-multiple-jdks
-          java-version: |
-            21
-            22
           distribution: zulu
+          java-version: ${{ matrix.java-version }}
           cache: maven
 
-      - name: Run integration test script
+      - name: Prepare Maven Wrapper
         shell: bash
-        run: scripts/integration_test
-        env:
-          JAVA21_HOME: ${{ env.JAVA_HOME_21_X64 }}
-          JAVA22_HOME: ${{ env.JAVA_HOME_22_X64 }}
+        run: |
+          chmod +x ./mvnw
+          java -version
+          ./mvnw -version
 
-      - name: remove cola self maven install files
+      - name: Build and install repository
+        shell: bash
+        run: |
+          ./mvnw -B -ntp clean install
+
+      - name: Resolve project version
+        id: project-version
+        shell: bash
+        run: |
+          VERSION="$(./mvnw -q -N help:evaluate -Dexpression=project.version -DforceStdout)"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved project version: ${VERSION}"
+
+      - name: Verify generated archetype projects
+        shell: bash
+        env:
+          PROJECT_VERSION: ${{ steps.project-version.outputs.version }}
+          JAVA_VERSION: ${{ matrix.java-version }}
+        run: |
+          set -euo pipefail
+
+          ARCHETYPES=(
+            "egon-cola-archetype-light:light"
+            "egon-cola-archetype-service:service"
+            "egon-cola-archetype-web:web"
+          )
+
+          WORK_DIR="${RUNNER_TEMP}/egon-cola-archetype-it"
+          rm -rf "${WORK_DIR}"
+          mkdir -p "${WORK_DIR}"
+
+          for item in "${ARCHETYPES[@]}"; do
+            IFS=":" read -r ARCHETYPE_ARTIFACT_ID SHORT_NAME <<< "${item}"
+
+            APP_NAME="ci-${SHORT_NAME}-demo-java-${JAVA_VERSION}"
+            PACKAGE_NAME="top.egon.cola.ci.${SHORT_NAME}"
+
+            echo "Generating ${APP_NAME} by ${ARCHETYPE_ARTIFACT_ID}:${PROJECT_VERSION}"
+
+            ./mvnw -B -ntp archetype:generate \
+              -DarchetypeGroupId=top.egon \
+              -DarchetypeArtifactId="${ARCHETYPE_ARTIFACT_ID}" \
+              -DarchetypeVersion="${PROJECT_VERSION}" \
+              -DgroupId=top.egon.cola.ci \
+              -DartifactId="${APP_NAME}" \
+              -Dversion=1.0.0-SNAPSHOT \
+              -Dpackage="${PACKAGE_NAME}" \
+              -DinteractiveMode=false \
+              -DoutputDirectory="${WORK_DIR}"
+
+            pushd "${WORK_DIR}/${APP_NAME}"
+
+            if [ -f "./mvnw" ]; then
+              chmod +x ./mvnw
+              ./mvnw -B -ntp clean install
+            else
+              mvn -B -ntp clean install
+            fi
+
+            popd
+          done
+
+      - name: Remove self-installed Maven artifacts
+        if: always()
+        shell: bash
         run: |
           rm -rf \
             "$HOME/.m2/repository/top/egon" \

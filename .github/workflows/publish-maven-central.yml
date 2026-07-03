@@ -4,36 +4,119 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Module to publish"
+        description: "Publish target"
         required: true
-        default: "egon-cola-components"
+        default: "all"
         type: choice
         options:
+          - all
           - egon-cola-aggregation-parent
           - egon-cola-components-parent
           - egon-cola-archetypes-parent
           - egon-cola-components
           - egon-cola-archetypes
-          - all
+
       skip_tests:
         description: "Skip tests"
         required: true
         default: true
         type: boolean
 
+      dry_run:
+        description: "Only run release verification, do not deploy"
+        required: true
+        default: false
+        type: boolean
+
+      confirm_release:
+        description: "Confirm publishing immutable release artifacts to Maven Central"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-maven-central-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
+    name: Publish / ${{ inputs.target }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
-    permissions:
-      contents: read
+    defaults:
+      run:
+        shell: bash
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
-      - name: Setup Java
+      - name: Guard release branch
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          set -euo pipefail
+
+          BRANCH="${GITHUB_REF_NAME}"
+
+          if [[ "${BRANCH}" != "main" && "${BRANCH}" != "master" ]]; then
+            echo "Maven Central release is only allowed from main/master."
+            echo "Current branch: ${BRANCH}"
+            exit 1
+          fi
+
+      - name: Validate release confirmation
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ inputs.confirm_release }}" != "true" ]]; then
+            echo "confirm_release must be true before publishing to Maven Central."
+            exit 1
+          fi
+
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+
+          missing=0
+
+          if [[ -z "${CENTRAL_USERNAME:-}" ]]; then
+            echo "Missing secret: CENTRAL_USERNAME"
+            missing=1
+          fi
+
+          if [[ -z "${CENTRAL_PASSWORD:-}" ]]; then
+            echo "Missing secret: CENTRAL_PASSWORD"
+            missing=1
+          fi
+
+          if [[ -z "${GPG_PRIVATE_KEY:-}" ]]; then
+            echo "Missing secret: GPG_PRIVATE_KEY"
+            missing=1
+          fi
+
+          if [[ -z "${GPG_PASSPHRASE:-}" ]]; then
+            echo "Missing secret: GPG_PASSPHRASE"
+            missing=1
+          fi
+
+          if [[ "${missing}" -ne 0 ]]; then
+            exit 1
+          fi
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: zulu
@@ -45,32 +128,138 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
 
-      - name: Publish selected target
+      - name: Prepare Maven Wrapper
+        run: |
+          set -euo pipefail
+
+          chmod +x ./mvnw
+          java -version
+          ./mvnw -version
+
+      - name: Resolve publish target
+        id: target
+        run: |
+          set -euo pipefail
+
+          TARGET="${{ inputs.target }}"
+
+          case "${TARGET}" in
+            all)
+              MAVEN_PROJECT_ARGS=""
+              VERSION_PROJECT_ARGS="-N"
+              ;;
+
+            egon-cola-aggregation-parent)
+              MAVEN_PROJECT_ARGS="-N"
+              VERSION_PROJECT_ARGS="-N"
+              ;;
+
+            egon-cola-components-parent)
+              MAVEN_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
+              VERSION_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
+              ;;
+
+            egon-cola-archetypes-parent)
+              MAVEN_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
+              VERSION_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
+              ;;
+
+            egon-cola-components)
+              MAVEN_PROJECT_ARGS="-f egon-cola-components/pom.xml"
+              VERSION_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
+              ;;
+
+            egon-cola-archetypes)
+              MAVEN_PROJECT_ARGS="-f egon-cola-archetypes/pom.xml"
+              VERSION_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
+              ;;
+
+            *)
+              echo "Unsupported publish target: ${TARGET}"
+              exit 1
+              ;;
+          esac
+
+          echo "maven_project_args=${MAVEN_PROJECT_ARGS}" >> "${GITHUB_OUTPUT}"
+          echo "version_project_args=${VERSION_PROJECT_ARGS}" >> "${GITHUB_OUTPUT}"
+
+          echo "Publish target: ${TARGET}"
+          echo "Maven project args: ${MAVEN_PROJECT_ARGS:-<root reactor>}"
+
+      - name: Validate release version
+        run: |
+          set -euo pipefail
+
+          VERSION="$(./mvnw ${{ steps.target.outputs.version_project_args }} \
+            -q help:evaluate \
+            -Dexpression=project.version \
+            -DforceStdout)"
+
+          echo "Resolved project version: ${VERSION}"
+
+          if [[ -z "${VERSION}" ]]; then
+            echo "Cannot resolve project.version."
+            exit 1
+          fi
+
+          if [[ "${VERSION}" == *"-SNAPSHOT" ]]; then
+            echo "Maven Central release version must not be a SNAPSHOT version."
+            echo "Current version: ${VERSION}"
+            exit 1
+          fi
+
+          echo "PROJECT_VERSION=${VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Verify before publish
+        if: ${{ inputs.dry_run == true }}
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          MVN_ARGS=(-B -ntp -Prelease -DtrimStackTrace=false "-Dgpg.passphrase=${GPG_PASSPHRASE}")
-          if [ "${{ inputs.skip_tests }}" = "true" ]; then
+          set -euo pipefail
+
+          MVN_ARGS=(
+            -B
+            -ntp
+            -Prelease
+            -DtrimStackTrace=false
+            "-Dgpg.passphrase=${GPG_PASSPHRASE}"
+          )
+
+          if [[ "${{ inputs.skip_tests }}" == "true" ]]; then
             MVN_ARGS+=("-DskipTests")
           fi
-          MVN_ARGS+=(clean deploy)
 
-          case "${{ inputs.target }}" in
-            egon-cola-aggregation-parent)
-              ./mvnw -N "${MVN_ARGS[@]}"
-              ;;
-            egon-cola-components-parent)
-              ./mvnw -N -f egon-cola-components/pom.xml "${MVN_ARGS[@]}"
-              ;;
-            egon-cola-archetypes-parent)
-              ./mvnw -N -f egon-cola-archetypes/pom.xml "${MVN_ARGS[@]}"
-              ;;
-            all)
-              ./mvnw "${MVN_ARGS[@]}"
-              ;;
-            *)
-              ./mvnw -f "${{ inputs.target }}/pom.xml" "${MVN_ARGS[@]}"
-              ;;
-          esac
+          ./mvnw ${{ steps.target.outputs.maven_project_args }} "${MVN_ARGS[@]}" clean verify
+
+      - name: Publish to Maven Central
+        if: ${{ inputs.dry_run == false }}
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          MVN_ARGS=(
+            -B
+            -ntp
+            -Prelease
+            -DtrimStackTrace=false
+            "-Dgpg.passphrase=${GPG_PASSPHRASE}"
+          )
+
+          if [[ "${{ inputs.skip_tests }}" == "true" ]]; then
+            MVN_ARGS+=("-DskipTests")
+          fi
+
+          ./mvnw ${{ steps.target.outputs.maven_project_args }} "${MVN_ARGS[@]}" clean deploy
+
+      - name: Remove self-installed Maven artifacts
+        if: always()
+        run: |
+          rm -rf \
+            "$HOME/.m2/repository/top/egon" \
+            "$HOME/.m2/repository/com/alibaba/cola" \
+            "$HOME/.m2/repository/com/alibaba/craftsman"

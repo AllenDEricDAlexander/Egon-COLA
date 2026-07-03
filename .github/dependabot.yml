@@ -1,12 +1,103 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-
 version: 2
+
 updates:
-  - package-ecosystem: "maven" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # Maven dependencies and Maven plugins
+  - package-ecosystem: "maven"
+    directories:
+      - "/"
+      - "/egon-cola-components"
+      - "/egon-cola-components/*"
+      - "/egon-cola-archetypes"
+      - "/egon-cola-archetypes/*"
+
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 32
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Singapore"
+
+    open-pull-requests-limit: 8
+    rebase-strategy: "auto"
+    versioning-strategy: "increase-if-necessary"
+
+    labels:
+      - "dependencies"
+      - "java"
+      - "maven"
+
+    commit-message:
+      prefix: "build(deps)"
+      include: "scope"
+
+    groups:
+      maven-plugins:
+        applies-to: "version-updates"
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "org.codehaus.mojo:*"
+          - "org.sonatype.central:*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      maven-minor-and-patch:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+        group-by: "dependency-name"
+
+      maven-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+      semver-minor-days: 3
+      semver-patch-days: 1
+
+  # GitHub Actions versions, for example actions/checkout and actions/setup-java
+  - package-ecosystem: "github-actions"
+    directory: "/"
+
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:30"
+      timezone: "Asia/Singapore"
+
+    open-pull-requests-limit: 4
+    rebase-strategy: "auto"
+
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"
+
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+
+    groups:
+      github-actions-minor-and-patch:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      github-actions-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+      semver-minor-days: 3
+      semver-patch-days: 1

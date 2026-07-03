@@ -1,47 +1,68 @@
-# Quickstart for GitHub Actions
-# https://docs.github.com/en/actions/quickstart
-
 name: Fast CI
-on: [ push, pull_request, workflow_dispatch ]
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: Fast CI / Java ${{ matrix.java }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
+
     strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest ]
-        java: [ 21 ]
       fail-fast: false
-      max-parallel: 64
-    name: fast test on Java ${{ matrix.java }} OS ${{ matrix.os }}
+      max-parallel: 4
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+        java:
+          - 21
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
         with:
-          java-version: ${{ matrix.java }}
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup Java ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
           distribution: zulu
+          java-version: ${{ matrix.java }}
           cache: maven
 
-      - name: Build and test with Maven
-        shell: bash
-        run: ./mvnw -V --no-transfer-progress -DtrimStackTrace=false clean install
+      - name: Prepare Maven Wrapper
+        run: |
+          chmod +x ./mvnw || true
+          java -version
+          ./mvnw -version
 
-      - name: remove cola self maven install files for OS *nix
+      - name: Build and test with Maven
+        run: |
+          ./mvnw -B -ntp \
+            -DtrimStackTrace=false \
+            -Dgpg.skip=true \
+            clean verify
+
+      - name: Remove self-installed Maven artifacts
+        if: always()
         run: |
           rm -rf \
             "$HOME/.m2/repository/top/egon" \
             "$HOME/.m2/repository/com/alibaba/cola" \
             "$HOME/.m2/repository/com/alibaba/craftsman"
-        # https://docs.github.com/en/actions/learn-github-actions/variables#detecting-the-operating-system
-        # https://docs.github.com/en/actions/learn-github-actions/expressions
-        if: runner.os != 'Windows'
-      - name: remove cola self maven install files for OS Windows
-        run: |
-          $paths = @(
-            "$home/.m2/repository/top/egon",
-            "$home/.m2/repository/com/alibaba/cola",
-            "$home/.m2/repository/com/alibaba/craftsman"
-          )
-          Remove-Item -Path $paths -Recurse -Force -ErrorAction SilentlyContinue
-        if: runner.os == 'Windows'
