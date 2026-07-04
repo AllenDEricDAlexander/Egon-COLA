@@ -3,7 +3,7 @@ spring:
   datasource:
     url: ${symbol_dollar}{DB_URL}
     username: ${symbol_dollar}{DB_USERNAME}
-    password: ${symbol_dollar}{DB_PASSWORD}
+    password: ${symbol_dollar}{DB_PASSWORD:ENC(v1:replace-with-base64-iv:replace-with-base64-ciphertext:replace-with-base64-tag)}
     hikari:
       pool-name: ${symbol_dollar}{HIKARI_POOL_NAME:${symbol_dollar}{spring.application.name}-hikari}
       maximum-pool-size: ${symbol_dollar}{HIKARI_MAX_POOL_SIZE:20}

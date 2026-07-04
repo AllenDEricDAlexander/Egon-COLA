@@ -49,6 +49,18 @@ def assertNoGenericMapStructConverterInjection = { path ->
     }
 }
 
+def assertNoJavaText = { path, token ->
+    def matches = []
+    def dir = new File(projectDir, path)
+    assert dir.isDirectory(): "Expected directory ${path}"
+    dir.traverse(type: groovy.io.FileType.FILES) { file ->
+        if (file.name.endsWith(".java") && file.getText("UTF-8").contains(token)) {
+            matches << projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
+        }
+    }
+    assert matches.isEmpty(): "Unexpected token '${token}' in ${matches.join(', ')}"
+}
+
 def assertMissing = { path ->
     assert !new File(projectDir, path).exists(): "Unexpected stale path ${path}"
 }
@@ -236,6 +248,23 @@ assert webApplicationYaml.contains('${DUBBO_PORT:50051}')
 assert webApplicationYaml.contains("timeout: 3000")
 assert webApplicationYaml.contains("retries: 0")
 
+def webApplicationDevYaml = assertFile("student-management-organization-starter/src/main/resources/application-dev.yml").text
+def webApplicationProdYaml = assertFile("student-management-organization-starter/src/main/resources/application-prod.yml").text
+def webBootstrapDevYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-dev.yml").text
+def webBootstrapProdYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-prod.yml").text
+def webApplicationLocalYaml = assertFile("student-management-organization-starter/src/main/resources/application-local.yml").text
+def webApplicationTestYaml = assertFile("student-management-organization-starter/src/main/resources/application-test.yml").text
+def webBootstrapLocalYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-local.yml").text
+def webBootstrapTestYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-test.yml").text
+assert webApplicationDevYaml.contains('password: ${DB_PASSWORD:ENC(')
+assert webApplicationProdYaml.contains('password: ${DB_PASSWORD:ENC(')
+assert webBootstrapDevYaml.contains('password: ${NACOS_PASSWORD:ENC(')
+assert webBootstrapProdYaml.contains('password: ${NACOS_PASSWORD:ENC(')
+assert webApplicationLocalYaml.contains('password: ${DB_PASSWORD:}')
+assert webApplicationTestYaml.contains('password: ${DB_PASSWORD:}')
+assert !webBootstrapLocalYaml.contains('ENC(')
+assert !webBootstrapTestYaml.contains('ENC(')
+
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
@@ -327,7 +356,7 @@ assertModuleDependencies(dependencies(commonPom), [])
 assertModuleDependencies(facadeDependencies, [])
 assertModuleDependencies(domainDependencies, ["student-management-organization-common"])
 assertModuleDependencies(applicationDependencies, ["student-management-organization-domain"])
-assertModuleDependencies(infrastructureDependencies, ["student-management-organization-application"])
+assertModuleDependencies(infrastructureDependencies, ["student-management-organization-domain"])
 assertModuleDependencies(adapterDependencies, [
     "student-management-organization-application",
     "student-management-organization-facade"
@@ -352,8 +381,7 @@ assertScopedDependency(applicationDependencies, "lombok", "provided")
 assertNoDependency(applicationDependencies, "student-management-organization-common")
 assertNoDependency(applicationDependencies, "student-management-organization-infrastructure")
 
-assertDependency(infrastructureDependencies, "student-management-organization-application")
-assertNoDependency(infrastructureDependencies, "student-management-organization-domain")
+assertDependency(infrastructureDependencies, "student-management-organization-domain")
 assertNoDependency(infrastructureDependencies, "student-management-organization-common")
 assertDependency(infrastructureDependencies, "spring-boot-starter-validation")
 assertDependency(infrastructureDependencies, "mapstruct-plus-spring-boot-starter")
@@ -390,8 +418,12 @@ assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/u
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/SchoolClassFacade.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/User.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/SchoolClass.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/client/user/UserClient.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/SchoolClassClient.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java")
 assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java")
@@ -425,13 +457,38 @@ assertMissing("student-management-organization-application/src/main/java/it/pkg/
 assertMissing("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassView.java")
 
 def userManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java").text
-assert userManageText.contains("User create(String name, String email)")
-assert userManageText.contains("User getById(String userId)")
+assert userManageText.contains("User create(")
+assert userManageText.contains("String name")
+assert userManageText.contains("String email")
+assert userManageText.contains("User getById(")
+assert userManageText.contains("String userId")
+assert userManageText.contains("@NotBlank")
+assert userManageText.contains("@Email")
+assert userManageText.contains("@Positive")
 assert !userManageText.contains("UserView")
 
 def schoolClassManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java").text
-assert schoolClassManageText.contains("SchoolClass create(String name, String gradeName)")
+assert schoolClassManageText.contains("SchoolClass create(")
+assert schoolClassManageText.contains("String name")
+assert schoolClassManageText.contains("String gradeName")
+assert schoolClassManageText.contains("@NotBlank")
 assert !schoolClassManageText.contains("SchoolClassView")
+
+def userManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/impl/UserManageImpl.java").text
+assert userManageImplText.contains("@Validated")
+assert userManageImplText.contains('@Qualifier("userClientImpl")')
+assert userManageImplText.contains("userClient.existsByEmail(email)")
+assert !userManageImplText.contains("UserRepository userRepository")
+
+def schoolClassManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/impl/SchoolClassManageImpl.java").text
+assert schoolClassManageImplText.contains("@Validated")
+assert schoolClassManageImplText.contains('@Qualifier("userClientImpl")')
+assert schoolClassManageImplText.contains('@Qualifier("schoolClassClientImpl")')
+assert schoolClassManageImplText.contains("userClient.findById(userId)")
+assert schoolClassManageImplText.contains("schoolClassClient.findById(schoolClassId)")
+assert !schoolClassManageImplText.contains("UserRepository userRepository")
+assert !schoolClassManageImplText.contains("SchoolClassRepository schoolClassRepository")
+assertNoJavaText("student-management-organization-application/src/main/java/it/pkg/application", "domain.repos")
 
 def userFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/user/UserFacadeImpl.java").text
 assert userFacadeText.contains("@DubboService")
@@ -460,6 +517,29 @@ assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPoMapper.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassDomainMapper.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassDomainFactory.java")
+def userClientImplText = assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java").text
+assert userClientImplText.contains('@Component("userClientImpl")')
+assert userClientImplText.contains("@Validated")
+assert userClientImplText.contains("implements UserClient")
+assert userClientImplText.contains('@Qualifier("userRepositoryImpl")')
+assert !userClientImplText.contains("jakarta.validation.constraints")
+
+def schoolClassClientImplText = assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java").text
+assert schoolClassClientImplText.contains('@Component("schoolClassClientImpl")')
+assert schoolClassClientImplText.contains("@Validated")
+assert schoolClassClientImplText.contains("implements SchoolClassClient")
+assert schoolClassClientImplText.contains('@Qualifier("schoolClassRepositoryImpl")')
+assert !schoolClassClientImplText.contains("jakarta.validation.constraints")
+def userClientText = assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/client/user/UserClient.java").text
+assert userClientText.contains("@NotNull")
+assert userClientText.contains("@NotBlank")
+assert userClientText.contains("@Email")
+assert userClientText.contains("@Positive")
+assert !userClientText.contains("default ")
+def schoolClassClientText = assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/SchoolClassClient.java").text
+assert schoolClassClientText.contains("@NotNull")
+assert schoolClassClientText.contains("@NotBlank")
+assert !schoolClassClientText.contains("default ")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/common/Page.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/dto/PageResponse.java")
 
@@ -469,7 +549,9 @@ assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPoMapper.java").text.contains("BaseMapper<SchoolClass, SchoolClassPo>")
 
 def userManageTextAfterPage = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java").text
-assert userManageTextAfterPage.contains("Page<User> getPage(int currentPage, int pageSize)")
+assert userManageTextAfterPage.contains("Page<User> getPage(")
+assert userManageTextAfterPage.contains("int currentPage")
+assert userManageTextAfterPage.contains("int pageSize")
 assert userManageTextAfterPage.contains("import it.pkg.domain.common.Page;")
 
 def userRepositoryText = assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/repos/user/UserRepository.java").text

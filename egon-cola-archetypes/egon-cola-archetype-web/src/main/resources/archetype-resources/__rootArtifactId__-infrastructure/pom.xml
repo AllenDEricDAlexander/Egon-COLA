@@ -18,7 +18,7 @@
     <dependencies>
         <dependency>
             <groupId>${groupId}</groupId>
-            <artifactId>${rootArtifactId}-application</artifactId>
+            <artifactId>${rootArtifactId}-domain</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

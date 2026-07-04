@@ -7,20 +7,22 @@ import ${package}.application.manage.examing.ExamManage;
 import ${package}.common.constants.ErrorCodes;
 import ${package}.common.exception.NotFoundException;
 import ${package}.common.util.IdGenerator;
+import ${package}.domain.client.examing.ExamResultClient;
 import ${package}.domain.entities.examing.ExamResult;
-import ${package}.domain.repos.examing.ExamResultRepository;
 import ${package}.domain.service.examing.ExamDomainService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service("examManage")
+@Validated
 @RequiredArgsConstructor
 public class ExamManageImpl implements ExamManage {
 
-    @Qualifier("examResultRepositoryImpl")
-    private final ExamResultRepository examResultRepository;
+    @Qualifier("examResultClientImpl")
+    private final ExamResultClient examResultClient;
 
     @Qualifier("examDomainService")
     private final ExamDomainService examDomainService;
@@ -30,13 +32,13 @@ public class ExamManageImpl implements ExamManage {
     public ExamResult record(String courseId, String studentId, int score) {
         examDomainService.record(courseId, studentId, score);
         ExamResult examResult = ExamResult.record(IdGenerator.nextId(), courseId, studentId, score);
-        return examResultRepository.save(examResult);
+        return examResultClient.save(examResult);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ExamResult getById(String examResultId) {
-        return examResultRepository.findById(examResultId)
+        return examResultClient.findById(examResultId)
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.EXAM_RESULT_NOT_FOUND, "exam result not found"));
     }
 }
