@@ -102,9 +102,15 @@ jobs:
 
             if [ -f "./mvnw" ]; then
               chmod +x ./mvnw
-              ./mvnw -B -ntp clean install
+              export SPRING_PROFILES_ACTIVE=test
+              ./mvnw -V --no-transfer-progress clean test
+              ./mvnw -V --no-transfer-progress -DskipTests package
+              docker build -t "egon-generated-${SHORT_NAME}:java-${JAVA_VERSION}" .
             else
-              mvn -B -ntp clean install
+              export SPRING_PROFILES_ACTIVE=test
+              mvn -V --no-transfer-progress clean test
+              mvn -V --no-transfer-progress -DskipTests package
+              docker build -t "egon-generated-${SHORT_NAME}:java-${JAVA_VERSION}" .
             fi
 
             popd
