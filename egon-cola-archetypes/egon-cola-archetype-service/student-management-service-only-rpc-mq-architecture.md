@@ -108,7 +108,7 @@ student-management-organization-application import student-management-organizati
 
 student-management-organization-domain import student-management-organization-common
 
-student-management-organization-infrastructure import student-management-organization-application
+student-management-organization-infrastructure import student-management-organization-domain
 ```
 
 `facade` 不依赖 `common`。
@@ -158,7 +158,7 @@ facade 不依赖 infrastructure。
 3. facade 是 RPC 契约模块，不依赖 common。
 4. application 负责编排业务流程，依赖 domain。
 5. domain 负责核心规则，依赖 common。
-6. infrastructure 负责技术实现，依赖 application。
+6. infrastructure 负责技术实现，依赖 domain。
 ```
 
 ## 2.3 两个独立 Project 的依赖边界
