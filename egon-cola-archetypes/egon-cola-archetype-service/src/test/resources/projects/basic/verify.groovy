@@ -69,6 +69,8 @@ assertFile("Dockerfile")
 assertFile(".dockerignore")
 assert assertFile("README.md").text.contains("Docker")
 assert assertFile("README.md").text.contains("docker build -t student-management-evaluation:local .")
+assert assertFile("README.md").text.contains("The starter module includes the Spring Boot Web starter only for Actuator management HTTP.")
+assert assertFile("README.md").text.contains("to adapter, application, domain, or infrastructure modules")
 def dockerfileText = assertFile("Dockerfile").text
 assert dockerfileText.contains("FROM eclipse-temurin:21-jdk-jammy AS builder")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")

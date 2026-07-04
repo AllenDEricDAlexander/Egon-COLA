@@ -17,7 +17,7 @@ ${symbol_pound}${symbol_pound} Modules
 
 ${symbol_pound}${symbol_pound} Pure Service Rule
 
-This generated project is intentionally service-only. Do not add HTTP Controller classes, Web Filter classes, GraphQL endpoints, Web VO packages, <code>spring-boot-starter-&#119;eb</code>, or <code>spring-boot-starter-&#119;ebflux</code> unless the project is deliberately converted into a web-facing service.
+This generated project is intentionally service-only. The starter module includes the Spring Boot Web starter only for Actuator management HTTP. Do not add HTTP Controller classes, Web Filter classes, GraphQL endpoints, Web VO packages, <code>spring-boot-starter-&#119;eb</code>, or <code>spring-boot-starter-&#119;ebflux</code> to adapter, application, domain, or infrastructure modules unless the project is deliberately converted into a web-facing service.
 
 ${symbol_pound}${symbol_pound} Clean Architecture Boundary Rules
 
