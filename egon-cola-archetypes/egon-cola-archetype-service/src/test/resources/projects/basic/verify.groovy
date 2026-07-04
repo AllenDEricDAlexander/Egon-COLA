@@ -57,6 +57,18 @@ def assertNoGenericMapStructConverterInjection = { path ->
     }
 }
 
+def assertNoJavaText = { path, token ->
+    def matches = []
+    def dir = new File(projectDir, path)
+    assert dir.isDirectory(): "Expected directory ${path}"
+    dir.traverse(type: groovy.io.FileType.FILES) { file ->
+        if (file.name.endsWith(".java") && file.getText("UTF-8").contains(token)) {
+            matches << projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
+        }
+    }
+    assert matches.isEmpty(): "Unexpected token '${token}' in ${matches.join(', ')}"
+}
+
 assertFile("pom.xml")
 def mvnw = assertFile("mvnw")
 assert mvnw.canExecute(): "Expected mvnw to be executable"
@@ -261,6 +273,23 @@ assert serviceApplicationYaml.contains('${DUBBO_PORT:50051}')
 assert serviceApplicationYaml.contains("timeout: 3000")
 assert serviceApplicationYaml.contains("retries: 0")
 
+def serviceApplicationDevYaml = assertFile("student-management-evaluation-starter/src/main/resources/application-dev.yml").text
+def serviceApplicationProdYaml = assertFile("student-management-evaluation-starter/src/main/resources/application-prod.yml").text
+def serviceBootstrapDevYaml = assertFile("student-management-evaluation-starter/src/main/resources/bootstrap-dev.yml").text
+def serviceBootstrapProdYaml = assertFile("student-management-evaluation-starter/src/main/resources/bootstrap-prod.yml").text
+def serviceApplicationLocalYaml = assertFile("student-management-evaluation-starter/src/main/resources/application-local.yml").text
+def serviceApplicationTestYaml = assertFile("student-management-evaluation-starter/src/main/resources/application-test.yml").text
+def serviceBootstrapLocalYaml = assertFile("student-management-evaluation-starter/src/main/resources/bootstrap-local.yml").text
+def serviceBootstrapTestYaml = assertFile("student-management-evaluation-starter/src/main/resources/bootstrap-test.yml").text
+assert serviceApplicationDevYaml.contains('password: ${DB_PASSWORD:ENC(')
+assert serviceApplicationProdYaml.contains('password: ${DB_PASSWORD:ENC(')
+assert serviceBootstrapDevYaml.contains('password: ${NACOS_PASSWORD:ENC(')
+assert serviceBootstrapProdYaml.contains('password: ${NACOS_PASSWORD:ENC(')
+assert serviceApplicationLocalYaml.contains('password: ${DB_PASSWORD:}')
+assert serviceApplicationTestYaml.contains('password: ${DB_PASSWORD:}')
+assert !serviceBootstrapLocalYaml.contains('ENC(')
+assert !serviceBootstrapTestYaml.contains('ENC(')
+
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
@@ -345,16 +374,28 @@ assert !new File(projectDir, "student-management-evaluation-application/src/main
 def courseManageText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/course/CourseManage.java").text
 assertContainsAll(courseManageText, [
         "import it.pkg.domain.entities.course.Course;",
-        "Course create(String name, int credit);",
-        "Course getById(String courseId);"
+        "Course create(",
+        "String name",
+        "int credit",
+        "Course getById(",
+        "String courseId",
+        "@NotBlank",
+        "@Positive"
 ], "CourseManage")
 assert !courseManageText.contains("CourseView")
 
 def examManageText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing/ExamManage.java").text
 assertContainsAll(examManageText, [
         "import it.pkg.domain.entities.examing.ExamResult;",
-        "ExamResult record(String courseId, String studentId, int score);",
-        "ExamResult getById(String examResultId);"
+        "ExamResult record(",
+        "String courseId",
+        "String studentId",
+        "int score",
+        "ExamResult getById(",
+        "String examResultId",
+        "@NotBlank",
+        "@Min",
+        "@Max"
 ], "ExamManage")
 assert !examManageText.contains("ExamResultView")
 
@@ -362,26 +403,37 @@ def courseManageImplText = assertFile("student-management-evaluation-application
 assertContainsAll(courseManageImplText, [
         '@Service("courseManage")',
         "@RequiredArgsConstructor",
-        '@Qualifier("courseRepositoryImpl")',
-        '@Qualifier("courseDomainService")'
+        "@Validated",
+        '@Qualifier("courseClientImpl")',
+        "courseClient.existsByName(name)",
+        "courseClient.save(course)"
 ], "CourseManageImpl")
+assert !courseManageImplText.contains("CourseRepository courseRepository")
+assert !courseManageImplText.contains("CourseDomainService")
+assert !courseManageImplText.contains("courseDomainService")
 
 def examManageImplText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing/impl/ExamManageImpl.java").text
 assertContainsAll(examManageImplText, [
         '@Service("examManage")',
         "@RequiredArgsConstructor",
-        '@Qualifier("examResultRepositoryImpl")',
-        '@Qualifier("examDomainService")'
+        "@Validated",
+        '@Qualifier("examResultClientImpl")',
+        '@Qualifier("examDomainService")',
+        "examResultClient.save(examResult)"
 ], "ExamManageImpl")
+assert !examManageImplText.contains("ExamResultRepository examResultRepository")
+assert !examManageImplText.contains("validateRecordRequest")
+assertNoJavaText("student-management-evaluation-application/src/main/java/it/pkg/application", "domain.repos")
 
 def domainServiceConfigurationText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java").text
 assertContainsAll(domainServiceConfigurationText, [
-        '@Bean("courseDomainService")',
         '@Bean("examDomainService")',
-        '@Qualifier("courseRepositoryImpl") CourseRepository courseRepository',
-        "new CourseDomainService(courseRepository)",
-        "new ExamDomainService(courseRepository)"
+        '@Qualifier("courseClientImpl") CourseClient courseClient',
+        "new ExamDomainService(courseClient)"
 ], "DomainServiceConfiguration")
+assert !domainServiceConfigurationText.contains("CourseDomainService")
+assert !domainServiceConfigurationText.contains('@Bean("courseDomainService")')
+assert !new File(projectDir, "student-management-evaluation-domain/src/main/java/it/pkg/domain/service/course/CourseDomainService.java").exists()
 
 def courseFacadeImplText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/CourseFacadeImpl.java").text
 assertContainsAll(courseFacadeImplText, [
@@ -417,6 +469,44 @@ assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/in
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/converter/CourseDomainMapper.java")
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultPoMapper.java")
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultDomainMapper.java")
+assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/client/course/CourseClient.java")
+assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/client/examing/ExamResultClient.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/course/CourseClientImpl.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/examing/ExamResultClientImpl.java")
+def courseClientImplText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/course/CourseClientImpl.java").text
+assertContainsAll(courseClientImplText, [
+        '@Component("courseClientImpl")',
+        "@Validated",
+        "implements CourseClient",
+        '@Qualifier("courseRepositoryImpl")'
+], "CourseClientImpl")
+assert !courseClientImplText.contains("jakarta.validation.constraints")
+
+def examResultClientImplText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/examing/ExamResultClientImpl.java").text
+assertContainsAll(examResultClientImplText, [
+        '@Component("examResultClientImpl")',
+        "@Validated",
+        "implements ExamResultClient",
+        '@Qualifier("examResultRepositoryImpl")'
+], "ExamResultClientImpl")
+assert !examResultClientImplText.contains("jakarta.validation.constraints")
+assert !examResultClientImplText.contains("validateRecordRequest")
+def courseClientText = assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/client/course/CourseClient.java").text
+assertContainsAll(courseClientText, [
+        "@NotNull",
+        "@NotBlank",
+        "@Positive"
+], "CourseClient")
+assert !courseClientText.contains("default ")
+def examResultClientText = assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/client/examing/ExamResultClient.java").text
+assertContainsAll(examResultClientText, [
+        "@NotNull",
+        "@NotBlank"
+], "ExamResultClient")
+assert !examResultClientText.contains("@Min")
+assert !examResultClientText.contains("@Max")
+assert !examResultClientText.contains("default ")
+assert !examResultClientText.contains("validateRecordRequest")
 assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/common/Page.java")
 assertFile("student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/PageResponse.java")
 
@@ -426,7 +516,9 @@ assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/in
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing/converter/ExamResultPoMapper.java").text.contains("BaseMapper<ExamResult, ExamResultPo>")
 
 def courseManageTextAfterPage = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/course/CourseManage.java").text
-assert courseManageTextAfterPage.contains("Page<Course> getPage(int currentPage, int pageSize)")
+assert courseManageTextAfterPage.contains("Page<Course> getPage(")
+assert courseManageTextAfterPage.contains("int currentPage")
+assert courseManageTextAfterPage.contains("int pageSize")
 assert courseManageTextAfterPage.contains("import it.pkg.domain.common.Page;")
 
 def courseRepositoryText = assertFile("student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/course/CourseRepository.java").text

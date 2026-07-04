@@ -145,6 +145,56 @@ class ConfigDecryptEnvironmentPostProcessorTest {
     }
 
     @Test
+    void decryptsEncryptedPlaceholderDefaultWhenEnvironmentValueIsMissing() throws Exception {
+        char[] key = "12345678901234567890123456789012".toCharArray();
+        String encrypted = ConfigCipherCli.encrypt(key, "from-placeholder-default");
+        TrackingKeyProvider keyProvider = new TrackingKeyProvider(Optional.of(key));
+        ConfigurableEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().replace(
+                StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                new MapPropertySource(
+                        StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                        Map.of()
+                )
+        );
+        environment.getPropertySources().addFirst(new MapPropertySource(
+                "test",
+                Map.of("secret.value", "$" + "{MISSING_SECRET:" + encrypted + "}")
+        ));
+
+        new ConfigDecryptEnvironmentPostProcessor(new AesGcmConfigDecryptor(), keyProvider)
+                .postProcessEnvironment(environment, null);
+
+        assertThat(keyProvider.resolveCount()).isOne();
+        assertThat(environment.getProperty("secret.value")).isEqualTo("from-placeholder-default");
+    }
+
+    @Test
+    void leavesPlainPlaceholderOverrideUndecrypted() throws Exception {
+        char[] key = "12345678901234567890123456789012".toCharArray();
+        String encrypted = ConfigCipherCli.encrypt(key, "from-placeholder-default");
+        TrackingKeyProvider keyProvider = new TrackingKeyProvider(Optional.empty());
+        ConfigurableEnvironment environment = new StandardEnvironment();
+        environment.getPropertySources().replace(
+                StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                new MapPropertySource(
+                        StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                        Map.of("SECRET_OVERRIDE", "plain-override")
+                )
+        );
+        environment.getPropertySources().addFirst(new MapPropertySource(
+                "test",
+                Map.of("secret.value", "$" + "{SECRET_OVERRIDE:" + encrypted + "}")
+        ));
+
+        new ConfigDecryptEnvironmentPostProcessor(new AesGcmConfigDecryptor(), keyProvider)
+                .postProcessEnvironment(environment, null);
+
+        assertThat(keyProvider.resolveCount()).isZero();
+        assertThat(environment.getProperty("secret.value")).isEqualTo("plain-override");
+    }
+
+    @Test
     void ignoresMissingKeyWhenNoEncryptedValues() {
         TrackingKeyProvider keyProvider = new TrackingKeyProvider(Optional.empty());
         ConfigurableEnvironment environment = new StandardEnvironment();

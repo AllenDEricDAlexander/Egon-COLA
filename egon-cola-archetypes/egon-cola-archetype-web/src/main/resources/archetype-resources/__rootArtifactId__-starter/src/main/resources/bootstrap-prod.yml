@@ -5,7 +5,7 @@ spring:
       enabled: ${symbol_dollar}{DISCOVERY_ENABLED:true}
     nacos:
       username: ${symbol_dollar}{NACOS_USERNAME}
-      password: ${symbol_dollar}{NACOS_PASSWORD}
+      password: ${symbol_dollar}{NACOS_PASSWORD:ENC(v1:replace-with-base64-iv:replace-with-base64-ciphertext:replace-with-base64-tag)}
       config:
         enabled: ${symbol_dollar}{NACOS_CONFIG_ENABLED:true}
         server-addr: ${symbol_dollar}{NACOS_SERVER_ADDR}

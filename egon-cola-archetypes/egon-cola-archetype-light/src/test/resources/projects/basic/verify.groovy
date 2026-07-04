@@ -146,6 +146,19 @@ assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.spr
 
 assertRuntimeConfigFiles("src/main/resources")
 
+def assertEncryptedPasswordDefault = { path, envName ->
+    def text = assertFile(path).text
+    assert text.contains('password: ${' + envName + ':ENC(v1:'): "Expected ${path} to use encrypted ${envName} default"
+}
+assertEncryptedPasswordDefault("src/main/resources/application-dev.yml", "DB_PASSWORD")
+assertEncryptedPasswordDefault("src/main/resources/application-prod.yml", "DB_PASSWORD")
+assertEncryptedPasswordDefault("src/main/resources/bootstrap-dev.yml", "NACOS_PASSWORD")
+assertEncryptedPasswordDefault("src/main/resources/bootstrap-prod.yml", "NACOS_PASSWORD")
+assert assertFile("src/main/resources/application-local.yml").text.contains('password: ${DB_PASSWORD:}')
+assert assertFile("src/main/resources/application-test.yml").text.contains('password: ${DB_PASSWORD:}')
+assert !assertFile("src/main/resources/bootstrap-local.yml").text.contains('ENC(')
+assert !assertFile("src/main/resources/bootstrap-test.yml").text.contains('ENC(')
+
 def applicationYaml = assertFile("src/main/resources/application.yml").text
 assert applicationYaml.contains("threads:")
 assert applicationYaml.contains("virtual:")

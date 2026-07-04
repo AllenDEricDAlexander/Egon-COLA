@@ -39,14 +39,18 @@ public class ConfigDecryptEnvironmentPostProcessor implements EnvironmentPostPro
                 Map<String, Object> decrypted = new LinkedHashMap<>();
                 for (String propertyName : enumerablePropertySource.getPropertyNames()) {
                     Object value = enumerablePropertySource.getProperty(propertyName);
-                    if (value instanceof CharSequence text && decryptor.supports(text.toString())) {
+                    if (value instanceof CharSequence text) {
+                        String encryptedValue = encryptedValue(text.toString(), environment);
+                        if (encryptedValue == null) {
+                            continue;
+                        }
                         if (!keyResolved) {
                             key = keyProvider.resolveKey(environment);
                             keyResolved = true;
                         }
                         char[] resolvedKey = key.orElseThrow(() ->
                                 new ConfigDecryptException("Encrypted configuration value requires EGON_CONFIG_DECRYPT_KEY"));
-                        decrypted.put(propertyName, decryptor.decrypt(text.toString(), resolvedKey));
+                        decrypted.put(propertyName, decryptor.decrypt(encryptedValue, resolvedKey));
                     }
                 }
                 if (!decrypted.isEmpty()) {
@@ -59,6 +63,17 @@ public class ConfigDecryptEnvironmentPostProcessor implements EnvironmentPostPro
         } finally {
             key.ifPresent(value -> Arrays.fill(value, '\0'));
         }
+    }
+
+    private String encryptedValue(String value, ConfigurableEnvironment environment) {
+        if (decryptor.supports(value)) {
+            return value;
+        }
+        String resolvedValue = environment.resolvePlaceholders(value);
+        if (!value.equals(resolvedValue) && decryptor.supports(resolvedValue)) {
+            return resolvedValue;
+        }
+        return null;
     }
 
     @Override
