@@ -151,30 +151,52 @@ forbiddenPaths.each { forbidden ->
     assert !generatedFiles.any { it.contains(forbidden) }: "Forbidden path segment ${forbidden}"
 }
 
-def pom = assertFile("pom.xml").text
-assert pom.contains("<artifactId>spring-boot-starter-parent</artifactId>")
-assert pom.contains("<version>3.5.16</version>")
-assert pom.contains("<java.version>21</java.version>")
-assert pom.contains("<lombok.version>1.18.38</lombok.version>")
-assert pom.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
-assert pom.contains("<dubbo.version>3.3.6</dubbo.version>")
-assert pom.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
-assert pom.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
-assert pom.contains("<artifactId>spring-cloud-dependencies</artifactId>")
-assert pom.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
-assert pom.contains("<artifactId>dubbo-bom</artifactId>")
-assert pom.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
-assert pom.contains("<artifactId>mapstruct-plus-processor</artifactId>")
-assert pom.contains("<module>student-management-evaluation-common</module>")
-assert pom.contains("<module>student-management-evaluation-facade</module>")
-assert pom.contains("<module>student-management-evaluation-domain</module>")
-assert pom.contains("<module>student-management-evaluation-application</module>")
-assert pom.contains("<module>student-management-evaluation-infrastructure</module>")
-assert pom.contains("<module>student-management-evaluation-adapter</module>")
-assert pom.contains("<module>student-management-evaluation-starter</module>")
+def rootPomText = assertFile("pom.xml").text
+assert rootPomText.contains("<artifactId>spring-boot-starter-parent</artifactId>")
+assert rootPomText.contains("<version>3.5.16</version>")
+assert rootPomText.contains("<java.version>21</java.version>")
+assert rootPomText.contains("<lombok.version>1.18.38</lombok.version>")
+assert rootPomText.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
+assert rootPomText.contains("<dubbo.version>3.3.6</dubbo.version>")
+assert rootPomText.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
+assert rootPomText.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
+assert rootPomText.contains("<artifactId>egon-cola-components-bom</artifactId>")
+assert rootPomText.contains("<egon-cola.version>5.2.0-SNAPSHOT</egon-cola.version>")
+assert rootPomText.contains("<artifactId>egon-cola-component-common</artifactId>")
+assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>")
+assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
+assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-test</artifactId>")
+def commonPomText = assertFile("student-management-evaluation-common/pom.xml").text
+assert commonPomText.contains("<artifactId>egon-cola-component-common</artifactId>")
+def generatedPomTexts = []
+projectDir.traverse(type: groovy.io.FileType.FILES) { file ->
+    def path = file.absolutePath.replace(File.separatorChar, '/' as char)
+    if (file.name == "pom.xml" && !path.contains("/target/") && !path.contains("/.git/")) {
+        generatedPomTexts << file.getText("UTF-8")
+    }
+}
+[
+    "egon-cola-component-dynamic-thread-pool-starter",
+    "egon-cola-component-dynamic-thread-pool-admin",
+    "egon-cola-component-dynamic-thread-pool-test"
+].each { artifactId ->
+    assert !generatedPomTexts.any { it.contains("<artifactId>${artifactId}</artifactId>") }
+}
+assert rootPomText.contains("<artifactId>spring-cloud-dependencies</artifactId>")
+assert rootPomText.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
+assert rootPomText.contains("<artifactId>dubbo-bom</artifactId>")
+assert rootPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
+assert rootPomText.contains("<artifactId>mapstruct-plus-processor</artifactId>")
+assert rootPomText.contains("<module>student-management-evaluation-common</module>")
+assert rootPomText.contains("<module>student-management-evaluation-facade</module>")
+assert rootPomText.contains("<module>student-management-evaluation-domain</module>")
+assert rootPomText.contains("<module>student-management-evaluation-application</module>")
+assert rootPomText.contains("<module>student-management-evaluation-infrastructure</module>")
+assert rootPomText.contains("<module>student-management-evaluation-adapter</module>")
+assert rootPomText.contains("<module>student-management-evaluation-starter</module>")
 def webStarter = "spring-boot-starter-" + "web"
-assert !pom.contains(webStarter)
-assert !pom.contains(webStarter + "flux")
+assert !rootPomText.contains(webStarter)
+assert !rootPomText.contains(webStarter + "flux")
 
 assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
 

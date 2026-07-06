@@ -4,9 +4,9 @@
 
 本文档用于规范 `egon-cola-components` 下的组件工程组织方式。
 
-每一个组件都应该是一个可以独立维护、独立测试、独立发布的 Maven 多模块组件工程。组件内部不再混放 UI，UI 统一抽离到独立前端工程中维护。
+运行时 starter-style 组件应该是可以独立维护、独立测试、独立发布的 Maven 多模块组件工程。`egon-cola-component-common` 这类纯 Jar 基础组件可以保持单模块形态。组件内部不再混放 UI，UI 统一抽离到独立前端工程中维护。
 
-组件整体形态参考动态线程池组件的拆分方式：
+运行时 starter-style 组件整体形态参考动态线程池组件的拆分方式：
 
 ```text
 component
@@ -20,13 +20,15 @@ component
 ```text
 1. 组件统一收敛到 egon-cola-components 父工程下。
 2. 每个组件根工程继承 egon-cola-components-parent。
-3. 每个组件内部至少包含 starter 和 test。
+3. 运行时 starter-style 组件内部至少包含 starter 和 test。
 4. 如果组件需要管理后台，则增加 admin 模块。
 5. 组件内部不包含 UI，UI 统一放到独立前端工程。
 6. admin 是后端管理服务，可以提供 REST / RPC / MQ 管理能力。
-7. starter 是真正给业务系统引入的核心模块。
+7. 对运行时 starter-style 组件，starter 是真正给业务系统引入的核心模块。
 8. test 用于组件自测、集成测试、示例启动和回归验证。
 ```
+
+`egon-cola-component-common` 是明确的纯 Jar 例外，它不需要拆出 starter / admin / test，业务系统可以直接依赖。
 
 ---
 
@@ -68,7 +70,7 @@ Egon-COLA
 
 ## 2.2 组件内部父子关系
 
-推荐采用两级 Maven 结构：
+运行时 starter-style 组件推荐采用两级 Maven 结构：
 
 ```text
 egon-cola-components-parent
@@ -98,7 +100,7 @@ egon-cola-components-parent
 
 ## 2.3 组件模块依赖关系
 
-标准依赖关系：
+运行时 starter-style 组件标准依赖关系：
 
 ```text
 egon-cola-component-xxx-admin -> egon-cola-component-xxx-starter
@@ -142,34 +144,14 @@ Egon-COLA/
     │   ├── pom.xml
     │   └── README.md
     │
+    ├── egon-cola-component-common/                               # 通用基础能力 Jar
+    │   └── pom.xml
+    │
     ├── egon-cola-component-dynamic-thread-pool/                  # 动态线程池组件
     │   ├── pom.xml                                               # 动态线程池组件聚合 POM
     │   ├── egon-cola-component-dynamic-thread-pool-starter/      # 业务应用引入的 starter
     │   ├── egon-cola-component-dynamic-thread-pool-admin/        # 可选，管理后台
     │   └── egon-cola-component-dynamic-thread-pool-test/         # 测试工程 / 示例工程
-    │
-    ├── egon-cola-component-rule-engine/                          # 规则引擎组件
-    │   ├── pom.xml
-    │   ├── egon-cola-component-rule-engine-starter/
-    │   └── egon-cola-component-rule-engine-test/
-    │
-    ├── egon-cola-component-rate-limit/                           # 分布式限流组件
-    │   ├── pom.xml
-    │   ├── egon-cola-component-rate-limit-starter/
-    │   ├── egon-cola-component-rate-limit-admin/                 # 可选，如果需要管理限流规则
-    │   └── egon-cola-component-rate-limit-test/
-    │
-    ├── egon-cola-component-job/                                  # 任务调度组件
-    │   ├── pom.xml
-    │   ├── egon-cola-component-job-starter/
-    │   ├── egon-cola-component-job-admin/                        # 可选，如果需要任务管理后台
-    │   └── egon-cola-component-job-test/
-    │
-    └── egon-cola-component-config-center/                        # 动态配置中心组件
-        ├── pom.xml
-        ├── egon-cola-component-config-center-starter/
-        ├── egon-cola-component-config-center-admin/              # 可选，如果需要配置管理后台
-        └── egon-cola-component-config-center-test/
 ```
 
 ## 3.2 父工程 modules 示例
@@ -182,12 +164,8 @@ Egon-COLA/
 
 <modules>
     <module>egon-cola-components-bom</module>
-
+    <module>egon-cola-component-common</module>
     <module>egon-cola-component-dynamic-thread-pool</module>
-    <module>egon-cola-component-rule-engine</module>
-    <module>egon-cola-component-rate-limit</module>
-    <module>egon-cola-component-job</module>
-    <module>egon-cola-component-config-center</module>
 </modules>
 ```
 
@@ -249,7 +227,7 @@ egon-cola-component-dynamic-thread-pool/
 
 ## 5.1 starter 定位
 
-`starter` 是组件的核心模块，也是业务系统真正需要引入的模块。
+对运行时 starter-style 组件，`starter` 是组件的核心模块，也是业务系统真正需要引入的模块。`egon-cola-component-common` 作为纯 Jar 基础组件不适用本节拆分约束。
 
 starter 负责：
 
@@ -287,7 +265,7 @@ egon-cola-component-dynamic-thread-pool-starter/
 │   │   │       └── egon/
 │   │   │           └── cola/
 │   │   │               └── component/
-│   │   │                   └── threadpool/
+│   │   │                   └── dtp/
 │   │   │                       ├── package-info.java             # 动态线程池 starter 根包说明
 │   │   │                       │
 │   │   │                       ├── autoconfigure/
@@ -342,7 +320,6 @@ egon-cola-component-dynamic-thread-pool-starter/
 │   │       │   ├── spring/
 │   │       │   │   └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
 │   │       │   └── additional-spring-configuration-metadata.json
-│   │       └── application-egon-threadpool.yml                   # 可选，默认配置模板
 │   │
 │   └── test/
 │       ├── java/
@@ -350,7 +327,7 @@ egon-cola-component-dynamic-thread-pool-starter/
 │       │       └── egon/
 │       │           └── cola/
 │       │               └── component/
-│       │                   └── threadpool/
+│       │                   └── dtp/
 │       │                       ├── package-info.java
 │       │                       └── DynamicThreadPoolAutoConfigurationTest.java
 │       └── resources/
@@ -397,7 +374,7 @@ egon-cola-component-dynamic-thread-pool-starter/
 
 ```text
 # src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
-top.egon.cola.component.threadpool.autoconfigure.DynamicThreadPoolAutoConfiguration
+top.egon.cola.component.dtp.config.DynamicThreadPoolAutoConfig
 ```
 
 ---
@@ -456,7 +433,7 @@ egon-cola-component-dynamic-thread-pool-admin/
 │   │   │       └── egon/
 │   │   │           └── cola/
 │   │   │               └── component/
-│   │   │                   └── threadpool/
+│   │   │                   └── dtp/
 │   │   │                       └── admin/
 │   │   │                           ├── package-info.java         # admin 根包说明
 │   │   │                           ├── DynamicThreadPoolAdminApplication.java
@@ -512,7 +489,7 @@ egon-cola-component-dynamic-thread-pool-admin/
 │       │       └── egon/
 │       │           └── cola/
 │       │               └── component/
-│       │                   └── threadpool/
+│       │                   └── dtp/
 │       │                       └── admin/
 │       │                           ├── package-info.java
 │       │                           └── DynamicThreadPoolAdminApplicationTest.java
@@ -623,7 +600,7 @@ egon-cola-component-dynamic-thread-pool-test/
 │   │   │       └── egon/
 │   │   │           └── cola/
 │   │   │               └── component/
-│   │   │                   └── threadpool/
+│   │   │                   └── dtp/
 │   │   │                       └── test/
 │   │   │                           ├── package-info.java         # 测试示例根包说明
 │   │   │                           ├── DynamicThreadPoolTestApplication.java
@@ -652,7 +629,7 @@ egon-cola-component-dynamic-thread-pool-test/
 │       │       └── egon/
 │       │           └── cola/
 │       │               └── component/
-│       │                   └── threadpool/
+│       │                   └── dtp/
 │       │                       └── test/
 │       │                           ├── package-info.java
 │       │                           ├── DynamicThreadPoolStarterIntegrationTest.java
@@ -702,146 +679,60 @@ egon-cola-component-dynamic-thread-pool-test/
 
 ## 8. 无 admin 组件结构示例
 
-并不是所有组件都需要 admin。
+并不是所有组件都需要 admin，也不是所有组件都必须拆成 starter / test / admin。
 
-例如规则引擎组件第一版只提供 Java 代码装配能力，不需要后台管理页面和后台服务，则只需要：
+`egon-cola-component-common` 是当前基础能力组件，作为纯 Jar 被业务系统直接依赖，不提供 admin、test 子模块，也不进入独立运行流程：
 
 ```text
-egon-cola-component-rule-engine/
-├── pom.xml                                                       # 组件聚合 POM
-├── README.md
-├── docs/
-│   ├── architecture.md
-│   └── usage.md
-│
-├── egon-cola-component-rule-engine-starter/
-│   ├── pom.xml
-│   └── src/
-│       ├── main/
-│       │   ├── java/
-│       │   │   └── top/egon/cola/component/ruleengine/
-│       │   │       ├── package-info.java
-│       │   │       ├── autoconfigure/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── RuleEngineAutoConfiguration.java
-│       │   │       │   └── RuleEngineProperties.java
-│       │   │       ├── chain/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── Chain.java
-│       │   │       │   ├── ChainNode.java
-│       │   │       │   └── ChainExecutor.java
-│       │   │       ├── tree/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── RuleTree.java
-│       │   │       │   ├── RuleNode.java
-│       │   │       │   └── RuleTreeExecutor.java
-│       │   │       ├── listener/
-│       │   │       │   ├── package-info.java
-│       │   │       │   └── RuleExecutionListener.java
-│       │   │       ├── model/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── RuleContext.java
-│       │   │       │   ├── RuleResult.java
-│       │   │       │   └── RuleExecuteRequest.java
-│       │   │       └── exception/
-│       │   │           ├── package-info.java
-│       │   │           └── RuleEngineException.java
-│       │   └── resources/
-│       │       └── META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
-│       └── test/
-│           ├── java/
-│           └── resources/
-│
-└── egon-cola-component-rule-engine-test/
-    ├── pom.xml
-    └── src/
-        ├── main/
-        └── test/
+egon-cola-component-common/
+├── pom.xml
+└── src/
+    ├── main/
+    │   └── java/
+    │       └── top/egon/cola/component/common/
+    └── test/
 ```
 
 ---
 
 ## 9. 有 admin 组件结构示例
 
-例如分布式限流组件需要管理限流规则，则建议增加 admin。
+动态线程池组件是当前带 admin 的组件示例。starter 给业务系统按需引入，admin 作为独立管理服务部署，test 只用于组件自测和示例验证：
 
 ```text
-egon-cola-component-rate-limit/
+egon-cola-component-dynamic-thread-pool/
 ├── pom.xml
 ├── README.md
 ├── docs/
-│   ├── architecture.md
-│   ├── api.md
-│   └── usage.md
+│   └── manifest.md
 │
-├── egon-cola-component-rate-limit-starter/
+├── egon-cola-component-dynamic-thread-pool-starter/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/
 │       │   ├── java/
-│       │   │   └── top/egon/cola/component/ratelimit/
-│       │   │       ├── package-info.java
-│       │   │       ├── autoconfigure/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── RateLimitAutoConfiguration.java
-│       │   │       │   └── RateLimitProperties.java
-│       │   │       ├── annotation/
-│       │   │       │   ├── package-info.java
-│       │   │       │   └── RateLimit.java
-│       │   │       ├── core/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── RateLimiter.java
-│       │   │       │   └── RateLimitExecutor.java
-│       │   │       ├── algorithm/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── TokenBucketRateLimiter.java
-│       │   │       │   └── SlidingWindowRateLimiter.java
-│       │   │       ├── config/
-│       │   │       │   ├── package-info.java
-│       │   │       │   └── RateLimitRule.java
-│       │   │       └── exception/
-│       │   │           ├── package-info.java
-│       │   │           └── RateLimitException.java
+│       │   │   └── top/egon/cola/component/dtp/
 │       │   └── resources/
 │       │       └── META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 │       └── test/
 │           ├── java/
 │           └── resources/
 │
-├── egon-cola-component-rate-limit-admin/
+├── egon-cola-component-dynamic-thread-pool-admin/
 │   ├── pom.xml
 │   ├── Dockerfile
 │   └── src/
 │       ├── main/
 │       │   ├── java/
-│       │   │   └── top/egon/cola/component/ratelimit/admin/
-│       │   │       ├── package-info.java
-│       │   │       ├── RateLimitAdminApplication.java
-│       │   │       ├── controller/
-│       │   │       │   ├── package-info.java
-│       │   │       │   └── RateLimitRuleController.java
-│       │   │       ├── application/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── RateLimitRuleAdminService.java
-│       │   │       │   └── RateLimitRuleAdminServiceImpl.java
-│       │   │       ├── repository/
-│       │   │       │   ├── package-info.java
-│       │   │       │   ├── RateLimitRulePO.java
-│       │   │       │   ├── RateLimitRuleMapper.java
-│       │   │       │   └── RateLimitRuleRepository.java
-│       │   │       └── mq/
-│       │   │           ├── package-info.java
-│       │   │           └── RateLimitRuleChangePublisher.java
+│       │   │   └── top/egon/cola/component/dtp/admin/
 │       │   └── resources/
 │       │       ├── application.yml
-│       │       ├── application-dev.yml
-│       │       ├── application-prod.yml
-│       │       └── db/migration/V1__create_rate_limit_rule.sql
+│       │       └── application-dev.yml
 │       └── test/
 │           ├── java/
 │           └── resources/
 │
-└── egon-cola-component-rate-limit-test/
+└── egon-cola-component-dynamic-thread-pool-test/
     ├── pom.xml
     └── src/
         ├── main/
@@ -854,56 +745,21 @@ egon-cola-component-rate-limit/
 
 组件工程不放 UI。
 
-不允许：
+当前仓库只维护组件后端能力。动态线程池 admin 提供 `/api/v1/dtp` 后端 API，并通过 `GET /api/v1/dtp/manifest` 暴露前端发现协议。
 
 ```text
-egon-cola-component-dynamic-thread-pool/
-└── egon-cola-component-dynamic-thread-pool-ui/
-```
-
-推荐把所有组件 UI 汇总到独立前端工程中：
-
-```text
-egon-cola-components-ui/
-├── package.json
-├── vite.config.ts
-├── src/
-│   ├── main.tsx
-│   ├── router/
-│   │   ├── index.ts
-│   │   └── component-routes.ts
-│   ├── modules/
-│   │   ├── dynamic-thread-pool/
-│   │   │   ├── api/
-│   │   │   ├── routes.ts
-│   │   │   ├── pages/
-│   │   │   └── components/
-│   │   ├── rate-limit/
-│   │   │   ├── api/
-│   │   │   ├── routes.ts
-│   │   │   ├── pages/
-│   │   │   └── components/
-│   │   └── job/
-│   │       ├── api/
-│   │       ├── routes.ts
-│   │       ├── pages/
-│   │       └── components/
-│   └── shared/
-│       ├── request/
-│       ├── layout/
-│       └── components/
+component: dynamic-thread-pool
+baseApi: /api/v1/dtp
+frontend.module: dynamic-thread-pool
+frontend.routeBase: /components/dynamic-thread-pool
 ```
 
 UI 与 admin 的关系：
 
 ```mermaid
 graph LR
-    UI[egon-cola-components-ui] --> TP[dynamic-thread-pool-admin]
-    UI --> RL[rate-limit-admin]
-    UI --> JOB[job-admin]
+    UI[外部前端工程] --> TP[dynamic-thread-pool-admin]
     TP --> TPs[dynamic-thread-pool-starter]
-    RL --> RLs[rate-limit-starter]
-    JOB --> JOBs[job-starter]
 ```
 
 ---
@@ -912,7 +768,7 @@ graph LR
 
 `egon-cola-components-bom` 用于统一管理对业务系统开放的组件版本。
 
-一般只导出 starter，不导出 test。
+当前 BOM 只导出业务系统可直接依赖的 common 与 starter，不导出 admin 和 test。
 
 admin 是否导出取决于部署方式：
 
@@ -930,19 +786,13 @@ BOM 示例：
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-rule-engine-starter</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-rate-limit-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
@@ -958,7 +808,7 @@ BOM 示例：
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.1.1</version>
+            <version>5.2.0-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -968,7 +818,7 @@ BOM 示例：
 <dependencies>
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
+    <artifactId>egon-cola-component-common</artifactId>
 </dependency>
 </dependencies>
 ```
@@ -986,11 +836,8 @@ egon-cola-component-{component-name}
 示例：
 
 ```text
+egon-cola-component-common
 egon-cola-component-dynamic-thread-pool
-egon-cola-component-rule-engine
-egon-cola-component-rate-limit
-egon-cola-component-job
-egon-cola-component-config-center
 ```
 
 ## 12.2 starter 命名
@@ -1003,8 +850,6 @@ egon-cola-component-{component-name}-starter
 
 ```text
 egon-cola-component-dynamic-thread-pool-starter
-egon-cola-component-rule-engine-starter
-egon-cola-component-rate-limit-starter
 ```
 
 ## 12.3 admin 命名
@@ -1017,8 +862,6 @@ egon-cola-component-{component-name}-admin
 
 ```text
 egon-cola-component-dynamic-thread-pool-admin
-egon-cola-component-rate-limit-admin
-egon-cola-component-job-admin
 ```
 
 ## 12.4 test 命名
@@ -1031,8 +874,6 @@ egon-cola-component-{component-name}-test
 
 ```text
 egon-cola-component-dynamic-thread-pool-test
-egon-cola-component-rule-engine-test
-egon-cola-component-rate-limit-test
 ```
 
 ## 12.5 Java 包名命名
@@ -1058,10 +899,10 @@ top.egon.cola.component.{component}.test.xxx
 示例：
 
 ```text
-top.egon.cola.component.threadpool.autoconfigure
-top.egon.cola.component.threadpool.core
-top.egon.cola.component.threadpool.admin.controller
-top.egon.cola.component.threadpool.test.runner
+top.egon.cola.component.common.exception
+top.egon.cola.component.dtp.config
+top.egon.cola.component.dtp.admin.trigger
+top.egon.cola.component.dtp.test
 ```
 
 ---
@@ -1071,7 +912,7 @@ top.egon.cola.component.threadpool.test.runner
 ## 13.1 starter 约束
 
 ```text
-1. starter 是业务系统唯一应该直接引入的模块。
+1. 除 common 这类纯 Jar 基础组件外，运行时 starter-style 组件应由业务系统直接引入 starter。
 2. starter 必须提供自动装配能力。
 3. starter 的配置项必须提供 Properties 类。
 4. starter 必须提供 AutoConfiguration.imports。
@@ -1121,7 +962,7 @@ top.egon.cola.component.threadpool.test.runner
 
 ## 14. 新增组件流程
 
-新增一个组件时，按以下流程执行。
+新增运行时 starter-style 组件时，按以下流程执行。纯 Jar 基础组件可以参考 `egon-cola-component-common`，保持直接 Jar 依赖形态。
 
 ```text
 1. 在 egon-cola-components 下创建 egon-cola-component-{name} 目录。
@@ -1253,19 +1094,19 @@ components-parent
 
 ```text
 1. 每个组件根工程继承 egon-cola-components-parent。
-2. 每个组件至少有 starter 和 test。
+2. 运行时 starter-style 组件至少有 starter 和 test。
 3. 需要管理能力时增加 admin。
 4. 有 admin 必须提供 Dockerfile。
 5. components 工程不放 UI。
 6. UI 独立工程维护。
-7. starter 面向业务系统。
+7. starter 面向需要自动装配的业务系统运行时能力。
 8. admin 面向管理后台。
 9. test 面向验证和示例。
-10. BOM 主要导出 starter。
+10. BOM 导出 common 这类纯 Jar 基础组件，以及业务系统可直接依赖的 starter。
 ```
 
 一句话总结：
 
 ```text
-组件工程只管能力沉淀，UI 单独抽走；starter 给业务用，admin 给平台管，test 给自己验。
+组件工程只管能力沉淀，UI 单独抽走；common 这类纯 Jar 能力可以被业务直接依赖，starter 给运行时组件业务接入使用，admin 给平台管，test 给自己验。
 ```

@@ -1,27 +1,53 @@
-# egon-cola-component-dynamic-thread-pool
+# Egon COLA Dynamic Thread Pool Component
 
-Dynamic thread pool component for Egon COLA.
+This component provides Spring Boot starter based executor governance and an independently deployable admin service.
 
 ## Modules
 
-| Module | Description |
-| --- | --- |
-| `egon-cola-component-dynamic-thread-pool-starter` | Spring Boot starter for dynamic thread pool registration, configuration adjustment, reporting, and metrics binding. |
+| Module | Purpose |
+|---|---|
+| `egon-cola-component-dynamic-thread-pool-starter` | Business application integration, executor registration, snapshots, Redis change listening, MDC propagation, audit events, and Micrometer metrics. |
+| `egon-cola-component-dynamic-thread-pool-admin` | REST management API, Redis-backed queries and change publishing, manifest endpoint, and Docker packaging. |
+| `egon-cola-component-dynamic-thread-pool-test` | Component sample and validation module. |
 
-## Starter
+## Configuration Prefix
 
-```xml
-<dependency>
-    <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
-    <version>5.2.0-SNAPSHOT</version>
-</dependency>
+```yaml
+egon:
+  cola:
+    component:
+      dtp:
+        enabled: true
+        app-name: ${spring.application.name}
+        instance-id: ${spring.application.name}-${server.port}
+        registry:
+          type: redis
+          redis:
+            host: 127.0.0.1
+            port: 6379
+            password:
+            database: 0
+        report:
+          enabled: true
+          interval: 20s
+        trace:
+          enabled: true
+          mdc-enabled: true
+          trace-id-key: traceId
+          request-id-key: requestId
+        virtual:
+          enabled: true
+          default-concurrency-limit: 500
 ```
 
-Configuration prefix:
+## Admin API
 
-```properties
-egon.cola.component.dtp.enabled=true
-egon.cola.component.dtp.app-name=student-management
-egon.cola.component.dtp.registry.redis.host=127.0.0.1
-```
+The admin API base path is `/api/v1/dtp`.
+
+## Manifest
+
+The admin exposes `GET /api/v1/dtp/manifest` for dynamic frontend discovery.
+
+## UI Boundary
+
+UI code is not stored in `egon-cola-components`.
