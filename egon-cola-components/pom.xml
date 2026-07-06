@@ -6,7 +6,7 @@
     <parent>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-aggregation-parent</artifactId>
-        <version>5.1.2</version>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>egon-cola-components-parent</artifactId>
@@ -53,18 +53,9 @@
     </developers>
 
     <modules>
-        <module>egon-cola-component-dto</module>
-        <module>egon-cola-component-exception</module>
-        <module>egon-cola-component-statemachine</module>
-        <module>egon-cola-component-domain-starter</module>
-        <module>egon-cola-component-extension-starter</module>
-        <module>egon-cola-component-catchlog-starter</module>
-        <module>egon-cola-component-test-container</module>
         <module>egon-cola-components-bom</module>
-        <module>egon-cola-component-ruleengine</module>
-        <module>egon-cola-component-unittest</module>
-        <module>egon-cola-component-job</module>
-        <module>egon-cola-dev-util-archetypes</module>
+        <module>egon-cola-component-common</module>
+        <module>egon-cola-component-dynamic-thread-pool</module>
     </modules>
 
     <properties>
@@ -73,6 +64,8 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.boot.version>3.5.16</spring.boot.version>
+        <redisson.version>3.26.0</redisson.version>
+        <micrometer.version>1.15.12</micrometer.version>
         <lombok.version>1.18.46</lombok.version>
         <junit.platform.version>1.12.2</junit.platform.version>
         <junit.jupiter.version>5.12.2</junit.jupiter.version>
@@ -107,61 +100,27 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-dto</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-exception</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-statemachine</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-domain-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-extension-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-catchlog-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-test-container</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-ruleengine</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-unittest</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-job</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring.boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-starter-actuator</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-core</artifactId>
+                <version>${micrometer.version}</version>
             </dependency>
             <!-- 工具包 -->
             <dependency>

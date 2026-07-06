@@ -6,7 +6,7 @@
     <parent>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-aggregation-parent</artifactId>
-        <version>5.1.2</version>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>egon-cola-archetypes-parent</artifactId>
