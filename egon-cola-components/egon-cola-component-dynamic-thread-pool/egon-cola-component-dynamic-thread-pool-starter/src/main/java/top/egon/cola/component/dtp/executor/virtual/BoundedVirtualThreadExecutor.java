@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,6 +23,7 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -96,12 +97,12 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new MetricsFutureTask<>(Objects.requireNonNull(runnable, "runnable"), value);
+        return new MetricsFutureTask<>(this, Objects.requireNonNull(runnable, "runnable"), value);
     }
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-        return new MetricsFutureTask<>(Objects.requireNonNull(callable, "callable"));
+        return new MetricsFutureTask<>(this, Objects.requireNonNull(callable, "callable"));
     }
 
     @Override
@@ -192,19 +193,23 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         }
         boolean accepted = false;
         try {
-            delegate.execute(() -> {
-                runningTasks.incrementAndGet();
-                try {
-                    if (countOutcome) {
-                        runAndCount(command);
-                    } else {
-                        command.run();
+            if (command instanceof MetricsFutureTask<?>) {
+                delegate.execute(command);
+            } else {
+                delegate.execute(() -> {
+                    runningTasks.incrementAndGet();
+                    try {
+                        if (countOutcome) {
+                            runAndCount(command);
+                        } else {
+                            command.run();
+                        }
+                    } finally {
+                        runningTasks.decrementAndGet();
+                        semaphore.release();
                     }
-                } finally {
-                    runningTasks.decrementAndGet();
-                    semaphore.release();
-                }
-            });
+                });
+            }
             accepted = true;
         } catch (RejectedExecutionException e) {
             rejectedTasks.incrementAndGet();
@@ -313,17 +318,74 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
     private interface MetricsAwareTask {
     }
 
-    private class MetricsFutureTask<T> extends FutureTask<T> implements MetricsAwareTask {
+    private static class MetricsFutureTask<T> extends FutureTask<T> implements MetricsAwareTask {
 
-        private MetricsFutureTask(Runnable runnable, T result) {
-            super(callAndCount(() -> {
+        private final MetricsLifecycleCallable<T> lifecycleCallable;
+
+        private MetricsFutureTask(BoundedVirtualThreadExecutor owner, Runnable runnable, T result) {
+            this(new MetricsLifecycleCallable<>(owner, () -> {
                 runnable.run();
                 return result;
             }));
         }
 
-        private MetricsFutureTask(Callable<T> callable) {
-            super(callAndCount(callable));
+        private MetricsFutureTask(BoundedVirtualThreadExecutor owner, Callable<T> callable) {
+            this(new MetricsLifecycleCallable<>(owner, callable));
+        }
+
+        private MetricsFutureTask(MetricsLifecycleCallable<T> lifecycleCallable) {
+            super(lifecycleCallable);
+            this.lifecycleCallable = lifecycleCallable;
+        }
+
+        @Override
+        public void run() {
+            try {
+                super.run();
+            } finally {
+                if (!lifecycleCallable.runningStarted()) {
+                    lifecycleCallable.releasePermitOnce();
+                }
+            }
+        }
+
+    }
+
+    private static final class MetricsLifecycleCallable<T> implements Callable<T> {
+
+        private final BoundedVirtualThreadExecutor owner;
+
+        private final Callable<T> callable;
+
+        private final AtomicBoolean runningStarted = new AtomicBoolean();
+
+        private final AtomicBoolean permitReleased = new AtomicBoolean();
+
+        private MetricsLifecycleCallable(BoundedVirtualThreadExecutor owner, Callable<T> callable) {
+            this.owner = owner;
+            this.callable = owner.callAndCount(callable);
+        }
+
+        @Override
+        public T call() throws Exception {
+            runningStarted.set(true);
+            owner.runningTasks.incrementAndGet();
+            try {
+                return callable.call();
+            } finally {
+                owner.runningTasks.decrementAndGet();
+                releasePermitOnce();
+            }
+        }
+
+        private boolean runningStarted() {
+            return runningStarted.get();
+        }
+
+        private void releasePermitOnce() {
+            if (permitReleased.compareAndSet(false, true)) {
+                owner.semaphore.release();
+            }
         }
 
     }
@@ -333,7 +395,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         private final BlockingQueue<Future<T>> completionQueue;
 
         private QueueingMetricsFutureTask(Callable<T> callable, BlockingQueue<Future<T>> completionQueue) {
-            super(callable);
+            super(BoundedVirtualThreadExecutor.this, callable);
             this.completionQueue = completionQueue;
         }
 
