@@ -216,6 +216,28 @@ assert rootPomText.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.versi
 assert rootPomText.contains("<dubbo.version>3.3.6</dubbo.version>")
 assert rootPomText.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
 assert rootPomText.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
+assert rootPomText.contains("<artifactId>egon-cola-components-bom</artifactId>")
+assert rootPomText.contains("<egon-cola.version>5.2.0-SNAPSHOT</egon-cola.version>")
+assert rootPomText.contains("<artifactId>egon-cola-component-common</artifactId>")
+assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>")
+assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
+assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-test</artifactId>")
+def commonPomText = assertFile("student-management-organization-common/pom.xml").text
+assert commonPomText.contains("<artifactId>egon-cola-component-common</artifactId>")
+def generatedPomTexts = []
+projectDir.traverse(type: groovy.io.FileType.FILES) { file ->
+    def path = relativePath(file)
+    if (file.name == "pom.xml" && !isGeneratedOrVcsPath(path)) {
+        generatedPomTexts << file.getText("UTF-8")
+    }
+}
+[
+    "egon-cola-component-dynamic-thread-pool-starter",
+    "egon-cola-component-dynamic-thread-pool-admin",
+    "egon-cola-component-dynamic-thread-pool-test"
+].each { artifactId ->
+    assert !generatedPomTexts.any { it.contains("<artifactId>${artifactId}</artifactId>") }
+}
 assert rootPomText.contains("<artifactId>spring-cloud-dependencies</artifactId>")
 assert rootPomText.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
 assert rootPomText.contains("<artifactId>dubbo-bom</artifactId>")

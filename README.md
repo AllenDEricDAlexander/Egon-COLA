@@ -44,18 +44,9 @@ Egon-COLA
 │   ├── architecture-mermaid-diagrams.md
 │   └── code-style-abstract.md
 ├── egon-cola-components/     # 基础组件、starter、BOM 与组件开发脚手架
-│   ├── egon-cola-component-dto/
-│   ├── egon-cola-component-exception/
-│   ├── egon-cola-component-statemachine/
-│   ├── egon-cola-component-domain-starter/
-│   ├── egon-cola-component-extension-starter/
-│   ├── egon-cola-component-catchlog-starter/
-│   ├── egon-cola-component-test-container/
-│   ├── egon-cola-component-ruleengine/
-│   ├── egon-cola-component-unittest/
-│   ├── egon-cola-component-job/
 │   ├── egon-cola-components-bom/
-│   └── egon-cola-dev-util-archetypes/
+│   ├── egon-cola-component-common/
+│   └── egon-cola-component-dynamic-thread-pool/
 ├── scripts/                  # 本地验证、版本调整、发布说明
 ├── mvnw
 ├── mvnw.cmd
@@ -82,12 +73,10 @@ cd Egon-COLA
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-只验证 statemachine 组件及其上游模块：
+只验证 components 工程：
 
 ```bash
-./mvnw -V --no-transfer-progress \
-  -pl egon-cola-components/egon-cola-component-statemachine \
-  -am test
+./mvnw -V --no-transfer-progress -f egon-cola-components/pom.xml test
 ```
 
 ## 本地验证
@@ -194,7 +183,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.light' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-light' \
-  -DarchetypeVersion='5.1.2' \
+  -DarchetypeVersion='5.2.0-SNAPSHOT' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -209,7 +198,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-service' \
-  -DarchetypeVersion='5.1.2' \
+  -DarchetypeVersion='5.2.0-SNAPSHOT' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -224,7 +213,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable.web' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-web' \
-  -DarchetypeVersion='5.1.2' \
+  -DarchetypeVersion='5.2.0-SNAPSHOT' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -235,22 +224,14 @@ mvn -B archetype:generate \
 
 `egon-cola-components` 用于沉淀可复用基础能力。
 
-| 组件                                      | 说明                  |
-|-----------------------------------------|---------------------|
-| `egon-cola-component-dto`               | 通用 DTO / 响应对象基础能力。  |
-| `egon-cola-component-exception`         | 通用异常与错误码能力。         |
-| `egon-cola-component-statemachine`      | 状态机组件。              |
-| `egon-cola-component-domain-starter`    | 领域层基础 starter。      |
-| `egon-cola-component-extension-starter` | 扩展点 starter。        |
-| `egon-cola-component-catchlog-starter`  | 日志 / 异常捕获类 starter。 |
-| `egon-cola-component-test-container`    | 测试容器支持。             |
-| `egon-cola-component-ruleengine`        | 规则引擎组件。             |
-| `egon-cola-component-unittest`          | 单元测试支持。             |
-| `egon-cola-component-job`               | 任务调度组件。             |
-| `egon-cola-components-bom`              | 对外统一导出组件版本。         |
-| `egon-cola-dev-util-archetypes`         | 组件开发脚手架。            |
+| 组件 | 说明 |
+|---|---|
+| `egon-cola-component-common` | 纯 Jar 基础组件，提供通用响应、分页、异常、断言等稳定能力。 |
+| `egon-cola-component-dynamic-thread-pool-starter` | 业务系统按需引入的动态线程池 starter。 |
+| `egon-cola-component-dynamic-thread-pool-admin` | 独立部署的动态线程池管理服务，不进入 BOM。 |
+| `egon-cola-components-bom` | 只导出业务系统可直接依赖的 common 与 starter 版本。 |
 
-组件推荐结构：
+运行时 starter-style 组件推荐结构：
 
 ```text
 egon-cola-component-xxx
@@ -262,7 +243,8 @@ egon-cola-component-xxx
 
 组件约束：
 
-- `starter` 是业务系统唯一应该直接引入的模块。
+- `egon-cola-component-common` 是明确的纯 Jar 例外，业务系统可以直接依赖。
+- 除 `common` 这类纯 Jar 基础组件外，运行时 starter-style 组件应由业务系统直接引入 `starter`。
 - `starter` 不反向依赖 `admin`、`test`、`ui`。
 - `test` 只用于组件自测、集成测试和示例启动。
 - `admin` 可选，如果存在，应可以独立部署。
@@ -279,7 +261,7 @@ egon-cola-component-xxx
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.1.2</version>
+            <version>5.2.0-SNAPSHOT</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -294,7 +276,19 @@ egon-cola-component-xxx
 <dependencies>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-statemachine</artifactId>
+        <artifactId>egon-cola-component-common</artifactId>
+    </dependency>
+</dependencies>
+```
+
+动态线程池 starter 是可选运行时组件，业务系统需要线程池治理时再引入：
+
+```xml
+
+<dependencies>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
     </dependency>
 </dependencies>
 ```

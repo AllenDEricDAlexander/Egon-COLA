@@ -10,7 +10,7 @@
     -->
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-components-bom</artifactId>
-    <version>5.1.2</version>
+    <version>5.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>egon-cola-components-bom</name>
     <description>egon-cola-components-bom</description>
@@ -65,52 +65,12 @@
         <dependencies>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-dto</artifactId>
+                <artifactId>egon-cola-component-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-exception</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-statemachine</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-domain-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-extension-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-catchlog-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-test-container</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-ruleengine</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-unittest</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-job</artifactId>
+                <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

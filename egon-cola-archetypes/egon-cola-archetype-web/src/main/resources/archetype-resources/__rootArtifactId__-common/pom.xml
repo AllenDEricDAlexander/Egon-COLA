@@ -14,4 +14,11 @@
     <artifactId>${rootArtifactId}-common</artifactId>
     <packaging>jar</packaging>
     <name>${rootArtifactId}-common</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common</artifactId>
+        </dependency>
+    </dependencies>
 </project>

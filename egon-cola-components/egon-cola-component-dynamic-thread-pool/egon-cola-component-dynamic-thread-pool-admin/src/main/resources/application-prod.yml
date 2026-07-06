@@ -1,0 +1,37 @@
+server:
+  port: 8089
+
+egon:
+  cola:
+    component:
+      dtp:
+        registry:
+          redis:
+            host: ${EGON_COLA_DTP_REDIS_HOST:127.0.0.1}
+            port: ${EGON_COLA_DTP_REDIS_PORT:6379}
+            password: ${EGON_COLA_DTP_REDIS_PASSWORD:}
+            pool-size: ${EGON_COLA_DTP_REDIS_POOL_SIZE:10}
+            min-idle-size: ${EGON_COLA_DTP_REDIS_MIN_IDLE_SIZE:5}
+            idle-timeout: ${EGON_COLA_DTP_REDIS_IDLE_TIMEOUT:30000}
+            connect-timeout: ${EGON_COLA_DTP_REDIS_CONNECT_TIMEOUT:5000}
+            retry-attempts: ${EGON_COLA_DTP_REDIS_RETRY_ATTEMPTS:3}
+            retry-interval: ${EGON_COLA_DTP_REDIS_RETRY_INTERVAL:1000}
+            ping-interval: ${EGON_COLA_DTP_REDIS_PING_INTERVAL:60000}
+            keep-alive: ${EGON_COLA_DTP_REDIS_KEEP_ALIVE:true}
+
+# 线程池配置
+thread:
+  pool:
+    executor:
+      config:
+        core-pool-size: 20
+        max-pool-size: 50
+        keep-alive-time: 5000
+        block-queue-size: 5000
+        policy: CallerRunsPolicy
+
+# 日志
+logging:
+  level:
+    root: info
+  config: classpath:logback-spring.xml
