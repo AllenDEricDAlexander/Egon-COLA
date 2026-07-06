@@ -26,7 +26,6 @@ jobs:
       matrix:
         java-version:
           - 21
-          - 22
 
     steps:
       - name: Checkout source
