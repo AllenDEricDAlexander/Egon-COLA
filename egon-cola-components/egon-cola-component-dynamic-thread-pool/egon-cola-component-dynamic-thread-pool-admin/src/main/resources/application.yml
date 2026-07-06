@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: egon-cola-component-dynamic-thread-pool-admin
+  profiles:
+    active: dev

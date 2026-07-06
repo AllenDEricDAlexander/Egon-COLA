@@ -38,5 +38,6 @@
 
     <modules>
         <module>egon-cola-component-dynamic-thread-pool-starter</module>
+        <module>egon-cola-component-dynamic-thread-pool-admin</module>
     </modules>
 </project>
