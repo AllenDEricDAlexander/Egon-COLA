@@ -10,6 +10,42 @@
 
 ---
 
+## Execution Progress
+
+Last updated: 2026-07-06.
+
+| Task | Status | Commit / Notes |
+|---|---|---|
+| Task 1: Components Parent, Version, BOM, and Common Jar | Done | `799ad89` `feat(components): rebuild common module baseline`; spec and code-quality reviews passed. |
+| Task 2: Dynamic Thread Pool Component Shell and Starter Copy | Done | `a452175` `feat(components): migrate dynamic thread pool starter`; spec and code-quality reviews passed. |
+| Task 3: Admin Copy, Manifest, and Dockerfile | Done | `82f977a` `feat(components): migrate dynamic thread pool admin`; spec and code-quality reviews passed. |
+| Task 4: Consolidated Dynamic Thread Pool Test Module | Done | `5d9985d` `test(components): add dynamic thread pool sample module`; spec and code-quality reviews passed. |
+| Task 5: Documentation, Archetype Defaults, and Optional Starter Guidance | Done | `758e7dd` `docs(components): align docs and archetypes with common baseline`; spec re-review approved after stale-doc fix. Fresh archetype verification passed on 2026-07-06. |
+| Task 6: Full Build, Docker Build, and Final Cleanup | Done | Components `test` and `clean package` passed. Docker build was attempted but blocked because Docker daemon was not running. |
+| Final whole-implementation review and branch finish | Review done; branch finish pending user choice | Final whole-implementation review found no open code/spec findings. Waiting for merge/PR/keep/discard decision. |
+
+Current validation evidence for Task 5:
+
+- Stale-reference `rg` check: no matches.
+- `bash ./mvnw -B -ntp -f egon-cola-components/pom.xml -DskipTests install`: passed.
+- Light/web/service archetype `clean integration-test`: passed.
+- `git diff --check`: passed.
+
+Current validation evidence for Task 6 and final review:
+
+- `bash ./mvnw -B -ntp -f egon-cola-components/pom.xml test`: passed.
+- `bash ./mvnw -B -ntp -f egon-cola-components/pom.xml clean package`: passed.
+- Docker build command failed before build context evaluation: `Cannot connect to the Docker daemon at unix:///Users/mario/.docker/run/docker.sock. Is the docker daemon running?`
+- Stale-reference `rg` check over `README.md egon-cola-components egon-cola-archetypes`: no matches.
+- BOM forbidden-export check for admin/test/root dynamic-thread-pool artifacts: no matches.
+- BOM allowed-export check confirms `egon-cola-component-common` and `egon-cola-component-dynamic-thread-pool-starter`.
+- `git diff --check`: passed.
+- Light and web archetype `clean integration-test`: passed.
+- Service archetype `clean integration-test`: initially failed only when run concurrently with other archetype checks due to Dubbo QoS `localhost:22222` port contention; single-module rerun passed.
+- Final changed-file scope is limited to planned root POM/README, `egon-cola-components`, archetype dependency guidance, and this plan progress note.
+
+---
+
 ## Global Constraints
 
 - Do not open a browser or start any project runtime server.
