@@ -1,0 +1,45 @@
+server:
+  port: 8093
+
+# 线程池配置
+thread:
+  pool:
+    executor:
+      config:
+        core-pool-size: 20
+        max-pool-size: 50
+        keep-alive-time: 5000
+        block-queue-size: 5000
+        policy: CallerRunsPolicy
+
+egon:
+  cola:
+    component:
+      dtp:
+        enabled: true
+        app-name: ${spring.application.name}
+        instance-id: ${spring.application.name}-${server.port}
+        registry:
+          type: redis
+          redis:
+            host: ${DTP_REDIS_HOST:127.0.0.1}
+            port: ${DTP_REDIS_PORT:6379}
+            password: ${DTP_REDIS_PASSWORD:}
+            database: 0
+        report:
+          enabled: true
+          interval: 20s
+        trace:
+          enabled: true
+          mdc-enabled: true
+          trace-id-key: traceId
+          request-id-key: requestId
+        virtual:
+          enabled: true
+          default-concurrency-limit: 500
+
+# 日志
+logging:
+  level:
+    root: info
+  config: classpath:logback-spring.xml
