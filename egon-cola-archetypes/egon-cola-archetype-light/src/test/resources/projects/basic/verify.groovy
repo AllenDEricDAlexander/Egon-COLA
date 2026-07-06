@@ -45,8 +45,10 @@ def assertNoGenericMapStructConverterInjection = { path ->
 
 assertFile("pom.xml")
 def mvnw = assertFile("mvnw")
-assert mvnw.canExecute(): "Expected mvnw to be executable"
 assertFile("mvnw.cmd")
+if (!System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")) {
+    assert mvnw.canExecute(): "Expected mvnw to be executable"
+}
 assertFile(".mvn/wrapper/maven-wrapper.properties")
 assertFile(".gitignore")
 assertFile(".gitattributes")

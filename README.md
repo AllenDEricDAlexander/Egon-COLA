@@ -87,11 +87,10 @@ cd Egon-COLA
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-强验证，等同 Strong CI：默认使用 Java 21 完整构建，再使用 Java 22 执行 `surefire:test`，并验证 archetype 生成工程。
+强验证，等同 Strong CI：使用 Java 21 完整构建，并验证 archetype 生成工程。
 
 ```bash
 JAVA21_HOME=/path/to/jdk-21 \
-JAVA22_HOME=/path/to/jdk-22 \
 scripts/integration_test
 ```
 
@@ -303,7 +302,7 @@ Fast CI 使用 `.github/workflows/ci.yaml`，在 Ubuntu 和 Windows 的 Java 21 
 ./mvnw -V --no-transfer-progress -DtrimStackTrace=false clean install
 ```
 
-Strong CI 使用 `.github/workflows/ci_by_multiply_java_versions.yaml`，在 Ubuntu 上安装 Java 21 / 22 并执行：
+Strong CI 使用 `.github/workflows/ci_by_multiply_java_versions.yaml`，在 Ubuntu 上安装 Java 21 并执行：
 
 ```bash
 scripts/integration_test
