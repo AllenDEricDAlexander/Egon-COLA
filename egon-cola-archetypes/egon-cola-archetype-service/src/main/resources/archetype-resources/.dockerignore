@@ -6,7 +6,9 @@
 *.iml
 .DS_Store
 
-**/target
+**/target/*
+!target/*.jar
+!*/target/*.jar
 **/build
 **/.mvn/wrapper/maven-wrapper.jar
 

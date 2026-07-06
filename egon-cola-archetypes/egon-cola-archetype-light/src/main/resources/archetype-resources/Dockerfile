@@ -1,25 +1,11 @@
 # syntax=docker/dockerfile:1.7
 #set( $symbol_dollar = '$' )
 
-FROM eclipse-temurin:21-jdk-jammy AS builder
-WORKDIR /workspace
-
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
-
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -B -ntp -DskipTests dependency:go-offline
-
-COPY . .
-
-RUN --mount=type=cache,target=/root/.m2 \
-    ./mvnw -B -ntp -DskipTests package
-
 FROM eclipse-temurin:21-jre-jammy AS extractor
 WORKDIR /workspace
 
 ARG JAR_FILE=target/*.jar
-COPY --from=builder /workspace/${symbol_dollar}{JAR_FILE} app.jar
+COPY ${symbol_dollar}{JAR_FILE} app.jar
 RUN java -Djarmode=tools -jar app.jar extract --layers --destination extracted
 
 FROM eclipse-temurin:21-jre-jammy AS runtime

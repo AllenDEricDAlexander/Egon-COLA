@@ -56,10 +56,13 @@ assertFile(".dockerignore")
 assert assertFile("README.md").text.contains("Docker")
 assert assertFile("README.md").text.contains("docker build -t basic:local .")
 def dockerfileText = assertFile("Dockerfile").text
-assert dockerfileText.contains("FROM eclipse-temurin:21-jdk-jammy AS builder")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS runtime")
-assert dockerfileText.contains("dependency:go-offline")
+assert !dockerfileText.contains(" AS builder")
+assert !dockerfileText.contains("dependency:go-offline")
+assert !dockerfileText.contains("./mvnw")
+assert dockerfileText.contains("ARG JAR_FILE=target/*.jar")
+assert dockerfileText.contains('COPY ${JAR_FILE} app.jar')
 assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
 assert dockerfileText.contains("USER app")
 assert dockerfileText.contains("EXPOSE 8080 50051")
@@ -74,7 +77,9 @@ def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
     "*.iml",
     ".DS_Store",
     "",
-    "**/target",
+    "**/target/*",
+    "!target/*.jar",
+    "!*/target/*.jar",
     "**/build",
     "**/.mvn/wrapper/maven-wrapper.jar",
     "",
@@ -202,6 +207,7 @@ assert springFactories.contains("org.springframework.boot.env.EnvironmentPostPro
 assert springFactories.contains("it.pkg.start.config.encryption.ConfigDecryptEnvironmentPostProcessor")
 assertFile("src/test/java/it/pkg/start/config/encryption/AesGcmConfigDecryptorTest.java")
 assertFile("src/test/java/it/pkg/start/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
+assertFile("src/test/java/it/pkg/application/StudentManagementFlowTest.java").text.contains('properties = "dubbo.protocol.port=-1"')
 def starterText = assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java").text
 assert starterText.contains("@EnableDubbo")
 assert starterText.contains('scanBasePackages = "it.pkg.adapter.facade"')

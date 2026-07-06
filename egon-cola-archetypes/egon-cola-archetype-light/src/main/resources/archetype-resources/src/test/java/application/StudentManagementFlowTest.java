@@ -28,7 +28,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(classes = StudentManagementApplication.class)
+@SpringBootTest(
+        classes = StudentManagementApplication.class,
+        properties = "dubbo.protocol.port=-1")
 class StudentManagementFlowTest {
     @Autowired
     private StudentManage studentManage;

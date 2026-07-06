@@ -84,10 +84,14 @@ assert assertFile("README.md").text.contains("docker build -t student-management
 assert assertFile("README.md").text.contains("The starter module includes the Spring Boot Web starter only for Actuator management HTTP.")
 assert assertFile("README.md").text.contains("to adapter, application, domain, or infrastructure modules")
 def dockerfileText = assertFile("Dockerfile").text
-assert dockerfileText.contains("FROM eclipse-temurin:21-jdk-jammy AS builder")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS runtime")
-assert dockerfileText.contains("dependency:go-offline")
+assert !dockerfileText.contains(" AS builder")
+assert !dockerfileText.contains("dependency:go-offline")
+assert !dockerfileText.contains("./mvnw")
+assert dockerfileText.contains("ARG STARTER_MODULE=student-management-evaluation-starter")
+assert dockerfileText.contains('ARG JAR_FILE=${STARTER_MODULE}/target/*.jar')
+assert dockerfileText.contains('COPY ${JAR_FILE} app.jar')
 assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
 assert dockerfileText.contains("USER app")
 assert dockerfileText.contains("EXPOSE 8081 50051")
@@ -102,7 +106,9 @@ def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
     "*.iml",
     ".DS_Store",
     "",
-    "**/target",
+    "**/target/*",
+    "!target/*.jar",
+    "!*/target/*.jar",
     "**/build",
     "**/.mvn/wrapper/maven-wrapper.jar",
     "",
@@ -262,6 +268,7 @@ assert springFactories.contains("org.springframework.boot.env.EnvironmentPostPro
 assert springFactories.contains("it.pkg.starter.config.encryption.ConfigDecryptEnvironmentPostProcessor")
 assertFile("student-management-evaluation-starter/src/test/java/it/pkg/starter/config/encryption/AesGcmConfigDecryptorTest.java")
 assertFile("student-management-evaluation-starter/src/test/java/it/pkg/starter/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
+assertFile("student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationFlowTest.java").text.contains('properties = "dubbo.protocol.port=-1"')
 
 def assertPomContainsProvidedLombok = { pomPath ->
     def pomXml = new groovy.xml.XmlSlurper(false, false).parse(assertFile(pomPath))

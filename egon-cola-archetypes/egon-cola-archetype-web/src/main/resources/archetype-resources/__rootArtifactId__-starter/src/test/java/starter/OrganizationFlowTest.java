@@ -40,7 +40,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
-@SpringBootTest(classes = OrganizationApplication.class)
+@SpringBootTest(
+        classes = OrganizationApplication.class,
+        properties = "dubbo.protocol.port=-1")
 class OrganizationFlowTest {
     @Autowired
     private UserManage userManage;

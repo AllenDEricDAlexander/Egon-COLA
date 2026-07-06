@@ -52,12 +52,12 @@ jobs:
           java -version
           ./mvnw -version
 
-      - name: Build and test with Maven
+      - name: Build, test, and install with Maven
         run: |
           ./mvnw -B -ntp \
             -DtrimStackTrace=false \
             -Dgpg.skip=true \
-            clean verify
+            clean install
 
       - name: Remove self-installed Maven artifacts
         if: always()

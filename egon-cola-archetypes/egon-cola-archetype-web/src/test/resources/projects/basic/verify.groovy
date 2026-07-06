@@ -126,10 +126,14 @@ assert assertFile("README.md").text.contains("## Commands")
 assert assertFile("README.md").text.contains("## Runtime Baseline")
 assert assertFile("README.md").text.contains("docker build -t student-management-organization:local .")
 def dockerfileText = assertFile("Dockerfile").text
-assert dockerfileText.contains("FROM eclipse-temurin:21-jdk-jammy AS builder")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
 assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS runtime")
-assert dockerfileText.contains("dependency:go-offline")
+assert !dockerfileText.contains(" AS builder")
+assert !dockerfileText.contains("dependency:go-offline")
+assert !dockerfileText.contains("./mvnw")
+assert dockerfileText.contains("ARG STARTER_MODULE=student-management-organization-starter")
+assert dockerfileText.contains('ARG JAR_FILE=${STARTER_MODULE}/target/*.jar')
+assert dockerfileText.contains('COPY ${JAR_FILE} app.jar')
 assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
 assert dockerfileText.contains("USER app")
 assert dockerfileText.contains("EXPOSE 8080 50051")
@@ -144,7 +148,9 @@ def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
     "*.iml",
     ".DS_Store",
     "",
-    "**/target",
+    "**/target/*",
+    "!target/*.jar",
+    "!*/target/*.jar",
     "**/build",
     "**/.mvn/wrapper/maven-wrapper.jar",
     "",
@@ -467,7 +473,7 @@ assert springFactories.contains("org.springframework.boot.env.EnvironmentPostPro
 assert springFactories.contains("it.pkg.starter.config.encryption.ConfigDecryptEnvironmentPostProcessor")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/AesGcmConfigDecryptorTest.java")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
-assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java")
+assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java").text.contains('properties = "dubbo.protocol.port=-1"')
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/ArchitectureDependencyTest.java")
 
 def organizationApplicationText = assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
