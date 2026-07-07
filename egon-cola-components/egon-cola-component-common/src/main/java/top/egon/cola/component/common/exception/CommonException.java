@@ -10,23 +10,23 @@ public abstract class CommonException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private final String code;
+    private final int code;
 
     private final String errorMessage;
 
-    protected CommonException(String code, String message) {
+    protected CommonException(int code, String message) {
         super(message);
         this.code = code;
         this.errorMessage = message;
     }
 
-    protected CommonException(String code, String message, Throwable cause) {
+    protected CommonException(int code, String message, Throwable cause) {
         super(message, cause);
         this.code = code;
         this.errorMessage = message;
     }
 
-    public String getCode() {
+    public int getCode() {
         return code;
     }
 

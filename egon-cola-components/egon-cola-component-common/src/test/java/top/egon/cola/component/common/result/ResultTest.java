@@ -35,10 +35,10 @@ class ResultTest {
     void failureResultCarriesTraceId() {
         TraceContext.setTraceId("trace-002");
 
-        Result<String> result = Result.failure("ORDER_NOT_FOUND", "订单不存在");
+        Result<String> result = Result.failure(404001, "订单不存在");
 
         assertFalse(result.isSuccess());
-        assertEquals("ORDER_NOT_FOUND", result.getCode());
+        assertEquals(404001, result.getCode());
         assertEquals("订单不存在", result.getMessage());
         assertNull(result.getData());
         assertEquals("trace-002", result.getTraceId());
@@ -46,10 +46,10 @@ class ResultTest {
 
     @Test
     void failureFromBusinessExceptionUsesExceptionCode() {
-        Result<Void> result = Result.failure(new BusinessException("ORDER_NOT_FOUND", "订单不存在"));
+        Result<Void> result = Result.failure(new BusinessException(404001, "订单不存在"));
 
         assertFalse(result.isSuccess());
-        assertEquals("ORDER_NOT_FOUND", result.getCode());
+        assertEquals(404001, result.getCode());
         assertEquals("订单不存在", result.getMessage());
     }
 }

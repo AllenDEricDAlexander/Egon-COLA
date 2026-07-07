@@ -3,6 +3,7 @@ package top.egon.cola.component.common.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import top.egon.cola.component.common.exception.ErrorCodes;
 import top.egon.cola.component.common.exception.SystemException;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public final class JsonUtils {
         try {
             return OBJECT_MAPPER.writeValueAsString(value);
         } catch (Exception e) {
-            throw new SystemException("JSON_SERIALIZE_ERROR", "JSON 序列化失败", e);
+            throw new SystemException(ErrorCodes.SYSTEM_ERROR.getCode(), "JSON 序列化失败", e);
         }
     }
 
@@ -30,7 +31,7 @@ public final class JsonUtils {
         try {
             return OBJECT_MAPPER.readValue(json, type);
         } catch (Exception e) {
-            throw new SystemException("JSON_DESERIALIZE_ERROR", "JSON 反序列化失败", e);
+            throw new SystemException(ErrorCodes.SYSTEM_ERROR.getCode(), "JSON 反序列化失败", e);
         }
     }
 
@@ -38,7 +39,7 @@ public final class JsonUtils {
         try {
             return OBJECT_MAPPER.readValue(json, OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, elementType));
         } catch (Exception e) {
-            throw new SystemException("JSON_DESERIALIZE_ERROR", "JSON 反序列化失败", e);
+            throw new SystemException(ErrorCodes.SYSTEM_ERROR.getCode(), "JSON 反序列化失败", e);
         }
     }
 
@@ -47,7 +48,7 @@ public final class JsonUtils {
             return OBJECT_MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {
             });
         } catch (Exception e) {
-            throw new SystemException("JSON_DESERIALIZE_ERROR", "JSON 反序列化失败", e);
+            throw new SystemException(ErrorCodes.SYSTEM_ERROR.getCode(), "JSON 反序列化失败", e);
         }
     }
 

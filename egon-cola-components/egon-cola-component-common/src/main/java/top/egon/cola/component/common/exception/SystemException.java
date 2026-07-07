@@ -18,7 +18,7 @@ public class SystemException extends CommonException {
         this(errorCode.getCode(), errorCode.getMessage());
     }
 
-    public SystemException(String code, String message) {
+    public SystemException(int code, String message) {
         super(code, message);
     }
 
@@ -30,7 +30,7 @@ public class SystemException extends CommonException {
         this(errorCode.getCode(), errorCode.getMessage(), cause);
     }
 
-    public SystemException(String code, String message, Throwable cause) {
+    public SystemException(int code, String message, Throwable cause) {
         super(code, message, cause);
     }
 }

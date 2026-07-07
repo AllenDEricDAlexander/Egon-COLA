@@ -19,7 +19,7 @@ public class Result<T> implements Serializable {
 
     private boolean success;
 
-    private String code;
+    private int code;
 
     private String message;
 
@@ -41,7 +41,7 @@ public class Result<T> implements Serializable {
         return result;
     }
 
-    public static <T> Result<T> failure(String code, String message) {
+    public static <T> Result<T> failure(int code, String message) {
         Result<T> result = new Result<>();
         result.success = false;
         result.code = code;
@@ -69,11 +69,11 @@ public class Result<T> implements Serializable {
         this.success = success;
     }
 
-    public String getCode() {
+    public int getCode() {
         return code;
     }
 
-    public void setCode(String code) {
+    public void setCode(int code) {
         this.code = code;
     }
 

@@ -18,7 +18,7 @@ public class BusinessException extends CommonException {
         this(errorCode.getCode(), errorCode.getMessage());
     }
 
-    public BusinessException(String code, String message) {
+    public BusinessException(int code, String message) {
         super(code, message);
     }
 
@@ -30,7 +30,7 @@ public class BusinessException extends CommonException {
         this(errorCode.getCode(), errorCode.getMessage(), cause);
     }
 
-    public BusinessException(String code, String message, Throwable cause) {
+    public BusinessException(int code, String message, Throwable cause) {
         super(code, message, cause);
     }
 }

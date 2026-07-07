@@ -20,7 +20,7 @@ public class PageResult<T> implements Serializable {
 
     private boolean success;
 
-    private String code;
+    private int code;
 
     private String message;
 
@@ -65,7 +65,7 @@ public class PageResult<T> implements Serializable {
         return success;
     }
 
-    public String getCode() {
+    public int getCode() {
         return code;
     }
 

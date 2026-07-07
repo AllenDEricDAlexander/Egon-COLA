@@ -3,6 +3,7 @@ package top.egon.cola.component.common.util;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import top.egon.cola.component.common.exception.ErrorCodes;
 import top.egon.cola.component.common.exception.SystemException;
 
 import javax.crypto.Mac;
@@ -33,7 +34,7 @@ public final class CryptoUtils {
             mac.init(new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), HMAC_SHA256));
             return Hex.encodeHexString(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
-            throw new SystemException("CRYPTO_ERROR", "HMAC-SHA256 计算失败", e);
+            throw new SystemException(ErrorCodes.SYSTEM_ERROR.getCode(), "HMAC-SHA256 计算失败", e);
         }
     }
 

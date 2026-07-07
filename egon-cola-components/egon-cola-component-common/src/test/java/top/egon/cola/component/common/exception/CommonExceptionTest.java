@@ -11,9 +11,9 @@ class CommonExceptionTest {
     void businessExceptionKeepsCodeMessageAndCause() {
         IllegalArgumentException cause = new IllegalArgumentException("bad input");
 
-        BusinessException exception = new BusinessException("ORDER_NOT_FOUND", "订单不存在", cause);
+        BusinessException exception = new BusinessException(404001, "订单不存在", cause);
 
-        assertEquals("ORDER_NOT_FOUND", exception.getCode());
+        assertEquals(404001, exception.getCode());
         assertEquals("订单不存在", exception.getErrorMessage());
         assertEquals("订单不存在", exception.getMessage());
         assertSame(cause, exception.getCause());
@@ -39,9 +39,9 @@ class CommonExceptionTest {
 
     @Test
     void errorCodesKeepCodeAndMessageTogether() {
-        assertEquals("SUCCESS", ErrorCodes.SUCCESS.getCode());
+        assertEquals(0, ErrorCodes.SUCCESS.getCode());
         assertEquals("处理成功", ErrorCodes.SUCCESS.getMessage());
-        assertEquals("PARAM_ERROR", ErrorCodes.PARAM_ERROR.getCode());
+        assertEquals(400, ErrorCodes.PARAM_ERROR.getCode());
         assertEquals("参数错误", ErrorCodes.PARAM_ERROR.getMessage());
     }
 }
