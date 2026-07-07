@@ -130,6 +130,8 @@ public class DdcProperties {
 
     public static class Redis {
 
+        private boolean enabled = true;
+
         private String host = "127.0.0.1";
 
         private int port = 6379;
@@ -137,6 +139,14 @@ public class DdcProperties {
         private String password;
 
         private int database = 0;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
 
         public String getHost() {
             return host;
