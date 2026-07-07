@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:file:ddc_admin_test?mode=memory&cache=shared
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 2
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+
+egon:
+  cola:
+    component:
+      ddc:
+        enabled: false
+        admin:
+          redis:
+            enabled: false

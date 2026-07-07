@@ -1,0 +1,19 @@
+server:
+  port: 18080
+
+spring:
+  application:
+    name: egon-cola-ddc-admin
+  flyway:
+    locations: classpath:db/postgresql
+
+egon:
+  cola:
+    component:
+      ddc:
+        enabled: false
+        admin:
+          redis:
+            host: 127.0.0.1
+            port: 6379
+            database: 0

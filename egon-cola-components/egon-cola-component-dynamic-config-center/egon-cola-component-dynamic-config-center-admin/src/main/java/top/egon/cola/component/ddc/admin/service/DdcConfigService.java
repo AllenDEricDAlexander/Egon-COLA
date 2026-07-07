@@ -17,6 +17,8 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVersionVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
+import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
+import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -132,6 +134,37 @@ public class DdcConfigService {
                 .toList();
     }
 
+    public DdcConfigVO get(String configId) {
+        return DdcConfigVO.from(getConfig(configId));
+    }
+
+    public List<DdcConfigValue> pull(String appCode, String env, String namespace) {
+        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndDeletedFalse(appCode, env, namespace).stream()
+                .filter(item -> Boolean.TRUE.equals(item.getEnabled()))
+                .map(this::toConfigValue)
+                .toList();
+    }
+
+    public DdcConfigValue value(String appCode, String env, String namespace, String configKey) {
+        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(appCode, env, namespace, configKey)
+                .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
+                .filter(item -> Boolean.TRUE.equals(item.getEnabled()))
+                .map(this::toConfigValue)
+                .orElse(null);
+    }
+
+    @Transactional
+    public void reportDefaults(DdcDefaultReportRequest request) {
+        if (request.getConfigs() == null) {
+            return;
+        }
+        for (DdcDefaultReportRequest.DdcConfigValueRequest config : request.getConfigs()) {
+            configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                            request.getAppCode(), request.getEnv(), request.getNamespace(), config.getConfigKey())
+                    .orElseGet(() -> createDefaultConfig(request, config));
+        }
+    }
+
     public List<DdcConfigVersionVO> versions(String configId) {
         return versionRepository.findByConfigIdOrderByVersionDesc(configId).stream()
                 .map(DdcConfigVersionVO::from)
@@ -175,6 +208,39 @@ public class DdcConfigService {
         log.setOperationContent(content);
         log.setCreatedAt(LocalDateTime.now());
         operationLogRepository.save(log);
+    }
+
+    private DdcConfigItemEntity createDefaultConfig(DdcDefaultReportRequest request,
+                                                    DdcDefaultReportRequest.DdcConfigValueRequest config) {
+        LocalDateTime now = LocalDateTime.now();
+        DdcConfigItemEntity entity = new DdcConfigItemEntity();
+        entity.setId(IdUtils.simpleUuid());
+        entity.setAppCode(request.getAppCode());
+        entity.setEnv(request.getEnv());
+        entity.setNamespace(request.getNamespace());
+        entity.setConfigKey(config.getConfigKey());
+        entity.setConfigValue(config.getDefaultValue());
+        entity.setDefaultValue(config.getDefaultValue());
+        entity.setValueType(config.getValueType());
+        entity.setCurrentVersion(1L);
+        entity.setEnabled(true);
+        entity.setDeleted(false);
+        entity.setDescription("reported by " + request.getInstanceId());
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        DdcConfigItemEntity saved = configItemRepository.save(entity);
+        saveVersion(saved, null, saved.getConfigValue(), ChangeType.CREATE, "report default", request.getInstanceId());
+        saveOperation(saved, ChangeType.CREATE, request.getInstanceId(), "report default");
+        return saved;
+    }
+
+    private DdcConfigValue toConfigValue(DdcConfigItemEntity entity) {
+        DdcConfigValue value = new DdcConfigValue();
+        value.setConfigKey(entity.getConfigKey());
+        value.setConfigValue(entity.getConfigValue());
+        value.setValueType(entity.getValueType());
+        value.setVersion(entity.getCurrentVersion());
+        return value;
     }
 
     private void requireText(String value, String fieldName) {
