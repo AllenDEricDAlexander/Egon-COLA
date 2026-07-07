@@ -4,7 +4,7 @@
 
 本文档用于规范 `egon-cola-components` 下的组件工程组织方式。
 
-运行时 starter-style 组件应该是可以独立维护、独立测试、独立发布的 Maven 多模块组件工程。`egon-cola-component-common` 这类纯 Jar 基础组件可以保持单模块形态。组件内部不再混放 UI，UI 统一抽离到独立前端工程中维护。
+运行时 starter-style 组件应该是可以独立维护、独立测试、独立发布的 Maven 多模块组件工程。`egon-cola-component-common` 这类纯基础组件不采用 starter / admin / test 结构，而是通过 common 聚合 POM 管理多个可按需依赖的基础语义 Jar。组件内部不再混放 UI，UI 统一抽离到独立前端工程中维护。
 
 运行时 starter-style 组件整体形态参考动态线程池组件的拆分方式：
 
@@ -28,7 +28,7 @@ component
 8. test 用于组件自测、集成测试、示例启动和回归验证。
 ```
 
-`egon-cola-component-common` 是明确的纯 Jar 例外，它不需要拆出 starter / admin / test，业务系统可以直接依赖。
+`egon-cola-component-common` 是明确的纯基础组件例外，它不采用 starter / admin / test 结构，而是作为 common 聚合 POM 管理多个可按需依赖的基础语义 Jar。业务系统不直接依赖 `egon-cola-component-common` 聚合 POM，而是按需依赖 `egon-cola-component-common-core`、`egon-cola-component-common-result`、`egon-cola-component-common-id` 等具体模块。
 
 ---
 
@@ -144,8 +144,16 @@ Egon-COLA/
     │   ├── pom.xml
     │   └── README.md
     │
-    ├── egon-cola-component-common/                               # 通用基础能力 Jar
-    │   └── pom.xml
+    ├── egon-cola-component-common/                               # common 聚合 POM，内部管理基础语义 Jar
+    │   ├── pom.xml
+    │   ├── egon-cola-component-common-core/
+    │   ├── egon-cola-component-common-model/
+    │   ├── egon-cola-component-common-result/
+    │   ├── egon-cola-component-common-id/
+    │   ├── egon-cola-component-common-crypto/
+    │   ├── egon-cola-component-common-trace/
+    │   ├── egon-cola-component-common-mask/
+    │   └── egon-cola-component-common-structure/
     │
     ├── egon-cola-component-dynamic-thread-pool/                  # 动态线程池组件
     │   ├── pom.xml                                               # 动态线程池组件聚合 POM
@@ -227,7 +235,7 @@ egon-cola-component-dynamic-thread-pool/
 
 ## 5.1 starter 定位
 
-对运行时 starter-style 组件，`starter` 是组件的核心模块，也是业务系统真正需要引入的模块。`egon-cola-component-common` 作为纯 Jar 基础组件不适用本节拆分约束。
+对运行时 starter-style 组件，`starter` 是组件的核心模块，也是业务系统真正需要引入的模块。`egon-cola-component-common` 作为纯基础组件聚合 POM 不适用本节 starter 拆分约束。
 
 starter 负责：
 
@@ -681,16 +689,20 @@ egon-cola-component-dynamic-thread-pool-test/
 
 并不是所有组件都需要 admin，也不是所有组件都必须拆成 starter / test / admin。
 
-`egon-cola-component-common` 是当前基础能力组件，作为纯 Jar 被业务系统直接依赖，不提供 admin、test 子模块，也不进入独立运行流程：
+`egon-cola-component-common` 是当前基础能力组件聚合 POM，不提供 starter、admin，也不进入独立运行流程。业务系统不直接依赖该聚合 POM，而是按需依赖具体基础语义 Jar：
 
 ```text
 egon-cola-component-common/
 ├── pom.xml
-└── src/
-    ├── main/
-    │   └── java/
-    │       └── top/egon/cola/component/common/
-    └── test/
+├── egon-cola-component-common-core/
+├── egon-cola-component-common-model/
+├── egon-cola-component-common-trace/
+├── egon-cola-component-common-result/
+├── egon-cola-component-common-id/
+├── egon-cola-component-common-crypto/
+├── egon-cola-component-common-mask/
+├── egon-cola-component-common-structure/
+└── egon-cola-component-common-test/
 ```
 
 ---
@@ -768,7 +780,7 @@ graph LR
 
 `egon-cola-components-bom` 用于统一管理对业务系统开放的组件版本。
 
-当前 BOM 只导出业务系统可直接依赖的 common 与 starter，不导出 admin 和 test。
+当前 BOM 只导出业务系统可直接依赖的 common 具体 Jar 与 starter，不导出 common 聚合 POM、admin 和 test。
 
 admin 是否导出取决于部署方式：
 
@@ -786,7 +798,12 @@ BOM 示例：
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-common</artifactId>
+            <artifactId>egon-cola-component-common-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-result</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -818,7 +835,7 @@ BOM 示例：
 <dependencies>
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-common</artifactId>
+    <artifactId>egon-cola-component-common-result</artifactId>
 </dependency>
 </dependencies>
 ```
@@ -962,7 +979,7 @@ top.egon.cola.component.dtp.test
 
 ## 14. 新增组件流程
 
-新增运行时 starter-style 组件时，按以下流程执行。纯 Jar 基础组件可以参考 `egon-cola-component-common`，保持直接 Jar 依赖形态。
+新增运行时 starter-style 组件时，按以下流程执行。纯基础组件可以参考 `egon-cola-component-common` 的聚合 POM 形态，但业务依赖应导向具体 Jar 模块。
 
 ```text
 1. 在 egon-cola-components 下创建 egon-cola-component-{name} 目录。
