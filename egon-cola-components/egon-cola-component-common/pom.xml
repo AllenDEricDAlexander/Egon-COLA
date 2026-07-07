@@ -12,39 +12,19 @@
     </parent>
 
     <artifactId>egon-cola-component-common</artifactId>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
     <name>egon-cola-component-common</name>
-    <description>Pure common component for Egon COLA.</description>
+    <description>Enterprise common component aggregator for Egon COLA.</description>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>egon-cola-component-common-core</module>
+        <module>egon-cola-component-common-model</module>
+        <module>egon-cola-component-common-trace</module>
+        <module>egon-cola-component-common-result</module>
+        <module>egon-cola-component-common-id</module>
+        <module>egon-cola-component-common-crypto</module>
+        <module>egon-cola-component-common-mask</module>
+        <module>egon-cola-component-common-structure</module>
+        <module>egon-cola-component-common-test</module>
+    </modules>
 </project>
