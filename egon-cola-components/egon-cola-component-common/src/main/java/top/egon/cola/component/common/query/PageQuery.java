@@ -1,14 +1,13 @@
 package top.egon.cola.component.common.query;
 
-import java.io.Serial;
-
 import top.egon.cola.component.common.model.BaseQuery;
+
+import java.io.Serial;
 
 /**
  * 分页查询基础参数，不绑定 Bean Validation。
  */
 public class PageQuery extends BaseQuery {
-
 
 
     @Serial

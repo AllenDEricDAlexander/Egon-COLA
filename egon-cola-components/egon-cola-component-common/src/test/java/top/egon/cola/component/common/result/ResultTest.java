@@ -25,8 +25,8 @@ class ResultTest {
         Result<String> result = Result.success("ok");
 
         assertTrue(result.isSuccess());
-        assertEquals(ErrorCodes.SUCCESS, result.getCode());
-        assertEquals("success", result.getMessage());
+        assertEquals(ErrorCodes.SUCCESS.getCode(), result.getCode());
+        assertEquals(ErrorCodes.SUCCESS.getMessage(), result.getMessage());
         assertEquals("ok", result.getData());
         assertEquals("trace-001", result.getTraceId());
     }

@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 public class AuditableModel extends BaseModel {
 
 
-
     @Serial
     private static final long serialVersionUID = 1L;
 

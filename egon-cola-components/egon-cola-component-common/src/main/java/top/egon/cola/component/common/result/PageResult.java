@@ -1,10 +1,9 @@
 package top.egon.cola.component.common.result;
 
-import java.io.Serial;
-
 import top.egon.cola.component.common.exception.ErrorCodes;
 import top.egon.cola.component.common.trace.TraceContext;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,7 +13,6 @@ import java.util.List;
  * 通用分页返回结果，自动计算分页元数据并携带 traceId。
  */
 public class PageResult<T> implements Serializable {
-
 
 
     @Serial
@@ -50,8 +48,8 @@ public class PageResult<T> implements Serializable {
 
         PageResult<T> result = new PageResult<>();
         result.success = true;
-        result.code = ErrorCodes.SUCCESS;
-        result.message = "success";
+        result.code = ErrorCodes.SUCCESS.getCode();
+        result.message = ErrorCodes.SUCCESS.getMessage();
         result.records = records == null ? Collections.emptyList() : new ArrayList<>(records);
         result.total = normalizedTotal;
         result.pageNo = normalizedPageNo;

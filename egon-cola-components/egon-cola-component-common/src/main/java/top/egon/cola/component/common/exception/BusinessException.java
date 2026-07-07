@@ -11,7 +11,11 @@ public class BusinessException extends CommonException {
     private static final long serialVersionUID = 1L;
 
     public BusinessException(String message) {
-        this(ErrorCodes.BUSINESS_ERROR, message);
+        this(ErrorCodes.BUSINESS_ERROR.getCode(), message);
+    }
+
+    public BusinessException(ErrorCodes errorCode) {
+        this(errorCode.getCode(), errorCode.getMessage());
     }
 
     public BusinessException(String code, String message) {
@@ -19,7 +23,11 @@ public class BusinessException extends CommonException {
     }
 
     public BusinessException(String message, Throwable cause) {
-        this(ErrorCodes.BUSINESS_ERROR, message, cause);
+        this(ErrorCodes.BUSINESS_ERROR.getCode(), message, cause);
+    }
+
+    public BusinessException(ErrorCodes errorCode, Throwable cause) {
+        this(errorCode.getCode(), errorCode.getMessage(), cause);
     }
 
     public BusinessException(String code, String message, Throwable cause) {

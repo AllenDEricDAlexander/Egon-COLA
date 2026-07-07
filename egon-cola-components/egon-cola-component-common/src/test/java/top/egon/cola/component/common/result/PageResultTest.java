@@ -25,7 +25,8 @@ class PageResultTest {
         PageResult<String> result = PageResult.success(List.of("a", "b"), 5, 2, 2);
 
         assertTrue(result.isSuccess());
-        assertEquals(ErrorCodes.SUCCESS, result.getCode());
+        assertEquals(ErrorCodes.SUCCESS.getCode(), result.getCode());
+        assertEquals(ErrorCodes.SUCCESS.getMessage(), result.getMessage());
         assertEquals(List.of("a", "b"), result.getRecords());
         assertEquals(5, result.getTotal());
         assertEquals(2, result.getPageNo());

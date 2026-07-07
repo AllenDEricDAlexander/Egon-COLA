@@ -23,7 +23,7 @@ class CommonExceptionTest {
     void businessExceptionUsesDefaultCode() {
         BusinessException exception = new BusinessException("业务处理失败");
 
-        assertEquals(ErrorCodes.BUSINESS_ERROR, exception.getCode());
+        assertEquals(ErrorCodes.BUSINESS_ERROR.getCode(), exception.getCode());
         assertEquals("业务处理失败", exception.getErrorMessage());
         assertEquals("业务处理失败", exception.getMessage());
     }
@@ -32,8 +32,16 @@ class CommonExceptionTest {
     void systemExceptionUsesDefaultCode() {
         SystemException exception = new SystemException("系统处理失败");
 
-        assertEquals(ErrorCodes.SYSTEM_ERROR, exception.getCode());
+        assertEquals(ErrorCodes.SYSTEM_ERROR.getCode(), exception.getCode());
         assertEquals("系统处理失败", exception.getErrorMessage());
         assertEquals("系统处理失败", exception.getMessage());
+    }
+
+    @Test
+    void errorCodesKeepCodeAndMessageTogether() {
+        assertEquals("SUCCESS", ErrorCodes.SUCCESS.getCode());
+        assertEquals("处理成功", ErrorCodes.SUCCESS.getMessage());
+        assertEquals("PARAM_ERROR", ErrorCodes.PARAM_ERROR.getCode());
+        assertEquals("参数错误", ErrorCodes.PARAM_ERROR.getMessage());
     }
 }

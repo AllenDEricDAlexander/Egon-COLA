@@ -11,7 +11,11 @@ public class SystemException extends CommonException {
     private static final long serialVersionUID = 1L;
 
     public SystemException(String message) {
-        this(ErrorCodes.SYSTEM_ERROR, message);
+        this(ErrorCodes.SYSTEM_ERROR.getCode(), message);
+    }
+
+    public SystemException(ErrorCodes errorCode) {
+        this(errorCode.getCode(), errorCode.getMessage());
     }
 
     public SystemException(String code, String message) {
@@ -19,7 +23,11 @@ public class SystemException extends CommonException {
     }
 
     public SystemException(String message, Throwable cause) {
-        this(ErrorCodes.SYSTEM_ERROR, message, cause);
+        this(ErrorCodes.SYSTEM_ERROR.getCode(), message, cause);
+    }
+
+    public SystemException(ErrorCodes errorCode, Throwable cause) {
+        this(errorCode.getCode(), errorCode.getMessage(), cause);
     }
 
     public SystemException(String code, String message, Throwable cause) {

@@ -8,7 +8,6 @@ import java.io.Serial;
 public class BaseEntity<ID> extends BaseModel {
 
 
-
     @Serial
     private static final long serialVersionUID = 1L;
 
