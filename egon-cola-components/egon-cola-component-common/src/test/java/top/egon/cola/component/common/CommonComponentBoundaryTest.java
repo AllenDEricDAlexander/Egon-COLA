@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CommonComponentBoundaryTest {
 
@@ -33,5 +34,31 @@ class CommonComponentBoundaryTest {
                     .toList();
             assertEquals(List.of(), badImports);
         }
+    }
+
+    @Test
+    void oldColaStyleApiHasBeenRemoved() throws Exception {
+        Path sourceRoot = Path.of("src/main/java/top/egon/cola/component/common");
+        List<String> oldClassNames;
+        try (Stream<Path> files = Files.walk(sourceRoot)) {
+            oldClassNames = files
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .map(path -> path.getFileName().toString())
+                    .filter(name -> List.of(
+                            "Response.java",
+                            "SingleResponse.java",
+                            "MultiResponse.java",
+                            "DTO.java",
+                            "Command.java",
+                            "Query.java",
+                            "ClientObject.java",
+                            "Assert.java",
+                            "BizException.java",
+                            "SysException.java",
+                            "BaseException.java"
+                    ).contains(name))
+                    .toList();
+        }
+        assertTrue(oldClassNames.isEmpty());
     }
 }
