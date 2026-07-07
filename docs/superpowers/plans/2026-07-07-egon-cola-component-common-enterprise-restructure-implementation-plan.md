@@ -3444,3 +3444,25 @@ Expected: commit succeeds.
 - [ ] Placeholder scan: plan contains no vague or incomplete implementation instruction.
 - [ ] Validation: each task has targeted validation before commit.
 - [ ] Final proof: final task includes common validation, components validation, and `clean integration-test`.
+
+## Execution Progress
+
+- Task 1: completed and committed as `96c597e refactor: split common component aggregator`.
+- Task 2: completed and committed as `9e4ff7e feat: add common core contracts`.
+- Task 3: completed and committed as `e1853c1 feat: add common model module`.
+- Task 4: completed and committed as `1fe4f72 feat: add trace and result modules`.
+- Task 5: completed and committed as `9ff3e08 feat: add common enterprise capability modules`.
+- Task 6: completed and committed as `3719e73 refactor: remove legacy common utility api`.
+- Task 7: completed and committed as `7ca2d84 docs: document common module split`.
+- Downstream component migration: completed and committed as `cdacbe3 refactor: migrate components to split common modules`.
+- Final validation: completed.
+
+Validation commands:
+
+```bash
+mvn -f egon-cola-components/egon-cola-component-common/pom.xml test
+mvn -pl :egon-cola-component-dynamic-config-center-starter,:egon-cola-component-dynamic-config-center-admin,:egon-cola-component-dynamic-config-center-test,:egon-cola-component-dynamic-thread-pool-starter -am test
+mvn clean integration-test
+rg -n "package top\\.egon\\.cola\\.component\\.common\\.util|class StringUtils|class CollectionUtils|class DateTimeUtils|class JsonUtils|class BaseEntity|class AuditableModel" egon-cola-components/egon-cola-component-common || true
+rg -n "<artifactId>egon-cola-component-common</artifactId>" egon-cola-components/egon-cola-components-bom/pom.xml || true
+```
