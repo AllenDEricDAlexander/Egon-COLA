@@ -1,11 +1,14 @@
 package top.egon.cola.component.ddc.common;
 
-import top.egon.cola.component.common.util.JsonUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public class DdcValueConverter {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T convert(String value, Class<T> targetType) {
@@ -32,9 +35,10 @@ public class DdcValueConverter {
                 return (T) Enum.valueOf((Class<? extends Enum>) targetType.asSubclass(Enum.class), value);
             }
             if (targetType == List.class) {
-                return (T) JsonUtils.fromJsonList(value, String.class);
+                CollectionType type = OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, String.class);
+                return OBJECT_MAPPER.readValue(value, type);
             }
-            return JsonUtils.fromJson(value, targetType);
+            return OBJECT_MAPPER.readValue(value, targetType);
         } catch (Exception e) {
             throw new DdcException("convert config value failed", e);
         }

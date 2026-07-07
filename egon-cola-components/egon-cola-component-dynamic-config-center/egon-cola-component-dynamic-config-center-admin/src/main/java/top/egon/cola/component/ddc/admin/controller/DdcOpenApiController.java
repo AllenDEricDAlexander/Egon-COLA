@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.Result;
+import top.egon.cola.component.common.result.dto.ResultDto;
+import top.egon.cola.component.common.result.factory.ResultDtos;
 import top.egon.cola.component.ddc.admin.service.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.DdcPublishService;
@@ -38,46 +39,46 @@ public class DdcOpenApiController {
     }
 
     @PostMapping("/instances/register")
-    public Result<Void> register(@RequestBody DdcInstanceRegisterRequest request) {
+    public ResultDto<Void> register(@RequestBody DdcInstanceRegisterRequest request) {
         instanceAdminService.register(request);
-        return Result.success();
+        return ResultDtos.success();
     }
 
     @PostMapping("/instances/heartbeat")
-    public Result<Void> heartbeat(@RequestBody DdcHeartbeatRequest request) {
+    public ResultDto<Void> heartbeat(@RequestBody DdcHeartbeatRequest request) {
         instanceAdminService.heartbeat(request);
-        return Result.success();
+        return ResultDtos.success();
     }
 
     @PostMapping("/instances/offline")
-    public Result<Void> offline(@RequestBody DdcHeartbeatRequest request) {
+    public ResultDto<Void> offline(@RequestBody DdcHeartbeatRequest request) {
         instanceAdminService.offline(request);
-        return Result.success();
+        return ResultDtos.success();
     }
 
     @GetMapping("/configs/pull")
-    public Result<List<DdcConfigValue>> pull(@RequestParam("appCode") String appCode,
+    public ResultDto<List<DdcConfigValue>> pull(@RequestParam("appCode") String appCode,
                                              @RequestParam("env") String env,
                                              @RequestParam("namespace") String namespace) {
-        return Result.success(configService.pull(appCode, env, namespace));
+        return ResultDtos.success(configService.pull(appCode, env, namespace));
     }
 
     @GetMapping("/configs/{key}")
-    public Result<DdcConfigValue> value(@RequestParam("appCode") String appCode,
+    public ResultDto<DdcConfigValue> value(@RequestParam("appCode") String appCode,
                                         @RequestParam("env") String env,
                                         @RequestParam("namespace") String namespace,
                                         @PathVariable("key") String key) {
-        return Result.success(configService.value(appCode, env, namespace, key));
+        return ResultDtos.success(configService.value(appCode, env, namespace, key));
     }
 
     @PostMapping("/publish/ack")
-    public Result<?> ack(@RequestBody DdcAckRequest request) {
-        return Result.success(publishService.ack(request));
+    public ResultDto<?> ack(@RequestBody DdcAckRequest request) {
+        return ResultDtos.success(publishService.ack(request));
     }
 
     @PostMapping("/defaults/report")
-    public Result<Void> reportDefaults(@RequestBody DdcDefaultReportRequest request) {
+    public ResultDto<Void> reportDefaults(@RequestBody DdcDefaultReportRequest request) {
         configService.reportDefaults(request);
-        return Result.success();
+        return ResultDtos.success();
     }
 }

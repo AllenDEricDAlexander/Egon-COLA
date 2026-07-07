@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.common;
 
-import top.egon.cola.component.common.util.CryptoUtils;
+import top.egon.cola.component.common.crypto.digest.Digests;
+import top.egon.cola.component.common.crypto.hmac.Hmacs;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 
 public final class DdcChecksum {
@@ -9,7 +10,7 @@ public final class DdcChecksum {
     }
 
     public static String sha256(DdcPublishMessage message) {
-        return CryptoUtils.sha256Hex(String.join("|",
+        return Digests.sha256Hex(String.join("|",
                 safe(message.getChangeId()),
                 safe(message.getAppCode()),
                 safe(message.getEnv()),

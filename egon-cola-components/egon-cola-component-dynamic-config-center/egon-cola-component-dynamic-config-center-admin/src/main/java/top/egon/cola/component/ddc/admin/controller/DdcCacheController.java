@@ -5,7 +5,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.Result;
+import top.egon.cola.component.common.result.dto.ResultDto;
+import top.egon.cola.component.common.result.factory.ResultDtos;
 import top.egon.cola.component.ddc.admin.model.vo.DdcCacheCheckRow;
 import top.egon.cola.component.ddc.admin.service.DdcCacheService;
 
@@ -22,16 +23,16 @@ public class DdcCacheController {
     }
 
     @PostMapping("/rebuild")
-    public Result<Integer> rebuild(@RequestParam("appCode") String appCode,
+    public ResultDto<Integer> rebuild(@RequestParam("appCode") String appCode,
                                    @RequestParam("env") String env,
                                    @RequestParam("namespace") String namespace) {
-        return Result.success(cacheService.rebuild(appCode, env, namespace));
+        return ResultDtos.success(cacheService.rebuild(appCode, env, namespace));
     }
 
     @GetMapping("/check")
-    public Result<List<DdcCacheCheckRow>> check(@RequestParam("appCode") String appCode,
+    public ResultDto<List<DdcCacheCheckRow>> check(@RequestParam("appCode") String appCode,
                                                 @RequestParam("env") String env,
                                                 @RequestParam("namespace") String namespace) {
-        return Result.success(cacheService.check(appCode, env, namespace));
+        return ResultDtos.success(cacheService.check(appCode, env, namespace));
     }
 }

@@ -1,7 +1,8 @@
 package top.egon.cola.component.ddc.client;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.util.CryptoUtils;
+import top.egon.cola.component.common.crypto.digest.Digests;
+import top.egon.cola.component.common.crypto.hmac.Hmacs;
 import top.egon.cola.component.ddc.config.DdcProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +18,6 @@ class HttpDdcAdminClientTest {
 
         String signature = client.signature("/api/v1/ddc/openapi/publish/ack", 100L);
 
-        assertThat(signature).isEqualTo(CryptoUtils.hmacSha256Hex("ak|100|/api/v1/ddc/openapi/publish/ack", "sk"));
+        assertThat(signature).isEqualTo(Hmacs.sha256Hex("ak|100|/api/v1/ddc/openapi/publish/ack", "sk"));
     }
 }

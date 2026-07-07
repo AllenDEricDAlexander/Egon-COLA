@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
@@ -84,7 +84,7 @@ public class DdcPublishService {
     }
 
     public DdcPublishResultVO publish(DdcPublishRequest request, String operator) {
-        String changeId = IdUtils.simpleUuid();
+        String changeId = UuidV7.simpleString();
         try {
             PublishPrepareResult prepareResult = transactionTemplate.execute(status -> transactionalPublishPrepare(changeId, request, operator));
             if (prepareResult == null) {
@@ -197,7 +197,7 @@ public class DdcPublishService {
                                                 int targetCount, Long timeoutMs, String operator) {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(IdUtils.simpleUuid());
+        task.setId(UuidV7.simpleString());
         task.setChangeId(changeId);
         task.setConfigId(config.getId());
         task.setAppCode(config.getAppCode());
@@ -221,7 +221,7 @@ public class DdcPublishService {
 
     private DdcPublishAckEntity newPublishAck(DdcPublishTaskEntity task, String instanceId) {
         DdcPublishAckEntity ack = new DdcPublishAckEntity();
-        ack.setId(IdUtils.simpleUuid());
+        ack.setId(UuidV7.simpleString());
         ack.setChangeId(task.getChangeId());
         ack.setInstanceId(instanceId);
         ack.setAppCode(task.getAppCode());
@@ -234,7 +234,7 @@ public class DdcPublishService {
 
     private void saveVersion(DdcConfigItemEntity config, String oldValue, String newValue, String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(IdUtils.simpleUuid());
+        version.setId(UuidV7.simpleString());
         version.setConfigId(config.getId());
         version.setAppCode(config.getAppCode());
         version.setEnv(config.getEnv());
@@ -253,7 +253,7 @@ public class DdcPublishService {
 
     private void savePublishOperation(DdcConfigItemEntity config, String changeId, String operator) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
-        log.setId(IdUtils.simpleUuid());
+        log.setId(UuidV7.simpleString());
         log.setAppCode(config.getAppCode());
         log.setEnv(config.getEnv());
         log.setNamespace(config.getNamespace());

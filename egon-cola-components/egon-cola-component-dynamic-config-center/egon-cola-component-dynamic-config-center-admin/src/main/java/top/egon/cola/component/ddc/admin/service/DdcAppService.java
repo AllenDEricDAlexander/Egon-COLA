@@ -2,7 +2,7 @@ package top.egon.cola.component.ddc.admin.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 
@@ -23,7 +23,7 @@ public class DdcAppService {
     public DdcAppEntity save(DdcAppEntity app) {
         LocalDateTime now = LocalDateTime.now();
         if (app.getId() == null) {
-            app.setId(IdUtils.simpleUuid());
+            app.setId(UuidV7.simpleString());
             app.setCreatedAt(now);
         }
         if (app.getEnabled() == null) {

@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.PublishMode;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
@@ -73,7 +73,7 @@ class DdcAckServiceTest {
     private DdcPublishTaskEntity publishTask() {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(IdUtils.simpleUuid());
+        task.setId(UuidV7.simpleString());
         task.setChangeId("c1");
         task.setAppCode("demo");
         task.setEnv("dev");
