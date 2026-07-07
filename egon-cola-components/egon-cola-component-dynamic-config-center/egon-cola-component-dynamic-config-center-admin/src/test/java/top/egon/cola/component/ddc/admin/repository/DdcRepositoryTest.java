@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 
 import java.time.LocalDateTime;
@@ -30,7 +30,7 @@ class DdcRepositoryTest {
     @Test
     void savesAndFindsConfigItemByNaturalKey() {
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
-        entity.setId(IdUtils.simpleUuid());
+        entity.setId(UuidV7.simpleString());
         entity.setAppCode("demo");
         entity.setEnv("dev");
         entity.setNamespace("default");

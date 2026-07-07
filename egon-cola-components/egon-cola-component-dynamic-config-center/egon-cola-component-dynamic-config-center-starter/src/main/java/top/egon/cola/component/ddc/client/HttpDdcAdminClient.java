@@ -3,8 +3,8 @@ package top.egon.cola.component.ddc.client;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.component.common.result.Result;
-import top.egon.cola.component.common.util.CryptoUtils;
+import top.egon.cola.component.common.result.dto.ResultDto;
+import top.egon.cola.component.common.crypto.hmac.Hmacs;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
@@ -47,7 +47,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
 
     @Override
     public List<DdcConfigValue> pull() {
-        Result<List<DdcConfigValue>> result = restClient.get()
+        ResultDto<List<DdcConfigValue>> result = restClient.get()
                 .uri("/api/v1/ddc/openapi/configs/pull?appCode={appCode}&env={env}&namespace={namespace}",
                         properties.getAppCode(), properties.getEnv(), properties.getNamespace())
                 .headers(headers -> sign(headers, "/api/v1/ddc/openapi/configs/pull"))
@@ -69,7 +69,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
 
     String signature(String path, long timestamp) {
         String value = properties.getAdmin().getAccessKey() + "|" + timestamp + "|" + path;
-        return CryptoUtils.hmacSha256Hex(value, properties.getAdmin().getSecretKey());
+        return Hmacs.sha256Hex(value, properties.getAdmin().getSecretKey());
     }
 
     private void post(String path, Object request) {

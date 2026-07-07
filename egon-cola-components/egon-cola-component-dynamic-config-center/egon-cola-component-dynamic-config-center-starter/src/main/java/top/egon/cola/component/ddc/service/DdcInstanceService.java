@@ -1,6 +1,6 @@
 package top.egon.cola.component.ddc.service;
 
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
@@ -58,7 +58,7 @@ public class DdcInstanceService {
     }
 
     private String buildInstanceId() {
-        return properties.getAppCode() + "-" + properties.getEnv() + "-" + host() + "-" + pid() + "-" + IdUtils.shortUuid();
+        return properties.getAppCode() + "-" + properties.getEnv() + "-" + host() + "-" + pid() + "-" + UuidV7.simpleString().substring(0, 8);
     }
 
     private String host() {

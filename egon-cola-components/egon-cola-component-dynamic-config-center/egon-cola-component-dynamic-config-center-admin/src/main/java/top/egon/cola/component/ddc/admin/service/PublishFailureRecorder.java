@@ -3,7 +3,7 @@ package top.egon.cola.component.ddc.admin.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
@@ -32,7 +32,7 @@ public class PublishFailureRecorder {
     private DdcPublishTaskEntity newFailedTask(String changeId, String appCode, String env, String namespace, String configKey) {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(IdUtils.simpleUuid());
+        task.setId(UuidV7.simpleString());
         task.setChangeId(changeId);
         task.setAppCode(appCode);
         task.setEnv(env);

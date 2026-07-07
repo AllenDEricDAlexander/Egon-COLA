@@ -3,7 +3,7 @@ package top.egon.cola.component.ddc.admin.service;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.ddc.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
@@ -61,7 +61,7 @@ public class DdcInstanceAdminService {
 
     private DdcInstanceEntity newInstance(DdcHeartbeatRequest request) {
         DdcInstanceEntity instance = new DdcInstanceEntity();
-        instance.setId(IdUtils.simpleUuid());
+        instance.setId(UuidV7.simpleString());
         instance.setInstanceId(request.getInstanceId());
         instance.setCreatedAt(LocalDateTime.now());
         return instance;

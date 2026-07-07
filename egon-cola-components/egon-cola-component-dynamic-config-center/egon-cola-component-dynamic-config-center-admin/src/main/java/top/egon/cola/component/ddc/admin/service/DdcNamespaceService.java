@@ -2,7 +2,7 @@ package top.egon.cola.component.ddc.admin.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceRepository;
 
@@ -23,7 +23,7 @@ public class DdcNamespaceService {
     public DdcNamespaceEntity save(DdcNamespaceEntity namespace) {
         LocalDateTime now = LocalDateTime.now();
         if (namespace.getId() == null) {
-            namespace.setId(IdUtils.simpleUuid());
+            namespace.setId(UuidV7.simpleString());
             namespace.setCreatedAt(now);
         }
         if (namespace.getEnabled() == null) {

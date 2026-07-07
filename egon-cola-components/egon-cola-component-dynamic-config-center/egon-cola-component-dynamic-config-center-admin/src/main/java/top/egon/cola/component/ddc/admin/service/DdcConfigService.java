@@ -2,7 +2,7 @@ package top.egon.cola.component.ddc.admin.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.util.IdUtils;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigQueryRequest;
@@ -57,7 +57,7 @@ public class DdcConfigService {
 
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
-        entity.setId(IdUtils.simpleUuid());
+        entity.setId(UuidV7.simpleString());
         entity.setAppCode(request.getAppCode());
         entity.setEnv(request.getEnv());
         entity.setNamespace(request.getNamespace());
@@ -179,7 +179,7 @@ public class DdcConfigService {
     private void saveVersion(DdcConfigItemEntity entity, String oldValue, String newValue, ChangeType changeType,
                              String reason, String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(IdUtils.simpleUuid());
+        version.setId(UuidV7.simpleString());
         version.setConfigId(entity.getId());
         version.setAppCode(entity.getAppCode());
         version.setEnv(entity.getEnv());
@@ -198,7 +198,7 @@ public class DdcConfigService {
 
     private void saveOperation(DdcConfigItemEntity entity, ChangeType changeType, String operator, String content) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
-        log.setId(IdUtils.simpleUuid());
+        log.setId(UuidV7.simpleString());
         log.setAppCode(entity.getAppCode());
         log.setEnv(entity.getEnv());
         log.setNamespace(entity.getNamespace());
@@ -214,7 +214,7 @@ public class DdcConfigService {
                                                     DdcDefaultReportRequest.DdcConfigValueRequest config) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
-        entity.setId(IdUtils.simpleUuid());
+        entity.setId(UuidV7.simpleString());
         entity.setAppCode(request.getAppCode());
         entity.setEnv(request.getEnv());
         entity.setNamespace(request.getNamespace());
