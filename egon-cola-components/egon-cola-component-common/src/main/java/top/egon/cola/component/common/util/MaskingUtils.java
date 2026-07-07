@@ -3,9 +3,9 @@ package top.egon.cola.component.common.util;
 /**
  * 敏感信息脱敏工具，提供企业高频字段的默认脱敏规则。
  */
-public final class Masking {
+public final class MaskingUtils {
 
-    private Masking() {
+    private MaskingUtils() {
     }
 
     public static String mobile(String value) {
@@ -13,7 +13,7 @@ public final class Masking {
     }
 
     public static String email(String value) {
-        if (Strings.isBlank(value) || !value.contains("@")) {
+        if (StringUtils.isBlank(value) || !value.contains("@")) {
             return value;
         }
         int atIndex = value.indexOf('@');
@@ -34,14 +34,14 @@ public final class Masking {
     }
 
     public static String name(String value) {
-        if (Strings.isBlank(value) || value.length() == 1) {
+        if (StringUtils.isBlank(value) || value.length() == 1) {
             return value;
         }
         return value.charAt(0) + "*".repeat(value.length() - 1);
     }
 
     public static String range(String value, int startInclusive, int endExclusive) {
-        if (Strings.isBlank(value)) {
+        if (StringUtils.isBlank(value)) {
             return value;
         }
         int start = Math.max(0, startInclusive);

@@ -1,7 +1,5 @@
 package top.egon.cola.component.common.util;
 
-import org.apache.commons.collections4.CollectionUtils;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -14,17 +12,17 @@ import java.util.function.Predicate;
 /**
  * 集合工具门面，提供 null-safe 的高频集合操作。
  */
-public final class Collections2 {
+public final class CollectionUtils {
 
-    private Collections2() {
+    private CollectionUtils() {
     }
 
     public static boolean isEmpty(Collection<?> collection) {
-        return CollectionUtils.isEmpty(collection);
+        return org.apache.commons.collections4.CollectionUtils.isEmpty(collection);
     }
 
     public static boolean isNotEmpty(Collection<?> collection) {
-        return CollectionUtils.isNotEmpty(collection);
+        return org.apache.commons.collections4.CollectionUtils.isNotEmpty(collection);
     }
 
     public static int size(Collection<?> collection) {

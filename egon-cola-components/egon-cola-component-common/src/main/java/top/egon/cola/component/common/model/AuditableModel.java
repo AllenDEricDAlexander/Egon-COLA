@@ -1,5 +1,7 @@
 package top.egon.cola.component.common.model;
 
+import java.io.Serial;
+
 import java.time.LocalDateTime;
 
 /**
@@ -7,6 +9,9 @@ import java.time.LocalDateTime;
  */
 public class AuditableModel extends BaseModel {
 
+
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private LocalDateTime createdAt;

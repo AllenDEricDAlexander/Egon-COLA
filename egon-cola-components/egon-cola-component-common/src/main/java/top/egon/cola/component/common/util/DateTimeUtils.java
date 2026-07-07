@@ -9,9 +9,9 @@ import java.time.format.DateTimeFormatter;
 /**
  * 日期时间工具，基于 java.time 统一常用转换和格式化。
  */
-public final class Dates {
+public final class DateTimeUtils {
 
-    private Dates() {
+    private DateTimeUtils() {
     }
 
     public static LocalDateTime now() {

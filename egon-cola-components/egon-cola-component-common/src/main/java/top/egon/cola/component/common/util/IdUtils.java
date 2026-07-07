@@ -5,9 +5,9 @@ import java.util.UUID;
 /**
  * ID 工具，首批提供基于 JDK UUID 的轻量能力。
  */
-public final class Ids {
+public final class IdUtils {
 
-    private Ids() {
+    private IdUtils() {
     }
 
     public static String uuid() {

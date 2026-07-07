@@ -1,10 +1,15 @@
 package top.egon.cola.component.common.model;
 
+import java.io.Serial;
+
 /**
  * 可选实体基础类，提供通用 id 字段。
  */
 public class BaseEntity<ID> extends BaseModel {
 
+
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private ID id;

@@ -12,11 +12,11 @@ import java.nio.charset.StandardCharsets;
 /**
  * 加密摘要工具，提供摘要、HMAC 和常用编码能力。
  */
-public final class Crypto {
+public final class CryptoUtils {
 
     private static final String HMAC_SHA256 = "HmacSHA256";
 
-    private Crypto() {
+    private CryptoUtils() {
     }
 
     public static String md5Hex(String value) {

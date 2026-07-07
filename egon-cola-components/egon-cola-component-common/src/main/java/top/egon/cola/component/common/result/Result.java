@@ -1,5 +1,7 @@
 package top.egon.cola.component.common.result;
 
+import java.io.Serial;
+
 import top.egon.cola.component.common.exception.BusinessException;
 import top.egon.cola.component.common.exception.ErrorCodes;
 import top.egon.cola.component.common.exception.SystemException;
@@ -12,6 +14,9 @@ import java.io.Serializable;
  */
 public class Result<T> implements Serializable {
 
+
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private boolean success;

@@ -1,5 +1,7 @@
 package top.egon.cola.component.common.result;
 
+import java.io.Serial;
+
 import top.egon.cola.component.common.exception.ErrorCodes;
 import top.egon.cola.component.common.trace.TraceContext;
 
@@ -13,6 +15,9 @@ import java.util.List;
  */
 public class PageResult<T> implements Serializable {
 
+
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private boolean success;

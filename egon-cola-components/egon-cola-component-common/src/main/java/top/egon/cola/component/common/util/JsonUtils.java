@@ -11,11 +11,11 @@ import java.util.Map;
 /**
  * JSON 工具门面，统一收口 Jackson 调用和异常包装。
  */
-public final class Jsons {
+public final class JsonUtils {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new JavaTimeModule());
 
-    private Jsons() {
+    private JsonUtils() {
     }
 
     public static String toJson(Object value) {

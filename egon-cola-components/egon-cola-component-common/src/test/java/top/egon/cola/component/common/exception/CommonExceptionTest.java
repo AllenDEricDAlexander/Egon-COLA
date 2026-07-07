@@ -14,6 +14,7 @@ class CommonExceptionTest {
         BusinessException exception = new BusinessException("ORDER_NOT_FOUND", "订单不存在", cause);
 
         assertEquals("ORDER_NOT_FOUND", exception.getCode());
+        assertEquals("订单不存在", exception.getErrorMessage());
         assertEquals("订单不存在", exception.getMessage());
         assertSame(cause, exception.getCause());
     }
@@ -23,6 +24,7 @@ class CommonExceptionTest {
         BusinessException exception = new BusinessException("业务处理失败");
 
         assertEquals(ErrorCodes.BUSINESS_ERROR, exception.getCode());
+        assertEquals("业务处理失败", exception.getErrorMessage());
         assertEquals("业务处理失败", exception.getMessage());
     }
 
@@ -31,6 +33,7 @@ class CommonExceptionTest {
         SystemException exception = new SystemException("系统处理失败");
 
         assertEquals(ErrorCodes.SYSTEM_ERROR, exception.getCode());
+        assertEquals("系统处理失败", exception.getErrorMessage());
         assertEquals("系统处理失败", exception.getMessage());
     }
 }

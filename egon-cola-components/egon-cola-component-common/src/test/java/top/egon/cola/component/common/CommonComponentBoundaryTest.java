@@ -55,7 +55,16 @@ class CommonComponentBoundaryTest {
                             "Assert.java",
                             "BizException.java",
                             "SysException.java",
-                            "BaseException.java"
+                            "BaseException.java",
+                            "Strings.java",
+                            "Collections2.java",
+                            "Dates.java",
+                            "Jsons.java",
+                            "Ids.java",
+                            "Enums.java",
+                            "Masking.java",
+                            "Crypto.java",
+                            "Trees.java"
                     ).contains(name))
                     .toList();
         }

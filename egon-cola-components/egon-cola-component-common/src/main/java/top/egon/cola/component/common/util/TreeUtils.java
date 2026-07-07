@@ -12,16 +12,16 @@ import java.util.function.Function;
 /**
  * 树结构工具，支持将扁平列表组装为树。
  */
-public final class Trees {
+public final class TreeUtils {
 
-    private Trees() {
+    private TreeUtils() {
     }
 
     public static <T, ID> List<T> build(Collection<T> nodes,
                                         Function<T, ID> idGetter,
                                         Function<T, ID> parentIdGetter,
                                         BiConsumer<T, List<T>> childrenSetter) {
-        if (Collections2.isEmpty(nodes)) {
+        if (CollectionUtils.isEmpty(nodes)) {
             return List.of();
         }
         Map<ID, T> nodeMap = new LinkedHashMap<>();

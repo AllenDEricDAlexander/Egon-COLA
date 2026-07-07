@@ -1,5 +1,7 @@
 package top.egon.cola.component.common.query;
 
+import java.io.Serial;
+
 import top.egon.cola.component.common.model.BaseQuery;
 
 /**
@@ -7,6 +9,9 @@ import top.egon.cola.component.common.model.BaseQuery;
  */
 public class PageQuery extends BaseQuery {
 
+
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     public static final String ASC = "ASC";

@@ -5,9 +5,9 @@ import java.util.Objects;
 /**
  * 枚举查找工具，支持按名称和可选编码查找。
  */
-public final class Enums {
+public final class EnumUtils {
 
-    private Enums() {
+    private EnumUtils() {
     }
 
     public static <E extends Enum<E>> E getByName(Class<E> enumType, String name) {
