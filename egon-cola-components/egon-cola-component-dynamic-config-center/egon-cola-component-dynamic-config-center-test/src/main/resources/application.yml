@@ -1,0 +1,12 @@
+egon:
+  cola:
+    component:
+      ddc:
+        enabled: true
+        app-code: demo-app
+        env: dev
+        namespace: default
+        redis:
+          enabled: false
+        consistency:
+          fail-fast: false

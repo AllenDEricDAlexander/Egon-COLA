@@ -6,7 +6,19 @@ The admin module exposes component metadata from:
 GET /api/v1/ddc/manifest
 ```
 
-The response describes the backend API surface for an external UI or gateway:
+Response fields:
+
+| Field | Meaning |
+|---|---|
+| `component` | Stable component key, `dynamic-config-center`. |
+| `displayName` | Human-readable component name. |
+| `version` | Backend component version. |
+| `enabled` | Whether this backend module is enabled. |
+| `baseApiPath` | Admin API base path. |
+| `frontendModuleKey` | External UI module key. |
+| `routeBase` | Suggested external UI route base. |
+
+Example:
 
 ```json
 {
@@ -22,13 +34,13 @@ The response describes the backend API surface for an external UI or gateway:
 
 Admin API groups:
 
-```text
-/apps
-/namespaces
-/configs
-/publish-tasks
-/instances
-/cache
-/openapi
-/manifest
-```
+| Group | Path |
+|---|---|
+| Apps | `/api/v1/ddc/apps` |
+| Namespaces | `/api/v1/ddc/namespaces` |
+| Configs | `/api/v1/ddc/configs` |
+| Publish tasks | `/api/v1/ddc/publish-tasks` |
+| Instances | `/api/v1/ddc/instances` |
+| Cache | `/api/v1/ddc/cache` |
+| SDK OpenAPI | `/api/v1/ddc/openapi` |
+| Manifest | `/api/v1/ddc/manifest` |
