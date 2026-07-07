@@ -11,4 +11,6 @@ public interface DdcInstanceRepository extends JpaRepository<DdcInstanceEntity, 
     Optional<DdcInstanceEntity> findByInstanceId(String instanceId);
 
     List<DdcInstanceEntity> findByAppCodeAndEnvAndNamespace(String appCode, String env, String namespace);
+
+    List<DdcInstanceEntity> findByAppCodeAndEnvAndNamespaceAndStatus(String appCode, String env, String namespace, String status);
 }
