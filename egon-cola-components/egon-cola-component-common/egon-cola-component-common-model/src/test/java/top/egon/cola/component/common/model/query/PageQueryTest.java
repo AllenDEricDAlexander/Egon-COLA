@@ -8,21 +8,24 @@ class PageQueryTest {
 
     @Test
     void pageNoAndPageSizeAreNormalized() {
-        PageQuery query = new PageQuery();
-        query.setPageNo(0);
-        query.setPageSize(0);
+        PageQuery query = new PageQuery(0, 0);
 
-        assertEquals(1, query.getPageNo());
-        assertEquals(10, query.getPageSize());
+        assertEquals(1, query.pageNo());
+        assertEquals(10, query.pageSize());
         assertEquals(0, query.offset());
     }
 
     @Test
     void offsetUsesNormalizedValues() {
-        PageQuery query = new PageQuery();
-        query.setPageNo(3);
-        query.setPageSize(20);
+        PageQuery query = new PageQuery(3, 20);
 
         assertEquals(40, query.offset());
+    }
+
+    @Test
+    void pageSizeIsCapped() {
+        PageQuery query = new PageQuery(1, 999);
+
+        assertEquals(PageQuery.MAX_PAGE_SIZE, query.pageSize());
     }
 }

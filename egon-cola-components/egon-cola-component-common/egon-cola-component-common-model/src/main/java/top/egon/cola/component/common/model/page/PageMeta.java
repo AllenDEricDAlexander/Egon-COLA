@@ -1,27 +1,39 @@
 package top.egon.cola.component.common.model.page;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import java.io.Serial;
 import java.io.Serializable;
 
 /**
  * Pagination metadata shared by page result models.
+ *
+ * @param total total record count
+ * @param pageNo current page number, starts from 1
+ * @param pageSize page size
+ * @param pages total page count
+ * @param hasNext whether next page exists
+ * @param hasPrevious whether previous page exists
  */
-public class PageMeta implements Serializable {
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.ALWAYS)
+@JsonPropertyOrder({"total", "pageNo", "pageSize", "pages", "hasNext", "hasPrevious"})
+public record PageMeta(
+        @JsonProperty("total") long total,
+        @JsonProperty("pageNo") int pageNo,
+        @JsonProperty("pageSize") int pageSize,
+        @JsonProperty("pages") long pages,
+        @JsonProperty("hasNext") boolean hasNext,
+        @JsonProperty("hasPrevious") boolean hasPrevious
+) implements Serializable {
 
     @Serial
+    @JsonIgnore
     private static final long serialVersionUID = 1L;
-
-    private long total;
-
-    private int pageNo;
-
-    private int pageSize;
-
-    private long pages;
-
-    private boolean hasNext;
-
-    private boolean hasPrevious;
 
     public static PageMeta of(long total, int pageNo, int pageSize) {
         int normalizedPageNo = Math.max(pageNo, 1);
@@ -29,37 +41,13 @@ public class PageMeta implements Serializable {
         long normalizedTotal = Math.max(total, 0);
         long totalPages = normalizedTotal == 0 ? 0 : (normalizedTotal + normalizedPageSize - 1) / normalizedPageSize;
 
-        PageMeta meta = new PageMeta();
-        meta.total = normalizedTotal;
-        meta.pageNo = normalizedPageNo;
-        meta.pageSize = normalizedPageSize;
-        meta.pages = totalPages;
-        meta.hasPrevious = normalizedPageNo > 1 && totalPages > 0;
-        meta.hasNext = totalPages > normalizedPageNo;
-        return meta;
-    }
-
-    public long getTotal() {
-        return total;
-    }
-
-    public int getPageNo() {
-        return pageNo;
-    }
-
-    public int getPageSize() {
-        return pageSize;
-    }
-
-    public long getPages() {
-        return pages;
-    }
-
-    public boolean isHasNext() {
-        return hasNext;
-    }
-
-    public boolean isHasPrevious() {
-        return hasPrevious;
+        return new PageMeta(
+                normalizedTotal,
+                normalizedPageNo,
+                normalizedPageSize,
+                totalPages,
+                totalPages > normalizedPageNo,
+                normalizedPageNo > 1 && totalPages > 0
+        );
     }
 }
