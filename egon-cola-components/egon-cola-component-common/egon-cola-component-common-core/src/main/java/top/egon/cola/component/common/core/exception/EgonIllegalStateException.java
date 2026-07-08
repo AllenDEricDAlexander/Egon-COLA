@@ -23,4 +23,8 @@ public class EgonIllegalStateException extends EgonException {
     public EgonIllegalStateException(int code, String status, String message) {
         super(code, status, message);
     }
+
+    public EgonIllegalStateException(int code, String status, String message, Throwable cause) {
+        super(code, status, message, cause);
+    }
 }

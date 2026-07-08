@@ -29,6 +29,8 @@ class CoreBoundaryTest {
                             || line.startsWith("import javax.servlet.")
                             || line.startsWith("import org.redisson.")
                             || line.startsWith("import redis.")
+                            || line.startsWith("import com.fasterxml.jackson.")
+                            || line.startsWith("import lombok.")
                             || line.startsWith("import com.alibaba.cola.")
                             || line.startsWith("import top.egon.cola.component.common.model.")
                             || line.startsWith("import top.egon.cola.component.common.result.")

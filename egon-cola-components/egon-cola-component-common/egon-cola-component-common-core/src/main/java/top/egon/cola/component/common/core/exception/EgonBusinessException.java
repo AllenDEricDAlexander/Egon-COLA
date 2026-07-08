@@ -23,4 +23,8 @@ public class EgonBusinessException extends EgonException {
     public EgonBusinessException(int code, String status, String message) {
         super(code, status, message);
     }
+
+    public EgonBusinessException(int code, String status, String message, Throwable cause) {
+        super(code, status, message, cause);
+    }
 }

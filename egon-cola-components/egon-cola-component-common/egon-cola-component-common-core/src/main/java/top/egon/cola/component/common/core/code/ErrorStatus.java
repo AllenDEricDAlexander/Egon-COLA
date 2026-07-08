@@ -10,4 +10,8 @@ public interface ErrorStatus {
     String getStatus();
 
     String getMessage();
+
+    default boolean isSuccess() {
+        return getCode() == CommonStatus.SUCCESS.getCode();
+    }
 }

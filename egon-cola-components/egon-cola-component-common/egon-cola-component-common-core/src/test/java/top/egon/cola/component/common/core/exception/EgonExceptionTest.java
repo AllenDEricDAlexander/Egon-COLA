@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.core.code.CommonStatus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EgonExceptionTest {
 
@@ -15,26 +17,28 @@ class EgonExceptionTest {
         assertEquals(CommonStatus.BAD_REQUEST.getCode(), exception.getCode());
         assertEquals(CommonStatus.BAD_REQUEST.getStatus(), exception.getStatus());
         assertEquals(CommonStatus.BAD_REQUEST.getMessage(), exception.getMessage());
+        assertFalse(exception.isRetryable());
     }
 
     @Test
-    void systemExceptionCarriesCause() {
-        RuntimeException cause = new RuntimeException("boom");
+    void remoteCallExceptionCanBeRetryable() {
+        RuntimeException cause = new RuntimeException("timeout");
 
-        EgonSystemException exception = new EgonSystemException(CommonStatus.SYSTEM_ERROR, cause);
+        EgonRemoteCallException exception = new EgonRemoteCallException(CommonStatus.REMOTE_CALL_ERROR, true, cause);
 
-        assertEquals(CommonStatus.SYSTEM_ERROR.getCode(), exception.getCode());
-        assertEquals(CommonStatus.SYSTEM_ERROR.getStatus(), exception.getStatus());
-        assertEquals(CommonStatus.SYSTEM_ERROR.getMessage(), exception.getMessage());
+        assertEquals(CommonStatus.REMOTE_CALL_ERROR.getCode(), exception.getCode());
+        assertEquals(CommonStatus.REMOTE_CALL_ERROR.getStatus(), exception.getStatus());
+        assertEquals(CommonStatus.REMOTE_CALL_ERROR.getMessage(), exception.getMessage());
+        assertTrue(exception.isRetryable());
         assertSame(cause, exception.getCause());
     }
 
     @Test
-    void illegalStateExceptionSupportsCustomMessage() {
-        EgonIllegalStateException exception = new EgonIllegalStateException(409001, "STATE_CONFLICT", "state conflict");
-
-        assertEquals(409001, exception.getCode());
-        assertEquals("STATE_CONFLICT", exception.getStatus());
-        assertEquals("state conflict", exception.getMessage());
+    void typedExceptionsUseMatchingCommonStatus() {
+        assertEquals(CommonStatus.VALIDATION_ERROR.getCode(), new EgonValidationException(CommonStatus.VALIDATION_ERROR).getCode());
+        assertEquals(CommonStatus.UNAUTHORIZED.getCode(), new EgonUnauthorizedException(CommonStatus.UNAUTHORIZED).getCode());
+        assertEquals(CommonStatus.FORBIDDEN.getCode(), new EgonForbiddenException(CommonStatus.FORBIDDEN).getCode());
+        assertEquals(CommonStatus.NOT_FOUND.getCode(), new EgonNotFoundException(CommonStatus.NOT_FOUND).getCode());
+        assertEquals(CommonStatus.CONCURRENCY_ERROR.getCode(), new EgonConcurrencyException(CommonStatus.CONCURRENCY_ERROR).getCode());
     }
 }

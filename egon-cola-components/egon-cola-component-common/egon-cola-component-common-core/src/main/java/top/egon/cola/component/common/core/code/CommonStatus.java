@@ -6,12 +6,20 @@ package top.egon.cola.component.common.core.code;
 public enum CommonStatus implements ErrorStatus {
 
     SUCCESS(0, "SUCCESS", "success"),
+
     BAD_REQUEST(400000, "BAD_REQUEST", "bad request"),
     UNAUTHORIZED(401000, "UNAUTHORIZED", "unauthorized"),
     FORBIDDEN(403000, "FORBIDDEN", "forbidden"),
     NOT_FOUND(404000, "NOT_FOUND", "not found"),
-    BUSINESS_ERROR(500001, "BUSINESS_ERROR", "business error"),
-    SYSTEM_ERROR(500000, "SYSTEM_ERROR", "system error");
+    CONCURRENCY_ERROR(409000, "CONCURRENCY_ERROR", "concurrency error"),
+    VALIDATION_ERROR(422000, "VALIDATION_ERROR", "validation error"),
+    TOO_MANY_REQUESTS(429000, "TOO_MANY_REQUESTS", "too many requests"),
+
+    SYSTEM_ERROR(500000, "SYSTEM_ERROR", "system error"),
+    REMOTE_CALL_ERROR(510000, "REMOTE_CALL_ERROR", "remote call error"),
+    MIDDLEWARE_ERROR(520000, "MIDDLEWARE_ERROR", "middleware error"),
+
+    BUSINESS_ERROR(600000, "BUSINESS_ERROR", "business error");
 
     private final int code;
 
