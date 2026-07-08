@@ -45,6 +45,29 @@ Then import only the module you need:
 </dependency>
 ```
 
+## Record Contracts
+
+Common result, model, query, and request objects are Java records. Use record accessors such as `data()`,
+`records()`, `pageNo()`, and `operator()` instead of JavaBean getters or setters.
+
+External API responses should use `ResultDto`, `PageResultDto`, and `ErrorResultDto` from
+`egon-cola-component-common-result`. Internal application/service return values should use `ResultModel`,
+`PageResultModel`, and `ErrorResultModel` from the same module.
+
+Pagination and query contracts live in `egon-cola-component-common-model`:
+
+| Contract | Purpose |
+|---|---|
+| `PageQuery` | Normalized page number and page size, with bounded max page size |
+| `SortQuery` | Optional sort field and normalized `ASC` or `DESC` direction |
+| `TimeRangeQuery` | Optional start/end time range |
+| `PageModel` / `PageSlice` | Immutable page and slice data containers |
+| `BaseRequest` / `OperatorContext` | Request metadata and operator identity |
+
+`common-core` remains dependency-free. Jackson annotations are limited to `common-model` and
+`common-result` so JSON field names and order are stable without leaking web serialization dependencies
+into core contracts.
+
 ## Migration Notes
 
 | Old API | New API |
@@ -59,4 +82,5 @@ Then import only the module you need:
 | `top.egon.cola.component.common.util.MaskingUtils` | `Masking` |
 | `top.egon.cola.component.common.util.TreeUtils` | `TreeBuilder` |
 
-The old `util` package, `BaseEntity`, and `AuditableModel` are intentionally removed.
+The old `util` package, JavaBean-style common contracts, `BaseEntity`, and `AuditableModel` are
+intentionally removed.
