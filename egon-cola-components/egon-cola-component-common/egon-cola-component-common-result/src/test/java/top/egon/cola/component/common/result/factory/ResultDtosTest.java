@@ -28,35 +28,45 @@ class ResultDtosTest {
 
         ResultDto<String> result = ResultDtos.success("ok");
 
-        assertTrue(result.isSuccess());
-        assertEquals(CommonStatus.SUCCESS.getCode(), result.getCode());
-        assertEquals(CommonStatus.SUCCESS.getStatus(), result.getStatus());
-        assertEquals("ok", result.getData());
-        assertEquals("trace-1", result.getTraceId());
-        assertNotNull(result.getTimestamp());
+        assertTrue(result.success());
+        assertEquals(CommonStatus.SUCCESS.getCode(), result.code());
+        assertEquals(CommonStatus.SUCCESS.getStatus(), result.status());
+        assertEquals("ok", result.data());
+        assertEquals("trace-1", result.traceId());
+        assertNotNull(result.timestamp());
     }
 
     @Test
     void failureDtoMapsEgonException() {
         ResultDto<Void> result = ResultDtos.failure(new EgonBusinessException(CommonStatus.BAD_REQUEST));
 
-        assertFalse(result.isSuccess());
-        assertEquals(CommonStatus.BAD_REQUEST.getCode(), result.getCode());
-        assertEquals(CommonStatus.BAD_REQUEST.getStatus(), result.getStatus());
-        assertEquals(CommonStatus.BAD_REQUEST.getMessage(), result.getMessage());
+        assertFalse(result.success());
+        assertEquals(CommonStatus.BAD_REQUEST.getCode(), result.code());
+        assertEquals(CommonStatus.BAD_REQUEST.getStatus(), result.status());
+        assertEquals(CommonStatus.BAD_REQUEST.getMessage(), result.message());
+    }
+
+    @Test
+    void failureDtoHidesUnknownExceptionMessage() {
+        ResultDto<Void> result = ResultDtos.failure(new NullPointerException("database password leaked"));
+
+        assertFalse(result.success());
+        assertEquals(CommonStatus.SYSTEM_ERROR.getCode(), result.code());
+        assertEquals(CommonStatus.SYSTEM_ERROR.getStatus(), result.status());
+        assertEquals(CommonStatus.SYSTEM_ERROR.getMessage(), result.message());
     }
 
     @Test
     void pageDtoCalculatesPageMetadata() {
         PageResultDto<String> result = ResultDtos.page(List.of("a"), 11, 2, 10);
 
-        assertTrue(result.isSuccess());
-        assertEquals(List.of("a"), result.getRecords());
-        assertEquals(11, result.getTotal());
-        assertEquals(2, result.getPageNo());
-        assertEquals(10, result.getPageSize());
-        assertEquals(2, result.getPages());
-        assertTrue(result.isHasPrevious());
-        assertFalse(result.isHasNext());
+        assertTrue(result.success());
+        assertEquals(List.of("a"), result.records());
+        assertEquals(11, result.total());
+        assertEquals(2, result.pageNo());
+        assertEquals(10, result.pageSize());
+        assertEquals(2, result.pages());
+        assertTrue(result.hasPrevious());
+        assertFalse(result.hasNext());
     }
 }

@@ -1,5 +1,11 @@
 package top.egon.cola.component.common.result.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -8,119 +14,47 @@ import java.util.List;
 
 /**
  * Internal page operation result model.
+ *
+ * @param success whether the operation succeeded
+ * @param code stable enterprise status code
+ * @param status stable enterprise status text
+ * @param message internal message
+ * @param records current page records, never null
+ * @param total total record count
+ * @param pageNo current page number, starts from 1
+ * @param pageSize page size
+ * @param pages total page count
+ * @param hasNext whether next page exists
+ * @param hasPrevious whether previous page exists
+ * @param <T> record type
  */
-public class PageResultModel<T> implements Serializable {
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.ALWAYS)
+@JsonPropertyOrder({
+        "success", "code", "status", "message",
+        "records", "total", "pageNo", "pageSize", "pages", "hasNext", "hasPrevious"
+})
+public record PageResultModel<T>(
+        @JsonProperty("success") boolean success,
+        @JsonProperty("code") int code,
+        @JsonProperty("status") String status,
+        @JsonProperty("message") String message,
+        @JsonProperty("records") List<T> records,
+        @JsonProperty("total") long total,
+        @JsonProperty("pageNo") int pageNo,
+        @JsonProperty("pageSize") int pageSize,
+        @JsonProperty("pages") long pages,
+        @JsonProperty("hasNext") boolean hasNext,
+        @JsonProperty("hasPrevious") boolean hasPrevious
+) implements Serializable {
 
     @Serial
+    @JsonIgnore
     private static final long serialVersionUID = 1L;
 
-    private boolean success;
-
-    private int code;
-
-    private String status;
-
-    private String message;
-
-    private List<T> records = Collections.emptyList();
-
-    private long total;
-
-    private int pageNo;
-
-    private int pageSize;
-
-    private long pages;
-
-    private boolean hasNext;
-
-    private boolean hasPrevious;
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public List<T> getRecords() {
-        return records;
-    }
-
-    public void setRecords(List<T> records) {
-        this.records = records == null ? Collections.emptyList() : new ArrayList<>(records);
-    }
-
-    public long getTotal() {
-        return total;
-    }
-
-    public void setTotal(long total) {
-        this.total = total;
-    }
-
-    public int getPageNo() {
-        return pageNo;
-    }
-
-    public void setPageNo(int pageNo) {
-        this.pageNo = pageNo;
-    }
-
-    public int getPageSize() {
-        return pageSize;
-    }
-
-    public void setPageSize(int pageSize) {
-        this.pageSize = pageSize;
-    }
-
-    public long getPages() {
-        return pages;
-    }
-
-    public void setPages(long pages) {
-        this.pages = pages;
-    }
-
-    public boolean isHasNext() {
-        return hasNext;
-    }
-
-    public void setHasNext(boolean hasNext) {
-        this.hasNext = hasNext;
-    }
-
-    public boolean isHasPrevious() {
-        return hasPrevious;
-    }
-
-    public void setHasPrevious(boolean hasPrevious) {
-        this.hasPrevious = hasPrevious;
+    public PageResultModel {
+        records = records == null
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(records));
     }
 }

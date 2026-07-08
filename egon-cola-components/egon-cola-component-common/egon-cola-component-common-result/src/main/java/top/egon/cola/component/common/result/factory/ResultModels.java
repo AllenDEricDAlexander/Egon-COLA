@@ -20,16 +20,17 @@ public final class ResultModels {
     }
 
     public static <T> ResultModel<T> success(T data) {
-        ResultModel<T> result = new ResultModel<>();
-        fill(result, true, CommonStatus.SUCCESS);
-        result.setData(data);
-        return result;
+        return new ResultModel<>(
+                true,
+                CommonStatus.SUCCESS.getCode(),
+                CommonStatus.SUCCESS.getStatus(),
+                CommonStatus.SUCCESS.getMessage(),
+                data
+        );
     }
 
     public static <T> ResultModel<T> failure(ErrorStatus status) {
-        ResultModel<T> result = new ResultModel<>();
-        fill(result, false, status);
-        return result;
+        return new ResultModel<>(false, status.getCode(), status.getStatus(), status.getMessage(), null);
     }
 
     public static <T> PageResultModel<T> page(List<T> records, long total, int pageNo, int pageSize) {
@@ -38,25 +39,18 @@ public final class ResultModels {
         long normalizedTotal = Math.max(total, 0);
         long totalPages = normalizedTotal == 0 ? 0 : (normalizedTotal + normalizedPageSize - 1) / normalizedPageSize;
 
-        PageResultModel<T> result = new PageResultModel<>();
-        result.setSuccess(true);
-        result.setCode(CommonStatus.SUCCESS.getCode());
-        result.setStatus(CommonStatus.SUCCESS.getStatus());
-        result.setMessage(CommonStatus.SUCCESS.getMessage());
-        result.setRecords(records);
-        result.setTotal(normalizedTotal);
-        result.setPageNo(normalizedPageNo);
-        result.setPageSize(normalizedPageSize);
-        result.setPages(totalPages);
-        result.setHasPrevious(normalizedPageNo > 1 && totalPages > 0);
-        result.setHasNext(totalPages > normalizedPageNo);
-        return result;
-    }
-
-    private static <T> void fill(ResultModel<T> result, boolean success, ErrorStatus status) {
-        result.setSuccess(success);
-        result.setCode(status.getCode());
-        result.setStatus(status.getStatus());
-        result.setMessage(status.getMessage());
+        return new PageResultModel<>(
+                true,
+                CommonStatus.SUCCESS.getCode(),
+                CommonStatus.SUCCESS.getStatus(),
+                CommonStatus.SUCCESS.getMessage(),
+                records,
+                normalizedTotal,
+                normalizedPageNo,
+                normalizedPageSize,
+                totalPages,
+                totalPages > normalizedPageNo,
+                normalizedPageNo > 1 && totalPages > 0
+        );
     }
 }

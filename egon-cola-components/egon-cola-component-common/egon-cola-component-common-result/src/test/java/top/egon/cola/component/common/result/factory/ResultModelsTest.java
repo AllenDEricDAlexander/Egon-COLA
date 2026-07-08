@@ -17,31 +17,31 @@ class ResultModelsTest {
     void successModelDoesNotCarryTraceFields() {
         ResultModel<String> result = ResultModels.success("ok");
 
-        assertTrue(result.isSuccess());
-        assertEquals(CommonStatus.SUCCESS.getCode(), result.getCode());
-        assertEquals(CommonStatus.SUCCESS.getStatus(), result.getStatus());
-        assertEquals("ok", result.getData());
+        assertTrue(result.success());
+        assertEquals(CommonStatus.SUCCESS.getCode(), result.code());
+        assertEquals(CommonStatus.SUCCESS.getStatus(), result.status());
+        assertEquals("ok", result.data());
     }
 
     @Test
     void failureModelUsesStatus() {
         ResultModel<Void> result = ResultModels.failure(CommonStatus.BUSINESS_ERROR);
 
-        assertFalse(result.isSuccess());
-        assertEquals(CommonStatus.BUSINESS_ERROR.getCode(), result.getCode());
-        assertEquals(CommonStatus.BUSINESS_ERROR.getStatus(), result.getStatus());
-        assertEquals(CommonStatus.BUSINESS_ERROR.getMessage(), result.getMessage());
+        assertFalse(result.success());
+        assertEquals(CommonStatus.BUSINESS_ERROR.getCode(), result.code());
+        assertEquals(CommonStatus.BUSINESS_ERROR.getStatus(), result.status());
+        assertEquals(CommonStatus.BUSINESS_ERROR.getMessage(), result.message());
     }
 
     @Test
     void pageModelCalculatesMetadata() {
         PageResultModel<String> result = ResultModels.page(List.of("a"), 1, 1, 10);
 
-        assertTrue(result.isSuccess());
-        assertEquals(List.of("a"), result.getRecords());
-        assertEquals(1, result.getTotal());
-        assertEquals(1, result.getPageNo());
-        assertEquals(10, result.getPageSize());
-        assertEquals(1, result.getPages());
+        assertTrue(result.success());
+        assertEquals(List.of("a"), result.records());
+        assertEquals(1, result.total());
+        assertEquals(1, result.pageNo());
+        assertEquals(10, result.pageSize());
+        assertEquals(1, result.pages());
     }
 }
