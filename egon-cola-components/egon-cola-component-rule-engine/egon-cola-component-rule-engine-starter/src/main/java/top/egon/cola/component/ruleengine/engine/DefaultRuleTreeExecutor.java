@@ -1,6 +1,8 @@
 package top.egon.cola.component.ruleengine.engine;
 
 import top.egon.cola.component.ruleengine.context.RuleContext;
+import top.egon.cola.component.ruleengine.listener.RuleExecutionListener;
+import top.egon.cola.component.ruleengine.listener.RuleExecutionListenerComposite;
 import top.egon.cola.component.ruleengine.result.RuleResult;
 import top.egon.cola.component.ruleengine.result.RuleStatus;
 import top.egon.cola.component.ruleengine.trace.NodeTrace;
@@ -13,6 +15,7 @@ import top.egon.cola.component.ruleengine.tree.RuleTree;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
@@ -21,9 +24,16 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
 
     private final boolean throwException;
 
+    private final RuleExecutionListener listener;
+
     public DefaultRuleTreeExecutor(boolean traceEnabled, boolean throwException) {
+        this(traceEnabled, throwException, new RuleExecutionListenerComposite(List.of(), true));
+    }
+
+    public DefaultRuleTreeExecutor(boolean traceEnabled, boolean throwException, RuleExecutionListener listener) {
         this.traceEnabled = traceEnabled;
         this.throwException = throwException;
+        this.listener = listener == null ? new RuleExecutionListenerComposite(List.of(), true) : listener;
     }
 
     @Override
@@ -31,24 +41,29 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
         RuleContext actualContext = context == null ? RuleContext.create() : context;
         RuleTraceRecorder recorder = new RuleTraceRecorder(traceEnabled);
         Instant start = Instant.now();
+        String ruleCode = ruleTree == null ? "empty" : ruleTree.code();
+        listener.beforeEngineExecute("TREE", ruleCode, actualContext);
         if (ruleTree == null || ruleTree.root() == null) {
             RuleTrace trace = recorder.finish("empty", "empty", "TREE", actualContext, RuleStatus.EMPTY_TREE, null);
-            return RuleResult.<R>failure(RuleStatus.EMPTY_TREE, RuleStatus.EMPTY_TREE.getMessage(), null)
+            RuleResult<R> result = RuleResult.<R>failure(RuleStatus.EMPTY_TREE, RuleStatus.EMPTY_TREE.getMessage(), null)
                     .withTrace(trace)
                     .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+            return complete(ruleCode, actualContext, result);
         }
         actualContext.maxSteps(ruleTree.maxSteps()).timeout(Duration.ofMillis(ruleTree.timeoutMillis()));
         try {
             return runTree(ruleTree, request, actualContext, recorder, start);
         } catch (RuntimeException ex) {
             actualContext.addError(ex);
+            listener.onEngineError(ruleCode, actualContext, ex);
             if (throwException) {
                 throw ex;
             }
             RuleTrace trace = recorder.finish(ruleTree.code(), ruleTree.name(), "TREE", actualContext, RuleStatus.NODE_ERROR, ex);
-            return RuleResult.<R>failure(RuleStatus.NODE_ERROR, ex.getMessage(), ex)
+            RuleResult<R> result = RuleResult.<R>failure(RuleStatus.NODE_ERROR, ex.getMessage(), ex)
                     .withTrace(trace)
                     .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+            return complete(ruleCode, actualContext, result);
         }
     }
 
@@ -59,24 +74,44 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
         RuleResult<R> last = RuleResult.success(null);
         while (current != null) {
             if (context.isTimeout()) {
+                listener.onTimeout(tree.code(), context);
                 RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.TIMEOUT, null);
-                return RuleResult.<R>timeout(RuleStatus.TIMEOUT.getMessage())
+                RuleResult<R> result = RuleResult.<R>timeout(RuleStatus.TIMEOUT.getMessage())
                         .withTrace(trace)
                         .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+                return complete(tree.code(), context, result);
             }
             context.incrementStep();
             if (context.isExceededMaxSteps()) {
+                listener.onMaxStepsExceeded(tree.code(), context);
                 RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.MAX_STEPS_EXCEEDED, null);
-                return RuleResult.<R>maxStepsExceeded(RuleStatus.MAX_STEPS_EXCEEDED.getMessage())
+                RuleResult<R> result = RuleResult.<R>maxStepsExceeded(RuleStatus.MAX_STEPS_EXCEEDED.getMessage())
                         .withTrace(trace)
                         .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+                return complete(tree.code(), context, result);
             }
             int order = context.getStepCount();
             int visitCount = visits.merge(current.code(), 1, Integer::sum);
             Instant nodeStart = Instant.now();
             context.enterNode(current.code());
-            last = current.execute(request, context);
-            RouteDecision route = current.route(request, context);
+            listener.beforeNodeExecute(current.code(), context);
+            try {
+                last = current.execute(request, context);
+            } catch (RuntimeException ex) {
+                listener.onNodeError(current.code(), context, ex);
+                throw ex;
+            }
+            listener.afterNodeExecute(current.code(), context, last);
+            listener.beforeRoute(current.code(), context);
+            RouteDecision route;
+            try {
+                route = current.route(request, context);
+            } catch (RuntimeException ex) {
+                listener.onNodeError(current.code(), context, ex);
+                throw ex;
+            }
+            route = route == null ? RouteDecision.noRoute("route decision is null") : route;
+            listener.afterRoute(current.code(), context, route);
             Instant nodeEnd = Instant.now();
             recorder.addNodeTrace(new NodeTrace(current.code(), current.name(), current.type(), order, visitCount,
                     nodeStart, nodeEnd, Duration.between(nodeStart, nodeEnd).toMillis(), route.routeTo(),
@@ -86,33 +121,40 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
                         ? RuleResult.stop(RuleStatus.STOPPED.getCode(), RuleStatus.STOPPED.getMessage(), last.getData())
                         : last;
                 RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, result.getStatus(), null);
-                return result.withTrace(trace)
+                RuleResult<R> completed = result.withTrace(trace)
                         .withHitNode(current.code())
                         .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+                if (result.getStatus() == RuleStatus.STOPPED || context.isStopped()) {
+                    listener.onStop(current.code(), context, completed);
+                }
+                return complete(tree.code(), context, completed);
             }
             if (route.isNoRoute()) {
                 RuleNode<T, R> defaultNode = resolveDefault(tree);
                 if (defaultNode == null) {
                     RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.NO_ROUTE, null);
-                    return RuleResult.<R>noRoute(route.getReason())
+                    RuleResult<R> result = RuleResult.<R>noRoute(route.getReason())
                             .withTrace(trace)
                             .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+                    return complete(tree.code(), context, result);
                 }
                 current = defaultNode;
             } else {
                 current = resolveRoute(tree, route);
                 if (current == null) {
                     RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.NO_ROUTE, null);
-                    return RuleResult.<R>noRoute(RuleStatus.NO_ROUTE.getMessage())
+                    RuleResult<R> result = RuleResult.<R>noRoute(RuleStatus.NO_ROUTE.getMessage())
                             .withTrace(trace)
                             .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+                    return complete(tree.code(), context, result);
                 }
             }
         }
         RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.NO_ROUTE, null);
-        return RuleResult.<R>noRoute(RuleStatus.NO_ROUTE.getMessage())
+        RuleResult<R> result = RuleResult.<R>noRoute(RuleStatus.NO_ROUTE.getMessage())
                 .withTrace(trace)
                 .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+        return complete(tree.code(), context, result);
     }
 
     @SuppressWarnings("unchecked")
@@ -128,5 +170,10 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
             return null;
         }
         return tree.nodes().get(tree.defaultEndNodeCode());
+    }
+
+    private <R> RuleResult<R> complete(String ruleCode, RuleContext context, RuleResult<R> result) {
+        listener.afterEngineExecute("TREE", ruleCode, context, result);
+        return result;
     }
 }
