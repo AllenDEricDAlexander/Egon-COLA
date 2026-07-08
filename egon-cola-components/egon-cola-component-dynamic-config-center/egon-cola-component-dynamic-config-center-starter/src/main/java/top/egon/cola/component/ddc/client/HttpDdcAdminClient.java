@@ -54,7 +54,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
-        return result == null || result.getData() == null ? Collections.emptyList() : result.getData();
+        return result == null || result.data() == null ? Collections.emptyList() : result.data();
     }
 
     @Override
