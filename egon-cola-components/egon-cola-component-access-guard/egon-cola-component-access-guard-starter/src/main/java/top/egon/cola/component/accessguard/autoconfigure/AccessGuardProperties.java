@@ -84,6 +84,8 @@ public class AccessGuardProperties {
         private WhiteListEmptyListStrategy emptyListStrategy = WhiteListEmptyListStrategy.DENY_ALL;
 
         private WhiteListMode mode = WhiteListMode.GATEKEEPER;
+
+        private List<String> defaultUsers = new ArrayList<>();
     }
 
     @Getter
