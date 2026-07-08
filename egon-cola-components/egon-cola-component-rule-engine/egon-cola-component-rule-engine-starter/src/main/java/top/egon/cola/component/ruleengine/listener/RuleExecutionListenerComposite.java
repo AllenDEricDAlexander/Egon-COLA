@@ -85,7 +85,7 @@ public class RuleExecutionListenerComposite implements RuleExecutionListener {
                 if (!ignoreErrors) {
                     throw ex;
                 }
-                log.warn("Rule execution listener failed: {}", ex.getMessage(), ex);
+                log.warn("Rule execution listener failed: {}", ex.getMessage());
             }
         }
     }
