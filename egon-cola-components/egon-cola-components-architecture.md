@@ -825,7 +825,7 @@ BOM 示例：
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.2.0-SNAPSHOT</version>
+            <version>5.2.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>

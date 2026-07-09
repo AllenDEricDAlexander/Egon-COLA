@@ -24,7 +24,7 @@ Example:
 {
   "component": "dynamic-config-center",
   "displayName": "Dynamic Config Center",
-  "version": "5.2.0-SNAPSHOT",
+  "version": "5.2.1",
   "enabled": true,
   "baseApiPath": "/api/v1/ddc",
   "frontendModuleKey": "dynamic-config-center",

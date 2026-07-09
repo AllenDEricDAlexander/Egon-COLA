@@ -80,7 +80,7 @@ public class DdcAdminProperties {
 
     public static class Manifest {
 
-        private String version = "5.2.0-SNAPSHOT";
+        private String version = "5.2.1";
 
         public String getVersion() {
             return version;

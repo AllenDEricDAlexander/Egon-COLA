@@ -11,7 +11,7 @@ import java.net.InetAddress;
 
 public class DdcInstanceService {
 
-    private static final String SDK_VERSION = "5.2.0-SNAPSHOT";
+    private static final String SDK_VERSION = "5.2.1";
 
     private final DdcProperties properties;
 

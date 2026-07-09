@@ -12,8 +12,8 @@ import java.util.List;
 @RequestMapping("/api/v1/dtp")
 public class DtpManifestController {
 
-    @Value("${egon.cola.component.dtp.manifest.version:5.2.0-SNAPSHOT}")
-    private String version = "5.2.0-SNAPSHOT";
+    @Value("${egon.cola.component.dtp.manifest.version:5.2.1}")
+    private String version = "5.2.1";
 
     @GetMapping("/manifest")
     public Response<DtpComponentManifest> manifest() {

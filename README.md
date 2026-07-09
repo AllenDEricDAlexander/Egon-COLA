@@ -182,7 +182,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.light' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-light' \
-  -DarchetypeVersion='5.2.0-SNAPSHOT' \
+  -DarchetypeVersion='5.2.1' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -197,7 +197,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-service' \
-  -DarchetypeVersion='5.2.0-SNAPSHOT' \
+  -DarchetypeVersion='5.2.1' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -212,7 +212,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable.web' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-web' \
-  -DarchetypeVersion='5.2.0-SNAPSHOT' \
+  -DarchetypeVersion='5.2.1' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -225,10 +225,10 @@ mvn -B archetype:generate \
 
 | 组件 | 说明 |
 |---|---|
-| `egon-cola-component-common` | 纯 Jar 基础组件，提供通用响应、分页、异常、断言等稳定能力。 |
+| `egon-cola-component-common-*` | 可按需引入的纯 Jar 基础组件，提供通用错误、模型、响应、ID、加密、脱敏等稳定能力。 |
 | `egon-cola-component-dynamic-thread-pool-starter` | 业务系统按需引入的动态线程池 starter。 |
 | `egon-cola-component-dynamic-thread-pool-admin` | 独立部署的动态线程池管理服务，不进入 BOM。 |
-| `egon-cola-components-bom` | 只导出业务系统可直接依赖的 common 与 starter 版本。 |
+| `egon-cola-components-bom` | 只导出业务系统可直接依赖的 common 具体模块与 starter 版本。 |
 
 运行时 starter-style 组件推荐结构：
 
@@ -242,7 +242,7 @@ egon-cola-component-xxx
 
 组件约束：
 
-- `egon-cola-component-common` 是明确的纯 Jar 例外，业务系统可以直接依赖。
+- `egon-cola-component-common` 是 common 聚合 POM，业务系统按需依赖 `egon-cola-component-common-core`、`egon-cola-component-common-result` 等具体 Jar。
 - 除 `common` 这类纯 Jar 基础组件外，运行时 starter-style 组件应由业务系统直接引入 `starter`。
 - `starter` 不反向依赖 `admin`、`test`、`ui`。
 - `test` 只用于组件自测、集成测试和示例启动。
@@ -260,7 +260,7 @@ egon-cola-component-xxx
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.2.0-SNAPSHOT</version>
+            <version>5.2.1</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -275,7 +275,7 @@ egon-cola-component-xxx
 <dependencies>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common</artifactId>
+        <artifactId>egon-cola-component-common-core</artifactId>
     </dependency>
 </dependencies>
 ```
