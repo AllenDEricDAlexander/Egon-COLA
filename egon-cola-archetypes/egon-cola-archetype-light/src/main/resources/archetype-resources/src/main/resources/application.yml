@@ -30,6 +30,15 @@ spring:
       fail-on-empty-beans: false
     deserialization:
       fail-on-unknown-properties: false
+  rabbitmq:
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
 
 server:
   port: ${symbol_dollar}{SERVER_PORT:8080}
@@ -71,3 +80,16 @@ dubbo:
   provider:
     timeout: 3000
     retries: 0
+
+app:
+  integrations:
+    rabbitmq:
+      enabled: false
+      exchange: ${symbol_dollar}{spring.application.name}.domain
+    redis:
+      enabled: false
+      ttl: 10m
+    external-http:
+      enabled: false
+      user-base-url: http://localhost:18081
+      teaching-base-url: http://localhost:18082

@@ -27,3 +27,12 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: true
+
+app:
+  integrations:
+    rabbitmq:
+      enabled: false
+    redis:
+      enabled: false
+    external-http:
+      enabled: false

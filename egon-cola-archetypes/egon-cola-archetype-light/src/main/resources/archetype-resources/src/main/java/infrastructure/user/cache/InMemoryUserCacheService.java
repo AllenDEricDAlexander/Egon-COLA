@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public final class InMemoryUserCacheService implements UserCacheService {
+public class InMemoryUserCacheService implements UserCacheService {
     private final ConcurrentMap<String, UserSnapshot> users = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Instant> claims = new ConcurrentHashMap<>();
     private final TransactionCompletionExecutor transactionCompletionExecutor;

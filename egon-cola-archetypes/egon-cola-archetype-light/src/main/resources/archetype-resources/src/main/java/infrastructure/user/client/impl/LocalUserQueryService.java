@@ -5,7 +5,7 @@ import ${package}.domain.user.vos.ExternalUser;
 
 import java.util.Optional;
 
-public final class LocalUserQueryService implements UserQueryService {
+public class LocalUserQueryService implements UserQueryService {
     @Override
     public Optional<ExternalUser> findExternalUser(String externalId) {
         if (!"ext-1".equals(externalId)) {

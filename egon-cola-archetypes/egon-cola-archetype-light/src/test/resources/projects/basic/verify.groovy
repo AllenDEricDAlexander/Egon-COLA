@@ -385,6 +385,38 @@ assert pom.contains('${env.POSTGRES_VERIFY_PASSWORD}')
 assertFile("src/test/java/it/pkg/infrastructure/config/LocalAdapterConfigurationTest.java")
 assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExecutorTest.java")
 
+[
+    "user/client/impl/RestUserQueryService",
+    "teaching/client/impl/RestTeachingQueryService",
+    "user/cache/RedisUserCacheService",
+    "teaching/cache/RedisCourseCacheService",
+    "user/mq/RabbitUserEventPublisher",
+    "teaching/mq/RabbitTeachingEventPublisher",
+    "user/validators/UserInfrastructureValidator",
+    "teaching/validators/TeachingInfrastructureValidator",
+    "aop/RepositoryMonitorAspect",
+    "aop/InfrastructureLogAspect",
+    "config/ExternalClientConfig",
+    "config/RabbitMqConfig",
+    "config/RedisConfig"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/infrastructure/${typePath}.java")
+}
+[
+    "user/client/RestUserQueryServiceTest",
+    "teaching/client/RestTeachingQueryServiceTest",
+    "user/mq/RabbitUserEventPublisherTest",
+    "teaching/mq/RabbitTeachingEventPublisherTest",
+    "user/cache/RedisUserCacheServiceTest",
+    "teaching/cache/RedisCourseCacheServiceTest",
+    "user/validators/UserInfrastructureValidatorTest",
+    "teaching/validators/TeachingInfrastructureValidatorTest",
+    "aop/InfrastructureAspectTest",
+    "config/RabbitMqConfigTest"
+].each { testPath ->
+    assertFile("src/test/java/it/pkg/infrastructure/${testPath}.java")
+}
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 

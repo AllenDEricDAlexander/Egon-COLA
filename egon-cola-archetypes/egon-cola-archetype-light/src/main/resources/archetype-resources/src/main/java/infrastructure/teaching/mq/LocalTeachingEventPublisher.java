@@ -7,7 +7,7 @@ import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public final class LocalTeachingEventPublisher implements TeachingEventPublisher {
+public class LocalTeachingEventPublisher implements TeachingEventPublisher {
     private final List<TeachingEvent> publishedEvents = new CopyOnWriteArrayList<>();
     private final TransactionCompletionExecutor transactionCompletionExecutor;
 
