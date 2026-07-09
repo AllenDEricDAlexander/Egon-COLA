@@ -16,6 +16,7 @@ The generated result remains one Spring Boot application, one Maven module, and 
 - Use JPA only. Do not generate MyBatis-Plus mapper or service packages and do not add MyBatis-Plus dependencies.
 - Use RabbitMQ for inbound and outbound messaging.
 - Keep `local` and `test` free of external service requirements. H2 and local fallback beans are the defaults; Redis, RabbitMQ, Nacos, and external HTTP clients are enabled only by configuration.
+- Organize business packages by domain first: enter `user` or `teaching` before technical packages such as `controller`, `mq`, `rpc`, `manage`, or `repo`. This keeps each domain subtree independently extractable for a later microservice split.
 - Remove the old `StudentController`, `StudentManagementFacade`, `Student` domain model, and student-course application flow.
 - Use Spring Boot Test through `spring-boot-starter-test`, with JUnit 5 and Mockito. Do not add TestNG, PowerMock, or another mocking framework.
 - Do not start the generated application during implementation validation.
@@ -58,10 +59,11 @@ ArchUnit must enforce both the allowed directions and the corresponding forbidde
 
 ## Document Overrides Required By The Dependency Contract
 
-Two parts of the document's example tree are superseded by the confirmed dependency direction:
+Three parts of the document's example tree are superseded by confirmed decisions:
 
 - `application.client` is not generated because an Infrastructure implementation would require the forbidden `infrastructure -> application` dependency. Outbound capability contracts are Domain Service interfaces instead.
-- `domain/*/service/impl` is not generated. Domain packages expose service interfaces, while implementations live under `infrastructure/service/*/impl`.
+- `domain/*/service/impl` is not generated. Domain packages expose service interfaces, while implementations live under `infrastructure/*/service/impl`.
+- Business packages are domain-first rather than technology-first. For example, use `adapter.user.controller`, not `adapter.controller.user`, and `infrastructure.user.repo`, not `infrastructure.repo.user`.
 
 These are deliberate changes, not omissions. All other document structures remain the baseline except for the confirmed JPA-only persistence choice.
 
@@ -88,33 +90,28 @@ The current async, configuration decryption, executable-jar, Docker, and runtime
 
 ```text
 adapter
-├── controller
-│   ├── user
-│   └── teaching
-├── mq
-│   ├── user
-│   └── teaching
-├── rpc
-│   ├── user
-│   └── teaching
-├── graphql
-│   ├── user
-│   └── teaching
-├── facade/impl
-│   ├── user
-│   └── teaching
-├── dto
-│   ├── user
-│   └── teaching
-├── vo
-│   ├── user
-│   └── teaching
-├── convertor
-│   ├── user
-│   └── teaching
+├── user
+│   ├── controller
+│   ├── mq
+│   ├── rpc
+│   ├── graphql
+│   ├── facade/impl
+│   ├── dto
+│   ├── vo
+│   ├── convertor
+│   └── validators
+├── teaching
+│   ├── controller
+│   ├── mq
+│   ├── rpc
+│   ├── graphql
+│   ├── facade/impl
+│   ├── dto
+│   ├── vo
+│   ├── convertor
+│   └── validators
 ├── handler
-├── filter
-└── validators
+└── filter
 ```
 
 Representative concrete types include:
@@ -128,7 +125,7 @@ Representative concrete types include:
 - `UserDetailVO`, `PermissionTreeVO`, `SchoolClassDetailVO`, and `CourseDetailVO`
 - `GlobalExceptionHandler`, `ResponseWrapperHandler`, `TraceIdFilter`, and `RequestContextFilter`
 
-Every inbound adapter validates and converts its protocol model, then delegates to an Application Manage interface. No inbound adapter may contain core business rules or call a Domain or Infrastructure type directly.
+Every inbound adapter validates and converts its protocol model, then delegates to an Application Manage interface. `adapter.user` and `adapter.teaching` are self-contained business subtrees; only cross-domain protocol concerns such as global handlers and request-context filters remain at the Adapter root. No inbound adapter may contain core business rules or call a Domain or Infrastructure type directly.
 
 ### Facade
 
@@ -136,40 +133,52 @@ Every inbound adapter validates and converts its protocol model, then delegates 
 facade
 ├── user
 │   ├── UserFacade.java
-│   └── PermissionFacade.java
-├── teaching
-│   ├── SchoolClassFacade.java
-│   └── CourseFacade.java
-├── dto
-│   ├── user
-│   └── teaching
-├── enums
-├── exceptions
-└── utils
+│   ├── PermissionFacade.java
+│   ├── dto
+│   ├── enums
+│   ├── exceptions
+│   └── utils
+└── teaching
+    ├── SchoolClassFacade.java
+    ├── CourseFacade.java
+    ├── dto
+    ├── enums
+    ├── exceptions
+    └── utils
 ```
 
-Facade contracts use only Facade-owned DTOs, enums, exceptions, and utilities. Dubbo providers live in Adapter and delegate to `adapter.facade.impl`; Facade has no Spring, Domain, Common, or Application dependency.
+Facade contracts use only DTOs, enums, exceptions, and utilities owned by the same Facade domain subtree. Dubbo providers live in Adapter and delegate to `adapter.<domain>.facade.impl`; Facade has no Spring, Domain, Common, or Application dependency.
 
 ### Application
 
 ```text
 application
-├── manage
-│   ├── user
+├── user
+│   ├── manage
 │   │   ├── UserManage.java
 │   │   ├── RoleManage.java
 │   │   ├── PermissionManage.java
 │   │   └── impl
-│   └── teaching
-│       ├── SchoolClassManage.java
-│       ├── CourseManage.java
-│       └── impl
-├── convertor
-├── validators
-└── assemblers
+│   ├── command
+│   ├── query
+│   ├── result
+│   ├── convertor
+│   ├── validators
+│   └── assemblers
+└── teaching
+    ├── manage
+    │   ├── SchoolClassManage.java
+    │   ├── CourseManage.java
+    │   └── impl
+    ├── command
+    ├── query
+    ├── result
+    ├── convertor
+    ├── validators
+    └── assemblers
 ```
 
-Each `manage.<domain>` package also owns the Commands, Queries, and Results used by Adapter. These boundary models prevent Adapter from importing Domain models and prevent Application from importing Facade DTOs.
+Each `application.<domain>` subtree owns the Manage interfaces and implementations, Commands, Queries, and Results used by the matching Adapter subtree. These boundary models prevent Adapter from importing Domain models and prevent Application from importing Facade DTOs.
 
 Application controls transactions, idempotency, operation-level authorization checks, workflow prerequisites, and cross-domain orchestration. It depends only on Domain entities, aggregates, repositories, validators, and service interfaces.
 
@@ -228,37 +237,35 @@ Domain objects own business state and invariants. Domain validators enforce rule
 
 ```text
 infrastructure
-├── repo
-│   ├── user
+├── user
+│   ├── repo
 │   │   ├── impl
 │   │   ├── po
 │   │   ├── jpa
 │   │   └── converter
-│   └── teaching
-│       ├── impl
-│       ├── po
-│       ├── jpa
-│       └── converter
-├── service
-│   ├── user/impl
-│   └── teaching/impl
-├── validators
-├── client
-│   ├── user/impl
-│   └── teaching/impl
+│   ├── service/impl
+│   ├── validators
+│   ├── client/impl
+│   ├── mq
+│   └── cache
+├── teaching
+│   ├── repo
+│   │   ├── impl
+│   │   ├── po
+│   │   ├── jpa
+│   │   └── converter
+│   ├── service/impl
+│   ├── validators
+│   ├── client/impl
+│   ├── mq
+│   └── cache
 ├── aop
-├── mq
-│   ├── user
-│   └── teaching
-├── cache
-│   ├── user
-│   └── teaching
 └── config
 ```
 
 JPA types use the document's naming style: `UserPO`, `RolePO`, `PermissionPO`, `UserRolePO`, `RolePermissionPO`, `SchoolClassPO`, `CoursePO`, and schedule-association PO types. Spring Data interfaces use names such as `UserJpaRepository` and `CourseJpaRepository`.
 
-Infrastructure Service implementations implement Domain Service interfaces. External HTTP clients, Redis caches, and RabbitMQ publishers also implement Domain-owned outbound ports, preserving `infrastructure -> domain` as the only Infrastructure layer dependency.
+Infrastructure Service implementations implement Domain Service interfaces. External HTTP clients, Redis caches, and RabbitMQ publishers also implement Domain-owned outbound ports. User and teaching implementations stay inside their respective Infrastructure subtrees; only cross-domain technical configuration and monitoring remain at the root. This preserves `infrastructure -> domain` as the only Infrastructure layer dependency and makes later domain extraction mechanical rather than architectural.
 
 ### Common
 
@@ -386,6 +393,7 @@ The basic `verify.groovy` must assert:
 
 - The generated project is a single Maven module.
 - The documented package and representative class tree exists.
+- Domain-first paths such as `adapter.user.controller`, `application.user.manage`, and `infrastructure.user.repo` exist, while reversed technology-first paths such as `adapter.controller.user`, `application.manage.user`, and `infrastructure.repo.user` are absent.
 - Domain Service interfaces are under Domain and their implementations are under Infrastructure.
 - `application.client` and `domain/*/service/impl` are absent.
 - JPA packages exist and MyBatis-Plus packages and dependencies are absent.
@@ -401,6 +409,7 @@ The generated README must describe:
 
 - The single-module monolith model.
 - Package responsibilities and the exact dependency graph.
+- The domain-first package organization and how it supports later extraction of `user` or `teaching` into an independent service.
 - The five primary business use cases.
 - Which integrations are real but disabled in `local/test`.
 - How to enable RabbitMQ, Redis, Nacos, Dubbo registry, and external clients in `dev/prod`.
@@ -416,6 +425,7 @@ The design uses patterns already justified by the architecture:
 - Application Service coordinates transactions and cross-domain use cases.
 - Domain Service contracts expose domain capabilities while Infrastructure supplies the confirmed implementations.
 - Adapter and Facade patterns isolate HTTP, GraphQL, RPC, and RabbitMQ protocols.
+- Package-by-feature organization keeps each user or teaching vertical cohesive before technical subpackages divide responsibilities.
 - Observer-style domain event publication decouples successful business changes from RabbitMQ delivery.
 - Assemblers and converters separate protocol, use-case, domain, and persistence models.
 
@@ -450,7 +460,8 @@ Also run `git diff --check` and targeted stale-name searches for `StudentControl
 ## Acceptance Criteria
 
 - The generated project remains one Maven module and matches the confirmed package dependency graph.
-- The section 4 package and naming baseline is represented, subject only to the explicit JPA-only and Domain-Service-implementation overrides.
+- The section 4 package and naming baseline is represented, subject only to the explicit JPA-only, Domain-Service-implementation, and domain-first package-order overrides.
+- User and teaching code is grouped into cohesive domain-first subtrees across Adapter, Facade, Application, Domain, and Infrastructure so either domain can later be extracted without reorganizing technology-first packages.
 - User, role, permission, school class, course, and scheduling flows work end to end.
 - HTTP, GraphQL, Dubbo, RabbitMQ, Redis, external HTTP, JPA, AOP, filters, converters, and four validator layers have real exercised implementations.
 - Domain Service interfaces reside in Domain and Infrastructure provides their implementations without importing Application.
