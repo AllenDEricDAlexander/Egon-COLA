@@ -241,6 +241,23 @@ assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/impl/CourseReposit
 assertFile("src/main/resources/application.yml")
 assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
 
+assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
+[
+    "UserDomainService",
+    "RoleDomainService",
+    "PermissionDomainService",
+    "UserQueryService",
+    "UserCacheService",
+    "UserEventPublisher"
+].each { serviceName ->
+    assertFile("src/main/java/it/pkg/domain/user/service/${serviceName}.java")
+}
+["UserRepository", "RoleRepository", "PermissionRepository"].each { repositoryName ->
+    assertFile("src/main/java/it/pkg/domain/user/repos/${repositoryName}.java")
+}
+assertFile("src/test/java/it/pkg/domain/user/aggregates/UserAggregateTest.java")
+assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateTest.java")
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 
