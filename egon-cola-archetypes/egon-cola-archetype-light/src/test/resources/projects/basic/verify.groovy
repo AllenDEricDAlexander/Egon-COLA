@@ -258,6 +258,34 @@ assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 assertFile("src/test/java/it/pkg/domain/user/aggregates/UserAggregateTest.java")
 assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateTest.java")
 
+[
+    "entities/SchoolClass",
+    "entities/Course",
+    "aggregates/SchoolClassAggregate",
+    "aggregates/CourseAggregate",
+    "vos/SchoolClassId",
+    "vos/CourseCode",
+    "vos/Semester",
+    "vos/CourseSchedule",
+    "vos/ExternalCourse",
+    "vos/CourseSnapshot",
+    "vos/TeachingEvent",
+    "enums/SchoolClassStatus",
+    "enums/CourseStatus",
+    "exceptions/TeachingDomainException",
+    "validators/TeachingDomainValidator",
+    "service/SchoolClassDomainService",
+    "service/CourseDomainService",
+    "service/TeachingQueryService",
+    "service/CourseCacheService",
+    "service/TeachingEventPublisher",
+    "repos/SchoolClassRepository",
+    "repos/CourseRepository"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/domain/teaching/${typePath}.java")
+}
+assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregateTest.java")
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 
