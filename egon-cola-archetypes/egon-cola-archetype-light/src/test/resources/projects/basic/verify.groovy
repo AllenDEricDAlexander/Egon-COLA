@@ -417,6 +417,53 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     assertFile("src/test/java/it/pkg/infrastructure/${testPath}.java")
 }
 
+[
+    "controller/UserController",
+    "controller/RoleController",
+    "controller/PermissionController",
+    "dto/CreateUserRequest",
+    "dto/AssignRoleRequest",
+    "dto/GrantPermissionRequest",
+    "vo/UserDetailVO",
+    "vo/PermissionTreeVO",
+    "convertor/UserAdapterConvertor",
+    "validators/UserRequestValidator",
+    "graphql/UserResolver",
+    "facade/impl/UserFacadeImpl",
+    "facade/impl/PermissionFacadeImpl",
+    "rpc/UserRpcProvider",
+    "mq/UserImportedConsumer"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/adapter/user/${typePath}.java")
+}
+[
+    "UserFacade",
+    "PermissionFacade",
+    "dto/CreateUserDTO",
+    "dto/AssignRoleDTO",
+    "dto/GrantPermissionDTO",
+    "dto/UserDetailDTO",
+    "dto/PermissionDTO",
+    "enums/UserFacadeStatus",
+    "exceptions/UserFacadeException",
+    "utils/UserFacadeAssert"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/facade/user/${typePath}.java")
+}
+[
+    "RequestContext",
+    "RequestContextHolder",
+    "TraceIdFilter",
+    "RequestContextFilter"
+].each { typeName ->
+    assertFile("src/main/java/it/pkg/adapter/filter/${typeName}.java")
+}
+assertFile("src/main/resources/graphql/user.graphqls")
+["controller", "mq", "rpc"].each { packageName ->
+    assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/user/${packageName}").isDirectory()
+    assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/${packageName}/user").exists()
+}
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 
