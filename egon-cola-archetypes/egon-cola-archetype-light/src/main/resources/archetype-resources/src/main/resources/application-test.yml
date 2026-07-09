@@ -20,6 +20,17 @@ spring:
     open-in-view: false
     show-sql: false
 
+management:
+  health:
+    rabbit:
+      enabled: false
+    redis:
+      enabled: false
+
+dubbo:
+  provider:
+    export: false
+
 app:
   integrations:
     rabbitmq:

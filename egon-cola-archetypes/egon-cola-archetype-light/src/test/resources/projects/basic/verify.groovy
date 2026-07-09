@@ -137,7 +137,8 @@ assert pom.contains("<springdoc.version>2.8.17</springdoc.version>")
     "spring-boot-starter-aop",
     "springdoc-openapi-starter-webmvc-ui",
     "flyway-database-postgresql",
-    "spring-boot-starter-test"
+    "spring-boot-starter-test",
+    "spring-graphql-test"
 ].each { artifactId ->
     assert pom.contains("<artifactId>${artifactId}</artifactId>")
 }
@@ -223,21 +224,17 @@ assert springFactories.contains("org.springframework.boot.env.EnvironmentPostPro
 assert springFactories.contains("it.pkg.start.config.encryption.ConfigDecryptEnvironmentPostProcessor")
 assertFile("src/test/java/it/pkg/start/config/encryption/AesGcmConfigDecryptorTest.java")
 assertFile("src/test/java/it/pkg/start/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
-assertFile("src/test/java/it/pkg/application/StudentManagementFlowTest.java").text.contains('properties = "dubbo.protocol.port=-1"')
+assertFile("src/main/java/it/pkg/start/config/JacksonConfig.java")
+assertFile("src/main/java/it/pkg/start/config/OpenApiConfig.java")
+assertFile("src/main/java/it/pkg/start/config/ActuatorConfig.java")
+assertFile("src/test/java/it/pkg/start/StudentManagementApplicationTest.java")
+assertFile("src/test/java/it/pkg/start/config/RuntimeConfigurationTest.java")
 def starterText = assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java").text
 assert starterText.contains("@EnableDubbo")
-assert starterText.contains('scanBasePackages = "it.pkg.adapter.facade"')
-assertFile("src/main/java/it/pkg/adapter/controller/student/StudentController.java")
-assertFile("src/main/java/it/pkg/adapter/controller/teaching/CourseController.java")
-assertFile("src/main/java/it/pkg/adapter/validation/ValidatorUtils.java")
-assertFile("src/main/java/it/pkg/facade/api/StudentManagementFacade.java")
-assertFile("src/main/java/it/pkg/application/manage/student/StudentManage.java")
-assertFile("src/main/java/it/pkg/application/manage/teaching/CourseManage.java")
-assertFile("src/main/java/it/pkg/application/config/DomainServiceConfiguration.java")
-assertFile("src/main/java/it/pkg/domain/student/model/Student.java")
-assertFile("src/main/java/it/pkg/domain/teaching/model/Course.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/student/impl/StudentRepositoryImpl.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/impl/CourseRepositoryImpl.java")
+assert starterText.contains('"it.pkg.adapter.user.rpc"')
+assert starterText.contains('"it.pkg.adapter.teaching.rpc"')
+assert starterText.contains('"it.pkg.infrastructure.user.repo.jpa"')
+assert starterText.contains('"it.pkg.infrastructure.teaching.repo.jpa"')
 assertFile("src/main/resources/application.yml")
 assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
 
@@ -509,66 +506,6 @@ assertFile("src/main/resources/graphql/teaching.graphqls")
     assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/teaching/${packageName}").isDirectory()
 }
 
-assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
-assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
-
-def studentManageText = assertFile("src/main/java/it/pkg/application/manage/student/StudentManage.java").text
-assert studentManageText.contains("Student register(String name, String email)")
-assert studentManageText.contains("Student getById(String studentId)")
-assert !studentManageText.contains("StudentView")
-
-def courseManageText = assertFile("src/main/java/it/pkg/application/manage/teaching/CourseManage.java").text
-assert courseManageText.contains("Course create(String name, String description)")
-assert courseManageText.contains("Course getById(String courseId)")
-assert !courseManageText.contains("CourseView")
-
-def lightFacadeText = assertFile("src/main/java/it/pkg/adapter/facade/impl/StudentManagementFacadeImpl.java").text
-assert lightFacadeText.contains("@DubboService")
-assert lightFacadeText.contains("interfaceClass = StudentManagementFacade.class")
-assert lightFacadeText.contains('version = "1.0.0"')
-assert lightFacadeText.contains('group = "student-management"')
-assert lightFacadeText.contains("@RequiredArgsConstructor")
-assert lightFacadeText.contains("@Qualifier(\"studentManage\")")
-assert lightFacadeText.contains("@Qualifier(\"studentAdapterConverter\")")
-
-assertNoGenericMapStructConverterInjection("src/main/java/it/pkg/adapter/convertor")
-assertNoGenericMapStructConverterInjection("src/main/java/it/pkg/infrastructure/repo")
-
-assertFile("src/main/java/it/pkg/adapter/convertor/StudentAdapterMapper.java")
-assertFile("src/main/java/it/pkg/adapter/convertor/CourseAdapterMapper.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentPoMapper.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentDomainMapper.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentDomainFactory.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CoursePoMapper.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CourseDomainMapper.java")
-assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CourseDomainFactory.java")
-assertFile("src/main/java/it/pkg/domain/common/Page.java")
-assertFile("src/main/java/it/pkg/facade/dto/PageResponse.java")
-
-assertFile("src/main/java/it/pkg/adapter/convertor/StudentAdapterMapper.java").text.contains("BaseMapper<Student, StudentDTO>")
-assertFile("src/main/java/it/pkg/adapter/convertor/CourseAdapterMapper.java").text.contains("BaseMapper<Course, CourseDTO>")
-assertFile("src/main/java/it/pkg/infrastructure/repo/student/converter/StudentPoMapper.java").text.contains("BaseMapper<Student, StudentPo>")
-assertFile("src/main/java/it/pkg/infrastructure/repo/teaching/converter/CoursePoMapper.java").text.contains("BaseMapper<Course, CoursePo>")
-
-studentManageText = assertFile("src/main/java/it/pkg/application/manage/student/StudentManage.java").text
-assert studentManageText.contains("Page<Student> getPage(int currentPage, int pageSize)")
-assert studentManageText.contains("import it.pkg.domain.common.Page;")
-
-def studentRepositoryText = assertFile("src/main/java/it/pkg/domain/student/repos/StudentRepository.java").text
-assert studentRepositoryText.contains("Page<Student> findPage(int currentPage, int pageSize)")
-assert studentRepositoryText.contains("import it.pkg.domain.common.Page;")
-
-def studentControllerText = assertFile("src/main/java/it/pkg/adapter/controller/student/StudentController.java").text
-assert studentControllerText.contains("SingleResponse<PageResponse<StudentDTO>> getPage")
-assert studentControllerText.contains("studentAdapterConverter.toPageResponse(studentManage.getPage(currentPage, pageSize))")
-
-def studentFacadeText = assertFile("src/main/java/it/pkg/facade/api/StudentManagementFacade.java").text
-assert studentFacadeText.contains("PageResponse<StudentDTO> getStudents(int currentPage, int pageSize)")
-
-def lightFacadeImplTextAfterPage = assertFile("src/main/java/it/pkg/adapter/facade/impl/StudentManagementFacadeImpl.java").text
-assert lightFacadeImplTextAfterPage.contains("PageResponse<StudentDTO> getStudents")
-assert lightFacadeImplTextAfterPage.contains("studentAdapterConverter.toPageResponse(studentManage.getPage(currentPage, pageSize))")
-
 def facadeJavaFiles = []
 new File(generatedProjectDir, "src/main/java/it/pkg/facade").eachFileRecurse { file ->
     if (file.isFile() && file.name.endsWith(".java")) {
@@ -577,16 +514,6 @@ new File(generatedProjectDir, "src/main/java/it/pkg/facade").eachFileRecurse { f
 }
 assert !facadeJavaFiles.isEmpty()
 assert facadeJavaFiles.every { !it.text.contains("import it.pkg.domain.") }
-
-def studentDtoText = assertFile("src/main/java/it/pkg/facade/dto/StudentDTO.java").text
-assert !studentDtoText.contains("@AutoMapper")
-assert !studentDtoText.contains("org.springframework.stereotype.Component")
-assert !studentDtoText.contains("org.mapstruct.ObjectFactory")
-
-def courseDtoText = assertFile("src/main/java/it/pkg/facade/dto/CourseDTO.java").text
-assert !courseDtoText.contains("@AutoMapper")
-assert !courseDtoText.contains("org.springframework.stereotype.Component")
-assert !courseDtoText.contains("org.mapstruct.ObjectFactory")
 
 def allApplicationJava = []
 new File(generatedProjectDir, "src/main/java/it/pkg/application").eachFileRecurse { file ->
@@ -598,6 +525,27 @@ assert allApplicationJava.every { !it.text.contains("View") }
 assert allApplicationJava.every { !it.text.contains("facade.dto") }
 assert allApplicationJava.every { !it.text.contains("common.response") }
 
+[
+    "adapter/controller",
+    "adapter/convertor",
+    "adapter/facade",
+    "adapter/validation",
+    "adapter/vo",
+    "application/config",
+    "application/convertor",
+    "application/manage",
+    "application/validators",
+    "domain/common",
+    "domain/student",
+    "domain/teaching/model",
+    "facade/api",
+    "facade/dto",
+    "facade/enums",
+    "infrastructure/repo"
+].each { reversedPath ->
+    assert !new File(generatedProjectDir, "src/main/java/it/pkg/${reversedPath}").exists()
+}
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeController.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
 assert !new File(generatedProjectDir, "src/test/charge.http").exists()
@@ -606,7 +554,6 @@ def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migratio
 assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 2
 
 assertFile("src/test/java/it/pkg/ArchitectureDependencyTest.java")
-assertFile("src/test/java/it/pkg/application/StudentManagementFlowTest.java")
 
 def readme = assertFile("README.md").text
 assert readme.contains("Student Management")
