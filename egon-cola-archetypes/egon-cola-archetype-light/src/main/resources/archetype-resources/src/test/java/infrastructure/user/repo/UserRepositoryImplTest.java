@@ -73,6 +73,8 @@ class UserRepositoryImplTest {
         entityManager.clear();
 
         assertEquals("Mario", userRepository.findById(new UserId("u-1")).orElseThrow().name());
+        assertEquals("course:read", permissionRepository.findByUserId(new UserId("u-1"))
+                .getFirst().code().value());
         assertEquals(1, userRoleJpaRepository.count());
         assertEquals(1, rolePermissionJpaRepository.count());
     }

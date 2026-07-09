@@ -18,7 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SchoolClassController.class)
@@ -47,5 +49,15 @@ class SchoolClassControllerTest {
         ArgumentCaptor<CreateSchoolClassCommand> captor = ArgumentCaptor.forClass(CreateSchoolClassCommand.class);
         verify(schoolClassManage).create(captor.capture());
         assertThat(captor.getValue().operatorId()).isEqualTo("operator-1");
+    }
+
+    @Test
+    void gets_school_class() throws Exception {
+        when(schoolClassManage.get(any())).thenReturn(
+                new SchoolClassResult("class-1", "Class One", "2026-FALL", "ACTIVE", 2));
+
+        mockMvc.perform(get("/api/school-classes/class-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.scheduleCount").value(2));
     }
 }

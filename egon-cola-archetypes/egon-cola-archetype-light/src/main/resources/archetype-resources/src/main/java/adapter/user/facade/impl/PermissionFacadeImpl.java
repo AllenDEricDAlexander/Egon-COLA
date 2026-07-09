@@ -3,13 +3,17 @@ package ${package}.adapter.user.facade.impl;
 import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.manage.UserUseCaseException;
+import ${package}.application.user.query.GetUserPermissionsQuery;
 import ${package}.application.user.result.PermissionResult;
 import ${package}.facade.user.PermissionFacade;
 import ${package}.facade.user.dto.GrantPermissionDTO;
+import ${package}.facade.user.dto.PermissionDetailDTO;
 import ${package}.facade.user.dto.PermissionDTO;
 import ${package}.facade.user.exceptions.UserFacadeException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -22,6 +26,18 @@ public class PermissionFacadeImpl implements PermissionFacade {
             PermissionResult result = permissionManage.grantPermission(new GrantPermissionCommand(
                     request.roleCode(), request.permissionCode(), request.operatorId(), request.requestId()));
             return new PermissionDTO(result.roleCode(), result.permissionCode(), result.status());
+        } catch (UserUseCaseException exception) {
+            throw new UserFacadeException(exception.getCode(), exception.getMessage());
+        }
+    }
+
+    @Override
+    public List<PermissionDetailDTO> getUserPermissions(String userId) {
+        try {
+            return permissionManage.getByUser(new GetUserPermissionsQuery(userId)).stream()
+                    .map(permission -> new PermissionDetailDTO(
+                            permission.code(), permission.name(), List.of()))
+                    .toList();
         } catch (UserUseCaseException exception) {
             throw new UserFacadeException(exception.getCode(), exception.getMessage());
         }

@@ -43,6 +43,15 @@ def assertNoGenericMapStructConverterInjection = { path ->
     }
 }
 
+def assertNoInternalImports = { path, forbiddenLayers ->
+    javaFileTexts(path).each { text ->
+        forbiddenLayers.each { layer ->
+            assert !text.contains("import it.pkg.${layer}."):
+                    "Unexpected ${layer} import under ${path}"
+        }
+    }
+}
+
 assertFile("pom.xml")
 def mvnw = assertFile("mvnw")
 assertFile("mvnw.cmd")
@@ -111,6 +120,14 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 
 def pom = assertFile("pom.xml").text
 def pomXml = new groovy.xml.XmlSlurper(false, false).parse(assertFile("pom.xml"))
+def generatedPoms = []
+generatedProjectDir.eachFileRecurse { file ->
+    if (file.isFile() && file.name == "pom.xml") {
+        generatedPoms << file
+    }
+}
+assert generatedPoms.size() == 1: "Expected a single Maven module"
+assert pomXml.modules.module.isEmpty(): "Expected no Maven child modules"
 def assertSpringBootLayeredJarPlugin = { pomModel ->
     def bootPlugin = pomModel.build.plugins.plugin.find {
         it.artifactId.text() == "spring-boot-maven-plugin"
@@ -187,6 +204,17 @@ assert assertFile("src/main/resources/application-test.yml").text.contains('pass
 assert !assertFile("src/main/resources/bootstrap-local.yml").text.contains('ENC(')
 assert !assertFile("src/main/resources/bootstrap-test.yml").text.contains('ENC(')
 
+def localConfig = assertFile("src/main/resources/application-local.yml").text
+def testConfig = assertFile("src/main/resources/application-test.yml").text
+[localConfig, testConfig].each { profileConfig ->
+    assert profileConfig.contains("rabbitmq:\n      enabled: false")
+    assert profileConfig.contains("redis:\n      enabled: false")
+    assert profileConfig.contains("external-http:\n      enabled: false")
+}
+assert testConfig.contains("export: false")
+assert testConfig.contains("rabbit:\n      enabled: false")
+assert testConfig.contains("redis:\n      enabled: false")
+
 def applicationYaml = assertFile("src/main/resources/application.yml").text
 assert applicationYaml.contains("threads:")
 assert applicationYaml.contains("virtual:")
@@ -208,6 +236,124 @@ def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
 assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java")
+assertFile("src/main/java/it/pkg/package-info.java")
+def requiredPackagePaths = [
+    "start",
+    "start/config",
+    "start/config/async",
+    "start/config/encryption",
+    "adapter",
+    "adapter/user",
+    "adapter/user/controller",
+    "adapter/user/mq",
+    "adapter/user/rpc",
+    "adapter/user/graphql",
+    "adapter/user/facade",
+    "adapter/user/facade/impl",
+    "adapter/user/dto",
+    "adapter/user/vo",
+    "adapter/user/convertor",
+    "adapter/user/validators",
+    "adapter/teaching",
+    "adapter/teaching/controller",
+    "adapter/teaching/mq",
+    "adapter/teaching/rpc",
+    "adapter/teaching/graphql",
+    "adapter/teaching/facade",
+    "adapter/teaching/facade/impl",
+    "adapter/teaching/dto",
+    "adapter/teaching/vo",
+    "adapter/teaching/convertor",
+    "adapter/teaching/validators",
+    "adapter/handler",
+    "adapter/filter",
+    "facade",
+    "facade/user",
+    "facade/user/dto",
+    "facade/user/enums",
+    "facade/user/exceptions",
+    "facade/user/utils",
+    "facade/teaching",
+    "facade/teaching/dto",
+    "facade/teaching/enums",
+    "facade/teaching/exceptions",
+    "facade/teaching/utils",
+    "application",
+    "application/user",
+    "application/user/manage",
+    "application/user/manage/impl",
+    "application/user/command",
+    "application/user/query",
+    "application/user/result",
+    "application/user/convertor",
+    "application/user/validators",
+    "application/user/assemblers",
+    "application/teaching",
+    "application/teaching/manage",
+    "application/teaching/manage/impl",
+    "application/teaching/command",
+    "application/teaching/query",
+    "application/teaching/result",
+    "application/teaching/convertor",
+    "application/teaching/validators",
+    "application/teaching/assemblers",
+    "domain",
+    "domain/user",
+    "domain/user/entities",
+    "domain/user/aggregates",
+    "domain/user/vos",
+    "domain/user/service",
+    "domain/user/repos",
+    "domain/user/validators",
+    "domain/user/enums",
+    "domain/user/exceptions",
+    "domain/teaching",
+    "domain/teaching/entities",
+    "domain/teaching/aggregates",
+    "domain/teaching/vos",
+    "domain/teaching/service",
+    "domain/teaching/repos",
+    "domain/teaching/validators",
+    "domain/teaching/enums",
+    "domain/teaching/exceptions",
+    "infrastructure",
+    "infrastructure/user",
+    "infrastructure/user/repo",
+    "infrastructure/user/repo/impl",
+    "infrastructure/user/repo/po",
+    "infrastructure/user/repo/jpa",
+    "infrastructure/user/repo/converter",
+    "infrastructure/user/service",
+    "infrastructure/user/service/impl",
+    "infrastructure/user/validators",
+    "infrastructure/user/client",
+    "infrastructure/user/client/impl",
+    "infrastructure/user/mq",
+    "infrastructure/user/cache",
+    "infrastructure/teaching",
+    "infrastructure/teaching/repo",
+    "infrastructure/teaching/repo/impl",
+    "infrastructure/teaching/repo/po",
+    "infrastructure/teaching/repo/jpa",
+    "infrastructure/teaching/repo/converter",
+    "infrastructure/teaching/service",
+    "infrastructure/teaching/service/impl",
+    "infrastructure/teaching/validators",
+    "infrastructure/teaching/client",
+    "infrastructure/teaching/client/impl",
+    "infrastructure/teaching/mq",
+    "infrastructure/teaching/cache",
+    "infrastructure/aop",
+    "infrastructure/config",
+    "common",
+    "common/constants",
+    "common/utils",
+    "common/enums",
+    "common/exceptions"
+]
+requiredPackagePaths.each { packagePath ->
+    assertFile("src/main/java/it/pkg/${packagePath}/package-info.java")
+}
 def asyncConfigurationText = assertFile("src/main/java/it/pkg/start/config/async/AsyncConfiguration.java").text
 assert asyncConfigurationText.contains("implements AsyncConfigurer")
 assert asyncConfigurationText.contains("getAsyncUncaughtExceptionHandler")
@@ -288,8 +434,10 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
     "command/AssignRoleCommand",
     "command/GrantPermissionCommand",
     "query/GetUserQuery",
+    "query/GetUserPermissionsQuery",
     "result/UserResult",
     "result/PermissionResult",
+    "result/PermissionDetailResult",
     "manage/UserManage",
     "manage/RoleManage",
     "manage/PermissionManage",
@@ -317,6 +465,7 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
     "command/CreateCourseCommand",
     "command/ScheduleCourseCommand",
     "query/GetCourseQuery",
+    "query/GetSchoolClassQuery",
     "result/SchoolClassResult",
     "result/CourseResult",
     "manage/SchoolClassManage",
@@ -429,6 +578,7 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     "facade/impl/UserFacadeImpl",
     "facade/impl/PermissionFacadeImpl",
     "rpc/UserRpcProvider",
+    "rpc/PermissionRpcProvider",
     "mq/UserImportedConsumer"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/adapter/user/${typePath}.java")
@@ -441,6 +591,7 @@ assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExec
     "dto/GrantPermissionDTO",
     "dto/UserDetailDTO",
     "dto/PermissionDTO",
+    "dto/PermissionDetailDTO",
     "enums/UserFacadeStatus",
     "exceptions/UserFacadeException",
     "utils/UserFacadeAssert"
@@ -474,6 +625,7 @@ assertFile("src/main/resources/graphql/user.graphqls")
     "facade/impl/SchoolClassFacadeImpl",
     "facade/impl/CourseFacadeImpl",
     "rpc/CourseRpcProvider",
+    "rpc/SchoolClassRpcProvider",
     "mq/CourseImportedConsumer"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/adapter/teaching/${typePath}.java")
@@ -525,26 +677,53 @@ assert allApplicationJava.every { !it.text.contains("View") }
 assert allApplicationJava.every { !it.text.contains("facade.dto") }
 assert allApplicationJava.every { !it.text.contains("common.response") }
 
+assertNoInternalImports("src/main/java/it/pkg/start", ["application", "common", "domain", "facade"])
+assertNoInternalImports("src/main/java/it/pkg/adapter", ["common", "domain", "infrastructure", "start"])
+assertNoInternalImports("src/main/java/it/pkg/application", ["adapter", "common", "facade", "infrastructure", "start"])
+assertNoInternalImports("src/main/java/it/pkg/domain", ["adapter", "application", "facade", "infrastructure", "start"])
+assertNoInternalImports("src/main/java/it/pkg/infrastructure", ["adapter", "application", "common", "facade", "start"])
+assertNoInternalImports("src/main/java/it/pkg/facade", ["adapter", "application", "common", "domain", "infrastructure", "start"])
+assertNoInternalImports("src/main/java/it/pkg/common", ["adapter", "application", "domain", "facade", "infrastructure", "start"])
+
 [
-    "adapter/controller",
-    "adapter/convertor",
-    "adapter/facade",
-    "adapter/validation",
-    "adapter/vo",
-    "application/config",
-    "application/convertor",
-    "application/manage",
-    "application/validators",
-    "domain/common",
-    "domain/student",
-    "domain/teaching/model",
-    "facade/api",
-    "facade/dto",
-    "facade/enums",
-    "infrastructure/repo"
-].each { reversedPath ->
-    assert !new File(generatedProjectDir, "src/main/java/it/pkg/${reversedPath}").exists()
+    "src/main/java/it/pkg/adapter/controller",
+    "src/main/java/it/pkg/adapter/mq",
+    "src/main/java/it/pkg/adapter/rpc",
+    "src/main/java/it/pkg/adapter/graphql",
+    "src/main/java/it/pkg/adapter/facade",
+    "src/main/java/it/pkg/adapter/dto",
+    "src/main/java/it/pkg/adapter/vo",
+    "src/main/java/it/pkg/adapter/convertor",
+    "src/main/java/it/pkg/adapter/validators",
+    "src/main/java/it/pkg/adapter/validation",
+    "src/main/java/it/pkg/application/manage",
+    "src/main/java/it/pkg/application/command",
+    "src/main/java/it/pkg/application/query",
+    "src/main/java/it/pkg/application/result",
+    "src/main/java/it/pkg/application/convertor",
+    "src/main/java/it/pkg/application/validators",
+    "src/main/java/it/pkg/application/assemblers",
+    "src/main/java/it/pkg/application/config",
+    "src/main/java/it/pkg/facade/api",
+    "src/main/java/it/pkg/facade/dto",
+    "src/main/java/it/pkg/facade/enums",
+    "src/main/java/it/pkg/facade/exceptions",
+    "src/main/java/it/pkg/facade/utils",
+    "src/main/java/it/pkg/infrastructure/repo",
+    "src/main/java/it/pkg/infrastructure/service",
+    "src/main/java/it/pkg/infrastructure/validators",
+    "src/main/java/it/pkg/infrastructure/client",
+    "src/main/java/it/pkg/infrastructure/mq",
+    "src/main/java/it/pkg/infrastructure/cache",
+    "src/main/java/it/pkg/domain/common",
+    "src/main/java/it/pkg/domain/student",
+    "src/main/java/it/pkg/domain/teaching/model"
+].each { path ->
+    assert !new File(generatedProjectDir, path).exists(): "Unexpected reversed or stale path ${path}"
 }
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/client").exists()
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/user/service/impl").exists()
+assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/teaching/service/impl").exists()
 
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeController.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
@@ -554,11 +733,20 @@ def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migratio
 assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 2
 
 assertFile("src/test/java/it/pkg/ArchitectureDependencyTest.java")
+assertFile("src/test/java/it/pkg/adapter/user/rpc/PermissionRpcProviderTest.java")
+assertFile("src/test/java/it/pkg/adapter/teaching/rpc/SchoolClassRpcProviderTest.java")
 
 def readme = assertFile("README.md").text
 assert readme.contains("Student Management")
 assert readme.contains("single Maven module")
-assert readme.contains("start / adapter / facade / application / infrastructure / common / domain")
+assert readme.contains("start          -> adapter, infrastructure")
+assert readme.contains("adapter        -> application, facade")
+assert readme.contains("infrastructure -> domain")
+assert readme.contains("Domain-First Structure")
+assert readme.contains("Primary Workflows")
+assert readme.contains("RABBITMQ_ENABLED=true")
+assert readme.contains("ConfigCipherCli")
+assert readme.contains("docker build -t basic:local .")
 assert !readme.contains("计费")
 assert !readme.contains("Charge")
 

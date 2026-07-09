@@ -8,4 +8,6 @@ public interface SchoolClassFacade {
     SchoolClassDetailDTO createSchoolClass(CreateSchoolClassDTO request);
 
     SchoolClassDetailDTO scheduleCourse(ScheduleCourseDTO request);
+
+    SchoolClassDetailDTO getSchoolClass(String schoolClassId);
 }

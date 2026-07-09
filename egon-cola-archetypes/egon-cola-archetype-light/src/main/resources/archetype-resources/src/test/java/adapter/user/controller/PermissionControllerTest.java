@@ -2,6 +2,7 @@ package ${package}.adapter.user.controller;
 
 import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.user.manage.PermissionManage;
+import ${package}.application.user.result.PermissionDetailResult;
 import ${package}.application.user.result.PermissionResult;
 import ${package}.adapter.filter.RequestContextFilter;
 import ${package}.adapter.filter.TraceIdFilter;
@@ -13,12 +14,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PermissionController.class)
@@ -53,5 +58,15 @@ class PermissionControllerTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest());
         verify(permissionManage, never()).grantPermission(any());
+    }
+
+    @Test
+    void lists_permissions_for_user() throws Exception {
+        when(permissionManage.getByUser(any())).thenReturn(List.of(
+                new PermissionDetailResult("course:read", "Read courses")));
+
+        mockMvc.perform(get("/api/users/u-1/permissions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].code").value("course:read"));
     }
 }

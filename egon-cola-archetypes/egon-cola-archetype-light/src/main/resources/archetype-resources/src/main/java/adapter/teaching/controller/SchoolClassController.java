@@ -10,8 +10,10 @@ import ${package}.adapter.teaching.vo.SchoolClassDetailVO;
 import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.command.ScheduleCourseCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
+import ${package}.application.teaching.query.GetSchoolClassQuery;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,6 +32,12 @@ public class SchoolClassController {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return TeachingAdapterConvertor.toSchoolClass(schoolClassManage.create(new CreateSchoolClassCommand(
                 request.name(), request.semester(), context.operatorId(), context.requestId())));
+    }
+
+    @GetMapping("/{schoolClassId}")
+    public SchoolClassDetailVO get(@PathVariable String schoolClassId) {
+        return TeachingAdapterConvertor.toSchoolClass(
+                schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
     }
 
     @PostMapping("/{schoolClassId}/courses/{courseId}/schedule")

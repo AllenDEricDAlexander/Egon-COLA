@@ -3,6 +3,7 @@ package ${package}.application.teaching.manage;
 import ${package}.application.teaching.command.ScheduleCourseCommand;
 import ${package}.application.teaching.convertor.TeachingApplicationConvertor;
 import ${package}.application.teaching.manage.impl.SchoolClassManageImpl;
+import ${package}.application.teaching.query.GetSchoolClassQuery;
 import ${package}.application.teaching.result.SchoolClassResult;
 import ${package}.application.teaching.validators.TeachingApplicationValidator;
 import ${package}.domain.teaching.aggregates.SchoolClassAggregate;
@@ -82,6 +83,19 @@ class SchoolClassManageTest {
                 TeachingUseCaseException.class, () -> manage.schedule(command()));
 
         assertEquals("SCHEDULE_OVERLAP", error.getCode());
+    }
+
+    @Test
+    void queries_school_class_with_schedule_count() {
+        SchoolClassAggregate aggregate = aggregate();
+        aggregate.schedule(course(), schedule());
+        when(schoolClassRepository.findAggregateById(new SchoolClassId("class-1")))
+                .thenReturn(Optional.of(aggregate));
+        when(convertor.toResult(aggregate)).thenReturn(result());
+
+        SchoolClassResult result = manage.get(new GetSchoolClassQuery("class-1"));
+
+        assertEquals(1, result.scheduleCount());
     }
 
     private ScheduleCourseCommand command() {

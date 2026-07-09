@@ -3,6 +3,8 @@ package ${package}.application.user.manage;
 import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.user.convertor.UserApplicationConvertor;
 import ${package}.application.user.manage.impl.PermissionManageImpl;
+import ${package}.application.user.query.GetUserPermissionsQuery;
+import ${package}.application.user.result.PermissionDetailResult;
 import ${package}.application.user.result.PermissionResult;
 import ${package}.application.user.validators.UserApplicationValidator;
 import ${package}.domain.user.aggregates.RolePermissionAggregate;
@@ -17,12 +19,14 @@ import ${package}.domain.user.service.PermissionDomainService;
 import ${package}.domain.user.service.UserEventPublisher;
 import ${package}.domain.user.vos.PermissionCode;
 import ${package}.domain.user.vos.RoleCode;
+import ${package}.domain.user.vos.UserId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,6 +79,18 @@ class PermissionManageTest {
                 UserUseCaseException.class, () -> manage.grantPermission(command()));
 
         assertEquals("PERMISSION_NOT_ACTIVE", error.getCode());
+    }
+
+    @Test
+    void queries_permissions_for_user() {
+        Permission permission = permission(PermissionStatus.ACTIVE);
+        when(permissionRepository.findByUserId(new UserId("u-1")))
+                .thenReturn(List.of(permission));
+
+        List<PermissionDetailResult> result = manage.getByUser(
+                new GetUserPermissionsQuery("u-1"));
+
+        assertEquals(List.of(new PermissionDetailResult("course:read", "Read courses")), result);
     }
 
     private GrantPermissionCommand command() {

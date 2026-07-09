@@ -5,6 +5,7 @@ import ${package}.application.teaching.command.ScheduleCourseCommand;
 import ${package}.application.teaching.convertor.TeachingApplicationConvertor;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.manage.TeachingUseCaseException;
+import ${package}.application.teaching.query.GetSchoolClassQuery;
 import ${package}.application.teaching.result.SchoolClassResult;
 import ${package}.application.teaching.validators.TeachingApplicationValidator;
 import ${package}.domain.teaching.aggregates.SchoolClassAggregate;
@@ -72,6 +73,15 @@ public class SchoolClassManageImpl implements SchoolClassManage {
         } catch (TeachingDomainException exception) {
             throw translate(exception);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SchoolClassResult get(GetSchoolClassQuery query) {
+        SchoolClassAggregate aggregate = schoolClassRepository
+                .findAggregateById(new SchoolClassId(query.schoolClassId()))
+                .orElseThrow(() -> new TeachingUseCaseException("CLASS_NOT_FOUND", "class not found"));
+        return convertor.toResult(aggregate);
     }
 
     private TeachingUseCaseException translate(TeachingDomainException exception) {

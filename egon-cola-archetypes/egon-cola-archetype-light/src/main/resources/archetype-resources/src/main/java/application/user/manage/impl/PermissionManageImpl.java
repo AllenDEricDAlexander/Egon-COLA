@@ -4,6 +4,8 @@ import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.user.convertor.UserApplicationConvertor;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.manage.UserUseCaseException;
+import ${package}.application.user.query.GetUserPermissionsQuery;
+import ${package}.application.user.result.PermissionDetailResult;
 import ${package}.application.user.result.PermissionResult;
 import ${package}.application.user.validators.UserApplicationValidator;
 import ${package}.domain.user.aggregates.RolePermissionAggregate;
@@ -17,11 +19,14 @@ import ${package}.domain.user.service.UserEventPublisher;
 import ${package}.domain.user.vos.PermissionCode;
 import ${package}.domain.user.vos.RoleCode;
 import ${package}.domain.user.vos.UserEvent;
+import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Lazy
@@ -55,5 +60,14 @@ public class PermissionManageImpl implements PermissionManage {
         } catch (UserDomainException exception) {
             throw new UserUseCaseException(exception.getCode(), exception.getMessage(), exception);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PermissionDetailResult> getByUser(GetUserPermissionsQuery query) {
+        return permissionRepository.findByUserId(new UserId(query.userId())).stream()
+                .map(permission -> new PermissionDetailResult(
+                        permission.code().value(), permission.name()))
+                .toList();
     }
 }

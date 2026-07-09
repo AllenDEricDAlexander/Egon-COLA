@@ -4,6 +4,7 @@ import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.command.ScheduleCourseCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.manage.TeachingUseCaseException;
+import ${package}.application.teaching.query.GetSchoolClassQuery;
 import ${package}.application.teaching.result.SchoolClassResult;
 import ${package}.facade.teaching.SchoolClassFacade;
 import ${package}.facade.teaching.dto.CreateSchoolClassDTO;
@@ -34,6 +35,15 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
             return toDto(schoolClassManage.schedule(new ScheduleCourseCommand(
                     request.schoolClassId(), request.courseId(), request.startsAt(), request.endsAt(),
                     request.operatorId(), request.requestId())));
+        } catch (TeachingUseCaseException exception) {
+            throw publicFailure(exception);
+        }
+    }
+
+    @Override
+    public SchoolClassDetailDTO getSchoolClass(String schoolClassId) {
+        try {
+            return toDto(schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
         } catch (TeachingUseCaseException exception) {
             throw publicFailure(exception);
         }
