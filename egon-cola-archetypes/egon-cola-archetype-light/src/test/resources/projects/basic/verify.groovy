@@ -286,6 +286,35 @@ assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateT
 }
 assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregateTest.java")
 
+[
+    "command/CreateUserCommand",
+    "command/AssignRoleCommand",
+    "command/GrantPermissionCommand",
+    "query/GetUserQuery",
+    "result/UserResult",
+    "result/PermissionResult",
+    "manage/UserManage",
+    "manage/RoleManage",
+    "manage/PermissionManage",
+    "manage/UserUseCaseException",
+    "manage/impl/UserManageImpl",
+    "manage/impl/RoleManageImpl",
+    "manage/impl/PermissionManageImpl",
+    "convertor/UserApplicationConvertor",
+    "validators/UserApplicationValidator",
+    "assemblers/UserAssembler"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/application/user/${typePath}.java")
+}
+[
+    "manage/UserManageTest",
+    "manage/RoleManageTest",
+    "manage/PermissionManageTest",
+    "validators/UserApplicationValidatorTest"
+].each { testPath ->
+    assertFile("src/test/java/it/pkg/application/user/${testPath}.java")
+}
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 
