@@ -6,9 +6,13 @@ import ${package}.domain.teaching.vos.CourseCode;
 import java.util.Optional;
 
 public interface CourseRepository {
-    Course save(Course course);
+    default Course save(Course course) {
+        throw new UnsupportedOperationException("legacy repository method");
+    }
 
-    Optional<Course> findLegacyById(String courseId);
+    default Optional<Course> findLegacyById(String courseId) {
+        throw new UnsupportedOperationException("legacy repository method");
+    }
 
     default ${package}.domain.teaching.entities.Course save(
             ${package}.domain.teaching.entities.Course course) {

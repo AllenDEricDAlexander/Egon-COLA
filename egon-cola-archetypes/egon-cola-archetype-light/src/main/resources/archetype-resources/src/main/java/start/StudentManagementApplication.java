@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = "${package}")
 @EnableDubbo(scanBasePackages = "${package}.adapter.facade")
-@EnableJpaRepositories(basePackages = "${package}.infrastructure.repo")
-@EntityScan(basePackages = "${package}.infrastructure.repo")
+@EnableJpaRepositories(basePackages = "${package}.infrastructure")
+@EntityScan(basePackages = "${package}.infrastructure")
 public class StudentManagementApplication {
     public static void main(String[] args) {
         SpringApplication.run(StudentManagementApplication.class, args);

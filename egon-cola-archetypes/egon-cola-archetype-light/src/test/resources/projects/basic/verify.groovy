@@ -341,6 +341,30 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
     assertFile("src/test/java/it/pkg/application/teaching/${testPath}.java")
 }
 
+assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
+assertFile("src/main/resources/db/migration/V2__align_large_monolith_domain.sql")
+def migrationFiles = new File(generatedProjectDir, "src/main/resources/db/migration")
+        .listFiles()
+        .findAll { it.name.endsWith(".sql") }
+assert migrationFiles.size() == 2: "Expected exactly two migration SQL files"
+[
+    "user/repo/po/UserPO",
+    "user/repo/jpa/UserJpaRepository",
+    "user/repo/impl/UserRepositoryImpl",
+    "teaching/repo/po/SchoolClassPO",
+    "teaching/repo/jpa/SchoolClassJpaRepository",
+    "teaching/repo/impl/SchoolClassRepositoryImpl"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/infrastructure/${typePath}.java")
+}
+assertFile("src/test/java/it/pkg/infrastructure/user/repo/UserRepositoryImplTest.java")
+assertFile("src/test/java/it/pkg/infrastructure/teaching/repo/SchoolClassRepositoryImplTest.java")
+assert pom.contains("<id>postgres-flyway-verify</id>")
+assert pom.contains("<artifactId>flyway-maven-plugin</artifactId>")
+assert pom.contains('${env.POSTGRES_VERIFY_URL}')
+assert pom.contains('${env.POSTGRES_VERIFY_USER}')
+assert pom.contains('${env.POSTGRES_VERIFY_PASSWORD}')
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 
@@ -435,7 +459,7 @@ assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exis
 assert !new File(generatedProjectDir, "src/test/charge.http").exists()
 
 def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migration")
-assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 1
+assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 2
 
 assertFile("src/test/java/it/pkg/ArchitectureDependencyTest.java")
 assertFile("src/test/java/it/pkg/application/StudentManagementFlowTest.java")
