@@ -40,7 +40,7 @@ public class CourseManageImpl implements CourseManage {
     @Override
     @Transactional(readOnly = true)
     public Course getById(String courseId) {
-        return courseRepository.findById(courseId)
+        return courseRepository.findLegacyById(courseId)
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.COURSE_NOT_FOUND, "course not found"));
     }
 
@@ -49,7 +49,7 @@ public class CourseManageImpl implements CourseManage {
     public void assignCourse(String studentId, String courseId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.STUDENT_NOT_FOUND, "student not found"));
-        courseRepository.findById(courseId)
+        courseRepository.findLegacyById(courseId)
                 .orElseThrow(() -> new NotFoundException(ErrorCodes.COURSE_NOT_FOUND, "course not found"));
         studentRepository.save(studentDomainService.assignCourse(student, courseId));
     }

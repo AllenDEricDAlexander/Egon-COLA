@@ -25,7 +25,7 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
-    public Optional<Course> findById(String courseId) {
+    public Optional<Course> findLegacyById(String courseId) {
         return courseJpaRepository.findById(courseId).map(coursePoConverter::toDomain);
     }
 }

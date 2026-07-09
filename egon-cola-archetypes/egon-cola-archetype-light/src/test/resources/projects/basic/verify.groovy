@@ -315,6 +315,32 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
     assertFile("src/test/java/it/pkg/application/user/${testPath}.java")
 }
 
+[
+    "command/CreateSchoolClassCommand",
+    "command/CreateCourseCommand",
+    "command/ScheduleCourseCommand",
+    "query/GetCourseQuery",
+    "result/SchoolClassResult",
+    "result/CourseResult",
+    "manage/SchoolClassManage",
+    "manage/CourseManage",
+    "manage/TeachingUseCaseException",
+    "manage/impl/SchoolClassManageImpl",
+    "manage/impl/CourseManageImpl",
+    "convertor/TeachingApplicationConvertor",
+    "validators/TeachingApplicationValidator",
+    "assemblers/TeachingAssembler"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/application/teaching/${typePath}.java")
+}
+[
+    "manage/SchoolClassManageTest",
+    "manage/CourseManageTest",
+    "validators/TeachingApplicationValidatorTest"
+].each { testPath ->
+    assertFile("src/test/java/it/pkg/application/teaching/${testPath}.java")
+}
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 
