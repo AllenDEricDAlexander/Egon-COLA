@@ -17,6 +17,7 @@ public class UserImportedConsumer {
 
     @RabbitListener(
             queues = "${symbol_dollar}{spring.application.name}.user.imported",
+            errorHandler = "rabbitConsumerErrorHandler",
             autoStartup = "${symbol_dollar}{app.integrations.rabbitmq.enabled:false}")
     public void consume(CreateUserDTO message) {
         validator.validate(message);

@@ -1,0 +1,19 @@
+extend type Query {
+  schoolClass(id: ID!): SchoolClass
+  course(id: ID!): Course
+}
+
+type SchoolClass {
+  id: ID!
+  name: String!
+  semester: String!
+  status: String!
+  scheduleCount: Int!
+}
+
+type Course {
+  id: ID!
+  code: String!
+  name: String!
+  status: String!
+}

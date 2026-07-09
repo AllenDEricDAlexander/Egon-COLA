@@ -463,6 +463,51 @@ assertFile("src/main/resources/graphql/user.graphqls")
     assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/user/${packageName}").isDirectory()
     assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/${packageName}/user").exists()
 }
+[
+    "controller/SchoolClassController",
+    "controller/CourseController",
+    "dto/CreateSchoolClassRequest",
+    "dto/CreateCourseRequest",
+    "dto/ScheduleCourseRequest",
+    "vo/SchoolClassDetailVO",
+    "vo/CourseDetailVO",
+    "convertor/TeachingAdapterConvertor",
+    "validators/TeachingRequestValidator",
+    "graphql/CourseResolver",
+    "facade/impl/SchoolClassFacadeImpl",
+    "facade/impl/CourseFacadeImpl",
+    "rpc/CourseRpcProvider",
+    "mq/CourseImportedConsumer"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/adapter/teaching/${typePath}.java")
+}
+[
+    "SchoolClassFacade",
+    "CourseFacade",
+    "dto/CreateSchoolClassDTO",
+    "dto/CreateCourseDTO",
+    "dto/ScheduleCourseDTO",
+    "dto/SchoolClassDetailDTO",
+    "dto/CourseDTO",
+    "enums/CourseFacadeStatus",
+    "exceptions/TeachingFacadeException",
+    "utils/TeachingFacadeAssert"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/facade/teaching/${typePath}.java")
+}
+[
+    "ApiResponse",
+    "GlobalExceptionHandler",
+    "ResponseWrapperHandler",
+    "GraphQlExceptionResolver",
+    "RabbitConsumerErrorHandler"
+].each { typeName ->
+    assertFile("src/main/java/it/pkg/adapter/handler/${typeName}.java")
+}
+assertFile("src/main/resources/graphql/teaching.graphqls")
+["controller", "mq", "rpc"].each { packageName ->
+    assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/teaching/${packageName}").isDirectory()
+}
 
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
