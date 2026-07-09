@@ -365,6 +365,26 @@ assert pom.contains('${env.POSTGRES_VERIFY_URL}')
 assert pom.contains('${env.POSTGRES_VERIFY_USER}')
 assert pom.contains('${env.POSTGRES_VERIFY_PASSWORD}')
 
+[
+    "user/service/impl/UserDomainServiceImpl",
+    "user/service/impl/RoleDomainServiceImpl",
+    "user/service/impl/PermissionDomainServiceImpl",
+    "teaching/service/impl/SchoolClassDomainServiceImpl",
+    "teaching/service/impl/CourseDomainServiceImpl",
+    "user/client/impl/LocalUserQueryService",
+    "teaching/client/impl/LocalTeachingQueryService",
+    "user/cache/InMemoryUserCacheService",
+    "teaching/cache/InMemoryCourseCacheService",
+    "user/mq/LocalUserEventPublisher",
+    "teaching/mq/LocalTeachingEventPublisher",
+    "config/TransactionCompletionExecutor",
+    "config/LocalAdapterConfiguration"
+].each { typePath ->
+    assertFile("src/main/java/it/pkg/infrastructure/${typePath}.java")
+}
+assertFile("src/test/java/it/pkg/infrastructure/config/LocalAdapterConfigurationTest.java")
+assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExecutorTest.java")
+
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/student/StudentView.java").exists()
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/application/manage/teaching/CourseView.java").exists()
 
