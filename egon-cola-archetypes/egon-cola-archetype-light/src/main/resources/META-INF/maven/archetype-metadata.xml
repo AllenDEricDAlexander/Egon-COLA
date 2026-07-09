@@ -52,6 +52,7 @@
         <include>**/*.properties</include>
         <include>**/*.sql</include>
         <include>**/*.xml</include>
+        <include>**/*.graphqls</include>
         <include>META-INF/**</include>
       </includes>
     </fileSet>

@@ -129,6 +129,20 @@ assert pom.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
 assert pom.contains("<dubbo.version>3.3.6</dubbo.version>")
 assert pom.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
 assert pom.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
+assert pom.contains("<springdoc.version>2.8.17</springdoc.version>")
+[
+    "spring-boot-starter-graphql",
+    "spring-boot-starter-amqp",
+    "spring-boot-starter-data-redis",
+    "spring-boot-starter-aop",
+    "springdoc-openapi-starter-webmvc-ui",
+    "flyway-database-postgresql",
+    "spring-boot-starter-test"
+].each { artifactId ->
+    assert pom.contains("<artifactId>${artifactId}</artifactId>")
+}
+assert !pom.contains("mybatis-plus")
+assert !pom.contains("mybatis-spring")
 assert pom.contains("<artifactId>egon-cola-components-bom</artifactId>")
 assert pom.contains("<egon-cola.version>5.2.1</egon-cola.version>")
 assert pom.contains("<artifactId>egon-cola-component-common-core</artifactId>")
