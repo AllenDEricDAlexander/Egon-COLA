@@ -51,6 +51,127 @@ src/main/java/${package}
 
 Every directory in this map receives a `package-info.java` when it contains more than one responsibility-bearing type. Root-level shared packages remain limited to `adapter.handler`, `adapter.filter`, `infrastructure.aop`, and `infrastructure.config`.
 
+## Required Package Documentation Manifest
+
+`verify.groovy` must require `src/main/java/it/pkg/package-info.java` plus `package-info.java` in every directory in this exact list:
+
+```text
+start
+start/config
+start/config/async
+start/config/encryption
+adapter
+adapter/user
+adapter/user/controller
+adapter/user/mq
+adapter/user/rpc
+adapter/user/graphql
+adapter/user/facade
+adapter/user/facade/impl
+adapter/user/dto
+adapter/user/vo
+adapter/user/convertor
+adapter/user/validators
+adapter/teaching
+adapter/teaching/controller
+adapter/teaching/mq
+adapter/teaching/rpc
+adapter/teaching/graphql
+adapter/teaching/facade
+adapter/teaching/facade/impl
+adapter/teaching/dto
+adapter/teaching/vo
+adapter/teaching/convertor
+adapter/teaching/validators
+adapter/handler
+adapter/filter
+facade
+facade/user
+facade/user/dto
+facade/user/enums
+facade/user/exceptions
+facade/user/utils
+facade/teaching
+facade/teaching/dto
+facade/teaching/enums
+facade/teaching/exceptions
+facade/teaching/utils
+application
+application/user
+application/user/manage
+application/user/manage/impl
+application/user/command
+application/user/query
+application/user/result
+application/user/convertor
+application/user/validators
+application/user/assemblers
+application/teaching
+application/teaching/manage
+application/teaching/manage/impl
+application/teaching/command
+application/teaching/query
+application/teaching/result
+application/teaching/convertor
+application/teaching/validators
+application/teaching/assemblers
+domain
+domain/user
+domain/user/entities
+domain/user/aggregates
+domain/user/vos
+domain/user/service
+domain/user/repos
+domain/user/validators
+domain/user/enums
+domain/user/exceptions
+domain/teaching
+domain/teaching/entities
+domain/teaching/aggregates
+domain/teaching/vos
+domain/teaching/service
+domain/teaching/repos
+domain/teaching/validators
+domain/teaching/enums
+domain/teaching/exceptions
+infrastructure
+infrastructure/user
+infrastructure/user/repo
+infrastructure/user/repo/impl
+infrastructure/user/repo/po
+infrastructure/user/repo/jpa
+infrastructure/user/repo/converter
+infrastructure/user/service
+infrastructure/user/service/impl
+infrastructure/user/validators
+infrastructure/user/client
+infrastructure/user/client/impl
+infrastructure/user/mq
+infrastructure/user/cache
+infrastructure/teaching
+infrastructure/teaching/repo
+infrastructure/teaching/repo/impl
+infrastructure/teaching/repo/po
+infrastructure/teaching/repo/jpa
+infrastructure/teaching/repo/converter
+infrastructure/teaching/service
+infrastructure/teaching/service/impl
+infrastructure/teaching/validators
+infrastructure/teaching/client
+infrastructure/teaching/client/impl
+infrastructure/teaching/mq
+infrastructure/teaching/cache
+infrastructure/aop
+infrastructure/config
+common
+common/constants
+common/utils
+common/enums
+common/exceptions
+```
+
+Each file contains a short package Javadoc stating its responsibility and allowed internal dependencies. Tasks 2 through 11 create the entries for the packages they introduce; Task 12 verifies the complete manifest and does not discover paths dynamically.
+
 ## Canonical Boundary Signatures
 
 Use these signatures consistently across tasks:
@@ -70,6 +191,7 @@ Optional<ExternalUser> findExternalUser(String externalId);
 Optional<UserSnapshot> getUser(String userId);
 void putUser(UserSnapshot user);
 void evictUser(String userId);
+boolean claimIdempotency(String key, Duration ttl);
 void publish(UserEvent event);
 
 // Domain user repositories
@@ -94,6 +216,7 @@ Optional<ExternalCourse> findExternalCourse(CourseCode code);
 Optional<CourseSnapshot> getCourse(String courseId);
 void putCourse(CourseSnapshot course);
 void evictCourse(String courseId);
+boolean claimIdempotency(String key, Duration ttl);
 void publish(TeachingEvent event);
 
 // Domain teaching repositories
@@ -119,6 +242,8 @@ CourseResult get(GetCourseQuery query);
 
 Use `String` for database identifiers, Java records for value objects and boundary models, UTC `Instant` for persisted timestamps, and `LocalDateTime` for classroom schedule intervals.
 
+Every mutation Command ends with `String operatorId` and `String idempotencyKey`. HTTP/RPC adapters source them from the request context, while RabbitMQ adapters use the message actor and message ID. Application validators reject blank values before invoking Domain services.
+
 ### Task 1: Extend The Generated Build And Archetype Resource Contract
 
 **Files:**
@@ -138,6 +263,7 @@ assert pom.contains("<springdoc.version>2.8.17</springdoc.version>")
     "spring-boot-starter-data-redis",
     "spring-boot-starter-aop",
     "springdoc-openapi-starter-webmvc-ui",
+    "flyway-database-postgresql",
     "spring-boot-starter-test"
 ].each { artifactId ->
     assert pom.contains("<artifactId>${artifactId}</artifactId>")
@@ -154,7 +280,7 @@ Run:
 bash ./mvnw -B -ntp -pl egon-cola-archetypes/egon-cola-archetype-light -am clean integration-test
 ```
 
-Expected: FAIL in `verify.groovy` because the GraphQL, AMQP, Redis, AOP, and Springdoc artifacts are absent.
+Expected: FAIL in `verify.groovy` because the GraphQL, AMQP, Redis, AOP, Springdoc, and Flyway PostgreSQL artifacts are absent.
 
 - [ ] **Step 3: Add the build dependencies and GraphQL resource inclusion**
 
@@ -187,6 +313,11 @@ Add these generated-project dependencies while retaining `spring-boot-starter-te
     <groupId>org.springdoc</groupId>
     <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
     <version>${springdoc.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-database-postgresql</artifactId>
+    <scope>runtime</scope>
 </dependency>
 ```
 
@@ -442,6 +573,7 @@ git commit -m "feat(archetype): add teaching domain contracts"
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/application/user/{convertor/UserApplicationConvertor,validators/UserApplicationValidator,assemblers/UserAssembler}.java`
 - Create: corresponding `package-info.java` files
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/application/user/manage/{UserManageTest,RoleManageTest,PermissionManageTest}.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/application/user/validators/UserApplicationValidatorTest.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`
 
 - [ ] **Step 1: Write failing Mockito orchestration tests**
@@ -460,7 +592,8 @@ class UserManageTest {
 
     @Test
     void creates_user_through_domain_ports() {
-        CreateUserCommand command = new CreateUserCommand("ext-1", "Mario", "mario@example.com");
+        CreateUserCommand command = new CreateUserCommand(
+                "ext-1", "Mario", "mario@example.com", "operator-1", "request-1");
         when(userQueryService.findExternalUser("ext-1"))
                 .thenReturn(Optional.of(new ExternalUser("ext-1", "Mario")));
         when(userDomainService.createUser("ext-1", "Mario", "mario@example.com"))
@@ -478,7 +611,11 @@ class UserManageTest {
 }
 ```
 
-`RoleManageTest` verifies role lookup, assignment, and persistence. `PermissionManageTest` verifies permission lookup, grant, and event publication. Add failure tests for missing external user, disabled user, archived role, and inactive permission.
+`RoleManageTest` verifies role lookup, assignment, and persistence. `PermissionManageTest` verifies permission lookup, grant, and event publication. Add failure tests for missing external user, disabled user, archived role, and inactive permission. Each Manage test also forces its Domain service to throw a Domain exception and asserts the Application boundary translates it to `UserUseCaseException` with the same stable error code.
+
+`UserManageTest` also covers query cache hit and miss: a hit avoids the Repository, while a miss loads the Repository, converts the result, and writes `UserSnapshot` through `UserCacheService`.
+
+`UserApplicationValidatorTest` instantiates the real validator with a mocked `UserCacheService`. It covers missing operator context, `claimIdempotency` returning false, and a valid user command that successfully claims its key. It must not mock the validator under test.
 
 - [ ] **Step 2: Run the verifier and confirm application files are absent**
 
@@ -503,12 +640,14 @@ userEventPublisher.publish(UserEvent.created(saved.id().value()));
 return convertor.toResult(saved);
 ```
 
+The Application invokes the Domain ports inside the transaction, but every cache and event adapter must delegate its external side effect to `TransactionCompletionExecutor`. The Application test verifies the port calls; Task 7 verifies commit executes them and rollback suppresses them.
+
 - [ ] **Step 4: Run user Application tests**
 
 Run integration, then:
 
 ```bash
-bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=UserManageTest,RoleManageTest,PermissionManageTest test
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=UserManageTest,RoleManageTest,PermissionManageTest,UserApplicationValidatorTest test
 ```
 
 Expected: BUILD SUCCESS; happy paths and declared failure paths pass using Mockito without Spring context.
@@ -532,15 +671,20 @@ git commit -m "feat(archetype): add user application flows"
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/application/teaching/{convertor/TeachingApplicationConvertor,validators/TeachingApplicationValidator,assemblers/TeachingAssembler}.java`
 - Create: corresponding `package-info.java` files
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/application/teaching/manage/{SchoolClassManageTest,CourseManageTest}.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/application/teaching/validators/TeachingApplicationValidatorTest.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`
 
 - [ ] **Step 1: Write failing course and scheduling orchestration tests**
 
-`CourseManageTest` must verify external course lookup, Domain creation, repository save, cache eviction, and teaching event publication. `SchoolClassManageTest` must verify the Manage loads both class and course, delegates conflict enforcement to `SchoolClassDomainService`, persists the aggregate, and publishes a schedule event.
+`CourseManageTest` must verify external course lookup, Domain creation, repository save, cache eviction, and teaching event publication. `SchoolClassManageTest` must verify the Manage loads both class and course, delegates conflict enforcement to `SchoolClassDomainService`, persists the aggregate, and publishes a schedule event. Both tests force Domain failures and assert translation to `TeachingUseCaseException` with stable public codes.
+
+`CourseManageTest` also covers query cache hit and miss with the same no-Repository-on-hit contract as the user flow.
+
+`TeachingApplicationValidatorTest` instantiates the real validator with a mocked `CourseCacheService`. It covers missing operator context, `claimIdempotency` returning false, invalid use-case prerequisites, and a valid scheduling command that successfully claims its key.
 
 ```java
 verify(schoolClassDomainService).schedule(same(aggregate), same(course), same(schedule));
-verify(schoolClassRepository).save(aggregate);
+verify(schoolClassRepository).saveAggregate(aggregate);
 verify(teachingEventPublisher).publish(any(TeachingEvent.class));
 ```
 
@@ -557,7 +701,7 @@ Use `LocalDateTime` in `ScheduleCourseCommand`, validate `startsAt < endsAt`, co
 Run integration, then:
 
 ```bash
-bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=SchoolClassManageTest,CourseManageTest test
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=SchoolClassManageTest,CourseManageTest,TeachingApplicationValidatorTest test
 ```
 
 Expected: BUILD SUCCESS.
@@ -572,6 +716,7 @@ git commit -m "feat(archetype): add teaching application flows"
 ### Task 6: Add V2 And Domain-First JPA Repositories
 
 **Files:**
+- Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/pom.xml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/V2__align_large_monolith_domain.sql`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/user/repo/po/{UserPO,RolePO,PermissionPO,UserRolePO,RolePermissionPO}.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/user/repo/jpa/{UserJpaRepository,RoleJpaRepository,PermissionJpaRepository,UserRoleJpaRepository,RolePermissionJpaRepository}.java`
@@ -701,6 +846,45 @@ Use portable DDL for H2 and PostgreSQL: `VARCHAR`, `TIMESTAMP`, explicit primary
 
 Repository implementations must implement Domain Repository interfaces, translate PO/domain models through dedicated converters, and never import Application. Use explicit join PO types rather than JPA bidirectional entity graphs so aggregate reconstruction remains deterministic.
 
+Add a non-default Maven profile that validates Flyway directly against an ephemeral PostgreSQL database without starting the application:
+
+```xml
+<profile>
+    <id>postgres-flyway-verify</id>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>${flyway.version}</version>
+                <configuration>
+                    <url>${env.POSTGRES_VERIFY_URL}</url>
+                    <user>${env.POSTGRES_VERIFY_USER}</user>
+                    <password>${env.POSTGRES_VERIFY_PASSWORD}</password>
+                    <locations>
+                        <location>filesystem:${project.basedir}/src/main/resources/db/migration</location>
+                    </locations>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-database-postgresql</artifactId>
+                        <version>${flyway.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>${postgresql.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
+</profile>
+```
+
+Extend `verify.groovy` to assert the `postgres-flyway-verify` profile, Flyway Maven plugin, PostgreSQL database module, and environment-backed URL/user/password properties are present.
+
 - [ ] **Step 6: Run JPA tests and verify V1 checksum**
 
 Run integration, then:
@@ -713,10 +897,28 @@ Re-run the Step 1 checksum and require an exact match.
 
 Expected: BUILD SUCCESS; both repository tests and Flyway startup pass.
 
-- [ ] **Step 7: Commit persistence**
+- [ ] **Step 7: Validate V1 and V2 against real PostgreSQL without starting the app**
+
+Run from the repository root after archetype integration has generated `project/basic`:
 
 ```bash
-git add -- egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/user/repo egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/teaching/repo egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/V2__align_large_monolith_domain.sql egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy
+container=egon-lite-postgres-verify
+trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+docker run --detach --rm --name "$container" -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=lite_verify -p 127.0.0.1::5432 postgres:17-alpine
+until docker exec "$container" pg_isready -U postgres -d lite_verify; do sleep 1; done
+postgres_port=$(docker port "$container" 5432/tcp | awk -F: '{print $NF}')
+export POSTGRES_VERIFY_URL=jdbc:postgresql://127.0.0.1:${postgres_port}/lite_verify
+export POSTGRES_VERIFY_USER=postgres
+export POSTGRES_VERIFY_PASSWORD=postgres
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Ppostgres-flyway-verify flyway:migrate flyway:validate
+```
+
+Expected: Flyway reports two successful migrations and validation succeeds. The default `test` lifecycle remains external-service-free because this profile is never activated by `test`.
+
+- [ ] **Step 8: Commit persistence**
+
+```bash
+git add -- egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/pom.xml egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/user/repo egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/teaching/repo egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/V2__align_large_monolith_domain.sql egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy
 git commit -m "feat(archetype): add domain-first jpa persistence"
 ```
 
@@ -731,14 +933,18 @@ git commit -m "feat(archetype): add domain-first jpa persistence"
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/teaching/cache/InMemoryCourseCacheService.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/user/mq/LocalUserEventPublisher.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/teaching/mq/LocalTeachingEventPublisher.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/config/TransactionCompletionExecutor.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/infrastructure/config/LocalAdapterConfiguration.java`
 - Create: corresponding `package-info.java` files
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/config/LocalAdapterConfigurationTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/config/TransactionCompletionExecutorTest.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`
 
 - [ ] **Step 1: Write the failing local assembly test**
 
 Use `ApplicationContextRunner` with `app.integrations.rabbitmq.enabled=false`, `app.integrations.redis.enabled=false`, and `app.integrations.external-http.enabled=false`. Assert exactly one bean exists for every Domain Service and outbound port and all beans come from Infrastructure domain-first packages.
+
+`TransactionCompletionExecutorTest` uses a `DataSourceTransactionManager` and `TransactionTemplate` to prove: an after-commit action runs once only on commit, while an after-rollback action runs once only after rollback.
 
 - [ ] **Step 2: Add verifier assertions and run integration**
 
@@ -746,9 +952,51 @@ Expected: FAIL for missing Infrastructure service implementations.
 
 - [ ] **Step 3: Implement Domain services and fallback ports**
 
-Domain Service implementations delegate invariant enforcement to Domain entities, aggregates, and validators. Local query services use deterministic properties (`ext-1`, `COURSE-001`) rather than network calls. In-memory caches use `ConcurrentHashMap`. Local event publishers retain published events in a thread-safe list for assembly tests and never connect to RabbitMQ.
+Domain Service implementations delegate invariant enforcement to Domain entities, aggregates, and validators. Local query services use deterministic properties (`ext-1`, `COURSE-001`) rather than network calls. In-memory caches use `ConcurrentHashMap`, including atomic `putIfAbsent` idempotency claims with expiry timestamps. Local event publishers retain published events in a thread-safe list for assembly tests and never connect to RabbitMQ.
 
-Use complementary conditional properties:
+Domain Service implementations are unconditional `@Service` beans. Local fallback classes have no component stereotype; `LocalAdapterConfiguration` is their only bean owner and declares each fallback through one `@Bean` method. Real adapters in Task 8 own their `havingValue = "true"` component conditions. This prevents component scanning and configuration methods from registering duplicate ports.
+
+Implement the shared executor exactly once in Infrastructure:
+
+```java
+@Component
+public final class TransactionCompletionExecutor {
+    public void executeAfterCommit(Runnable action) {
+        Objects.requireNonNull(action, "action");
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
+    }
+
+    public void executeAfterRollback(Runnable action) {
+        Objects.requireNonNull(action, "action");
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_COMMITTED) {
+                    action.run();
+                }
+            }
+        });
+    }
+}
+```
+
+Every local cache eviction and local event publication calls `transactionCompletionExecutor.executeAfterCommit(action)`; no adapter performs the side effect eagerly. A successful local idempotency claim calls `executeAfterRollback(releaseAction)` to remove the claimed key when the transaction fails.
+
+Use complementary conditions on the `LocalAdapterConfiguration` bean methods:
 
 ```java
 @ConditionalOnProperty(name = "app.integrations.redis.enabled", havingValue = "false", matchIfMissing = true)
@@ -761,7 +1009,7 @@ Use complementary conditional properties:
 Run integration, then:
 
 ```bash
-bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=LocalAdapterConfigurationTest test
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=LocalAdapterConfigurationTest,TransactionCompletionExecutorTest test
 ```
 
 Expected: BUILD SUCCESS and no attempted socket connection.
@@ -790,12 +1038,20 @@ git commit -m "feat(archetype): add local domain adapters"
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/user/client/RestUserQueryServiceTest.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/teaching/client/RestTeachingQueryServiceTest.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/user/mq/RabbitUserEventPublisherTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/teaching/mq/RabbitTeachingEventPublisherTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/user/cache/RedisUserCacheServiceTest.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/teaching/cache/RedisCourseCacheServiceTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/user/validators/UserInfrastructureValidatorTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/teaching/validators/TeachingInfrastructureValidatorTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/aop/InfrastructureAspectTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/infrastructure/config/RabbitMqConfigTest.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`
 
 - [ ] **Step 1: Write failing component tests with mocks**
 
-Mock `RabbitTemplate` and verify routing keys `user.changed`, `authorization.changed`, `class.changed`, `course.changed`, and `schedule.changed`. Mock `StringRedisTemplate` and verify namespaced keys plus TTL. Bind `RestClient` to `MockRestServiceServer` and verify `/users/{externalId}` and `/courses/{courseCode}` response validation.
+Mock `RabbitTemplate` and verify routing keys `user.changed`, `authorization.changed`, `class.changed`, `course.changed`, and `schedule.changed` across both publisher tests. Each publisher test uses a transaction to prove the template is untouched before commit, called once after commit, and untouched after rollback. Mock `StringRedisTemplate` in both cache tests and verify namespaced keys, JSON round-trip, TTL, atomic idempotency claims through `setIfAbsent`, and the same commit/rollback behavior for eviction. Bind `RestClient` to `MockRestServiceServer` and verify `/users/{externalId}` and `/courses/{courseCode}` response validation.
+
+Validator tests cover missing external identifiers, malformed cache payloads, JPA uniqueness conversion, and unsuccessful Rabbit publication results. `InfrastructureAspectTest` uses `AspectJProxyFactory` plus `SimpleMeterRegistry` to prove repository timing is recorded and infrastructure exceptions are logged then rethrown. `RabbitMqConfigTest` loads the config with a mocked `ConnectionFactory` and asserts the topic exchange, imported queues, dead-letter queues, bindings, JSON converter, and listener retry settings without opening a socket.
 
 - [ ] **Step 2: Add verifier assertions and run integration**
 
@@ -803,7 +1059,7 @@ Expected: FAIL because the real integration adapters and config classes are abse
 
 - [ ] **Step 3: Implement property-gated real adapters**
 
-Use `havingValue = "true"` on each real adapter. RabbitMQ config declares one topic exchange, user/course imported queues, matching dead-letter queues, bindings, JSON conversion, and retry properties. Redis uses application/domain-prefixed keys and a configurable `Duration`. HTTP clients use `RestClient.Builder` and environment-backed base URLs.
+Use `havingValue = "true"` on each real adapter and on each integration configuration class. RabbitMQ config declares one topic exchange, user/course imported queues, matching dead-letter queues, bindings, JSON conversion, and retry properties. Redis uses application/domain-prefixed keys and a configurable `Duration`. HTTP clients use `RestClient.Builder` and environment-backed base URLs. Real Redis eviction and Rabbit publication call `executeAfterCommit(action)`; a successful Redis idempotency claim calls `executeAfterRollback(releaseAction)` to delete the key on transaction rollback.
 
 Set defaults in `application.yml`:
 
@@ -829,7 +1085,7 @@ Override all three flags to `false` in local/test and allow environment-backed `
 Run integration, then:
 
 ```bash
-bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=RestUserQueryServiceTest,RestTeachingQueryServiceTest,RabbitUserEventPublisherTest,RedisCourseCacheServiceTest test
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=RestUserQueryServiceTest,RestTeachingQueryServiceTest,RabbitUserEventPublisherTest,RabbitTeachingEventPublisherTest,RedisUserCacheServiceTest,RedisCourseCacheServiceTest,UserInfrastructureValidatorTest,TeachingInfrastructureValidatorTest,InfrastructureAspectTest,RabbitMqConfigTest test
 ```
 
 Expected: BUILD SUCCESS; tests use mocks only.
@@ -853,19 +1109,29 @@ git commit -m "feat(archetype): add external infrastructure adapters"
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/user/facade/impl/{UserFacadeImpl,PermissionFacadeImpl}.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/user/rpc/UserRpcProvider.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/user/mq/UserImportedConsumer.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/filter/{RequestContext,RequestContextHolder,TraceIdFilter,RequestContextFilter}.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user/{UserFacade,PermissionFacade}.java`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user/dto/{CreateUserDTO,UserDetailDTO,PermissionDTO}.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user/dto/{CreateUserDTO,AssignRoleDTO,GrantPermissionDTO,UserDetailDTO,PermissionDTO}.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user/enums/UserFacadeStatus.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user/exceptions/UserFacadeException.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user/utils/UserFacadeAssert.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/graphql/user.graphqls`
 - Create: corresponding `package-info.java` files
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user/{controller/UserControllerTest,graphql/UserResolverTest,rpc/UserRpcProviderTest,mq/UserImportedConsumerTest}.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user/controller/{UserControllerTest,RoleControllerTest,PermissionControllerTest}.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user/graphql/UserResolverTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user/facade/UserFacadeImplTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user/rpc/UserRpcProviderTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user/mq/UserImportedConsumerTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/filter/{TraceIdFilterTest,RequestContextFilterTest}.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`
 
 - [ ] **Step 1: Write failing Adapter tests**
 
-Use `@WebMvcTest(UserController.class)` and `@MockitoBean UserManage`. Assert POST `/api/users` maps request to `CreateUserCommand` and returns `UserDetailVO`. Test GraphQL via a mocked Application Manage. Test RPC and Consumer as plain JUnit 5 + Mockito classes and verify they call Application, not Domain.
+Use `@WebMvcTest` with mocked Manage interfaces for all three controllers. Assert user creation, role assignment, and permission grant map Adapter DTOs to the correct Commands and return Adapter VOs; invalid email, missing role code, and missing permission code must produce validation errors without calling Application. Test GraphQL through the Spring Boot mock HTTP boundary with mocked Application Manage interfaces. Test RPC and Consumer as JUnit 5 + Mockito components and verify they call Application, not Domain.
+
+`UserFacadeImplTest` verifies successful DTO conversion and verifies `UserUseCaseException` becomes `UserFacadeException` with the original stable error code but no internal stack details. `UserRpcProviderTest` verifies the provider delegates to the Facade implementation and preserves the Facade-owned error contract.
+
+`RequestContextFilter` writes a typed `RequestContext` to `RequestContextHolder` and always clears it in `finally`; `TraceIdFilter` accepts or creates the trace ID. User controllers read `operatorId` and request/idempotency ID from the holder when constructing mutation Commands. RPC DTOs carry those two fields explicitly, and Rabbit messages use actor plus message ID.
 
 - [ ] **Step 2: Add verifier assertions and run integration**
 
@@ -891,7 +1157,7 @@ type Query {
 Run integration, then:
 
 ```bash
-bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=UserControllerTest,UserResolverTest,UserRpcProviderTest,UserImportedConsumerTest test
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=UserControllerTest,RoleControllerTest,PermissionControllerTest,UserResolverTest,UserFacadeImplTest,UserRpcProviderTest,UserImportedConsumerTest,TraceIdFilterTest,RequestContextFilterTest test
 ```
 
 Expected: BUILD SUCCESS.
@@ -899,7 +1165,7 @@ Expected: BUILD SUCCESS.
 - [ ] **Step 5: Commit user adapters**
 
 ```bash
-git add -- egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/user egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/graphql/user.graphqls egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy
+git add -- egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/user egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/filter egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/user egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/graphql/user.graphqls egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/user egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/filter egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy
 git commit -m "feat(archetype): add domain-first user adapters"
 ```
 
@@ -915,22 +1181,28 @@ git commit -m "feat(archetype): add domain-first user adapters"
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/teaching/facade/impl/{SchoolClassFacadeImpl,CourseFacadeImpl}.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/teaching/rpc/CourseRpcProvider.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/teaching/mq/CourseImportedConsumer.java`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/handler/{GlobalExceptionHandler,ResponseWrapperHandler}.java`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/filter/{TraceIdFilter,RequestContextFilter}.java`
+- Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/handler/GlobalExceptionHandler.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/handler/{ApiResponse,ResponseWrapperHandler,GraphQlExceptionResolver,RabbitConsumerErrorHandler}.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/teaching/{SchoolClassFacade,CourseFacade}.java`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/teaching/dto/{CreateSchoolClassDTO,SchoolClassDetailDTO,CourseDTO}.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/teaching/dto/{CreateSchoolClassDTO,CreateCourseDTO,ScheduleCourseDTO,SchoolClassDetailDTO,CourseDTO}.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/teaching/enums/CourseFacadeStatus.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/teaching/exceptions/TeachingFacadeException.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/facade/teaching/utils/TeachingFacadeAssert.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/graphql/teaching.graphqls`
 - Create: corresponding `package-info.java` files
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/teaching/{controller/CourseControllerTest,graphql/CourseResolverTest,rpc/CourseRpcProviderTest,mq/CourseImportedConsumerTest}.java`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/filter/RequestContextFilterTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/teaching/controller/{SchoolClassControllerTest,CourseControllerTest}.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/teaching/graphql/CourseResolverTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/teaching/facade/TeachingFacadeImplTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/teaching/rpc/CourseRpcProviderTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/teaching/mq/CourseImportedConsumerTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/adapter/handler/{GlobalExceptionHandlerTest,ResponseWrapperHandlerTest,GraphQlExceptionResolverTest,RabbitConsumerErrorHandlerTest}.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`
 
 - [ ] **Step 1: Write failing teaching and shared Adapter tests**
 
-Mirror user Adapter test boundaries with teaching-specific commands and results. Filter tests assert `X-Trace-Id`, `X-Operator-Id`, and `X-Tenant-Id` are stored for the request and cleared in `finally` after the chain completes.
+Mirror user Adapter test boundaries with teaching-specific commands and results. Test both SchoolClass and Course controllers, including invalid schedule intervals and propagation of the existing typed request context into mutation Commands.
+
+Handler tests prove HTTP errors use Adapter-owned `ApiResponse`, response wrapping does not double-wrap, GraphQL errors contain a public code without stack traces, retryable Rabbit failures are rethrown, and non-retryable validation failures become `AmqpRejectAndDontRequeueException`. Facade tests prove both teaching Facades convert Application exceptions to Facade-owned exceptions.
 
 - [ ] **Step 2: Add domain-first verifier assertions and run integration**
 
@@ -940,12 +1212,14 @@ Expected: FAIL for missing `adapter/teaching/controller/CourseController.java`.
 
 The GraphQL schema exposes `schoolClass(id: ID!)` and `course(id: ID!)`. Controllers and Facade implementations convert only Application boundary models. `GlobalExceptionHandler` catches Application exceptions; it must not import Domain or Common.
 
+`GraphQlExceptionResolver` extends `DataFetcherExceptionResolverAdapter` and maps only Application exceptions to sanitized GraphQL errors. `RabbitConsumerErrorHandler` implements `RabbitListenerErrorHandler`; consumers reference it by bean name. It rejects request/validation/use-case failures without requeue and rethrows infrastructure failures so the configured retry interceptor can exhaust into the dead-letter queue.
+
 - [ ] **Step 4: Run focused Adapter tests**
 
 Run integration, then:
 
 ```bash
-bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=CourseControllerTest,CourseResolverTest,CourseRpcProviderTest,CourseImportedConsumerTest,RequestContextFilterTest test
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=SchoolClassControllerTest,CourseControllerTest,CourseResolverTest,TeachingFacadeImplTest,CourseRpcProviderTest,CourseImportedConsumerTest,GlobalExceptionHandlerTest,ResponseWrapperHandlerTest,GraphQlExceptionResolverTest,RabbitConsumerErrorHandlerTest test
 ```
 
 Expected: BUILD SUCCESS.
@@ -964,6 +1238,7 @@ git commit -m "feat(archetype): add teaching and shared adapters"
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/start/config/{JacksonConfig,OpenApiConfig,ActuatorConfig}.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/ArchitectureDependencyTest.java`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/start/StudentManagementApplicationTest.java`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/start/config/RuntimeConfigurationTest.java`
 - Delete: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/controller`
 - Delete: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/convertor`
 - Delete: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/adapter/facade`
@@ -992,12 +1267,13 @@ git commit -m "feat(archetype): add teaching and shared adapters"
 
 - [ ] **Step 1: Replace ArchitectureDependencyTest with failing exact rules**
 
-Create one rule per confirmed edge. The Adapter rule forbids Domain/Common/Infrastructure/Start; Application forbids Adapter/Facade/Common/Infrastructure/Start; Infrastructure forbids Application/Adapter/Facade/Common/Start; Domain forbids Adapter/Application/Facade/Infrastructure/Start; Facade and Common forbid every other internal layer.
+Create one rule per confirmed edge. Start forbids Application/Domain/Facade/Common and may depend only on Adapter/Infrastructure. Adapter forbids Domain/Common/Infrastructure/Start; Application forbids Adapter/Facade/Common/Infrastructure/Start; Infrastructure forbids Application/Adapter/Facade/Common/Start; Domain forbids Adapter/Application/Facade/Infrastructure/Start; Facade and Common forbid every other internal layer.
 
 Add domain-first placement checks:
 
 ```java
 import com.tngtech.archunit.core.domain.JavaClass;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -1006,9 +1282,35 @@ import static org.assertj.core.api.Assertions.assertThat;
 Set<String> packageNames = classes.stream()
         .map(JavaClass::getPackageName)
         .collect(Collectors.toSet());
-assertThat(packageNames).noneMatch(name -> name.startsWith("${package}.adapter.controller"));
-assertThat(packageNames).noneMatch(name -> name.startsWith("${package}.application.manage"));
-assertThat(packageNames).noneMatch(name -> name.startsWith("${package}.infrastructure.repo"));
+List.of(
+        "${package}.adapter.controller",
+        "${package}.adapter.mq",
+        "${package}.adapter.rpc",
+        "${package}.adapter.graphql",
+        "${package}.adapter.facade",
+        "${package}.adapter.dto",
+        "${package}.adapter.vo",
+        "${package}.adapter.convertor",
+        "${package}.adapter.validators",
+        "${package}.application.manage",
+        "${package}.application.command",
+        "${package}.application.query",
+        "${package}.application.result",
+        "${package}.application.convertor",
+        "${package}.application.validators",
+        "${package}.application.assemblers",
+        "${package}.facade.dto",
+        "${package}.facade.enums",
+        "${package}.facade.exceptions",
+        "${package}.facade.utils",
+        "${package}.infrastructure.repo",
+        "${package}.infrastructure.service",
+        "${package}.infrastructure.validators",
+        "${package}.infrastructure.client",
+        "${package}.infrastructure.mq",
+        "${package}.infrastructure.cache")
+        .forEach(forbidden -> assertThat(packageNames)
+                .noneMatch(name -> name.startsWith(forbidden)));
 ```
 
 - [ ] **Step 2: Run integration and capture violations from old code**
@@ -1036,12 +1338,14 @@ class StudentManagementApplicationTest {
 }
 ```
 
+`RuntimeConfigurationTest` uses `@SpringBootTest(webEnvironment = MOCK)`, `@ActiveProfiles("test")`, `@AutoConfigureMockMvc`, and the same disabled integration properties as `StudentManagementApplicationTest`. It asserts `/v3/api-docs` returns the configured Student Management title, `/actuator/health` returns `UP`, and the configured `ObjectMapper` serializes a known `Instant` as ISO-8601 text rather than a numeric timestamp.
+
 - [ ] **Step 5: Run architecture and assembly tests**
 
 Run integration, then:
 
 ```bash
-bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=ArchitectureDependencyTest,StudentManagementApplicationTest test
+bash egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/mvnw -B -ntp -f egon-cola-archetypes/egon-cola-archetype-light/target/test-classes/projects/basic/project/basic/pom.xml -Dtest=ArchitectureDependencyTest,StudentManagementApplicationTest,RuntimeConfigurationTest test
 ```
 
 Expected: BUILD SUCCESS; no external connection is attempted.
@@ -1059,7 +1363,7 @@ git commit -m "refactor(archetype): cut over lite domain architecture"
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/test/resources/projects/basic/verify.groovy`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/README.md`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/META-INF/maven/archetype-metadata.xml`
-- Modify: package documentation files found incomplete during generated-tree review
+- Create or modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/package-info.java` and every `package-info.java` path in the Required Package Documentation Manifest
 
 - [ ] **Step 1: Add final generated-tree assertions**
 
@@ -1067,11 +1371,38 @@ Verify all representative files, both GraphQL schemas, V1 + one V2, local/test i
 
 ```groovy
 [
-    "src/main/java/it/pkg/adapter/controller/user",
-    "src/main/java/it/pkg/adapter/mq/user",
-    "src/main/java/it/pkg/application/manage/user",
-    "src/main/java/it/pkg/infrastructure/repo/user",
-    "src/main/java/it/pkg/domain/student"
+    "src/main/java/it/pkg/adapter/controller",
+    "src/main/java/it/pkg/adapter/mq",
+    "src/main/java/it/pkg/adapter/rpc",
+    "src/main/java/it/pkg/adapter/graphql",
+    "src/main/java/it/pkg/adapter/facade",
+    "src/main/java/it/pkg/adapter/dto",
+    "src/main/java/it/pkg/adapter/vo",
+    "src/main/java/it/pkg/adapter/convertor",
+    "src/main/java/it/pkg/adapter/validators",
+    "src/main/java/it/pkg/adapter/validation",
+    "src/main/java/it/pkg/application/manage",
+    "src/main/java/it/pkg/application/command",
+    "src/main/java/it/pkg/application/query",
+    "src/main/java/it/pkg/application/result",
+    "src/main/java/it/pkg/application/convertor",
+    "src/main/java/it/pkg/application/validators",
+    "src/main/java/it/pkg/application/assemblers",
+    "src/main/java/it/pkg/application/config",
+    "src/main/java/it/pkg/facade/api",
+    "src/main/java/it/pkg/facade/dto",
+    "src/main/java/it/pkg/facade/enums",
+    "src/main/java/it/pkg/facade/exceptions",
+    "src/main/java/it/pkg/facade/utils",
+    "src/main/java/it/pkg/infrastructure/repo",
+    "src/main/java/it/pkg/infrastructure/service",
+    "src/main/java/it/pkg/infrastructure/validators",
+    "src/main/java/it/pkg/infrastructure/client",
+    "src/main/java/it/pkg/infrastructure/mq",
+    "src/main/java/it/pkg/infrastructure/cache",
+    "src/main/java/it/pkg/domain/common",
+    "src/main/java/it/pkg/domain/student",
+    "src/main/java/it/pkg/domain/teaching/model"
 ].each { path ->
     assert !new File(generatedProjectDir, path).exists(): "Unexpected reversed or stale path ${path}"
 }
@@ -1080,7 +1411,16 @@ assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/user/service/
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/teaching/service/impl").exists()
 ```
 
-Scan generated Java imports and fail if Infrastructure imports Application, Adapter imports Domain/Common, or Facade imports any internal layer.
+Copy the Required Package Documentation Manifest into a `requiredPackagePaths` list in `verify.groovy`, assert the root `package-info.java`, and assert `package-info.java` for every listed path:
+
+```groovy
+assertFile("src/main/java/it/pkg/package-info.java")
+requiredPackagePaths.each { packagePath ->
+    assertFile("src/main/java/it/pkg/${packagePath}/package-info.java")
+}
+```
+
+Scan generated Java imports and fail for every forbidden edge: Start to Application/Domain/Facade/Common, Adapter to Domain/Common/Infrastructure/Start, Application to Adapter/Facade/Common/Infrastructure/Start, Infrastructure to Application/Adapter/Facade/Common/Start, Domain to Adapter/Application/Facade/Infrastructure/Start, and any Facade/Common import of another internal layer.
 
 - [ ] **Step 2: Run integration and use failures as the documentation/file completeness checklist**
 
@@ -1112,7 +1452,7 @@ Expected: both commands report BUILD SUCCESS.
 
 ```bash
 git diff --check
-rg -n "StudentController|StudentManagementFacade|domain\.student|adapter\.controller\.user|application\.manage\.user|infrastructure\.repo\.user|mybatis-plus" egon-cola-archetypes/egon-cola-archetype-light/src/main/resources egon-cola-archetypes/egon-cola-archetype-light/src/test/resources
+rg -n "StudentController|StudentManagementFacade|domain\.student|package .*adapter\.(controller|mq|rpc|graphql|facade|dto|vo|convertor|validation|validators)|package .*application\.(manage|command|query|result|convertor|validators|assemblers)|package .*facade\.(api|dto|enums|exceptions|utils)|package .*infrastructure\.(repo|service|validators|client|mq|cache)|mybatis-plus" egon-cola-archetypes/egon-cola-archetype-light/src/main/resources egon-cola-archetypes/egon-cola-archetype-light/src/test/resources
 ```
 
 Expected: `git diff --check` succeeds. The stale-name search returns only intentional negative assertions in `verify.groovy`; no generated source, POM, README, or active test uses those names.
@@ -1128,6 +1468,19 @@ git add -- egon-cola-archetypes/egon-cola-archetype-light
 git commit -m "test(archetype): harden lite generation contract"
 ```
 
+## Spec Coverage Map
+
+- Single-module and domain-first package structure: Tasks 2-11, enforced in Tasks 11-12.
+- Exact internal dependency directions and Domain Service implementation placement: Tasks 2-8 and Task 11 ArchUnit rules.
+- User, role, permission, school class, course, and scheduling flows: Tasks 2-10.
+- HTTP, GraphQL, Dubbo, RabbitMQ, Redis, external HTTP, JPA, AOP, filters, converters, and four validator layers: Tasks 4-11 with the expanded test matrix.
+- After-commit cache invalidation and event publication plus rollback safety: Tasks 4-5 and Tasks 7-8.
+- HTTP, GraphQL, RPC, and RabbitMQ error mapping, retry classification, and dead-letter topology: Tasks 8-10.
+- Local/test zero-external-service behavior and dev/prod conditional adapters: Tasks 7-8 and Task 11 assembly tests.
+- Immutable V1, one V2, H2 validation, and real PostgreSQL Flyway validation without application startup: Task 6 and Task 12 checksum verification.
+- Spring Boot Test, JUnit 5, Mockito, JPA slices, OpenAPI smoke testing, and ArchUnit: Tasks 1-12.
+- Complete package documentation manifest, archetype metadata, README, wrapper, Docker, and final generated-output contract: Task 12.
+
 ## Completion Checklist
 
 - [ ] Twelve task commits exist and each commit is limited to its declared scope.
@@ -1136,10 +1489,14 @@ git commit -m "test(archetype): harden lite generation contract"
 - [ ] The only internal layer edges are the seven confirmed directions.
 - [ ] Domain Service interfaces are in Domain and implementations are in the matching Infrastructure domain subtree.
 - [ ] `application.client` and Domain-local `service.impl` packages are absent.
+- [ ] Cache invalidation and external event publication run after commit and are suppressed on rollback.
 - [ ] JPA is the only persistence technology.
 - [ ] RabbitMQ, Redis, GraphQL, Dubbo, external HTTP, AOP, filters, converters, and validators are exercised by tests.
+- [ ] HTTP, GraphQL, RPC, and RabbitMQ failure paths map to protocol-owned errors; retryable Rabbit failures reach retry/DLQ handling and non-retryable failures reject without requeue.
 - [ ] `spring-boot-starter-test` supplies JUnit 5 and Mockito.
 - [ ] Local/test requires no external service.
 - [ ] V1 is unchanged and exactly one V2 migration exists.
+- [ ] V1 and V2 migrate and validate on H2 and on the required ephemeral PostgreSQL verification profile.
+- [ ] Every package in the Required Package Documentation Manifest has a verified `package-info.java`.
 - [ ] Archetype integration and generated-project tests pass.
 - [ ] No application process was started.
