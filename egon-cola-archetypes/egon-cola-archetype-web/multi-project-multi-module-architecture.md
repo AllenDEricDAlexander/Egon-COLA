@@ -8,7 +8,7 @@
 
 ```text
 student-management-organization  // 组织管理工程：user + teaching
-student-management-evaluation    // 评价管理工程：course + examing
+student-management-evaluation    // 评价管理工程：course + exam
 ```
 
 每个 Project 内部再按照统一分层拆成多个 Maven 子模块：
@@ -32,7 +32,7 @@ student-management-organization
 
 student-management-evaluation
     - course      // 课程、课程安排、课程资源
-    - examing     // 考试、成绩、评价
+    - exam     // 考试、成绩、评价
 ```
 
 该架构的目标不是做完整重型 DDD，而是在大型单体或准单体工程内建立清晰边界：
@@ -93,7 +93,7 @@ application import domain
 
 domain import common
 
-infrastructure import application
+infrastructure import domain
 ```
 
 注意：
@@ -103,7 +103,7 @@ infrastructure import application
 2. facade 有自己的 utils、enums、exceptions。
 3. adapter/facade.impl 是 Facade 实现唯一位置。
 4. application 不放 facade.impl。
-5. infrastructure 通过 application 间接获得 domain 能力，按当前约定只声明 infrastructure import application。
+5. infrastructure 只声明 infrastructure import domain，直接实现 domain 定义的仓储和出站端口。
 ```
 
 ## 2.3 依赖关系图
@@ -198,11 +198,12 @@ adapter
     - controller
     - mq              // 仅入站
     - rpc
-    - convertor
+    - converter
     - dto
     - vo
     - graphql
     - facade.impl     // Facade 实现唯一位置
+    - validators
     - handler
     - filter
 ```
@@ -287,7 +288,10 @@ facade
 
 ```text
 application
-    - convertor
+    - command
+    - query
+    - result
+    - converter
     - manage
         - user
             - impl
@@ -295,7 +299,6 @@ application
             - impl
     - validators
     - assemblers
-    - client
 ```
 
 ### 能做
@@ -305,7 +308,7 @@ application
 2. 控制事务边界。
 3. 调用 domain service。
 4. 调用 domain repository 接口。
-5. 调用 application client 接口。
+5. 调用 domain client 接口。
 6. 做应用级校验。
 7. 做对象装配和转换。
 8. 协调当前 Project 内多个领域。
@@ -330,7 +333,7 @@ application
 
 ### 职责
 
-`domain` 是领域核心层，负责实体、聚合、值对象、领域服务、仓储接口、领域校验器和领域枚举。
+`domain` 是领域核心层，负责实体、聚合、值对象、领域服务、仓储接口、出站客户端接口、领域校验器和领域枚举。
 
 ### 结构
 
@@ -345,6 +348,7 @@ domain
         - teaching
             - impl
     - repos
+    - client
     - validators
     - enums
 ```
@@ -357,9 +361,10 @@ domain
 3. 定义值对象。
 4. 定义领域服务接口和实现。
 5. 定义仓储接口。
-6. 定义领域校验器。
-7. 定义领域枚举。
-8. 表达核心业务规则。
+6. 定义出站客户端接口。
+7. 定义领域校验器。
+8. 定义领域枚举。
+9. 表达核心业务规则。
 ```
 
 ### 不能做
@@ -416,7 +421,7 @@ infrastructure
 2. 调用 MP Service。
 3. 调用 Mapper。
 4. 调用 JPA Repository。
-5. 实现 application client 接口。
+5. 实现 domain client 接口。
 6. 调用外部 Facade / HTTP / RPC / SDK。
 7. 发送出站 MQ。
 8. 封装缓存。
@@ -580,7 +585,7 @@ student-management-organization-common
 │   │           │   └── OrganizationTraceUtils.java                // Trace 工具
 │   │           ├── enums
 │   │           │   ├── package-info.java
-│   │           │   └── OrganizationCommonStatus.java              // 组织工程通用状态
+│   │           │   └── OrganizationOperationStatus.java           // 业务无关操作状态
 │   │           └── exceptions
 │   │               ├── package-info.java
 │   │               ├── OrganizationBaseException.java             // 基础异常
@@ -677,16 +682,16 @@ student-management-organization-application
 │   │           │           ├── package-info.java
 │   │           │           ├── SchoolClassManageImpl.java        // 班级应用服务实现
 │   │           │           └── GradeManageImpl.java              // 年级应用服务实现
-│   │           ├── convertor
+│   │           ├── converter
 │   │           │   ├── package-info.java
 │   │           │   ├── user
 │   │           │   │   ├── package-info.java
-│   │           │   │   ├── UserApplicationConvertor.java         // 用户应用转换器
-│   │           │   │   └── RoleApplicationConvertor.java         // 角色应用转换器
+│   │           │   │   ├── UserApplicationConverter.java         // 用户应用转换器
+│   │           │   │   └── RoleApplicationConverter.java         // 角色应用转换器
 │   │           │   └── teaching
 │   │           │       ├── package-info.java
-│   │           │       ├── SchoolClassApplicationConvertor.java  // 班级应用转换器
-│   │           │       └── GradeApplicationConvertor.java        // 年级应用转换器
+│   │           │       ├── SchoolClassApplicationConverter.java  // 班级应用转换器
+│   │           │       └── GradeApplicationConverter.java        // 年级应用转换器
 │   │           ├── validators
 │   │           │   ├── package-info.java
 │   │           │   ├── user
@@ -704,14 +709,31 @@ student-management-organization-application
 │   │           │   └── teaching
 │   │           │       ├── package-info.java
 │   │           │       └── SchoolClassAssembler.java             // 班级装配器
-│   │           └── client
+│   │           ├── command
+│   │           │   ├── package-info.java
+│   │           │   ├── user
+│   │           │   │   ├── package-info.java
+│   │           │   │   ├── CreateUserCommand.java                // 创建用户命令
+│   │           │   │   └── AssignRoleCommand.java                // 分配角色命令
+│   │           │   └── teaching
+│   │           │       ├── package-info.java
+│   │           │       └── CreateSchoolClassCommand.java         // 创建班级命令
+│   │           ├── query
+│   │           │   ├── package-info.java
+│   │           │   ├── user
+│   │           │   │   ├── package-info.java
+│   │           │   │   └── UserDetailQuery.java                  // 用户详情查询
+│   │           │   └── teaching
+│   │           │       ├── package-info.java
+│   │           │       └── SchoolClassDetailQuery.java           // 班级详情查询
+│   │           └── result
 │   │               ├── package-info.java
 │   │               ├── user
 │   │               │   ├── package-info.java
-│   │               │   └── EvaluationClient.java                 // 调用评价工程的客户端接口
+│   │               │   └── UserDetailResult.java                 // 用户详情结果
 │   │               └── teaching
 │   │                   ├── package-info.java
-│   │                   └── CourseClient.java                     // 调用课程能力的客户端接口
+│   │                   └── SchoolClassDetailResult.java          // 班级详情结果
 │   └── test
 │       ├── java
 │       │   └── com/example/student/organization/application
@@ -794,6 +816,14 @@ student-management-organization-domain
 │   │           │       ├── package-info.java
 │   │           │       ├── SchoolClassRepository.java           // 班级仓储接口
 │   │           │       └── GradeRepository.java                 // 年级仓储接口
+│   │           ├── client
+│   │           │   ├── package-info.java
+│   │           │   ├── user
+│   │           │   │   ├── package-info.java
+│   │           │   │   └── EvaluationClient.java                // 调用评价工程的出站端口
+│   │           │   └── teaching
+│   │           │       ├── package-info.java
+│   │           │       └── CourseClient.java                    // 调用课程能力的出站端口
 │   │           ├── validators
 │   │           │   ├── package-info.java
 │   │           │   ├── user
@@ -1022,10 +1052,18 @@ student-management-organization-adapter
 │   │           │   └── teaching
 │   │           │       ├── package-info.java
 │   │           │       └── SchoolClassDetailVO.java              // 班级详情 VO
-│   │           ├── convertor
+│   │           ├── converter
 │   │           │   ├── package-info.java
-│   │           │   ├── UserAdapterConvertor.java                 // 用户入站转换器
-│   │           │   └── SchoolClassAdapterConvertor.java          // 班级入站转换器
+│   │           │   ├── UserAdapterConverter.java                 // 用户入站转换器
+│   │           │   └── SchoolClassAdapterConverter.java          // 班级入站转换器
+│   │           ├── validators
+│   │           │   ├── package-info.java
+│   │           │   ├── user
+│   │           │   │   ├── package-info.java
+│   │           │   │   └── UserRequestValidator.java             // 用户请求格式校验器
+│   │           │   └── teaching
+│   │           │       ├── package-info.java
+│   │           │       └── SchoolClassRequestValidator.java      // 班级请求格式校验器
 │   │           ├── handler
 │   │           │   ├── package-info.java
 │   │           │   └── OrganizationGlobalExceptionHandler.java   // 全局异常处理器
@@ -1051,7 +1089,7 @@ student-management-organization-adapter
 
 ```text
 course      // 课程、课程安排、课程资源
-examing     // 考试、成绩、评价
+exam     // 考试、成绩、评价
 ```
 
 ### 4.3.1 evaluation-starter
@@ -1101,10 +1139,10 @@ student-management-evaluation-common
 │   │           │   └── EvaluationCommonConstants.java             // 评价工程通用常量
 │   │           ├── utils
 │   │           │   ├── package-info.java
-│   │           │   └── EvaluationScoreUtils.java                  // 成绩计算通用工具
+│   │           │   └── EvaluationDateUtils.java                   // 日期通用工具
 │   │           ├── enums
 │   │           │   ├── package-info.java
-│   │           │   └── EvaluationCommonStatus.java                // 评价工程通用状态
+│   │           │   └── EvaluationOperationStatus.java             // 业务无关操作状态
 │   │           └── exceptions
 │   │               ├── package-info.java
 │   │               ├── EvaluationBaseException.java               // 基础异常
@@ -1113,7 +1151,7 @@ student-management-evaluation-common
 │       ├── java
 │       │   └── com/example/student/evaluation/common
 │       │       ├── package-info.java
-│       │       └── EvaluationScoreUtilsTest.java                  // 成绩工具测试
+│       │       └── EvaluationDateUtilsTest.java                   // 日期工具测试
 │       └── resources
 │           └── application-test.yml
 ```
@@ -1132,7 +1170,7 @@ student-management-evaluation-facade
 │   │           │   ├── package-info.java
 │   │           │   ├── CourseFacade.java                         // 课程 Facade
 │   │           │   └── CourseScheduleFacade.java                 // 课程安排 Facade
-│   │           ├── examing
+│   │           ├── exam
 │   │           │   ├── package-info.java
 │   │           │   ├── ExamFacade.java                           // 考试 Facade
 │   │           │   └── ScoreFacade.java                          // 成绩 Facade
@@ -1143,7 +1181,7 @@ student-management-evaluation-facade
 │   │           │   │   ├── CreateCourseDTO.java                  // 创建课程 DTO
 │   │           │   │   ├── CourseDetailDTO.java                  // 课程详情 DTO
 │   │           │   │   └── CourseScheduleDTO.java                // 课程安排 DTO
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── CreateExamDTO.java                    // 创建考试 DTO
 │   │           │       ├── ExamDetailDTO.java                    // 考试详情 DTO
@@ -1189,7 +1227,7 @@ student-management-evaluation-application
 │   │           │   │       ├── package-info.java
 │   │           │   │       ├── CourseManageImpl.java            // 课程应用服务实现
 │   │           │   │       └── CourseScheduleManageImpl.java    // 课程安排应用服务实现
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamManage.java                      // 考试应用服务接口
 │   │           │       ├── ScoreManage.java                     // 成绩应用服务接口
@@ -1197,20 +1235,20 @@ student-management-evaluation-application
 │   │           │           ├── package-info.java
 │   │           │           ├── ExamManageImpl.java              // 考试应用服务实现
 │   │           │           └── ScoreManageImpl.java             // 成绩应用服务实现
-│   │           ├── convertor
+│   │           ├── converter
 │   │           │   ├── package-info.java
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
-│   │           │   │   └── CourseApplicationConvertor.java      // 课程应用转换器
-│   │           │   └── examing
+│   │           │   │   └── CourseApplicationConverter.java      // 课程应用转换器
+│   │           │   └── exam
 │   │           │       ├── package-info.java
-│   │           │       └── ExamApplicationConvertor.java        // 考试应用转换器
+│   │           │       └── ExamApplicationConverter.java        // 考试应用转换器
 │   │           ├── validators
 │   │           │   ├── package-info.java
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
 │   │           │   │   └── CourseApplicationValidator.java      // 课程用例校验器
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       └── ExamApplicationValidator.java        // 考试用例校验器
 │   │           ├── assemblers
@@ -1218,17 +1256,33 @@ student-management-evaluation-application
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
 │   │           │   │   └── CourseAssembler.java                 // 课程装配器
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       └── ExamAssembler.java                   // 考试装配器
-│   │           └── client
+│   │           ├── command
+│   │           │   ├── package-info.java
+│   │           │   ├── course
+│   │           │   │   ├── package-info.java
+│   │           │   │   └── CreateCourseCommand.java             // 创建课程命令
+│   │           │   └── exam
+│   │           │       ├── package-info.java
+│   │           │       └── SubmitScoreCommand.java              // 提交成绩命令
+│   │           ├── query
+│   │           │   ├── package-info.java
+│   │           │   ├── course
+│   │           │   │   ├── package-info.java
+│   │           │   │   └── CourseDetailQuery.java               // 课程详情查询
+│   │           │   └── exam
+│   │           │       ├── package-info.java
+│   │           │       └── ExamDetailQuery.java                 // 考试详情查询
+│   │           └── result
 │   │               ├── package-info.java
 │   │               ├── course
 │   │               │   ├── package-info.java
-│   │               │   └── OrganizationClient.java              // 调用组织工程客户端接口
-│   │               └── examing
+│   │               │   └── CourseDetailResult.java              // 课程详情结果
+│   │               └── exam
 │   │                   ├── package-info.java
-│   │                   └── StudentClient.java                   // 学生信息客户端接口
+│   │                   └── ExamDetailResult.java                // 考试详情结果
 │   └── test
 │       ├── java
 │       │   └── com/example/student/evaluation/application
@@ -1236,7 +1290,7 @@ student-management-evaluation-application
 │       │       ├── course
 │       │       │   ├── package-info.java
 │       │       │   └── CourseManageImplTest.java                // 课程应用服务测试
-│       │       └── examing
+│       │       └── exam
 │       │           ├── package-info.java
 │       │           └── ExamManageImplTest.java                  // 考试应用服务测试
 │       └── resources
@@ -1259,7 +1313,7 @@ student-management-evaluation-domain
 │   │           │   │   ├── package-info.java
 │   │           │   │   ├── Course.java                          // 课程实体
 │   │           │   │   └── CourseSchedule.java                  // 课程安排实体
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── Exam.java                            // 考试实体
 │   │           │       └── Score.java                           // 成绩实体
@@ -1268,7 +1322,7 @@ student-management-evaluation-domain
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
 │   │           │   │   └── CourseAggregate.java                 // 课程聚合
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamAggregate.java                   // 考试聚合
 │   │           │       └── ScoreAggregate.java                  // 成绩聚合
@@ -1278,7 +1332,7 @@ student-management-evaluation-domain
 │   │           │   │   ├── package-info.java
 │   │           │   │   ├── CourseId.java                        // 课程 ID 值对象
 │   │           │   │   └── CourseCode.java                      // 课程编码值对象
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamId.java                          // 考试 ID 值对象
 │   │           │       └── ScoreValue.java                      // 成绩值对象
@@ -1290,7 +1344,7 @@ student-management-evaluation-domain
 │   │           │   │   └── impl
 │   │           │   │       ├── package-info.java
 │   │           │   │       └── CourseDomainServiceImpl.java     // 课程领域服务实现
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamDomainService.java               // 考试领域服务接口
 │   │           │       ├── ScoreDomainService.java              // 成绩领域服务接口
@@ -1304,16 +1358,24 @@ student-management-evaluation-domain
 │   │           │   │   ├── package-info.java
 │   │           │   │   ├── CourseRepository.java                // 课程仓储接口
 │   │           │   │   └── CourseScheduleRepository.java        // 课程安排仓储接口
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamRepository.java                  // 考试仓储接口
 │   │           │       └── ScoreRepository.java                 // 成绩仓储接口
+│   │           ├── client
+│   │           │   ├── package-info.java
+│   │           │   ├── course
+│   │           │   │   ├── package-info.java
+│   │           │   │   └── OrganizationClient.java              // 调用组织工程的出站端口
+│   │           │   └── exam
+│   │           │       ├── package-info.java
+│   │           │       └── StudentClient.java                   // 查询学生信息的出站端口
 │   │           ├── validators
 │   │           │   ├── package-info.java
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
 │   │           │   │   └── CourseDomainValidator.java           // 课程领域校验器
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       └── ExamDomainValidator.java             // 考试领域校验器
 │   │           └── enums
@@ -1322,7 +1384,7 @@ student-management-evaluation-domain
 │   │               │   ├── package-info.java
 │   │               │   ├── CourseStatus.java                    // 课程状态
 │   │               │   └── CourseType.java                      // 课程类型
-│   │               └── examing
+│   │               └── exam
 │   │                   ├── package-info.java
 │   │                   ├── ExamStatus.java                      // 考试状态
 │   │                   └── ScoreStatus.java                     // 成绩状态
@@ -1333,7 +1395,7 @@ student-management-evaluation-domain
 │       │       ├── course
 │       │       │   ├── package-info.java
 │       │       │   └── CourseDomainServiceTest.java             // 课程领域测试
-│       │       └── examing
+│       │       └── exam
 │       │           ├── package-info.java
 │       │           └── ExamDomainServiceTest.java               // 考试领域测试
 │       └── resources
@@ -1384,7 +1446,7 @@ student-management-evaluation-infrastructure
 │   │   │       │   │       ├── package-info.java
 │   │   │       │   │       ├── CoursePOConverter.java           // 课程 PO 转换器
 │   │   │       │   │       └── CourseSchedulePOConverter.java   // 课程安排 PO 转换器
-│   │   │       │   └── examing
+│   │   │       │   └── exam
 │   │   │       │       ├── package-info.java
 │   │   │       │       ├── impl
 │   │   │       │       │   ├── package-info.java
@@ -1443,7 +1505,7 @@ student-management-evaluation-infrastructure
 │   │       │   ├── course
 │   │       │   │   ├── CourseMapper.xml                          // 课程 Mapper XML
 │   │       │   │   └── CourseScheduleMapper.xml                  // 课程安排 Mapper XML
-│   │       │   └── examing
+│   │       │   └── exam
 │   │       │       ├── ExamMapper.xml                            // 考试 Mapper XML
 │   │       │       └── ScoreMapper.xml                           // 成绩 Mapper XML
 │   │       └── application-infrastructure.yml                    // 基础设施配置
@@ -1454,7 +1516,7 @@ student-management-evaluation-infrastructure
 │       │       ├── course
 │       │       │   ├── package-info.java
 │       │       │   └── CourseRepositoryImplTest.java             // 课程仓储测试
-│       │       └── examing
+│       │       └── exam
 │       │           ├── package-info.java
 │       │           └── ExamRepositoryImplTest.java               // 考试仓储测试
 │       └── resources
@@ -1478,7 +1540,7 @@ student-management-evaluation-adapter
 │   │           │   │   ├── package-info.java
 │   │           │   │   ├── CourseController.java                 // 课程 HTTP 控制器
 │   │           │   │   └── CourseScheduleController.java         // 课程安排 HTTP 控制器
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamController.java                   // 考试 HTTP 控制器
 │   │           │       └── ScoreController.java                  // 成绩 HTTP 控制器
@@ -1487,7 +1549,7 @@ student-management-evaluation-adapter
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
 │   │           │   │   └── CourseCreatedConsumer.java            // 课程创建入站消息消费者
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       └── ExamCreatedConsumer.java              // 考试创建入站消息消费者
 │   │           ├── rpc
@@ -1504,7 +1566,7 @@ student-management-evaluation-adapter
 │   │           │   │   ├── package-info.java
 │   │           │   │   ├── CourseFacadeImpl.java                 // 课程 Facade 实现
 │   │           │   │   └── CourseScheduleFacadeImpl.java         // 课程安排 Facade 实现
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamFacadeImpl.java                   // 考试 Facade 实现
 │   │           │       └── ScoreFacadeImpl.java                  // 成绩 Facade 实现
@@ -1513,7 +1575,7 @@ student-management-evaluation-adapter
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
 │   │           │   │   └── CreateCourseRequest.java              // 创建课程请求
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── CreateExamRequest.java                // 创建考试请求
 │   │           │       └── SubmitScoreRequest.java               // 提交成绩请求
@@ -1522,14 +1584,22 @@ student-management-evaluation-adapter
 │   │           │   ├── course
 │   │           │   │   ├── package-info.java
 │   │           │   │   └── CourseDetailVO.java                   // 课程详情 VO
-│   │           │   └── examing
+│   │           │   └── exam
 │   │           │       ├── package-info.java
 │   │           │       ├── ExamDetailVO.java                     // 考试详情 VO
 │   │           │       └── ScoreDetailVO.java                    // 成绩详情 VO
-│   │           ├── convertor
+│   │           ├── converter
 │   │           │   ├── package-info.java
-│   │           │   ├── CourseAdapterConvertor.java               // 课程入站转换器
-│   │           │   └── ExamAdapterConvertor.java                 // 考试入站转换器
+│   │           │   ├── CourseAdapterConverter.java               // 课程入站转换器
+│   │           │   └── ExamAdapterConverter.java                 // 考试入站转换器
+│   │           ├── validators
+│   │           │   ├── package-info.java
+│   │           │   ├── course
+│   │           │   │   ├── package-info.java
+│   │           │   │   └── CourseRequestValidator.java           // 课程请求格式校验器
+│   │           │   └── exam
+│   │           │       ├── package-info.java
+│   │           │       └── ExamRequestValidator.java             // 考试请求格式校验器
 │   │           ├── handler
 │   │           │   ├── package-info.java
 │   │           │   └── EvaluationGlobalExceptionHandler.java     // 全局异常处理器
@@ -1556,7 +1626,7 @@ student-management-evaluation-adapter
 ```text
 1. student-management-organization 和 student-management-evaluation 是两个独立 Project。
 2. 不允许再额外创建 student-management 根聚合工程统一管理两个 Project。
-3. 跨 Project 调用只能通过 facade、RPC、HTTP、MQ 或 application.client 抽象完成。
+3. 跨 Project 调用只能通过 facade、RPC、HTTP、MQ 或 domain.client 出站端口完成。
 4. 一个 Project 内部可以有多个领域包。
 5. 一个 Project 内部领域之间由 application 编排，不建议 domain 之间互相依赖。
 ```
@@ -1592,7 +1662,7 @@ student-management-evaluation-adapter
 
 ```text
 1. application 不放 facade.impl。
-2. application 的 manage 实现按 manage.user.impl、manage.teaching.impl、manage.course.impl、manage.examing.impl 分包。
+2. application 的 manage 实现按 manage.user.impl、manage.teaching.impl、manage.course.impl、manage.exam.impl 分包。
 3. application 负责事务和用例编排。
 4. application 不直接调用 Mapper、RedisTemplate、KafkaTemplate、RabbitTemplate、JpaRepository。
 ```
@@ -1602,7 +1672,7 @@ student-management-evaluation-adapter
 ```text
 1. domain 的领域服务目录必须是 service 和 service.impl。
 2. domain 不使用 domainservices、domainservicesimpl 这种命名。
-3. domain 只定义领域对象、领域服务、仓储接口、领域校验器和领域枚举。
+3. domain 只定义领域对象、领域服务、仓储接口、出站客户端接口、领域校验器和领域枚举。
 4. domain 不感知任何基础设施实现。
 ```
 
@@ -1611,10 +1681,12 @@ student-management-evaluation-adapter
 ```text
 1. infrastructure.repo 必须按领域分包。
 2. organization 使用 repo.user.*、repo.teaching.*。
-3. evaluation 使用 repo.course.*、repo.examing.*。
+3. evaluation 使用 repo.course.*、repo.exam.*。
 4. repo.impl 调用 mp.service 或 jpa.repository。
 5. 业务代码不允许直调 mapper。
 6. infrastructure.mq 只负责出站消息发送。
+7. infrastructure 只依赖 domain，不依赖 application。
+8. infrastructure.client.impl 只实现 domain.client 出站端口。
 ```
 
 ---
@@ -1708,7 +1780,7 @@ student-management-organization  // 独立 Project
 
 student-management-evaluation    // 独立 Project
     - course
-    - examing
+    - exam
 ```
 
 每个 Project 内部按统一分层拆模块：
@@ -1732,7 +1804,7 @@ organization:
 
 evaluation:
     course
-    examing
+    exam
 ```
 
 最终依赖方向保持为：
@@ -1742,7 +1814,7 @@ starter -> adapter / infrastructure
 adapter -> application / facade
 application -> domain
 domain -> common
-infrastructure -> application
+infrastructure -> domain
 ```
 
 关键规范：
