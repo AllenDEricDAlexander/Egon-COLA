@@ -285,6 +285,18 @@ assertFile("student-management-evaluation-infrastructure/src/main/resources/db/m
 assertFile("student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/EvaluationMigrationTest.java")
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/po/CourseSchedulePo.java")
 assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/impl/CourseScheduleRepositoryImpl.java")
+[
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/exam/po/ExamPo.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/exam/po/ExamPaperPo.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/exam/po/ScorePo.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/exam/impl/ExamRepositoryImpl.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/exam/impl/ExamPaperRepositoryImpl.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/exam/impl/ScoreRepositoryImpl.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/validators/EvaluationPersistenceValidator.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ExamRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ExamPaperRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ScoreRepositoryTest.java"
+].each { assertFile(it) }
 
 def starterPomText = serviceStarterPomText
 def starterPom = new groovy.xml.XmlSlurper(false, false).parse(assertFile("student-management-evaluation-starter/pom.xml"))
