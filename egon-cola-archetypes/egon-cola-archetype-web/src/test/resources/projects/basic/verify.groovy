@@ -180,8 +180,12 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
     assert gitignoreLines.contains(it): "Expected .gitignore to contain line ${it}"
 }
 
-["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each {
-    assertDir("student-management-organization-${it}")
+["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each { module ->
+    def root = "student-management-organization-${module}"
+    assertDir(root)
+    ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"].each { sourceDirectory ->
+        assertDir("${root}/${sourceDirectory}")
+    }
 }
 
 [
@@ -416,6 +420,9 @@ assertNoDependency(infrastructureDependencies, "student-management-organization-
 assertDependency(infrastructureDependencies, "spring-boot-starter-validation")
 assertDependency(infrastructureDependencies, "mapstruct-plus-spring-boot-starter")
 assertDependency(infrastructureDependencies, "spring-boot-starter-data-jpa")
+assertDependency(infrastructureDependencies, "spring-boot-starter-data-redis")
+assertDependency(infrastructureDependencies, "spring-boot-starter-amqp")
+assertDependency(infrastructureDependencies, "spring-boot-starter-aop")
 assertDependency(infrastructureDependencies, "flyway-core")
 assertScopedDependency(infrastructureDependencies, "h2", "runtime")
 assertScopedDependency(infrastructureDependencies, "postgresql", "runtime")
@@ -426,6 +433,9 @@ assertDependency(adapterDependencies, "student-management-organization-facade")
 assertNoDependency(adapterDependencies, "student-management-organization-common")
 assertDependency(adapterDependencies, "spring-boot-starter-web")
 assertDependency(adapterDependencies, "spring-boot-starter-validation")
+assertDependency(adapterDependencies, "spring-boot-starter-graphql")
+assertDependency(adapterDependencies, "spring-boot-starter-amqp")
+assertDependency(adapterDependencies, "springdoc-openapi-starter-webmvc-api")
 assertDependency(adapterDependencies, "dubbo-spring-boot-starter")
 assertDependency(adapterDependencies, "mapstruct-plus-spring-boot-starter")
 assertScopedDependency(adapterDependencies, "lombok", "provided")
@@ -435,6 +445,7 @@ assertDependency(starterDependencies, "student-management-organization-adapter")
 assertDependency(starterDependencies, "student-management-organization-infrastructure")
 assertDependency(starterDependencies, "spring-boot-starter")
 assertDependency(starterDependencies, "spring-boot-starter-actuator")
+assertDependency(starterDependencies, "springdoc-openapi-starter-webmvc-ui")
 assertScopedDependency(starterDependencies, "lombok", "provided")
 assertScopedDependency(starterDependencies, "spring-boot-starter-test", "test")
 assertScopedDependency(starterDependencies, "archunit-junit5", "test")

@@ -55,6 +55,7 @@
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/main/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
@@ -63,12 +64,14 @@
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
                     <directory>src/test/java</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.java</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/test/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                     </includes>
@@ -92,6 +95,7 @@
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/main/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
@@ -100,12 +104,14 @@
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
                     <directory>src/test/java</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.java</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/test/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                     </includes>
@@ -129,6 +135,7 @@
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/main/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
@@ -137,12 +144,14 @@
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
                     <directory>src/test/java</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.java</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/test/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                     </includes>
@@ -166,6 +175,7 @@
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/main/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
@@ -174,12 +184,14 @@
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
                     <directory>src/test/java</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.java</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/test/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                     </includes>
@@ -212,12 +224,14 @@
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
                     <directory>src/test/java</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.java</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/test/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                     </includes>
@@ -241,6 +255,7 @@
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/main/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
@@ -249,12 +264,14 @@
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
                     <directory>src/test/java</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.java</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/test/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                     </includes>
@@ -294,6 +311,7 @@
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/test/resources</directory>
                     <includes>
+                        <include>.gitkeep</include>
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                     </includes>
