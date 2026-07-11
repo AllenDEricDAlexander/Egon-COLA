@@ -463,6 +463,10 @@ def assertMissing = { path ->
     assert !new File(projectDir, path).exists(): "Unexpected stale path ${path}"
 }
 
+requiredFiles.addAll([
+    "student-management-organization-domain/src/main/java/it/pkg/domain/client/evaluation/EvaluationQueryPort.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/DubboEvaluationQueryClient.java"
+])
 requiredFiles.each { assertFile(it) }
 
 def forbiddenPaths = [
@@ -687,6 +691,10 @@ assertMissing("student-management-organization-infrastructure/src/main/java/pack
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/package-info.java")
 
 def rootPomText = assertFile("pom.xml").text
+assert rootPomText.contains("<evaluation-facade.group-id>fixture.evaluation</evaluation-facade.group-id>")
+assert rootPomText.contains("<evaluation-facade.artifact-id>student-management-evaluation-facade</evaluation-facade.artifact-id>")
+assert rootPomText.contains("<evaluation-facade.version>1.0.0-fixture</evaluation-facade.version>")
+assert rootPomText.contains("<evaluation-facade.package>fixture.evaluation</evaluation-facade.package>")
 assert rootPomText.contains("<artifactId>spring-boot-starter-parent</artifactId>")
 assert rootPomText.contains("<version>3.5.16</version>")
 assert rootPomText.contains("<java.version>21</java.version>")
