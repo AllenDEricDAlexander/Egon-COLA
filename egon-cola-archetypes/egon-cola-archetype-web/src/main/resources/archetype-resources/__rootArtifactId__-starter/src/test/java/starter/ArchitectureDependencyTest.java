@@ -1,6 +1,3 @@
-#set( $symbol_pound = '#' )
-#set( $symbol_dollar = '$' )
-#set( $symbol_escape = '\' )
 package ${package}.starter;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -10,61 +7,87 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.util.List;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 class ArchitectureDependencyTest {
     private final JavaClasses classes = new ClassFileImporter().importPaths(targetClassPaths());
 
     @Test
-    void domain_does_not_depend_on_outer_layers() {
-        noClasses().that().resideInAPackage("${package}.domain..")
+    void enforcesProjectModuleDirections() {
+        noClasses().that().resideInAPackage("${package}.common..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "${package}.application..",
-                        "${package}.adapter..",
-                        "${package}.facade..",
-                        "${package}.infrastructure..",
-                        "${package}.starter..")
+                        "${package}.facade..", "${package}.domain..", "${package}.application..",
+                        "${package}.infrastructure..", "${package}.adapter..", "${package}.starter..")
                 .check(classes);
-    }
-
-    @Test
-    void facade_does_not_depend_on_internal_layers() {
         noClasses().that().resideInAPackage("${package}.facade..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "${package}.common..",
-                        "${package}.domain..",
-                        "${package}.application..",
-                        "${package}.adapter..",
-                        "${package}.infrastructure..",
-                        "${package}.starter..")
+                        "${package}.common..", "${package}.domain..", "${package}.application..",
+                        "${package}.infrastructure..", "${package}.adapter..", "${package}.starter..")
                 .check(classes);
-    }
-
-    @Test
-    void application_does_not_depend_on_external_or_infrastructure_layers() {
+        noClasses().that().resideInAPackage("${package}.domain..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.common..", "${package}.facade..", "${package}.application..",
+                        "${package}.infrastructure..", "${package}.adapter..", "${package}.starter..")
+                .check(classes);
         noClasses().that().resideInAPackage("${package}.application..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "${package}.facade..",
-                        "${package}.adapter..",
-                        "${package}.infrastructure..",
-                        "${package}.starter..")
+                        "${package}.common..", "${package}.facade..", "${package}.infrastructure..",
+                        "${package}.adapter..", "${package}.starter..")
                 .check(classes);
-    }
-
-    @Test
-    void application_should_not_depend_on_external_models() {
-        noClasses().that().resideInAPackage("${package}.application..")
+        noClasses().that().resideInAPackage("${package}.infrastructure..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "${package}.adapter..",
-                        "${package}.facade.dto..",
-                        "org.springframework.web..")
+                        "${package}.common..", "${package}.facade..", "${package}.application..",
+                        "${package}.adapter..", "${package}.starter..")
                 .check(classes);
-    }
-
-    @Test
-    void adapter_does_not_depend_on_infrastructure() {
         noClasses().that().resideInAPackage("${package}.adapter..")
-                .should().dependOnClassesThat().resideInAPackage("${package}.infrastructure..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.common..", "${package}.domain..", "${package}.infrastructure..",
+                        "${package}.starter..")
+                .check(classes);
+    }
+
+    @Test
+    void domainRemainsFrameworkIndependent() {
+        noClasses().that().resideInAPackage("${package}.domain..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "org.springframework..", "jakarta.persistence..", "org.apache.dubbo..",
+                        "org.springframework.data.redis..", "org.springframework.amqp..")
+                .check(classes);
+    }
+
+    @Test
+    void facadeRemainsAPlainContractModule() {
+        noClasses().that().resideInAPackage("${package}.facade..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "org.springframework..", "jakarta.persistence..", "org.apache.dubbo..")
+                .check(classes);
+    }
+
+    @Test
+    void applicationDoesNotOwnTransportOrPersistenceApis() {
+        noClasses().that().resideInAPackage("${package}.application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "org.springframework.web..", "jakarta.persistence..", "org.apache.dubbo..",
+                        "org.springframework.data.redis..", "org.springframework.amqp..")
+                .check(classes);
+    }
+
+    @Test
+    void adapterDoesNotReachTechnicalImplementations() {
+        noClasses().that().resideInAPackage("${package}.adapter..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.domain..", "${package}.infrastructure..", "jakarta.persistence..",
+                        "org.springframework.data.redis..")
+                .check(classes);
+    }
+
+    @Test
+    void facadeImplementationsStayInAdapterDomainPackages() {
+        classes().that().haveSimpleNameEndingWith("FacadeImpl")
+                .should().resideInAnyPackage(
+                        "${package}.adapter.facade.impl.user..",
+                        "${package}.adapter.facade.impl.teaching..")
                 .check(classes);
     }
 

@@ -19,6 +19,7 @@ import ${package}.application.support.IdempotentCommand;
 import ${package}.application.support.OrganizationTransactionHooks;
 import ${package}.domain.entities.teaching.SchoolClass;
 import ${package}.domain.aggregates.teaching.SchoolClassAggregate;
+import ${package}.domain.exceptions.OrganizationDomainException;
 import ${package}.domain.repos.teaching.GradeRepository;
 import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.domain.repos.user.UserRepository;
@@ -107,7 +108,14 @@ public class SchoolClassManageImpl implements SchoolClassManage {
             var user = userRepository.findById(memberId).orElseThrow(() -> notFound("user not found"));
             SchoolClass schoolClass = schoolClassRepository.findById(classId)
                 .orElseThrow(() -> notFound("school class not found"));
-            new SchoolClassAggregate(schoolClass).validateAssignment(user);
+            try {
+                new SchoolClassAggregate(schoolClass).validateAssignment(user);
+            } catch (OrganizationDomainException failure) {
+                throw new OrganizationApplicationException(
+                        OrganizationFailureType.DOMAIN_REJECTED,
+                        "ORG_DOMAIN_REJECTED",
+                        failure.getMessage());
+            }
             if (schoolClassRepository.hasUser(classId, memberId)) {
                 throw conflict("user already assigned to school class");
             }

@@ -13,4 +13,8 @@ public final class InMemoryCommandIdempotencyAdapter implements CommandIdempoten
     @Override public void release(String operation, String requestId) {
         claims.remove(OrganizationCacheKey.command(operation, requestId));
     }
+    public boolean contains(String operation, String requestId) {
+        return claims.contains(OrganizationCacheKey.command(operation, requestId));
+    }
+    public void clear() { claims.clear(); }
 }
