@@ -188,11 +188,11 @@ modules.each { module ->
     }
     if (module == "infrastructure") {
         assert "flyway-database-postgresql" in artifacts
-        assert "student-management-organization-facade" in artifacts
+        assert '${organization-facade.artifact-id}' in artifacts
         assert "dubbo-spring-boot-starter" in artifacts
     } else {
         assert !("flyway-database-postgresql" in artifacts)
-        assert !("student-management-organization-facade" in artifacts)
+        assert !('${organization-facade.artifact-id}' in artifacts)
     }
 }
 
@@ -233,6 +233,8 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitCourseEventPublisherTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitExamEventPublisherTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClientTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStubTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/ServiceArchitectureDependencyTest.java"
 ].each { assertFile(it) }
@@ -300,8 +302,12 @@ def localYaml = assertFile(
 def testYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application-test.yml").text
 assert applicationYaml.contains("rabbitmq:")
+assert applicationYaml.contains("organization:")
+assert applicationYaml.contains("DUBBO_CONSUMER_TIMEOUT:3000")
 assert localYaml.contains("console:\n      enabled: false")
+assert localYaml.contains("organization:\n      enabled: false")
 assert testYaml.contains("rabbitmq:\n      enabled: false")
+assert testYaml.contains("organization:\n      enabled: false")
 assert testYaml.contains("listener-auto-startup: false")
 
 def tripleTest = assertFile(
@@ -327,7 +333,7 @@ def readme = assertFile("README.md").text
 assert readme.contains("require no Nacos, RabbitMQ, or PostgreSQL")
 assert readme.contains("V1__init_student_management_evaluation.sql` is immutable")
 assert readme.contains("RabbitMQ support is intentionally basic transport")
-assert readme.contains("Organization dual-domain Facade integration is deferred")
+assert readme.contains("Organization Facade client is an unused infrastructure foundation")
 
 assert assertFile("mvnw").canExecute() || System.getProperty("os.name").toLowerCase().contains("windows")
 assertFile("mvnw.cmd")

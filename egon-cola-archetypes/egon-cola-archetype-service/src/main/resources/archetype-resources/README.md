@@ -7,9 +7,9 @@ ${symbol_pound}${symbol_pound} Module Ownership
 
 - `${rootArtifactId}-common`: stable errors, constants, enums, and identifier utilities.
 - `${rootArtifactId}-facade`: serializable Dubbo request/response contracts and public facade APIs.
-- `${rootArtifactId}-domain`: entities, aggregates, value objects, domain services, repository ports, and event publisher ports. It contains no persistence or MQ implementation.
+- `${rootArtifactId}-domain`: entities, aggregates, value objects, domain services, repository/event ports, and the consumer-owned Organization directory port. It contains no persistence, MQ, Facade, or Dubbo implementation.
 - `${rootArtifactId}-application`: commands, queries, use-case managers, application validation, and result models.
-- `${rootArtifactId}-infrastructure`: Spring Data JPA repositories, Flyway migrations, and RabbitMQ/local publisher implementations.
+- `${rootArtifactId}-infrastructure`: Spring Data JPA repositories, Flyway migrations, RabbitMQ/local publisher implementations, and the Organization Facade anti-corruption adapter.
 - `${rootArtifactId}-adapter`: Dubbo providers, facade conversion, validation, exception translation, and the score-command MQ consumer.
 - `${rootArtifactId}-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
 
@@ -37,11 +37,14 @@ ${symbol_pound}${symbol_pound} Profiles And Integrations
 
 `local` is the default profile. Both `local` and `test` use H2 in PostgreSQL compatibility mode and require no Nacos, RabbitMQ, or PostgreSQL service. RabbitMQ publishers and listeners are disabled in `test`; `local` uses the local publisher implementation unless explicitly enabled.
 
+The Organization Facade client is an unused infrastructure foundation. `local` and `test` select a deterministic `OrganizationDirectoryPort` stub. `dev` and `prod` select the real Dubbo client, pin its Facade artifact through the generated POM, and fail explicitly when the provider is unavailable. No current Application use case calls this port.
+
 `dev` and `prod` are external-integration profiles. Configure them through environment variables rather than committed secrets:
 
 - Database: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DRIVER_CLASS_NAME`.
 - Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_GROUP`, `NACOS_USERNAME`, `NACOS_PASSWORD`.
-- Dubbo: `DUBBO_REGISTRY_ADDRESS`, `DUBBO_PORT`.
+- Dubbo: `DUBBO_REGISTRY_ADDRESS`, `DUBBO_PORT`, `DUBBO_CONSUMER_TIMEOUT`.
+- Organization Facade: `ORGANIZATION_FACADE_ENABLED`, `ORGANIZATION_FACADE_GROUP`, `ORGANIZATION_FACADE_SERVICE_VERSION`.
 - RabbitMQ: `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_ENABLED`, `RABBITMQ_LISTENER_AUTO_STARTUP`.
 - Configuration decryption: `CONFIG_DECRYPT_KEY` or the documented config-tree secret source.
 
@@ -61,4 +64,4 @@ The test suite includes Domain rules, Application orchestration, JPA adapters, V
 
 ${symbol_pound}${symbol_pound} Scope Boundary
 
-This generated service has no business Controller, Web Filter, GraphQL endpoint, native grpc-java module, or enabled H2 console. Organization dual-domain Facade integration is deferred to a separate specification and is not part of this service sample.
+This generated service has no business Controller, Web Filter, GraphQL endpoint, native grpc-java module, or enabled H2 console. Its Organization Facade client is intentionally not wired into current Application behavior.

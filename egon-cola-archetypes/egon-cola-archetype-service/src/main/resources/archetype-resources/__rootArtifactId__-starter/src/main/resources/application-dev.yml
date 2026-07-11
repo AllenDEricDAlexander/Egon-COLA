@@ -27,6 +27,10 @@ spring:
 
 app:
   integrations:
+    organization:
+      enabled: ${symbol_dollar}{ORGANIZATION_FACADE_ENABLED:true}
+      group: ${symbol_dollar}{ORGANIZATION_FACADE_GROUP:student-management-organization}
+      version: ${symbol_dollar}{ORGANIZATION_FACADE_SERVICE_VERSION:1.0.0}
     rabbitmq:
       enabled: ${symbol_dollar}{RABBITMQ_ENABLED:true}
       listener-auto-startup: ${symbol_dollar}{RABBITMQ_LISTENER_AUTO_STARTUP:true}

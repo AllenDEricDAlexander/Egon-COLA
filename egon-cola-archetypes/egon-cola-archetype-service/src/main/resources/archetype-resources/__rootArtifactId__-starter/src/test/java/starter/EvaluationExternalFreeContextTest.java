@@ -3,6 +3,8 @@
 #set( $symbol_escape = '\\' )
 package ${package}.starter;
 
+import ${package}.domain.client.organization.OrganizationDirectoryPort;
+import ${package}.infrastructure.client.organization.LocalOrganizationDirectoryStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +22,7 @@ class EvaluationExternalFreeContextTest {
 
     @Autowired private ApplicationContext context;
     @Autowired private Environment environment;
+    @Autowired private OrganizationDirectoryPort organizationDirectory;
 
     @Test
     void shouldAssembleWithoutExternalInfrastructure() {
@@ -32,5 +35,9 @@ class EvaluationExternalFreeContextTest {
                 .isFalse();
         assertThat(environment.getProperty(
                 "app.integrations.rabbitmq.listener-auto-startup", Boolean.class)).isFalse();
+        assertThat(environment.getProperty("app.integrations.organization.enabled", Boolean.class))
+                .isFalse();
+        assertThat(organizationDirectory).isInstanceOf(LocalOrganizationDirectoryStub.class);
+        assertThat(context.containsBean("dubboOrganizationDirectoryClient")).isFalse();
     }
 }
