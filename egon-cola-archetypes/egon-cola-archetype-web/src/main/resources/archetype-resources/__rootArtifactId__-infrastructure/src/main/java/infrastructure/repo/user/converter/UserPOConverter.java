@@ -3,6 +3,7 @@ package ${package}.infrastructure.repo.user.converter;
 import ${package}.domain.entities.user.User;
 import ${package}.domain.enums.user.UserStatus;
 import ${package}.domain.vos.user.UserId;
+import ${package}.domain.vos.user.RoleCode;
 import ${package}.infrastructure.repo.user.po.UserPO;
 import org.springframework.stereotype.Component;
 
@@ -17,9 +18,9 @@ public class UserPOConverter {
             user.id().value(), user.name(), user.email(), user.status().name(), LocalDateTime.now());
     }
 
-    public User toEntity(UserPO userPO, List<String> schoolClassIds) {
+    public User toEntity(UserPO userPO, List<RoleCode> roleCodes) {
         return User.restore(
             new UserId(userPO.getId()), userPO.getName(), userPO.getEmail(),
-            UserStatus.valueOf(userPO.getStatus()), List.of(), schoolClassIds);
+            UserStatus.valueOf(userPO.getStatus()), roleCodes);
     }
 }

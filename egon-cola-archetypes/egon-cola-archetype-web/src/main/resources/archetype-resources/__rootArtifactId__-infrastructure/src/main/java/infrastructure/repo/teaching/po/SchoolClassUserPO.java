@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
         name = "school_class_users",
         uniqueConstraints = @UniqueConstraint(name = "uk_school_class_user", columnNames = {"user_id", "school_class_id"})
 )
-public class SchoolClassUserPo {
+public class SchoolClassUserPO {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,10 +29,10 @@ public class SchoolClassUserPo {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected SchoolClassUserPo() {
+    protected SchoolClassUserPO() {
     }
 
-    public SchoolClassUserPo(String userId, String schoolClassId, LocalDateTime createdAt) {
+    public SchoolClassUserPO(String userId, String schoolClassId, LocalDateTime createdAt) {
         this.userId = userId;
         this.schoolClassId = schoolClassId;
         this.createdAt = createdAt;

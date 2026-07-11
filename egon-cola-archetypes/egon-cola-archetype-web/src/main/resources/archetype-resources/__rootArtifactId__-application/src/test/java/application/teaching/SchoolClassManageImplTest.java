@@ -10,6 +10,7 @@ import ${package}.domain.entities.teaching.Grade;
 import ${package}.domain.enums.teaching.GradeStatus;
 import ${package}.domain.repos.teaching.GradeRepository;
 import ${package}.domain.repos.teaching.SchoolClassRepository;
+import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
 import ${package}.domain.vos.teaching.GradeCode;
 import org.junit.jupiter.api.AfterEach;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.when;
 class SchoolClassManageImplTest {
     @Mock GradeRepository gradeRepository;
     @Mock SchoolClassRepository schoolClassRepository;
+    @Mock UserRepository userRepository;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -39,7 +41,7 @@ class SchoolClassManageImplTest {
         when(gradeRepository.findByCode(GradeCode.create("GRADE_ONE"))).thenReturn(Optional.of(grade));
         when(schoolClassRepository.existsByGradeIdAndNameIgnoreCase("grade-1", "Class A")).thenReturn(true);
         SchoolClassManageImpl manage = new SchoolClassManageImpl(
-            schoolClassRepository, gradeRepository, new SchoolClassDomainService(),
+            schoolClassRepository, gradeRepository, userRepository, new SchoolClassDomainService(),
             new TeachingApplicationValidator());
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createSchoolClass(

@@ -15,29 +15,17 @@ public final class User {
     private final String email;
     private final UserStatus status;
     private final List<RoleCode> roleCodes;
-    private final List<String> schoolClassIds;
 
     public User(UserId id, String name, String email, UserStatus status) {
-        this(id, name, email, status, List.of(), List.of());
+        this(id, name, email, status, List.of());
     }
 
     public User(UserId id, String name, String email, UserStatus status, List<RoleCode> roleCodes) {
-        this(id, name, email, status, roleCodes, List.of());
-    }
-
-    private User(
-            UserId id,
-            String name,
-            String email,
-            UserStatus status,
-            List<RoleCode> roleCodes,
-            List<String> schoolClassIds) {
         this.id = id;
         this.name = UserDomainValidator.normalizeName(name);
         this.email = UserDomainValidator.normalizeEmail(email);
         this.status = status;
         this.roleCodes = new ArrayList<>(roleCodes);
-        this.schoolClassIds = new ArrayList<>(schoolClassIds);
     }
 
     public static User restore(
@@ -45,16 +33,11 @@ public final class User {
             String name,
             String email,
             UserStatus status,
-            List<RoleCode> roleCodes,
-            List<String> schoolClassIds) {
-        return new User(id, name, email, status, roleCodes, schoolClassIds);
+            List<RoleCode> roleCodes) {
+        return new User(id, name, email, status, roleCodes);
     }
 
-    public void assignToClass(String schoolClassId) { schoolClassIds.add(schoolClassId); }
-
     public void assignRole(RoleCode roleCode) { roleCodes.add(roleCode); }
-
-    public boolean hasSchoolClass(String schoolClassId) { return schoolClassIds.contains(schoolClassId); }
 
     public UserId id() { return id; }
     public String name() { return name; }
@@ -65,5 +48,4 @@ public final class User {
     public String getName() { return name; }
     public String getEmail() { return email; }
     public UserStatus getStatus() { return status; }
-    public List<String> getSchoolClassIds() { return List.copyOf(schoolClassIds); }
 }

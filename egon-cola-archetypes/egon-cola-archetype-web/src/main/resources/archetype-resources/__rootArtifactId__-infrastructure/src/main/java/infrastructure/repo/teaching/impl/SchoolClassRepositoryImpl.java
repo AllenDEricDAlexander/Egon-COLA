@@ -12,7 +12,7 @@ import ${package}.infrastructure.repo.teaching.jpa.GradeJpaRepository;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassJpaRepository;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassUserJpaRepository;
 import ${package}.infrastructure.repo.teaching.po.SchoolClassPO;
-import ${package}.infrastructure.repo.teaching.po.SchoolClassUserPo;
+import ${package}.infrastructure.repo.teaching.po.SchoolClassUserPO;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -57,7 +57,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     @Override public void addUser(SchoolClassId schoolClassId, UserId userId) {
         try {
             schoolClassUserJpaRepository.saveAndFlush(
-                new SchoolClassUserPo(userId.value(), schoolClassId.value(), LocalDateTime.now()));
+                new SchoolClassUserPO(userId.value(), schoolClassId.value(), LocalDateTime.now()));
         } catch (DataIntegrityViolationException exception) {
             throw conflict("school class membership conflict", exception);
         }
@@ -76,7 +76,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
                 OrganizationDomainErrorCode.DEPENDENCY_UNAVAILABLE, "grade row missing",
                 new IllegalStateException("grade row missing")));
         List<UserId> userIds = schoolClassUserJpaRepository.findBySchoolClassId(schoolClassPO.getId()).stream()
-            .map(SchoolClassUserPo::getUserId).map(UserId::new).toList();
+            .map(SchoolClassUserPO::getUserId).map(UserId::new).toList();
         return converter.toEntity(schoolClassPO, gradeCode, userIds);
     }
 

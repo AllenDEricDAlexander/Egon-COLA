@@ -48,8 +48,10 @@ public class SchoolClassController {
     @PostMapping("/{schoolClassId}/users")
     public ResponseEntity<Void> assignUser(
             @PathVariable String schoolClassId,
-            @Valid @RequestBody AssignUserToClassRequest request) {
-        schoolClassManage.assignUser(request.userId(), schoolClassId);
+            @Valid @RequestBody AssignUserToClassRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
+        String requestId = key == null ? UUID.randomUUID().toString() : key;
+        schoolClassManage.assignUser(converter.toCommand(requestId, schoolClassId, request.userId()));
         return ResponseEntity.noContent().build();
     }
 }

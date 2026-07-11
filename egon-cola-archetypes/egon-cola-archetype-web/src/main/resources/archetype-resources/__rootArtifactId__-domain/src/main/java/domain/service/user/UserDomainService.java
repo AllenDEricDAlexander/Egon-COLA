@@ -7,5 +7,4 @@ public interface UserDomainService {
 
     User create(UserId userId, String name, String email);
 
-    User assignClass(User user, String schoolClassId);
 }

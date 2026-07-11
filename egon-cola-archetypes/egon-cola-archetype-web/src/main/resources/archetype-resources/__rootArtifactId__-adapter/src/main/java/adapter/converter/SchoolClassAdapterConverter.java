@@ -3,6 +3,7 @@ package ${package}.adapter.converter;
 import ${package}.adapter.dto.teaching.CreateSchoolClassRequest;
 import ${package}.adapter.vo.teaching.SchoolClassDetailVO;
 import ${package}.application.command.teaching.CreateSchoolClassCommand;
+import ${package}.application.command.teaching.AssignUserToClassCommand;
 import ${package}.application.result.teaching.SchoolClassDetailResult;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,9 @@ import org.springframework.stereotype.Component;
 public final class SchoolClassAdapterConverter {
     public CreateSchoolClassCommand toCommand(String requestId, CreateSchoolClassRequest request) {
         return new CreateSchoolClassCommand(requestId, request.name(), request.gradeCode());
+    }
+    public AssignUserToClassCommand toCommand(String requestId, String schoolClassId, String userId) {
+        return new AssignUserToClassCommand(requestId, userId, schoolClassId);
     }
     public SchoolClassDetailVO toVO(SchoolClassDetailResult result) {
         return new SchoolClassDetailVO(result.id(), result.name(), result.gradeCode(),

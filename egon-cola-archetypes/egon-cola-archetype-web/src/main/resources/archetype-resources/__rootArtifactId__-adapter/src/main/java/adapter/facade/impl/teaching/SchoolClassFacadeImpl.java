@@ -1,6 +1,7 @@
 package ${package}.adapter.facade.impl.teaching;
 
 import ${package}.application.command.teaching.CreateSchoolClassCommand;
+import ${package}.application.command.teaching.AssignUserToClassCommand;
 import ${package}.application.manage.teaching.SchoolClassManage;
 import ${package}.application.query.teaching.SchoolClassDetailQuery;
 import ${package}.application.result.teaching.SchoolClassDetailResult;
@@ -27,7 +28,8 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
         return toDTO(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(schoolClassId)));
     }
     @Override public void assignUser(AssignUserToClassDTO request) {
-        schoolClassManage.assignUser(request.userId(), request.schoolClassId());
+        schoolClassManage.assignUser(new AssignUserToClassCommand(
+            UUID.randomUUID().toString(), request.userId(), request.schoolClassId()));
     }
     private static SchoolClassDetailDTO toDTO(SchoolClassDetailResult result) {
         return new SchoolClassDetailDTO(result.id(), result.name(), result.gradeCode(),
