@@ -1,10 +1,12 @@
 package ${package}.application.manage.teaching;
 
-import ${package}.domain.entities.teaching.SchoolClass;
-import jakarta.validation.constraints.NotBlank;
+import ${package}.application.command.teaching.CreateSchoolClassCommand;
+import ${package}.application.query.teaching.SchoolClassDetailQuery;
+import ${package}.application.result.teaching.SchoolClassDetailResult;
 
 public interface SchoolClassManage {
-    SchoolClass create(@NotBlank String name, @NotBlank String gradeName);
+    SchoolClassDetailResult createSchoolClass(CreateSchoolClassCommand command);
+    SchoolClassDetailResult getSchoolClass(SchoolClassDetailQuery query);
 
-    void assignUser(@NotBlank String userId, @NotBlank String schoolClassId);
+    void assignUser(String userId, String schoolClassId);
 }

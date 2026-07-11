@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "school_classes")
-public class SchoolClassPo {
+public class SchoolClassPO {
     @Id
     @Column(length = 64)
     private String id;
@@ -29,10 +29,10 @@ public class SchoolClassPo {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected SchoolClassPo() {
+    protected SchoolClassPO() {
     }
 
-    public SchoolClassPo(
+    public SchoolClassPO(
             String id,
             String name,
             String gradeName,

@@ -1,13 +1,14 @@
 package ${package}.facade.teaching;
 
-import ${package}.facade.dto.teaching.AssignUserToClassRequest;
-import ${package}.facade.dto.teaching.CreateSchoolClassRequest;
-import ${package}.facade.dto.teaching.SchoolClassDTO;
+import ${package}.facade.dto.teaching.AssignUserToClassDTO;
+import ${package}.facade.dto.teaching.CreateSchoolClassDTO;
+import ${package}.facade.dto.teaching.SchoolClassDetailDTO;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public interface SchoolClassFacade {
-    SchoolClassDTO createSchoolClass(@Valid @NotNull CreateSchoolClassRequest request);
-
-    void assignUser(@Valid @NotNull AssignUserToClassRequest request);
+    SchoolClassDetailDTO createSchoolClass(@Valid @NotNull CreateSchoolClassDTO request);
+    SchoolClassDetailDTO getSchoolClass(@NotBlank String schoolClassId);
+    void assignUser(@Valid @NotNull AssignUserToClassDTO request);
 }

@@ -1,56 +1,83 @@
 package ${package}.application.manage.teaching.impl;
 
+import ${package}.application.assemblers.teaching.SchoolClassAssembler;
+import ${package}.application.command.teaching.CreateSchoolClassCommand;
+import ${package}.application.exceptions.OrganizationApplicationException;
+import ${package}.application.exceptions.OrganizationFailureType;
 import ${package}.application.manage.teaching.SchoolClassManage;
-import ${package}.common.constants.ErrorCodes;
-import ${package}.common.exceptions.BizException;
-import ${package}.common.exceptions.NotFoundException;
-import ${package}.common.utils.IdGenerator;
-import ${package}.domain.client.teaching.SchoolClassClient;
-import ${package}.domain.client.user.UserClient;
+import ${package}.application.query.teaching.SchoolClassDetailQuery;
+import ${package}.application.result.teaching.SchoolClassDetailResult;
+import ${package}.application.validators.teaching.TeachingApplicationValidator;
+import ${package}.domain.entities.teaching.Grade;
 import ${package}.domain.entities.teaching.SchoolClass;
-import ${package}.domain.entities.user.User;
+import ${package}.domain.repos.teaching.GradeRepository;
+import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
-import ${package}.domain.service.user.UserDomainService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
+import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.vos.teaching.SchoolClassId;
+import ${package}.domain.vos.user.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
+
+import java.util.UUID;
 
 @Service("schoolClassManage")
-@Validated
-@RequiredArgsConstructor
 public class SchoolClassManageImpl implements SchoolClassManage {
-    @Qualifier("schoolClassClientImpl")
-    private final SchoolClassClient schoolClassClient;
-
-    @Qualifier("userClientImpl")
-    private final UserClient userClient;
-
-    @Qualifier("schoolClassDomainService")
+    private final SchoolClassRepository schoolClassRepository;
+    private final GradeRepository gradeRepository;
     private final SchoolClassDomainService schoolClassDomainService;
+    private final TeachingApplicationValidator validator;
+    private final SchoolClassAssembler assembler = new SchoolClassAssembler();
 
-    @Qualifier("userDomainService")
-    private final UserDomainService userDomainService;
+    public SchoolClassManageImpl(
+            SchoolClassRepository schoolClassRepository,
+            GradeRepository gradeRepository,
+            SchoolClassDomainService schoolClassDomainService,
+            TeachingApplicationValidator validator) {
+        this.schoolClassRepository = schoolClassRepository;
+        this.gradeRepository = gradeRepository;
+        this.schoolClassDomainService = schoolClassDomainService;
+        this.validator = validator;
+    }
 
     @Override
     @Transactional
-    public SchoolClass create(String name, String gradeName) {
-        SchoolClass schoolClass = schoolClassDomainService.create(IdGenerator.nextId(), name, gradeName);
-        return schoolClassClient.save(schoolClass);
+    public SchoolClassDetailResult createSchoolClass(CreateSchoolClassCommand command) {
+        validator.requireTeachingAdmin();
+        Grade grade = gradeRepository.findByCode(GradeCode.create(command.gradeCode()))
+            .orElseThrow(() -> notFound("grade not found"));
+        if (schoolClassRepository.existsByGradeIdAndNameIgnoreCase(grade.id(), command.name().trim())) {
+            throw conflict("school class name already exists in grade");
+        }
+        SchoolClass schoolClass = schoolClassDomainService.create(
+            new SchoolClassId("class-" + UUID.randomUUID().toString().toLowerCase()), command.name(), grade);
+        return assembler.toResult(schoolClassRepository.save(schoolClass));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SchoolClassDetailResult getSchoolClass(SchoolClassDetailQuery query) {
+        return schoolClassRepository.findById(new SchoolClassId(query.schoolClassId()))
+            .map(assembler::toResult)
+            .orElseThrow(() -> notFound("school class not found"));
     }
 
     @Override
     @Transactional
     public void assignUser(String userId, String schoolClassId) {
-        User user = userClient.findById(userId)
-                .orElseThrow(() -> new NotFoundException(ErrorCodes.USER_NOT_FOUND, "user not found"));
-        SchoolClass schoolClass = schoolClassClient.findById(schoolClassId)
-                .orElseThrow(() -> new NotFoundException(ErrorCodes.SCHOOL_CLASS_NOT_FOUND, "school class not found"));
-        if (schoolClass.hasUser(userId) || user.hasSchoolClass(schoolClassId)) {
-            throw new BizException(ErrorCodes.SCHOOL_CLASS_USER_DUPLICATED, "user already assigned to school class");
+        SchoolClassId classId = new SchoolClassId(schoolClassId);
+        UserId memberId = new UserId(userId);
+        if (schoolClassRepository.hasUser(classId, memberId)) {
+            throw conflict("user already assigned to school class");
         }
-        schoolClassClient.save(schoolClassDomainService.assignUser(schoolClass, userId));
-        userClient.save(userDomainService.assignClass(user, schoolClassId));
+        schoolClassRepository.addUser(classId, memberId);
+    }
+
+    private static OrganizationApplicationException conflict(String message) {
+        return new OrganizationApplicationException(OrganizationFailureType.CONFLICT, "ORG_CONFLICT", message);
+    }
+
+    private static OrganizationApplicationException notFound(String message) {
+        return new OrganizationApplicationException(OrganizationFailureType.NOT_FOUND, "ORG_NOT_FOUND", message);
     }
 }

@@ -1,40 +1,55 @@
 package ${package}.adapter.controller.teaching;
 
-import ${package}.adapter.convertor.SchoolClassAdapterConverter;
+import ${package}.adapter.converter.SchoolClassAdapterConverter;
+import ${package}.adapter.dto.teaching.AssignUserToClassRequest;
+import ${package}.adapter.dto.teaching.CreateSchoolClassRequest;
+import ${package}.adapter.vo.teaching.SchoolClassDetailVO;
 import ${package}.application.manage.teaching.SchoolClassManage;
-import ${package}.common.response.Response;
-import ${package}.common.response.SingleResponse;
-import ${package}.facade.dto.teaching.CreateSchoolClassRequest;
-import ${package}.facade.dto.teaching.SchoolClassDTO;
+import ${package}.application.query.teaching.SchoolClassDetailQuery;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
+import java.util.UUID;
+
 @RestController("schoolClassController")
-@RequestMapping("/school-classes")
-@Validated
-@RequiredArgsConstructor
+@RequestMapping("/api/v1/school-classes")
 public class SchoolClassController {
-    @Qualifier("schoolClassManage")
     private final SchoolClassManage schoolClassManage;
+    private final SchoolClassAdapterConverter converter;
 
-    @Qualifier("schoolClassAdapterConverter")
-    private final SchoolClassAdapterConverter schoolClassAdapterConverter;
-
-    @PostMapping
-    public SingleResponse<SchoolClassDTO> create(@Valid @RequestBody CreateSchoolClassRequest request) {
-        return SingleResponse.of(schoolClassAdapterConverter.toDto(schoolClassManage.create(request.name(), request.gradeName())));
+    public SchoolClassController(SchoolClassManage schoolClassManage, SchoolClassAdapterConverter converter) {
+        this.schoolClassManage = schoolClassManage;
+        this.converter = converter;
     }
 
-    @PostMapping("/{schoolClassId}/users/{userId}")
-    public Response assignUser(@PathVariable String schoolClassId, @PathVariable String userId) {
-        schoolClassManage.assignUser(userId, schoolClassId);
-        return Response.success();
+    @PostMapping
+    public ResponseEntity<SchoolClassDetailVO> create(
+            @Valid @RequestBody CreateSchoolClassRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String key) {
+        String requestId = key == null ? UUID.randomUUID().toString() : key;
+        SchoolClassDetailVO result = converter.toVO(
+            schoolClassManage.createSchoolClass(converter.toCommand(requestId, request)));
+        return ResponseEntity.created(URI.create("/api/v1/school-classes/" + result.id())).body(result);
+    }
+
+    @GetMapping("/{schoolClassId}")
+    public SchoolClassDetailVO get(@PathVariable String schoolClassId) {
+        return converter.toVO(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(schoolClassId)));
+    }
+
+    @PostMapping("/{schoolClassId}/users")
+    public ResponseEntity<Void> assignUser(
+            @PathVariable String schoolClassId,
+            @Valid @RequestBody AssignUserToClassRequest request) {
+        schoolClassManage.assignUser(request.userId(), schoolClassId);
+        return ResponseEntity.noContent().build();
     }
 }

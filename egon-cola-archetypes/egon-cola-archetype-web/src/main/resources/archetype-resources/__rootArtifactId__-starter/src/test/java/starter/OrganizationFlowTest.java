@@ -5,8 +5,10 @@ package ${package}.starter;
 
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
-import ${package}.application.manage.teaching.SchoolClassManage;
-import ${package}.facade.dto.teaching.AssignUserToClassRequest;
+import ${package}.facade.dto.teaching.AssignUserToClassDTO;
+import ${package}.facade.dto.teaching.CreateGradeDTO;
+import ${package}.facade.dto.teaching.CreateSchoolClassDTO;
+import ${package}.facade.teaching.GradeFacade;
 import ${package}.facade.dto.user.CreateUserDTO;
 import ${package}.facade.dto.user.UserDetailDTO;
 import ${package}.facade.teaching.SchoolClassFacade;
@@ -34,10 +36,10 @@ import static org.mockito.Mockito.doThrow;
 class OrganizationFlowTest {
 
     @Autowired
-    private SchoolClassManage schoolClassManage;
+    private SchoolClassFacade schoolClassFacade;
 
     @Autowired
-    private SchoolClassFacade schoolClassFacade;
+    private GradeFacade gradeFacade;
 
     @Autowired
     private UserFacade userFacade;
@@ -55,27 +57,35 @@ class OrganizationFlowTest {
 
     @Test
     void createsUserAndAssignsItToSchoolClass() {
+        setAdminContext();
         UserDetailDTO user = userFacade.createUser(
             new CreateUserDTO("Mario", "mario-" + UUID.randomUUID() + "@example.com"));
-        var schoolClass = schoolClassManage.create("Class One", "Grade One");
+        var grade = gradeFacade.createGrade(new CreateGradeDTO(
+            "GRADE_" + UUID.randomUUID().toString().replace("-", "_"), "Grade One"));
+        var schoolClass = schoolClassFacade.createSchoolClass(
+            new CreateSchoolClassDTO("Class One", grade.code()));
 
-        schoolClassManage.assignUser(user.id(), schoolClass.getId());
+        schoolClassFacade.assignUser(new AssignUserToClassDTO(user.id(), schoolClass.id()));
 
-        assertThat(schoolClassUserJpaRepository.existsByUserIdAndSchoolClassId(user.id(), schoolClass.getId()))
+        assertThat(schoolClassUserJpaRepository.existsByUserIdAndSchoolClassId(user.id(), schoolClass.id()))
             .isTrue();
         assertThat(userFacade.getUser(user.id()).email()).isEqualTo(user.email());
     }
 
     @Test
     void duplicateAssignmentReturnsStableLegacyErrorDuringCutover() {
+        setAdminContext();
         UserDetailDTO user = userFacade.createUser(
             new CreateUserDTO("Luigi", "luigi-" + UUID.randomUUID() + "@example.com"));
-        var schoolClass = schoolClassManage.create("Class Two", "Grade One");
+        var grade = gradeFacade.createGrade(new CreateGradeDTO(
+            "GRADE_" + UUID.randomUUID().toString().replace("-", "_"), "Grade One"));
+        var schoolClass = schoolClassFacade.createSchoolClass(
+            new CreateSchoolClassDTO("Class Two", grade.code()));
         doThrow(new DataIntegrityViolationException("uk_school_class_user"))
             .when(schoolClassUserJpaRepositorySpy).saveAndFlush(any());
 
         Throwable thrown = catchThrowable(() -> schoolClassFacade.assignUser(
-            new AssignUserToClassRequest(user.id(), schoolClass.getId())));
+            new AssignUserToClassDTO(user.id(), schoolClass.id())));
 
         assertThat(thrown).isNotNull();
     }
@@ -85,6 +95,11 @@ class OrganizationFlowTest {
         assertThat(catchThrowable(() -> userFacade.createUser(null)))
             .isInstanceOf(ConstraintViolationException.class)
             .isNotInstanceOf(NullPointerException.class);
+    }
+
+    private static void setAdminContext() {
+        OrganizationRequestContextHolder.set(new OrganizationRequestContext(
+            "admin-1", Set.of("ORGANIZATION_ADMIN", "TEACHING_ADMIN"), "trace-1"));
     }
 
     @Test

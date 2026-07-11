@@ -3,6 +3,9 @@ package ${package}.application.config;
 import ${package}.application.assemblers.user.UserAssembler;
 import ${package}.application.validators.user.UserApplicationValidator;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
+import ${package}.domain.service.teaching.GradeDomainService;
+import ${package}.domain.service.teaching.impl.GradeDomainServiceImpl;
+import ${package}.application.validators.teaching.TeachingApplicationValidator;
 import ${package}.domain.service.user.PermissionDomainService;
 import ${package}.domain.service.user.UserDomainService;
 import ${package}.domain.service.user.impl.PermissionDomainServiceImpl;
@@ -27,4 +30,10 @@ public class DomainServiceConfiguration {
 
     @Bean("schoolClassDomainService")
     SchoolClassDomainService schoolClassDomainService() { return new SchoolClassDomainService(); }
+
+    @Bean("gradeDomainService")
+    GradeDomainService gradeDomainService() { return new GradeDomainServiceImpl(); }
+
+    @Bean
+    TeachingApplicationValidator teachingApplicationValidator() { return new TeachingApplicationValidator(); }
 }

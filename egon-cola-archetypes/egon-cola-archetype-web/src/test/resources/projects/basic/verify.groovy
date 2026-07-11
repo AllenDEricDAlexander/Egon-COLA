@@ -459,16 +459,19 @@ assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/u
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/RoleFacade.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/PermissionFacade.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/SchoolClassFacade.java")
+assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/GradeFacade.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/User.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/user/UserAggregate.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/user/RolePermissionAggregate.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/SchoolClass.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/Grade.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/client/user/UserClient.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/SchoolClassClient.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/RoleManage.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/PermissionManage.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/GradeManage.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java")
 assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
@@ -476,6 +479,7 @@ assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/RoleController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/PermissionController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/GradeController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/validation/ValidatorUtils.java")
 assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java")
 def asyncConfigurationText = assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/async/AsyncConfiguration.java").text
@@ -511,10 +515,8 @@ assert userManageText.contains("UserDetailResult getUser(UserDetailQuery query)"
 assert !userManageText.contains("UserView")
 
 def schoolClassManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java").text
-assert schoolClassManageText.contains("SchoolClass create(")
-assert schoolClassManageText.contains("String name")
-assert schoolClassManageText.contains("String gradeName")
-assert schoolClassManageText.contains("@NotBlank")
+assert schoolClassManageText.contains("SchoolClassDetailResult createSchoolClass(CreateSchoolClassCommand command)")
+assert schoolClassManageText.contains("SchoolClassDetailResult getSchoolClass(SchoolClassDetailQuery query)")
 assert !schoolClassManageText.contains("SchoolClassView")
 
 def userManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/impl/UserManageImpl.java").text
@@ -524,41 +526,35 @@ assert userManageImplText.contains("UserDetailResult createUser")
 assert !userManageImplText.contains("UserClient")
 
 def schoolClassManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/impl/SchoolClassManageImpl.java").text
-assert schoolClassManageImplText.contains("@Validated")
-assert schoolClassManageImplText.contains('@Qualifier("userClientImpl")')
-assert schoolClassManageImplText.contains('@Qualifier("schoolClassClientImpl")')
-assert schoolClassManageImplText.contains("userClient.findById(userId)")
-assert schoolClassManageImplText.contains("schoolClassClient.findById(schoolClassId)")
-assert !schoolClassManageImplText.contains("UserRepository userRepository")
-assert !schoolClassManageImplText.contains("SchoolClassRepository schoolClassRepository")
+assert schoolClassManageImplText.contains("SchoolClassRepository schoolClassRepository")
+assert schoolClassManageImplText.contains("GradeRepository gradeRepository")
+assert schoolClassManageImplText.contains("existsByGradeIdAndNameIgnoreCase")
+assert !schoolClassManageImplText.contains("SchoolClassClient")
 
 def userFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/user/UserFacadeImpl.java").text
 assert userFacadeText.contains("implements UserFacade")
 assert userFacadeText.contains("UserDetailDTO createUser")
 assert !userFacadeText.contains("@DubboService")
 
-def schoolClassFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/teaching/SchoolClassFacadeImpl.java").text
-assert schoolClassFacadeText.contains("@DubboService")
-assert schoolClassFacadeText.contains("interfaceClass = SchoolClassFacade.class")
-assert schoolClassFacadeText.contains('version = "1.0.0"')
-assert schoolClassFacadeText.contains('group = "school-class"')
-assert schoolClassFacadeText.contains("@Qualifier(\"schoolClassManage\")")
-assert schoolClassFacadeText.contains("@Qualifier(\"schoolClassAdapterConverter\")")
+def schoolClassFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/teaching/SchoolClassFacadeImpl.java").text
+assert schoolClassFacadeText.contains("implements SchoolClassFacade")
+assert schoolClassFacadeText.contains("SchoolClassDetailDTO createSchoolClass")
+assert !schoolClassFacadeText.contains("@DubboService")
 
-assertNoGenericMapStructConverterInjection("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor")
+assertNoGenericMapStructConverterInjection("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter")
 assertNoGenericMapStructConverterInjection("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo")
 
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/UserAdapterConverter.java")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/SchoolClassAdapterMapper.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/SchoolClassAdapterConverter.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/converter/UserPOConverter.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/UserPO.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/RolePO.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/PermissionPO.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/UserRolePO.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/RolePermissionPO.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPoMapper.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassDomainMapper.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassDomainFactory.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPOConverter.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/GradePOConverter.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassPO.java")
 def userClientImplText = assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java").text
 assert userClientImplText.contains('@Component("userClientImpl")')
 assert userClientImplText.contains("@Validated")
@@ -585,8 +581,8 @@ assert !schoolClassClientText.contains("default ")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/common/Page.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/dto/PageResponse.java")
 
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/SchoolClassAdapterMapper.java").text.contains("BaseMapper<SchoolClass, SchoolClassDTO>")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPoMapper.java").text.contains("BaseMapper<SchoolClass, SchoolClassPo>")
+assertMissing("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/SchoolClassAdapterMapper.java")
+assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPoMapper.java")
 
 def userRepositoryText = assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/repos/user/UserRepository.java").text
 assert userRepositoryText.contains("Page<User> findPage(int currentPage, int pageSize)")

@@ -41,4 +41,9 @@ public class GradePO {
     public String getId() {
         return id;
     }
+
+    public String getCode() { return code; }
+    public String getName() { return name; }
+    public String getStatus() { return status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

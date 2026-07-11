@@ -11,4 +11,6 @@ public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassU
     List<SchoolClassUserPo> findBySchoolClassId(String schoolClassId);
 
     boolean existsByUserIdAndSchoolClassId(String userId, String schoolClassId);
+
+    boolean existsBySchoolClassIdAndUserId(String schoolClassId, String userId);
 }
