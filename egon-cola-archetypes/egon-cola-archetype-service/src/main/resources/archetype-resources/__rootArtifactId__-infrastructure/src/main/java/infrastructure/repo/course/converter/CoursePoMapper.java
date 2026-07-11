@@ -17,11 +17,13 @@ public interface CoursePoMapper extends BaseMapper<Course, CoursePo> {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "code", ignore = true)
     CoursePo convert(Course course);
 
     @Override
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "code", ignore = true)
     CoursePo convert(Course course, @MappingTarget CoursePo coursePo);
 }

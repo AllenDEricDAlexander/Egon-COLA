@@ -5,8 +5,13 @@ package ${package}.infrastructure.repo.course.jpa;
 
 import ${package}.infrastructure.repo.course.po.CoursePo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 
 public interface CourseJpaRepository extends JpaRepository<CoursePo, String> {
 
     boolean existsByName(String name);
+
+    boolean existsByCode(String code);
+
+    Optional<CoursePo> findByCode(String code);
 }

@@ -14,10 +14,12 @@ import org.mapstruct.MappingTarget;
 public interface CourseDomainMapper extends BaseMapper<CoursePo, Course> {
 
     @Override
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     Course convert(CoursePo coursePo);
 
     @Override
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     Course convert(CoursePo coursePo, @MappingTarget Course course);
 }

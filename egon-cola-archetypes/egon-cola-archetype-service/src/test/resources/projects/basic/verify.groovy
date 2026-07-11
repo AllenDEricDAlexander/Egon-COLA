@@ -280,6 +280,11 @@ assert applicationPomText.contains("<artifactId>lombok</artifactId>")
 
 def infrastructurePomText = assertFile("student-management-evaluation-infrastructure/pom.xml").text
 assert infrastructurePomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
+assertFile("student-management-evaluation-infrastructure/src/main/resources/db/migration/V1__init_student_management_evaluation.sql")
+assertFile("student-management-evaluation-infrastructure/src/main/resources/db/migration/V2__align_evaluation_course_exam_domain.sql")
+assertFile("student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/EvaluationMigrationTest.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/po/CourseSchedulePo.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/impl/CourseScheduleRepositoryImpl.java")
 
 def starterPomText = serviceStarterPomText
 def starterPom = new groovy.xml.XmlSlurper(false, false).parse(assertFile("student-management-evaluation-starter/pom.xml"))

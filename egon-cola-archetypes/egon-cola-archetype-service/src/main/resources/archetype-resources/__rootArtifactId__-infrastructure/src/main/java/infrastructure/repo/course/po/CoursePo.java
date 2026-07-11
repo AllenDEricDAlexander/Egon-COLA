@@ -18,6 +18,9 @@ public class CoursePo {
     @Column(name = "id", nullable = false, length = 64)
     private String id;
 
+    @Column(name = "code", nullable = false, length = 96)
+    private String code;
+
     @Column(name = "name", nullable = false, length = 128)
     private String name;
 
@@ -36,8 +39,16 @@ public class CoursePo {
     protected CoursePo() {
     }
 
-    public CoursePo(String id, String name, int credit, String status, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public CoursePo(
+            String id,
+            String code,
+            String name,
+            int credit,
+            String status,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
         this.id = id;
+        this.code = code;
         this.name = name;
         this.credit = credit;
         this.status = status;
@@ -51,6 +62,10 @@ public class CoursePo {
 
     public String getName() {
         return name;
+    }
+
+    public String getCode() {
+        return code;
     }
 
     public int getCredit() {

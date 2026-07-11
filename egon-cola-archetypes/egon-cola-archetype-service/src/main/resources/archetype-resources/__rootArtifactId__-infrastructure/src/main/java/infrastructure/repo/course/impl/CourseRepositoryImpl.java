@@ -12,6 +12,8 @@ import ${package}.common.exception.BizException;
 import ${package}.domain.common.Page;
 import ${package}.domain.entities.course.Course;
 import ${package}.domain.repos.course.CourseRepository;
+import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.vos.course.CourseId;
 import ${package}.infrastructure.repo.course.converter.CourseConverter;
 import ${package}.infrastructure.repo.course.jpa.CourseJpaRepository;
 import ${package}.infrastructure.repo.course.po.CoursePo;
@@ -20,6 +22,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 @Repository("courseRepositoryImpl")
@@ -55,8 +58,21 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    public Optional<Course> findById(CourseId courseId) {
+        return findById(courseId.value());
+    }
+
+    @Override
+    public Optional<Course> findByCode(CourseCode courseCode) {
+        return courseJpaRepository.findByCode(courseCode.value()).map(courseConverter::toDomain);
+    }
+
+    @Override
     public Page<Course> findPage(int currentPage, int pageSize) {
-        Pageable pageable = PageRequest.of(Math.max(currentPage, 1) - 1, pageSize);
+        Pageable pageable = PageRequest.of(
+                Math.max(currentPage, 1) - 1,
+                pageSize,
+                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id")));
         org.springframework.data.domain.Page<CoursePo> page = courseJpaRepository.findAll(pageable);
         return Page.of(
                 page.getContent().stream()
@@ -71,6 +87,11 @@ public class CourseRepositoryImpl implements CourseRepository {
     @Override
     public boolean existsByName(String name) {
         return courseJpaRepository.existsByName(name);
+    }
+
+    @Override
+    public boolean existsByCode(CourseCode courseCode) {
+        return courseJpaRepository.existsByCode(courseCode.value());
     }
 
     private boolean isCourseNameUniqueConstraintViolation(DataIntegrityViolationException exception) {
