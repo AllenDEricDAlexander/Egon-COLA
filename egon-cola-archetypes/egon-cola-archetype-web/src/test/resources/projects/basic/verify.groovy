@@ -465,7 +465,9 @@ def assertMissing = { path ->
 
 requiredFiles.addAll([
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/evaluation/EvaluationQueryPort.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/DubboEvaluationQueryClient.java"
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/DubboEvaluationQueryClient.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/client/evaluation/DubboEvaluationQueryClientTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStubTest.java"
 ])
 requiredFiles.each { assertFile(it) }
 
@@ -508,7 +510,8 @@ projectDir.traverse(type: groovy.io.FileType.FILES) { file ->
         forbiddenMatches << path
     }
     if (path.startsWith("student-management-organization-infrastructure/src/main/java/")
-            && (path.contains("/mp/") || file.name.endsWith("Mapper.java"))) {
+            && (path.contains("/mp/")
+            || (file.name.endsWith("Mapper.java") && !path.contains("/client/")))) {
         forbiddenMatches << path
     }
     if (path.contains("/src/") && path.contains("/java/") && file.name.endsWith("Po.java")) {
@@ -894,6 +897,7 @@ assertExactExternalDependencies("application", applicationDependencies, [
     "lombok", "junit-jupiter", "mockito-junit-jupiter"
 ])
 assertExactExternalDependencies("infrastructure", infrastructureDependencies, [
+    '${evaluation-facade.artifact-id}', "dubbo-spring-boot-starter",
     "spring-boot-starter-data-jpa", "spring-boot-starter-data-redis", "spring-boot-starter-amqp",
     "spring-boot-starter-aop", "micrometer-core", "flyway-core", "h2", "postgresql",
     "mapstruct-plus-spring-boot-starter", "lombok", "spring-boot-starter-test"
@@ -928,6 +932,8 @@ assertNoDependency(applicationDependencies, "student-management-organization-com
 assertNoDependency(applicationDependencies, "student-management-organization-infrastructure")
 
 assertDependency(infrastructureDependencies, "student-management-organization-domain")
+assertDependency(infrastructureDependencies, '${evaluation-facade.artifact-id}')
+assertDependency(infrastructureDependencies, "dubbo-spring-boot-starter")
 assertNoDependency(infrastructureDependencies, "student-management-organization-common")
 assertNoDependency(infrastructureDependencies, "spring-boot-starter-validation")
 assertDependency(infrastructureDependencies, "micrometer-core")
@@ -1132,7 +1138,7 @@ assert readme.contains("user")
 assert readme.contains("teaching")
 assert readme.contains("clean verify")
 assert !readme.contains("\n./mvnw ")
-assert !readme.contains("student-management-evaluation")
+assert readme.contains("Evaluation Facade")
 
 def scannedFiles = []
 collectSourceConfigDocFiles(projectDir, scannedFiles)
@@ -1148,7 +1154,6 @@ collectSourceConfigDocFiles(projectDir, scannedFiles)
     "app1",
     "app2",
     "examing",
-    "student-management-evaluation",
     "package it.pkg.customer",
     "package it.pkg.order",
     "import it.pkg.customer",

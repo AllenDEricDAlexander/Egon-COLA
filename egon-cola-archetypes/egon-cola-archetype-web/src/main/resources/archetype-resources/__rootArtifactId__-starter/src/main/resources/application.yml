@@ -81,3 +81,16 @@ dubbo:
   provider:
     timeout: 3000
     retries: 0
+  consumer:
+    timeout: ${symbol_dollar}{DUBBO_CONSUMER_TIMEOUT:3000}
+    retries: 0
+    check: true
+
+organization:
+  integrations:
+    evaluation:
+      enabled: ${symbol_dollar}{EVALUATION_FACADE_ENABLED:false}
+      course-group: ${symbol_dollar}{EVALUATION_COURSE_FACADE_GROUP:course}
+      exam-group: ${symbol_dollar}{EVALUATION_EXAM_FACADE_GROUP:exam}
+      score-group: ${symbol_dollar}{EVALUATION_SCORE_FACADE_GROUP:score}
+      version: ${symbol_dollar}{EVALUATION_FACADE_SERVICE_VERSION:1.0.0}
