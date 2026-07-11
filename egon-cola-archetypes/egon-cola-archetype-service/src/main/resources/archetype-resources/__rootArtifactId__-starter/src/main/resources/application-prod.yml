@@ -25,6 +25,12 @@ spring:
     open-in-view: false
     show-sql: false
 
+app:
+  integrations:
+    rabbitmq:
+      enabled: ${symbol_dollar}{RABBITMQ_ENABLED:true}
+      listener-auto-startup: ${symbol_dollar}{RABBITMQ_LISTENER_AUTO_STARTUP:true}
+
 management:
   endpoint:
     health:

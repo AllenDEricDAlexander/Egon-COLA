@@ -51,6 +51,18 @@ management:
     livenessstate:
       enabled: true
 
+app:
+  integrations:
+    rabbitmq:
+      enabled: ${symbol_dollar}{RABBITMQ_ENABLED:false}
+      listener-auto-startup: ${symbol_dollar}{RABBITMQ_LISTENER_AUTO_STARTUP:false}
+      exchange: ${symbol_dollar}{RABBITMQ_EXCHANGE:evaluation.events}
+      score-command-queue: ${symbol_dollar}{RABBITMQ_SCORE_COMMAND_QUEUE:evaluation.score.command}
+      score-command-routing-key: ${symbol_dollar}{RABBITMQ_SCORE_COMMAND_ROUTING_KEY:score.record.command}
+      course-scheduled-routing-key: ${symbol_dollar}{RABBITMQ_COURSE_SCHEDULED_ROUTING_KEY:course.scheduled}
+      exam-published-routing-key: ${symbol_dollar}{RABBITMQ_EXAM_PUBLISHED_ROUTING_KEY:exam.published}
+      score-recorded-routing-key: ${symbol_dollar}{RABBITMQ_SCORE_RECORDED_ROUTING_KEY:score.recorded}
+
 dubbo:
   application:
     name: ${symbol_dollar}{spring.application.name}

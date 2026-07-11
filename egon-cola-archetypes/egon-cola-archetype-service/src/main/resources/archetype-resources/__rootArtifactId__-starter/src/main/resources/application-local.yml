@@ -16,7 +16,7 @@ spring:
       validation-timeout: ${symbol_dollar}{HIKARI_VALIDATION_TIMEOUT:5000}
   h2:
     console:
-      enabled: true
+      enabled: false
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -27,3 +27,9 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: true
+
+app:
+  integrations:
+    rabbitmq:
+      enabled: false
+      listener-auto-startup: false

@@ -340,7 +340,11 @@ assert springFactories.contains("org.springframework.boot.env.EnvironmentPostPro
 assert springFactories.contains("it.pkg.starter.config.encryption.ConfigDecryptEnvironmentPostProcessor")
 assertFile("student-management-evaluation-starter/src/test/java/it/pkg/starter/config/encryption/AesGcmConfigDecryptorTest.java")
 assertFile("student-management-evaluation-starter/src/test/java/it/pkg/starter/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
-assertFile("student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationFlowTest.java").text.contains('properties = "dubbo.protocol.port=-1"')
+def externalFreeContextTest = assertFile("student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java").text
+assert externalFreeContextTest.contains('@ActiveProfiles("test")')
+assert externalFreeContextTest.contains('webEnvironment = SpringBootTest.WebEnvironment.NONE')
+assert externalFreeContextTest.contains('"dubbo.protocol.port=-1"')
+assert !new File(projectDir, "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationFlowTest.java").exists()
 
 def assertPomContainsProvidedLombok = { pomPath ->
     def pomXml = new groovy.xml.XmlSlurper(false, false).parse(assertFile(pomPath))
@@ -388,6 +392,10 @@ assert serviceBootstrapDevYaml.contains('password: ${NACOS_PASSWORD:ENC(')
 assert serviceBootstrapProdYaml.contains('password: ${NACOS_PASSWORD:ENC(')
 assert serviceApplicationLocalYaml.contains('password: ${DB_PASSWORD:}')
 assert serviceApplicationTestYaml.contains('password: ${DB_PASSWORD:}')
+assert serviceApplicationLocalYaml.contains("console:\n      enabled: false")
+assert serviceApplicationTestYaml.contains("console:\n      enabled: false")
+assert serviceApplicationTestYaml.contains("rabbitmq:\n      enabled: false")
+assert serviceApplicationTestYaml.contains("listener-auto-startup: false")
 assert !serviceBootstrapLocalYaml.contains('ENC(')
 assert !serviceBootstrapTestYaml.contains('ENC(')
 
