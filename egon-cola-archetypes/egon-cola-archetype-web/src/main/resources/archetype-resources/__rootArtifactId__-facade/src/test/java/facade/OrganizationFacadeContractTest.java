@@ -1,6 +1,8 @@
 package ${package}.facade;
 
 import ${package}.facade.dto.user.CreateUserDTO;
+import ${package}.facade.dto.user.AssignRoleDTO;
+import ${package}.facade.dto.user.GrantPermissionDTO;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
@@ -23,5 +25,11 @@ class OrganizationFacadeContractTest {
 
         assertEquals("MARIO@EXAMPLE.COM", request.email());
         assertFalse(validator.validate(new CreateUserDTO("", "bad")).isEmpty());
+    }
+
+    @Test
+    void validatesRoleAndPermissionContracts() {
+        assertFalse(validator.validate(new AssignRoleDTO("", "STUDENT")).isEmpty());
+        assertFalse(validator.validate(new GrantPermissionDTO("STUDENT", "")).isEmpty());
     }
 }

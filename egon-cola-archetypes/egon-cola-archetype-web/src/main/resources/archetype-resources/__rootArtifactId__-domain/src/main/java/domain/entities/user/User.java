@@ -21,6 +21,10 @@ public final class User {
         this(id, name, email, status, List.of(), List.of());
     }
 
+    public User(UserId id, String name, String email, UserStatus status, List<RoleCode> roleCodes) {
+        this(id, name, email, status, roleCodes, List.of());
+    }
+
     private User(
             UserId id,
             String name,
@@ -47,6 +51,8 @@ public final class User {
     }
 
     public void assignToClass(String schoolClassId) { schoolClassIds.add(schoolClassId); }
+
+    public void assignRole(RoleCode roleCode) { roleCodes.add(roleCode); }
 
     public boolean hasSchoolClass(String schoolClassId) { return schoolClassIds.contains(schoolClassId); }
 

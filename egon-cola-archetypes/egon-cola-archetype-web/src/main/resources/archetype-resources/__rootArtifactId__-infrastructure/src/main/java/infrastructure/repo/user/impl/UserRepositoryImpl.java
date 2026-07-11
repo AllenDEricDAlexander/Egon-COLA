@@ -2,15 +2,20 @@ package ${package}.infrastructure.repo.user.impl;
 
 import ${package}.domain.common.Page;
 import ${package}.domain.entities.user.User;
+import ${package}.domain.enums.user.UserStatus;
 import ${package}.domain.exceptions.OrganizationDomainErrorCode;
 import ${package}.domain.exceptions.OrganizationPortException;
 import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.vos.user.UserId;
+import ${package}.domain.vos.user.RoleCode;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassUserJpaRepository;
 import ${package}.infrastructure.repo.teaching.po.SchoolClassUserPo;
 import ${package}.infrastructure.repo.user.converter.UserPOConverter;
+import ${package}.infrastructure.repo.user.jpa.RoleJpaRepository;
+import ${package}.infrastructure.repo.user.jpa.UserRoleJpaRepository;
 import ${package}.infrastructure.repo.user.jpa.UserJpaRepository;
 import ${package}.infrastructure.repo.user.po.UserPO;
+import ${package}.infrastructure.repo.user.po.UserRolePO;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
@@ -24,14 +29,20 @@ public class UserRepositoryImpl implements UserRepository {
 
     private final UserJpaRepository userJpaRepository;
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
+    private final UserRoleJpaRepository userRoleJpaRepository;
+    private final RoleJpaRepository roleJpaRepository;
     private final UserPOConverter converter;
 
     public UserRepositoryImpl(
             UserJpaRepository userJpaRepository,
             SchoolClassUserJpaRepository schoolClassUserJpaRepository,
+            UserRoleJpaRepository userRoleJpaRepository,
+            RoleJpaRepository roleJpaRepository,
             UserPOConverter converter) {
         this.userJpaRepository = userJpaRepository;
         this.schoolClassUserJpaRepository = schoolClassUserJpaRepository;
+        this.userRoleJpaRepository = userRoleJpaRepository;
+        this.roleJpaRepository = roleJpaRepository;
         this.converter = converter;
     }
 
@@ -39,6 +50,8 @@ public class UserRepositoryImpl implements UserRepository {
     public User save(User user) {
         try {
             UserPO saved = userJpaRepository.save(converter.toPO(user));
+            user.roleCodes().forEach(roleCode -> roleJpaRepository.findByCode(roleCode.value())
+                .ifPresent(role -> saveRoleIfMissing(user.id().value(), role.getId())));
             user.getSchoolClassIds().forEach(schoolClassId -> saveMembershipIfMissing(user.getId(), schoolClassId));
             return restore(saved);
         } catch (DataIntegrityViolationException exception) {
@@ -71,10 +84,23 @@ public class UserRepositoryImpl implements UserRepository {
         }
     }
 
+    private void saveRoleIfMissing(String userId, String roleId) {
+        if (!userRoleJpaRepository.existsByUserIdAndRoleId(userId, roleId)) {
+            userRoleJpaRepository.save(new UserRolePO(userId, roleId, LocalDateTime.now()));
+        }
+    }
+
     private User restore(UserPO userPO) {
         List<String> schoolClassIds = schoolClassUserJpaRepository.findByUserId(userPO.getId()).stream()
             .map(SchoolClassUserPo::getSchoolClassId)
             .toList();
-        return converter.toEntity(userPO, schoolClassIds);
+        List<RoleCode> roleCodes = userRoleJpaRepository.findByUserId(userPO.getId()).stream()
+            .map(UserRolePO::getRoleId)
+            .map(roleJpaRepository::findById)
+            .flatMap(Optional::stream)
+            .map(role -> new RoleCode(role.getCode()))
+            .toList();
+        return User.restore(new UserId(userPO.getId()), userPO.getName(), userPO.getEmail(),
+            UserStatus.valueOf(userPO.getStatus()), roleCodes, schoolClassIds);
     }
 }

@@ -1,0 +1,10 @@
+package ${package}.infrastructure.repo.user.jpa;
+
+import ${package}.infrastructure.repo.user.po.RolePO;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface RoleJpaRepository extends JpaRepository<RolePO, String> {
+    Optional<RolePO> findByCode(String code);
+}
