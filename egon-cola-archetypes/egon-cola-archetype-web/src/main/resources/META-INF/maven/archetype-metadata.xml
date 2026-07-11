@@ -8,6 +8,10 @@
         <requiredProperty key="gitignore">
             <defaultValue>.gitignore</defaultValue>
         </requiredProperty>
+        <requiredProperty key="evaluationFacadeGroupId"/>
+        <requiredProperty key="evaluationFacadeArtifactId"/>
+        <requiredProperty key="evaluationFacadeVersion"/>
+        <requiredProperty key="evaluationFacadePackage"/>
     </requiredProperties>
 
     <fileSets>
