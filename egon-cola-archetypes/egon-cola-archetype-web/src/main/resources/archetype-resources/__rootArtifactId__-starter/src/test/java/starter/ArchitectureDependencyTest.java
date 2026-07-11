@@ -47,7 +47,6 @@ class ArchitectureDependencyTest {
                         "${package}.facade..",
                         "${package}.adapter..",
                         "${package}.infrastructure..",
-                        "${package}.common.response..",
                         "${package}.starter..")
                 .check(classes);
     }
@@ -58,7 +57,6 @@ class ArchitectureDependencyTest {
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "${package}.adapter..",
                         "${package}.facade.dto..",
-                        "${package}.common.response..",
                         "org.springframework.web..")
                 .check(classes);
     }

@@ -454,7 +454,8 @@ assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-d
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
 assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
 
-assertFile("student-management-organization-common/src/main/java/it/pkg/common/response/Response.java")
+assertMissing("student-management-organization-common/src/main/java/it/pkg/common/response/Response.java")
+assertMissing("student-management-organization-common/src/main/java/it/pkg/common/response/SingleResponse.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/UserFacade.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/RoleFacade.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/PermissionFacade.java")
@@ -480,7 +481,10 @@ assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/PermissionController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/GradeController.java")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/validation/ValidatorUtils.java")
+assertMissing("student-management-organization-adapter/src/main/java/it/pkg/adapter/validation/ValidatorUtils.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/handler/OrganizationGlobalExceptionHandler.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/filter/OrganizationTraceFilter.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/filter/OrganizationAuthContextFilter.java")
 assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java")
 def asyncConfigurationText = assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/config/async/AsyncConfiguration.java").text
 assert asyncConfigurationText.contains("implements AsyncConfigurer")
