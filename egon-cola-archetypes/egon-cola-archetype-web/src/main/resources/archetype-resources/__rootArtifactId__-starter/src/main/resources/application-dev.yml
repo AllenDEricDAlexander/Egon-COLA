@@ -24,3 +24,8 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: false
+
+dubbo:
+  protocol:
+    name: dubbo
+    port: ${symbol_dollar}{DUBBO_PROTOCOL_PORT:50051}

@@ -25,6 +25,11 @@ spring:
     open-in-view: false
     show-sql: false
 
+dubbo:
+  protocol:
+    name: dubbo
+    port: ${symbol_dollar}{DUBBO_PROTOCOL_PORT:50051}
+
 management:
   endpoint:
     health:

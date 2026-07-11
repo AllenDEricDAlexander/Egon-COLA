@@ -19,3 +19,12 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: false
+
+dubbo:
+  application:
+    qos-enable: false
+  registry:
+    address: N/A
+  protocol:
+    name: injvm
+    port: -1
