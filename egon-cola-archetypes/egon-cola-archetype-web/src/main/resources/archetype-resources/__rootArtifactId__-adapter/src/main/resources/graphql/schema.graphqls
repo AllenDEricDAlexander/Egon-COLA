@@ -1,0 +1,51 @@
+type Query {
+  user(id: ID!): User!
+  permissionTree(userId: ID!): PermissionTree!
+  grade(id: ID!): Grade!
+  schoolClass(id: ID!): SchoolClass!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+  assignRole(input: AssignRoleInput!): Boolean!
+  grantPermission(input: GrantPermissionInput!): Boolean!
+  createGrade(input: CreateGradeInput!): Grade!
+  createSchoolClass(input: CreateSchoolClassInput!): SchoolClass!
+  assignUserToSchoolClass(input: AssignUserToSchoolClassInput!): Boolean!
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  status: String!
+  roleCodes: [String!]!
+}
+
+type PermissionTree {
+  userId: ID!
+  permissionCodes: [String!]!
+}
+
+type Grade {
+  id: ID!
+  code: String!
+  name: String!
+  status: String!
+}
+
+type SchoolClass {
+  id: ID!
+  name: String!
+  gradeCode: String!
+  gradeName: String!
+  status: String!
+  userIds: [ID!]!
+}
+
+input CreateUserInput { name: String!, email: String! }
+input AssignRoleInput { userId: ID!, roleCode: String! }
+input GrantPermissionInput { roleCode: String!, permissionCode: String! }
+input CreateGradeInput { code: String!, name: String! }
+input CreateSchoolClassInput { name: String!, gradeCode: String! }
+input AssignUserToSchoolClassInput { userId: ID!, schoolClassId: ID! }

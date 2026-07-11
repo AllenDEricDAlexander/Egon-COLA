@@ -259,6 +259,7 @@
                         <include>**/*.yml</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
+                        <include>**/*.graphqls</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
