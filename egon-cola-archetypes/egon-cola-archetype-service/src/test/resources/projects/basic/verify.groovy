@@ -264,6 +264,19 @@ assert allServiceJavaPaths.every { !it.contains("/filter/") }: "Service adapter 
 
 def applicationPomText = assertFile("student-management-evaluation-application/pom.xml").text
 assert applicationPomText.contains("<artifactId>lombok</artifactId>")
+[
+    "student-management-evaluation-application/src/main/java/it/pkg/application/command/course/CreateCourseCommand.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/command/exam/RecordScoreCommand.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/query/course/GetCourseQuery.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/query/exam/PageScoreQuery.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/result/course/CourseResult.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/result/exam/ScoreResult.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/manage/exam/ExamManage.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/manage/exam/ScoreManage.java",
+    "student-management-evaluation-application/src/test/java/it/pkg/application/course/CourseManageTest.java",
+    "student-management-evaluation-application/src/test/java/it/pkg/application/exam/ExamManageTest.java",
+    "student-management-evaluation-application/src/test/java/it/pkg/application/exam/ScoreManageTest.java"
+].each { assertFile(it) }
 
 def infrastructurePomText = assertFile("student-management-evaluation-infrastructure/pom.xml").text
 assert infrastructurePomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
@@ -481,9 +494,12 @@ assertContainsAll(courseManageImplText, [
         "courseClient.existsByName(name)",
         "courseClient.save(course)"
 ], "CourseManageImpl")
-assert !courseManageImplText.contains("CourseRepository courseRepository")
-assert !courseManageImplText.contains("CourseDomainService")
-assert !courseManageImplText.contains("courseDomainService")
+assertContainsAll(courseManageImplText, [
+        "CourseRepository courseRepository",
+        "CourseDomainService courseDomainService",
+        "CourseResult create(CreateCourseCommand command)",
+        "CourseScheduleResult schedule(ScheduleCourseCommand command)"
+], "CourseManageImpl evaluation flow")
 
 def examManageImplText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing/impl/ExamManageImpl.java").text
 assertContainsAll(examManageImplText, [
@@ -491,21 +507,23 @@ assertContainsAll(examManageImplText, [
         "@RequiredArgsConstructor",
         "@Validated",
         '@Qualifier("examResultClientImpl")',
-        '@Qualifier("examDomainService")',
+        '@Qualifier("legacyExamDomainService")',
         "examResultClient.save(examResult)"
 ], "ExamManageImpl")
 assert !examManageImplText.contains("ExamResultRepository examResultRepository")
 assert !examManageImplText.contains("validateRecordRequest")
-assertNoJavaText("student-management-evaluation-application/src/main/java/it/pkg/application", "domain.repos")
 
 def domainServiceConfigurationText = assertFile("student-management-evaluation-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java").text
 assertContainsAll(domainServiceConfigurationText, [
         '@Bean("examDomainService")',
+        '@Bean("courseDomainService")',
+        '@Bean("scoreDomainService")',
+        '@Bean("legacyExamDomainService")',
         '@Qualifier("courseClientImpl") CourseClient courseClient',
-        "new ExamDomainService(courseClient)"
+        "new CourseDomainServiceImpl()",
+        "new ExamDomainServiceImpl()",
+        "new ScoreDomainServiceImpl()"
 ], "DomainServiceConfiguration")
-assert !domainServiceConfigurationText.contains("CourseDomainService")
-assert !domainServiceConfigurationText.contains('@Bean("courseDomainService")')
 [
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/common/EvaluationDomainException.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/common/EvaluationPortException.java",

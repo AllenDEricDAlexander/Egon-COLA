@@ -24,7 +24,7 @@ public class ExamManageImpl implements ExamManage {
     @Qualifier("examResultClientImpl")
     private final ExamResultClient examResultClient;
 
-    @Qualifier("examDomainService")
+    @Qualifier("legacyExamDomainService")
     private final ExamDomainService examDomainService;
 
     @Override
