@@ -9,6 +9,8 @@ import ${package}.application.result.user.UserDetailResult;
 import ${package}.application.validators.user.UserApplicationValidator;
 import ${package}.domain.entities.user.User;
 import ${package}.domain.repos.user.UserRepository;
+import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.user.UserCachePort;
 import ${package}.domain.service.user.UserDomainService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,8 @@ class UserManageImplTest {
 
     @Mock
     private UserRepository userRepository;
+    @Mock private UserCachePort userCache;
+    @Mock private CommandIdempotencyPort idempotency;
 
     private final UserDomainService userDomainService = new ${package}.domain.service.user.impl.UserDomainServiceImpl();
 
@@ -41,9 +45,11 @@ class UserManageImplTest {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
             "admin-1", Set.of("ORGANIZATION_ADMIN"), "trace-1"));
         when(userRepository.existsByEmail("mario@example.com")).thenReturn(false);
+        when(idempotency.claim("create-user", "req-1")).thenReturn(true);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         UserManageImpl manage = new UserManageImpl(
-            userRepository, userDomainService, new UserApplicationValidator(), new UserAssembler());
+            userRepository, userDomainService, new UserApplicationValidator(), new UserAssembler(),
+            userCache, idempotency);
 
         UserDetailResult result = manage.createUser(
             new CreateUserCommand("req-1", "Mario", "MARIO@EXAMPLE.COM"));

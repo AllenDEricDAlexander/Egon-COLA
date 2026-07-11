@@ -9,6 +9,10 @@ import ${package}.application.query.teaching.GradeDetailQuery;
 import ${package}.application.result.teaching.GradeDetailResult;
 import ${package}.application.validators.teaching.TeachingApplicationValidator;
 import ${package}.domain.entities.teaching.Grade;
+import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.teaching.GradeCachePort;
+import ${package}.application.support.IdempotentCommand;
+import ${package}.application.support.OrganizationTransactionHooks;
 import ${package}.domain.repos.teaching.GradeRepository;
 import ${package}.domain.service.teaching.GradeDomainService;
 import ${package}.domain.vos.teaching.GradeCode;
@@ -22,35 +26,49 @@ public class GradeManageImpl implements GradeManage {
     private final GradeRepository gradeRepository;
     private final GradeDomainService gradeDomainService;
     private final TeachingApplicationValidator validator;
+    private final GradeCachePort gradeCache;
+    private final CommandIdempotencyPort idempotency;
     private final GradeAssembler assembler = new GradeAssembler();
 
     public GradeManageImpl(
             GradeRepository gradeRepository,
             GradeDomainService gradeDomainService,
-            TeachingApplicationValidator validator) {
+            TeachingApplicationValidator validator,
+            GradeCachePort gradeCache,
+            CommandIdempotencyPort idempotency) {
         this.gradeRepository = gradeRepository;
         this.gradeDomainService = gradeDomainService;
         this.validator = validator;
+        this.gradeCache = gradeCache;
+        this.idempotency = idempotency;
     }
 
     @Override
     @Transactional
     public GradeDetailResult createGrade(CreateGradeCommand command) {
-        validator.requireTeachingAdmin();
-        GradeCode code = GradeCode.create(command.code());
-        if (gradeRepository.existsByCode(code)) {
-            throw conflict("grade code already exists");
-        }
-        Grade grade = gradeDomainService.create(
-            "grade-" + UUID.randomUUID().toString().toLowerCase(), code.value(), command.name());
-        return assembler.toResult(gradeRepository.save(grade));
+        return IdempotentCommand.execute(idempotency, "create-grade", command.requestId(), () -> {
+            validator.requireTeachingAdmin();
+            GradeCode code = GradeCode.create(command.code());
+            if (gradeRepository.existsByCode(code)) {
+                throw conflict("grade code already exists");
+            }
+            Grade grade = gradeRepository.save(gradeDomainService.create(
+                "grade-" + UUID.randomUUID().toString().toLowerCase(), code.value(), command.name()));
+            OrganizationTransactionHooks.afterCommit(() -> gradeCache.evict(grade.id()));
+            return assembler.toResult(grade);
+        });
     }
 
     @Override
     @Transactional(readOnly = true)
     public GradeDetailResult getGrade(GradeDetailQuery query) {
-        return gradeRepository.findById(query.gradeId()).map(assembler::toResult)
-            .orElseThrow(() -> notFound("grade not found"));
+        Grade grade = gradeCache.findById(query.gradeId()).orElseGet(() -> {
+            Grade loaded = gradeRepository.findById(query.gradeId())
+                .orElseThrow(() -> notFound("grade not found"));
+            gradeCache.put(loaded);
+            return loaded;
+        });
+        return assembler.toResult(grade);
     }
 
     private static OrganizationApplicationException conflict(String message) {

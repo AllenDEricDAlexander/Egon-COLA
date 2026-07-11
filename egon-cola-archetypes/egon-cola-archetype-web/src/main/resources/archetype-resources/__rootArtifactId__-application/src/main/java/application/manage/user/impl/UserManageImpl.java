@@ -9,6 +9,10 @@ import ${package}.application.query.user.UserDetailQuery;
 import ${package}.application.result.user.UserDetailResult;
 import ${package}.application.validators.user.UserApplicationValidator;
 import ${package}.domain.entities.user.User;
+import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.user.UserCachePort;
+import ${package}.application.support.IdempotentCommand;
+import ${package}.application.support.OrganizationTransactionHooks;
 import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.service.user.UserDomainService;
 import ${package}.domain.vos.user.UserId;
@@ -24,38 +28,52 @@ public class UserManageImpl implements UserManage {
     private final UserDomainService userDomainService;
     private final UserApplicationValidator validator;
     private final UserAssembler assembler;
+    private final UserCachePort userCache;
+    private final CommandIdempotencyPort idempotency;
 
     public UserManageImpl(
             UserRepository userRepository,
             UserDomainService userDomainService,
             UserApplicationValidator validator,
-            UserAssembler assembler) {
+            UserAssembler assembler,
+            UserCachePort userCache,
+            CommandIdempotencyPort idempotency) {
         this.userRepository = userRepository;
         this.userDomainService = userDomainService;
         this.validator = validator;
         this.assembler = assembler;
+        this.userCache = userCache;
+        this.idempotency = idempotency;
     }
 
     @Override
     @Transactional
     public UserDetailResult createUser(CreateUserCommand command) {
-        validator.requireOrganizationAdmin();
-        String normalizedEmail = validator.normalizedEmail(command.email());
-        if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new OrganizationApplicationException(
-                OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "user email already exists");
-        }
-        User user = userDomainService.create(
-            new UserId("user-" + UUID.randomUUID().toString().toLowerCase()), command.name(), normalizedEmail);
-        return assembler.toResult(userRepository.save(user));
+        return IdempotentCommand.execute(idempotency, "create-user", command.requestId(), () -> {
+            validator.requireOrganizationAdmin();
+            String normalizedEmail = validator.normalizedEmail(command.email());
+            if (userRepository.existsByEmail(normalizedEmail)) {
+                throw new OrganizationApplicationException(
+                    OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "user email already exists");
+            }
+            User user = userRepository.save(userDomainService.create(
+                new UserId("user-" + UUID.randomUUID().toString().toLowerCase()), command.name(), normalizedEmail));
+            OrganizationTransactionHooks.afterCommit(() -> userCache.evict(user.id()));
+            return assembler.toResult(user);
+        });
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserDetailResult getUser(UserDetailQuery query) {
-        User user = userRepository.findById(new UserId(query.userId()))
+        UserId userId = new UserId(query.userId());
+        User user = userCache.findById(userId).orElseGet(() -> {
+            User loaded = userRepository.findById(userId)
             .orElseThrow(() -> new OrganizationApplicationException(
                 OrganizationFailureType.NOT_FOUND, "ORG_NOT_FOUND", "user not found"));
+            userCache.put(loaded);
+            return loaded;
+        });
         return assembler.toResult(user);
     }
 }

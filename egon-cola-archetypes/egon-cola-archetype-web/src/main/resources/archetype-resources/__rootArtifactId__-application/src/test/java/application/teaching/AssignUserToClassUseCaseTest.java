@@ -13,6 +13,8 @@ import ${package}.domain.enums.user.UserStatus;
 import ${package}.domain.repos.teaching.GradeRepository;
 import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.domain.repos.user.UserRepository;
+import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.teaching.SchoolClassCachePort;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
 import ${package}.domain.vos.teaching.GradeCode;
 import ${package}.domain.vos.teaching.SchoolClassId;
@@ -38,6 +40,8 @@ class AssignUserToClassUseCaseTest {
     @Mock SchoolClassRepository schoolClassRepository;
     @Mock GradeRepository gradeRepository;
     @Mock UserRepository userRepository;
+    @Mock SchoolClassCachePort schoolClassCache;
+    @Mock CommandIdempotencyPort idempotency;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -46,6 +50,7 @@ class AssignUserToClassUseCaseTest {
         setContext();
         when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(activeUser("u-1")));
         when(schoolClassRepository.findById(new SchoolClassId("c-1"))).thenReturn(Optional.of(activeClass("c-1")));
+        when(idempotency.claim("assign-user-to-school-class", "req-1")).thenReturn(true);
         SchoolClassManageImpl manage = manage();
 
         manage.assignUser(new AssignUserToClassCommand("req-1", "u-1", "c-1"));
@@ -59,6 +64,7 @@ class AssignUserToClassUseCaseTest {
         when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(activeUser("u-1")));
         when(schoolClassRepository.findById(new SchoolClassId("c-1"))).thenReturn(Optional.of(activeClass("c-1")));
         when(schoolClassRepository.hasUser(new SchoolClassId("c-1"), new UserId("u-1"))).thenReturn(true);
+        when(idempotency.claim("assign-user-to-school-class", "req-2")).thenReturn(true);
 
         assertThrows(OrganizationApplicationException.class, () -> manage().assignUser(
             new AssignUserToClassCommand("req-2", "u-1", "c-1")));
@@ -67,7 +73,7 @@ class AssignUserToClassUseCaseTest {
 
     private SchoolClassManageImpl manage() {
         return new SchoolClassManageImpl(schoolClassRepository, gradeRepository, userRepository,
-            new SchoolClassDomainService(), new TeachingApplicationValidator());
+            new SchoolClassDomainService(), new TeachingApplicationValidator(), schoolClassCache, idempotency);
     }
 
     private static User activeUser(String id) {

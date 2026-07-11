@@ -11,6 +11,8 @@ import ${package}.domain.enums.teaching.GradeStatus;
 import ${package}.domain.repos.teaching.GradeRepository;
 import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.domain.repos.user.UserRepository;
+import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.teaching.SchoolClassCachePort;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
 import ${package}.domain.vos.teaching.GradeCode;
 import org.junit.jupiter.api.AfterEach;
@@ -30,6 +32,8 @@ class SchoolClassManageImplTest {
     @Mock GradeRepository gradeRepository;
     @Mock SchoolClassRepository schoolClassRepository;
     @Mock UserRepository userRepository;
+    @Mock SchoolClassCachePort schoolClassCache;
+    @Mock CommandIdempotencyPort idempotency;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -40,9 +44,10 @@ class SchoolClassManageImplTest {
         Grade grade = new Grade("grade-1", GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE);
         when(gradeRepository.findByCode(GradeCode.create("GRADE_ONE"))).thenReturn(Optional.of(grade));
         when(schoolClassRepository.existsByGradeIdAndNameIgnoreCase("grade-1", "Class A")).thenReturn(true);
+        when(idempotency.claim("create-school-class", "req-1")).thenReturn(true);
         SchoolClassManageImpl manage = new SchoolClassManageImpl(
             schoolClassRepository, gradeRepository, userRepository, new SchoolClassDomainService(),
-            new TeachingApplicationValidator());
+            new TeachingApplicationValidator(), schoolClassCache, idempotency);
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createSchoolClass(
             new CreateSchoolClassCommand("req-1", "Class A", "grade_one")));

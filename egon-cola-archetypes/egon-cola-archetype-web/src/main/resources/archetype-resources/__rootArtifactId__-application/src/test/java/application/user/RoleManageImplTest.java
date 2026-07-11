@@ -11,6 +11,8 @@ import ${package}.domain.enums.user.RoleStatus;
 import ${package}.domain.enums.user.UserStatus;
 import ${package}.domain.repos.user.RoleRepository;
 import ${package}.domain.repos.user.UserRepository;
+import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.user.UserCachePort;
 import ${package}.domain.vos.user.RoleCode;
 import ${package}.domain.vos.user.UserId;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +34,8 @@ class RoleManageImplTest {
 
     @Mock UserRepository userRepository;
     @Mock RoleRepository roleRepository;
+    @Mock UserCachePort userCache;
+    @Mock CommandIdempotencyPort idempotency;
 
     @AfterEach
     void clearContext() { OrganizationRequestContextHolder.clear(); }
@@ -45,7 +49,8 @@ class RoleManageImplTest {
         when(roleRepository.findByCode(new RoleCode("STUDENT"))).thenReturn(Optional.of(
             new Role("role-student", new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE)));
         RoleManageImpl manage = new RoleManageImpl(
-            userRepository, roleRepository, new UserApplicationValidator());
+            userRepository, roleRepository, new UserApplicationValidator(), userCache, idempotency);
+        when(idempotency.claim("assign-role", "req-role")).thenReturn(true);
 
         manage.assignRole(new AssignRoleCommand("req-role", "u-1", "student"));
 

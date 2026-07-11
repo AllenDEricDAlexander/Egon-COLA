@@ -7,6 +7,8 @@ import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.manage.teaching.impl.GradeManageImpl;
 import ${package}.application.validators.teaching.TeachingApplicationValidator;
 import ${package}.domain.repos.teaching.GradeRepository;
+import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.teaching.GradeCachePort;
 import ${package}.domain.service.teaching.impl.GradeDomainServiceImpl;
 import ${package}.domain.vos.teaching.GradeCode;
 import org.junit.jupiter.api.AfterEach;
@@ -23,6 +25,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class GradeManageImplTest {
     @Mock GradeRepository gradeRepository;
+    @Mock GradeCachePort gradeCache;
+    @Mock CommandIdempotencyPort idempotency;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -31,8 +35,10 @@ class GradeManageImplTest {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
             "teacher-1", Set.of("TEACHING_ADMIN"), "trace-1"));
         when(gradeRepository.existsByCode(GradeCode.create("GRADE_ONE"))).thenReturn(true);
+        when(idempotency.claim("create-grade", "req-1")).thenReturn(true);
         GradeManageImpl manage = new GradeManageImpl(
-            gradeRepository, new GradeDomainServiceImpl(), new TeachingApplicationValidator());
+            gradeRepository, new GradeDomainServiceImpl(), new TeachingApplicationValidator(),
+            gradeCache, idempotency);
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createGrade(
             new CreateGradeCommand("req-1", "grade_one", "Grade One")));
