@@ -280,6 +280,12 @@ assert applicationPomText.contains("<artifactId>lombok</artifactId>")
 
 def infrastructurePomText = assertFile("student-management-evaluation-infrastructure/pom.xml").text
 assert infrastructurePomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/RabbitMqConfiguration.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/course/RabbitCourseEventPublisher.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/course/LocalCourseEventPublisher.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/exam/RabbitExamEventPublisher.java")
+assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/exam/LocalExamEventPublisher.java")
+assertFile("student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitExamEventPublisherTest.java")
 assertFile("student-management-evaluation-infrastructure/src/main/resources/db/migration/V1__init_student_management_evaluation.sql")
 assertFile("student-management-evaluation-infrastructure/src/main/resources/db/migration/V2__align_evaluation_course_exam_domain.sql")
 assertFile("student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/EvaluationMigrationTest.java")
