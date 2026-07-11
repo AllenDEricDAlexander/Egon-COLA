@@ -33,11 +33,29 @@ public class OrganizationRabbitConfig {
             .deadLetterRoutingKey("organization.dead.teaching.school-class.create.v1").build();
     }
 
+    @Bean public Queue createUserDeadLetterQueue() {
+        return QueueBuilder.durable("student.organization.user.create.v1.dlq").build();
+    }
+
+    @Bean public Queue createSchoolClassDeadLetterQueue() {
+        return QueueBuilder.durable("student.organization.school-class.create.v1.dlq").build();
+    }
+
     @Bean public Binding createUserBinding() {
         return BindingBuilder.bind(createUserQueue()).to(commandExchange()).with(CREATE_USER_KEY);
     }
 
     @Bean public Binding createSchoolClassBinding() {
         return BindingBuilder.bind(createSchoolClassQueue()).to(commandExchange()).with(CREATE_SCHOOL_CLASS_KEY);
+    }
+
+    @Bean public Binding createUserDeadLetterBinding() {
+        return BindingBuilder.bind(createUserDeadLetterQueue()).to(deadLetterExchange())
+                .with("organization.dead.user.create.v1");
+    }
+
+    @Bean public Binding createSchoolClassDeadLetterBinding() {
+        return BindingBuilder.bind(createSchoolClassDeadLetterQueue()).to(deadLetterExchange())
+                .with("organization.dead.teaching.school-class.create.v1");
     }
 }
