@@ -1,40 +1,36 @@
 package ${package}.domain.entities.teaching;
 
+import ${package}.domain.enums.teaching.SchoolClassStatus;
+import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.vos.teaching.SchoolClassId;
+import ${package}.domain.vos.user.UserId;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-public class SchoolClass {
-    private final String id;
-    private final String name;
-    private final String gradeName;
-    private final List<String> userIds;
+public record SchoolClass(
+        SchoolClassId id,
+        String name,
+        String gradeId,
+        GradeCode gradeCode,
+        String gradeName,
+        SchoolClassStatus status,
+        List<UserId> userIds) {
 
-    private SchoolClass(String id, String name, String gradeName, List<String> userIds) {
-        this.id = id;
-        this.name = name;
-        this.gradeName = gradeName;
-        this.userIds = new ArrayList<>(userIds);
+    public SchoolClass {
+        name = name == null ? "" : name.trim();
+        gradeName = gradeName == null ? "" : gradeName.trim();
+        userIds = new ArrayList<>(userIds);
     }
 
-    public static SchoolClass create(String id, String name, String gradeName) {
-        return new SchoolClass(id, name, gradeName, List.of());
-    }
+    @Override
+    public List<UserId> userIds() { return List.copyOf(userIds); }
 
-    public static SchoolClass restore(String id, String name, String gradeName, List<String> userIds) {
-        return new SchoolClass(id, name, gradeName, userIds);
-    }
+    public void assignUser(UserId userId) { userIds.add(userId); }
+    public boolean hasUser(UserId userId) { return userIds.contains(userId); }
 
-    public void assignUser(String userId) {
-        userIds.add(userId);
-    }
-
-    public boolean hasUser(String userId) {
-        return userIds.contains(userId);
-    }
-
-    public String getId() { return id; }
+    public String getId() { return id.value(); }
     public String getName() { return name; }
     public String getGradeName() { return gradeName; }
-    public List<String> getUserIds() { return Collections.unmodifiableList(userIds); }
+    public List<String> getUserIds() { return userIds.stream().map(UserId::value).toList(); }
 }

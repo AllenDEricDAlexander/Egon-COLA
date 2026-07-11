@@ -1,153 +1,110 @@
-#set( $symbol_pound = '#' )
-#set( $symbol_dollar = '$' )
-#set( $symbol_escape = '\' )
 package ${package}.starter;
 
-import ${package}.adapter.handler.GlobalExceptionHandler;
-import ${package}.application.manage.teaching.SchoolClassManage;
-import ${package}.application.manage.user.UserManage;
-import ${package}.common.constants.ErrorCodes;
-import ${package}.common.exceptions.BizException;
-import ${package}.common.response.Response;
-import ${package}.domain.common.Page;
-import ${package}.domain.entities.teaching.SchoolClass;
-import ${package}.domain.entities.user.User;
-import ${package}.facade.dto.PageResponse;
-import ${package}.facade.dto.teaching.AssignUserToClassRequest;
-import ${package}.facade.dto.user.CreateUserRequest;
-import ${package}.facade.dto.user.UserDTO;
-import ${package}.facade.teaching.SchoolClassFacade;
-import ${package}.facade.user.UserFacade;
-import ${package}.infrastructure.repo.teaching.jpa.SchoolClassUserJpaRepository;
-import jakarta.validation.ConstraintViolationException;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@AutoConfigureMockMvc
 @SpringBootTest(
         classes = OrganizationApplication.class,
-        properties = "dubbo.protocol.port=-1")
+        properties = "spring.profiles.active=test")
+@AutoConfigureMockMvc
 class OrganizationFlowTest {
-    @Autowired
-    private UserManage userManage;
-
-    @Autowired
-    private SchoolClassManage schoolClassManage;
-
-    @Autowired
-    private SchoolClassFacade schoolClassFacade;
-
-    @Autowired
-    private UserFacade userFacade;
-
-    @Autowired
-    private GlobalExceptionHandler globalExceptionHandler;
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockitoSpyBean
-    private SchoolClassUserJpaRepository schoolClassUserJpaRepository;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Test
-    void create_user_and_assign_to_school_class() {
-        User user = userManage.create("Mario", "mario@example.com");
-        SchoolClass schoolClass = schoolClassManage.create("Class One", "Grade One");
+    void completesUserAndTeachingFlowThroughRealHttpBoundary() throws Exception {
+        String suffix = UUID.randomUUID().toString().replace("-", "");
+        MvcResult createdUser = mockMvc.perform(post("/api/v1/users")
+                        .headers(adminHeaders("create-user-" + suffix))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"name\":\"Mario\",\"email\":\"mario-" + suffix + "@example.com\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String userId = JsonPath.read(createdUser.getResponse().getContentAsString(), "$.id");
 
-        schoolClassManage.assignUser(user.getId(), schoolClass.getId());
+        mockMvc.perform(post("/api/v1/users/{id}/roles", userId)
+                        .headers(adminHeaders("assign-role-" + suffix))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"roleCode\":\"STUDENT\"}"))
+                .andExpect(status().isNoContent());
 
-        User saved = userManage.getById(user.getId());
-        assertThat(saved.getEmail()).isEqualTo("mario@example.com");
-        assertThat(saved.getSchoolClassIds()).containsExactly(schoolClass.getId());
-    }
+        mockMvc.perform(post("/api/v1/roles/STUDENT/permissions")
+                        .headers(adminHeaders("grant-permission-" + suffix))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"permissionCode\":\"CLASS_READ\"}"))
+                .andExpect(status().isNoContent());
 
-    @Test
-    void get_user_page_returns_domain_page_and_facade_page() {
-        String suffix = UUID.randomUUID().toString();
-        String marioEmail = "mario-" + suffix + "@example.com";
-        String luigiEmail = "luigi-" + suffix + "@example.com";
+        String gradeCode = "GRADE_" + suffix.toUpperCase();
+        MvcResult createdGrade = mockMvc.perform(post("/api/v1/grades")
+                        .headers(adminHeaders("create-grade-" + suffix))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"code\":\"" + gradeCode + "\",\"name\":\"Grade One\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String gradeId = JsonPath.read(createdGrade.getResponse().getContentAsString(), "$.id");
 
-        userManage.create("Mario", marioEmail);
-        userFacade.createUser(new CreateUserRequest("Luigi", luigiEmail));
-
-        Page<User> userPage = userManage.getPage(1, 10);
-        assertThat(userPage.records()).extracting(User::getEmail)
-                .contains(marioEmail, luigiEmail);
-        assertThat(userPage.currentPage()).isEqualTo(1);
-        assertThat(userPage.pageSize()).isEqualTo(10);
-        assertThat(userPage.totalCount()).isGreaterThanOrEqualTo(2);
-
-        PageResponse<UserDTO> facadePage = userFacade.getUsers(1, 10);
-        assertThat(facadePage.records()).extracting(UserDTO::getEmail)
-                .contains(marioEmail, luigiEmail);
-        assertThat(facadePage.currentPage()).isEqualTo(1);
-        assertThat(facadePage.pageSize()).isEqualTo(10);
-        assertThat(facadePage.totalCount()).isGreaterThanOrEqualTo(2);
-    }
-
-    @Test
-    void duplicate_assignment_returns_duplicate_error() {
-        User user = userManage.create("Luigi", "luigi@example.com");
-        SchoolClass schoolClass = schoolClassManage.create("Class Two", "Grade One");
-        doThrow(new DataIntegrityViolationException("uk_school_class_user"))
-                .when(schoolClassUserJpaRepository)
-                .saveAndFlush(any());
-
-        Throwable thrown = catchThrowable(() ->
-                schoolClassFacade.assignUser(new AssignUserToClassRequest(user.getId(), schoolClass.getId())));
-
-        assertThat(thrown).isInstanceOf(BizException.class);
-        Response response = globalExceptionHandler.handleBizException((BizException) thrown);
-        assertThat(response.isSuccess()).isFalse();
-        assertThat(response.getCode()).isEqualTo(ErrorCodes.SCHOOL_CLASS_USER_DUPLICATED);
-        assertThat(response.getMessage()).isEqualTo("user already assigned to school class");
-    }
-
-    @Test
-    void invalid_facade_request_is_rejected_by_validation() {
-        Throwable thrown = catchThrowable(() ->
-                schoolClassFacade.assignUser(new AssignUserToClassRequest("", "class-id")));
-
-        assertThat(thrown).isInstanceOf(ConstraintViolationException.class);
-    }
-
-    @Test
-    void null_facade_requests_are_rejected_by_validation() {
-        assertThat(catchThrowable(() -> userFacade.createUser(null)))
-                .isInstanceOf(ConstraintViolationException.class)
-                .isNotInstanceOf(NullPointerException.class);
-        assertThat(catchThrowable(() -> schoolClassFacade.createSchoolClass(null)))
-                .isInstanceOf(ConstraintViolationException.class)
-                .isNotInstanceOf(NullPointerException.class);
-        assertThat(catchThrowable(() -> schoolClassFacade.assignUser(null)))
-                .isInstanceOf(ConstraintViolationException.class)
-                .isNotInstanceOf(NullPointerException.class);
-    }
-
-    @Test
-    void invalid_controller_request_returns_validation_error() throws Exception {
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"\",\"email\":\"not-an-email\"}"))
+        mockMvc.perform(get("/api/v1/grades/{id}", gradeId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value(ErrorCodes.VALIDATION_ERROR))
-                .andExpect(jsonPath("$.message").value("validation error"));
+                .andExpect(jsonPath("$.code").value(gradeCode));
+
+        MvcResult createdClass = mockMvc.perform(post("/api/v1/school-classes")
+                        .headers(adminHeaders("create-class-" + suffix))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"name\":\"Class A\",\"gradeCode\":\"" + gradeCode + "\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String schoolClassId = JsonPath.read(createdClass.getResponse().getContentAsString(), "$.id");
+
+        mockMvc.perform(get("/api/v1/school-classes/{id}", schoolClassId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gradeCode").value(gradeCode));
+
+        mockMvc.perform(post("/api/v1/school-classes/{id}/users", schoolClassId)
+                        .headers(adminHeaders("assign-class-" + suffix))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"userId\":\"" + userId + "\"}"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/users/{id}", userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roleCodes[0]").value("STUDENT"));
+
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from user_roles where user_id = ?", Integer.class, userId)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from role_permissions rp join roles r on r.id = rp.role_id where r.code = ?",
+                Integer.class, "STUDENT")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "select count(*) from school_class_users where user_id = ? and school_class_id = ?",
+                Integer.class, userId, schoolClassId)).isEqualTo(1);
+    }
+
+    private static HttpHeaders adminHeaders(String idempotencyKey) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Actor-Id", "admin-1");
+        headers.set("X-Actor-Roles", "ORGANIZATION_ADMIN,TEACHING_ADMIN");
+        headers.set("X-Trace-Id", "flow-test");
+        headers.set("Idempotency-Key", idempotencyKey);
+        return headers;
     }
 }

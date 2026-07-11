@@ -1,0 +1,16 @@
+package ${package}.domain.exceptions;
+
+public enum OrganizationDomainErrorCode {
+    INVALID_USER_ID,
+    INVALID_USER_NAME,
+    INVALID_EMAIL,
+    INVALID_CODE,
+    DUPLICATE_ROLE_ASSIGNMENT,
+    DUPLICATE_PERMISSION_GRANT,
+    USER_DISABLED,
+    ROLE_ARCHIVED,
+    PERMISSION_INACTIVE,
+    DOMAIN_REJECTED,
+    CONFLICT,
+    DEPENDENCY_UNAVAILABLE
+}

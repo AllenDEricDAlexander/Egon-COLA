@@ -1,7 +1,12 @@
 #set( $symbol_dollar = '$' )
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   datasource:
-    url: ${symbol_dollar}{DB_URL:jdbc:h2:mem:${rootArtifactId};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    url: ${symbol_dollar}{DB_URL:jdbc:h2:mem:organization;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
     username: ${symbol_dollar}{DB_USERNAME:sa}
     password: ${symbol_dollar}{DB_PASSWORD:}
     driver-class-name: org.h2.Driver
@@ -27,3 +32,25 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: true
+
+dubbo:
+  application:
+    qos-enable: false
+  registry:
+    address: N/A
+  protocol:
+    name: injvm
+    port: -1
+
+organization:
+  integrations:
+    redis:
+      enabled: false
+    rabbit:
+      enabled: false
+  cache:
+    user-ttl: PT10M
+    grade-ttl: PT30M
+    school-class-ttl: PT10M
+  command:
+    idempotency-ttl: PT24H
