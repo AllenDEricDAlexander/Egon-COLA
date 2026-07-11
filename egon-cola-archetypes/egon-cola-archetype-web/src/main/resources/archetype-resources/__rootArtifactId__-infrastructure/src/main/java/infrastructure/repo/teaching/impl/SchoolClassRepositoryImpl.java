@@ -5,8 +5,10 @@ import ${package}.common.exceptions.BizException;
 import ${package}.domain.entities.teaching.SchoolClass;
 import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.infrastructure.repo.teaching.converter.SchoolClassPoConverter;
+import ${package}.infrastructure.repo.teaching.jpa.GradeJpaRepository;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassJpaRepository;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassUserJpaRepository;
+import ${package}.infrastructure.repo.teaching.po.GradePO;
 import ${package}.infrastructure.repo.teaching.po.SchoolClassPo;
 import ${package}.infrastructure.repo.teaching.po.SchoolClassUserPo;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,9 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     @Qualifier("schoolClassJpaRepository")
     private final SchoolClassJpaRepository schoolClassJpaRepository;
 
+    @Qualifier("gradeJpaRepository")
+    private final GradeJpaRepository gradeJpaRepository;
+
     @Qualifier("schoolClassUserJpaRepository")
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
 
@@ -33,13 +38,27 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
 
     @Override
     public SchoolClass save(SchoolClass schoolClass) {
-        SchoolClassPo saved = schoolClassJpaRepository.save(schoolClassPoConverter.toPo(schoolClass));
+        SchoolClassPo schoolClassPo = schoolClassPoConverter.toPo(schoolClass);
+        ensureLegacyGrade(schoolClassPo);
+        SchoolClassPo saved = schoolClassJpaRepository.save(schoolClassPo);
         schoolClass.getUserIds().forEach(userId -> {
             if (!schoolClassUserJpaRepository.existsByUserIdAndSchoolClassId(userId, schoolClass.getId())) {
                 saveSchoolClassUser(userId, schoolClass.getId());
             }
         });
         return restore(saved);
+    }
+
+    private void ensureLegacyGrade(SchoolClassPo schoolClassPo) {
+        if (gradeJpaRepository.existsById(schoolClassPo.getGradeId())) {
+            return;
+        }
+        gradeJpaRepository.save(new GradePO(
+                schoolClassPo.getGradeId(),
+                schoolClassPo.getGradeName(),
+                schoolClassPo.getGradeName(),
+                "ACTIVE",
+                LocalDateTime.now()));
     }
 
     @Override

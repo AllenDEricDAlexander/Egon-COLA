@@ -631,7 +631,16 @@ assert facadeJava.every { !it.text.contains("@AutoMapper") }
 assert facadeJava.every { !it.text.contains("@Component") }
 
 def migrationDir = new File(projectDir, "student-management-organization-infrastructure/src/main/resources/db/migration")
-assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 1
+def migrationFiles = migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter)
+assert migrationFiles.size() == 2
+def sha256 = { File file ->
+    java.security.MessageDigest.getInstance("SHA-256").digest(file.bytes).encodeHex().toString()
+}
+assert sha256(assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")) ==
+    "c5481736a3ffefc45197a767aec26c1462bb338dfccc1d11751a782ac3de6df1"
+assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql")
+assert migrationFiles.findAll { it.name.startsWith("V2__") }.size() == 1
+assertMissing("student-management-organization-infrastructure/src/test/resources/db/migration")
 
 def readme = assertFile("README.md").text
 assert readme.contains("Student Management Organization")

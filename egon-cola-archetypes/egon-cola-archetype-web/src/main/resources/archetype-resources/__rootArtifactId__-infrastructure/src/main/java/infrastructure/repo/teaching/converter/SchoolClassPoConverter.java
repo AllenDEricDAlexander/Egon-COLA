@@ -24,6 +24,8 @@ public class SchoolClassPoConverter {
                 schoolClassPo.getId(),
                 schoolClassPo.getName(),
                 schoolClassPo.getGradeName(),
+                "legacy:" + schoolClassPo.getGradeName(),
+                "ACTIVE",
                 LocalDateTime.now());
     }
 
