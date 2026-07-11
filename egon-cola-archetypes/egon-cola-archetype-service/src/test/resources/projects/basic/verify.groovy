@@ -488,7 +488,20 @@ assertContainsAll(domainServiceConfigurationText, [
 ], "DomainServiceConfiguration")
 assert !domainServiceConfigurationText.contains("CourseDomainService")
 assert !domainServiceConfigurationText.contains('@Bean("courseDomainService")')
-assert !new File(projectDir, "student-management-evaluation-domain/src/main/java/it/pkg/domain/service/course/CourseDomainService.java").exists()
+[
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/common/EvaluationDomainException.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/common/EvaluationPortException.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/course/CourseSchedule.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/aggregates/course/CourseAggregate.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/vos/course/CourseId.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/vos/course/CourseCode.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/service/course/CourseDomainService.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/service/course/impl/CourseDomainServiceImpl.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/course/CourseScheduleRepository.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/event/course/CourseEventPublisher.java",
+    "student-management-evaluation-domain/src/test/java/it/pkg/domain/course/CourseDomainServiceTest.java",
+    "student-management-evaluation-domain/src/test/java/it/pkg/domain/course/CourseAggregateTest.java"
+].each { assertFile(it) }
 
 def courseFacadeImplText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/CourseFacadeImpl.java").text
 assertContainsAll(courseFacadeImplText, [
