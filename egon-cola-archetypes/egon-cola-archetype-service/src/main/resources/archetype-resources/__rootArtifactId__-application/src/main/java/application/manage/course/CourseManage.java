@@ -9,10 +9,7 @@ import ${package}.application.query.course.GetCourseQuery;
 import ${package}.application.query.course.PageCourseQuery;
 import ${package}.application.result.course.CourseResult;
 import ${package}.application.result.course.CourseScheduleResult;
-import ${package}.domain.common.Page;
-import ${package}.domain.entities.course.Course;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
+import ${package}.application.result.PageResult;
 
 public interface CourseManage {
 
@@ -22,11 +19,5 @@ public interface CourseManage {
 
     CourseResult get(GetCourseQuery query);
 
-    Page<CourseResult> page(PageCourseQuery query);
-
-    Course create(@NotBlank String name, @Positive int credit);
-
-    Course getById(@NotBlank String courseId);
-
-    Page<Course> getPage(@Positive int currentPage, @Positive int pageSize);
+    PageResult<CourseResult> page(PageCourseQuery query);
 }

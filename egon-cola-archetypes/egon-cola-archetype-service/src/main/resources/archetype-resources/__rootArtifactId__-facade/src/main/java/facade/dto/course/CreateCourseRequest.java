@@ -17,8 +17,4 @@ public record CreateCourseRequest(
         String name,
         @Positive(message = "credit must be positive")
         int credit
-) implements Serializable {
-    public CreateCourseRequest(String name, int credit) {
-        this(name == null ? null : name.replace(' ', '-'), name, credit);
-    }
-}
+) implements Serializable {}

@@ -18,7 +18,6 @@ import ${package}.domain.service.exam.impl.ScoreDomainServiceImpl;
 import ${package}.domain.vos.exam.ExamId;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,8 +42,8 @@ class ScoreManageTest {
         when(scoreRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         ScoreManageImpl manage = new ScoreManageImpl(
-                provider(examRepository), provider(paperRepository), provider(scoreRepository),
-                provider(eventPublisher), new ScoreDomainServiceImpl(),
+                examRepository, paperRepository, scoreRepository, eventPublisher,
+                new ScoreDomainServiceImpl(),
                 new ExamApplicationConverter(), new ExamApplicationValidator());
 
         var result = manage.record(new RecordScoreCommand("exam-1", "student-1", 90));
@@ -52,12 +51,5 @@ class ScoreManageTest {
         assertEquals(90, result.points());
         verify(scoreRepository).save(any(Score.class));
         verify(eventPublisher).scoreRecorded(any(Score.class));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> ObjectProvider<T> provider(T value) {
-        ObjectProvider<T> provider = mock(ObjectProvider.class);
-        when(provider.getObject()).thenReturn(value);
-        return provider;
     }
 }

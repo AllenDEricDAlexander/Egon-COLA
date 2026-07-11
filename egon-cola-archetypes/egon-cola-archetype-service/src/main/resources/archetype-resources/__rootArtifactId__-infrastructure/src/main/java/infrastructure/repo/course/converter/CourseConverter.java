@@ -4,7 +4,7 @@
 package ${package}.infrastructure.repo.course.converter;
 
 import ${package}.domain.entities.course.Course;
-import ${package}.domain.enums.CourseStatus;
+import ${package}.domain.enums.course.CourseStatus;
 import ${package}.domain.vos.course.CourseCode;
 import ${package}.infrastructure.repo.course.po.CoursePo;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class CourseConverter {
         CoursePo coursePo = coursePoMapper.convert(course);
         return new CoursePo(
                 coursePo.getId(),
-                course.getCode() == null ? "LEGACY-" + course.getId() : course.getCode().value(),
+                course.getCode().value(),
                 coursePo.getName(),
                 coursePo.getCredit(),
                 course.getStatus().name(),

@@ -3,11 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.domain.entities.course;
 
-import ${package}.common.constants.ErrorCodes;
-import ${package}.common.exception.BizException;
 import ${package}.domain.common.EvaluationDomainErrorCode;
 import ${package}.domain.common.EvaluationDomainException;
-import ${package}.domain.enums.CourseStatus;
+import ${package}.domain.enums.course.CourseStatus;
 import ${package}.domain.vos.course.CourseCode;
 
 public class Course {
@@ -21,21 +19,6 @@ public class Course {
     private int credit;
 
     private CourseStatus status;
-
-    public static Course create(String id, String name, int credit) {
-        if (isBlank(name)) {
-            throw new BizException("course name must not be blank");
-        }
-        if (credit < 1) {
-            throw new BizException("course credit must be greater than 0");
-        }
-        Course course = new Course();
-        course.setId(id);
-        course.setName(name);
-        course.setCredit(credit);
-        course.setStatus(CourseStatus.ACTIVE);
-        return course;
-    }
 
     public static Course create(String id, CourseCode code, String name, int credit) {
         if (isBlank(id) || code == null || isBlank(name) || credit < 1) {

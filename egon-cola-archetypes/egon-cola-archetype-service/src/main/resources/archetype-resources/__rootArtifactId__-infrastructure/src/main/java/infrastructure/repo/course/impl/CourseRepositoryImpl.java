@@ -4,11 +4,8 @@
 package ${package}.infrastructure.repo.course.impl;
 
 import java.time.LocalDateTime;
-import java.util.Locale;
 import java.util.Optional;
 
-import ${package}.common.constants.ErrorCodes;
-import ${package}.common.exception.BizException;
 import ${package}.domain.common.Page;
 import ${package}.domain.entities.course.Course;
 import ${package}.domain.repos.course.CourseRepository;
@@ -17,6 +14,7 @@ import ${package}.domain.vos.course.CourseId;
 import ${package}.infrastructure.repo.course.converter.CourseConverter;
 import ${package}.infrastructure.repo.course.jpa.CourseJpaRepository;
 import ${package}.infrastructure.repo.course.po.CoursePo;
+import ${package}.infrastructure.validators.EvaluationPersistenceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,6 +33,8 @@ public class CourseRepositoryImpl implements CourseRepository {
     @Qualifier("courseConverter")
     private final CourseConverter courseConverter;
 
+    private final EvaluationPersistenceValidator persistenceValidator;
+
     @Override
     public Course save(Course course) {
         LocalDateTime now = LocalDateTime.now();
@@ -45,21 +45,13 @@ public class CourseRepositoryImpl implements CourseRepository {
         try {
             return courseConverter.toDomain(courseJpaRepository.saveAndFlush(coursePo));
         } catch (DataIntegrityViolationException exception) {
-            if (isCourseNameUniqueConstraintViolation(exception)) {
-                throw new BizException(ErrorCodes.COURSE_NAME_DUPLICATED, "course name already exists");
-            }
-            throw exception;
+            throw persistenceValidator.translate("save course", exception);
         }
     }
 
     @Override
-    public Optional<Course> findById(String courseId) {
-        return courseJpaRepository.findById(courseId).map(courseConverter::toDomain);
-    }
-
-    @Override
     public Optional<Course> findById(CourseId courseId) {
-        return findById(courseId.value());
+        return courseJpaRepository.findById(courseId.value()).map(courseConverter::toDomain);
     }
 
     @Override
@@ -85,24 +77,8 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
-    public boolean existsByName(String name) {
-        return courseJpaRepository.existsByName(name);
-    }
-
-    @Override
     public boolean existsByCode(CourseCode courseCode) {
         return courseJpaRepository.existsByCode(courseCode.value());
     }
 
-    private boolean isCourseNameUniqueConstraintViolation(DataIntegrityViolationException exception) {
-        Throwable current = exception;
-        while (current != null) {
-            String message = current.getMessage();
-            if (message != null && message.toLowerCase(Locale.ROOT).contains("uk_course_name")) {
-                return true;
-            }
-            current = current.getCause();
-        }
-        return false;
-    }
 }

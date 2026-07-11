@@ -14,21 +14,11 @@ public interface CourseRepository {
 
     Course save(Course course);
 
-    Optional<Course> findById(String courseId);
+    Optional<Course> findById(CourseId courseId);
 
-    default Optional<Course> findById(CourseId courseId) {
-        return findById(courseId.value());
-    }
-
-    default Optional<Course> findByCode(CourseCode courseCode) {
-        return Optional.empty();
-    }
+    Optional<Course> findByCode(CourseCode courseCode);
 
     Page<Course> findPage(int currentPage, int pageSize);
 
-    boolean existsByName(String name);
-
-    default boolean existsByCode(CourseCode courseCode) {
-        return findByCode(courseCode).isPresent();
-    }
+    boolean existsByCode(CourseCode courseCode);
 }

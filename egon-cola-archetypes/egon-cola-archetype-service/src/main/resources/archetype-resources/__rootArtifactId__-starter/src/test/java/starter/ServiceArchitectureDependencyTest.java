@@ -59,8 +59,7 @@ class ServiceArchitectureDependencyTest {
                         "${package}.adapter..",
                         "${package}.infrastructure..",
                         "${package}.facade..",
-                        "${package}.facade.dto..",
-                        "${package}.common.response..",
+                        "${package}.common..",
                         "org.springframework.web..",
                         "${package}.starter..")
                 .check(importedClasses);
@@ -85,9 +84,39 @@ class ServiceArchitectureDependencyTest {
     }
 
     @Test
-    void adapterShouldNotDependOnSpringMvc() {
+    void adapterShouldDependOnlyOnApplicationAndFacadeInsideTheService() {
         noClasses().that().resideInAPackage("${package}.adapter..")
-                .should().dependOnClassesThat().resideInAnyPackage("org.springframework.web..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.common..",
+                        "${package}.domain..",
+                        "${package}.infrastructure..",
+                        "${package}.starter..",
+                        "org.springframework.web..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void infrastructureShouldDependOnlyOnDomainInsideTheService() {
+        noClasses().that().resideInAPackage("${package}.infrastructure..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.common..",
+                        "${package}.facade..",
+                        "${package}.application..",
+                        "${package}.adapter..",
+                        "${package}.starter..")
+                .check(importedClasses);
+    }
+
+    @Test
+    void commonShouldNotDependOnOtherServiceModules() {
+        noClasses().that().resideInAPackage("${package}.common..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${package}.facade..",
+                        "${package}.domain..",
+                        "${package}.application..",
+                        "${package}.infrastructure..",
+                        "${package}.adapter..",
+                        "${package}.starter..")
                 .check(importedClasses);
     }
 

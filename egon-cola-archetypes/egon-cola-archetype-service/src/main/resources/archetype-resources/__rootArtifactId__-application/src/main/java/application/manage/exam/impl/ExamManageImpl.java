@@ -26,7 +26,6 @@ import ${package}.domain.vos.course.CourseId;
 import ${package}.domain.vos.exam.ExamId;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,9 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class ExamManageImpl implements ExamManage {
 
     private final CourseRepository courseRepository;
-    private final ObjectProvider<ExamRepository> examRepositories;
-    private final ObjectProvider<ExamPaperRepository> paperRepositories;
-    private final ObjectProvider<ExamEventPublisher> eventPublishers;
+    private final ExamRepository examRepository;
+    private final ExamPaperRepository examPaperRepository;
+    private final ExamEventPublisher examEventPublisher;
     private final ExamDomainService examDomainService;
     private final ExamApplicationConverter converter;
     private final ExamApplicationValidator validator;
@@ -52,7 +51,7 @@ public class ExamManageImpl implements ExamManage {
         Exam exam = examDomainService.createExam(
                 UUID.randomUUID().toString(), course, command.title(),
                 command.startsAt(), command.endsAt());
-        return converter.toResult(examRepositories.getObject().save(exam));
+        return converter.toResult(examRepository.save(exam));
     }
 
     @Override
@@ -61,21 +60,20 @@ public class ExamManageImpl implements ExamManage {
         Exam exam = requireExam(command.examId());
         ExamPaper paper = examDomainService.attachPaper(
                 UUID.randomUUID().toString(), exam, command.title(), command.totalPoints());
-        return converter.toResult(paperRepositories.getObject().save(paper));
+        return converter.toResult(examPaperRepository.save(paper));
     }
 
     @Override
     @Transactional
     public ExamDetailResult publish(PublishExamCommand command) {
         Exam exam = requireExam(command.examId());
-        ExamPaperRepository papers = paperRepositories.getObject();
-        ExamPaper paper = papers.findByExamId(exam.getId())
+        ExamPaper paper = examPaperRepository.findByExamId(exam.getId())
                 .orElseThrow(() -> failure(
                         ApplicationErrorCode.EXAM_PAPER_NOT_FOUND, "exam paper not found"));
         examDomainService.publishExam(exam, paper);
-        Exam saved = examRepositories.getObject().save(exam);
-        papers.save(paper);
-        eventPublishers.getObject().examPublished(saved, paper);
+        Exam saved = examRepository.save(exam);
+        examPaperRepository.save(paper);
+        examEventPublisher.examPublished(saved, paper);
         return converter.toResult(saved);
     }
 
@@ -87,7 +85,7 @@ public class ExamManageImpl implements ExamManage {
 
     private Exam requireExam(String examId) {
         validator.notBlank(examId, "examId");
-        return examRepositories.getObject().findById(new ExamId(examId))
+        return examRepository.findById(new ExamId(examId))
                 .orElseThrow(() -> failure(ApplicationErrorCode.EXAM_NOT_FOUND, "exam not found"));
     }
 

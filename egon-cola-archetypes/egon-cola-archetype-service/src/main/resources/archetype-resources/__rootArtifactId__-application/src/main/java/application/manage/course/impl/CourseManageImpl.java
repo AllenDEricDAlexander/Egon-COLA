@@ -13,12 +13,8 @@ import ${package}.application.query.course.GetCourseQuery;
 import ${package}.application.query.course.PageCourseQuery;
 import ${package}.application.result.course.CourseResult;
 import ${package}.application.result.course.CourseScheduleResult;
+import ${package}.application.result.PageResult;
 import ${package}.application.validators.course.CourseApplicationValidator;
-import ${package}.common.constants.ErrorCodes;
-import ${package}.common.exception.BizException;
-import ${package}.common.exception.NotFoundException;
-import ${package}.common.util.IdGenerator;
-import ${package}.domain.client.course.CourseClient;
 import ${package}.domain.common.Page;
 import ${package}.domain.entities.course.Course;
 import ${package}.domain.entities.course.CourseSchedule;
@@ -29,8 +25,6 @@ import ${package}.domain.service.course.CourseDomainService;
 import ${package}.domain.vos.course.CourseCode;
 import ${package}.domain.vos.course.CourseId;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -40,15 +34,9 @@ import org.springframework.validation.annotation.Validated;
 @RequiredArgsConstructor
 public class CourseManageImpl implements CourseManage {
 
-    @Qualifier("courseClientImpl")
-    private final CourseClient courseClient;
-
-    @Qualifier("courseRepositoryImpl")
     private final CourseRepository courseRepository;
-
-    private final ObjectProvider<CourseScheduleRepository> scheduleRepositories;
-
-    private final ObjectProvider<CourseEventPublisher> eventPublishers;
+    private final CourseScheduleRepository courseScheduleRepository;
+    private final CourseEventPublisher courseEventPublisher;
 
     private final CourseDomainService courseDomainService;
 
@@ -78,13 +66,12 @@ public class CourseManageImpl implements CourseManage {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ApplicationException(
                         ApplicationErrorCode.COURSE_NOT_FOUND, "course not found"));
-        CourseScheduleRepository schedules = scheduleRepositories.getObject();
         CourseSchedule schedule = courseDomainService.scheduleCourse(
                 java.util.UUID.randomUUID().toString(), course, command.classId(),
-                command.startsAt(), command.endsAt(), schedules.findOverlapping(
+                command.startsAt(), command.endsAt(), courseScheduleRepository.findOverlapping(
                         courseId, command.classId(), command.startsAt(), command.endsAt()));
-        CourseSchedule saved = schedules.save(schedule);
-        eventPublishers.getObject().courseScheduled(saved);
+        CourseSchedule saved = courseScheduleRepository.save(schedule);
+        courseEventPublisher.courseScheduled(saved);
         return converter.toResult(saved);
     }
 
@@ -100,36 +87,14 @@ public class CourseManageImpl implements CourseManage {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CourseResult> page(PageCourseQuery query) {
+    public PageResult<CourseResult> page(PageCourseQuery query) {
         validator.require(
                 query != null && query.currentPage() > 0 && query.pageSize() > 0,
                 "positive page parameters are required");
         Page<Course> page = courseRepository.findPage(query.currentPage(), query.pageSize());
-        return Page.of(
+        return PageResult.of(
                 page.records().stream().map(converter::toResult).toList(),
                 page.currentPage(), page.totalPages(), page.pageSize(), page.totalCount());
     }
 
-    @Override
-    @Transactional
-    public Course create(String name, int credit) {
-        Course course = Course.create(IdGenerator.nextId(), name, credit);
-        if (courseClient.existsByName(name)) {
-            throw new BizException(ErrorCodes.COURSE_NAME_DUPLICATED, "course name already exists");
-        }
-        return courseClient.save(course);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Course getById(String courseId) {
-        return courseClient.findById(courseId)
-                .orElseThrow(() -> new NotFoundException(ErrorCodes.COURSE_NOT_FOUND, "course not found"));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Course> getPage(int currentPage, int pageSize) {
-        return courseClient.findPage(currentPage, pageSize);
-    }
 }

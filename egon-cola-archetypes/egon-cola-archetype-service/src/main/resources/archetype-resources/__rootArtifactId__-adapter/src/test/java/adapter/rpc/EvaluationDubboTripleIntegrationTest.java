@@ -4,11 +4,8 @@
 package ${package}.adapter.rpc;
 
 import ${package}.adapter.converter.course.CourseFacadeConverter;
-import ${package}.adapter.convertor.CourseAdapterConvertor;
 import ${package}.adapter.facade.impl.course.CourseFacadeImpl;
 import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
-import ${package}.adapter.handler.ServiceExceptionHandler;
-import ${package}.adapter.validation.ValidatorUtils;
 import ${package}.adapter.validators.course.CourseFacadeValidator;
 import ${package}.application.command.course.CreateCourseCommand;
 import ${package}.application.manage.course.CourseManage;
@@ -39,9 +36,8 @@ class EvaluationDubboTripleIntegrationTest {
         when(manage.create(any(CreateCourseCommand.class))).thenReturn(
                 new CourseResult("course-1", "MATH-101", "Math", 3, "ACTIVE"));
         CourseFacade provider = new CourseFacadeImpl(
-                manage, mock(CourseAdapterConvertor.class), mock(ServiceExceptionHandler.class),
-                mock(ValidatorUtils.class), new CourseFacadeConverter(),
-                new CourseFacadeValidator(), new GlobalFacadeExceptionHandler());
+                manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
+                new GlobalFacadeExceptionHandler());
 
         ServiceConfig<CourseFacade> service = new ServiceConfig<>();
         service.setInterface(CourseFacade.class);

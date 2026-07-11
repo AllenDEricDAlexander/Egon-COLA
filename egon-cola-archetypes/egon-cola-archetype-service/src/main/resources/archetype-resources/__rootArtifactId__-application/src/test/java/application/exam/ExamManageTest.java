@@ -18,7 +18,6 @@ import ${package}.domain.vos.course.CourseId;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.ObjectProvider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,20 +34,13 @@ class ExamManageTest {
         when(courses.findById(new CourseId("course-1"))).thenReturn(Optional.of(course));
         when(exams.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         ExamManageImpl manage = new ExamManageImpl(
-                courses, provider(exams), provider(mock(ExamPaperRepository.class)),
-                provider(mock(ExamEventPublisher.class)), new ExamDomainServiceImpl(),
+                courses, exams, mock(ExamPaperRepository.class), mock(ExamEventPublisher.class),
+                new ExamDomainServiceImpl(),
                 new ExamApplicationConverter(), new ExamApplicationValidator());
 
         var result = manage.create(new CreateExamCommand(
                 "course-1", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
 
         assertEquals("course-1", result.courseId());
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> ObjectProvider<T> provider(T value) {
-        ObjectProvider<T> provider = mock(ObjectProvider.class);
-        when(provider.getObject()).thenReturn(value);
-        return provider;
     }
 }

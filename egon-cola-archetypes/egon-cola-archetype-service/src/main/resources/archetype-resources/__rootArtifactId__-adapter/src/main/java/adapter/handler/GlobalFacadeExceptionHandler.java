@@ -11,6 +11,9 @@ public class GlobalFacadeExceptionHandler {
         return SingleResponse.fail(failure.code().name(), failure.getMessage());
     }
     public <T> SingleResponse<T> toFailure(RuntimeException failure) {
+        if (failure instanceof ApplicationException applicationFailure) {
+            return toFailure(applicationFailure);
+        }
         return SingleResponse.fail("INTERNAL_ERROR", "service request failed");
     }
 }
