@@ -25,6 +25,11 @@ modules.each { module ->
 
 def rootPom = new groovy.xml.XmlSlurper(false, false).parse(assertFile("pom.xml"))
 assert rootPom.modules.module*.text() == modules.collect { "student-management-evaluation-${it}" }
+assert rootPom.properties.'organization-facade.group-id'.text() == "fixture.organization"
+assert rootPom.properties.'organization-facade.artifact-id'.text() ==
+        "student-management-organization-facade"
+assert rootPom.properties.'organization-facade.version'.text() == "1.0.0-fixture"
+assert rootPom.properties.'organization-facade.package'.text() == "fixture.organization"
 def requiredPackagePaths = [
     "common",
     "common/constants",
@@ -193,12 +198,14 @@ modules.each { module ->
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/exam/Exam.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/event/course/CourseEventPublisher.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/event/exam/ExamEventPublisher.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationDirectoryPort.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/manage/course/impl/CourseManageImpl.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/manage/exam/impl/ExamManageImpl.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/result/PageResult.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/RabbitMqConfiguration.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/course/RabbitCourseEventPublisher.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/exam/RabbitExamEventPublisher.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClient.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/course/CourseFacadeImpl.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/exam/ExamFacadeImpl.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/mq/exam/RecordScoreConsumer.java",
