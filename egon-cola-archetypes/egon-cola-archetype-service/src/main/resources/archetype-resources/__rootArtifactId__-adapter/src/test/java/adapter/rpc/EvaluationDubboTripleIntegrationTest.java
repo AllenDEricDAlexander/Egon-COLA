@@ -5,14 +5,22 @@ package ${package}.adapter.rpc;
 
 import ${package}.adapter.converter.course.CourseFacadeConverter;
 import ${package}.adapter.facade.impl.course.CourseFacadeImpl;
+import ${package}.adapter.converter.exam.ExamFacadeConverter;
+import ${package}.adapter.facade.impl.exam.ExamFacadeImpl;
 import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.validators.course.CourseFacadeValidator;
+import ${package}.adapter.validators.exam.ExamFacadeValidator;
 import ${package}.application.command.course.CreateCourseCommand;
 import ${package}.application.manage.course.CourseManage;
+import ${package}.application.manage.exam.ExamManage;
 import ${package}.application.result.course.CourseResult;
+import ${package}.application.result.exam.ExamDetailResult;
 import ${package}.facade.api.CourseFacade;
+import ${package}.facade.api.ExamFacade;
 import ${package}.facade.dto.course.CreateCourseRequest;
+import ${package}.facade.dto.exam.CreateExamRequest;
 import java.net.ServerSocket;
+import java.time.Instant;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.ReferenceConfig;
@@ -38,29 +46,52 @@ class EvaluationDubboTripleIntegrationTest {
         CourseFacade provider = new CourseFacadeImpl(
                 manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
+        ExamManage examManage = mock(ExamManage.class);
+        when(examManage.create(any())).thenReturn(new ExamDetailResult(
+                "exam-1", "course-1", "Midterm",
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
+        ExamFacade examProvider = new ExamFacadeImpl(
+                examManage, new ExamFacadeConverter(), new ExamFacadeValidator(),
+                new GlobalFacadeExceptionHandler());
 
         ServiceConfig<CourseFacade> service = new ServiceConfig<>();
         service.setInterface(CourseFacade.class);
         service.setRef(provider);
         service.setGroup("course");
         service.setVersion("1.0.0");
+        ServiceConfig<ExamFacade> examService = new ServiceConfig<>();
+        examService.setInterface(ExamFacade.class);
+        examService.setRef(examProvider);
+        examService.setGroup("exam");
+        examService.setVersion("1.0.0");
         ReferenceConfig<CourseFacade> reference = new ReferenceConfig<>();
         reference.setInterface(CourseFacade.class);
         reference.setGroup("course");
         reference.setVersion("1.0.0");
         reference.setUrl("tri://127.0.0.1:" + port);
+        ReferenceConfig<ExamFacade> examReference = new ReferenceConfig<>();
+        examReference.setInterface(ExamFacade.class);
+        examReference.setGroup("exam");
+        examReference.setVersion("1.0.0");
+        examReference.setUrl("tri://127.0.0.1:" + port);
 
         DubboBootstrap bootstrap = DubboBootstrap.newInstance()
                 .application(new ApplicationConfig("evaluation-triple-test"))
                 .registry(new RegistryConfig("N/A"))
                 .protocol(new ProtocolConfig("tri", port))
                 .service(service)
-                .reference(reference);
+                .service(examService)
+                .reference(reference)
+                .reference(examReference);
         try {
             bootstrap.start();
             var response = reference.get().create(new CreateCourseRequest("MATH-101", "Math", 3));
             assertTrue(response.isSuccess());
             assertEquals("course-1", response.getData().id());
+            var examResponse = examReference.get().createExam(new CreateExamRequest(
+                    "course-1", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+            assertTrue(examResponse.isSuccess());
+            assertEquals("exam-1", examResponse.getData().id());
         } finally {
             bootstrap.destroy();
         }

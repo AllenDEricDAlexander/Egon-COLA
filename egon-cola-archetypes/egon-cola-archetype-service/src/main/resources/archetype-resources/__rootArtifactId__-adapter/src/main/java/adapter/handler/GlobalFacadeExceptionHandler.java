@@ -4,6 +4,7 @@
 package ${package}.adapter.handler;
 import ${package}.application.exceptions.ApplicationException;
 import ${package}.facade.dto.SingleResponse;
+import ${package}.facade.exceptions.EvaluationFacadeException;
 import org.springframework.stereotype.Component;
 @Component
 public class GlobalFacadeExceptionHandler {
@@ -13,6 +14,9 @@ public class GlobalFacadeExceptionHandler {
     public <T> SingleResponse<T> toFailure(RuntimeException failure) {
         if (failure instanceof ApplicationException applicationFailure) {
             return toFailure(applicationFailure);
+        }
+        if (failure instanceof EvaluationFacadeException facadeFailure) {
+            return SingleResponse.fail(facadeFailure.code().name(), facadeFailure.getMessage());
         }
         return SingleResponse.fail("INTERNAL_ERROR", "service request failed");
     }

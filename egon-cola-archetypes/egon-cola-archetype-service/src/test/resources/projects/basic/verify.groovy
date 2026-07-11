@@ -25,6 +25,128 @@ modules.each { module ->
 
 def rootPom = new groovy.xml.XmlSlurper(false, false).parse(assertFile("pom.xml"))
 assert rootPom.modules.module*.text() == modules.collect { "student-management-evaluation-${it}" }
+def requiredPackagePaths = [
+    "common",
+    "common/constants",
+    "common/enums",
+    "common/exceptions",
+    "common/utils",
+    "facade",
+    "facade/api",
+    "facade/dto",
+    "facade/dto/course",
+    "facade/dto/exam",
+    "facade/enums",
+    "facade/exceptions",
+    "facade/utils",
+    "domain",
+    "domain/common",
+    "domain/entities",
+    "domain/entities/course",
+    "domain/entities/exam",
+    "domain/aggregates",
+    "domain/aggregates/course",
+    "domain/aggregates/exam",
+    "domain/vos",
+    "domain/vos/course",
+    "domain/vos/exam",
+    "domain/service",
+    "domain/service/course",
+    "domain/service/course/impl",
+    "domain/service/exam",
+    "domain/service/exam/impl",
+    "domain/repos",
+    "domain/repos/course",
+    "domain/repos/exam",
+    "domain/event",
+    "domain/event/course",
+    "domain/event/exam",
+    "domain/validators",
+    "domain/validators/course",
+    "domain/validators/exam",
+    "domain/enums",
+    "domain/enums/course",
+    "domain/enums/exam",
+    "application",
+    "application/manage",
+    "application/manage/course",
+    "application/manage/course/impl",
+    "application/manage/exam",
+    "application/manage/exam/impl",
+    "application/command",
+    "application/command/course",
+    "application/command/exam",
+    "application/query",
+    "application/query/course",
+    "application/query/exam",
+    "application/result",
+    "application/result/course",
+    "application/result/exam",
+    "application/converter",
+    "application/converter/course",
+    "application/converter/exam",
+    "application/validators",
+    "application/validators/course",
+    "application/validators/exam",
+    "application/assemblers",
+    "application/assemblers/course",
+    "application/assemblers/exam",
+    "application/exceptions",
+    "application/config",
+    "infrastructure",
+    "infrastructure/repo",
+    "infrastructure/repo/course",
+    "infrastructure/repo/course/impl",
+    "infrastructure/repo/course/po",
+    "infrastructure/repo/course/jpa",
+    "infrastructure/repo/course/converter",
+    "infrastructure/repo/exam",
+    "infrastructure/repo/exam/impl",
+    "infrastructure/repo/exam/po",
+    "infrastructure/repo/exam/jpa",
+    "infrastructure/repo/exam/converter",
+    "infrastructure/mq",
+    "infrastructure/mq/course",
+    "infrastructure/mq/exam",
+    "infrastructure/mq/message",
+    "infrastructure/validators",
+    "infrastructure/aop",
+    "infrastructure/config",
+    "adapter",
+    "adapter/facade",
+    "adapter/facade/impl",
+    "adapter/facade/impl/course",
+    "adapter/facade/impl/exam",
+    "adapter/mq",
+    "adapter/mq/course",
+    "adapter/mq/exam",
+    "adapter/dto",
+    "adapter/dto/course",
+    "adapter/dto/exam",
+    "adapter/converter",
+    "adapter/converter/course",
+    "adapter/converter/exam",
+    "adapter/validators",
+    "adapter/validators/course",
+    "adapter/validators/exam",
+    "adapter/handler",
+    "starter",
+    "starter/config",
+    "starter/config/async",
+    "starter/config/encryption",
+]
+requiredPackagePaths.each { packagePath ->
+    def separator = packagePath.indexOf('/')
+    def module = separator < 0 ? packagePath : packagePath.substring(0, separator)
+    assertFile("student-management-evaluation-${module}/src/main/java/it/pkg/${packagePath}/package-info.java")
+}
+
+modules.each { module ->
+    ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"].each { path ->
+        assert new File(projectDir, "student-management-evaluation-${module}/${path}").isDirectory()
+    }
+}
+
 
 def internalDependencies = { module ->
     def pom = new groovy.xml.XmlSlurper(false, false)
@@ -42,6 +164,25 @@ assert internalDependencies("application") == ["domain"]
 assert internalDependencies("infrastructure") == ["domain"]
 assert internalDependencies("adapter") == ["application", "facade"]
 assert internalDependencies("starter") == ["adapter", "infrastructure"]
+
+def dependencyArtifacts = { module ->
+    def pom = new groovy.xml.XmlSlurper(false, false)
+            .parse(assertFile("student-management-evaluation-${module}/pom.xml"))
+    pom.dependencies.dependency*.artifactId*.text()
+}
+modules.each { module ->
+    def artifacts = dependencyArtifacts(module)
+    if (module in ["infrastructure", "adapter"]) {
+        assert "spring-boot-starter-amqp" in artifacts
+    } else {
+        assert !("spring-boot-starter-amqp" in artifacts)
+    }
+    if (module == "infrastructure") {
+        assert "flyway-database-postgresql" in artifacts
+    } else {
+        assert !("flyway-database-postgresql" in artifacts)
+    }
+}
 
 [
     "student-management-evaluation-common/src/main/java/it/pkg/common/exceptions/EvaluationBizException.java",
@@ -61,6 +202,23 @@ assert internalDependencies("starter") == ["adapter", "infrastructure"]
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/course/CourseFacadeImpl.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/exam/ExamFacadeImpl.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/mq/exam/RecordScoreConsumer.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/facade/impl/CourseFacadeImplTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/facade/impl/ExamFacadeImplTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/facade/impl/ScoreFacadeImplTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/mq/exam/RecordScoreConsumerTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java",
+    "student-management-evaluation-domain/src/test/java/it/pkg/domain/course/CourseDomainServiceTest.java",
+    "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ExamDomainServiceTest.java",
+    "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ScoreDomainServiceTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/course/CourseRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/course/CourseScheduleRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ExamRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ExamPaperRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ScoreRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/EvaluationMigrationTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitCourseEventPublisherTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitExamEventPublisherTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/ServiceArchitectureDependencyTest.java"
 ].each { assertFile(it) }
@@ -133,6 +291,31 @@ assert applicationYaml.contains("rabbitmq:")
 assert localYaml.contains("console:\n      enabled: false")
 assert testYaml.contains("rabbitmq:\n      enabled: false")
 assert testYaml.contains("listener-auto-startup: false")
+
+def tripleTest = assertFile(
+        "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java").text
+assert tripleTest.contains("new ServerSocket(0)")
+assert tripleTest.contains("tri://127.0.0.1:")
+assert tripleTest.contains("reference.get().create")
+assert tripleTest.contains("examReference.get().createExam")
+
+[
+    "bootstrap.yml", "bootstrap-local.yml", "bootstrap-dev.yml", "bootstrap-test.yml", "bootstrap-prod.yml",
+    "application.yml", "application-local.yml", "application-dev.yml", "application-test.yml", "application-prod.yml"
+].each { name ->
+    assertFile("student-management-evaluation-starter/src/main/resources/${name}")
+}
+
+def generatedWorkflow = assertFile(".github/workflows/ci.yml").text
+assert generatedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test")
+assert generatedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package")
+assert generatedWorkflow.contains("docker build -t student-management-evaluation:ci .")
+
+def readme = assertFile("README.md").text
+assert readme.contains("require no Nacos, RabbitMQ, or PostgreSQL")
+assert readme.contains("V1__init_student_management_evaluation.sql` is immutable")
+assert readme.contains("RabbitMQ support is intentionally basic transport")
+assert readme.contains("Organization dual-domain Facade integration is deferred")
 
 assert assertFile("mvnw").canExecute() || System.getProperty("os.name").toLowerCase().contains("windows")
 assertFile("mvnw.cmd")

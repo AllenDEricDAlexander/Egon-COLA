@@ -99,6 +99,12 @@ jobs:
 
             pushd "${WORK_DIR}/${APP_NAME}"
 
+            if [ "${SHORT_NAME}" = "service" ]; then
+              test -f .github/workflows/ci.yml
+              grep -Fq 'SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test' .github/workflows/ci.yml
+              grep -Fq 'docker build -t ci-service-demo-java-${JAVA_VERSION}:ci .' .github/workflows/ci.yml
+            fi
+
             if [ -f "./mvnw" ]; then
               chmod +x ./mvnw
               export SPRING_PROFILES_ACTIVE=test

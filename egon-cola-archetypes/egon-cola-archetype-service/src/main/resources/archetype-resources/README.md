@@ -1,65 +1,64 @@
 #set( $symbol_pound = '#' )
-# ${rootArtifactId}
+${symbol_pound} ${rootArtifactId}
 
-${rootArtifactId} is a student-management evaluation service generated from the Egon COLA service archetype. It demonstrates course creation and exam-result recording through application orchestration, domain services, repository ports, Spring Data JPA adapters, Dubbo3 RPC facade implementations, and message-consumer entry points.
+`${rootArtifactId}` is a service-only COLA sample for Course, Schedule, Exam, Paper, and Score workflows. Business traffic enters through Dubbo Triple RPC or RabbitMQ; HTTP is reserved for Spring Boot Actuator management endpoints.
 
-The service archetype demonstrates Dubbo3 RPC with the Triple protocol by default. It does not generate native grpc-java services or a separate gRPC module.
+${symbol_pound}${symbol_pound} Module Ownership
 
-${symbol_pound}${symbol_pound} Modules
+- `${rootArtifactId}-common`: stable errors, constants, enums, and identifier utilities.
+- `${rootArtifactId}-facade`: serializable Dubbo request/response contracts and public facade APIs.
+- `${rootArtifactId}-domain`: entities, aggregates, value objects, domain services, repository ports, and event publisher ports. It contains no persistence or MQ implementation.
+- `${rootArtifactId}-application`: commands, queries, use-case managers, application validation, and result models.
+- `${rootArtifactId}-infrastructure`: Spring Data JPA repositories, Flyway migrations, and RabbitMQ/local publisher implementations.
+- `${rootArtifactId}-adapter`: Dubbo providers, facade conversion, validation, exception translation, and the score-command MQ consumer.
+- `${rootArtifactId}-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
 
-- `${rootArtifactId}-common`: shared response objects, business exceptions, error codes, constants, and id utilities.
-- `${rootArtifactId}-facade`: Dubbo3 RPC service contracts, request records, and response DTO classes for course and exam-result operations.
-- `${rootArtifactId}-domain`: course and exam-result entities, status enums, domain services, and repository ports.
-- `${rootArtifactId}-application`: use-case orchestration for course management and exam-result recording.
-- `${rootArtifactId}-infrastructure`: Spring Data JPA persistence adapters, entity mappings, repository implementations, and Flyway migrations.
-- `${rootArtifactId}-adapter`: Dubbo3 Triple facade implementations, MapStruct Plus adapter convertors, message DTOs, message-consumer entry points, and service exception handling.
-- `${rootArtifactId}-starter`: Spring Boot application, runtime configuration, and generated verification tests.
+The allowed internal dependency graph is:
 
-${symbol_pound}${symbol_pound} Pure Service Rule
-
-This generated project is intentionally service-only. The starter module includes the Spring Boot Web starter only for Actuator management HTTP. Do not add HTTP Controller classes, Web Filter classes, GraphQL endpoints, Web VO packages, <code>spring-boot-starter-&#119;eb</code>, or <code>spring-boot-starter-&#119;ebflux</code> to adapter, application, domain, or infrastructure modules unless the project is deliberately converted into a web-facing service.
-
-${symbol_pound}${symbol_pound} Clean Architecture Boundary Rules
-
-- `application.manage` returns domain models or simple values only.
-- `adapter` converts domain models to RPC or MQ-facing objects.
-- Application pagination returns `Page<DomainModel>`; adapter converts it to external `PageResponse<DTO>` for Dubbo.
-- `facade` defines Dubbo3 RPC contracts.
-- `adapter` exposes facade implementations through Dubbo3 Triple.
-- Converters use MapStruct Plus for flat model mapping and explicit Java code for semantic mapping.
-- Converter wrappers use concrete MapStruct Plus mapper components, not the generic `Converter` bean.
-- Spring Beans are named ordinary classes using Lombok `@RequiredArgsConstructor`; injected dependencies use `@Qualifier`.
-- The generated project does not include native grpc-java services.
-
-${symbol_pound}${symbol_pound} Extension Points
-
-RPC: Dubbo3 Triple is configured by default. Add or adjust Dubbo annotations and dependencies in the `adapter` module and keep application/domain modules free of RPC framework dependencies.
-
-MQ: after selecting Kafka, RocketMQ, or RabbitMQ, add concrete consumer annotations and dependencies in the `adapter` module and keep message handling delegated to application services.
-
-${symbol_pound}${symbol_pound} Commands
-
-```bash
-bash ./mvnw test
-bash ./mvnw -DskipTests package
-bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
+```text
+Common <- Domain <- Application <- Adapter
+Facade <------------------------- Adapter
+          Domain <- Infrastructure
+          Adapter <- Starter -> Infrastructure
 ```
 
-${symbol_pound}${symbol_pound} Runtime Baseline
+More precisely: Domain depends only on Common; Application and Infrastructure depend only on Domain; Adapter depends only on Application and Facade. Facade and Common have no inward dependency. Starter is the composition root.
 
-The generated project defaults to `local` profile. `local` and `test` do not require Nacos. `dev` and `prod` can connect to Nacos and Dubbo registry through environment variables.
+${symbol_pound}${symbol_pound} Example Flows
 
-Build:
+- Course RPC creates a course with a unique normalized code, reads it, pages it, and schedules a class without overlapping time ranges.
+- Exam RPC creates an exam for a course, attaches one paper, and publishes the exam only after its paper is ready.
+- Score RPC records and queries validated scores. A RabbitMQ score command enters through `RecordScoreConsumer` and delegates to the same Application use case.
+- Domain publisher ports describe course scheduling, exam publication, and score recording. Infrastructure supplies local or RabbitMQ implementations.
+
+RabbitMQ support is intentionally basic transport. The sample does not promise retry, dead-letter queue, idempotent inbox, transactional outbox, or delivery guarantees beyond the configured broker behavior.
+
+${symbol_pound}${symbol_pound} Profiles And Integrations
+
+`local` is the default profile. Both `local` and `test` use H2 in PostgreSQL compatibility mode and require no Nacos, RabbitMQ, or PostgreSQL service. RabbitMQ publishers and listeners are disabled in `test`; `local` uses the local publisher implementation unless explicitly enabled.
+
+`dev` and `prod` are external-integration profiles. Configure them through environment variables rather than committed secrets:
+
+- Database: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DRIVER_CLASS_NAME`.
+- Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_GROUP`, `NACOS_USERNAME`, `NACOS_PASSWORD`.
+- Dubbo: `DUBBO_REGISTRY_ADDRESS`, `DUBBO_PORT`.
+- RabbitMQ: `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_ENABLED`, `RABBITMQ_LISTENER_AUTO_STARTUP`.
+- Configuration decryption: `CONFIG_DECRYPT_KEY` or the documented config-tree secret source.
+
+${symbol_pound}${symbol_pound} Database Policy
+
+Flyway owns schema evolution. `V1__init_student_management_evaluation.sql` is immutable. `V2__align_evaluation_course_exam_domain.sql` is the single alignment migration that adds the Course/Schedule/Exam/Paper/Score model while preserving valid V1 data. Never edit an applied migration; add the next version instead.
+
+${symbol_pound}${symbol_pound} Verification And Packaging
 
 ```bash
-./mvnw -V --no-transfer-progress clean test
-./mvnw -V --no-transfer-progress -DskipTests package
-```
-
-Docker build:
-
-```bash
+SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test
+SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 docker build -t ${rootArtifactId}:local .
 ```
 
-Sensitive configuration must be provided through environment variables, mounted files, `config/application-secrets.yml`, or `configtree:/run/secrets/`. Do not commit real credentials or decryption keys.
+The test suite includes Domain rules, Application orchestration, JPA adapters, V1-to-V2 migration behavior, broker-free MQ adapters, an actual Dubbo Triple proxy call, external-free Spring context assembly, and ArchUnit dependency checks. Building the image does not start the service.
+
+${symbol_pound}${symbol_pound} Scope Boundary
+
+This generated service has no business Controller, Web Filter, GraphQL endpoint, native grpc-java module, or enabled H2 console. Organization dual-domain Facade integration is deferred to a separate specification and is not part of this service sample.
