@@ -24,8 +24,31 @@ spring:
       ddl-auto: validate
     open-in-view: false
     show-sql: false
+  data:
+    redis:
+      host: ${symbol_dollar}{REDIS_HOST:127.0.0.1}
+      port: ${symbol_dollar}{REDIS_PORT:6379}
+      password: ${symbol_dollar}{REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${symbol_dollar}{RABBITMQ_HOST:127.0.0.1}
+    port: ${symbol_dollar}{RABBITMQ_PORT:5672}
+    username: ${symbol_dollar}{RABBITMQ_USERNAME:guest}
+    password: ${symbol_dollar}{RABBITMQ_PASSWORD:guest}
 
 dubbo:
   protocol:
     name: dubbo
     port: ${symbol_dollar}{DUBBO_PROTOCOL_PORT:50051}
+
+organization:
+  integrations:
+    redis:
+      enabled: ${symbol_dollar}{ORGANIZATION_REDIS_ENABLED:true}
+    rabbit:
+      enabled: ${symbol_dollar}{ORGANIZATION_RABBIT_ENABLED:true}
+  cache:
+    user-ttl: ${symbol_dollar}{ORGANIZATION_USER_CACHE_TTL:PT10M}
+    grade-ttl: ${symbol_dollar}{ORGANIZATION_GRADE_CACHE_TTL:PT30M}
+    school-class-ttl: ${symbol_dollar}{ORGANIZATION_SCHOOL_CLASS_CACHE_TTL:PT10M}
+  command:
+    idempotency-ttl: ${symbol_dollar}{ORGANIZATION_IDEMPOTENCY_TTL:PT24H}
