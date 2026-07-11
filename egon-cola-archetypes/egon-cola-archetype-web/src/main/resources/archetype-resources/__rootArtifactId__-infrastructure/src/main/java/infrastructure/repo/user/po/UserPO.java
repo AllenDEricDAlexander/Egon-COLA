@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-public class UserPo {
+public class UserPO {
+
     @Id
     @Column(length = 64)
     private String id;
@@ -26,10 +27,10 @@ public class UserPo {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected UserPo() {
+    protected UserPO() {
     }
 
-    public UserPo(String id, String name, String email, String status, LocalDateTime createdAt) {
+    public UserPO(String id, String name, String email, String status, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
         this.email = email;
@@ -37,23 +38,9 @@ public class UserPo {
         this.createdAt = createdAt;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+    public String getStatus() { return status; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -1,95 +1,80 @@
 package ${package}.infrastructure.repo.user.impl;
 
-import ${package}.common.constants.ErrorCodes;
-import ${package}.common.exceptions.BizException;
 import ${package}.domain.common.Page;
 import ${package}.domain.entities.user.User;
+import ${package}.domain.exceptions.OrganizationDomainErrorCode;
+import ${package}.domain.exceptions.OrganizationPortException;
 import ${package}.domain.repos.user.UserRepository;
+import ${package}.domain.vos.user.UserId;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassUserJpaRepository;
 import ${package}.infrastructure.repo.teaching.po.SchoolClassUserPo;
-import ${package}.infrastructure.repo.user.converter.UserPoConverter;
+import ${package}.infrastructure.repo.user.converter.UserPOConverter;
 import ${package}.infrastructure.repo.user.jpa.UserJpaRepository;
-import ${package}.infrastructure.repo.user.po.UserPo;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
+import ${package}.infrastructure.repo.user.po.UserPO;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 @Repository("userRepositoryImpl")
-@RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
-    @Qualifier("userJpaRepository")
+
     private final UserJpaRepository userJpaRepository;
-
-    @Qualifier("schoolClassUserJpaRepository")
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
+    private final UserPOConverter converter;
 
-    @Qualifier("userPoConverter")
-    private final UserPoConverter userPoConverter;
-
-    @Override
-    public User save(User user) {
-        UserPo saved = userJpaRepository.save(userPoConverter.toPo(user));
-        user.getSchoolClassIds().forEach(schoolClassId -> {
-            if (!schoolClassUserJpaRepository.existsByUserIdAndSchoolClassId(user.getId(), schoolClassId)) {
-                saveSchoolClassUser(user.getId(), schoolClassId);
-            }
-        });
-        return restore(saved);
+    public UserRepositoryImpl(
+            UserJpaRepository userJpaRepository,
+            SchoolClassUserJpaRepository schoolClassUserJpaRepository,
+            UserPOConverter converter) {
+        this.userJpaRepository = userJpaRepository;
+        this.schoolClassUserJpaRepository = schoolClassUserJpaRepository;
+        this.converter = converter;
     }
 
     @Override
-    public Optional<User> findById(String userId) {
-        return userJpaRepository.findById(userId).map(this::restore);
+    public User save(User user) {
+        try {
+            UserPO saved = userJpaRepository.save(converter.toPO(user));
+            user.getSchoolClassIds().forEach(schoolClassId -> saveMembershipIfMissing(user.getId(), schoolClassId));
+            return restore(saved);
+        } catch (DataIntegrityViolationException exception) {
+            throw new OrganizationPortException(
+                OrganizationDomainErrorCode.CONFLICT, "user persistence conflict", exception);
+        }
+    }
+
+    @Override
+    public Optional<User> findById(UserId userId) {
+        return userJpaRepository.findById(userId.value()).map(this::restore);
     }
 
     @Override
     public Page<User> findPage(int currentPage, int pageSize) {
-        Pageable pageable = PageRequest.of(Math.max(currentPage, 1) - 1, pageSize);
-        org.springframework.data.domain.Page<UserPo> page = userJpaRepository.findAll(pageable);
-        return Page.of(
-                page.getContent().stream()
-                        .map(this::restore)
-                        .toList(),
-                currentPage,
-                page.getTotalPages(),
-                pageSize,
-                page.getTotalElements());
+        org.springframework.data.domain.Page<UserPO> page =
+            userJpaRepository.findAll(PageRequest.of(Math.max(currentPage, 1) - 1, pageSize));
+        return Page.of(page.getContent().stream().map(this::restore).toList(),
+            currentPage, page.getTotalPages(), pageSize, page.getTotalElements());
     }
 
     @Override
-    public boolean existsByEmail(String email) {
-        return userJpaRepository.existsByEmail(email);
+    public boolean existsByEmail(String normalizedEmail) {
+        return userJpaRepository.existsByEmail(normalizedEmail);
     }
 
-    private void saveSchoolClassUser(String userId, String schoolClassId) {
-        try {
-            schoolClassUserJpaRepository.saveAndFlush(new SchoolClassUserPo(userId, schoolClassId, LocalDateTime.now()));
-        } catch (DataIntegrityViolationException exception) {
-            if (isDuplicateAssignment(exception)) {
-                throw new BizException(ErrorCodes.SCHOOL_CLASS_USER_DUPLICATED, "user already assigned to school class");
-            }
-            throw exception;
+    private void saveMembershipIfMissing(String userId, String schoolClassId) {
+        if (!schoolClassUserJpaRepository.existsByUserIdAndSchoolClassId(userId, schoolClassId)) {
+            schoolClassUserJpaRepository.save(new SchoolClassUserPo(userId, schoolClassId, LocalDateTime.now()));
         }
     }
 
-    private boolean isDuplicateAssignment(DataIntegrityViolationException exception) {
-        String message = exception.getMessage();
-        return message != null && message.toLowerCase(Locale.ROOT).contains("uk_school_class_user");
-    }
-
-    private User restore(UserPo userPo) {
-        List<String> schoolClassIds = schoolClassUserJpaRepository.findByUserId(userPo.getId())
-                .stream()
-                .map(SchoolClassUserPo::getSchoolClassId)
-                .toList();
-        return userPoConverter.toEntity(userPo, schoolClassIds);
+    private User restore(UserPO userPO) {
+        List<String> schoolClassIds = schoolClassUserJpaRepository.findByUserId(userPO.getId()).stream()
+            .map(SchoolClassUserPo::getSchoolClassId)
+            .toList();
+        return converter.toEntity(userPO, schoolClassIds);
     }
 }
