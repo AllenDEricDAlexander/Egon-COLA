@@ -102,12 +102,20 @@ jobs:
             if [ -f "./mvnw" ]; then
               chmod +x ./mvnw
               export SPRING_PROFILES_ACTIVE=test
-              ./mvnw -V --no-transfer-progress clean test
+              if [ "${SHORT_NAME}" = "web" ]; then
+                ./mvnw -V --no-transfer-progress clean verify
+              else
+                ./mvnw -V --no-transfer-progress clean test
+              fi
               ./mvnw -V --no-transfer-progress -DskipTests package
               docker build -t "egon-generated-${SHORT_NAME}:java-${JAVA_VERSION}" .
             else
               export SPRING_PROFILES_ACTIVE=test
-              mvn -V --no-transfer-progress clean test
+              if [ "${SHORT_NAME}" = "web" ]; then
+                mvn -V --no-transfer-progress clean verify
+              else
+                mvn -V --no-transfer-progress clean test
+              fi
               mvn -V --no-transfer-progress -DskipTests package
               docker build -t "egon-generated-${SHORT_NAME}:java-${JAVA_VERSION}" .
             fi

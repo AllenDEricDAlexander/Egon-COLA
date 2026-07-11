@@ -1,6 +1,5 @@
 package ${package}.infrastructure.repo.user.impl;
 
-import ${package}.domain.common.Page;
 import ${package}.domain.entities.user.User;
 import ${package}.domain.enums.user.UserStatus;
 import ${package}.domain.exceptions.OrganizationDomainErrorCode;
@@ -14,7 +13,6 @@ import ${package}.infrastructure.repo.user.jpa.UserRoleJpaRepository;
 import ${package}.infrastructure.repo.user.jpa.UserJpaRepository;
 import ${package}.infrastructure.repo.user.po.UserPO;
 import ${package}.infrastructure.repo.user.po.UserRolePO;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -57,14 +55,6 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public Optional<User> findById(UserId userId) {
         return userJpaRepository.findById(userId.value()).map(this::restore);
-    }
-
-    @Override
-    public Page<User> findPage(int currentPage, int pageSize) {
-        org.springframework.data.domain.Page<UserPO> page =
-            userJpaRepository.findAll(PageRequest.of(Math.max(currentPage, 1) - 1, pageSize));
-        return Page.of(page.getContent().stream().map(this::restore).toList(),
-            currentPage, page.getTotalPages(), pageSize, page.getTotalElements());
     }
 
     @Override

@@ -1,6 +1,5 @@
 package ${package}.domain.repos.user;
 
-import ${package}.domain.common.Page;
 import ${package}.domain.entities.user.User;
 import ${package}.domain.vos.user.UserId;
 
@@ -15,8 +14,6 @@ public interface UserRepository {
     default Optional<User> findById(String userId) {
         return findById(new UserId(userId));
     }
-
-    Page<User> findPage(int currentPage, int pageSize);
 
     boolean existsByEmail(String normalizedEmail);
 }
