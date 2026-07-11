@@ -162,6 +162,24 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
     "student-management-evaluation-facade/src/test/java/it/pkg/facade/EvaluationFacadeContractTest.java"
 ].each { assertFile(it) }
 
+[
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/exam/Exam.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/exam/ExamPaper.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/exam/Score.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/aggregates/exam/ExamAggregate.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/aggregates/exam/ScoreAggregate.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/vos/exam/ExamId.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/vos/exam/ScoreValue.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/service/exam/ExamDomainService.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/service/exam/ScoreDomainService.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/exam/ExamRepository.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/exam/ExamPaperRepository.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/exam/ScoreRepository.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/event/exam/ExamEventPublisher.java",
+    "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ExamDomainServiceTest.java",
+    "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ScoreDomainServiceTest.java"
+].each { assertFile(it) }
+
 assert !new File(projectDir, "student-management-evaluation-client").exists()
 assert !new File(projectDir, "student-management-evaluation-app").exists()
 assert !new File(projectDir, "start").exists()
