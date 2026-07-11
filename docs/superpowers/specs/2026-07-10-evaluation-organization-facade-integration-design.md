@@ -299,7 +299,7 @@ The service-archetype IT uses an Organization Facade fixture. The web-archetype 
 - Uses the exact parameterized coordinates supplied to that IT run.
 - Contains only the approved Facade types needed by the generated client.
 - Contains no provider implementation, Spring context, database, broker, registry, or application startup code.
-- Is installed into an isolated Maven test repository before the generated consumer Project is compiled.
+- Is rebuilt on every run and installed under a dedicated `fixture.*` coordinate in the build's active Maven local repository before the generated consumer Project is compiled, avoiding collisions with provider-owned release coordinates.
 - Matches the approved read-only subset of the current provider contract.
 
 The generated consumer is then built with coordinate parameters pointing to the fixture. `verify.groovy` and generated tests assert the module dependency boundary, generated client/stub selection, contract conversion, and external-free local/test assembly.

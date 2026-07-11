@@ -42,6 +42,8 @@ ${symbol_pound}${symbol_pound} Integration Ownership
 - Starter owns OpenAPI assembly, runtime profiles, Actuator, Prometheus, Jackson, async execution, and configuration decryption.
 - Facade is the dependency-safe contract for external consumers and contains no implementation.
 
+The generated `EvaluationQueryPort` is an unused integration foundation; no current Application use case calls it.
+
 RabbitMQ command retries use three total attempts with bounded backoff and dead-letter queues. Domain events publish after commit. This example reports exhausted event publication but does not claim transactional-outbox delivery.
 
 ${symbol_pound}${symbol_pound} Runtime Profiles

@@ -464,8 +464,15 @@ def assertMissing = { path ->
 }
 
 requiredFiles.addAll([
+    "student-management-organization-domain/src/main/java/it/pkg/domain/client/ExternalDependencyFailure.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/client/ExternalDependencyException.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/evaluation/EvaluationQueryPort.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/client/evaluation/EvaluationCourse.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/client/evaluation/EvaluationExam.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/client/evaluation/EvaluationScore.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/DubboEvaluationQueryClient.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/EvaluationClientFailureMapper.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStub.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/client/evaluation/DubboEvaluationQueryClientTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStubTest.java"
 ])
@@ -759,6 +766,8 @@ assert webApplicationYaml.contains("name: tri")
 assert webApplicationYaml.contains('${DUBBO_PORT:50051}')
 assert webApplicationYaml.contains("timeout: 3000")
 assert webApplicationYaml.contains("retries: 0")
+assert webApplicationYaml.contains('DUBBO_CONSUMER_TIMEOUT:3000')
+assert webApplicationYaml.contains('EVALUATION_FACADE_ENABLED:false')
 
 def webApplicationDevYaml = assertFile("student-management-organization-starter/src/main/resources/application-dev.yml").text
 def webApplicationProdYaml = assertFile("student-management-organization-starter/src/main/resources/application-prod.yml").text
@@ -776,6 +785,10 @@ assert webApplicationLocalYaml.contains('password: ${DB_PASSWORD:}')
 assert webApplicationTestYaml.contains('password: ${DB_PASSWORD:}')
 assert !webBootstrapLocalYaml.contains('ENC(')
 assert !webBootstrapTestYaml.contains('ENC(')
+assert webApplicationLocalYaml.contains("evaluation:\n      enabled: false")
+assert webApplicationTestYaml.contains("evaluation:\n      enabled: false")
+assert webApplicationDevYaml.contains('EVALUATION_FACADE_ENABLED:true')
+assert webApplicationProdYaml.contains('EVALUATION_FACADE_ENABLED:true')
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
@@ -863,6 +876,28 @@ def applicationDependencies = dependencies(applicationPom)
 def infrastructureDependencies = dependencies(infrastructurePom)
 def adapterDependencies = dependencies(adapterPom)
 def starterDependencies = dependencies(starterPom)
+
+def externalFacadeDependencies = { pomModel ->
+    pomModel.dependencies.dependency.findAll {
+        it.groupId.text() == '${evaluation-facade.group-id}'
+                || it.artifactId.text() == '${evaluation-facade.artifact-id}'
+    }.collect { [groupId: it.groupId.text(), artifactId: it.artifactId.text()] }
+}
+assert externalFacadeDependencies(infrastructurePom) == [[
+    groupId: '${evaluation-facade.group-id}',
+    artifactId: '${evaluation-facade.artifact-id}'
+]]
+[
+    common: commonPom,
+    facade: facadePom,
+    domain: domainPom,
+    application: applicationPom,
+    adapter: adapterPom,
+    starter: starterPom
+].each { module, pomModel ->
+    assert externalFacadeDependencies(pomModel).isEmpty():
+            "Unexpected Evaluation Facade dependency in ${module}"
+}
 
 def assertExactExternalDependencies = { module, actual, expected ->
     def external = actual.findAll { !it.artifactId.startsWith("student-management-organization-") }
@@ -1142,6 +1177,37 @@ assert readme.contains("Evaluation Facade")
 
 def scannedFiles = []
 collectSourceConfigDocFiles(projectDir, scannedFiles)
+def generatedJavaFiles = scannedFiles.findAll { it.name.endsWith(".java") }
+def providerImports = generatedJavaFiles.findAll {
+    it.getText("UTF-8").contains("import fixture.evaluation.facade.")
+}
+assert providerImports.every {
+    def path = relativePath(it)
+    path.startsWith("student-management-organization-infrastructure/src/")
+            && path.contains("/infrastructure/client/evaluation/")
+}: "Evaluation Facade imports escaped Infrastructure client: ${providerImports.collect(relativePath)}"
+
+def dubboReferenceImports = generatedJavaFiles.findAll {
+    it.getText("UTF-8").contains("import org.apache.dubbo.config.annotation.DubboReference;")
+}
+assert dubboReferenceImports.every {
+    relativePath(it).contains("/infrastructure/client/evaluation/")
+}: "Dubbo references escaped Infrastructure client: ${dubboReferenceImports.collect(relativePath)}"
+
+def applicationManageFiles = generatedJavaFiles.findAll {
+    def path = relativePath(it)
+    path.startsWith("student-management-organization-application/src/main/java/")
+            && path.contains("/application/manage/")
+}
+assert applicationManageFiles.every {
+    !it.getText("UTF-8").contains("EvaluationQueryPort")
+}: "EvaluationQueryPort must remain unused by current Application use cases"
+
+def localEvaluationStub = assertFile(
+        "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStub.java").text
+assert !localEvaluationStub.contains("fixture.evaluation")
+assert !localEvaluationStub.contains("org.apache.dubbo")
+
 [
     "__rootArtifactId__-client",
     'dir="__rootArtifactId__-app"',
