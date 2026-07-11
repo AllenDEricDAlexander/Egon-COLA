@@ -72,6 +72,8 @@ def requiredPackagePaths = [
     "domain/enums",
     "domain/enums/course",
     "domain/enums/exam",
+    "domain/client",
+    "domain/client/organization",
     "application",
     "application/manage",
     "application/manage/course",
@@ -117,6 +119,8 @@ def requiredPackagePaths = [
     "infrastructure/validators",
     "infrastructure/aop",
     "infrastructure/config",
+    "infrastructure/client",
+    "infrastructure/client/organization",
     "adapter",
     "adapter/facade",
     "adapter/facade/impl",
@@ -184,8 +188,11 @@ modules.each { module ->
     }
     if (module == "infrastructure") {
         assert "flyway-database-postgresql" in artifacts
+        assert "student-management-organization-facade" in artifacts
+        assert "dubbo-spring-boot-starter" in artifacts
     } else {
         assert !("flyway-database-postgresql" in artifacts)
+        assert !("student-management-organization-facade" in artifacts)
     }
 }
 
@@ -234,10 +241,8 @@ modules.each { module ->
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/api/ExamResultFacade.java",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course/CourseDTO.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/examing",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/examing",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/ExamResultFacadeImpl.java",
@@ -257,7 +262,7 @@ javaFiles.each { file ->
 }
 
 def staleTokens = [
-    ".adapter.convertor.", ".application.manage.examing.", ".domain.client.",
+    ".adapter.convertor.", ".application.manage.examing.",
     ".domain.entities.examing.", ".domain.repos.examing.", ".domain.service.examing.",
     ".facade.api.ExamResultFacade", ".facade.dto.examing.",
     ".common.constants.ErrorCodes", ".common.exception."

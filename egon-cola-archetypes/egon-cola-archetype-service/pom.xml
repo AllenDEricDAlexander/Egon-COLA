@@ -93,16 +93,9 @@
                             <version>1.0.0-fixture</version>
                             <packaging>jar</packaging>
                             <generatePom>true</generatePom>
-                            <localRepositoryPath>${project.build.directory}/facade-fixture-repo</localRepositoryPath>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-archetype-plugin</artifactId>
-                <configuration>
-                    <settingsFile>${project.basedir}/src/test/resources/archetype-settings.xml</settingsFile>
-                </configuration>
             </plugin>
         </plugins>
     </build>

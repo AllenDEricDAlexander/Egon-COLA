@@ -9,6 +9,10 @@
         <requiredProperty key="gitignore">
             <defaultValue>.gitignore</defaultValue>
         </requiredProperty>
+        <requiredProperty key="organizationFacadeGroupId"/>
+        <requiredProperty key="organizationFacadeArtifactId"/>
+        <requiredProperty key="organizationFacadeVersion"/>
+        <requiredProperty key="organizationFacadePackage"/>
     </requiredProperties>
 
     <fileSets>
