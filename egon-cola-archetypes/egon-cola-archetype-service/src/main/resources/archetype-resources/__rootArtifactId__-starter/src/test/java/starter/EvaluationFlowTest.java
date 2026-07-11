@@ -72,7 +72,7 @@ class EvaluationFlowTest {
 
     @Test
     void shouldRejectNullAndBlankReadIdsAsBizFailures() {
-        assertBizFailure(courseFacade.getCourse(null));
+        assertBizFailure(courseFacade.getCourse((String) null));
         assertBizFailure(courseFacade.getCourse(" "));
         assertBizFailure(examResultFacade.getResult(null));
         assertBizFailure(examResultFacade.getResult(" "));

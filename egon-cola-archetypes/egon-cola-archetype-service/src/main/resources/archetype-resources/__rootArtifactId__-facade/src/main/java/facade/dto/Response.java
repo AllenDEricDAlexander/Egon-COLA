@@ -3,7 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.facade.dto;
 
-public class Response {
+import java.io.Serializable;
+
+public class Response implements Serializable {
 
     private boolean success;
 

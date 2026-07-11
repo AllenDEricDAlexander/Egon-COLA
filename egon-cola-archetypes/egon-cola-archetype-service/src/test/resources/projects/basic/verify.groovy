@@ -562,7 +562,7 @@ assertContainsAll(domainServiceConfigurationText, [
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/course/CourseAggregateTest.java"
 ].each { assertFile(it) }
 
-def courseFacadeImplText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/CourseFacadeImpl.java").text
+def courseFacadeImplText = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/course/CourseFacadeImpl.java").text
 assertContainsAll(courseFacadeImplText, [
         "@DubboService(",
         "interfaceClass = CourseFacade.class",
@@ -655,9 +655,19 @@ assert courseRepositoryText.contains("import it.pkg.domain.common.Page;")
 def courseFacadeTextAfterPage = assertFile("student-management-evaluation-facade/src/main/java/it/pkg/facade/api/CourseFacade.java").text
 assert courseFacadeTextAfterPage.contains("SingleResponse<PageResponse<CourseDTO>> getCourses(int currentPage, int pageSize)")
 
-def courseFacadeImplTextAfterPage = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/CourseFacadeImpl.java").text
+def courseFacadeImplTextAfterPage = assertFile("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/course/CourseFacadeImpl.java").text
 assert courseFacadeImplTextAfterPage.contains("SingleResponse<PageResponse<CourseDTO>> getCourses")
-assert courseFacadeImplTextAfterPage.contains("SingleResponse.of(courseAdapterConvertor.toPageResponse(courseManage.getPage(currentPage, pageSize)))")
+assert courseFacadeImplTextAfterPage.contains("legacyConverter.toPageResponse(courseManage.getPage(currentPage, pageSize))")
+
+[
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/course/CourseFacadeImpl.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/exam/ExamFacadeImpl.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/exam/ScoreFacadeImpl.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/dto/exam/RecordScoreMessage.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/mq/exam/RecordScoreConsumer.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/mq/exam/RecordScoreConsumerTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java"
+].each { assertFile(it) }
 
 def courseRepositoryImplText = assertFile("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/course/impl/CourseRepositoryImpl.java").text
 assertContainsAll(courseRepositoryImplText, [
