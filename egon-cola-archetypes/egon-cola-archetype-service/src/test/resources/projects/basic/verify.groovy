@@ -146,6 +146,22 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
     assertDir("student-management-evaluation-facade/src/main/java/it/pkg/facade/${it}")
 }
 
+[
+    "student-management-evaluation-common/src/main/java/it/pkg/common/constants/EvaluationConstants.java",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/enums/YesNoEnum.java",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/exceptions/EvaluationError.java",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/exceptions/EvaluationBizException.java",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/utils/EvaluationIdUtils.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api/ExamFacade.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api/ScoreFacade.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course/ScheduleCourseRequest.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/exam/RecordScoreRequest.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/enums/EvaluationFacadeErrorCode.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/exceptions/EvaluationFacadeException.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/utils/EvaluationFacadeAssert.java",
+    "student-management-evaluation-facade/src/test/java/it/pkg/facade/EvaluationFacadeContractTest.java"
+].each { assertFile(it) }
+
 assert !new File(projectDir, "student-management-evaluation-client").exists()
 assert !new File(projectDir, "student-management-evaluation-app").exists()
 assert !new File(projectDir, "start").exists()
@@ -175,7 +191,7 @@ assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-poo
 assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
 assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-test</artifactId>")
 def commonPomText = assertFile("student-management-evaluation-common/pom.xml").text
-assert commonPomText.contains("<artifactId>egon-cola-component-common-core</artifactId>")
+assert !commonPomText.contains("<artifactId>egon-cola-component-common-core</artifactId>")
 def generatedPomTexts = []
 projectDir.traverse(type: groovy.io.FileType.FILES) { file ->
     def path = file.absolutePath.replace(File.separatorChar, '/' as char)
