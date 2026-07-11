@@ -7,6 +7,8 @@ import ${package}.application.manage.user.RoleManage;
 import ${package}.application.validators.user.UserApplicationValidator;
 import ${package}.domain.aggregates.user.UserAggregate;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
+import ${package}.domain.events.user.RoleAssignedEvent;
 import ${package}.domain.client.user.UserCachePort;
 import ${package}.application.support.IdempotentCommand;
 import ${package}.application.support.OrganizationTransactionHooks;
@@ -19,6 +21,9 @@ import ${package}.domain.vos.user.UserId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.UUID;
+
 @Service("roleManage")
 public class RoleManageImpl implements RoleManage {
 
@@ -27,18 +32,21 @@ public class RoleManageImpl implements RoleManage {
     private final UserApplicationValidator validator;
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;
+    private final OrganizationEventPublisher eventPublisher;
 
     public RoleManageImpl(
             UserRepository userRepository,
             RoleRepository roleRepository,
             UserApplicationValidator validator,
             UserCachePort userCache,
-            CommandIdempotencyPort idempotency) {
+            CommandIdempotencyPort idempotency,
+            OrganizationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.validator = validator;
         this.userCache = userCache;
         this.idempotency = idempotency;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -53,7 +61,11 @@ public class RoleManageImpl implements RoleManage {
             UserAggregate aggregate = new UserAggregate(user);
             aggregate.assignRole(role);
             userRepository.save(aggregate.user());
-            OrganizationTransactionHooks.afterCommit(() -> userCache.evict(user.id()));
+            OrganizationTransactionHooks.afterCommit(() -> {
+                userCache.evict(user.id());
+                eventPublisher.publish(new RoleAssignedEvent(UUID.randomUUID().toString(),
+                    user.id().value(), Instant.now(), role.code().value()));
+            });
         });
     }
 

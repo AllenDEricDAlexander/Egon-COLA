@@ -11,6 +11,9 @@ import ${package}.application.result.teaching.SchoolClassDetailResult;
 import ${package}.application.validators.teaching.TeachingApplicationValidator;
 import ${package}.domain.entities.teaching.Grade;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
+import ${package}.domain.events.teaching.SchoolClassChangedEvent;
+import ${package}.domain.events.teaching.SchoolClassMembershipChangedEvent;
 import ${package}.domain.client.teaching.SchoolClassCachePort;
 import ${package}.application.support.IdempotentCommand;
 import ${package}.application.support.OrganizationTransactionHooks;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.Instant;
 
 @Service("schoolClassManage")
 public class SchoolClassManageImpl implements SchoolClassManage {
@@ -37,6 +41,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     private final TeachingApplicationValidator validator;
     private final SchoolClassCachePort schoolClassCache;
     private final CommandIdempotencyPort idempotency;
+    private final OrganizationEventPublisher eventPublisher;
     private final SchoolClassAssembler assembler = new SchoolClassAssembler();
 
     public SchoolClassManageImpl(
@@ -46,7 +51,8 @@ public class SchoolClassManageImpl implements SchoolClassManage {
             SchoolClassDomainService schoolClassDomainService,
             TeachingApplicationValidator validator,
             SchoolClassCachePort schoolClassCache,
-            CommandIdempotencyPort idempotency) {
+            CommandIdempotencyPort idempotency,
+            OrganizationEventPublisher eventPublisher) {
         this.schoolClassRepository = schoolClassRepository;
         this.gradeRepository = gradeRepository;
         this.userRepository = userRepository;
@@ -54,6 +60,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
         this.validator = validator;
         this.schoolClassCache = schoolClassCache;
         this.idempotency = idempotency;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -68,7 +75,11 @@ public class SchoolClassManageImpl implements SchoolClassManage {
             }
             SchoolClass schoolClass = schoolClassRepository.save(schoolClassDomainService.create(
                 new SchoolClassId("class-" + UUID.randomUUID().toString().toLowerCase()), command.name(), grade));
-            OrganizationTransactionHooks.afterCommit(() -> schoolClassCache.evict(schoolClass.id()));
+            OrganizationTransactionHooks.afterCommit(() -> {
+                schoolClassCache.evict(schoolClass.id());
+                eventPublisher.publish(new SchoolClassChangedEvent(UUID.randomUUID().toString(),
+                    schoolClass.id().value(), Instant.now(), schoolClass.gradeId(), "CREATED"));
+            });
             return assembler.toResult(schoolClass);
         });
     }
@@ -101,7 +112,11 @@ public class SchoolClassManageImpl implements SchoolClassManage {
                 throw conflict("user already assigned to school class");
             }
             schoolClassRepository.addUser(classId, memberId);
-            OrganizationTransactionHooks.afterCommit(() -> schoolClassCache.evict(classId));
+            OrganizationTransactionHooks.afterCommit(() -> {
+                schoolClassCache.evict(classId);
+                eventPublisher.publish(new SchoolClassMembershipChangedEvent(UUID.randomUUID().toString(),
+                    classId.value(), Instant.now(), memberId.value(), "ASSIGNED"));
+            });
         });
     }
 

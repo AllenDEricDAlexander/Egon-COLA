@@ -10,6 +10,8 @@ import ${package}.application.result.user.UserDetailResult;
 import ${package}.application.validators.user.UserApplicationValidator;
 import ${package}.domain.entities.user.User;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
+import ${package}.domain.events.user.UserChangedEvent;
 import ${package}.domain.client.user.UserCachePort;
 import ${package}.application.support.IdempotentCommand;
 import ${package}.application.support.OrganizationTransactionHooks;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.Instant;
 
 @Service("userManage")
 public class UserManageImpl implements UserManage {
@@ -30,6 +33,7 @@ public class UserManageImpl implements UserManage {
     private final UserAssembler assembler;
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;
+    private final OrganizationEventPublisher eventPublisher;
 
     public UserManageImpl(
             UserRepository userRepository,
@@ -37,13 +41,15 @@ public class UserManageImpl implements UserManage {
             UserApplicationValidator validator,
             UserAssembler assembler,
             UserCachePort userCache,
-            CommandIdempotencyPort idempotency) {
+            CommandIdempotencyPort idempotency,
+            OrganizationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.userDomainService = userDomainService;
         this.validator = validator;
         this.assembler = assembler;
         this.userCache = userCache;
         this.idempotency = idempotency;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -58,7 +64,11 @@ public class UserManageImpl implements UserManage {
             }
             User user = userRepository.save(userDomainService.create(
                 new UserId("user-" + UUID.randomUUID().toString().toLowerCase()), command.name(), normalizedEmail));
-            OrganizationTransactionHooks.afterCommit(() -> userCache.evict(user.id()));
+            OrganizationTransactionHooks.afterCommit(() -> {
+                userCache.evict(user.id());
+                eventPublisher.publish(new UserChangedEvent(
+                    UUID.randomUUID().toString(), user.id().value(), Instant.now(), "CREATED"));
+            });
             return assembler.toResult(user);
         });
     }

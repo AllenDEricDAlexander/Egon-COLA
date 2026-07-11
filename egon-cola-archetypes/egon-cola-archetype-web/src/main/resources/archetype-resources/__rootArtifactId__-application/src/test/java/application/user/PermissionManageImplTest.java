@@ -14,6 +14,7 @@ import ${package}.domain.enums.user.RoleStatus;
 import ${package}.domain.repos.user.PermissionRepository;
 import ${package}.domain.repos.user.RoleRepository;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
 import ${package}.domain.vos.user.PermissionCode;
 import ${package}.domain.vos.user.RoleCode;
 import ${package}.domain.vos.user.UserId;
@@ -37,6 +38,7 @@ class PermissionManageImplTest {
     @Mock RoleRepository roleRepository;
     @Mock PermissionRepository permissionRepository;
     @Mock CommandIdempotencyPort idempotency;
+    @Mock OrganizationEventPublisher eventPublisher;
 
     @AfterEach
     void clearContext() { OrganizationRequestContextHolder.clear(); }
@@ -52,7 +54,7 @@ class PermissionManageImplTest {
         when(permissionRepository.findByCode(new PermissionCode("CLASS_READ"))).thenReturn(Optional.of(permission));
         when(permissionRepository.findByUserId(new UserId("u-1"))).thenReturn(List.of(permission));
         PermissionManageImpl manage = new PermissionManageImpl(
-            roleRepository, permissionRepository, new UserApplicationValidator(), idempotency);
+            roleRepository, permissionRepository, new UserApplicationValidator(), idempotency, eventPublisher);
         when(idempotency.claim("grant-permission", "req-grant")).thenReturn(true);
 
         manage.grantPermission(new GrantPermissionCommand("req-grant", "student", "class_read"));

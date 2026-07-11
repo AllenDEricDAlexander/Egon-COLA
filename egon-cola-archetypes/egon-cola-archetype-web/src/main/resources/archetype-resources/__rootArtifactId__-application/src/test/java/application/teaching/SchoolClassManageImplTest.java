@@ -12,6 +12,7 @@ import ${package}.domain.repos.teaching.GradeRepository;
 import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
 import ${package}.domain.client.teaching.SchoolClassCachePort;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
 import ${package}.domain.vos.teaching.GradeCode;
@@ -34,6 +35,7 @@ class SchoolClassManageImplTest {
     @Mock UserRepository userRepository;
     @Mock SchoolClassCachePort schoolClassCache;
     @Mock CommandIdempotencyPort idempotency;
+    @Mock OrganizationEventPublisher eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -47,7 +49,7 @@ class SchoolClassManageImplTest {
         when(idempotency.claim("create-school-class", "req-1")).thenReturn(true);
         SchoolClassManageImpl manage = new SchoolClassManageImpl(
             schoolClassRepository, gradeRepository, userRepository, new SchoolClassDomainService(),
-            new TeachingApplicationValidator(), schoolClassCache, idempotency);
+            new TeachingApplicationValidator(), schoolClassCache, idempotency, eventPublisher);
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createSchoolClass(
             new CreateSchoolClassCommand("req-1", "Class A", "grade_one")));

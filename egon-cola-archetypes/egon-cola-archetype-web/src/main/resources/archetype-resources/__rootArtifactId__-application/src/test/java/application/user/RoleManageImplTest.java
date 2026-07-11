@@ -12,6 +12,7 @@ import ${package}.domain.enums.user.UserStatus;
 import ${package}.domain.repos.user.RoleRepository;
 import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
 import ${package}.domain.client.user.UserCachePort;
 import ${package}.domain.vos.user.RoleCode;
 import ${package}.domain.vos.user.UserId;
@@ -36,6 +37,7 @@ class RoleManageImplTest {
     @Mock RoleRepository roleRepository;
     @Mock UserCachePort userCache;
     @Mock CommandIdempotencyPort idempotency;
+    @Mock OrganizationEventPublisher eventPublisher;
 
     @AfterEach
     void clearContext() { OrganizationRequestContextHolder.clear(); }
@@ -49,7 +51,8 @@ class RoleManageImplTest {
         when(roleRepository.findByCode(new RoleCode("STUDENT"))).thenReturn(Optional.of(
             new Role("role-student", new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE)));
         RoleManageImpl manage = new RoleManageImpl(
-            userRepository, roleRepository, new UserApplicationValidator(), userCache, idempotency);
+            userRepository, roleRepository, new UserApplicationValidator(), userCache, idempotency,
+            eventPublisher);
         when(idempotency.claim("assign-role", "req-role")).thenReturn(true);
 
         manage.assignRole(new AssignRoleCommand("req-role", "u-1", "student"));

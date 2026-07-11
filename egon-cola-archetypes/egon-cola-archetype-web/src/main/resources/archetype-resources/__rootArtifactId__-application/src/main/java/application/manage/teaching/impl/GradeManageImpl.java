@@ -10,6 +10,8 @@ import ${package}.application.result.teaching.GradeDetailResult;
 import ${package}.application.validators.teaching.TeachingApplicationValidator;
 import ${package}.domain.entities.teaching.Grade;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
+import ${package}.domain.events.teaching.GradeChangedEvent;
 import ${package}.domain.client.teaching.GradeCachePort;
 import ${package}.application.support.IdempotentCommand;
 import ${package}.application.support.OrganizationTransactionHooks;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.Instant;
 
 @Service("gradeManage")
 public class GradeManageImpl implements GradeManage {
@@ -28,6 +31,7 @@ public class GradeManageImpl implements GradeManage {
     private final TeachingApplicationValidator validator;
     private final GradeCachePort gradeCache;
     private final CommandIdempotencyPort idempotency;
+    private final OrganizationEventPublisher eventPublisher;
     private final GradeAssembler assembler = new GradeAssembler();
 
     public GradeManageImpl(
@@ -35,12 +39,14 @@ public class GradeManageImpl implements GradeManage {
             GradeDomainService gradeDomainService,
             TeachingApplicationValidator validator,
             GradeCachePort gradeCache,
-            CommandIdempotencyPort idempotency) {
+            CommandIdempotencyPort idempotency,
+            OrganizationEventPublisher eventPublisher) {
         this.gradeRepository = gradeRepository;
         this.gradeDomainService = gradeDomainService;
         this.validator = validator;
         this.gradeCache = gradeCache;
         this.idempotency = idempotency;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -54,7 +60,11 @@ public class GradeManageImpl implements GradeManage {
             }
             Grade grade = gradeRepository.save(gradeDomainService.create(
                 "grade-" + UUID.randomUUID().toString().toLowerCase(), code.value(), command.name()));
-            OrganizationTransactionHooks.afterCommit(() -> gradeCache.evict(grade.id()));
+            OrganizationTransactionHooks.afterCommit(() -> {
+                gradeCache.evict(grade.id());
+                eventPublisher.publish(new GradeChangedEvent(UUID.randomUUID().toString(),
+                    grade.id(), Instant.now(), "CREATED"));
+            });
             return assembler.toResult(grade);
         });
     }

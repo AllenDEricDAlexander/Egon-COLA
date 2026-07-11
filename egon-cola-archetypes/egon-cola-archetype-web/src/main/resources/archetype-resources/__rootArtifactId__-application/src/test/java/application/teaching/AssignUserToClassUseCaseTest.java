@@ -14,6 +14,7 @@ import ${package}.domain.repos.teaching.GradeRepository;
 import ${package}.domain.repos.teaching.SchoolClassRepository;
 import ${package}.domain.repos.user.UserRepository;
 import ${package}.domain.client.CommandIdempotencyPort;
+import ${package}.domain.client.OrganizationEventPublisher;
 import ${package}.domain.client.teaching.SchoolClassCachePort;
 import ${package}.domain.service.teaching.SchoolClassDomainService;
 import ${package}.domain.vos.teaching.GradeCode;
@@ -42,6 +43,7 @@ class AssignUserToClassUseCaseTest {
     @Mock UserRepository userRepository;
     @Mock SchoolClassCachePort schoolClassCache;
     @Mock CommandIdempotencyPort idempotency;
+    @Mock OrganizationEventPublisher eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -73,7 +75,8 @@ class AssignUserToClassUseCaseTest {
 
     private SchoolClassManageImpl manage() {
         return new SchoolClassManageImpl(schoolClassRepository, gradeRepository, userRepository,
-            new SchoolClassDomainService(), new TeachingApplicationValidator(), schoolClassCache, idempotency);
+            new SchoolClassDomainService(), new TeachingApplicationValidator(), schoolClassCache, idempotency,
+            eventPublisher);
     }
 
     private static User activeUser(String id) {
