@@ -1,4 +1,4 @@
 /**
  * Organization archetype package.
  */
-package ${package}.facade.dto;
+package ${package}.facade.teaching.dto;

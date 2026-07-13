@@ -1,7 +1,7 @@
 package ${package}.facade.user;
 
-import ${package}.facade.dto.user.GrantPermissionDTO;
-import ${package}.facade.dto.user.PermissionTreeDTO;
+import ${package}.facade.user.dto.GrantPermissionDTO;
+import ${package}.facade.user.dto.PermissionTreeDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

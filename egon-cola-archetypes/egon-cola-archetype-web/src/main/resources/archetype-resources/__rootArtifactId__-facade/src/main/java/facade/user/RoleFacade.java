@@ -1,6 +1,6 @@
 package ${package}.facade.user;
 
-import ${package}.facade.dto.user.AssignRoleDTO;
+import ${package}.facade.user.dto.AssignRoleDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 

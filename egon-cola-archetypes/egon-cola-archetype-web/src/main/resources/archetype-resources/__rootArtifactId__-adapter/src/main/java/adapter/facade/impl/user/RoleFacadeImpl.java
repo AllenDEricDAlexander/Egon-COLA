@@ -3,7 +3,7 @@ package ${package}.adapter.facade.impl.user;
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import ${package}.application.command.user.AssignRoleCommand;
 import ${package}.application.manage.user.RoleManage;
-import ${package}.facade.dto.user.AssignRoleDTO;
+import ${package}.facade.user.dto.AssignRoleDTO;
 import ${package}.facade.user.RoleFacade;
 import org.springframework.stereotype.Service;
 

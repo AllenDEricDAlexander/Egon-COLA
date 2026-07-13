@@ -1,4 +1,4 @@
-package ${package}.facade.dto.user;
+package ${package}.facade.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

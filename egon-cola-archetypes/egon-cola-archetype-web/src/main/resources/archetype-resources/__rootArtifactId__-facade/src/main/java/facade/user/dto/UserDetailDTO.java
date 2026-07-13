@@ -1,4 +1,4 @@
-package fixture.organization.facade.dto.user;
+package ${package}.facade.user.dto;
 
 import java.io.Serializable;
 import java.util.List;

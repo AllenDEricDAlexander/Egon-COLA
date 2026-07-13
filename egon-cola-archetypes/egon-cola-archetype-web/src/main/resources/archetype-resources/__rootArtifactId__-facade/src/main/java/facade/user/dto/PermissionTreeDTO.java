@@ -1,4 +1,4 @@
-package ${package}.facade.dto.user;
+package ${package}.facade.user.dto;
 
 import java.util.List;
 

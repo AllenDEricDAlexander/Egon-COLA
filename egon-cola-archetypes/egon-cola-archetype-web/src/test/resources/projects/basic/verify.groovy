@@ -256,19 +256,18 @@ def requiredFiles = [
     "student-management-organization-domain/src/test/java/it/pkg/domain/user/package-info.java",
     "student-management-organization-domain/src/test/resources/.gitkeep",
     "student-management-organization-facade/pom.xml",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/package-info.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/AssignUserToClassDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/CreateGradeDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/CreateSchoolClassDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/GradeDetailDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/SchoolClassDetailDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/package-info.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/AssignRoleDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/CreateUserDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/GrantPermissionDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/PermissionTreeDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/UserDetailDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/package-info.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/AssignUserToClassDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/CreateGradeDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/CreateSchoolClassDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/GradeDetailDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/SchoolClassDetailDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/package-info.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/AssignRoleDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/CreateUserDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/GrantPermissionDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/PermissionTreeDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/UserDetailDTO.java",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/package-info.java",
     "student-management-organization-facade/src/main/java/it/pkg/facade/exceptions/OrganizationFacadeException.java",
     "student-management-organization-facade/src/main/java/it/pkg/facade/exceptions/package-info.java",
     "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/GradeFacade.java",
@@ -477,6 +476,14 @@ requiredFiles.addAll([
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStubTest.java"
 ])
 requiredFiles.each { assertFile(it) }
+
+[
+    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching",
+    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/package-info.java"
+].each { assertMissing(it) }
+assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/CreateUserDTO.java")
+assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/SchoolClassDetailDTO.java")
 
 def forbiddenPaths = [
     "student-management-evaluation",

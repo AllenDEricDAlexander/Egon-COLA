@@ -1,4 +1,4 @@
 /**
  * Organization archetype package.
  */
-package ${package}.facade.dto.user;
+package ${package}.facade.user.dto;

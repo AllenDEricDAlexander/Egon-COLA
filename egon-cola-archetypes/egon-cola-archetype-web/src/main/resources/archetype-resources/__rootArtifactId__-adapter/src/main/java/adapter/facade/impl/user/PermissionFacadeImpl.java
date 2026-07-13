@@ -5,8 +5,8 @@ import ${package}.application.command.user.GrantPermissionCommand;
 import ${package}.application.manage.user.PermissionManage;
 import ${package}.application.query.user.PermissionTreeQuery;
 import ${package}.application.result.user.PermissionTreeResult;
-import ${package}.facade.dto.user.GrantPermissionDTO;
-import ${package}.facade.dto.user.PermissionTreeDTO;
+import ${package}.facade.user.dto.GrantPermissionDTO;
+import ${package}.facade.user.dto.PermissionTreeDTO;
 import ${package}.facade.user.PermissionFacade;
 import org.springframework.stereotype.Service;
 

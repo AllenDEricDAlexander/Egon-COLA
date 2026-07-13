@@ -8,8 +8,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import ${organizationFacadePackage}.facade.dto.teaching.SchoolClassDetailDTO;
-import ${organizationFacadePackage}.facade.dto.user.UserDetailDTO;
+import ${organizationFacadePackage}.facade.teaching.dto.SchoolClassDetailDTO;
+import ${organizationFacadePackage}.facade.user.dto.UserDetailDTO;
 import ${organizationFacadePackage}.facade.exceptions.OrganizationFacadeException;
 import ${organizationFacadePackage}.facade.teaching.SchoolClassFacade;
 import ${organizationFacadePackage}.facade.user.UserFacade;

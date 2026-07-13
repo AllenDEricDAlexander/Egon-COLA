@@ -1,4 +1,4 @@
-package ${package}.facade.dto.teaching;
+package ${package}.facade.teaching.dto;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package fixture.organization.facade.dto.teaching;
+package fixture.organization.facade.teaching.dto;
 
 import java.util.List;
 
