@@ -3,7 +3,7 @@ package ${package}.infrastructure;
 import ${package}.domain.client.CommandIdempotencyPort;
 import ${package}.domain.user.client.UserCachePort;
 import ${package}.infrastructure.cache.InMemoryCommandIdempotencyAdapter;
-import ${package}.infrastructure.cache.InMemoryUserCache;
+import ${package}.infrastructure.user.cache.InMemoryUserCache;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;
 import ${package}.infrastructure.config.OrganizationLocalFallbackConfig;
 import org.junit.jupiter.api.Test;

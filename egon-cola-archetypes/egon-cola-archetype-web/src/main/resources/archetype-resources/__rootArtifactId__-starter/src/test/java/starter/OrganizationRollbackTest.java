@@ -9,7 +9,7 @@ import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.teaching.manage.GradeManage;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.infrastructure.cache.InMemoryCommandIdempotencyAdapter;
-import ${package}.infrastructure.cache.InMemorySchoolClassCache;
+import ${package}.infrastructure.teaching.cache.InMemorySchoolClassCache;
 import ${package}.infrastructure.mq.LocalOrganizationEventPublisher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

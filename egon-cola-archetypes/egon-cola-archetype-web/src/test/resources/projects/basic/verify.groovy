@@ -285,14 +285,14 @@ def requiredFiles = [
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/aop/OrganizationLogAspect.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/aop/package-info.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/InMemoryCommandIdempotencyAdapter.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/InMemoryGradeCache.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/InMemorySchoolClassCache.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/InMemoryUserCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/cache/InMemoryGradeCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/cache/InMemorySchoolClassCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/cache/InMemoryUserCache.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/OrganizationCacheKey.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/RedisCommandIdempotencyAdapter.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/RedisGradeCache.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/RedisSchoolClassCache.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/RedisUserCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/cache/RedisGradeCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/cache/RedisSchoolClassCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/cache/RedisUserCache.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/cache/package-info.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/OrganizationIntegrationProperties.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/OrganizationLocalFallbackConfig.java",
@@ -304,40 +304,40 @@ def requiredFiles = [
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/mq/OrganizationEventProducer.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/mq/RabbitOrganizationEventPublisher.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/mq/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/GradePOConverter.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPOConverter.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/impl/GradeRepositoryImpl.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/impl/SchoolClassRepositoryImpl.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/impl/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/jpa/GradeJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/jpa/SchoolClassJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/jpa/SchoolClassUserJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/jpa/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/GradePO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassPO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassUserPO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/converter/PermissionPOConverter.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/converter/RolePOConverter.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/converter/UserPOConverter.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/converter/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/impl/PermissionRepositoryImpl.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/impl/RoleRepositoryImpl.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/impl/UserRepositoryImpl.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/impl/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/jpa/PermissionJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/jpa/RoleJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/jpa/RolePermissionJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/jpa/UserJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/jpa/UserRoleJpaRepository.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/jpa/package-info.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/PermissionPO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/RolePO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/RolePermissionPO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/UserPO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/UserRolePO.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/GradePOConverter.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/SchoolClassPOConverter.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/impl/GradeRepositoryImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/impl/SchoolClassRepositoryImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/impl/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/jpa/GradeJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/jpa/SchoolClassJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/jpa/SchoolClassUserJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/jpa/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/GradePO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/SchoolClassPO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/SchoolClassUserPO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/converter/PermissionPOConverter.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/converter/RolePOConverter.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/converter/UserPOConverter.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/converter/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/impl/PermissionRepositoryImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/impl/RoleRepositoryImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/impl/UserRepositoryImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/impl/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/jpa/PermissionJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/jpa/RoleJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/jpa/RolePermissionJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/jpa/UserJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/jpa/UserRoleJpaRepository.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/jpa/package-info.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/PermissionPO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/RolePO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/RolePermissionPO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserPO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserRolePO.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/package-info.java",
     "student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql",
     "student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql",
     "student-management-organization-infrastructure/src/test/java/it/pkg/.gitkeep",
@@ -347,12 +347,12 @@ def requiredFiles = [
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/OrganizationLogAspectTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/OrganizationRabbitMqContractTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/package-info.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/teaching/GradeRepositoryImplTest.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/teaching/SchoolClassRepositoryImplTest.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/teaching/package-info.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/user/RolePermissionRepositoryImplTest.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/user/UserRepositoryImplTest.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/user/package-info.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/teaching/repo/GradeRepositoryImplTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/teaching/repo/SchoolClassRepositoryImplTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/teaching/repo/package-info.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/user/repo/RolePermissionRepositoryImplTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/user/repo/UserRepositoryImplTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/user/repo/package-info.java",
     "student-management-organization-infrastructure/src/test/resources/.gitkeep",
     "student-management-organization-starter/pom.xml",
     "student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java",
@@ -479,6 +479,19 @@ def webApplicationModule = "student-management-organization-application/src/main
     }
     assertFile("${webApplicationModule}/${businessDomain}/manage/impl/package-info.java")
 }
+
+def webInfrastructureModule = "student-management-organization-infrastructure"
+["user", "teaching"].each { businessDomain ->
+    assertFile("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/${businessDomain}/repo/package-info.java")
+    assertMissing("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/repo/${businessDomain}")
+    assertFile("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/${businessDomain}/cache/package-info.java")
+    assertFile("${webInfrastructureModule}/src/test/java/it/pkg/infrastructure/${businessDomain}/repo/package-info.java")
+}
+assertFile("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/InMemoryCommandIdempotencyAdapter.java")
+assertFile("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/RedisCommandIdempotencyAdapter.java")
+assertFile("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/OrganizationCacheKey.java")
+assertMissing("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/InMemoryUserCache.java")
+assertMissing("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/InMemoryGradeCache.java")
 
 requiredFiles.addAll([
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/ExternalDependencyFailure.java",
@@ -1125,27 +1138,28 @@ assert schoolClassFacadeText.contains("SchoolClassDetailDTO createSchoolClass")
 assert !schoolClassFacadeText.contains("@DubboService")
 
 assertNoGenericMapStructConverterInjection("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter")
-assertNoGenericMapStructConverterInjection("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo")
+assertNoGenericMapStructConverterInjection("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo")
+assertNoGenericMapStructConverterInjection("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo")
 
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/UserAdapterConverter.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/SchoolClassAdapterConverter.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/converter/UserPOConverter.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/UserPO.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/RolePO.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/PermissionPO.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/UserRolePO.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/user/po/RolePermissionPO.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPOConverter.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/GradePOConverter.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassPO.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/converter/UserPOConverter.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserPO.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/RolePO.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/PermissionPO.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserRolePO.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/RolePermissionPO.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/SchoolClassPOConverter.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/GradePOConverter.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/SchoolClassPO.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/command/AssignUserToClassCommand.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate.java")
-assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassUserPO.java")
+assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/SchoolClassUserPO.java")
 assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/common")
 assertMissing("student-management-organization-facade/src/main/java/it/pkg/facade/dto/PageResponse.java")
 
 assertMissing("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/SchoolClassAdapterMapper.java")
-assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPoMapper.java")
+assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/SchoolClassPoMapper.java")
 
 def userRepositoryText = assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/repos/UserRepository.java").text
 assert !userRepositoryText.contains("findPage")
