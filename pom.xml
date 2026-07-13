@@ -5,7 +5,7 @@
 
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-aggregation-parent</artifactId>
-    <version>5.2.1</version>
+    <version>5.2.2</version>
     <packaging>pom</packaging>
     <name>egon-cola-aggregation-parent</name>
     <description>egon-cola-aggregation-parent</description>
