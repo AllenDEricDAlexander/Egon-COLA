@@ -289,10 +289,11 @@ The auto-configuration discovers the application's Spring-managed
 `ObjectMapper` lazily. A unique application Bean remains authoritative, and the
 component does not publish a second mapper or create private JSON settings.
 
-An application that only uses direct handler responses does not need an
-`ObjectMapper` Bean. When a rejection actually takes the `returnJson` path,
-missing or ambiguous mapper Beans produce a configuration exception. This keeps
-the starter independent of Spring Web while making the JSON dependency explicit.
+An application that only uses direct handler responses or raw `String`
+`returnJson` values does not need an `ObjectMapper` Bean. When a non-String
+rejection requires JSON conversion, missing or ambiguous mapper Beans produce a
+configuration exception. This keeps the starter independent of Spring Web while
+making the JSON dependency explicit.
 
 ## 10. Method and Handler Resolution
 
