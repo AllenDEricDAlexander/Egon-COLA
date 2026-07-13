@@ -37,10 +37,11 @@ def requiredPackagePaths = [
     "common/exceptions",
     "common/utils",
     "facade",
-    "facade/api",
+    "facade/course",
+    "facade/course/dto",
     "facade/dto",
-    "facade/dto/course",
-    "facade/dto/exam",
+    "facade/exam",
+    "facade/exam/dto",
     "facade/enums",
     "facade/exceptions",
     "facade/utils",
@@ -216,9 +217,11 @@ modules.each { module ->
 
 [
     "student-management-evaluation-common/src/main/java/it/pkg/common/exceptions/EvaluationBizException.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api/CourseFacade.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api/ExamFacade.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api/ScoreFacade.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/course/CourseFacade.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/course/dto/CourseResponse.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ExamFacade.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ScoreFacade.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/dto/ScoreResponse.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/course/Course.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/exam/Exam.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/event/course/CourseEventPublisher.java",
@@ -264,8 +267,9 @@ modules.each { module ->
 ].each { assertFile(it) }
 
 [
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api/ExamResultFacade.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course/CourseDTO.java",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course",
+    "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/exam",
     "student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/examing",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/examing",

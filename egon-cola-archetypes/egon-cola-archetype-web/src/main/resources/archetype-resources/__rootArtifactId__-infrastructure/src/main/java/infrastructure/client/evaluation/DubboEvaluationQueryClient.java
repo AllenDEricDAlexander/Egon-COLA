@@ -3,15 +3,15 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.client.evaluation;
 
-import ${evaluationFacadePackage}.facade.api.CourseFacade;
-import ${evaluationFacadePackage}.facade.api.ExamFacade;
-import ${evaluationFacadePackage}.facade.api.ScoreFacade;
-import ${evaluationFacadePackage}.facade.dto.course.CourseResponse;
-import ${evaluationFacadePackage}.facade.dto.course.GetCourseRequest;
-import ${evaluationFacadePackage}.facade.dto.exam.ExamResponse;
-import ${evaluationFacadePackage}.facade.dto.exam.GetExamRequest;
-import ${evaluationFacadePackage}.facade.dto.exam.GetScoreRequest;
-import ${evaluationFacadePackage}.facade.dto.exam.ScoreResponse;
+import ${evaluationFacadePackage}.facade.course.CourseFacade;
+import ${evaluationFacadePackage}.facade.exam.ExamFacade;
+import ${evaluationFacadePackage}.facade.exam.ScoreFacade;
+import ${evaluationFacadePackage}.facade.course.dto.CourseResponse;
+import ${evaluationFacadePackage}.facade.course.dto.GetCourseRequest;
+import ${evaluationFacadePackage}.facade.exam.dto.ExamResponse;
+import ${evaluationFacadePackage}.facade.exam.dto.GetExamRequest;
+import ${evaluationFacadePackage}.facade.exam.dto.GetScoreRequest;
+import ${evaluationFacadePackage}.facade.exam.dto.ScoreResponse;
 import ${package}.domain.client.ExternalDependencyException;
 import ${package}.domain.client.evaluation.EvaluationCourse;
 import ${package}.domain.client.evaluation.EvaluationExam;

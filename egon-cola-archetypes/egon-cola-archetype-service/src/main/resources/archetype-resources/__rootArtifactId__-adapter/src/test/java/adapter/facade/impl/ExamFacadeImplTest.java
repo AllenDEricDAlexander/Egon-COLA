@@ -10,7 +10,7 @@ import ${package}.adapter.validators.exam.ExamFacadeValidator;
 import ${package}.application.command.exam.CreateExamCommand;
 import ${package}.application.manage.exam.ExamManage;
 import ${package}.application.result.exam.ExamDetailResult;
-import ${package}.facade.dto.exam.CreateExamRequest;
+import ${package}.facade.exam.dto.CreateExamRequest;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 

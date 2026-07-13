@@ -3,8 +3,8 @@
 #set( $symbol_escape = '\\' )
 package ${package}.facade;
 
-import ${package}.facade.dto.course.ScheduleCourseRequest;
-import ${package}.facade.dto.exam.RecordScoreRequest;
+import ${package}.facade.course.dto.ScheduleCourseRequest;
+import ${package}.facade.exam.dto.RecordScoreRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

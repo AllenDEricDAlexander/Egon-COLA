@@ -7,11 +7,11 @@ import ${package}.application.command.exam.CreateExamCommand;
 import ${package}.application.command.exam.PublishExamCommand;
 import ${package}.application.result.exam.ExamDetailResult;
 import ${package}.application.result.exam.ExamPaperResult;
-import ${package}.facade.dto.exam.AttachExamPaperRequest;
-import ${package}.facade.dto.exam.CreateExamRequest;
-import ${package}.facade.dto.exam.ExamPaperResponse;
-import ${package}.facade.dto.exam.ExamResponse;
-import ${package}.facade.dto.exam.PublishExamRequest;
+import ${package}.facade.exam.dto.AttachExamPaperRequest;
+import ${package}.facade.exam.dto.CreateExamRequest;
+import ${package}.facade.exam.dto.ExamPaperResponse;
+import ${package}.facade.exam.dto.ExamResponse;
+import ${package}.facade.exam.dto.PublishExamRequest;
 import org.springframework.stereotype.Component;
 @Component
 public class ExamFacadeConverter {

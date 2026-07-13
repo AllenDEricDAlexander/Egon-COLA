@@ -10,7 +10,7 @@ import ${package}.adapter.validators.exam.ScoreFacadeValidator;
 import ${package}.application.command.exam.RecordScoreCommand;
 import ${package}.application.manage.exam.ScoreManage;
 import ${package}.application.result.exam.ScoreResult;
-import ${package}.facade.dto.exam.RecordScoreRequest;
+import ${package}.facade.exam.dto.RecordScoreRequest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

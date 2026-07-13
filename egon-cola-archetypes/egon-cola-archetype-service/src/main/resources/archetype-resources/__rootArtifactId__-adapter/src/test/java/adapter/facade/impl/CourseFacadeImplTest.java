@@ -10,7 +10,7 @@ import ${package}.adapter.validators.course.CourseFacadeValidator;
 import ${package}.application.command.course.CreateCourseCommand;
 import ${package}.application.manage.course.CourseManage;
 import ${package}.application.result.course.CourseResult;
-import ${package}.facade.dto.course.CreateCourseRequest;
+import ${package}.facade.course.dto.CreateCourseRequest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

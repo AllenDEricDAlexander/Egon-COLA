@@ -4,8 +4,8 @@
 package ${package}.adapter.converter.exam;
 import ${package}.application.command.exam.RecordScoreCommand;
 import ${package}.application.result.exam.ScoreResult;
-import ${package}.facade.dto.exam.RecordScoreRequest;
-import ${package}.facade.dto.exam.ScoreResponse;
+import ${package}.facade.exam.dto.RecordScoreRequest;
+import ${package}.facade.exam.dto.ScoreResponse;
 import org.springframework.stereotype.Component;
 @Component
 public class ScoreFacadeConverter {
