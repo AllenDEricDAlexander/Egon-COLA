@@ -275,7 +275,8 @@ application
 │   ├── query
 │   ├── result
 │   ├── converter
-│   └── validators
+│   ├── validators
+│   └── assemblers
 ├── teaching
 │   ├── manage
 │   ├── manage/impl
@@ -283,7 +284,8 @@ application
 │   ├── query
 │   ├── result
 │   ├── converter
-│   └── validators
+│   ├── validators
+│   └── assemblers
 ├── config
 ├── context
 ├── exceptions
@@ -510,8 +512,7 @@ application
 │   ├── query
 │   ├── result
 │   ├── converter
-│   ├── validators
-│   └── assemblers
+│   └── validators
 ├── exam
 │   ├── manage
 │   ├── manage/impl
@@ -519,8 +520,7 @@ application
 │   ├── query
 │   ├── result
 │   ├── converter
-│   ├── validators
-│   └── assemblers
+│   └── validators
 ├── config
 ├── exceptions
 └── result
