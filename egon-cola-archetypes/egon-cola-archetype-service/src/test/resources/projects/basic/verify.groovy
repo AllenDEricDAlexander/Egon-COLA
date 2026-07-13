@@ -60,22 +60,14 @@ def requiredPackagePaths = [
     "infrastructure/client",
     "infrastructure/client/organization",
     "adapter",
-    "adapter/facade",
-    "adapter/facade/impl",
-    "adapter/facade/impl/course",
-    "adapter/facade/impl/exam",
-    "adapter/mq",
-    "adapter/mq/course",
-    "adapter/mq/exam",
-    "adapter/dto",
-    "adapter/dto/course",
-    "adapter/dto/exam",
-    "adapter/converter",
-    "adapter/converter/course",
-    "adapter/converter/exam",
-    "adapter/validators",
-    "adapter/validators/course",
-    "adapter/validators/exam",
+    "adapter/course/facade/impl",
+    "adapter/course/converter",
+    "adapter/course/validators",
+    "adapter/exam/facade/impl",
+    "adapter/exam/dto",
+    "adapter/exam/converter",
+    "adapter/exam/mq",
+    "adapter/exam/validators",
     "adapter/handler",
     "starter",
     "starter/config",
@@ -125,12 +117,27 @@ assertMissing("student-management-evaluation-application/src/main/java/it/pkg/ap
     assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/${businessDomain}")
 }
 assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/message")
+[
+    "facade/impl/course", "facade/impl/exam",
+    "converter/course", "converter/exam",
+    "validators/course", "validators/exam",
+    "dto/course", "dto/exam",
+    "mq/course", "mq/exam"
+].each { oldPath ->
+    assertMissing("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/${oldPath}")
+}
 
 modules.each { module ->
     ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"].each { path ->
         assert new File(projectDir, "student-management-evaluation-${module}/${path}").isDirectory()
     }
 }
+
+def serviceApplication = assertFile(
+        "student-management-evaluation-starter/src/main/java/it/pkg/starter/EvaluationServiceApplication.java").text
+assert serviceApplication.contains('"it.pkg.adapter.course.facade.impl"')
+assert serviceApplication.contains('"it.pkg.adapter.exam.facade.impl"')
+assert !serviceApplication.contains('"it.pkg.adapter.facade"')
 
 
 def internalDependencies = { module ->
@@ -218,13 +225,13 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClient.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/OrganizationClientFailureMapper.java",
-    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/course/CourseFacadeImpl.java",
-    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/exam/ExamFacadeImpl.java",
-    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/mq/exam/RecordScoreConsumer.java",
-    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/facade/impl/CourseFacadeImplTest.java",
-    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/facade/impl/ExamFacadeImplTest.java",
-    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/facade/impl/ScoreFacadeImplTest.java",
-    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/mq/exam/RecordScoreConsumerTest.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/course/facade/impl/CourseFacadeImpl.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/facade/impl/ExamFacadeImpl.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/mq/RecordScoreConsumer.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/course/facade/impl/CourseFacadeImplTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/exam/facade/impl/ExamFacadeImplTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/exam/facade/impl/ScoreFacadeImplTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/exam/mq/RecordScoreConsumerTest.java",
     "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java",
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/course/CourseDomainServiceTest.java",
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ExamDomainServiceTest.java",
@@ -252,9 +259,9 @@ modules.each { module ->
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/entities",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/repos",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/examing/repo",
-    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor",
-    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/ExamResultFacadeImpl.java",
-    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/mq/ExamResultMessageConsumer.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/convertor",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/facade/impl/ExamResultFacadeImpl.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/mq/ExamResultMessageConsumer.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationFlowTest.java"
 ].each { assertMissing(it) }
 
@@ -304,7 +311,7 @@ javaFiles.each { file ->
 }
 
 def staleTokens = [
-    ".adapter.convertor.", ".application.examing.manage.",
+    ".adapter.exam.convertor.", ".application.examing.manage.",
     ".domain.examing.entities.", ".domain.examing.repos.", ".domain.examing.service.",
     ".facade.api.ExamResultFacade", ".facade.dto.examing.",
     ".common.constants.ErrorCodes", ".common.exception."

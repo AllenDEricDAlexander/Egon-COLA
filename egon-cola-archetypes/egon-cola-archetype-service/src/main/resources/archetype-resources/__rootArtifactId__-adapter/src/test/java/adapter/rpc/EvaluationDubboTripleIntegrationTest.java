@@ -3,13 +3,13 @@
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.rpc;
 
-import ${package}.adapter.converter.course.CourseFacadeConverter;
-import ${package}.adapter.facade.impl.course.CourseFacadeImpl;
-import ${package}.adapter.converter.exam.ExamFacadeConverter;
-import ${package}.adapter.facade.impl.exam.ExamFacadeImpl;
+import ${package}.adapter.course.converter.CourseFacadeConverter;
+import ${package}.adapter.course.facade.impl.CourseFacadeImpl;
+import ${package}.adapter.exam.converter.ExamFacadeConverter;
+import ${package}.adapter.exam.facade.impl.ExamFacadeImpl;
 import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
-import ${package}.adapter.validators.course.CourseFacadeValidator;
-import ${package}.adapter.validators.exam.ExamFacadeValidator;
+import ${package}.adapter.course.validators.CourseFacadeValidator;
+import ${package}.adapter.exam.validators.ExamFacadeValidator;
 import ${package}.application.course.command.CreateCourseCommand;
 import ${package}.application.course.manage.CourseManage;
 import ${package}.application.exam.manage.ExamManage;

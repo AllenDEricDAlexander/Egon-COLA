@@ -10,7 +10,10 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = "${package}")
-@EnableDubbo(scanBasePackages = "${package}.adapter.facade")
+@EnableDubbo(scanBasePackages = {
+        "${package}.adapter.course.facade.impl",
+        "${package}.adapter.exam.facade.impl"
+})
 @EntityScan(basePackages = {
         "${package}.infrastructure.course.repo",
         "${package}.infrastructure.exam.repo"
