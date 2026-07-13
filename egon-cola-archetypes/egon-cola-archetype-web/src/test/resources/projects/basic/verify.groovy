@@ -785,6 +785,42 @@ developmentComposeFiles.each { fileName, engine ->
         '"${APPLICATION_PORT:-8080}:${APPLICATION_PORT:-8080}"'
     ])
 }
+def assertProductionCompose = { fileName, requiredApplicationLines ->
+    def text = assertFile("deploy/compose/${fileName}").text
+    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+     "healthcheck:", "networks:", "volumes:", "application_logs:",
+     "read_only: true", "tmpfs:", "mem_limit:", "cpus:",
+     "restart: unless-stopped"].each { token ->
+        assert text.contains(token): "Expected ${fileName} to contain ${token}"
+    }
+    assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
+    assert text.contains("SPRING_PROFILES_ACTIVE: prod")
+    assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
+    assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
+    assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
+    assert text.contains('${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}')
+    assert text.contains('${NACOS_AUTH_TOKEN:?Set NACOS_AUTH_TOKEN}')
+    assert !text.contains("build:")
+    assert !text.contains("local-postgres")
+    assert !text.contains("local-redis")
+    assert !text.contains("local-rabbitmq")
+    assert !text.contains('${POSTGRES_PORT:-5432}:5432')
+    assert !text.contains('${RABBITMQ_MANAGEMENT_PORT:-15672}:15672')
+    requiredApplicationLines.each { required ->
+        assert text.contains(required): "Expected ${fileName} to contain ${required}"
+    }
+}
+def productionComposeFiles = [
+    "compose.docker.prod.yaml",
+    "compose.podman.prod.yaml",
+    "compose.nerdctl.prod.yaml"
+]
+productionComposeFiles.each { fileName ->
+    assertProductionCompose(fileName, [
+        'SERVER_PORT: ${APPLICATION_PORT:-8080}',
+        'EVALUATION_FACADE_ENABLED: "${EVALUATION_FACADE_ENABLED:?Set EVALUATION_FACADE_ENABLED to true or false}"'
+    ])
+}
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",

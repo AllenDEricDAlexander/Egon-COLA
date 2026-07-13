@@ -65,6 +65,9 @@
                 <include>compose.docker.yaml</include>
                 <include>compose.podman.yaml</include>
                 <include>compose.nerdctl.yaml</include>
+                <include>compose.docker.prod.yaml</include>
+                <include>compose.podman.prod.yaml</include>
+                <include>compose.nerdctl.prod.yaml</include>
             </includes>
         </fileSet>
     </fileSets>
