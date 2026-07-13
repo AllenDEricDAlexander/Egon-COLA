@@ -6,7 +6,7 @@ def requiredFiles = [
     ".gitattributes",
     ".gitignore",
     ".mvn/wrapper/maven-wrapper.properties",
-    "Dockerfile",
+    "deploy/container/Dockerfile",
     "README.md",
     "lombok.config",
     "mvnw",
@@ -465,6 +465,43 @@ def assertMissing = { path ->
     assert !new File(projectDir, path).exists(): "Unexpected stale path ${path}"
 }
 
+def assertPortableDockerfile = { jarFile, exposedPorts, readinessPort ->
+    assertMissing("Dockerfile")
+    [
+        "Dockerfile.containerd",
+        "Dockerfile.nerdctl",
+        "Dockerfile.podman",
+        "Containerfile",
+        "Containerfile.podman",
+        "deploy/container/Dockerfile.containerd",
+        "deploy/container/Dockerfile.nerdctl",
+        "deploy/container/Dockerfile.podman",
+        "deploy/container/Containerfile",
+        "deploy/container/Containerfile.podman"
+    ].each { assertMissing(it) }
+
+    def text = assertFile("deploy/container/Dockerfile").text
+    assert text.contains("ARG BUILD_IMAGE=eclipse-temurin:21-jdk-jammy")
+    assert text.contains('FROM ${BUILD_IMAGE} AS builder')
+    assert text.contains("chmod +x mvnw")
+    assert text.contains("./mvnw -B -ntp -DskipTests package")
+    assert text.contains("ARG RUNTIME_IMAGE=eclipse-temurin:21-jre-jammy")
+    assert text.contains('FROM ${RUNTIME_IMAGE} AS extractor')
+    assert text.contains("ARG JAR_FILE=${jarFile}")
+    assert text.contains('COPY --from=builder /workspace/${JAR_FILE} app.jar')
+    assert text.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
+    assert text.contains('FROM ${RUNTIME_IMAGE} AS runtime')
+    assert text.contains("ARG CONTAINER_ENGINE=oci")
+    assert text.contains("ARG APP_UID=10001")
+    assert text.contains("ARG APP_GID=10001")
+    assert text.contains("org.opencontainers.image.build.engine")
+    assert text.contains("USER app")
+    assert text.contains("EXPOSE ${exposedPorts}")
+    assert text.contains("http://127.0.0.1:${readinessPort}/actuator/health/readiness")
+    assert text.contains("JarLauncher")
+    assert !text.contains("--mount=type=cache")
+}
+
 def webDomainModule = "student-management-organization-domain/src/main/java/it/pkg/domain"
 ["user", "teaching"].each { businessDomain ->
     ["aggregates", "client", "entities", "enums", "events", "repos", "service", "validators", "vos"].each { role ->
@@ -670,7 +707,6 @@ assertFile(".mvn/wrapper/maven-wrapper.properties")
 assertFile(".gitignore")
 assertFile(".gitattributes")
 assertFile("README.md")
-assertFile("Dockerfile")
 assertFile(".dockerignore")
 assert assertFile("README.md").text.contains("Docker")
 assert assertFile("README.md").text.contains("## Modules")
@@ -680,19 +716,8 @@ assert assertFile("README.md").text.contains("## Integration Ownership")
 assert assertFile("README.md").text.contains("## Commands")
 assert assertFile("README.md").text.contains("## Runtime Profiles")
 assert assertFile("README.md").text.contains("docker build -t student-management-organization:local .")
-def dockerfileText = assertFile("Dockerfile").text
-assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
-assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS runtime")
-assert !dockerfileText.contains(" AS builder")
-assert !dockerfileText.contains("dependency:go-offline")
-assert !dockerfileText.contains("./mvnw")
-assert dockerfileText.contains("ARG STARTER_MODULE=student-management-organization-starter")
-assert dockerfileText.contains('ARG JAR_FILE=${STARTER_MODULE}/target/*.jar')
-assert dockerfileText.contains('COPY ${JAR_FILE} app.jar')
-assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
-assert dockerfileText.contains("USER app")
-assert dockerfileText.contains("EXPOSE 8080 50051")
-assert dockerfileText.contains("JarLauncher")
+assertPortableDockerfile(
+        "student-management-organization-starter/target/*.jar", "8080 50051", "8080")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",
@@ -703,9 +728,7 @@ def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
     "*.iml",
     ".DS_Store",
     "",
-    "**/target/*",
-    "!target/*.jar",
-    "!*/target/*.jar",
+    "**/target",
     "**/build",
     "**/.mvn/wrapper/maven-wrapper.jar",
     "",
@@ -725,6 +748,8 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 [
     ".env",
     ".env.*",
+    "!deploy/env/.env.example",
+    "!deploy/env/.env.prod.example",
     "config/application-secrets.yml",
     "secrets/",
     "*.pem",

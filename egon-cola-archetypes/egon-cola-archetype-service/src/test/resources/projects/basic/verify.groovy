@@ -18,6 +18,43 @@ def assertMissing = { path ->
     assert !new File(projectDir, path).exists(): "Unexpected path ${path}"
 }
 
+def assertPortableDockerfile = { jarFile, exposedPorts, readinessPort ->
+    assertMissing("Dockerfile")
+    [
+        "Dockerfile.containerd",
+        "Dockerfile.nerdctl",
+        "Dockerfile.podman",
+        "Containerfile",
+        "Containerfile.podman",
+        "deploy/container/Dockerfile.containerd",
+        "deploy/container/Dockerfile.nerdctl",
+        "deploy/container/Dockerfile.podman",
+        "deploy/container/Containerfile",
+        "deploy/container/Containerfile.podman"
+    ].each { assertMissing(it) }
+
+    def text = assertFile("deploy/container/Dockerfile").text
+    assert text.contains("ARG BUILD_IMAGE=eclipse-temurin:21-jdk-jammy")
+    assert text.contains('FROM ${BUILD_IMAGE} AS builder')
+    assert text.contains("chmod +x mvnw")
+    assert text.contains("./mvnw -B -ntp -DskipTests package")
+    assert text.contains("ARG RUNTIME_IMAGE=eclipse-temurin:21-jre-jammy")
+    assert text.contains('FROM ${RUNTIME_IMAGE} AS extractor')
+    assert text.contains("ARG JAR_FILE=${jarFile}")
+    assert text.contains('COPY --from=builder /workspace/${JAR_FILE} app.jar')
+    assert text.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
+    assert text.contains('FROM ${RUNTIME_IMAGE} AS runtime')
+    assert text.contains("ARG CONTAINER_ENGINE=oci")
+    assert text.contains("ARG APP_UID=10001")
+    assert text.contains("ARG APP_GID=10001")
+    assert text.contains("org.opencontainers.image.build.engine")
+    assert text.contains("USER app")
+    assert text.contains("EXPOSE ${exposedPorts}")
+    assert text.contains("http://127.0.0.1:${readinessPort}/actuator/health/readiness")
+    assert text.contains("JarLauncher")
+    assert !text.contains("--mount=type=cache")
+}
+
 def modules = ["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"]
 modules.each { module ->
     assert new File(projectDir, "student-management-evaluation-${module}").isDirectory()
@@ -441,6 +478,22 @@ assert !readme.contains("application/manage/course")
 assert assertFile("mvnw").canExecute() || System.getProperty("os.name").toLowerCase().contains("windows")
 assertFile("mvnw.cmd")
 assertFile("README.md")
-assertFile("Dockerfile")
 assertFile(".dockerignore")
+assertPortableDockerfile(
+        "student-management-evaluation-starter/target/*.jar", "8081 50051", "8081")
+def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
+[
+    ".git", ".gitignore", ".github", ".idea", ".vscode", "*.iml", ".DS_Store", "",
+    "**/target", "**/build", "**/.mvn/wrapper/maven-wrapper.jar",
+    "logs", "*.log", ".env", ".env.*", "config/*secret*", "secrets", "*.pem", "*.key"
+].each {
+    assert dockerignoreLines.contains(it): "Expected .dockerignore to contain line ${it}"
+}
+def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
+[
+    ".env", ".env.*", "!deploy/env/.env.example", "!deploy/env/.env.prod.example",
+    "config/application-secrets.yml", "secrets/", "*.pem", "*.key"
+].each {
+    assert gitignoreLines.contains(it): "Expected .gitignore to contain line ${it}"
+}
 return true

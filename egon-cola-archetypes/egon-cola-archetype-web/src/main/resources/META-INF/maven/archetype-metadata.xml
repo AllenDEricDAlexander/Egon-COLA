@@ -21,7 +21,6 @@
                 <include>pom.xml</include>
                 <include>README.md</include>
                 <include>lombok.config</include>
-                <include>Dockerfile</include>
                 <include>.dockerignore</include>
             </includes>
         </fileSet>
@@ -38,6 +37,12 @@
             <directory>.mvn/wrapper</directory>
             <includes>
                 <include>maven-wrapper.properties</include>
+            </includes>
+        </fileSet>
+        <fileSet filtered="true" encoding="UTF-8">
+            <directory>deploy/container</directory>
+            <includes>
+                <include>Dockerfile</include>
             </includes>
         </fileSet>
     </fileSets>
