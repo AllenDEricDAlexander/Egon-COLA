@@ -9,6 +9,8 @@ target/
 ### Local env ###
 .env
 .env.*
+!deploy/env/.env.example
+!deploy/env/.env.prod.example
 config/application-secrets.yml
 secrets/
 *.pem

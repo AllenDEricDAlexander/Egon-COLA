@@ -6,7 +6,7 @@ def requiredFiles = [
     ".gitattributes",
     ".gitignore",
     ".mvn/wrapper/maven-wrapper.properties",
-    "Dockerfile",
+    "deploy/container/Dockerfile",
     "README.md",
     "lombok.config",
     "mvnw",
@@ -465,6 +465,43 @@ def assertMissing = { path ->
     assert !new File(projectDir, path).exists(): "Unexpected stale path ${path}"
 }
 
+def assertPortableDockerfile = { jarFile, exposedPorts, readinessPort ->
+    assertMissing("Dockerfile")
+    [
+        "Dockerfile.containerd",
+        "Dockerfile.nerdctl",
+        "Dockerfile.podman",
+        "Containerfile",
+        "Containerfile.podman",
+        "deploy/container/Dockerfile.containerd",
+        "deploy/container/Dockerfile.nerdctl",
+        "deploy/container/Dockerfile.podman",
+        "deploy/container/Containerfile",
+        "deploy/container/Containerfile.podman"
+    ].each { assertMissing(it) }
+
+    def text = assertFile("deploy/container/Dockerfile").text
+    assert text.contains("ARG BUILD_IMAGE=eclipse-temurin:21-jdk-jammy")
+    assert text.contains('FROM ${BUILD_IMAGE} AS builder')
+    assert text.contains("chmod +x mvnw")
+    assert text.contains("./mvnw -B -ntp -DskipTests package")
+    assert text.contains("ARG RUNTIME_IMAGE=eclipse-temurin:21-jre-jammy")
+    assert text.contains('FROM ${RUNTIME_IMAGE} AS extractor')
+    assert text.contains("ARG JAR_FILE=${jarFile}")
+    assert text.contains('COPY --from=builder /workspace/${JAR_FILE} app.jar')
+    assert text.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
+    assert text.contains('FROM ${RUNTIME_IMAGE} AS runtime')
+    assert text.contains("ARG CONTAINER_ENGINE=oci")
+    assert text.contains("ARG APP_UID=10001")
+    assert text.contains("ARG APP_GID=10001")
+    assert text.contains("org.opencontainers.image.build.engine")
+    assert text.contains("USER app")
+    assert text.contains("EXPOSE ${exposedPorts}")
+    assert text.contains("http://127.0.0.1:${readinessPort}/actuator/health/readiness")
+    assert text.contains("JarLauncher")
+    assert !text.contains("--mount=type=cache")
+}
+
 def webDomainModule = "student-management-organization-domain/src/main/java/it/pkg/domain"
 ["user", "teaching"].each { businessDomain ->
     ["aggregates", "client", "entities", "enums", "events", "repos", "service", "validators", "vos"].each { role ->
@@ -670,7 +707,6 @@ assertFile(".mvn/wrapper/maven-wrapper.properties")
 assertFile(".gitignore")
 assertFile(".gitattributes")
 assertFile("README.md")
-assertFile("Dockerfile")
 assertFile(".dockerignore")
 assert assertFile("README.md").text.contains("Docker")
 assert assertFile("README.md").text.contains("## Modules")
@@ -679,20 +715,169 @@ assert assertFile("README.md").text.contains("## Dependency Direction")
 assert assertFile("README.md").text.contains("## Integration Ownership")
 assert assertFile("README.md").text.contains("## Commands")
 assert assertFile("README.md").text.contains("## Runtime Profiles")
-assert assertFile("README.md").text.contains("docker build -t student-management-organization:local .")
-def dockerfileText = assertFile("Dockerfile").text
-assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS extractor")
-assert dockerfileText.contains("FROM eclipse-temurin:21-jre-jammy AS runtime")
-assert !dockerfileText.contains(" AS builder")
-assert !dockerfileText.contains("dependency:go-offline")
-assert !dockerfileText.contains("./mvnw")
-assert dockerfileText.contains("ARG STARTER_MODULE=student-management-organization-starter")
-assert dockerfileText.contains('ARG JAR_FILE=${STARTER_MODULE}/target/*.jar')
-assert dockerfileText.contains('COPY ${JAR_FILE} app.jar')
-assert dockerfileText.contains("java -Djarmode=tools -jar app.jar extract --layers --destination extracted")
-assert dockerfileText.contains("USER app")
-assert dockerfileText.contains("EXPOSE 8080 50051")
-assert dockerfileText.contains("JarLauncher")
+assertPortableDockerfile(
+        "student-management-organization-starter/target/*.jar", "8080 50051", "8080")
+def developmentEnv = assertFile("deploy/env/.env.example").text
+def productionEnv = assertFile("deploy/env/.env.prod.example").text
+[
+    "POSTGRES_IMAGE=postgres:17-alpine",
+    "REDIS_IMAGE=redis:7.4-alpine",
+    "RABBITMQ_IMAGE=rabbitmq:4-management",
+    "NACOS_IMAGE=nacos/nacos-server:v2.5.1",
+    "POSTGRES_PASSWORD=",
+    "REDIS_PASSWORD=",
+    "RABBITMQ_PASSWORD=",
+    "NACOS_PASSWORD=",
+    "NACOS_AUTH_TOKEN="
+].each { expected ->
+    assert productionEnv.readLines().contains(expected):
+            "Expected production env example line ${expected}"
+}
+[
+    "POSTGRES_PASSWORD=local-postgres",
+    "REDIS_PASSWORD=local-redis",
+    "RABBITMQ_PASSWORD=local-rabbitmq",
+    "NACOS_PASSWORD=nacos"
+].each { forbidden ->
+    assert !productionEnv.contains(forbidden):
+            "Production env example must not contain development credential ${forbidden}"
+}
+assert developmentEnv.contains("IMAGE_TAG=local")
+assert developmentEnv.contains("NACOS_AUTH_ENABLE=true")
+assert productionEnv.contains("REGISTRY=")
+assert productionEnv.contains("REGISTRY_NAMESPACE=")
+assert productionEnv.contains("IMAGE_TAG=")
+assert developmentEnv.contains("IMAGE_NAME=student-management-organization")
+assert developmentEnv.contains("POSTGRES_DB=student_management_organization")
+assert developmentEnv.contains("APPLICATION_PORT=8080")
+assert developmentEnv.contains("EVALUATION_FACADE_ENABLED=false")
+assert productionEnv.readLines().contains("EVALUATION_FACADE_ENABLED=")
+def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
+    def text = assertFile("deploy/compose/${fileName}").text
+    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+     "healthcheck:", "networks:", "volumes:", "application_logs:"].each { token ->
+        assert text.contains(token): "Expected ${fileName} to contain ${token}"
+    }
+    assert text.contains("CONTAINER_ENGINE: ${engine}")
+    assert text.contains("dockerfile: deploy/container/Dockerfile")
+    assert text.contains("context: ../..")
+    assert text.contains('SPRING_PROFILES_ACTIVE: dev')
+    assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
+    assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
+    assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
+    assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
+    assert text.contains('redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping')
+    assert text.contains('["CMD", "rabbitmq-diagnostics", "-q", "ping"]')
+    requiredApplicationLines.each { required ->
+        assert text.contains(required): "Expected ${fileName} to contain ${required}"
+    }
+}
+def developmentComposeFiles = [
+    "compose.docker.yaml" : "docker",
+    "compose.podman.yaml" : "podman",
+    "compose.nerdctl.yaml": "nerdctl"
+]
+developmentComposeFiles.each { fileName, engine ->
+    assertDevelopmentCompose(fileName, engine, [
+        'SERVER_PORT: ${APPLICATION_PORT:-8080}',
+        'EVALUATION_FACADE_ENABLED: "false"',
+        '"${APPLICATION_PORT:-8080}:${APPLICATION_PORT:-8080}"'
+    ])
+}
+def assertProductionCompose = { fileName, requiredApplicationLines ->
+    def text = assertFile("deploy/compose/${fileName}").text
+    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+     "healthcheck:", "networks:", "volumes:", "application_logs:",
+     "read_only: true", "tmpfs:", "mem_limit:", "cpus:",
+     "restart: unless-stopped"].each { token ->
+        assert text.contains(token): "Expected ${fileName} to contain ${token}"
+    }
+    assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
+    assert text.contains("SPRING_PROFILES_ACTIVE: prod")
+    assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
+    assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
+    assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
+    assert text.contains('${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}')
+    assert text.contains('${NACOS_AUTH_TOKEN:?Set NACOS_AUTH_TOKEN}')
+    assert !text.contains("build:")
+    assert !text.contains("local-postgres")
+    assert !text.contains("local-redis")
+    assert !text.contains("local-rabbitmq")
+    assert !text.contains('${POSTGRES_PORT:-5432}:5432')
+    assert !text.contains('${RABBITMQ_MANAGEMENT_PORT:-15672}:15672')
+    requiredApplicationLines.each { required ->
+        assert text.contains(required): "Expected ${fileName} to contain ${required}"
+    }
+}
+def productionComposeFiles = [
+    "compose.docker.prod.yaml",
+    "compose.podman.prod.yaml",
+    "compose.nerdctl.prod.yaml"
+]
+productionComposeFiles.each { fileName ->
+    assertProductionCompose(fileName, [
+        'SERVER_PORT: ${APPLICATION_PORT:-8080}',
+        'EVALUATION_FACADE_ENABLED: "${EVALUATION_FACADE_ENABLED:?Set EVALUATION_FACADE_ENABLED to true or false}"'
+    ])
+}
+def jenkinsfile = assertFile("Jenkinsfile").text
+[
+    "pipeline {",
+    "choice(name: 'CONTAINER_ENGINE', choices: ['docker', 'podman', 'nerdctl']",
+    "string(name: 'CONTAINERD_NAMESPACE', defaultValue: 'default'",
+    "string(name: 'REGISTRY', defaultValue: ''",
+    "string(name: 'REGISTRY_NAMESPACE', defaultValue: ''",
+    "string(name: 'REGISTRY_CREDENTIALS_ID', defaultValue: ''",
+    "string(name: 'IMAGE_NAME', defaultValue: ''",
+    "string(name: 'IMAGE_TAG', defaultValue: ''",
+    "booleanParam(name: 'PUBLISH_IMAGE', defaultValue: false",
+    "booleanParam(name: 'PUBLISH_LATEST', defaultValue: false",
+    "stage('Preflight')",
+    "stage('Test')",
+    "stage('Build Image')",
+    "stage('Publish Image')",
+    "deploy/container/Dockerfile",
+    'CONTAINER_ENGINE=${CONTAINER_ENGINE}',
+    "credentialsId: params.REGISTRY_CREDENTIALS_ID",
+    "--password-stdin",
+    "SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify",
+    "allowEmptyResults: true"
+].each { token ->
+    assert jenkinsfile.contains(token): "Expected Jenkinsfile to contain ${token}"
+}
+assert !jenkinsfile.contains("docker compose")
+assert !jenkinsfile.contains("podman compose")
+assert !jenkinsfile.contains("nerdctl compose")
+assert !jenkinsfile.contains("withRegistry")
+def deliveryReadme = assertFile("deploy/container/README.md").text
+def normalizedDeliveryReadme = deliveryReadme.replaceAll(/\s+/, " ")
+[
+    "One Portable Dockerfile",
+    "Docker",
+    "Podman",
+    "nerdctl",
+    "Rootless And Rootful",
+    "Development Compose",
+    "Production Compose",
+    "Persistent Data",
+    "Jenkins",
+    "does not provide high availability"
+].each { token ->
+    assert normalizedDeliveryReadme.contains(token): "Expected deployment README to contain ${token}"
+}
+
+def generatedReadme = assertFile("README.md").text
+[
+    "deploy/container/Dockerfile",
+    "compose.docker.yaml",
+    "compose.podman.yaml",
+    "compose.nerdctl.yaml",
+    "Jenkinsfile",
+    "PUBLISH_IMAGE"
+].each { token ->
+    assert generatedReadme.contains(token): "Expected generated README to contain ${token}"
+}
+assert !generatedReadme.contains("docker build -t")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",
@@ -703,9 +888,7 @@ def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
     "*.iml",
     ".DS_Store",
     "",
-    "**/target/*",
-    "!target/*.jar",
-    "!*/target/*.jar",
+    "**/target",
     "**/build",
     "**/.mvn/wrapper/maven-wrapper.jar",
     "",
@@ -725,6 +908,8 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 [
     ".env",
     ".env.*",
+    "!deploy/env/.env.example",
+    "!deploy/env/.env.prod.example",
     "config/application-secrets.yml",
     "secrets/",
     "*.pem",
