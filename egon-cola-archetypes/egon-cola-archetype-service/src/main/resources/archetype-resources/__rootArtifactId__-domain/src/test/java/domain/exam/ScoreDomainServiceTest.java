@@ -4,10 +4,10 @@
 package ${package}.domain.exam;
 
 import ${package}.domain.common.EvaluationDomainException;
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.service.exam.impl.ExamDomainServiceImpl;
-import ${package}.domain.service.exam.impl.ScoreDomainServiceImpl;
-import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.exam.service.impl.ScoreDomainServiceImpl;
+import ${package}.domain.course.vos.CourseCode;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,8 +19,8 @@ class ScoreDomainServiceTest {
 
     private final ExamDomainServiceImpl examService = new ExamDomainServiceImpl();
     private final ScoreDomainServiceImpl scoreService = new ScoreDomainServiceImpl();
-    private ${package}.domain.entities.exam.Exam exam;
-    private ${package}.domain.entities.exam.ExamPaper paper;
+    private ${package}.domain.exam.entities.Exam exam;
+    private ${package}.domain.exam.entities.ExamPaper paper;
 
     @BeforeEach
     void setUp() {

@@ -1,8 +1,8 @@
 package ${package}.facade.teaching;
 
-import ${package}.facade.dto.teaching.AssignUserToClassDTO;
-import ${package}.facade.dto.teaching.CreateSchoolClassDTO;
-import ${package}.facade.dto.teaching.SchoolClassDetailDTO;
+import ${package}.facade.teaching.dto.AssignUserToClassDTO;
+import ${package}.facade.teaching.dto.CreateSchoolClassDTO;
+import ${package}.facade.teaching.dto.SchoolClassDetailDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

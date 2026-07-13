@@ -1,17 +1,17 @@
 package ${package}.application.teaching;
 
-import ${package}.application.command.teaching.CreateGradeCommand;
+import ${package}.application.teaching.command.CreateGradeCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
-import ${package}.application.manage.teaching.impl.GradeManageImpl;
-import ${package}.application.validators.teaching.TeachingApplicationValidator;
-import ${package}.domain.repos.teaching.GradeRepository;
+import ${package}.application.teaching.manage.impl.GradeManageImpl;
+import ${package}.application.teaching.validators.TeachingApplicationValidator;
+import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.client.CommandIdempotencyPort;
 import ${package}.domain.client.OrganizationEventPublisher;
-import ${package}.domain.client.teaching.GradeCachePort;
-import ${package}.domain.service.teaching.impl.GradeDomainServiceImpl;
-import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.teaching.client.GradeCachePort;
+import ${package}.domain.teaching.service.impl.GradeDomainServiceImpl;
+import ${package}.domain.teaching.vos.GradeCode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

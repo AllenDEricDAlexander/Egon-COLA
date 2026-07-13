@@ -1,12 +1,12 @@
 package ${package}.domain.teaching;
 
-import ${package}.domain.entities.teaching.Grade;
-import ${package}.domain.entities.teaching.SchoolClass;
-import ${package}.domain.enums.teaching.GradeStatus;
+import ${package}.domain.teaching.entities.Grade;
+import ${package}.domain.teaching.entities.SchoolClass;
+import ${package}.domain.teaching.enums.GradeStatus;
 import ${package}.domain.exceptions.OrganizationDomainException;
-import ${package}.domain.service.teaching.SchoolClassDomainService;
-import ${package}.domain.vos.teaching.GradeCode;
-import ${package}.domain.vos.teaching.SchoolClassId;
+import ${package}.domain.teaching.service.SchoolClassDomainService;
+import ${package}.domain.teaching.vos.GradeCode;
+import ${package}.domain.teaching.vos.SchoolClassId;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

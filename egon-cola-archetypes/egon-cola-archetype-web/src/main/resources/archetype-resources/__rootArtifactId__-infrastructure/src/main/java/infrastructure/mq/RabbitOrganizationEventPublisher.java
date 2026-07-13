@@ -2,12 +2,12 @@ package ${package}.infrastructure.mq;
 
 import ${package}.domain.client.OrganizationEventPublisher;
 import ${package}.domain.events.OrganizationDomainEvent;
-import ${package}.domain.events.teaching.GradeChangedEvent;
-import ${package}.domain.events.teaching.SchoolClassChangedEvent;
-import ${package}.domain.events.teaching.SchoolClassMembershipChangedEvent;
-import ${package}.domain.events.user.PermissionGrantedEvent;
-import ${package}.domain.events.user.RoleAssignedEvent;
-import ${package}.domain.events.user.UserChangedEvent;
+import ${package}.domain.teaching.events.GradeChangedEvent;
+import ${package}.domain.teaching.events.SchoolClassChangedEvent;
+import ${package}.domain.teaching.events.SchoolClassMembershipChangedEvent;
+import ${package}.domain.user.events.PermissionGrantedEvent;
+import ${package}.domain.user.events.RoleAssignedEvent;
+import ${package}.domain.user.events.UserChangedEvent;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;

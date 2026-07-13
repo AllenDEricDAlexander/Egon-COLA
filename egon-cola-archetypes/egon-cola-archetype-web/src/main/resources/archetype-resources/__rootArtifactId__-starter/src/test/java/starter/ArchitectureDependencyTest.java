@@ -99,8 +99,8 @@ class ArchitectureDependencyTest {
     void facadeImplementationsStayInAdapterDomainPackages() {
         classes().that().haveSimpleNameEndingWith("FacadeImpl")
                 .should().resideInAnyPackage(
-                        "${package}.adapter.facade.impl.user..",
-                        "${package}.adapter.facade.impl.teaching..")
+                        "${package}.adapter.user.facade.impl..",
+                        "${package}.adapter.teaching.facade.impl..")
                 .check(classes);
     }
 

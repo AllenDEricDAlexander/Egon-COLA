@@ -1,6 +1,6 @@
 package ${package}.infrastructure;
 
-import ${package}.domain.events.user.RoleAssignedEvent;
+import ${package}.domain.user.events.RoleAssignedEvent;
 import ${package}.infrastructure.config.OrganizationRabbitConfig;
 import ${package}.infrastructure.mq.OrganizationEventMessage;
 import ${package}.infrastructure.mq.OrganizationEventProducer;

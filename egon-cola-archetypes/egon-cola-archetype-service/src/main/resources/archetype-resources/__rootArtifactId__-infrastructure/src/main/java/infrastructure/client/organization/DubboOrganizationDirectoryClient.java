@@ -3,8 +3,8 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.client.organization;
 
-import ${organizationFacadePackage}.facade.dto.teaching.SchoolClassDetailDTO;
-import ${organizationFacadePackage}.facade.dto.user.UserDetailDTO;
+import ${organizationFacadePackage}.facade.teaching.dto.SchoolClassDetailDTO;
+import ${organizationFacadePackage}.facade.user.dto.UserDetailDTO;
 import ${organizationFacadePackage}.facade.teaching.SchoolClassFacade;
 import ${organizationFacadePackage}.facade.user.UserFacade;
 import ${package}.domain.client.ExternalDependencyException;

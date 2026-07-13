@@ -3,18 +3,18 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam;
 
-import ${package}.application.command.exam.CreateExamCommand;
-import ${package}.application.converter.exam.ExamApplicationConverter;
-import ${package}.application.manage.exam.impl.ExamManageImpl;
-import ${package}.application.validators.exam.ExamApplicationValidator;
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.event.exam.ExamEventPublisher;
-import ${package}.domain.repos.course.CourseRepository;
-import ${package}.domain.repos.exam.ExamPaperRepository;
-import ${package}.domain.repos.exam.ExamRepository;
-import ${package}.domain.service.exam.impl.ExamDomainServiceImpl;
-import ${package}.domain.vos.course.CourseCode;
-import ${package}.domain.vos.course.CourseId;
+import ${package}.application.exam.command.CreateExamCommand;
+import ${package}.application.exam.converter.ExamApplicationConverter;
+import ${package}.application.exam.manage.impl.ExamManageImpl;
+import ${package}.application.exam.validators.ExamApplicationValidator;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.exam.event.ExamEventPublisher;
+import ${package}.domain.course.repos.CourseRepository;
+import ${package}.domain.exam.repos.ExamPaperRepository;
+import ${package}.domain.exam.repos.ExamRepository;
+import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.course.vos.CourseCode;
+import ${package}.domain.course.vos.CourseId;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

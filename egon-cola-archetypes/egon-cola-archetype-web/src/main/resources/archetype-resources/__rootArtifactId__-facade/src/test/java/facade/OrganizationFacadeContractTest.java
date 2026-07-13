@@ -1,10 +1,10 @@
 package ${package}.facade;
 
-import ${package}.facade.dto.user.CreateUserDTO;
-import ${package}.facade.dto.user.AssignRoleDTO;
-import ${package}.facade.dto.user.GrantPermissionDTO;
-import ${package}.facade.dto.teaching.CreateGradeDTO;
-import ${package}.facade.dto.teaching.CreateSchoolClassDTO;
+import ${package}.facade.user.dto.CreateUserDTO;
+import ${package}.facade.user.dto.AssignRoleDTO;
+import ${package}.facade.user.dto.GrantPermissionDTO;
+import ${package}.facade.teaching.dto.CreateGradeDTO;
+import ${package}.facade.teaching.dto.CreateSchoolClassDTO;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;

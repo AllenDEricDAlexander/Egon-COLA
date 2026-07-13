@@ -3,19 +3,19 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam;
 
-import ${package}.application.command.exam.RecordScoreCommand;
-import ${package}.application.converter.exam.ExamApplicationConverter;
-import ${package}.application.manage.exam.impl.ScoreManageImpl;
-import ${package}.application.validators.exam.ExamApplicationValidator;
-import ${package}.domain.entities.exam.Exam;
-import ${package}.domain.entities.exam.ExamPaper;
-import ${package}.domain.entities.exam.Score;
-import ${package}.domain.event.exam.ExamEventPublisher;
-import ${package}.domain.repos.exam.ExamPaperRepository;
-import ${package}.domain.repos.exam.ExamRepository;
-import ${package}.domain.repos.exam.ScoreRepository;
-import ${package}.domain.service.exam.impl.ScoreDomainServiceImpl;
-import ${package}.domain.vos.exam.ExamId;
+import ${package}.application.exam.command.RecordScoreCommand;
+import ${package}.application.exam.converter.ExamApplicationConverter;
+import ${package}.application.exam.manage.impl.ScoreManageImpl;
+import ${package}.application.exam.validators.ExamApplicationValidator;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.entities.ExamPaper;
+import ${package}.domain.exam.entities.Score;
+import ${package}.domain.exam.event.ExamEventPublisher;
+import ${package}.domain.exam.repos.ExamPaperRepository;
+import ${package}.domain.exam.repos.ExamRepository;
+import ${package}.domain.exam.repos.ScoreRepository;
+import ${package}.domain.exam.service.impl.ScoreDomainServiceImpl;
+import ${package}.domain.exam.vos.ExamId;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 

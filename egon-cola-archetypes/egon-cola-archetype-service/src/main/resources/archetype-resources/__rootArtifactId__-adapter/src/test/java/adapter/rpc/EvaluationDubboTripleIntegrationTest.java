@@ -3,22 +3,22 @@
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.rpc;
 
-import ${package}.adapter.converter.course.CourseFacadeConverter;
-import ${package}.adapter.facade.impl.course.CourseFacadeImpl;
-import ${package}.adapter.converter.exam.ExamFacadeConverter;
-import ${package}.adapter.facade.impl.exam.ExamFacadeImpl;
+import ${package}.adapter.course.converter.CourseFacadeConverter;
+import ${package}.adapter.course.facade.impl.CourseFacadeImpl;
+import ${package}.adapter.exam.converter.ExamFacadeConverter;
+import ${package}.adapter.exam.facade.impl.ExamFacadeImpl;
 import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
-import ${package}.adapter.validators.course.CourseFacadeValidator;
-import ${package}.adapter.validators.exam.ExamFacadeValidator;
-import ${package}.application.command.course.CreateCourseCommand;
-import ${package}.application.manage.course.CourseManage;
-import ${package}.application.manage.exam.ExamManage;
-import ${package}.application.result.course.CourseResult;
-import ${package}.application.result.exam.ExamDetailResult;
-import ${package}.facade.api.CourseFacade;
-import ${package}.facade.api.ExamFacade;
-import ${package}.facade.dto.course.CreateCourseRequest;
-import ${package}.facade.dto.exam.CreateExamRequest;
+import ${package}.adapter.course.validators.CourseFacadeValidator;
+import ${package}.adapter.exam.validators.ExamFacadeValidator;
+import ${package}.application.course.command.CreateCourseCommand;
+import ${package}.application.course.manage.CourseManage;
+import ${package}.application.exam.manage.ExamManage;
+import ${package}.application.course.result.CourseResult;
+import ${package}.application.exam.result.ExamDetailResult;
+import ${package}.facade.course.CourseFacade;
+import ${package}.facade.exam.ExamFacade;
+import ${package}.facade.course.dto.CreateCourseRequest;
+import ${package}.facade.exam.dto.CreateExamRequest;
 import java.net.ServerSocket;
 import java.time.Instant;
 import org.apache.dubbo.config.ApplicationConfig;

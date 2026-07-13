@@ -1,13 +1,13 @@
 package ${package}.adapter;
 
-import ${package}.adapter.dto.user.CreateUserMessage;
+import ${package}.adapter.user.dto.CreateUserMessage;
 import ${package}.adapter.mq.RetryableOrganizationMessageException;
-import ${package}.adapter.mq.user.UserCreatedConsumer;
-import ${package}.application.command.user.CreateUserCommand;
+import ${package}.adapter.user.mq.UserCreatedConsumer;
+import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.exceptions.OrganizationFailureType;
-import ${package}.application.manage.user.UserManage;
+import ${package}.application.user.manage.UserManage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 

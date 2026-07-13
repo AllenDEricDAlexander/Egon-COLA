@@ -50,15 +50,15 @@ web handler
 vo
 ```
 
-adapter 层只保留：
+adapter 层只保留以下职责，并统一放在业务领域之下：
 
 ```text
-rpc             RPC 入站
-mq              MQ 入站
-facade.impl     Facade 实现，只能放在 adapter
-convertor       入站对象转换
-dto             入站 DTO / Message DTO
-handler         RPC / MQ 异常处理器，不处理 Web
+<domain>/rpc          RPC 入站
+<domain>/mq           MQ 入站
+<domain>/facade/impl  Facade 实现，只能放在 adapter
+<domain>/converter    入站对象转换
+<domain>/dto          入站 DTO / Message DTO
+handler               跨领域 RPC / MQ 异常处理器，不处理 Web
 ```
 
 本示例按两个独立 Project 展开：
@@ -77,7 +77,7 @@ student-management-organization
 
 student-management-evaluation
     - course 领域
-    - examing 领域
+    - exam 领域
 ```
 
 说明：
@@ -217,7 +217,7 @@ student-management-evaluation/
 ```text
 student-management-evaluation-infrastructure
     -> OrganizationUserFacade
-    -> student-management-organization-adapter/facade.impl
+    -> student-management-organization-adapter/user/facade/impl
     -> student-management-organization-application
 ```
 
@@ -275,30 +275,25 @@ starter
 
 ### 3.2.1 职责
 
-`adapter` 是入站适配层。
-
-纯 Service 项目中，adapter 只负责：
-
-```text
-1. RPC 入站。
-2. MQ 入站。
-3. Facade 实现。
-4. 入站 DTO 转换。
-5. RPC / MQ 异常处理。
-```
+`adapter` 是 RPC / MQ 入站适配层。所有业务代码先按领域归属，再在领域内按技术职责拆分。
 
 ### 3.2.2 推荐结构
 
 ```text
 adapter
-    - rpc
-    - mq
-    - facade.impl
-    - convertor
-    - dto
+    - <domain>
+        - facade
+            - impl
+        - rpc
+        - mq
+        - converter
+        - dto
+        - validators
     - handler
     - package-info.java
 ```
+
+没有实际代码的职责目录不创建。例如某领域没有入站 Message DTO，就不创建空的 `dto` 或 `mq` 包。
 
 明确不允许出现：
 
@@ -308,36 +303,28 @@ adapter/web
 adapter/filter
 adapter/graphql
 adapter/vo
+以技术职责作为一级目录、再在其下放领域目录
 ```
 
 ### 3.2.3 能做什么
 
 ```text
-1. 暴露 Dubbo Provider。
-2. 暴露 gRPC Provider。
-3. 实现 facade 接口。
-4. 消费 Kafka / RocketMQ / RabbitMQ 等入站消息。
-5. 将 MQ Message DTO 转换为 application 入参。
-6. 将 RPC DTO 转换为 application 入参。
-7. 将 application 返回值转换为 facade DTO。
-8. 处理 RPC 层异常映射。
-9. 处理 MQ 消费异常和重试入口。
+1. 暴露 Dubbo Triple 或 gRPC Provider。
+2. 实现 Facade 接口。
+3. 消费 Kafka / RocketMQ / RabbitMQ 等入站消息。
+4. 将 RPC DTO 或 Message DTO 转换为 Application 入参。
+5. 将 Application 返回值转换为 Facade DTO。
+6. 完成入站校验、异常映射和消费重试入口。
 ```
 
 ### 3.2.4 不能做什么
 
 ```text
-1. 不提供 HTTP Controller。
-2. 不提供 Web Filter。
-3. 不提供 Web Interceptor。
-4. 不提供 GraphQL Resolver。
-5. 不定义 VO。
-6. 不直接调用 Mapper。
-7. 不直接调用 JPA Repository。
-8. 不直接调用 RedisTemplate。
-9. 不直接发送 MQ。
-10. 不写核心业务规则。
-11. 不绕过 application 直接调用 domain。
+1. 不提供 HTTP Controller、Web Filter、Web Interceptor 或 GraphQL Resolver。
+2. 不定义 VO。
+3. 不直接调用 Mapper、JPA Repository、RedisTemplate 或 MQ Producer。
+4. 不写核心业务规则。
+5. 不绕过 Application 直接调用 Domain。
 ```
 
 ### 3.2.5 调用链路
@@ -354,24 +341,15 @@ MQ Consumer  -> Application
 
 ### 3.3.1 职责
 
-`facade` 是 RPC 对外契约层。
-
-它只定义：
-
-```text
-1. Facade 接口。
-2. RPC 请求 DTO。
-3. RPC 响应 DTO。
-4. 对外枚举。
-5. 对外异常。
-6. Facade 内部工具类。
-```
+`facade` 是 RPC 对外契约层。Facade 接口直接放在业务领域下，DTO 再放在该领域的 `dto` 子包中。
 
 ### 3.3.2 推荐结构
 
 ```text
 facade
-    - api
+    - <domain>
+        - XxxFacade.java
+        - dto
     - dto
     - enums
     - exceptions
@@ -379,30 +357,22 @@ facade
     - package-info.java
 ```
 
+共享目录只保存确实跨领域的契约；Facade 接口和领域 DTO 不再按技术职责优先排列。
+
 ### 3.3.3 能做什么
 
 ```text
-1. 定义 RPC 接口。
-2. 定义 RPC DTO。
-3. 定义 RPC 对外枚举。
-4. 定义 RPC 对外异常。
-5. 定义 facade 自己需要的轻量工具。
-6. 被其他工程作为 RPC 契约依赖。
+1. 定义 RPC 接口、请求 DTO、响应 DTO。
+2. 定义对外枚举、异常和轻量工具。
+3. 作为其他 Project 的 RPC 契约依赖。
 ```
 
 ### 3.3.4 不能做什么
 
 ```text
 1. 不写 Facade 实现类。
-2. 不依赖 common。
-3. 不依赖 application。
-4. 不依赖 domain。
-5. 不依赖 infrastructure。
-6. 不依赖 adapter。
-7. 不写业务逻辑。
-8. 不写数据库逻辑。
-9. 不写缓存逻辑。
-10. 不写 MQ 消费逻辑。
+2. 不依赖 Common、Application、Domain、Infrastructure 或 Adapter。
+3. 不写业务、数据库、缓存或 MQ 消费逻辑。
 ```
 
 ---
@@ -411,70 +381,44 @@ facade
 
 ### 3.4.1 职责
 
-`application` 是应用编排层，负责组织一次完整业务用例。
-
-它不关心请求来自 RPC 还是 MQ。
+`application` 是应用编排层，负责组织完整业务用例，不关心请求来自 RPC 还是 MQ。
 
 ### 3.4.2 推荐结构
 
 ```text
 application
-    - manage
-    - convertor
-    - validators
-    - assemblers
-    - client
+    - <domain>
+        - command
+        - converter
+        - manage
+            - impl
+        - query
+        - result
+        - validators
+    - config
+    - exceptions
+    - result
     - package-info.java
 ```
 
-其中 `manage` 按领域拆分：
-
-```text
-application/manage/user
-application/manage/user/impl
-application/manage/teaching
-application/manage/teaching/impl
-```
-
-注意方向是：
-
-```text
-manage.user.impl
-manage.teaching.impl
-```
-
-不是：
-
-```text
-manage.impl.user
-manage.impl.teaching
-```
+正确方向是 `application/<domain>/manage/impl`，不是 `application/manage/<domain>` 或 `application/manage/impl/<domain>`。
 
 ### 3.4.3 能做什么
 
 ```text
-1. 编排业务流程。
-2. 控制事务边界。
-3. 调用 domain service。
-4. 调用 domain repository 接口。
-5. 调用 application client 接口。
-6. 做应用级校验。
-7. 做权限、幂等、流程前置校验。
-8. 做 RPC / MQ 入参到领域模型的转换。
-9. 聚合多个领域完成一个业务用例。
+1. 编排业务流程和事务边界。
+2. 调用 Domain Service 与 Domain Repository 接口。
+3. 做应用级校验、权限、幂等和流程前置校验。
+4. 完成入参、领域模型和结果模型之间的转换。
+5. 聚合多个领域完成一个业务用例。
 ```
 
 ### 3.4.4 不能做什么
 
 ```text
-1. 不直接调用 Mapper。
-2. 不直接调用 JPA Repository。
-3. 不直接调用 RedisTemplate。
-4. 不直接调用 KafkaTemplate / RabbitTemplate。
-5. 不直接调用外部 RPC 实现。
-6. 不写 RPC Provider。
-7. 不写 MQ Consumer。
-8. 不写 Web 相关逻辑。
+1. 不直接调用 Mapper、JPA Repository、RedisTemplate 或 MQ Template。
+2. 不直接调用外部 RPC 技术实现。
+3. 不写 RPC Provider、MQ Consumer 或 Web 相关逻辑。
 ```
 
 ---
@@ -483,62 +427,43 @@ manage.impl.teaching
 
 ### 3.5.1 职责
 
-`domain` 是领域核心层，负责实体、聚合、值对象、领域服务、仓储接口、领域规则。
+`domain` 是领域核心层，负责实体、聚合、值对象、领域事件、领域服务、仓储端口和领域规则。
 
 ### 3.5.2 推荐结构
 
 ```text
 domain
-    - entities
-    - aggregates
-    - vos
-    - service
-    - repos
-    - validators
-    - enums
+    - <domain>
+        - aggregates
+        - entities
+        - enums
+        - event
+        - repos
+        - service
+        - validators
+        - vos
+    - common
+    - client
+        - <external-system>
     - package-info.java
 ```
 
-领域服务必须使用：
-
-```text
-service
-service.impl
-```
-
-不使用：
-
-```text
-domainservices
-domainservicesimpl
-```
+业务领域必须位于技术职责之前，例如 `domain/exam/entities`。外部系统端口是明确例外，保留在 `domain/client/<external-system>`，用于表达消费方拥有的 Anti-Corruption Layer 边界。
 
 ### 3.5.3 能做什么
 
 ```text
-1. 定义领域实体。
-2. 定义聚合。
-3. 定义值对象。
-4. 定义领域服务接口。
-5. 定义领域服务实现。
-6. 定义领域仓储接口。
-7. 定义领域校验器。
-8. 定义领域枚举。
-9. 表达核心业务规则。
+1. 定义领域实体、聚合、值对象和事件。
+2. 定义并实现领域服务。
+3. 定义领域仓储和外部能力端口。
+4. 定义领域校验器、枚举和核心业务规则。
 ```
 
 ### 3.5.4 不能做什么
 
 ```text
-1. 不依赖 application。
-2. 不依赖 infrastructure。
-3. 不依赖 adapter。
-4. 不依赖 facade。
-5. 不依赖 MyBatis-Plus。
-6. 不依赖 JPA。
-7. 不依赖 Redis。
-8. 不依赖 MQ。
-9. 不依赖 Dubbo / gRPC 技术实现。
+1. 不依赖 Application、Infrastructure、Adapter 或 Facade。
+2. 不依赖 JPA、MyBatis、Redis、MQ、Dubbo 或 gRPC 技术实现。
 ```
 
 ---
@@ -547,72 +472,47 @@ domainservicesimpl
 
 ### 3.6.1 职责
 
-`infrastructure` 是基础设施层，负责数据库、缓存、MQ 出站、外部 RPC 调用、第三方 SDK 等技术实现。
+`infrastructure` 是基础设施层，负责数据库、缓存、MQ 出站、外部 RPC 调用和第三方 SDK 的技术实现。
 
 ### 3.6.2 推荐结构
 
 ```text
 infrastructure
-    - repo
+    - <domain>
+        - repo
+            - impl
+            - po
+            - jpa
+            - converter
+        - mq
+            - message
     - client
-    - mq
-    - cache
+        - <external-system>
     - config
     - aop
     - validators
     - package-info.java
 ```
 
-其中 `repo` 必须按领域拆分：
-
-```text
-repo.user.impl
-repo.user.po
-repo.user.mp
-repo.user.jpa
-repo.user.converter
-
-repo.teaching.impl
-repo.teaching.po
-repo.teaching.mp
-repo.teaching.jpa
-repo.teaching.converter
-```
-
-不能写成：
-
-```text
-repo.impl.user
-repo.po.user
-repo.mp.user
-repo.jpa.user
-```
+业务持久化与出站消息按 `infrastructure/<domain>/<responsibility>` 排列。外部系统适配器是明确例外，保留在 `infrastructure/client/<external-system>`，与 Domain 端口共同组成 Anti-Corruption Layer。
 
 ### 3.6.3 能做什么
 
 ```text
-1. 实现 domain repository 接口。
-2. 调用 MyBatis-Plus Service。
-3. 调用 MyBatis Mapper。
-4. 调用 JPA Repository。
-5. 实现 application client 接口。
-6. 调用外部 Facade。
-7. 调用外部 gRPC / Dubbo / HTTP Client。
-8. 发送出站 MQ 消息。
-9. 封装 Redis、Caffeine 等缓存。
-10. 定义基础设施配置。
+1. 实现 Domain Repository 与外部能力端口。
+2. 调用 JPA Repository、Mapper、外部 Facade、Dubbo、gRPC 或 HTTP Client。
+3. 发送出站 MQ 消息。
+4. 封装缓存和基础设施配置。
 ```
 
 ### 3.6.4 不能做什么
 
 ```text
 1. 不写核心业务规则。
-2. 不消费入站 MQ 消息。
-3. 不暴露 RPC Provider。
-4. 不实现 Facade 接口。
-5. 不处理 Web 请求。
-6. 不让 application 直接感知 mapper / jpa / redis / mq。
-7. 不让 domain 感知基础设施实现。
+2. 不消费入站 MQ 消息或暴露 RPC Provider。
+3. 不实现 Facade 接口。
+4. 不处理 Web 请求。
+5. 不让 Application 或 Domain 感知基础设施实现。
 ```
 
 ---
@@ -709,788 +609,236 @@ student-management-evaluation/
 
 ## 4.2 student-management-organization 结构示例
 
-`student-management-organization` 包含两个领域：
+`student-management-organization` 包含 `user` 与 `teaching` 两个领域。以下示例强调同一条规则：领域名先于技术职责。
 
 ```text
-user      用户、角色、权限
-teaching  班级、年级、教学组织
+student-management-organization
+├── student-management-organization-starter
+│   └── src/main/java/com/example/student/organization/starter
+│       ├── OrganizationServiceApplication.java
+│       └── config
+├── student-management-organization-common
+│   └── src/main/java/com/example/student/organization/common
+│       ├── constants
+│       ├── enums
+│       ├── exceptions
+│       └── utils
+├── student-management-organization-facade
+│   └── src/main/java/com/example/student/organization/facade
+│       ├── user
+│       │   ├── UserFacade.java
+│       │   ├── RoleFacade.java
+│       │   ├── PermissionFacade.java
+│       │   └── dto
+│       ├── teaching
+│       │   ├── GradeFacade.java
+│       │   ├── SchoolClassFacade.java
+│       │   └── dto
+│       ├── enums
+│       ├── exceptions
+│       └── utils
+├── student-management-organization-domain
+│   └── src/main/java/com/example/student/organization/domain
+│       ├── user
+│       │   ├── aggregates
+│       │   ├── entities
+│       │   ├── enums
+│       │   ├── events
+│       │   ├── repos
+│       │   ├── service
+│       │   ├── validators
+│       │   └── vos
+│       ├── teaching
+│       │   ├── aggregates
+│       │   ├── entities
+│       │   ├── enums
+│       │   ├── events
+│       │   ├── repos
+│       │   ├── service
+│       │   ├── validators
+│       │   └── vos
+│       └── client
+│           └── evaluation
+├── student-management-organization-application
+│   └── src/main/java/com/example/student/organization/application
+│       ├── user
+│       │   ├── command
+│       │   ├── converter
+│       │   ├── manage
+│       │   │   └── impl
+│       │   ├── query
+│       │   ├── result
+│       │   └── validators
+│       ├── teaching
+│       │   ├── command
+│       │   ├── converter
+│       │   ├── manage
+│       │   │   └── impl
+│       │   ├── query
+│       │   ├── result
+│       │   └── validators
+│       ├── config
+│       ├── exceptions
+│       └── result
+├── student-management-organization-infrastructure
+│   └── src/main/java/com/example/student/organization/infrastructure
+│       ├── user
+│       │   ├── repo
+│       │   │   ├── impl
+│       │   │   ├── po
+│       │   │   ├── jpa
+│       │   │   └── converter
+│       │   └── mq
+│       ├── teaching
+│       │   ├── repo
+│       │   │   ├── impl
+│       │   │   ├── po
+│       │   │   ├── jpa
+│       │   │   └── converter
+│       │   └── mq
+│       └── client
+│           └── evaluation
+└── student-management-organization-adapter
+    └── src/main/java/com/example/student/organization/adapter
+        ├── user
+        │   ├── facade
+        │   │   └── impl
+        │   ├── rpc
+        │   ├── mq
+        │   ├── converter
+        │   ├── dto
+        │   └── validators
+        ├── teaching
+        │   ├── facade
+        │   │   └── impl
+        │   ├── rpc
+        │   ├── mq
+        │   ├── converter
+        │   ├── dto
+        │   └── validators
+        └── handler
 ```
 
-### 4.2.1 starter
-
-```text
-student-management-organization-starter
-├── pom.xml
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── com/example/student/organization/starter
-│   │   │       ├── OrganizationServiceApplication.java          // 纯 Service 启动类
-│   │   │       ├── config
-│   │   │       │   ├── RpcProviderConfig.java                   // RPC Provider 配置
-│   │   │       │   ├── MqConsumerConfig.java                    // MQ Consumer 配置
-│   │   │       │   ├── ServiceThreadPoolConfig.java             // 服务线程池配置
-│   │   │       │   └── package-info.java
-│   │   │       └── package-info.java
-│   │   └── resources
-│   │       ├── application.yml                                  // 应用配置
-│   │       ├── application-dev.yml                              // 开发环境配置
-│   │       ├── application-prod.yml                             // 生产环境配置
-│   │       ├── bootstrap.yml                                    // 启动引导配置
-│   │       ├── logback-spring.xml                               // 日志配置
-│   │       └── META-INF
-│   │           └── spring
-│   │               └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/starter
-│       │       ├── OrganizationServiceApplicationTest.java      // 启动测试
-│       │       └── package-info.java
-│       └── resources
-│           ├── application-test.yml                             // 测试环境配置
-│           └── logback-test.xml                                 // 测试日志配置
-```
-
-### 4.2.2 common
-
-```text
-student-management-organization-common
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/organization/common
-│   │           ├── constants
-│   │           │   ├── OrganizationConstants.java               // 组织服务通用常量
-│   │           │   └── package-info.java
-│   │           ├── utils
-│   │           │   ├── OrganizationIdUtils.java                 // 组织服务 ID 工具
-│   │           │   ├── OrganizationDateUtils.java               // 组织服务日期工具
-│   │           │   └── package-info.java
-│   │           ├── enums
-│   │           │   ├── YesNoEnum.java                           // 通用是否枚举
-│   │           │   └── package-info.java
-│   │           ├── exceptions
-│   │           │   ├── OrganizationBizException.java            // 组织服务基础业务异常
-│   │           │   ├── OrganizationErrorCode.java               // 组织服务基础错误码
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/common
-│       │       ├── OrganizationIdUtilsTest.java                 // 工具类测试
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
-
-### 4.2.3 facade
-
-```text
-student-management-organization-facade
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/organization/facade
-│   │           ├── api
-│   │           │   ├── UserFacade.java                          // 用户 RPC 契约
-│   │           │   ├── RoleFacade.java                          // 角色 RPC 契约
-│   │           │   ├── PermissionFacade.java                    // 权限 RPC 契约
-│   │           │   ├── TeachingFacade.java                      // 教学组织 RPC 契约
-│   │           │   └── package-info.java
-│   │           ├── dto
-│   │           │   ├── user
-│   │           │   │   ├── CreateUserRpcRequest.java             // 创建用户 RPC 请求
-│   │           │   │   ├── UserRpcResponse.java                  // 用户 RPC 响应
-│   │           │   │   ├── AssignRoleRpcRequest.java             // 分配角色 RPC 请求
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── CreateSchoolClassRpcRequest.java      // 创建班级 RPC 请求
-│   │           │   │   ├── SchoolClassRpcResponse.java           // 班级 RPC 响应
-│   │           │   │   ├── GradeRpcResponse.java                 // 年级 RPC 响应
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── enums
-│   │           │   ├── OrganizationFacadeStatus.java             // Facade 对外状态枚举
-│   │           │   ├── OrganizationFacadeErrorCode.java          // Facade 对外错误码
-│   │           │   └── package-info.java
-│   │           ├── exceptions
-│   │           │   ├── OrganizationFacadeException.java          // Facade 对外异常
-│   │           │   └── package-info.java
-│   │           ├── utils
-│   │           │   ├── OrganizationFacadeAssert.java             // Facade 断言工具
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/facade
-│       │       ├── OrganizationFacadeDtoTest.java                // Facade DTO 测试
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
-
-### 4.2.4 domain
-
-```text
-student-management-organization-domain
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/organization/domain
-│   │           ├── entities
-│   │           │   ├── user
-│   │           │   │   ├── User.java                             // 用户实体
-│   │           │   │   ├── Role.java                             // 角色实体
-│   │           │   │   ├── Permission.java                       // 权限实体
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClass.java                      // 班级实体
-│   │           │   │   ├── Grade.java                            // 年级实体
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── aggregates
-│   │           │   ├── user
-│   │           │   │   ├── UserAggregate.java                    // 用户聚合
-│   │           │   │   ├── RolePermissionAggregate.java          // 角色权限聚合
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassAggregate.java             // 班级聚合
-│   │           │   │   ├── GradeTeachingAggregate.java           // 年级教学聚合
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── vos
-│   │           │   ├── user
-│   │           │   │   ├── UserId.java                           // 用户 ID 值对象
-│   │           │   │   ├── RoleCode.java                         // 角色编码值对象
-│   │           │   │   ├── PermissionCode.java                   // 权限编码值对象
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassId.java                    // 班级 ID 值对象
-│   │           │   │   ├── GradeCode.java                        // 年级编码值对象
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── service
-│   │           │   ├── user
-│   │           │   │   ├── UserDomainService.java                // 用户领域服务接口
-│   │           │   │   ├── RoleDomainService.java                // 角色领域服务接口
-│   │           │   │   ├── PermissionDomainService.java          // 权限领域服务接口
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── UserDomainServiceImpl.java        // 用户领域服务实现
-│   │           │   │   │   ├── RoleDomainServiceImpl.java        // 角色领域服务实现
-│   │           │   │   │   ├── PermissionDomainServiceImpl.java  // 权限领域服务实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassDomainService.java         // 班级领域服务接口
-│   │           │   │   ├── GradeDomainService.java               // 年级领域服务接口
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── SchoolClassDomainServiceImpl.java // 班级领域服务实现
-│   │           │   │   │   ├── GradeDomainServiceImpl.java       // 年级领域服务实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── repos
-│   │           │   ├── user
-│   │           │   │   ├── UserRepository.java                   // 用户仓储接口
-│   │           │   │   ├── RoleRepository.java                   // 角色仓储接口
-│   │           │   │   ├── PermissionRepository.java             // 权限仓储接口
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassRepository.java            // 班级仓储接口
-│   │           │   │   ├── GradeRepository.java                  // 年级仓储接口
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── validators
-│   │           │   ├── user
-│   │           │   │   ├── UserDomainValidator.java              // 用户领域校验器
-│   │           │   │   ├── RoleDomainValidator.java              // 角色领域校验器
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassDomainValidator.java       // 班级领域校验器
-│   │           │   │   ├── GradeDomainValidator.java             // 年级领域校验器
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── enums
-│   │           │   ├── user
-│   │           │   │   ├── UserStatus.java                       // 用户状态枚举
-│   │           │   │   ├── RoleStatus.java                       // 角色状态枚举
-│   │           │   │   ├── PermissionType.java                   // 权限类型枚举
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassStatus.java                // 班级状态枚举
-│   │           │   │   ├── GradeStatus.java                      // 年级状态枚举
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/domain
-│       │       ├── service
-│       │       │   ├── user
-│       │       │   │   ├── UserDomainServiceTest.java            // 用户领域服务测试
-│       │       │   │   └── package-info.java
-│       │       │   ├── teaching
-│       │       │   │   ├── SchoolClassDomainServiceTest.java     // 班级领域服务测试
-│       │       │   │   └── package-info.java
-│       │       │   └── package-info.java
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
-
-### 4.2.5 application
-
-```text
-student-management-organization-application
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/organization/application
-│   │           ├── manage
-│   │           │   ├── user
-│   │           │   │   ├── UserManage.java                       // 用户应用服务接口
-│   │           │   │   ├── RoleManage.java                       // 角色应用服务接口
-│   │           │   │   ├── PermissionManage.java                 // 权限应用服务接口
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── UserManageImpl.java               // 用户应用服务实现
-│   │           │   │   │   ├── RoleManageImpl.java               // 角色应用服务实现
-│   │           │   │   │   ├── PermissionManageImpl.java         // 权限应用服务实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassManage.java                // 班级应用服务接口
-│   │           │   │   ├── GradeManage.java                      // 年级应用服务接口
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── SchoolClassManageImpl.java        // 班级应用服务实现
-│   │           │   │   │   ├── GradeManageImpl.java              // 年级应用服务实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── convertor
-│   │           │   ├── user
-│   │           │   │   ├── UserApplicationConvertor.java         // 用户应用层转换器
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassApplicationConvertor.java  // 班级应用层转换器
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── validators
-│   │           │   ├── user
-│   │           │   │   ├── UserApplicationValidator.java         // 用户应用校验器
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── TeachingApplicationValidator.java     // 教学应用校验器
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── assemblers
-│   │           │   ├── user
-│   │           │   │   ├── UserAssembler.java                    // 用户对象装配器
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassAssembler.java             // 班级对象装配器
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── client
-│   │           │   ├── evaluation
-│   │           │   │   ├── CourseClient.java                     // 课程服务调用接口
-│   │           │   │   ├── ExamClient.java                       // 考试服务调用接口
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/application
-│       │       ├── manage
-│       │       │   ├── user
-│       │       │   │   ├── UserManageImplTest.java               // 用户应用服务测试
-│       │       │   │   └── package-info.java
-│       │       │   ├── teaching
-│       │       │   │   ├── SchoolClassManageImplTest.java        // 班级应用服务测试
-│       │       │   │   └── package-info.java
-│       │       │   └── package-info.java
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
-
-### 4.2.6 infrastructure
-
-```text
-student-management-organization-infrastructure
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/organization/infrastructure
-│   │           ├── repo
-│   │           │   ├── user
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── UserRepositoryImpl.java           // 用户仓储实现
-│   │           │   │   │   ├── RoleRepositoryImpl.java           // 角色仓储实现
-│   │           │   │   │   ├── PermissionRepositoryImpl.java     // 权限仓储实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── po
-│   │           │   │   │   ├── UserPO.java                       // 用户持久化对象
-│   │           │   │   │   ├── RolePO.java                       // 角色持久化对象
-│   │           │   │   │   ├── PermissionPO.java                 // 权限持久化对象
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── mp
-│   │           │   │   │   ├── mapper
-│   │           │   │   │   │   ├── UserMapper.java               // 用户 Mapper
-│   │           │   │   │   │   ├── RoleMapper.java               // 角色 Mapper
-│   │           │   │   │   │   └── package-info.java
-│   │           │   │   │   ├── service
-│   │           │   │   │   │   ├── UserMpService.java            // 用户 MP Service
-│   │           │   │   │   │   ├── RoleMpService.java            // 角色 MP Service
-│   │           │   │   │   │   ├── impl
-│   │           │   │   │   │   │   ├── UserMpServiceImpl.java    // 用户 MP Service 实现
-│   │           │   │   │   │   │   ├── RoleMpServiceImpl.java    // 角色 MP Service 实现
-│   │           │   │   │   │   │   └── package-info.java
-│   │           │   │   │   │   └── package-info.java
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── jpa
-│   │           │   │   │   ├── UserJpaRepository.java            // 用户 JPA Repository
-│   │           │   │   │   ├── RoleJpaRepository.java            // 角色 JPA Repository
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── converter
-│   │           │   │   │   ├── UserPOConverter.java              // 用户 PO 转换器
-│   │           │   │   │   ├── RolePOConverter.java              // 角色 PO 转换器
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── SchoolClassRepositoryImpl.java    // 班级仓储实现
-│   │           │   │   │   ├── GradeRepositoryImpl.java          // 年级仓储实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── po
-│   │           │   │   │   ├── SchoolClassPO.java                // 班级持久化对象
-│   │           │   │   │   ├── GradePO.java                      // 年级持久化对象
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── mp
-│   │           │   │   │   ├── mapper
-│   │           │   │   │   │   ├── SchoolClassMapper.java        // 班级 Mapper
-│   │           │   │   │   │   ├── GradeMapper.java              // 年级 Mapper
-│   │           │   │   │   │   └── package-info.java
-│   │           │   │   │   ├── service
-│   │           │   │   │   │   ├── SchoolClassMpService.java     // 班级 MP Service
-│   │           │   │   │   │   ├── GradeMpService.java           // 年级 MP Service
-│   │           │   │   │   │   ├── impl
-│   │           │   │   │   │   │   ├── SchoolClassMpServiceImpl.java // 班级 MP Service 实现
-│   │           │   │   │   │   │   ├── GradeMpServiceImpl.java   // 年级 MP Service 实现
-│   │           │   │   │   │   │   └── package-info.java
-│   │           │   │   │   │   └── package-info.java
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── jpa
-│   │           │   │   │   ├── SchoolClassJpaRepository.java     // 班级 JPA Repository
-│   │           │   │   │   ├── GradeJpaRepository.java           // 年级 JPA Repository
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── converter
-│   │           │   │   │   ├── SchoolClassPOConverter.java       // 班级 PO 转换器
-│   │           │   │   │   ├── GradePOConverter.java             // 年级 PO 转换器
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── client
-│   │           │   ├── evaluation
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── CourseClientImpl.java             // 课程服务调用实现
-│   │           │   │   │   ├── ExamClientImpl.java               // 考试服务调用实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── mq
-│   │           │   ├── user
-│   │           │   │   ├── UserChangedProducer.java              // 用户变更出站消息发送器
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassChangedProducer.java       // 班级变更出站消息发送器
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── cache
-│   │           │   ├── user
-│   │           │   │   ├── UserCache.java                        // 用户缓存
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassCache.java                 // 班级缓存
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── config
-│   │           │   ├── MybatisPlusConfig.java                    // MyBatis-Plus 配置
-│   │           │   ├── JpaConfig.java                            // JPA 配置
-│   │           │   ├── RedisConfig.java                          // Redis 配置
-│   │           │   ├── MqProducerConfig.java                     // MQ Producer 配置
-│   │           │   └── package-info.java
-│   │           ├── aop
-│   │           │   ├── InfrastructureTraceAspect.java            // 基础设施追踪切面
-│   │           │   └── package-info.java
-│   │           ├── validators
-│   │           │   ├── ExternalResponseValidator.java            // 外部响应校验器
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/infrastructure
-│       │       ├── repo
-│       │       │   ├── user
-│       │       │   │   ├── UserRepositoryImplTest.java           // 用户仓储实现测试
-│       │       │   │   └── package-info.java
-│       │       │   ├── teaching
-│       │       │   │   ├── SchoolClassRepositoryImplTest.java    // 班级仓储实现测试
-│       │       │   │   └── package-info.java
-│       │       │   └── package-info.java
-│       │       └── package-info.java
-│       └── resources
-│           ├── application-test.yml
-│           └── mapper
-│               ├── user
-│               └── teaching
-```
-
-### 4.2.7 adapter
-
-```text
-student-management-organization-adapter
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/organization/adapter
-│   │           ├── rpc
-│   │           │   ├── user
-│   │           │   │   ├── UserRpcProvider.java                  // 用户 RPC Provider
-│   │           │   │   ├── RoleRpcProvider.java                  // 角色 RPC Provider
-│   │           │   │   ├── PermissionRpcProvider.java            // 权限 RPC Provider
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── TeachingRpcProvider.java              // 教学组织 RPC Provider
-│   │           │   │   ├── SchoolClassRpcProvider.java           // 班级 RPC Provider
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── mq
-│   │           │   ├── user
-│   │           │   │   ├── UserImportConsumer.java               // 用户导入入站消息消费者
-│   │           │   │   ├── RoleSyncConsumer.java                 // 角色同步入站消息消费者
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── SchoolClassImportConsumer.java        // 班级导入入站消息消费者
-│   │           │   │   ├── GradeSyncConsumer.java                // 年级同步入站消息消费者
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── facade
-│   │           │   ├── impl
-│   │           │   │   ├── user
-│   │           │   │   │   ├── UserFacadeImpl.java               // 用户 Facade 实现，只能放 adapter
-│   │           │   │   │   ├── RoleFacadeImpl.java               // 角色 Facade 实现，只能放 adapter
-│   │           │   │   │   ├── PermissionFacadeImpl.java         // 权限 Facade 实现，只能放 adapter
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── teaching
-│   │           │   │   │   ├── TeachingFacadeImpl.java           // 教学组织 Facade 实现，只能放 adapter
-│   │           │   │   │   ├── SchoolClassFacadeImpl.java        // 班级 Facade 实现，只能放 adapter
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── convertor
-│   │           │   ├── user
-│   │           │   │   ├── UserRpcConvertor.java                 // 用户 RPC 转换器
-│   │           │   │   ├── UserMqConvertor.java                  // 用户 MQ 转换器
-│   │           │   │   └── package-info.java
-│   │           │   ├── teaching
-│   │           │   │   ├── TeachingRpcConvertor.java             // 教学 RPC 转换器
-│   │           │   │   ├── TeachingMqConvertor.java              // 教学 MQ 转换器
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── dto
-│   │           │   ├── mq
-│   │           │   │   ├── user
-│   │           │   │   │   ├── UserImportMessage.java            // 用户导入消息 DTO
-│   │           │   │   │   ├── RoleSyncMessage.java              // 角色同步消息 DTO
-│   │           │   │   │   └── package-info.java
-│   │           │   │   ├── teaching
-│   │           │   │   │   ├── SchoolClassImportMessage.java     // 班级导入消息 DTO
-│   │           │   │   │   ├── GradeSyncMessage.java             // 年级同步消息 DTO
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── handler
-│   │           │   ├── RpcExceptionHandler.java                  // RPC 异常处理器
-│   │           │   ├── MqConsumeExceptionHandler.java            // MQ 消费异常处理器
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/adapter
-│       │       ├── rpc
-│       │       │   ├── user
-│       │       │   │   ├── UserRpcProviderTest.java              // 用户 RPC Provider 测试
-│       │       │   │   └── package-info.java
-│       │       │   └── package-info.java
-│       │       ├── mq
-│       │       │   ├── user
-│       │       │   │   ├── UserImportConsumerTest.java           // 用户 MQ Consumer 测试
-│       │       │   │   └── package-info.java
-│       │       │   └── package-info.java
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
+`domain/client/evaluation` 与 `infrastructure/client/evaluation` 是跨 Project Anti-Corruption Layer，不按本地业务领域重排。所有测试包镜像生产领域路径，并为实际含 Java 类的目录提供 `package-info.java`。
 
 ---
 
 ## 4.3 student-management-evaluation 结构示例
 
-`student-management-evaluation` 包含两个领域：
+`student-management-evaluation` 使用 `course` 与 `exam` 两个领域。下面是当前 Service archetype 的规范布局：
 
 ```text
-course   课程领域
-examing  考试、成绩领域
+student-management-evaluation
+├── student-management-evaluation-starter
+│   └── src/main/java/com/example/student/evaluation/starter
+│       ├── EvaluationServiceApplication.java
+│       └── config
+├── student-management-evaluation-common
+│   └── src/main/java/com/example/student/evaluation/common
+│       ├── constants
+│       ├── enums
+│       ├── exceptions
+│       └── utils
+├── student-management-evaluation-facade
+│   └── src/main/java/com/example/student/evaluation/facade
+│       ├── course
+│       │   ├── CourseFacade.java
+│       │   └── dto
+│       ├── exam
+│       │   ├── ExamFacade.java
+│       │   ├── ScoreFacade.java
+│       │   └── dto
+│       ├── dto
+│       ├── enums
+│       ├── exceptions
+│       └── utils
+├── student-management-evaluation-domain
+│   └── src/main/java/com/example/student/evaluation/domain
+│       ├── course
+│       │   ├── aggregates
+│       │   ├── entities
+│       │   ├── enums
+│       │   ├── event
+│       │   ├── repos
+│       │   ├── service
+│       │   ├── validators
+│       │   └── vos
+│       ├── exam
+│       │   ├── aggregates
+│       │   ├── entities
+│       │   ├── enums
+│       │   ├── event
+│       │   ├── repos
+│       │   ├── service
+│       │   ├── validators
+│       │   └── vos
+│       ├── common
+│       └── client
+│           └── organization
+├── student-management-evaluation-application
+│   └── src/main/java/com/example/student/evaluation/application
+│       ├── course
+│       │   ├── command
+│       │   ├── converter
+│       │   ├── manage
+│       │   │   └── impl
+│       │   ├── query
+│       │   ├── result
+│       │   └── validators
+│       ├── exam
+│       │   ├── command
+│       │   ├── converter
+│       │   ├── manage
+│       │   │   └── impl
+│       │   ├── query
+│       │   ├── result
+│       │   └── validators
+│       ├── config
+│       ├── exceptions
+│       └── result
+├── student-management-evaluation-infrastructure
+│   └── src/main/java/com/example/student/evaluation/infrastructure
+│       ├── course
+│       │   ├── repo
+│       │   │   ├── impl
+│       │   │   ├── po
+│       │   │   ├── jpa
+│       │   │   └── converter
+│       │   └── mq
+│       │       └── message
+│       ├── exam
+│       │   ├── repo
+│       │   │   ├── impl
+│       │   │   ├── po
+│       │   │   ├── jpa
+│       │   │   └── converter
+│       │   └── mq
+│       │       └── message
+│       ├── client
+│       │   └── organization
+│       ├── config
+│       ├── aop
+│       └── validators
+└── student-management-evaluation-adapter
+    └── src/main/java/com/example/student/evaluation/adapter
+        ├── course
+        │   ├── facade
+        │   │   └── impl
+        │   ├── converter
+        │   └── validators
+        ├── exam
+        │   ├── facade
+        │   │   └── impl
+        │   ├── converter
+        │   ├── dto
+        │   ├── mq
+        │   └── validators
+        └── handler
 ```
 
-说明：`examing` 按你的命名保留。如果后续想更自然，也可以改成 `exam` 或 `examination`。
+Facade 接口直接位于 `facade/course` 与 `facade/exam`。外部 Organization 边界继续保留在 `domain/client/organization` 与 `infrastructure/client/organization`，不混入本地 `course` 或 `exam` 领域。
 
-### 4.3.1 starter
-
-```text
-student-management-evaluation-starter
-├── pom.xml
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── com/example/student/evaluation/starter
-│   │   │       ├── EvaluationServiceApplication.java            // 纯 Service 启动类
-│   │   │       ├── config
-│   │   │       │   ├── RpcProviderConfig.java                   // RPC Provider 配置
-│   │   │       │   ├── MqConsumerConfig.java                    // MQ Consumer 配置
-│   │   │       │   ├── ServiceThreadPoolConfig.java             // 服务线程池配置
-│   │   │       │   └── package-info.java
-│   │   │       └── package-info.java
-│   │   └── resources
-│   │       ├── application.yml
-│   │       ├── application-dev.yml
-│   │       ├── application-prod.yml
-│   │       ├── bootstrap.yml
-│   │       └── logback-spring.xml
-│   └── test
-│       ├── java
-│       │   └── com/example/student/evaluation/starter
-│       │       ├── EvaluationServiceApplicationTest.java        // 启动测试
-│       │       └── package-info.java
-│       └── resources
-│           ├── application-test.yml
-│           └── logback-test.xml
-```
-
-### 4.3.2 common
-
-```text
-student-management-evaluation-common
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/evaluation/common
-│   │           ├── constants
-│   │           │   ├── EvaluationConstants.java                  // 评价服务通用常量
-│   │           │   └── package-info.java
-│   │           ├── utils
-│   │           │   ├── EvaluationIdUtils.java                    // 评价服务 ID 工具
-│   │           │   ├── ScoreUtils.java                           // 成绩工具
-│   │           │   └── package-info.java
-│   │           ├── enums
-│   │           │   ├── YesNoEnum.java                            // 通用是否枚举
-│   │           │   └── package-info.java
-│   │           ├── exceptions
-│   │           │   ├── EvaluationBizException.java               // 评价服务基础异常
-│   │           │   ├── EvaluationErrorCode.java                  // 评价服务基础错误码
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/evaluation/common
-│       │       ├── ScoreUtilsTest.java                           // 成绩工具测试
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
-
-### 4.3.3 facade
-
-```text
-student-management-evaluation-facade
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/evaluation/facade
-│   │           ├── api
-│   │           │   ├── CourseFacade.java                         // 课程 RPC 契约
-│   │           │   ├── ExamFacade.java                           // 考试 RPC 契约
-│   │           │   ├── ScoreFacade.java                          // 成绩 RPC 契约
-│   │           │   └── package-info.java
-│   │           ├── dto
-│   │           │   ├── course
-│   │           │   │   ├── CreateCourseRpcRequest.java            // 创建课程 RPC 请求
-│   │           │   │   ├── CourseRpcResponse.java                 // 课程 RPC 响应
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── CreateExamRpcRequest.java              // 创建考试 RPC 请求
-│   │           │   │   ├── ExamRpcResponse.java                   // 考试 RPC 响应
-│   │           │   │   ├── ScoreRpcResponse.java                  // 成绩 RPC 响应
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── enums
-│   │           │   ├── EvaluationFacadeStatus.java                // Facade 对外状态枚举
-│   │           │   ├── EvaluationFacadeErrorCode.java             // Facade 对外错误码
-│   │           │   └── package-info.java
-│   │           ├── exceptions
-│   │           │   ├── EvaluationFacadeException.java             // Facade 对外异常
-│   │           │   └── package-info.java
-│   │           ├── utils
-│   │           │   ├── EvaluationFacadeAssert.java                // Facade 断言工具
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/evaluation/facade
-│       │       ├── EvaluationFacadeDtoTest.java                   // Facade DTO 测试
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
-
-### 4.3.4 domain
-
-```text
-student-management-evaluation-domain
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/evaluation/domain
-│   │           ├── entities
-│   │           │   ├── course
-│   │           │   │   ├── Course.java                           // 课程实体
-│   │           │   │   ├── CourseSchedule.java                   // 课程安排实体
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── Exam.java                             // 考试实体
-│   │           │   │   ├── ExamPaper.java                        // 试卷实体
-│   │           │   │   ├── Score.java                            // 成绩实体
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── aggregates
-│   │           │   ├── course
-│   │           │   │   ├── CourseAggregate.java                  // 课程聚合
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── ExamAggregate.java                    // 考试聚合
-│   │           │   │   ├── ScoreAggregate.java                   // 成绩聚合
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── vos
-│   │           │   ├── course
-│   │           │   │   ├── CourseId.java                         // 课程 ID 值对象
-│   │           │   │   ├── CourseCode.java                       // 课程编码值对象
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── ExamId.java                           // 考试 ID 值对象
-│   │           │   │   ├── ScoreValue.java                       // 分数值对象
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── service
-│   │           │   ├── course
-│   │           │   │   ├── CourseDomainService.java              // 课程领域服务接口
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── CourseDomainServiceImpl.java      // 课程领域服务实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── ExamDomainService.java                // 考试领域服务接口
-│   │           │   │   ├── ScoreDomainService.java               // 成绩领域服务接口
-│   │           │   │   ├── impl
-│   │           │   │   │   ├── ExamDomainServiceImpl.java        // 考试领域服务实现
-│   │           │   │   │   ├── ScoreDomainServiceImpl.java       // 成绩领域服务实现
-│   │           │   │   │   └── package-info.java
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── repos
-│   │           │   ├── course
-│   │           │   │   ├── CourseRepository.java                 // 课程仓储接口
-│   │           │   │   ├── CourseScheduleRepository.java         // 课程安排仓储接口
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── ExamRepository.java                   // 考试仓储接口
-│   │           │   │   ├── ScoreRepository.java                  // 成绩仓储接口
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── validators
-│   │           │   ├── course
-│   │           │   │   ├── CourseDomainValidator.java            // 课程领域校验器
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── ExamDomainValidator.java              // 考试领域校验器
-│   │           │   │   ├── ScoreDomainValidator.java             // 成绩领域校验器
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           ├── enums
-│   │           │   ├── course
-│   │           │   │   ├── CourseStatus.java                     // 课程状态枚举
-│   │           │   │   └── package-info.java
-│   │           │   ├── examing
-│   │           │   │   ├── ExamStatus.java                       // 考试状态枚举
-│   │           │   │   ├── ScoreStatus.java                      // 成绩状态枚举
-│   │           │   │   └── package-info.java
-│   │           │   └── package-info.java
-│   │           └── package-info.java
-│   └── test
-│       ├── java
-│       │   └── com/example/student/evaluation/domain
-│       │       ├── service
-│       │       │   ├── course
-│       │       │   │   ├── CourseDomainServiceTest.java          // 课程领域服务测试
-│       │       │   │   └── package-info.java
-│       │       │   ├── examing
-│       │       │   │   ├── ExamDomainServiceTest.java            // 考试领域服务测试
-│       │       │   │   ├── ScoreDomainServiceTest.java           // 成绩领域服务测试
-│       │       │   │   └── package-info.java
-│       │       │   └── package-info.java
-│       │       └── package-info.java
-│       └── resources
-│           └── application-test.yml
-```
-
-### 4.3.5 application / infrastructure / adapter 命名规则
-
-`student-management-evaluation` 后续层级与 organization 保持一致，只是领域名替换为：
-
-```text
-course
-examing
-```
-
-必须使用以下方向：
-
-```text
-application/manage/course/impl/CourseManageImpl.java
-application/manage/examing/impl/ExamManageImpl.java
-
-infrastructure/repo/course/impl/CourseRepositoryImpl.java
-infrastructure/repo/examing/impl/ExamRepositoryImpl.java
-
-adapter/facade/impl/course/CourseFacadeImpl.java
-adapter/facade/impl/examing/ExamFacadeImpl.java
-```
-
-不能使用：
-
-```text
-application/manage/impl/course/CourseManageImpl.java
-infrastructure/repo/impl/course/CourseRepositoryImpl.java
-adapter/facade/course/impl/CourseFacadeImpl.java
-```
+该工程保持纯 Service：不创建业务 Controller、Web、Filter、GraphQL 或 VO 包；业务流量只通过 Dubbo Triple 或 RabbitMQ 进入。
 
 ---
 
@@ -1512,7 +860,7 @@ adapter/facade/course/impl/CourseFacadeImpl.java
 
 ```text
 1. RPC 契约定义在 facade。
-2. RPC 实现只能放在 adapter/facade/impl。
+2. RPC 实现只能放在 `adapter/<domain>/facade/impl`。
 3. RPC Provider 只能调用 application。
 4. RPC DTO 只能用于 facade 和 adapter 边界。
 5. application 不允许直接依赖 RPC 技术实现。
@@ -1736,9 +1084,9 @@ Infrastructure Validator 负责技术适配校验。
 5. 对外只提供 RPC 或 MQ。
 6. adapter 只处理 RPC / MQ 入站。
 7. facade 只定义 RPC 契约。
-8. facade.impl 只能放 adapter。
-9. MQ 入站放 adapter.mq。
-10. MQ 出站放 infrastructure.mq。
+8. Facade 实现只能放在 `adapter.<domain>.facade.impl`。
+9. MQ 入站放在 `adapter.<domain>.mq`。
+10. MQ 出站放在 `infrastructure.<domain>.mq`。
 ```
 
 两个 Project 的边界是：
@@ -1750,7 +1098,7 @@ student-management-organization
 
 student-management-evaluation
     - course
-    - examing
+    - exam
 ```
 
 每个 Project 内部保持完整分层：

@@ -1,13 +1,13 @@
 package ${package}.adapter;
 
-import ${package}.adapter.controller.user.UserController;
-import ${package}.adapter.converter.UserAdapterConverter;
+import ${package}.adapter.user.controller.UserController;
+import ${package}.adapter.user.converter.UserAdapterConverter;
 import ${package}.adapter.filter.OrganizationAuthContextFilter;
 import ${package}.adapter.filter.OrganizationTraceFilter;
 import ${package}.adapter.handler.OrganizationGlobalExceptionHandler;
 import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.exceptions.OrganizationFailureType;
-import ${package}.application.manage.user.UserManage;
+import ${package}.application.user.manage.UserManage;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;

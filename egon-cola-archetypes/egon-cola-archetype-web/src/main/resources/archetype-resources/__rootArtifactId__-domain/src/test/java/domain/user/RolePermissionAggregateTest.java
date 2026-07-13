@@ -1,19 +1,19 @@
 package ${package}.domain.user;
 
-import ${package}.domain.aggregates.user.RolePermissionAggregate;
-import ${package}.domain.aggregates.user.UserAggregate;
-import ${package}.domain.entities.user.Permission;
-import ${package}.domain.entities.user.Role;
-import ${package}.domain.entities.user.User;
-import ${package}.domain.enums.user.PermissionStatus;
-import ${package}.domain.enums.user.PermissionType;
-import ${package}.domain.enums.user.RoleStatus;
-import ${package}.domain.enums.user.UserStatus;
+import ${package}.domain.user.aggregates.RolePermissionAggregate;
+import ${package}.domain.user.aggregates.UserAggregate;
+import ${package}.domain.user.entities.Permission;
+import ${package}.domain.user.entities.Role;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.enums.PermissionStatus;
+import ${package}.domain.user.enums.PermissionType;
+import ${package}.domain.user.enums.RoleStatus;
+import ${package}.domain.user.enums.UserStatus;
 import ${package}.domain.exceptions.OrganizationDomainErrorCode;
 import ${package}.domain.exceptions.OrganizationDomainException;
-import ${package}.domain.vos.user.PermissionCode;
-import ${package}.domain.vos.user.RoleCode;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.user.vos.PermissionCode;
+import ${package}.domain.user.vos.RoleCode;
+import ${package}.domain.user.vos.UserId;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

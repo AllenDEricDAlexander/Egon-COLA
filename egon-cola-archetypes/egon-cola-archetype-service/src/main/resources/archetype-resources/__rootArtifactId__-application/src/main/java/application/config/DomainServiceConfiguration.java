@@ -3,12 +3,12 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.config;
 
-import ${package}.domain.service.course.CourseDomainService;
-import ${package}.domain.service.course.impl.CourseDomainServiceImpl;
-import ${package}.domain.service.exam.ExamDomainService;
-import ${package}.domain.service.exam.ScoreDomainService;
-import ${package}.domain.service.exam.impl.ExamDomainServiceImpl;
-import ${package}.domain.service.exam.impl.ScoreDomainServiceImpl;
+import ${package}.domain.course.service.CourseDomainService;
+import ${package}.domain.course.service.impl.CourseDomainServiceImpl;
+import ${package}.domain.exam.service.ExamDomainService;
+import ${package}.domain.exam.service.ScoreDomainService;
+import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.exam.service.impl.ScoreDomainServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

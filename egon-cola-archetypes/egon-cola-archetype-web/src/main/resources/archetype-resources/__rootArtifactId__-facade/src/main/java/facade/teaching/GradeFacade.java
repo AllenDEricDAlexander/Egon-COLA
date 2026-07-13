@@ -1,7 +1,7 @@
 package ${package}.facade.teaching;
 
-import ${package}.facade.dto.teaching.CreateGradeDTO;
-import ${package}.facade.dto.teaching.GradeDetailDTO;
+import ${package}.facade.teaching.dto.CreateGradeDTO;
+import ${package}.facade.teaching.dto.GradeDetailDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

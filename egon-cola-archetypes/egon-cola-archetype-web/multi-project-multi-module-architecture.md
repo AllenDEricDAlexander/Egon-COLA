@@ -101,7 +101,7 @@ infrastructure import domain
 ```text
 1. facade 不依赖 common。
 2. facade 有自己的 utils、enums、exceptions。
-3. adapter/facade.impl 是 Facade 实现唯一位置。
+3. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
 4. application 不放 facade.impl。
 5. infrastructure 只声明 infrastructure import domain，直接实现 domain 定义的仓储和出站端口。
 ```
@@ -195,17 +195,18 @@ starter
 
 ```text
 adapter
-    - controller
-    - mq              // 仅入站
-    - rpc
-    - converter
-    - dto
-    - vo
-    - graphql
-    - facade.impl     // Facade 实现唯一位置
-    - validators
-    - handler
-    - filter
+    - <business-domain>
+        - controller  // Web Project 可用
+        - mq          // 仅入站
+        - rpc
+        - converter
+        - dto
+        - vo          // Web Project 可用
+        - graphql     // Web Project 可用
+        - facade.impl // Facade 实现唯一位置
+        - validators
+    - handler         // 跨领域共享
+    - filter          // Web Project 跨领域共享
 ```
 
 ### 能做
@@ -246,11 +247,13 @@ adapter
 
 ```text
 facade
-    - facade定义
-    - dto
-    - enums
-    - exceptions
-    - utils
+    - <business-domain>
+        - Facade定义
+        - dto
+    - dto             // 仅保留跨领域响应包装
+    - enums           // 跨领域共享
+    - exceptions      // 跨领域共享
+    - utils           // 跨领域共享
 ```
 
 ### 能做
@@ -288,17 +291,19 @@ facade
 
 ```text
 application
-    - command
-    - query
-    - result
-    - converter
-    - manage
-        - user
+    - <business-domain>
+        - command
+        - query
+        - result
+        - converter
+        - manage
             - impl
-        - teaching
-            - impl
-    - validators
-    - assemblers
+        - validators
+        - assemblers
+    - config          // 跨领域共享
+    - context         // 跨领域共享
+    - exceptions      // 跨领域共享
+    - support         // 跨领域共享
 ```
 
 ### 能做
@@ -339,18 +344,20 @@ application
 
 ```text
 domain
-    - entities
-    - aggregates
-    - vos
-    - service
-        - user
+    - <business-domain>
+        - entities
+        - aggregates
+        - vos
+        - service
             - impl
-        - teaching
-            - impl
-    - repos
+        - repos
+        - client
+        - validators
+        - enums
+        - events
     - client
-    - validators
-    - enums
+        - <external-project> // 外部 Facade ACL 的技术优先例外
+    - exceptions             // 跨领域共享
 ```
 
 ### 能做
@@ -393,25 +400,21 @@ domain
 
 ```text
 infrastructure
-    - repo
-        - user
+    - <business-domain>
+        - repo
             - impl
             - po
-            - mp
             - jpa
             - converter
-        - teaching
-            - impl
-            - po
-            - mp
-            - jpa
-            - converter
-    - validators
-    - client.impl
-    - aop
-    - mq              // 仅出站
-    - cache
-    - config
+        - cache
+        - mq          // 仅出站，按需
+    - client
+        - <external-project> // 外部 Facade ACL 的技术优先例外
+    - validators      // 跨领域共享
+    - aop             // 跨领域共享
+    - mq              // 跨领域共享出站支持
+    - cache           // 跨领域共享缓存支持
+    - config          // 跨领域共享
 ```
 
 ### 能做
@@ -533,6 +536,18 @@ user        // 用户、角色、权限
 teaching    // 班级、年级、教学组织
 ```
 
+业务代码统一采用领域优先路径，下面各模块的类型清单均以此映射为准：
+
+```text
+facade/{user,teaching}/dto
+domain/{user,teaching}/{aggregates,client,entities,enums,events,repos,service,validators,vos}
+application/{user,teaching}/{assemblers,command,converter,manage,query,result,validators}
+infrastructure/{user,teaching}/{repo,cache}
+adapter/{user,teaching}/{controller,converter,dto,facade/impl,graphql,mq,rpc,vo}
+```
+
+`domain/client/evaluation` 与 `infrastructure/client/evaluation` 是 Organization 访问外部 Evaluation Facade 的 ACL，也是本工程唯一保留的技术优先外部客户端路径。跨领域的异常、配置、过滤器、消息支持等仍保留在各层共享根。
+
 ### 4.2.1 organization-starter
 
 ```text
@@ -613,21 +628,17 @@ student-management-organization-facade
 │   │           │   ├── package-info.java
 │   │           │   ├── UserFacade.java                            // 用户 Facade
 │   │           │   ├── RoleFacade.java                            // 角色 Facade
-│   │           │   └── PermissionFacade.java                      // 权限 Facade
+│   │           │   ├── PermissionFacade.java                      // 权限 Facade
+│   │           │   └── dto
+│   │           │       ├── CreateUserDTO.java                     // 创建用户 DTO
+│   │           │       ├── UserDetailDTO.java                     // 用户详情 DTO
+│   │           │       ├── AssignRoleDTO.java                     // 分配角色 DTO
+│   │           │       └── PermissionTreeDTO.java                 // 权限树 DTO
 │   │           ├── teaching
 │   │           │   ├── package-info.java
 │   │           │   ├── SchoolClassFacade.java                     // 班级 Facade
-│   │           │   └── GradeFacade.java                           // 年级 Facade
-│   │           ├── dto
-│   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   ├── CreateUserDTO.java                     // 创建用户 DTO
-│   │           │   │   ├── UserDetailDTO.java                     // 用户详情 DTO
-│   │           │   │   ├── AssignRoleDTO.java                     // 分配角色 DTO
-│   │           │   │   └── PermissionTreeDTO.java                 // 权限树 DTO
-│   │           │   └── teaching
-│   │           │       ├── package-info.java
+│   │           │   ├── GradeFacade.java                           // 年级 Facade
+│   │           │   └── dto
 │   │           │       ├── CreateSchoolClassDTO.java              // 创建班级 DTO
 │   │           │       ├── SchoolClassDetailDTO.java              // 班级详情 DTO
 │   │           │       ├── CreateGradeDTO.java                    // 创建年级 DTO
@@ -818,12 +829,9 @@ student-management-organization-domain
 │   │           │       └── GradeRepository.java                 // 年级仓储接口
 │   │           ├── client
 │   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── EvaluationClient.java                // 调用评价工程的出站端口
-│   │           │   └── teaching
+│   │           │   └── evaluation
 │   │           │       ├── package-info.java
-│   │           │       └── CourseClient.java                    // 调用课程能力的出站端口
+│   │           │       └── EvaluationQueryPort.java             // Evaluation Facade ACL 出站端口
 │   │           ├── validators
 │   │           │   ├── package-info.java
 │   │           │   ├── user
@@ -940,9 +948,9 @@ student-management-organization-infrastructure
 │   │   │       │           ├── package-info.java
 │   │   │       │           ├── SchoolClassPOConverter.java      // 班级 PO 转换器
 │   │   │       │           └── GradePOConverter.java            // 年级 PO 转换器
-│   │   │       ├── client.impl
+│   │   │       ├── client/evaluation
 │   │   │       │   ├── package-info.java
-│   │   │       │   └── EvaluationClientImpl.java                // 评价工程客户端实现
+│   │   │       │   └── DubboEvaluationQueryClient.java          // Evaluation Facade ACL
 │   │   │       ├── validators
 │   │   │       │   ├── package-info.java
 │   │   │       │   └── OrganizationInfraValidator.java          // 基础设施校验器
@@ -997,73 +1005,55 @@ student-management-organization-adapter
 │   │   └── java
 │   │       └── com/example/student/organization/adapter
 │   │           ├── package-info.java
-│   │           ├── controller
+│   │           ├── user/controller
 │   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   ├── UserController.java                   // 用户 HTTP 控制器
-│   │           │   │   ├── RoleController.java                   // 角色 HTTP 控制器
-│   │           │   │   └── PermissionController.java             // 权限 HTTP 控制器
-│   │           │   └── teaching
-│   │           │       ├── package-info.java
-│   │           │       ├── SchoolClassController.java            // 班级 HTTP 控制器
-│   │           │       └── GradeController.java                  // 年级 HTTP 控制器
-│   │           ├── mq
+│   │           │   ├── UserController.java                       // 用户 HTTP 控制器
+│   │           │   ├── RoleController.java                       // 角色 HTTP 控制器
+│   │           │   └── PermissionController.java                 // 权限 HTTP 控制器
+│   │           ├── teaching/controller
 │   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── UserCreatedConsumer.java              // 用户创建入站消息消费者
-│   │           │   └── teaching
-│   │           │       ├── package-info.java
-│   │           │       └── SchoolClassChangedConsumer.java       // 班级变更入站消息消费者
-│   │           ├── rpc
-│   │           │   ├── package-info.java
-│   │           │   ├── UserRpcProvider.java                      // 用户 RPC Provider
+│   │           │   ├── SchoolClassController.java                // 班级 HTTP 控制器
+│   │           │   └── GradeController.java                      // 年级 HTTP 控制器
+│   │           ├── user/mq
+│   │           │   └── UserCreatedConsumer.java                  // 用户创建入站消息消费者
+│   │           ├── teaching/mq
+│   │           │   └── SchoolClassChangedConsumer.java           // 班级变更入站消息消费者
+│   │           ├── user/rpc
+│   │           │   └── UserRpcProvider.java                      // 用户 RPC Provider
+│   │           ├── teaching/rpc
 │   │           │   └── SchoolClassRpcProvider.java               // 班级 RPC Provider
-│   │           ├── graphql
-│   │           │   ├── package-info.java
-│   │           │   ├── UserResolver.java                         // 用户 GraphQL Resolver
+│   │           ├── user/graphql
+│   │           │   └── UserResolver.java                         // 用户 GraphQL Resolver
+│   │           ├── teaching/graphql
 │   │           │   └── SchoolClassResolver.java                  // 班级 GraphQL Resolver
-│   │           ├── facade.impl
-│   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   ├── UserFacadeImpl.java                   // 用户 Facade 实现
-│   │           │   │   ├── RoleFacadeImpl.java                   // 角色 Facade 实现
-│   │           │   │   └── PermissionFacadeImpl.java             // 权限 Facade 实现
-│   │           │   └── teaching
-│   │           │       ├── package-info.java
-│   │           │       ├── SchoolClassFacadeImpl.java            // 班级 Facade 实现
-│   │           │       └── GradeFacadeImpl.java                  // 年级 Facade 实现
-│   │           ├── dto
-│   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   ├── CreateUserRequest.java                // 创建用户请求
-│   │           │   │   └── AssignRoleRequest.java                // 分配角色请求
-│   │           │   └── teaching
-│   │           │       ├── package-info.java
-│   │           │       └── CreateSchoolClassRequest.java         // 创建班级请求
-│   │           ├── vo
-│   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── UserDetailVO.java                     // 用户详情 VO
-│   │           │   └── teaching
-│   │           │       ├── package-info.java
-│   │           │       └── SchoolClassDetailVO.java              // 班级详情 VO
-│   │           ├── converter
-│   │           │   ├── package-info.java
-│   │           │   ├── UserAdapterConverter.java                 // 用户入站转换器
+│   │           ├── graphql
+│   │           │   └── OrganizationGraphQlContextInterceptor.java // 跨领域共享
+│   │           ├── user/facade/impl
+│   │           │   ├── UserFacadeImpl.java                       // 用户 Facade 实现
+│   │           │   ├── RoleFacadeImpl.java                       // 角色 Facade 实现
+│   │           │   └── PermissionFacadeImpl.java                 // 权限 Facade 实现
+│   │           ├── teaching/facade/impl
+│   │           │   ├── SchoolClassFacadeImpl.java                // 班级 Facade 实现
+│   │           │   └── GradeFacadeImpl.java                      // 年级 Facade 实现
+│   │           ├── facade/impl
+│   │           │   └── OrganizationFacadeSupport.java            // 跨领域共享
+│   │           ├── user/dto
+│   │           │   ├── CreateUserRequest.java                    // 创建用户请求
+│   │           │   └── AssignRoleRequest.java                    // 分配角色请求
+│   │           ├── teaching/dto
+│   │           │   └── CreateSchoolClassRequest.java             // 创建班级请求
+│   │           ├── user/vo
+│   │           │   └── UserDetailVO.java                         // 用户详情 VO
+│   │           ├── teaching/vo
+│   │           │   └── SchoolClassDetailVO.java                  // 班级详情 VO
+│   │           ├── user/converter
+│   │           │   └── UserAdapterConverter.java                 // 用户入站转换器
+│   │           ├── teaching/converter
 │   │           │   └── SchoolClassAdapterConverter.java          // 班级入站转换器
-│   │           ├── validators
-│   │           │   ├── package-info.java
-│   │           │   ├── user
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── UserRequestValidator.java             // 用户请求格式校验器
-│   │           │   └── teaching
-│   │           │       ├── package-info.java
-│   │           │       └── SchoolClassRequestValidator.java      // 班级请求格式校验器
+│   │           ├── user/validators
+│   │           │   └── UserRequestValidator.java                 // 用户请求格式校验器
+│   │           ├── teaching/validators
+│   │           │   └── SchoolClassRequestValidator.java          // 班级请求格式校验器
 │   │           ├── handler
 │   │           │   ├── package-info.java
 │   │           │   └── OrganizationGlobalExceptionHandler.java   // 全局异常处理器
@@ -1075,8 +1065,11 @@ student-management-organization-adapter
 │       ├── java
 │       │   └── com/example/student/organization/adapter
 │       │       ├── package-info.java
-│       │       ├── UserControllerTest.java                       // 用户控制器测试
-│       │       └── SchoolClassControllerTest.java                // 班级控制器测试
+│       │       ├── user/controller
+│       │       │   ├── UserControllerTest.java                   // 用户控制器测试
+│       │       │   └── RolePermissionControllerTest.java         // 角色权限控制器测试
+│       │       └── teaching/controller
+│       │           └── TeachingControllerTest.java               // 教学控制器测试
 │       └── resources
 │           └── application-test.yml
 ```
@@ -1089,8 +1082,22 @@ student-management-organization-adapter
 
 ```text
 course      // 课程、课程安排、课程资源
-exam     // 考试、成绩、评价
+exam        // 考试、成绩、评价
 ```
+
+业务代码统一采用领域优先路径，Service Project 不创建 Controller、Web Filter、GraphQL 或 VO 包：
+
+```text
+facade/course/{CourseFacade,dto}
+facade/exam/{ExamFacade,ScoreFacade,dto}
+domain/{course,exam}/{aggregates,entities,enums,event,repos,service,validators,vos}
+application/{course,exam}/{command,converter,manage,query,result,validators}
+infrastructure/{course,exam}/{repo,mq}
+adapter/{course,exam}/{converter,facade/impl,validators}
+adapter/exam/{dto,mq}
+```
+
+`domain/client/organization` 与 `infrastructure/client/organization` 是 Evaluation 访问外部 Organization Facade 的 ACL，也是本工程唯一保留的技术优先外部客户端路径。共享的响应包装、异常、配置与基础设施支持继续保留在各层根包。
 
 ### 4.3.1 evaluation-starter
 
@@ -1364,12 +1371,9 @@ student-management-evaluation-domain
 │   │           │       └── ScoreRepository.java                 // 成绩仓储接口
 │   │           ├── client
 │   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── OrganizationClient.java              // 调用组织工程的出站端口
-│   │           │   └── exam
+│   │           │   └── organization
 │   │           │       ├── package-info.java
-│   │           │       └── StudentClient.java                   // 查询学生信息的出站端口
+│   │           │       └── OrganizationDirectoryPort.java       // Organization Facade ACL 出站端口
 │   │           ├── validators
 │   │           │   ├── package-info.java
 │   │           │   ├── course
@@ -1478,9 +1482,9 @@ student-management-evaluation-infrastructure
 │   │   │       │           ├── package-info.java
 │   │   │       │           ├── ExamPOConverter.java             // 考试 PO 转换器
 │   │   │       │           └── ScorePOConverter.java            // 成绩 PO 转换器
-│   │   │       ├── client.impl
+│   │   │       ├── client/organization
 │   │   │       │   ├── package-info.java
-│   │   │       │   └── OrganizationClientImpl.java              // 组织工程客户端实现
+│   │   │       │   └── DubboOrganizationDirectoryClient.java    // Organization Facade ACL
 │   │   │       ├── validators
 │   │   │       │   ├── package-info.java
 │   │   │       │   └── EvaluationInfraValidator.java            // 基础设施校验器
@@ -1534,85 +1538,40 @@ student-management-evaluation-adapter
 │   │   └── java
 │   │       └── com/example/student/evaluation/adapter
 │   │           ├── package-info.java
-│   │           ├── controller
-│   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   ├── CourseController.java                 // 课程 HTTP 控制器
-│   │           │   │   └── CourseScheduleController.java         // 课程安排 HTTP 控制器
-│   │           │   └── exam
-│   │           │       ├── package-info.java
-│   │           │       ├── ExamController.java                   // 考试 HTTP 控制器
-│   │           │       └── ScoreController.java                  // 成绩 HTTP 控制器
-│   │           ├── mq
-│   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── CourseCreatedConsumer.java            // 课程创建入站消息消费者
-│   │           │   └── exam
-│   │           │       ├── package-info.java
-│   │           │       └── ExamCreatedConsumer.java              // 考试创建入站消息消费者
-│   │           ├── rpc
-│   │           │   ├── package-info.java
-│   │           │   ├── CourseRpcProvider.java                    // 课程 RPC Provider
-│   │           │   └── ExamRpcProvider.java                      // 考试 RPC Provider
-│   │           ├── graphql
-│   │           │   ├── package-info.java
-│   │           │   ├── CourseResolver.java                       // 课程 GraphQL Resolver
-│   │           │   └── ExamResolver.java                         // 考试 GraphQL Resolver
-│   │           ├── facade.impl
-│   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   ├── CourseFacadeImpl.java                 // 课程 Facade 实现
-│   │           │   │   └── CourseScheduleFacadeImpl.java         // 课程安排 Facade 实现
-│   │           │   └── exam
-│   │           │       ├── package-info.java
-│   │           │       ├── ExamFacadeImpl.java                   // 考试 Facade 实现
-│   │           │       └── ScoreFacadeImpl.java                  // 成绩 Facade 实现
-│   │           ├── dto
-│   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── CreateCourseRequest.java              // 创建课程请求
-│   │           │   └── exam
-│   │           │       ├── package-info.java
-│   │           │       ├── CreateExamRequest.java                // 创建考试请求
-│   │           │       └── SubmitScoreRequest.java               // 提交成绩请求
-│   │           ├── vo
-│   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── CourseDetailVO.java                   // 课程详情 VO
-│   │           │   └── exam
-│   │           │       ├── package-info.java
-│   │           │       ├── ExamDetailVO.java                     // 考试详情 VO
-│   │           │       └── ScoreDetailVO.java                    // 成绩详情 VO
-│   │           ├── converter
-│   │           │   ├── package-info.java
-│   │           │   ├── CourseAdapterConverter.java               // 课程入站转换器
-│   │           │   └── ExamAdapterConverter.java                 // 考试入站转换器
-│   │           ├── validators
-│   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   └── CourseRequestValidator.java           // 课程请求格式校验器
-│   │           │   └── exam
-│   │           │       ├── package-info.java
-│   │           │       └── ExamRequestValidator.java             // 考试请求格式校验器
+│   │           ├── course
+│   │           │   ├── converter
+│   │           │   │   └── CourseFacadeDTOConverter.java         // 课程 Facade DTO 转换
+│   │           │   ├── facade/impl
+│   │           │   │   └── CourseFacadeImpl.java                 // 课程 Facade 实现
+│   │           │   └── validators
+│   │           │       └── CourseFacadeValidator.java            // 课程 Facade 校验
+│   │           ├── exam
+│   │           │   ├── converter
+│   │           │   │   ├── ExamFacadeDTOConverter.java           // 考试 Facade DTO 转换
+│   │           │   │   └── ScoreFacadeDTOConverter.java          // 成绩 Facade DTO 转换
+│   │           │   ├── dto
+│   │           │   │   └── ScoreImportMessage.java               // 考试领域内部消息 DTO
+│   │           │   ├── facade/impl
+│   │           │   │   ├── ExamFacadeImpl.java                   // 考试 Facade 实现
+│   │           │   │   └── ScoreFacadeImpl.java                  // 成绩 Facade 实现
+│   │           │   ├── mq
+│   │           │   │   └── ScoreImportConsumer.java              // 成绩导入消费者
+│   │           │   └── validators
+│   │           │       ├── ExamFacadeValidator.java              // 考试 Facade 校验
+│   │           │       └── ScoreFacadeValidator.java             // 成绩 Facade 校验
 │   │           ├── handler
 │   │           │   ├── package-info.java
 │   │           │   └── EvaluationGlobalExceptionHandler.java     // 全局异常处理器
-│   │           └── filter
-│   │               ├── package-info.java
-│   │               ├── EvaluationTraceFilter.java                // Trace 过滤器
-│   │               └── EvaluationAuthContextFilter.java          // 鉴权上下文过滤器
 │   └── test
 │       ├── java
 │       │   └── com/example/student/evaluation/adapter
 │       │       ├── package-info.java
-│       │       ├── CourseControllerTest.java                     // 课程控制器测试
-│       │       └── ExamControllerTest.java                       // 考试控制器测试
+│       │       ├── course
+│       │       │   └── CourseFacadeImplTest.java                 // 课程 Facade 测试
+│       │       ├── exam
+│       │       │   └── ExamFacadeImplTest.java                   // 考试 Facade 测试
+│       │       └── rpc
+│       │           └── EvaluationDubboProviderConfigurationTest.java
 │       └── resources
 │           └── application-test.yml
 ```
@@ -1644,8 +1603,8 @@ student-management-evaluation-adapter
 ```text
 1. adapter 只处理入站请求。
 2. adapter 可以依赖 application 和 facade。
-3. adapter/facade.impl 是 Facade 实现唯一位置。
-4. adapter.mq 只负责入站消息消费。
+3. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
+4. adapter.<domain>.mq 只负责入站消息消费。
 5. adapter 不直接访问数据库、缓存和 MQ 出站能力。
 ```
 
@@ -1662,7 +1621,7 @@ student-management-evaluation-adapter
 
 ```text
 1. application 不放 facade.impl。
-2. application 的 manage 实现按 manage.user.impl、manage.teaching.impl、manage.course.impl、manage.exam.impl 分包。
+2. application 的 manage 实现按 application.user.manage.impl、application.teaching.manage.impl、application.course.manage.impl、application.exam.manage.impl 分包。
 3. application 负责事务和用例编排。
 4. application 不直接调用 Mapper、RedisTemplate、KafkaTemplate、RabbitTemplate、JpaRepository。
 ```
@@ -1679,14 +1638,14 @@ student-management-evaluation-adapter
 ## 5.7 infrastructure 约束
 
 ```text
-1. infrastructure.repo 必须按领域分包。
-2. organization 使用 repo.user.*、repo.teaching.*。
-3. evaluation 使用 repo.course.*、repo.exam.*。
-4. repo.impl 调用 mp.service 或 jpa.repository。
+1. infrastructure 的 repository 实现必须先按领域分包。
+2. organization 使用 infrastructure.user.repo.*、infrastructure.teaching.repo.*。
+3. evaluation 使用 infrastructure.course.repo.*、infrastructure.exam.repo.*。
+4. infrastructure.<domain>.repo.impl 调用 mp.service 或 jpa.repository。
 5. 业务代码不允许直调 mapper。
-6. infrastructure.mq 只负责出站消息发送。
+6. infrastructure.<domain>.mq 只负责出站消息发送。
 7. infrastructure 只依赖 domain，不依赖 application。
-8. infrastructure.client.impl 只实现 domain.client 出站端口。
+8. infrastructure.client.<external-project> 只实现对应 domain.client.<external-project> 出站端口。
 ```
 
 ---
@@ -1821,12 +1780,12 @@ infrastructure -> domain
 
 ```text
 1. 两个工程不是一个根工程下的两个模块。
-2. adapter/facade.impl 是 Facade 实现唯一位置。
+2. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
 3. application 不放 facade.impl。
 4. facade 不依赖 common，facade 有自己的 utils、enums、exceptions。
-5. infrastructure.repo 必须按领域分包。
+5. infrastructure 的 repository 实现必须使用 infrastructure.<domain>.repo 方向。
 6. domain service 必须使用 service / service.impl。
-7. application manage 必须使用 manage.user.impl 这种方向。
+7. application manage 必须使用 application.<domain>.manage.impl 方向。
 8. 每个包都保留 package-info.java。
 9. 每个模块都补齐 src/main/resources、src/test/java、src/test/resources。
 ```
