@@ -2,9 +2,9 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.exam;
-import ${package}.domain.entities.exam.ExamPaper;
-import ${package}.domain.enums.exam.ExamPaperStatus;
-import ${package}.domain.vos.exam.ExamId;
+import ${package}.domain.exam.entities.ExamPaper;
+import ${package}.domain.exam.enums.ExamPaperStatus;
+import ${package}.domain.exam.vos.ExamId;
 import ${package}.infrastructure.repo.exam.converter.ExamPaperConverter;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;

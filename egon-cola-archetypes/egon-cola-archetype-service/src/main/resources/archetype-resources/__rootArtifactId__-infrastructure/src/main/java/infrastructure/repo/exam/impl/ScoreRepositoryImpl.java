@@ -3,9 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.exam.impl;
 import ${package}.domain.common.Page;
-import ${package}.domain.entities.exam.Score;
-import ${package}.domain.repos.exam.ScoreRepository;
-import ${package}.domain.vos.exam.ExamId;
+import ${package}.domain.exam.entities.Score;
+import ${package}.domain.exam.repos.ScoreRepository;
+import ${package}.domain.exam.vos.ExamId;
 import ${package}.infrastructure.repo.exam.converter.ScoreConverter;
 import ${package}.infrastructure.repo.exam.jpa.ScoreJpaRepository;
 import ${package}.infrastructure.repo.exam.po.ScorePo;

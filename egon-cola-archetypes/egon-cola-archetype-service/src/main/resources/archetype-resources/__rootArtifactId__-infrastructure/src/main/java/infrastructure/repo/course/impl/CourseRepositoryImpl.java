@@ -7,10 +7,10 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import ${package}.domain.common.Page;
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.repos.course.CourseRepository;
-import ${package}.domain.vos.course.CourseCode;
-import ${package}.domain.vos.course.CourseId;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.course.repos.CourseRepository;
+import ${package}.domain.course.vos.CourseCode;
+import ${package}.domain.course.vos.CourseId;
 import ${package}.infrastructure.repo.course.converter.CourseConverter;
 import ${package}.infrastructure.repo.course.jpa.CourseJpaRepository;
 import ${package}.infrastructure.repo.course.po.CoursePo;

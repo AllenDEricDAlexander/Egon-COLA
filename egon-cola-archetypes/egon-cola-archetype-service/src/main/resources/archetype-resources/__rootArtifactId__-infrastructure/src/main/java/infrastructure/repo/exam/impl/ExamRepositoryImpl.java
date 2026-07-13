@@ -2,9 +2,9 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.exam.impl;
-import ${package}.domain.entities.exam.Exam;
-import ${package}.domain.repos.exam.ExamRepository;
-import ${package}.domain.vos.exam.ExamId;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.repos.ExamRepository;
+import ${package}.domain.exam.vos.ExamId;
 import ${package}.infrastructure.repo.exam.converter.ExamConverter;
 import ${package}.infrastructure.repo.exam.jpa.ExamJpaRepository;
 import ${package}.infrastructure.validators.EvaluationPersistenceValidator;

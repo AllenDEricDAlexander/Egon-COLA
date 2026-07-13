@@ -3,10 +3,10 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.exam;
 
-import ${package}.domain.entities.exam.Exam;
-import ${package}.domain.enums.exam.ExamStatus;
-import ${package}.domain.vos.course.CourseId;
-import ${package}.domain.vos.exam.ExamId;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.enums.ExamStatus;
+import ${package}.domain.course.vos.CourseId;
+import ${package}.domain.exam.vos.ExamId;
 import ${package}.infrastructure.repo.exam.converter.ExamConverter;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;

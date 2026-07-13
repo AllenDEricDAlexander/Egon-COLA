@@ -3,10 +3,10 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.mq;
 
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.service.exam.impl.ExamDomainServiceImpl;
-import ${package}.domain.service.exam.impl.ScoreDomainServiceImpl;
-import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.exam.service.impl.ScoreDomainServiceImpl;
+import ${package}.domain.course.vos.CourseCode;
 import ${package}.infrastructure.mq.exam.RabbitExamEventPublisher;
 import ${package}.infrastructure.mq.message.ScoreRecordedMessage;
 import java.time.Instant;

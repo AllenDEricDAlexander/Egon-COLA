@@ -4,10 +4,10 @@
 package ${package}.infrastructure.mq.exam;
 
 import ${package}.domain.common.EvaluationPortException;
-import ${package}.domain.entities.exam.Exam;
-import ${package}.domain.entities.exam.ExamPaper;
-import ${package}.domain.entities.exam.Score;
-import ${package}.domain.event.exam.ExamEventPublisher;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.entities.ExamPaper;
+import ${package}.domain.exam.entities.Score;
+import ${package}.domain.exam.event.ExamEventPublisher;
 import ${package}.infrastructure.mq.message.ExamPublishedMessage;
 import ${package}.infrastructure.mq.message.ScoreRecordedMessage;
 import java.time.Instant;

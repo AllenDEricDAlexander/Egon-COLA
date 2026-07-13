@@ -2,10 +2,10 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.mq.exam;
-import ${package}.domain.entities.exam.Exam;
-import ${package}.domain.entities.exam.ExamPaper;
-import ${package}.domain.entities.exam.Score;
-import ${package}.domain.event.exam.ExamEventPublisher;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.entities.ExamPaper;
+import ${package}.domain.exam.entities.Score;
+import ${package}.domain.exam.event.ExamEventPublisher;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 @Component

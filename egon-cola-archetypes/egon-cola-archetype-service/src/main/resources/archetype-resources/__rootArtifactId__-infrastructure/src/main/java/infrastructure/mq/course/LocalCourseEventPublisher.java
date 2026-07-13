@@ -2,8 +2,8 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.mq.course;
-import ${package}.domain.entities.course.CourseSchedule;
-import ${package}.domain.event.course.CourseEventPublisher;
+import ${package}.domain.course.entities.CourseSchedule;
+import ${package}.domain.course.event.CourseEventPublisher;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 @Component

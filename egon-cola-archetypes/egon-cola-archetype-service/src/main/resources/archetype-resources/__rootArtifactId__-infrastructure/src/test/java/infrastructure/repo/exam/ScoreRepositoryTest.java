@@ -2,11 +2,11 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.exam;
-import ${package}.domain.entities.exam.Score;
-import ${package}.domain.enums.exam.ScoreStatus;
-import ${package}.domain.vos.course.CourseId;
-import ${package}.domain.vos.exam.ExamId;
-import ${package}.domain.vos.exam.ScoreValue;
+import ${package}.domain.exam.entities.Score;
+import ${package}.domain.exam.enums.ScoreStatus;
+import ${package}.domain.course.vos.CourseId;
+import ${package}.domain.exam.vos.ExamId;
+import ${package}.domain.exam.vos.ScoreValue;
 import ${package}.infrastructure.repo.exam.converter.ScoreConverter;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;

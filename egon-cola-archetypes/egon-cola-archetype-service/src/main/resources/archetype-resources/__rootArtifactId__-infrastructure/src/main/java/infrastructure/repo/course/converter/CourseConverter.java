@@ -3,9 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.course.converter;
 
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.enums.course.CourseStatus;
-import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.course.enums.CourseStatus;
+import ${package}.domain.course.vos.CourseCode;
 import ${package}.infrastructure.repo.course.po.CoursePo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;

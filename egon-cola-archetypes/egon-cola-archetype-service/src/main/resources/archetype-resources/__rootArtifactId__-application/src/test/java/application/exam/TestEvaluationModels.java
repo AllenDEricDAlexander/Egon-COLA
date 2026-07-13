@@ -3,11 +3,11 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam;
 
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.entities.exam.Exam;
-import ${package}.domain.entities.exam.ExamPaper;
-import ${package}.domain.service.exam.impl.ExamDomainServiceImpl;
-import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.entities.ExamPaper;
+import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.course.vos.CourseCode;
 import java.time.Instant;
 
 final class TestEvaluationModels {

@@ -47,32 +47,6 @@ def requiredPackagePaths = [
     "facade/utils",
     "domain",
     "domain/common",
-    "domain/entities",
-    "domain/entities/course",
-    "domain/entities/exam",
-    "domain/aggregates",
-    "domain/aggregates/course",
-    "domain/aggregates/exam",
-    "domain/vos",
-    "domain/vos/course",
-    "domain/vos/exam",
-    "domain/service",
-    "domain/service/course",
-    "domain/service/course/impl",
-    "domain/service/exam",
-    "domain/service/exam/impl",
-    "domain/repos",
-    "domain/repos/course",
-    "domain/repos/exam",
-    "domain/event",
-    "domain/event/course",
-    "domain/event/exam",
-    "domain/validators",
-    "domain/validators/course",
-    "domain/validators/exam",
-    "domain/enums",
-    "domain/enums/course",
-    "domain/enums/exam",
     "domain/client",
     "domain/client/organization",
     "application",
@@ -145,10 +119,20 @@ def requiredPackagePaths = [
     "starter/config/async",
     "starter/config/encryption",
 ]
+["course", "exam"].each { businessDomain ->
+    ["aggregates", "entities", "enums", "event", "repos", "service", "validators", "vos"].each { role ->
+        requiredPackagePaths << "domain/${businessDomain}/${role}"
+    }
+}
 requiredPackagePaths.each { packagePath ->
     def separator = packagePath.indexOf('/')
     def module = separator < 0 ? packagePath : packagePath.substring(0, separator)
     assertFile("student-management-evaluation-${module}/src/main/java/it/pkg/${packagePath}/package-info.java")
+}
+["aggregates", "entities", "enums", "event", "repos", "service", "validators", "vos"].each { role ->
+    ["course", "exam"].each { businessDomain ->
+        assertMissing("student-management-evaluation-domain/src/main/java/it/pkg/domain/${role}/${businessDomain}")
+    }
 }
 
 modules.each { module ->
@@ -222,10 +206,10 @@ modules.each { module ->
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ExamFacade.java",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ScoreFacade.java",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/dto/ScoreResponse.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/course/Course.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/exam/Exam.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/event/course/CourseEventPublisher.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/event/exam/ExamEventPublisher.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/entities/Course.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/entities/Exam.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/event/CourseEventPublisher.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/event/ExamEventPublisher.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/ExternalDependencyFailure.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/ExternalDependencyException.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationDirectoryPort.java",
@@ -271,8 +255,8 @@ modules.each { module ->
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/exam",
     "student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/entities/examing",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/repos/examing",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/entities",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/repos",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/ExamResultFacadeImpl.java",
@@ -326,7 +310,7 @@ javaFiles.each { file ->
 
 def staleTokens = [
     ".adapter.convertor.", ".application.manage.examing.",
-    ".domain.entities.examing.", ".domain.repos.examing.", ".domain.service.examing.",
+    ".domain.examing.entities.", ".domain.examing.repos.", ".domain.examing.service.",
     ".facade.api.ExamResultFacade", ".facade.dto.examing.",
     ".common.constants.ErrorCodes", ".common.exception."
 ]

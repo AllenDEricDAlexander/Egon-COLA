@@ -3,9 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.course.impl;
 
-import ${package}.domain.entities.course.CourseSchedule;
-import ${package}.domain.repos.course.CourseScheduleRepository;
-import ${package}.domain.vos.course.CourseId;
+import ${package}.domain.course.entities.CourseSchedule;
+import ${package}.domain.course.repos.CourseScheduleRepository;
+import ${package}.domain.course.vos.CourseId;
 import ${package}.infrastructure.repo.course.converter.CourseScheduleConverter;
 import ${package}.infrastructure.repo.course.jpa.CourseScheduleJpaRepository;
 import java.time.Instant;

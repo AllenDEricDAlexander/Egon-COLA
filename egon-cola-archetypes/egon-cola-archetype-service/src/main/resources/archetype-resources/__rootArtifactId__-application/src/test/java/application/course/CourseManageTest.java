@@ -7,12 +7,12 @@ import ${package}.application.command.course.CreateCourseCommand;
 import ${package}.application.converter.course.CourseApplicationConverter;
 import ${package}.application.manage.course.impl.CourseManageImpl;
 import ${package}.application.validators.course.CourseApplicationValidator;
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.event.course.CourseEventPublisher;
-import ${package}.domain.repos.course.CourseRepository;
-import ${package}.domain.repos.course.CourseScheduleRepository;
-import ${package}.domain.service.course.impl.CourseDomainServiceImpl;
-import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.course.event.CourseEventPublisher;
+import ${package}.domain.course.repos.CourseRepository;
+import ${package}.domain.course.repos.CourseScheduleRepository;
+import ${package}.domain.course.service.impl.CourseDomainServiceImpl;
+import ${package}.domain.course.vos.CourseCode;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

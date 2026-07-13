@@ -6,9 +6,9 @@ package ${package}.application.converter.exam;
 import ${package}.application.result.exam.ExamDetailResult;
 import ${package}.application.result.exam.ExamPaperResult;
 import ${package}.application.result.exam.ScoreResult;
-import ${package}.domain.entities.exam.Exam;
-import ${package}.domain.entities.exam.ExamPaper;
-import ${package}.domain.entities.exam.Score;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.entities.ExamPaper;
+import ${package}.domain.exam.entities.Score;
 import org.springframework.stereotype.Component;
 
 @Component

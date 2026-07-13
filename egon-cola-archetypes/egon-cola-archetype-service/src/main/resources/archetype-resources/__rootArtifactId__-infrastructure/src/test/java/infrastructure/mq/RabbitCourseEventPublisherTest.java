@@ -3,9 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.mq;
 
-import ${package}.domain.entities.course.CourseSchedule;
-import ${package}.domain.enums.course.CourseScheduleStatus;
-import ${package}.domain.vos.course.CourseId;
+import ${package}.domain.course.entities.CourseSchedule;
+import ${package}.domain.course.enums.CourseScheduleStatus;
+import ${package}.domain.course.vos.CourseId;
 import ${package}.infrastructure.mq.course.RabbitCourseEventPublisher;
 import ${package}.infrastructure.mq.message.CourseScheduledMessage;
 import java.time.Instant;

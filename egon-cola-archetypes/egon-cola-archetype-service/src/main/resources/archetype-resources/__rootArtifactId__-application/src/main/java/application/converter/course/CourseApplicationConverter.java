@@ -5,8 +5,8 @@ package ${package}.application.converter.course;
 
 import ${package}.application.result.course.CourseResult;
 import ${package}.application.result.course.CourseScheduleResult;
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.entities.course.CourseSchedule;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.course.entities.CourseSchedule;
 import org.springframework.stereotype.Component;
 
 @Component

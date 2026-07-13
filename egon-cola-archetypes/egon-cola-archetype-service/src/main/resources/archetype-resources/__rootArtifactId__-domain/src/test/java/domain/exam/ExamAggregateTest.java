@@ -4,9 +4,9 @@
 package ${package}.domain.exam;
 
 import ${package}.domain.common.EvaluationDomainException;
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.service.exam.impl.ExamDomainServiceImpl;
-import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.course.vos.CourseCode;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 

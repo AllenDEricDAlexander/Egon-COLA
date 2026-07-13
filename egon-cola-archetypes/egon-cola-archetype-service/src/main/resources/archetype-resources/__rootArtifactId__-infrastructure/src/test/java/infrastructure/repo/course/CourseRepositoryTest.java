@@ -3,9 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.course;
 
-import ${package}.domain.entities.course.Course;
-import ${package}.domain.enums.course.CourseStatus;
-import ${package}.domain.vos.course.CourseCode;
+import ${package}.domain.course.entities.Course;
+import ${package}.domain.course.enums.CourseStatus;
+import ${package}.domain.course.vos.CourseCode;
 import ${package}.infrastructure.repo.course.converter.CourseConverter;
 import ${package}.infrastructure.repo.course.converter.CourseDomainMapper;
 import ${package}.infrastructure.repo.course.converter.CoursePoMapper;

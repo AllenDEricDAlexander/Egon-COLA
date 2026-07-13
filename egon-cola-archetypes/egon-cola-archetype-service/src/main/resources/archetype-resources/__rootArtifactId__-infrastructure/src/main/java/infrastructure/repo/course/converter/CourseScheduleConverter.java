@@ -3,9 +3,9 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.course.converter;
 
-import ${package}.domain.entities.course.CourseSchedule;
-import ${package}.domain.enums.course.CourseScheduleStatus;
-import ${package}.domain.vos.course.CourseId;
+import ${package}.domain.course.entities.CourseSchedule;
+import ${package}.domain.course.enums.CourseScheduleStatus;
+import ${package}.domain.course.vos.CourseId;
 import ${package}.infrastructure.repo.course.po.CourseSchedulePo;
 import java.time.Instant;
 import org.springframework.stereotype.Component;

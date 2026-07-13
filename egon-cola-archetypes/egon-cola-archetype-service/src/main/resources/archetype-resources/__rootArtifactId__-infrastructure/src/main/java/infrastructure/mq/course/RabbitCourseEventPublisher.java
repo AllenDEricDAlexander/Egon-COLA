@@ -4,8 +4,8 @@
 package ${package}.infrastructure.mq.course;
 
 import ${package}.domain.common.EvaluationPortException;
-import ${package}.domain.entities.course.CourseSchedule;
-import ${package}.domain.event.course.CourseEventPublisher;
+import ${package}.domain.course.entities.CourseSchedule;
+import ${package}.domain.course.event.CourseEventPublisher;
 import ${package}.infrastructure.mq.message.CourseScheduledMessage;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

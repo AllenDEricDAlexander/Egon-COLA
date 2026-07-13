@@ -3,7 +3,7 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.repo.course.converter;
 
-import ${package}.domain.entities.course.Course;
+import ${package}.domain.course.entities.Course;
 import ${package}.infrastructure.repo.course.po.CoursePo;
 import io.github.linpeilie.BaseMapper;
 import org.mapstruct.Mapper;
