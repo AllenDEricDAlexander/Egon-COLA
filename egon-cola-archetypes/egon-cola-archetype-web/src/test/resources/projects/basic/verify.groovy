@@ -821,6 +821,35 @@ productionComposeFiles.each { fileName ->
         'EVALUATION_FACADE_ENABLED: "${EVALUATION_FACADE_ENABLED:?Set EVALUATION_FACADE_ENABLED to true or false}"'
     ])
 }
+def jenkinsfile = assertFile("Jenkinsfile").text
+[
+    "pipeline {",
+    "choice(name: 'CONTAINER_ENGINE', choices: ['docker', 'podman', 'nerdctl']",
+    "string(name: 'CONTAINERD_NAMESPACE', defaultValue: 'default'",
+    "string(name: 'REGISTRY', defaultValue: ''",
+    "string(name: 'REGISTRY_NAMESPACE', defaultValue: ''",
+    "string(name: 'REGISTRY_CREDENTIALS_ID', defaultValue: ''",
+    "string(name: 'IMAGE_NAME', defaultValue: ''",
+    "string(name: 'IMAGE_TAG', defaultValue: ''",
+    "booleanParam(name: 'PUBLISH_IMAGE', defaultValue: false",
+    "booleanParam(name: 'PUBLISH_LATEST', defaultValue: false",
+    "stage('Preflight')",
+    "stage('Test')",
+    "stage('Build Image')",
+    "stage('Publish Image')",
+    "deploy/container/Dockerfile",
+    'CONTAINER_ENGINE=${CONTAINER_ENGINE}',
+    "credentialsId: params.REGISTRY_CREDENTIALS_ID",
+    "--password-stdin",
+    "SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify",
+    "allowEmptyResults: true"
+].each { token ->
+    assert jenkinsfile.contains(token): "Expected Jenkinsfile to contain ${token}"
+}
+assert !jenkinsfile.contains("docker compose")
+assert !jenkinsfile.contains("podman compose")
+assert !jenkinsfile.contains("nerdctl compose")
+assert !jenkinsfile.contains("withRegistry")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",
