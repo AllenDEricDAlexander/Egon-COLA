@@ -1,7 +1,7 @@
 package ${package}.adapter;
 
-import ${package}.adapter.controller.user.UserController;
-import ${package}.adapter.converter.UserAdapterConverter;
+import ${package}.adapter.user.controller.UserController;
+import ${package}.adapter.user.converter.UserAdapterConverter;
 import ${package}.adapter.filter.OrganizationAuthContextFilter;
 import ${package}.adapter.filter.OrganizationTraceFilter;
 import ${package}.adapter.handler.OrganizationGlobalExceptionHandler;

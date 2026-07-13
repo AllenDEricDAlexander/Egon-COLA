@@ -1,8 +1,8 @@
 package ${package}.adapter;
 
-import ${package}.adapter.dto.user.CreateUserMessage;
+import ${package}.adapter.user.dto.CreateUserMessage;
 import ${package}.adapter.mq.RetryableOrganizationMessageException;
-import ${package}.adapter.mq.user.UserCreatedConsumer;
+import ${package}.adapter.user.mq.UserCreatedConsumer;
 import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;

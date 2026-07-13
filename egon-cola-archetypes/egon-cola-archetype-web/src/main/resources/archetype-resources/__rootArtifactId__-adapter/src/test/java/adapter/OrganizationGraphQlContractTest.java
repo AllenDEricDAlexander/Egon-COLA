@@ -1,7 +1,7 @@
 package ${package}.adapter;
 
-import ${package}.adapter.graphql.SchoolClassResolver;
-import ${package}.adapter.graphql.UserResolver;
+import ${package}.adapter.teaching.graphql.SchoolClassResolver;
+import ${package}.adapter.user.graphql.UserResolver;
 import ${package}.adapter.handler.OrganizationGraphQlExceptionResolver;
 import ${package}.application.teaching.manage.GradeManage;
 import ${package}.application.teaching.manage.SchoolClassManage;

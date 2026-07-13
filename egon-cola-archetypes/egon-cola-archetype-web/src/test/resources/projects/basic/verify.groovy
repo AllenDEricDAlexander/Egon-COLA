@@ -13,44 +13,45 @@ def requiredFiles = [
     "mvnw.cmd",
     "pom.xml",
     "student-management-organization-adapter/pom.xml",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/GradeController.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/PermissionController.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/RoleController.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/GradeAdapterConverter.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/PermissionAdapterConverter.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/RoleAdapterConverter.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/SchoolClassAdapterConverter.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/UserAdapterConverter.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/teaching/AssignUserToClassRequest.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/teaching/CreateGradeRequest.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/teaching/CreateSchoolClassMessage.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/teaching/CreateSchoolClassRequest.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/teaching/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/user/AssignRoleRequest.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/user/CreateUserMessage.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/user/CreateUserRequest.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/user/GrantPermissionRequest.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/user/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/controller/GradeController.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/controller/SchoolClassController.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/controller/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/PermissionController.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/RoleController.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/UserController.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/converter/GradeAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/converter/PermissionAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/converter/RoleAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/converter/SchoolClassAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/converter/UserAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/converter/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/converter/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/dto/AssignUserToClassRequest.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/dto/CreateGradeRequest.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/dto/CreateSchoolClassMessage.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/dto/CreateSchoolClassRequest.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/dto/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/dto/AssignRoleRequest.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/dto/CreateUserMessage.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/dto/CreateUserRequest.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/dto/GrantPermissionRequest.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/dto/package-info.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/OrganizationFacadeSupport.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/teaching/GradeFacadeImpl.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/teaching/SchoolClassFacadeImpl.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/teaching/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/user/PermissionFacadeImpl.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/user/RoleFacadeImpl.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/user/UserFacadeImpl.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/user/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/facade/impl/GradeFacadeImpl.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/facade/impl/SchoolClassFacadeImpl.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/facade/impl/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/facade/impl/PermissionFacadeImpl.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/facade/impl/RoleFacadeImpl.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/facade/impl/UserFacadeImpl.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/facade/impl/package-info.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/filter/OrganizationAuthContextFilter.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/filter/OrganizationTraceFilter.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/filter/package-info.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/graphql/OrganizationGraphQlContextInterceptor.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/graphql/SchoolClassResolver.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/graphql/UserResolver.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/graphql/SchoolClassResolver.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/graphql/UserResolver.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/graphql/package-info.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/handler/OrganizationErrorResponse.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/handler/OrganizationGlobalExceptionHandler.java",
@@ -59,19 +60,22 @@ def requiredFiles = [
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/OrganizationMessageSupport.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/RetryableOrganizationMessageException.java",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/teaching/SchoolClassChangedConsumer.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/teaching/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/user/UserCreatedConsumer.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/user/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/rpc/SchoolClassRpcProvider.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/rpc/UserRpcProvider.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/rpc/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/teaching/GradeDetailVO.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/teaching/SchoolClassDetailVO.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/teaching/package-info.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/user/PermissionTreeVO.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/user/UserDetailVO.java",
-    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/user/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/mq/SchoolClassChangedConsumer.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/mq/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/mq/UserCreatedConsumer.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/mq/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/rpc/SchoolClassRpcProvider.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/rpc/UserRpcProvider.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/graphql/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/rpc/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/graphql/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/rpc/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/vo/GradeDetailVO.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/vo/SchoolClassDetailVO.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/vo/package-info.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/vo/PermissionTreeVO.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/vo/UserDetailVO.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/user/vo/package-info.java",
     "student-management-organization-adapter/src/main/resources/.gitkeep",
     "student-management-organization-adapter/src/main/resources/graphql/schema.graphqls",
     "student-management-organization-adapter/src/test/java/it/pkg/.gitkeep",
@@ -80,9 +84,9 @@ def requiredFiles = [
     "student-management-organization-adapter/src/test/java/it/pkg/adapter/OrganizationGraphQlContractTest.java",
     "student-management-organization-adapter/src/test/java/it/pkg/adapter/OrganizationHttpErrorContractTest.java",
     "student-management-organization-adapter/src/test/java/it/pkg/adapter/OrganizationRabbitMqConsumerTest.java",
-    "student-management-organization-adapter/src/test/java/it/pkg/adapter/RolePermissionControllerTest.java",
-    "student-management-organization-adapter/src/test/java/it/pkg/adapter/TeachingControllerTest.java",
-    "student-management-organization-adapter/src/test/java/it/pkg/adapter/UserControllerTest.java",
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/user/controller/RolePermissionControllerTest.java",
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/teaching/controller/TeachingControllerTest.java",
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/user/controller/UserControllerTest.java",
     "student-management-organization-adapter/src/test/java/it/pkg/adapter/package-info.java",
     "student-management-organization-adapter/src/test/resources/.gitkeep",
     "student-management-organization-application/pom.xml",
@@ -492,6 +496,36 @@ assertFile("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache
 assertFile("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/OrganizationCacheKey.java")
 assertMissing("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/InMemoryUserCache.java")
 assertMissing("${webInfrastructureModule}/src/main/java/it/pkg/infrastructure/cache/InMemoryGradeCache.java")
+
+[
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/user/controller/UserControllerTest.java",
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/user/controller/RolePermissionControllerTest.java",
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/user/controller/package-info.java",
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/teaching/controller/TeachingControllerTest.java",
+    "student-management-organization-adapter/src/test/java/it/pkg/adapter/teaching/controller/package-info.java"
+].each { assertFile(it) }
+
+[
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/user",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/dto/teaching",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/user",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/vo/teaching",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/user",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/teaching",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/user",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/mq/teaching",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/UserAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/RoleAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/PermissionAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/GradeAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/SchoolClassAdapterConverter.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/rpc/UserRpcProvider.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/rpc/SchoolClassRpcProvider.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/graphql/UserResolver.java",
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/graphql/SchoolClassResolver.java"
+].each { assertMissing(it) }
 
 requiredFiles.addAll([
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/ExternalDependencyFailure.java",
@@ -1068,11 +1102,11 @@ assertFile("student-management-organization-application/src/main/java/it/pkg/app
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java")
 assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/RoleController.java")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/PermissionController.java")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/SchoolClassController.java")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/teaching/GradeController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/UserController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/RoleController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/PermissionController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/controller/SchoolClassController.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/controller/GradeController.java")
 assertMissing("student-management-organization-adapter/src/main/java/it/pkg/adapter/validation/ValidatorUtils.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/handler/OrganizationGlobalExceptionHandler.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/filter/OrganizationTraceFilter.java")
@@ -1127,22 +1161,23 @@ assert schoolClassManageImplText.contains("GradeRepository gradeRepository")
 assert schoolClassManageImplText.contains("existsByGradeIdAndNameIgnoreCase")
 assert !schoolClassManageImplText.contains("SchoolClassClient")
 
-def userFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/user/UserFacadeImpl.java").text
+def userFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/facade/impl/UserFacadeImpl.java").text
 assert userFacadeText.contains("implements UserFacade")
 assert userFacadeText.contains("UserDetailDTO createUser")
 assert !userFacadeText.contains("@DubboService")
 
-def schoolClassFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/impl/teaching/SchoolClassFacadeImpl.java").text
+def schoolClassFacadeText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/facade/impl/SchoolClassFacadeImpl.java").text
 assert schoolClassFacadeText.contains("implements SchoolClassFacade")
 assert schoolClassFacadeText.contains("SchoolClassDetailDTO createSchoolClass")
 assert !schoolClassFacadeText.contains("@DubboService")
 
-assertNoGenericMapStructConverterInjection("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter")
+assertNoGenericMapStructConverterInjection("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/converter")
+assertNoGenericMapStructConverterInjection("student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/converter")
 assertNoGenericMapStructConverterInjection("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo")
 assertNoGenericMapStructConverterInjection("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo")
 
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/UserAdapterConverter.java")
-assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/converter/SchoolClassAdapterConverter.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/converter/UserAdapterConverter.java")
+assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/converter/SchoolClassAdapterConverter.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/converter/UserPOConverter.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserPO.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/RolePO.java")
@@ -1165,7 +1200,7 @@ def userRepositoryText = assertFile("student-management-organization-domain/src/
 assert !userRepositoryText.contains("findPage")
 assert !userRepositoryText.contains("domain.common.Page")
 
-def userControllerText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/controller/user/UserController.java").text
+def userControllerText = assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/UserController.java").text
 assert userControllerText.contains('@RequestMapping("/api/v1/users")')
 assert userControllerText.contains("ResponseEntity<UserDetailVO> create")
 

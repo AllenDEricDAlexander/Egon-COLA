@@ -1,7 +1,7 @@
 package ${package}.adapter;
 
-import ${package}.adapter.rpc.SchoolClassRpcProvider;
-import ${package}.adapter.rpc.UserRpcProvider;
+import ${package}.adapter.teaching.rpc.SchoolClassRpcProvider;
+import ${package}.adapter.user.rpc.UserRpcProvider;
 import ${package}.facade.teaching.GradeFacade;
 import ${package}.facade.teaching.SchoolClassFacade;
 import ${package}.facade.user.PermissionFacade;
