@@ -1,10 +1,10 @@
 package ${package}.infrastructure.repo.teaching.impl;
 
-import ${package}.domain.entities.teaching.Grade;
+import ${package}.domain.teaching.entities.Grade;
 import ${package}.domain.exceptions.OrganizationDomainErrorCode;
 import ${package}.domain.exceptions.OrganizationPortException;
-import ${package}.domain.repos.teaching.GradeRepository;
-import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.teaching.repos.GradeRepository;
+import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.repo.teaching.converter.GradePOConverter;
 import ${package}.infrastructure.repo.teaching.jpa.GradeJpaRepository;
 import org.springframework.dao.DataIntegrityViolationException;

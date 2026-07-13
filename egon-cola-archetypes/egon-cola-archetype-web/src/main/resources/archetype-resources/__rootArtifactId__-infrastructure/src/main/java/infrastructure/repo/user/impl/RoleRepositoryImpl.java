@@ -1,11 +1,11 @@
 package ${package}.infrastructure.repo.user.impl;
 
-import ${package}.domain.entities.user.Role;
+import ${package}.domain.user.entities.Role;
 import ${package}.domain.exceptions.OrganizationDomainErrorCode;
 import ${package}.domain.exceptions.OrganizationPortException;
-import ${package}.domain.repos.user.RoleRepository;
-import ${package}.domain.vos.user.PermissionCode;
-import ${package}.domain.vos.user.RoleCode;
+import ${package}.domain.user.repos.RoleRepository;
+import ${package}.domain.user.vos.PermissionCode;
+import ${package}.domain.user.vos.RoleCode;
 import ${package}.infrastructure.repo.user.converter.RolePOConverter;
 import ${package}.infrastructure.repo.user.jpa.PermissionJpaRepository;
 import ${package}.infrastructure.repo.user.jpa.RoleJpaRepository;

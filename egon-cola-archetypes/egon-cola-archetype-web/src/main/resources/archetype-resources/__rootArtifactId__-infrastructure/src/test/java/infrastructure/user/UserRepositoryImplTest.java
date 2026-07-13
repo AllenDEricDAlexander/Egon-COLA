@@ -1,8 +1,8 @@
 package ${package}.infrastructure.user;
 
-import ${package}.domain.entities.user.User;
-import ${package}.domain.enums.user.UserStatus;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.enums.UserStatus;
+import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.repo.user.converter.UserPOConverter;
 import ${package}.infrastructure.repo.user.impl.UserRepositoryImpl;
 import org.junit.jupiter.api.Test;

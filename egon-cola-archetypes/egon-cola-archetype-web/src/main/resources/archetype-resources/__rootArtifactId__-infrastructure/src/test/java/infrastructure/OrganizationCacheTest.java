@@ -1,8 +1,8 @@
 package ${package}.infrastructure;
 
-import ${package}.domain.entities.user.User;
-import ${package}.domain.enums.user.UserStatus;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.enums.UserStatus;
+import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.cache.RedisCommandIdempotencyAdapter;
 import ${package}.infrastructure.cache.RedisUserCache;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;

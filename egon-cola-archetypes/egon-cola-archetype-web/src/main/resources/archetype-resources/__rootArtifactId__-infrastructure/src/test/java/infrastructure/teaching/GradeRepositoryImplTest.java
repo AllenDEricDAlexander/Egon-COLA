@@ -1,9 +1,9 @@
 package ${package}.infrastructure.teaching;
 
-import ${package}.domain.entities.teaching.Grade;
-import ${package}.domain.enums.teaching.GradeStatus;
-import ${package}.domain.repos.teaching.GradeRepository;
-import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.teaching.entities.Grade;
+import ${package}.domain.teaching.enums.GradeStatus;
+import ${package}.domain.teaching.repos.GradeRepository;
+import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.repo.teaching.converter.GradePOConverter;
 import ${package}.infrastructure.repo.teaching.impl.GradeRepositoryImpl;
 import ${package}.infrastructure.repo.teaching.jpa.GradeJpaRepository;

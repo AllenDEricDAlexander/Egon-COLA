@@ -1,11 +1,11 @@
 package ${package}.infrastructure.cache;
 
-import ${package}.domain.client.teaching.SchoolClassCachePort;
-import ${package}.domain.entities.teaching.SchoolClass;
-import ${package}.domain.enums.teaching.SchoolClassStatus;
-import ${package}.domain.vos.teaching.GradeCode;
-import ${package}.domain.vos.teaching.SchoolClassId;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.teaching.client.SchoolClassCachePort;
+import ${package}.domain.teaching.entities.SchoolClass;
+import ${package}.domain.teaching.enums.SchoolClassStatus;
+import ${package}.domain.teaching.vos.GradeCode;
+import ${package}.domain.teaching.vos.SchoolClassId;
+import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;

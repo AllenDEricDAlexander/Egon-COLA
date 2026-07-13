@@ -1,12 +1,12 @@
 package ${package}.infrastructure.repo.user.impl;
 
-import ${package}.domain.entities.user.User;
-import ${package}.domain.enums.user.UserStatus;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.enums.UserStatus;
 import ${package}.domain.exceptions.OrganizationDomainErrorCode;
 import ${package}.domain.exceptions.OrganizationPortException;
-import ${package}.domain.repos.user.UserRepository;
-import ${package}.domain.vos.user.UserId;
-import ${package}.domain.vos.user.RoleCode;
+import ${package}.domain.user.repos.UserRepository;
+import ${package}.domain.user.vos.UserId;
+import ${package}.domain.user.vos.RoleCode;
 import ${package}.infrastructure.repo.user.converter.UserPOConverter;
 import ${package}.infrastructure.repo.user.jpa.RoleJpaRepository;
 import ${package}.infrastructure.repo.user.jpa.UserRoleJpaRepository;

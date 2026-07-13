@@ -1,8 +1,8 @@
 package ${package}.application.assemblers.user;
 
 import ${package}.application.result.user.UserDetailResult;
-import ${package}.domain.entities.user.User;
-import ${package}.domain.vos.user.RoleCode;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.vos.RoleCode;
 
 public final class UserAssembler {
 

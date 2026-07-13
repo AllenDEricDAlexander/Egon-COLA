@@ -1,7 +1,7 @@
 package ${package}.application.assemblers.user;
 
 import ${package}.application.result.user.PermissionTreeResult;
-import ${package}.domain.entities.user.Permission;
+import ${package}.domain.user.entities.Permission;
 
 import java.util.List;
 

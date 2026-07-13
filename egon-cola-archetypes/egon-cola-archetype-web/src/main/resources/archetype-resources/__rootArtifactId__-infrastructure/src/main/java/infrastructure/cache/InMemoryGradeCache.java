@@ -1,7 +1,7 @@
 package ${package}.infrastructure.cache;
 
-import ${package}.domain.client.teaching.GradeCachePort;
-import ${package}.domain.entities.teaching.Grade;
+import ${package}.domain.teaching.client.GradeCachePort;
+import ${package}.domain.teaching.entities.Grade;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

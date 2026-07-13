@@ -7,12 +7,12 @@ import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.manage.user.impl.UserManageImpl;
 import ${package}.application.result.user.UserDetailResult;
 import ${package}.application.validators.user.UserApplicationValidator;
-import ${package}.domain.entities.user.User;
-import ${package}.domain.repos.user.UserRepository;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.repos.UserRepository;
 import ${package}.domain.client.CommandIdempotencyPort;
 import ${package}.domain.client.OrganizationEventPublisher;
-import ${package}.domain.client.user.UserCachePort;
-import ${package}.domain.service.user.UserDomainService;
+import ${package}.domain.user.client.UserCachePort;
+import ${package}.domain.user.service.UserDomainService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +35,7 @@ class UserManageImplTest {
     @Mock private CommandIdempotencyPort idempotency;
     @Mock private OrganizationEventPublisher eventPublisher;
 
-    private final UserDomainService userDomainService = new ${package}.domain.service.user.impl.UserDomainServiceImpl();
+    private final UserDomainService userDomainService = new ${package}.domain.user.service.impl.UserDomainServiceImpl();
 
     @AfterEach
     void clearContext() {

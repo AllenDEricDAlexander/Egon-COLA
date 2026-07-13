@@ -1,10 +1,10 @@
 package ${package}.domain.teaching;
 
-import ${package}.domain.entities.teaching.Grade;
-import ${package}.domain.enums.teaching.GradeStatus;
-import ${package}.domain.service.teaching.GradeDomainService;
-import ${package}.domain.service.teaching.impl.GradeDomainServiceImpl;
-import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.teaching.entities.Grade;
+import ${package}.domain.teaching.enums.GradeStatus;
+import ${package}.domain.teaching.service.GradeDomainService;
+import ${package}.domain.teaching.service.impl.GradeDomainServiceImpl;
+import ${package}.domain.teaching.vos.GradeCode;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;

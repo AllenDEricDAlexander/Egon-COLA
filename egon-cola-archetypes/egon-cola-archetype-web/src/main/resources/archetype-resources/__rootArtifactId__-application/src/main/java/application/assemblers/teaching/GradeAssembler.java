@@ -1,7 +1,7 @@
 package ${package}.application.assemblers.teaching;
 
 import ${package}.application.result.teaching.GradeDetailResult;
-import ${package}.domain.entities.teaching.Grade;
+import ${package}.domain.teaching.entities.Grade;
 
 public final class GradeAssembler {
     public GradeDetailResult toResult(Grade grade) {

@@ -1,9 +1,9 @@
 package ${package}.infrastructure.repo.user.converter;
 
-import ${package}.domain.entities.user.User;
-import ${package}.domain.enums.user.UserStatus;
-import ${package}.domain.vos.user.UserId;
-import ${package}.domain.vos.user.RoleCode;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.enums.UserStatus;
+import ${package}.domain.user.vos.UserId;
+import ${package}.domain.user.vos.RoleCode;
 import ${package}.infrastructure.repo.user.po.UserPO;
 import org.springframework.stereotype.Component;
 

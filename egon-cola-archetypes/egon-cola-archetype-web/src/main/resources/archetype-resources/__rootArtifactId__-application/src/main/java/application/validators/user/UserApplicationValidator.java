@@ -3,7 +3,7 @@ package ${package}.application.validators.user;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.exceptions.OrganizationFailureType;
-import ${package}.domain.validators.user.UserDomainValidator;
+import ${package}.domain.user.validators.UserDomainValidator;
 
 public final class UserApplicationValidator {
 

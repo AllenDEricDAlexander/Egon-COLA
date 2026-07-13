@@ -1,10 +1,10 @@
 package ${package}.infrastructure.cache;
 
-import ${package}.domain.client.user.UserCachePort;
-import ${package}.domain.entities.user.User;
-import ${package}.domain.enums.user.UserStatus;
-import ${package}.domain.vos.user.RoleCode;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.user.client.UserCachePort;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.enums.UserStatus;
+import ${package}.domain.user.vos.RoleCode;
+import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;

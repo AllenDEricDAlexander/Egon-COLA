@@ -172,80 +172,79 @@ def requiredFiles = [
     "student-management-organization-common/src/test/java/it/pkg/.gitkeep",
     "student-management-organization-common/src/test/resources/.gitkeep",
     "student-management-organization-domain/pom.xml",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/teaching/SchoolClassAggregate.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/user/RolePermissionAggregate.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/user/UserAggregate.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/user/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/aggregates/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/aggregates/RolePermissionAggregate.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/aggregates/package-info.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/CommandIdempotencyPort.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/OrganizationEventPublisher.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/GradeCachePort.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/SchoolClassCachePort.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/user/UserCachePort.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/user/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/Grade.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/SchoolClass.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/Permission.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/Role.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/User.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/teaching/GradeStatus.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/teaching/SchoolClassStatus.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/user/PermissionStatus.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/user/PermissionType.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/user/RoleStatus.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/user/UserStatus.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/enums/user/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/client/GradeCachePort.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/client/SchoolClassCachePort.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/client/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/client/UserCachePort.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/client/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/entities/Grade.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/entities/SchoolClass.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/entities/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/entities/Permission.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/entities/Role.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/entities/User.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/entities/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/enums/GradeStatus.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/enums/SchoolClassStatus.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/enums/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/enums/PermissionStatus.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/enums/PermissionType.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/enums/RoleStatus.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/enums/UserStatus.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/enums/package-info.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/events/OrganizationDomainEvent.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/events/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/teaching/GradeChangedEvent.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/teaching/SchoolClassChangedEvent.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/teaching/SchoolClassMembershipChangedEvent.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/user/PermissionGrantedEvent.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/user/RoleAssignedEvent.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/user/UserChangedEvent.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/events/user/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/events/GradeChangedEvent.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/events/SchoolClassChangedEvent.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/events/SchoolClassMembershipChangedEvent.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/events/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/events/PermissionGrantedEvent.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/events/RoleAssignedEvent.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/events/UserChangedEvent.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/events/package-info.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/exceptions/OrganizationDomainErrorCode.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/exceptions/OrganizationDomainException.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/exceptions/OrganizationPortException.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/exceptions/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/repos/teaching/GradeRepository.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/repos/teaching/SchoolClassRepository.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/repos/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/repos/user/PermissionRepository.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/repos/user/RoleRepository.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/repos/user/UserRepository.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/repos/user/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/teaching/GradeDomainService.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/teaching/SchoolClassDomainService.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/teaching/impl/GradeDomainServiceImpl.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/teaching/impl/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/user/PermissionDomainService.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/user/UserDomainService.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/user/impl/PermissionDomainServiceImpl.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/user/impl/UserDomainServiceImpl.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/user/impl/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/service/user/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/repos/GradeRepository.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/repos/SchoolClassRepository.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/repos/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/repos/PermissionRepository.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/repos/RoleRepository.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/repos/UserRepository.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/repos/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/service/GradeDomainService.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/service/SchoolClassDomainService.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/service/impl/GradeDomainServiceImpl.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/service/impl/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/service/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/service/PermissionDomainService.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/service/UserDomainService.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/service/impl/PermissionDomainServiceImpl.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/service/impl/UserDomainServiceImpl.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/service/impl/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/service/package-info.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/validators/OrganizationCodeValidator.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/validators/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/validators/teaching/TeachingDomainValidator.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/validators/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/validators/user/UserDomainValidator.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/validators/user/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/vos/teaching/GradeCode.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/vos/teaching/SchoolClassId.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/vos/teaching/package-info.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/vos/user/PermissionCode.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/vos/user/RoleCode.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/vos/user/UserId.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/vos/user/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/validators/TeachingDomainValidator.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/validators/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/validators/UserDomainValidator.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/validators/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/vos/GradeCode.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/vos/SchoolClassId.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/vos/package-info.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/vos/PermissionCode.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/vos/RoleCode.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/vos/UserId.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/vos/package-info.java",
     "student-management-organization-domain/src/main/resources/.gitkeep",
     "student-management-organization-domain/src/test/java/it/pkg/.gitkeep",
     "student-management-organization-domain/src/test/java/it/pkg/domain/teaching/GradeDomainServiceTest.java",
@@ -462,6 +461,16 @@ def assertMissing = { path ->
     assert !new File(projectDir, path).exists(): "Unexpected stale path ${path}"
 }
 
+def webDomainModule = "student-management-organization-domain/src/main/java/it/pkg/domain"
+["user", "teaching"].each { businessDomain ->
+    ["aggregates", "client", "entities", "enums", "events", "repos", "service", "validators", "vos"].each { role ->
+        assertFile("${webDomainModule}/${businessDomain}/${role}/package-info.java")
+        assertMissing("${webDomainModule}/${role}/${businessDomain}")
+    }
+}
+assertFile("${webDomainModule}/client/evaluation/package-info.java")
+assertFile("${webDomainModule}/events/OrganizationDomainEvent.java")
+
 requiredFiles.addAll([
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/ExternalDependencyFailure.java",
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/ExternalDependencyException.java",
@@ -499,10 +508,10 @@ def forbiddenPaths = [
     "student-management-organization-common/src/main/java/it/pkg/common/response",
     "student-management-organization-domain/src/main/java/it/pkg/domain/common",
     "student-management-organization-domain/src/main/java/it/pkg/domain/enums/UserStatus.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/user/EvaluationClient.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/CourseClient.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/user/UserClient.java",
-    "student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/SchoolClassClient.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/client/EvaluationClient.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/client/CourseClient.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/user/client/UserClient.java",
+    "student-management-organization-domain/src/main/java/it/pkg/domain/teaching/client/SchoolClassClient.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/EvaluationClientImpl.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java",
@@ -1022,13 +1031,13 @@ assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/u
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/PermissionFacade.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/SchoolClassFacade.java")
 assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/GradeFacade.java")
-assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/user/User.java")
-assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/user/UserAggregate.java")
-assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/user/RolePermissionAggregate.java")
-assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/SchoolClass.java")
-assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/entities/teaching/Grade.java")
-assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/client/user/UserClient.java")
-assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/client/teaching/SchoolClassClient.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/entities/User.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/aggregates/RolePermissionAggregate.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/entities/SchoolClass.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/entities/Grade.java")
+assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/user/client/UserClient.java")
+assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/client/SchoolClassClient.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/RoleManage.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/PermissionManage.java")
@@ -1121,7 +1130,7 @@ assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/GradePOConverter.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassPO.java")
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/command/teaching/AssignUserToClassCommand.java")
-assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/aggregates/teaching/SchoolClassAggregate.java")
+assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassUserPO.java")
 assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/common")
 assertMissing("student-management-organization-facade/src/main/java/it/pkg/facade/dto/PageResponse.java")
@@ -1129,7 +1138,7 @@ assertMissing("student-management-organization-facade/src/main/java/it/pkg/facad
 assertMissing("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/SchoolClassAdapterMapper.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPoMapper.java")
 
-def userRepositoryText = assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/repos/user/UserRepository.java").text
+def userRepositoryText = assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/repos/UserRepository.java").text
 assert !userRepositoryText.contains("findPage")
 assert !userRepositoryText.contains("domain.common.Page")
 

@@ -1,8 +1,8 @@
 package ${package}.infrastructure.cache;
 
-import ${package}.domain.client.user.UserCachePort;
-import ${package}.domain.entities.user.User;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.user.client.UserCachePort;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.vos.UserId;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

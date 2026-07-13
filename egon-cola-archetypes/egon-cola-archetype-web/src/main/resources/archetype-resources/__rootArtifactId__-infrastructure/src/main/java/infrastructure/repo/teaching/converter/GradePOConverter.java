@@ -1,8 +1,8 @@
 package ${package}.infrastructure.repo.teaching.converter;
 
-import ${package}.domain.entities.teaching.Grade;
-import ${package}.domain.enums.teaching.GradeStatus;
-import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.teaching.entities.Grade;
+import ${package}.domain.teaching.enums.GradeStatus;
+import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.repo.teaching.po.GradePO;
 import org.springframework.stereotype.Component;
 

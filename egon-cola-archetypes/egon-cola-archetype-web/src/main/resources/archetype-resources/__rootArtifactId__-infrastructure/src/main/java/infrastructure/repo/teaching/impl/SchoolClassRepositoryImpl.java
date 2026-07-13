@@ -1,12 +1,12 @@
 package ${package}.infrastructure.repo.teaching.impl;
 
-import ${package}.domain.entities.teaching.SchoolClass;
+import ${package}.domain.teaching.entities.SchoolClass;
 import ${package}.domain.exceptions.OrganizationDomainErrorCode;
 import ${package}.domain.exceptions.OrganizationPortException;
-import ${package}.domain.repos.teaching.SchoolClassRepository;
-import ${package}.domain.vos.teaching.GradeCode;
-import ${package}.domain.vos.teaching.SchoolClassId;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.teaching.repos.SchoolClassRepository;
+import ${package}.domain.teaching.vos.GradeCode;
+import ${package}.domain.teaching.vos.SchoolClassId;
+import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.repo.teaching.converter.SchoolClassPOConverter;
 import ${package}.infrastructure.repo.teaching.jpa.GradeJpaRepository;
 import ${package}.infrastructure.repo.teaching.jpa.SchoolClassJpaRepository;

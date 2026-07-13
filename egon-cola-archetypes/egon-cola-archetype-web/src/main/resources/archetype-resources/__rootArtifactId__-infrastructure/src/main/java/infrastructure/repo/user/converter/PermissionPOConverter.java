@@ -1,9 +1,9 @@
 package ${package}.infrastructure.repo.user.converter;
 
-import ${package}.domain.entities.user.Permission;
-import ${package}.domain.enums.user.PermissionStatus;
-import ${package}.domain.enums.user.PermissionType;
-import ${package}.domain.vos.user.PermissionCode;
+import ${package}.domain.user.entities.Permission;
+import ${package}.domain.user.enums.PermissionStatus;
+import ${package}.domain.user.enums.PermissionType;
+import ${package}.domain.user.vos.PermissionCode;
 import ${package}.infrastructure.repo.user.po.PermissionPO;
 import org.springframework.stereotype.Component;
 

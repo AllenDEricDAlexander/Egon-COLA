@@ -1,8 +1,8 @@
 package ${package}.application.assemblers.teaching;
 
 import ${package}.application.result.teaching.SchoolClassDetailResult;
-import ${package}.domain.entities.teaching.SchoolClass;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.teaching.entities.SchoolClass;
+import ${package}.domain.user.vos.UserId;
 
 public final class SchoolClassAssembler {
     public SchoolClassDetailResult toResult(SchoolClass schoolClass) {

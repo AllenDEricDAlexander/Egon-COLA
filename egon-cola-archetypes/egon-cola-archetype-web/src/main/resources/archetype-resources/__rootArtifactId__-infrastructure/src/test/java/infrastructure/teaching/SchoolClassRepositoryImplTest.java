@@ -1,13 +1,13 @@
 package ${package}.infrastructure.teaching;
 
-import ${package}.domain.entities.teaching.Grade;
-import ${package}.domain.entities.teaching.SchoolClass;
-import ${package}.domain.enums.teaching.GradeStatus;
-import ${package}.domain.enums.teaching.SchoolClassStatus;
-import ${package}.domain.repos.teaching.GradeRepository;
-import ${package}.domain.repos.teaching.SchoolClassRepository;
-import ${package}.domain.vos.teaching.GradeCode;
-import ${package}.domain.vos.teaching.SchoolClassId;
+import ${package}.domain.teaching.entities.Grade;
+import ${package}.domain.teaching.entities.SchoolClass;
+import ${package}.domain.teaching.enums.GradeStatus;
+import ${package}.domain.teaching.enums.SchoolClassStatus;
+import ${package}.domain.teaching.repos.GradeRepository;
+import ${package}.domain.teaching.repos.SchoolClassRepository;
+import ${package}.domain.teaching.vos.GradeCode;
+import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.infrastructure.repo.teaching.converter.GradePOConverter;
 import ${package}.infrastructure.repo.teaching.converter.SchoolClassPOConverter;
 import ${package}.infrastructure.repo.teaching.impl.GradeRepositoryImpl;

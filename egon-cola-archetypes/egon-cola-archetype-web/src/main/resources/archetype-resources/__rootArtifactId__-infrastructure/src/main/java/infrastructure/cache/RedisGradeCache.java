@@ -1,9 +1,9 @@
 package ${package}.infrastructure.cache;
 
-import ${package}.domain.client.teaching.GradeCachePort;
-import ${package}.domain.entities.teaching.Grade;
-import ${package}.domain.enums.teaching.GradeStatus;
-import ${package}.domain.vos.teaching.GradeCode;
+import ${package}.domain.teaching.client.GradeCachePort;
+import ${package}.domain.teaching.entities.Grade;
+import ${package}.domain.teaching.enums.GradeStatus;
+import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;

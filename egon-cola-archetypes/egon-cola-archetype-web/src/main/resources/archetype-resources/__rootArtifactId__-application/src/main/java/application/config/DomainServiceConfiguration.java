@@ -2,14 +2,14 @@ package ${package}.application.config;
 
 import ${package}.application.assemblers.user.UserAssembler;
 import ${package}.application.validators.user.UserApplicationValidator;
-import ${package}.domain.service.teaching.SchoolClassDomainService;
-import ${package}.domain.service.teaching.GradeDomainService;
-import ${package}.domain.service.teaching.impl.GradeDomainServiceImpl;
+import ${package}.domain.teaching.service.SchoolClassDomainService;
+import ${package}.domain.teaching.service.GradeDomainService;
+import ${package}.domain.teaching.service.impl.GradeDomainServiceImpl;
 import ${package}.application.validators.teaching.TeachingApplicationValidator;
-import ${package}.domain.service.user.PermissionDomainService;
-import ${package}.domain.service.user.UserDomainService;
-import ${package}.domain.service.user.impl.PermissionDomainServiceImpl;
-import ${package}.domain.service.user.impl.UserDomainServiceImpl;
+import ${package}.domain.user.service.PermissionDomainService;
+import ${package}.domain.user.service.UserDomainService;
+import ${package}.domain.user.service.impl.PermissionDomainServiceImpl;
+import ${package}.domain.user.service.impl.UserDomainServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

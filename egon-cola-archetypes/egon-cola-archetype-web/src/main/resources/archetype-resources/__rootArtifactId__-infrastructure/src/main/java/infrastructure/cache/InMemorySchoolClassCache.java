@@ -1,8 +1,8 @@
 package ${package}.infrastructure.cache;
 
-import ${package}.domain.client.teaching.SchoolClassCachePort;
-import ${package}.domain.entities.teaching.SchoolClass;
-import ${package}.domain.vos.teaching.SchoolClassId;
+import ${package}.domain.teaching.client.SchoolClassCachePort;
+import ${package}.domain.teaching.entities.SchoolClass;
+import ${package}.domain.teaching.vos.SchoolClassId;
 
 import java.util.Optional;
 import java.util.List;

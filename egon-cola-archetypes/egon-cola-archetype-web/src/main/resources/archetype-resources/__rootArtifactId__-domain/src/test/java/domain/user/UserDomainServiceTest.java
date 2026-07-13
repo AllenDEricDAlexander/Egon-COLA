@@ -1,10 +1,10 @@
 package ${package}.domain.user;
 
-import ${package}.domain.entities.user.User;
-import ${package}.domain.enums.user.UserStatus;
-import ${package}.domain.service.user.UserDomainService;
-import ${package}.domain.service.user.impl.UserDomainServiceImpl;
-import ${package}.domain.vos.user.UserId;
+import ${package}.domain.user.entities.User;
+import ${package}.domain.user.enums.UserStatus;
+import ${package}.domain.user.service.UserDomainService;
+import ${package}.domain.user.service.impl.UserDomainServiceImpl;
+import ${package}.domain.user.vos.UserId;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
