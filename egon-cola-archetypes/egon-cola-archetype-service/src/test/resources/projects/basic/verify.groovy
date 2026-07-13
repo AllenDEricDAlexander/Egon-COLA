@@ -455,9 +455,13 @@ assert tripleTest.contains("examReference.get().createExam")
 }
 
 def generatedWorkflow = assertFile(".github/workflows/ci.yml").text
-assert generatedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test")
-assert generatedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package")
-assert generatedWorkflow.contains("docker build -t student-management-evaluation:ci .")
+def normalizedGeneratedWorkflow = generatedWorkflow.replaceAll(/\s+/, " ")
+assert normalizedGeneratedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test")
+assert normalizedGeneratedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package")
+assert normalizedGeneratedWorkflow.contains("docker build --build-arg CONTAINER_ENGINE=docker")
+assert normalizedGeneratedWorkflow.contains("--file deploy/container/Dockerfile")
+assert normalizedGeneratedWorkflow.contains("--tag student-management-evaluation:ci")
+assert !normalizedGeneratedWorkflow.contains("docker build -t student-management-evaluation:ci .")
 
 def readme = assertFile("README.md").text
 assert readme.contains("require no Nacos, RabbitMQ, or PostgreSQL")
@@ -613,6 +617,35 @@ assert !jenkinsfile.contains("docker compose")
 assert !jenkinsfile.contains("podman compose")
 assert !jenkinsfile.contains("nerdctl compose")
 assert !jenkinsfile.contains("withRegistry")
+def deliveryReadme = assertFile("deploy/container/README.md").text
+def normalizedDeliveryReadme = deliveryReadme.replaceAll(/\s+/, " ")
+[
+    "One Portable Dockerfile",
+    "Docker",
+    "Podman",
+    "nerdctl",
+    "Rootless And Rootful",
+    "Development Compose",
+    "Production Compose",
+    "Persistent Data",
+    "Jenkins",
+    "does not provide high availability"
+].each { token ->
+    assert normalizedDeliveryReadme.contains(token): "Expected deployment README to contain ${token}"
+}
+
+def generatedReadme = assertFile("README.md").text
+[
+    "deploy/container/Dockerfile",
+    "compose.docker.yaml",
+    "compose.podman.yaml",
+    "compose.nerdctl.yaml",
+    "Jenkinsfile",
+    "PUBLISH_IMAGE"
+].each { token ->
+    assert generatedReadme.contains(token): "Expected generated README to contain ${token}"
+}
+assert !generatedReadme.contains("docker build -t")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git", ".gitignore", ".github", ".idea", ".vscode", "*.iml", ".DS_Store", "",

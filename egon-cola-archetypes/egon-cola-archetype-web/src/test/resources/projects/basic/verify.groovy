@@ -715,7 +715,6 @@ assert assertFile("README.md").text.contains("## Dependency Direction")
 assert assertFile("README.md").text.contains("## Integration Ownership")
 assert assertFile("README.md").text.contains("## Commands")
 assert assertFile("README.md").text.contains("## Runtime Profiles")
-assert assertFile("README.md").text.contains("docker build -t student-management-organization:local .")
 assertPortableDockerfile(
         "student-management-organization-starter/target/*.jar", "8080 50051", "8080")
 def developmentEnv = assertFile("deploy/env/.env.example").text
@@ -850,6 +849,35 @@ assert !jenkinsfile.contains("docker compose")
 assert !jenkinsfile.contains("podman compose")
 assert !jenkinsfile.contains("nerdctl compose")
 assert !jenkinsfile.contains("withRegistry")
+def deliveryReadme = assertFile("deploy/container/README.md").text
+def normalizedDeliveryReadme = deliveryReadme.replaceAll(/\s+/, " ")
+[
+    "One Portable Dockerfile",
+    "Docker",
+    "Podman",
+    "nerdctl",
+    "Rootless And Rootful",
+    "Development Compose",
+    "Production Compose",
+    "Persistent Data",
+    "Jenkins",
+    "does not provide high availability"
+].each { token ->
+    assert normalizedDeliveryReadme.contains(token): "Expected deployment README to contain ${token}"
+}
+
+def generatedReadme = assertFile("README.md").text
+[
+    "deploy/container/Dockerfile",
+    "compose.docker.yaml",
+    "compose.podman.yaml",
+    "compose.nerdctl.yaml",
+    "Jenkinsfile",
+    "PUBLISH_IMAGE"
+].each { token ->
+    assert generatedReadme.contains(token): "Expected generated README to contain ${token}"
+}
+assert !generatedReadme.contains("docker build -t")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",

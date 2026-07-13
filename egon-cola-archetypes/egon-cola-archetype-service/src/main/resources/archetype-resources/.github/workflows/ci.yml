@@ -19,4 +19,9 @@ jobs:
           cache: maven
       - run: SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test
       - run: SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
-      - run: docker build -t ${rootArtifactId}:ci .
+      - run: >-
+          docker build
+          --build-arg CONTAINER_ENGINE=docker
+          --file deploy/container/Dockerfile
+          --tag ${rootArtifactId}:ci
+          .

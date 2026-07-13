@@ -51,6 +51,12 @@
                 <include>Dockerfile</include>
             </includes>
         </fileSet>
+        <fileSet filtered="false" encoding="UTF-8">
+            <directory>deploy/container</directory>
+            <includes>
+                <include>README.md</include>
+            </includes>
+        </fileSet>
         <fileSet filtered="true" encoding="UTF-8">
             <directory>deploy/env</directory>
             <includes>

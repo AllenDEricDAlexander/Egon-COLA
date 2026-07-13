@@ -105,7 +105,6 @@ assertFile(".gitattributes")
 assertFile("README.md")
 assertFile(".dockerignore")
 assert assertFile("README.md").text.contains("Docker")
-assert assertFile("README.md").text.contains("docker build -t basic:local .")
 assertPortableDockerfile("target/*.jar", "8080 50051", "8080")
 def developmentEnv = assertFile("deploy/env/.env.example").text
 def productionEnv = assertFile("deploy/env/.env.prod.example").text
@@ -237,6 +236,35 @@ assert !jenkinsfile.contains("docker compose")
 assert !jenkinsfile.contains("podman compose")
 assert !jenkinsfile.contains("nerdctl compose")
 assert !jenkinsfile.contains("withRegistry")
+def deliveryReadme = assertFile("deploy/container/README.md").text
+def normalizedDeliveryReadme = deliveryReadme.replaceAll(/\s+/, " ")
+[
+    "One Portable Dockerfile",
+    "Docker",
+    "Podman",
+    "nerdctl",
+    "Rootless And Rootful",
+    "Development Compose",
+    "Production Compose",
+    "Persistent Data",
+    "Jenkins",
+    "does not provide high availability"
+].each { token ->
+    assert normalizedDeliveryReadme.contains(token): "Expected deployment README to contain ${token}"
+}
+
+def generatedReadme = assertFile("README.md").text
+[
+    "deploy/container/Dockerfile",
+    "compose.docker.yaml",
+    "compose.podman.yaml",
+    "compose.nerdctl.yaml",
+    "Jenkinsfile",
+    "PUBLISH_IMAGE"
+].each { token ->
+    assert generatedReadme.contains(token): "Expected generated README to contain ${token}"
+}
+assert !generatedReadme.contains("docker build -t")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",
@@ -905,7 +933,6 @@ assert readme.contains("Domain-First Structure")
 assert readme.contains("Primary Workflows")
 assert readme.contains("RABBITMQ_ENABLED=true")
 assert readme.contains("ConfigCipherCli")
-assert readme.contains("docker build -t basic:local .")
 assert !readme.contains("计费")
 assert !readme.contains("Charge")
 

@@ -71,10 +71,33 @@ ${symbol_pound}${symbol_pound} Verification And Packaging
 ```bash
 SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test
 SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
-docker build -t ${rootArtifactId}:local .
 ```
 
 The test suite includes Domain rules, Application orchestration, JPA adapters, V1-to-V2 migration behavior, broker-free MQ adapters, an actual Dubbo Triple proxy call, external-free Spring context assembly, and ArchUnit dependency checks. Building the image does not start the service.
+
+${symbol_pound}${symbol_pound} Container Delivery
+
+The generated project uses one source-building `deploy/container/Dockerfile`:
+
+```bash
+docker build --build-arg CONTAINER_ENGINE=docker -f deploy/container/Dockerfile -t ${rootArtifactId}:local .
+podman build --build-arg CONTAINER_ENGINE=podman -f deploy/container/Dockerfile -t ${rootArtifactId}:local .
+nerdctl build --build-arg CONTAINER_ENGINE=nerdctl -f deploy/container/Dockerfile -t ${rootArtifactId}:local .
+```
+
+Start the complete Docker development stack with:
+
+```bash
+docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
+```
+
+Podman and nerdctl use `compose.podman.yaml` and `compose.nerdctl.yaml`. Production
+uses the matching `.prod.yaml` file and an operator-owned `.env.prod`. See
+`deploy/container/README.md` for rootless prerequisites, persistence, production
+boundaries, and data-deletion warnings.
+
+The root `Jenkinsfile` runs tests and can publish immutable images. Set
+`PUBLISH_IMAGE=true` plus registry parameters to publish; it never deploys.
 
 ${symbol_pound}${symbol_pound} Scope Boundary
 
