@@ -45,6 +45,13 @@
                 <include>Dockerfile</include>
             </includes>
         </fileSet>
+        <fileSet filtered="true" encoding="UTF-8">
+            <directory>deploy/env</directory>
+            <includes>
+                <include>.env.example</include>
+                <include>.env.prod.example</include>
+            </includes>
+        </fileSet>
     </fileSets>
     <modules>
         <module id="${rootArtifactId}-common" dir="__rootArtifactId__-common" name="${rootArtifactId}-common">

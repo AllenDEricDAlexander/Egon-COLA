@@ -481,6 +481,41 @@ assertFile("README.md")
 assertFile(".dockerignore")
 assertPortableDockerfile(
         "student-management-evaluation-starter/target/*.jar", "8081 50051", "8081")
+def developmentEnv = assertFile("deploy/env/.env.example").text
+def productionEnv = assertFile("deploy/env/.env.prod.example").text
+[
+    "POSTGRES_IMAGE=postgres:17-alpine",
+    "REDIS_IMAGE=redis:7.4-alpine",
+    "RABBITMQ_IMAGE=rabbitmq:4-management",
+    "NACOS_IMAGE=nacos/nacos-server:v2.5.1",
+    "POSTGRES_PASSWORD=",
+    "REDIS_PASSWORD=",
+    "RABBITMQ_PASSWORD=",
+    "NACOS_PASSWORD=",
+    "NACOS_AUTH_TOKEN="
+].each { expected ->
+    assert productionEnv.readLines().contains(expected):
+            "Expected production env example line ${expected}"
+}
+[
+    "POSTGRES_PASSWORD=local-postgres",
+    "REDIS_PASSWORD=local-redis",
+    "RABBITMQ_PASSWORD=local-rabbitmq",
+    "NACOS_PASSWORD=nacos"
+].each { forbidden ->
+    assert !productionEnv.contains(forbidden):
+            "Production env example must not contain development credential ${forbidden}"
+}
+assert developmentEnv.contains("IMAGE_TAG=local")
+assert developmentEnv.contains("NACOS_AUTH_ENABLE=true")
+assert productionEnv.contains("REGISTRY=")
+assert productionEnv.contains("REGISTRY_NAMESPACE=")
+assert productionEnv.contains("IMAGE_TAG=")
+assert developmentEnv.contains("IMAGE_NAME=student-management-evaluation")
+assert developmentEnv.contains("POSTGRES_DB=student_management_evaluation")
+assert developmentEnv.contains("APPLICATION_PORT=8081")
+assert developmentEnv.contains("ORGANIZATION_FACADE_ENABLED=false")
+assert productionEnv.readLines().contains("ORGANIZATION_FACADE_ENABLED=")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git", ".gitignore", ".github", ".idea", ".vscode", "*.iml", ".DS_Store", "",
