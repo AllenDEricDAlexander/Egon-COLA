@@ -1,11 +1,11 @@
 package ${package}.adapter.facade.impl.teaching;
 
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
-import ${package}.application.command.teaching.CreateSchoolClassCommand;
-import ${package}.application.command.teaching.AssignUserToClassCommand;
-import ${package}.application.manage.teaching.SchoolClassManage;
-import ${package}.application.query.teaching.SchoolClassDetailQuery;
-import ${package}.application.result.teaching.SchoolClassDetailResult;
+import ${package}.application.teaching.command.CreateSchoolClassCommand;
+import ${package}.application.teaching.command.AssignUserToClassCommand;
+import ${package}.application.teaching.manage.SchoolClassManage;
+import ${package}.application.teaching.query.SchoolClassDetailQuery;
+import ${package}.application.teaching.result.SchoolClassDetailResult;
 import ${package}.facade.teaching.dto.AssignUserToClassDTO;
 import ${package}.facade.teaching.dto.CreateSchoolClassDTO;
 import ${package}.facade.teaching.dto.SchoolClassDetailDTO;

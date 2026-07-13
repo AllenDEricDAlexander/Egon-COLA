@@ -1,15 +1,15 @@
 package ${package}.adapter.graphql;
 
-import ${package}.application.command.user.AssignRoleCommand;
-import ${package}.application.command.user.CreateUserCommand;
-import ${package}.application.command.user.GrantPermissionCommand;
-import ${package}.application.manage.user.PermissionManage;
-import ${package}.application.manage.user.RoleManage;
-import ${package}.application.manage.user.UserManage;
-import ${package}.application.query.user.PermissionTreeQuery;
-import ${package}.application.query.user.UserDetailQuery;
-import ${package}.application.result.user.PermissionTreeResult;
-import ${package}.application.result.user.UserDetailResult;
+import ${package}.application.user.command.AssignRoleCommand;
+import ${package}.application.user.command.CreateUserCommand;
+import ${package}.application.user.command.GrantPermissionCommand;
+import ${package}.application.user.manage.PermissionManage;
+import ${package}.application.user.manage.RoleManage;
+import ${package}.application.user.manage.UserManage;
+import ${package}.application.user.query.PermissionTreeQuery;
+import ${package}.application.user.query.UserDetailQuery;
+import ${package}.application.user.result.PermissionTreeResult;
+import ${package}.application.user.result.UserDetailResult;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.MutationMapping;

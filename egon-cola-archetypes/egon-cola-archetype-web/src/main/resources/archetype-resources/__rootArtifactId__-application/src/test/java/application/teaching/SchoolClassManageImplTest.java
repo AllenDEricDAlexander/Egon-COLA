@@ -1,11 +1,11 @@
 package ${package}.application.teaching;
 
-import ${package}.application.command.teaching.CreateSchoolClassCommand;
+import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
-import ${package}.application.manage.teaching.impl.SchoolClassManageImpl;
-import ${package}.application.validators.teaching.TeachingApplicationValidator;
+import ${package}.application.teaching.manage.impl.SchoolClassManageImpl;
+import ${package}.application.teaching.validators.TeachingApplicationValidator;
 import ${package}.domain.teaching.entities.Grade;
 import ${package}.domain.teaching.enums.GradeStatus;
 import ${package}.domain.teaching.repos.GradeRepository;

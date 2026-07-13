@@ -2,8 +2,8 @@ package ${package}.adapter.converter;
 
 import ${package}.adapter.dto.user.GrantPermissionRequest;
 import ${package}.adapter.vo.user.PermissionTreeVO;
-import ${package}.application.command.user.GrantPermissionCommand;
-import ${package}.application.result.user.PermissionTreeResult;
+import ${package}.application.user.command.GrantPermissionCommand;
+import ${package}.application.user.result.PermissionTreeResult;
 import org.springframework.stereotype.Component;
 
 @Component("permissionAdapterConverter")

@@ -1,11 +1,11 @@
 package ${package}.application.user;
 
-import ${package}.application.command.user.GrantPermissionCommand;
+import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
-import ${package}.application.manage.user.impl.PermissionManageImpl;
-import ${package}.application.query.user.PermissionTreeQuery;
-import ${package}.application.validators.user.UserApplicationValidator;
+import ${package}.application.user.manage.impl.PermissionManageImpl;
+import ${package}.application.user.query.PermissionTreeQuery;
+import ${package}.application.user.validators.UserApplicationValidator;
 import ${package}.domain.user.entities.Permission;
 import ${package}.domain.user.entities.Role;
 import ${package}.domain.user.enums.PermissionStatus;

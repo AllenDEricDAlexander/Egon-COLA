@@ -2,9 +2,9 @@ package ${package}.adapter.facade.impl.user;
 
 import ${package}.adapter.converter.UserAdapterConverter;
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
-import ${package}.application.command.user.CreateUserCommand;
-import ${package}.application.manage.user.UserManage;
-import ${package}.application.query.user.UserDetailQuery;
+import ${package}.application.user.command.CreateUserCommand;
+import ${package}.application.user.manage.UserManage;
+import ${package}.application.user.query.UserDetailQuery;
 import ${package}.facade.user.dto.CreateUserDTO;
 import ${package}.facade.user.dto.UserDetailDTO;
 import ${package}.facade.user.UserFacade;

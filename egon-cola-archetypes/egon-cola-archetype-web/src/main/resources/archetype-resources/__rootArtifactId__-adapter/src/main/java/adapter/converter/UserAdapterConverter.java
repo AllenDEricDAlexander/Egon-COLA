@@ -2,8 +2,8 @@ package ${package}.adapter.converter;
 
 import ${package}.adapter.dto.user.CreateUserRequest;
 import ${package}.adapter.vo.user.UserDetailVO;
-import ${package}.application.command.user.CreateUserCommand;
-import ${package}.application.result.user.UserDetailResult;
+import ${package}.application.user.command.CreateUserCommand;
+import ${package}.application.user.result.UserDetailResult;
 import ${package}.facade.user.dto.CreateUserDTO;
 import ${package}.facade.user.dto.UserDetailDTO;
 import org.springframework.stereotype.Component;

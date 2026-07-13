@@ -1,10 +1,10 @@
 package ${package}.application.user;
 
-import ${package}.application.command.user.AssignRoleCommand;
+import ${package}.application.user.command.AssignRoleCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
-import ${package}.application.manage.user.impl.RoleManageImpl;
-import ${package}.application.validators.user.UserApplicationValidator;
+import ${package}.application.user.manage.impl.RoleManageImpl;
+import ${package}.application.user.validators.UserApplicationValidator;
 import ${package}.domain.user.entities.Role;
 import ${package}.domain.user.entities.User;
 import ${package}.domain.user.enums.RoleStatus;

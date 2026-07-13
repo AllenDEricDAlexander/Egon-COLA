@@ -2,9 +2,9 @@ package ${package}.adapter.converter;
 
 import ${package}.adapter.dto.teaching.CreateSchoolClassRequest;
 import ${package}.adapter.vo.teaching.SchoolClassDetailVO;
-import ${package}.application.command.teaching.CreateSchoolClassCommand;
-import ${package}.application.command.teaching.AssignUserToClassCommand;
-import ${package}.application.result.teaching.SchoolClassDetailResult;
+import ${package}.application.teaching.command.CreateSchoolClassCommand;
+import ${package}.application.teaching.command.AssignUserToClassCommand;
+import ${package}.application.teaching.result.SchoolClassDetailResult;
 import org.springframework.stereotype.Component;
 
 @Component("schoolClassAdapterConverter")

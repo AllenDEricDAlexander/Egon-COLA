@@ -1,10 +1,10 @@
 package ${package}.adapter.facade.impl.user;
 
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
-import ${package}.application.command.user.GrantPermissionCommand;
-import ${package}.application.manage.user.PermissionManage;
-import ${package}.application.query.user.PermissionTreeQuery;
-import ${package}.application.result.user.PermissionTreeResult;
+import ${package}.application.user.command.GrantPermissionCommand;
+import ${package}.application.user.manage.PermissionManage;
+import ${package}.application.user.query.PermissionTreeQuery;
+import ${package}.application.user.result.PermissionTreeResult;
 import ${package}.facade.user.dto.GrantPermissionDTO;
 import ${package}.facade.user.dto.PermissionTreeDTO;
 import ${package}.facade.user.PermissionFacade;

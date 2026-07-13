@@ -1,12 +1,12 @@
 package ${package}.application.user;
 
-import ${package}.application.assemblers.user.UserAssembler;
-import ${package}.application.command.user.CreateUserCommand;
+import ${package}.application.user.assemblers.UserAssembler;
+import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
-import ${package}.application.manage.user.impl.UserManageImpl;
-import ${package}.application.result.user.UserDetailResult;
-import ${package}.application.validators.user.UserApplicationValidator;
+import ${package}.application.user.manage.impl.UserManageImpl;
+import ${package}.application.user.result.UserDetailResult;
+import ${package}.application.user.validators.UserApplicationValidator;
 import ${package}.domain.user.entities.User;
 import ${package}.domain.user.repos.UserRepository;
 import ${package}.domain.client.CommandIdempotencyPort;

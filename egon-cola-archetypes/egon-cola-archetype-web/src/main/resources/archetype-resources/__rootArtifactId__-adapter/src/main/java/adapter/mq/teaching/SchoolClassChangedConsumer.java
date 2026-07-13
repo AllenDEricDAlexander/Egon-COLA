@@ -3,8 +3,8 @@ package ${package}.adapter.mq.teaching;
 
 import ${package}.adapter.dto.teaching.CreateSchoolClassMessage;
 import ${package}.adapter.mq.OrganizationMessageSupport;
-import ${package}.application.command.teaching.CreateSchoolClassCommand;
-import ${package}.application.manage.teaching.SchoolClassManage;
+import ${package}.application.teaching.command.CreateSchoolClassCommand;
+import ${package}.application.teaching.manage.SchoolClassManage;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 

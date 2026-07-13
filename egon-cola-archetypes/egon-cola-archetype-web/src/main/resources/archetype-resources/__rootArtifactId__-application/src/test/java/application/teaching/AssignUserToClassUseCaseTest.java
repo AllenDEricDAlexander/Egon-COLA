@@ -1,11 +1,11 @@
 package ${package}.application.teaching;
 
-import ${package}.application.command.teaching.AssignUserToClassCommand;
+import ${package}.application.teaching.command.AssignUserToClassCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
-import ${package}.application.manage.teaching.impl.SchoolClassManageImpl;
-import ${package}.application.validators.teaching.TeachingApplicationValidator;
+import ${package}.application.teaching.manage.impl.SchoolClassManageImpl;
+import ${package}.application.teaching.validators.TeachingApplicationValidator;
 import ${package}.domain.teaching.entities.SchoolClass;
 import ${package}.domain.user.entities.User;
 import ${package}.domain.teaching.enums.SchoolClassStatus;

@@ -1,13 +1,13 @@
 package ${package}.starter;
 
-import ${package}.application.command.teaching.AssignUserToClassCommand;
-import ${package}.application.command.teaching.CreateGradeCommand;
-import ${package}.application.command.teaching.CreateSchoolClassCommand;
+import ${package}.application.teaching.command.AssignUserToClassCommand;
+import ${package}.application.teaching.command.CreateGradeCommand;
+import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
-import ${package}.application.manage.teaching.GradeManage;
-import ${package}.application.manage.teaching.SchoolClassManage;
+import ${package}.application.teaching.manage.GradeManage;
+import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.infrastructure.cache.InMemoryCommandIdempotencyAdapter;
 import ${package}.infrastructure.cache.InMemorySchoolClassCache;
 import ${package}.infrastructure.mq.LocalOrganizationEventPublisher;

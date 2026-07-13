@@ -1,7 +1,7 @@
 package ${package}.adapter.converter;
 
 import ${package}.adapter.dto.user.AssignRoleRequest;
-import ${package}.application.command.user.AssignRoleCommand;
+import ${package}.application.user.command.AssignRoleCommand;
 import org.springframework.stereotype.Component;
 
 @Component("roleAdapterConverter")

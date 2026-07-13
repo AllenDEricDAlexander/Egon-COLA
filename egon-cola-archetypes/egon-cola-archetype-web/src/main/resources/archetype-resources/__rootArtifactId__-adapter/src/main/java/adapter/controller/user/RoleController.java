@@ -2,7 +2,7 @@ package ${package}.adapter.controller.user;
 
 import ${package}.adapter.converter.RoleAdapterConverter;
 import ${package}.adapter.dto.user.AssignRoleRequest;
-import ${package}.application.manage.user.RoleManage;
+import ${package}.application.user.manage.RoleManage;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;

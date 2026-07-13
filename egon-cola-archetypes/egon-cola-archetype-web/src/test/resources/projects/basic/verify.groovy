@@ -86,69 +86,69 @@ def requiredFiles = [
     "student-management-organization-adapter/src/test/java/it/pkg/adapter/package-info.java",
     "student-management-organization-adapter/src/test/resources/.gitkeep",
     "student-management-organization-application/pom.xml",
-    "student-management-organization-application/src/main/java/it/pkg/application/assemblers/teaching/GradeAssembler.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/assemblers/teaching/SchoolClassAssembler.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/assemblers/teaching/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/assemblers/user/PermissionAssembler.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/assemblers/user/UserAssembler.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/assemblers/user/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/teaching/AssignUserToClassCommand.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/teaching/CreateGradeCommand.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/teaching/CreateSchoolClassCommand.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/teaching/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/user/AssignRoleCommand.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/user/CreateUserCommand.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/user/GrantPermissionCommand.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/command/user/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/assemblers/GradeAssembler.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/assemblers/SchoolClassAssembler.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/assemblers/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/assemblers/PermissionAssembler.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/assemblers/UserAssembler.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/assemblers/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/command/AssignUserToClassCommand.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/command/CreateGradeCommand.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/command/CreateSchoolClassCommand.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/command/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/command/AssignRoleCommand.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/command/CreateUserCommand.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/command/GrantPermissionCommand.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/command/package-info.java",
     "student-management-organization-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java",
     "student-management-organization-application/src/main/java/it/pkg/application/config/package-info.java",
     "student-management-organization-application/src/main/java/it/pkg/application/context/OrganizationRequestContext.java",
     "student-management-organization-application/src/main/java/it/pkg/application/context/OrganizationRequestContextHolder.java",
     "student-management-organization-application/src/main/java/it/pkg/application/context/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/converter/teaching/GradeApplicationConverter.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/converter/teaching/SchoolClassApplicationConverter.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/converter/teaching/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/converter/user/PermissionApplicationConverter.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/converter/user/RoleApplicationConverter.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/converter/user/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/converter/GradeApplicationConverter.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/converter/SchoolClassApplicationConverter.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/converter/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/converter/PermissionApplicationConverter.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/converter/RoleApplicationConverter.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/converter/package-info.java",
     "student-management-organization-application/src/main/java/it/pkg/application/exceptions/OrganizationApplicationException.java",
     "student-management-organization-application/src/main/java/it/pkg/application/exceptions/OrganizationFailureType.java",
     "student-management-organization-application/src/main/java/it/pkg/application/exceptions/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/GradeManage.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/impl/GradeManageImpl.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/impl/SchoolClassManageImpl.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/impl/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/PermissionManage.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/RoleManage.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/impl/PermissionManageImpl.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/impl/RoleManageImpl.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/impl/UserManageImpl.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/impl/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/manage/user/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/query/teaching/GradeDetailQuery.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/query/teaching/SchoolClassDetailQuery.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/query/teaching/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/query/user/PermissionTreeQuery.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/query/user/UserDetailQuery.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/query/user/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/result/teaching/GradeDetailResult.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/result/teaching/SchoolClassDetailResult.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/result/teaching/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/result/user/PermissionTreeResult.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/result/user/UserDetailResult.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/result/user/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/GradeManage.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/SchoolClassManage.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/impl/GradeManageImpl.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/impl/SchoolClassManageImpl.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/impl/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/PermissionManage.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/RoleManage.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/UserManage.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/impl/PermissionManageImpl.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/impl/RoleManageImpl.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/impl/UserManageImpl.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/impl/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/manage/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/query/GradeDetailQuery.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/query/SchoolClassDetailQuery.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/query/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/query/PermissionTreeQuery.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/query/UserDetailQuery.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/query/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/result/GradeDetailResult.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/result/SchoolClassDetailResult.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/result/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/result/PermissionTreeResult.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/result/UserDetailResult.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/result/package-info.java",
     "student-management-organization-application/src/main/java/it/pkg/application/support/IdempotentCommand.java",
     "student-management-organization-application/src/main/java/it/pkg/application/support/OrganizationTransactionHooks.java",
     "student-management-organization-application/src/main/java/it/pkg/application/support/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/validators/teaching/GradeApplicationValidator.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/validators/teaching/TeachingApplicationValidator.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/validators/teaching/package-info.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/validators/user/PermissionApplicationValidator.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/validators/user/UserApplicationValidator.java",
-    "student-management-organization-application/src/main/java/it/pkg/application/validators/user/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/validators/GradeApplicationValidator.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/validators/TeachingApplicationValidator.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/validators/package-info.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/validators/PermissionApplicationValidator.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/validators/UserApplicationValidator.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/user/validators/package-info.java",
     "student-management-organization-application/src/main/resources/.gitkeep",
     "student-management-organization-application/src/test/java/it/pkg/.gitkeep",
     "student-management-organization-application/src/test/java/it/pkg/application/teaching/AssignUserToClassUseCaseTest.java",
@@ -470,6 +470,15 @@ def webDomainModule = "student-management-organization-domain/src/main/java/it/p
 }
 assertFile("${webDomainModule}/client/evaluation/package-info.java")
 assertFile("${webDomainModule}/events/OrganizationDomainEvent.java")
+
+def webApplicationModule = "student-management-organization-application/src/main/java/it/pkg/application"
+["user", "teaching"].each { businessDomain ->
+    ["assemblers", "command", "converter", "manage", "query", "result", "validators"].each { role ->
+        assertFile("${webApplicationModule}/${businessDomain}/${role}/package-info.java")
+        assertMissing("${webApplicationModule}/${role}/${businessDomain}")
+    }
+    assertFile("${webApplicationModule}/${businessDomain}/manage/impl/package-info.java")
+}
 
 requiredFiles.addAll([
     "student-management-organization-domain/src/main/java/it/pkg/domain/client/ExternalDependencyFailure.java",
@@ -1038,11 +1047,11 @@ assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/t
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/entities/Grade.java")
 assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/user/client/UserClient.java")
 assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/client/SchoolClassClient.java")
-assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java")
-assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/RoleManage.java")
-assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/PermissionManage.java")
-assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java")
-assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/GradeManage.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/user/manage/UserManage.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/user/manage/RoleManage.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/user/manage/PermissionManage.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/SchoolClassManage.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/GradeManage.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java")
 assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
@@ -1080,26 +1089,26 @@ assert organizationApplicationText.contains("@EnableDubbo")
 assert organizationApplicationText.contains('scanBasePackages = "it.pkg.adapter.facade"')
 
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java")
-assertMissing("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserView.java")
-assertMissing("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassView.java")
+assertMissing("student-management-organization-application/src/main/java/it/pkg/application/user/manage/UserView.java")
+assertMissing("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/SchoolClassView.java")
 
-def userManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/UserManage.java").text
+def userManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/user/manage/UserManage.java").text
 assert userManageText.contains("UserDetailResult createUser(CreateUserCommand command)")
 assert userManageText.contains("UserDetailResult getUser(UserDetailQuery query)")
 assert !userManageText.contains("UserView")
 
-def schoolClassManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/SchoolClassManage.java").text
+def schoolClassManageText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/SchoolClassManage.java").text
 assert schoolClassManageText.contains("SchoolClassDetailResult createSchoolClass(CreateSchoolClassCommand command)")
 assert schoolClassManageText.contains("SchoolClassDetailResult getSchoolClass(SchoolClassDetailQuery query)")
 assert !schoolClassManageText.contains("SchoolClassView")
 
-def userManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/user/impl/UserManageImpl.java").text
+def userManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/user/manage/impl/UserManageImpl.java").text
 assert userManageImplText.contains("UserRepository userRepository")
 assert userManageImplText.contains("userRepository.existsByEmail(normalizedEmail)")
 assert userManageImplText.contains("UserDetailResult createUser")
 assert !userManageImplText.contains("UserClient")
 
-def schoolClassManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/manage/teaching/impl/SchoolClassManageImpl.java").text
+def schoolClassManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/impl/SchoolClassManageImpl.java").text
 assert schoolClassManageImplText.contains("SchoolClassRepository schoolClassRepository")
 assert schoolClassManageImplText.contains("GradeRepository gradeRepository")
 assert schoolClassManageImplText.contains("existsByGradeIdAndNameIgnoreCase")
@@ -1129,7 +1138,7 @@ assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/SchoolClassPOConverter.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/converter/GradePOConverter.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassPO.java")
-assertFile("student-management-organization-application/src/main/java/it/pkg/application/command/teaching/AssignUserToClassCommand.java")
+assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/command/AssignUserToClassCommand.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/repo/teaching/po/SchoolClassUserPO.java")
 assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/common")
@@ -1213,7 +1222,8 @@ assert dubboReferenceImports.every {
 def applicationManageFiles = generatedJavaFiles.findAll {
     def path = relativePath(it)
     path.startsWith("student-management-organization-application/src/main/java/")
-            && path.contains("/application/manage/")
+            && (path.contains("/application/user/manage/")
+            || path.contains("/application/teaching/manage/"))
 }
 assert applicationManageFiles.every {
     !it.getText("UTF-8").contains("EvaluationQueryPort")

@@ -3,8 +3,8 @@ package ${package}.adapter.mq.user;
 
 import ${package}.adapter.dto.user.CreateUserMessage;
 import ${package}.adapter.mq.OrganizationMessageSupport;
-import ${package}.application.command.user.CreateUserCommand;
-import ${package}.application.manage.user.UserManage;
+import ${package}.application.user.command.CreateUserCommand;
+import ${package}.application.user.manage.UserManage;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 

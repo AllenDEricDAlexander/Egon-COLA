@@ -1,11 +1,11 @@
 package ${package}.application.teaching;
 
-import ${package}.application.command.teaching.CreateGradeCommand;
+import ${package}.application.teaching.command.CreateGradeCommand;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
-import ${package}.application.manage.teaching.impl.GradeManageImpl;
-import ${package}.application.validators.teaching.TeachingApplicationValidator;
+import ${package}.application.teaching.manage.impl.GradeManageImpl;
+import ${package}.application.teaching.validators.TeachingApplicationValidator;
 import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.client.CommandIdempotencyPort;
 import ${package}.domain.client.OrganizationEventPublisher;

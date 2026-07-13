@@ -1,10 +1,10 @@
 package ${package}.adapter.facade.impl.teaching;
 
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
-import ${package}.application.command.teaching.CreateGradeCommand;
-import ${package}.application.manage.teaching.GradeManage;
-import ${package}.application.query.teaching.GradeDetailQuery;
-import ${package}.application.result.teaching.GradeDetailResult;
+import ${package}.application.teaching.command.CreateGradeCommand;
+import ${package}.application.teaching.manage.GradeManage;
+import ${package}.application.teaching.query.GradeDetailQuery;
+import ${package}.application.teaching.result.GradeDetailResult;
 import ${package}.facade.teaching.dto.CreateGradeDTO;
 import ${package}.facade.teaching.dto.GradeDetailDTO;
 import ${package}.facade.teaching.GradeFacade;

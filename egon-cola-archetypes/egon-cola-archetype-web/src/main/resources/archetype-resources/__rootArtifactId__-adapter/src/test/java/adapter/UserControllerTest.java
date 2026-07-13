@@ -2,8 +2,8 @@ package ${package}.adapter;
 
 import ${package}.adapter.controller.user.UserController;
 import ${package}.adapter.converter.UserAdapterConverter;
-import ${package}.application.manage.user.UserManage;
-import ${package}.application.result.user.UserDetailResult;
+import ${package}.application.user.manage.UserManage;
+import ${package}.application.user.result.UserDetailResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

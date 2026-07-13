@@ -2,8 +2,8 @@ package ${package}.adapter.converter;
 
 import ${package}.adapter.dto.teaching.CreateGradeRequest;
 import ${package}.adapter.vo.teaching.GradeDetailVO;
-import ${package}.application.command.teaching.CreateGradeCommand;
-import ${package}.application.result.teaching.GradeDetailResult;
+import ${package}.application.teaching.command.CreateGradeCommand;
+import ${package}.application.teaching.result.GradeDetailResult;
 import org.springframework.stereotype.Component;
 
 @Component("gradeAdapterConverter")
