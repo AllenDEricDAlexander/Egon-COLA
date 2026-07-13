@@ -140,6 +140,38 @@ assert productionEnv.contains("IMAGE_TAG=")
 assert developmentEnv.contains("IMAGE_NAME=basic")
 assert developmentEnv.contains("POSTGRES_DB=student_management")
 assert developmentEnv.contains("EXTERNAL_HTTP_ENABLED=false")
+def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
+    def text = assertFile("deploy/compose/${fileName}").text
+    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+     "healthcheck:", "networks:", "volumes:", "application_logs:"].each { token ->
+        assert text.contains(token): "Expected ${fileName} to contain ${token}"
+    }
+    assert text.contains("CONTAINER_ENGINE: ${engine}")
+    assert text.contains("dockerfile: deploy/container/Dockerfile")
+    assert text.contains("context: ../..")
+    assert text.contains('SPRING_PROFILES_ACTIVE: dev')
+    assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
+    assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
+    assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
+    assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
+    assert text.contains('redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping')
+    assert text.contains('["CMD", "rabbitmq-diagnostics", "-q", "ping"]')
+    requiredApplicationLines.each { required ->
+        assert text.contains(required): "Expected ${fileName} to contain ${required}"
+    }
+}
+def developmentComposeFiles = [
+    "compose.docker.yaml" : "docker",
+    "compose.podman.yaml" : "podman",
+    "compose.nerdctl.yaml": "nerdctl"
+]
+developmentComposeFiles.each { fileName, engine ->
+    assertDevelopmentCompose(fileName, engine, [
+        'SERVER_PORT: ${APPLICATION_PORT:-8080}',
+        'EXTERNAL_HTTP_ENABLED: "false"',
+        '"${APPLICATION_PORT:-8080}:${APPLICATION_PORT:-8080}"'
+    ])
+}
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git",

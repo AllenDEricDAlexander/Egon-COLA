@@ -516,6 +516,38 @@ assert developmentEnv.contains("POSTGRES_DB=student_management_evaluation")
 assert developmentEnv.contains("APPLICATION_PORT=8081")
 assert developmentEnv.contains("ORGANIZATION_FACADE_ENABLED=false")
 assert productionEnv.readLines().contains("ORGANIZATION_FACADE_ENABLED=")
+def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
+    def text = assertFile("deploy/compose/${fileName}").text
+    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+     "healthcheck:", "networks:", "volumes:", "application_logs:"].each { token ->
+        assert text.contains(token): "Expected ${fileName} to contain ${token}"
+    }
+    assert text.contains("CONTAINER_ENGINE: ${engine}")
+    assert text.contains("dockerfile: deploy/container/Dockerfile")
+    assert text.contains("context: ../..")
+    assert text.contains('SPRING_PROFILES_ACTIVE: dev')
+    assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
+    assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
+    assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
+    assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
+    assert text.contains('redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping')
+    assert text.contains('["CMD", "rabbitmq-diagnostics", "-q", "ping"]')
+    requiredApplicationLines.each { required ->
+        assert text.contains(required): "Expected ${fileName} to contain ${required}"
+    }
+}
+def developmentComposeFiles = [
+    "compose.docker.yaml" : "docker",
+    "compose.podman.yaml" : "podman",
+    "compose.nerdctl.yaml": "nerdctl"
+]
+developmentComposeFiles.each { fileName, engine ->
+    assertDevelopmentCompose(fileName, engine, [
+        'MANAGEMENT_SERVER_PORT: ${APPLICATION_PORT:-8081}',
+        'ORGANIZATION_FACADE_ENABLED: "false"',
+        '"${APPLICATION_PORT:-8081}:${APPLICATION_PORT:-8081}"'
+    ])
+}
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
     ".git", ".gitignore", ".github", ".idea", ".vscode", "*.iml", ".DS_Store", "",

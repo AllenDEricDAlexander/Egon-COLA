@@ -59,6 +59,14 @@
                 <include>.env.prod.example</include>
             </includes>
         </fileSet>
+        <fileSet filtered="false" encoding="UTF-8">
+            <directory>deploy/compose</directory>
+            <includes>
+                <include>compose.docker.yaml</include>
+                <include>compose.podman.yaml</include>
+                <include>compose.nerdctl.yaml</include>
+            </includes>
+        </fileSet>
     </fileSets>
 
     <modules>

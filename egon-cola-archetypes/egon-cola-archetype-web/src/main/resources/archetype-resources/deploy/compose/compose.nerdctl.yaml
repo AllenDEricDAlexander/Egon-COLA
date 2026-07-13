@@ -1,0 +1,147 @@
+name: ${COMPOSE_PROJECT_NAME:?Set COMPOSE_PROJECT_NAME}
+
+services:
+  application:
+    image: ${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:-local}
+    build:
+      context: ../..
+      dockerfile: deploy/container/Dockerfile
+      args:
+        CONTAINER_ENGINE: nerdctl
+    environment:
+      APPLICATION_PORT: ${APPLICATION_PORT:-8080}
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: ${APPLICATION_PORT:-8080}
+      DUBBO_PORT: ${DUBBO_PORT:-50051}
+      DUBBO_PROTOCOL_PORT: ${DUBBO_PORT:-50051}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      ORGANIZATION_REDIS_ENABLED: "true"
+      ORGANIZATION_RABBIT_ENABLED: "true"
+      EVALUATION_FACADE_ENABLED: "false"
+      DISCOVERY_ENABLED: "true"
+      NACOS_CONFIG_ENABLED: "true"
+      NACOS_DISCOVERY_ENABLED: "true"
+      NACOS_SERVER_ADDR: nacos:8848
+      NACOS_NAMESPACE: ${NACOS_NAMESPACE:-dev}
+      NACOS_USERNAME: ${NACOS_USERNAME}
+      NACOS_PASSWORD: ${NACOS_PASSWORD}
+      DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848
+    ports:
+      - "${APPLICATION_PORT:-8080}:${APPLICATION_PORT:-8080}"
+      - "${DUBBO_PORT:-50051}:${DUBBO_PORT:-50051}"
+    volumes:
+      - application_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$${APPLICATION_PORT}/actuator/health/readiness"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+    restart: unless-stopped
+    networks: [application]
+
+  postgres:
+    image: ${POSTGRES_IMAGE:?Set POSTGRES_IMAGE}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [application]
+
+  redis:
+    image: ${REDIS_IMAGE:?Set REDIS_IMAGE}
+    command: ["sh", "-c", 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping | grep PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [application]
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:?Set RABBITMQ_IMAGE}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+    networks: [application]
+
+  nacos:
+    image: ${NACOS_IMAGE:?Set NACOS_IMAGE}
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+      NACOS_AUTH_ENABLE: ${NACOS_AUTH_ENABLE:-true}
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE}
+    ports:
+      - "${NACOS_PORT:-8848}:8848"
+    volumes:
+      - nacos_data:/home/nacos/data
+      - nacos_logs:/home/nacos/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/v1/console/health/readiness"]
+      interval: 15s
+      timeout: 10s
+      start_period: 45s
+      retries: 20
+    restart: unless-stopped
+    networks: [application]
+
+networks:
+  application:
+    driver: bridge
+
+volumes:
+  application_logs:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  nacos_data:
+  nacos_logs:
