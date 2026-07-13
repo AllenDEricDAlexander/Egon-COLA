@@ -36,6 +36,8 @@ dubbo:
 
 organization:
   integrations:
+    evaluation:
+      enabled: false
     redis:
       enabled: false
     rabbit:

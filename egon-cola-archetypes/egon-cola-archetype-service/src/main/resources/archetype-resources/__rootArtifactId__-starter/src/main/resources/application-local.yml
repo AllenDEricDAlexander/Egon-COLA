@@ -30,6 +30,8 @@ spring:
 
 app:
   integrations:
+    organization:
+      enabled: false
     rabbitmq:
       enabled: false
       listener-auto-startup: false

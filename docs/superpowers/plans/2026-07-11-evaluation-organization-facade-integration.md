@@ -4,7 +4,7 @@
 
 **Goal:** Make the web and service archetypes generate bidirectional, read-only Facade client foundations without wiring them into current Application use cases.
 
-**Architecture:** Each generated Domain module owns a narrow query port and consumer projection records. Only Infrastructure depends on the provider Facade artifact and Dubbo, where a dev/prod real adapter and local/test deterministic stub form an Anti-Corruption Layer. Archetype integration tests install a minimal fixture artifact into their isolated Maven repository before compiling the generated consumer.
+**Architecture:** Each generated Domain module owns a narrow query port and consumer projection records. Only Infrastructure depends on the provider Facade artifact and Dubbo, where a dev/prod real adapter and local/test deterministic stub form an Anti-Corruption Layer. Archetype integration tests rebuild a minimal fixture artifact and install it under a dedicated `fixture.*` coordinate in the active Maven local repository before compiling the generated consumer.
 
 **Tech Stack:** Java 21, Maven Archetype Plugin 3.4.1, Spring Boot 3.5.16, Apache Dubbo 3.3.6, JUnit 5, Mockito, AssertJ, ArchUnit, Groovy archetype verifier.
 

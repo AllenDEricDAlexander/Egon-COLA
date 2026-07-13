@@ -108,6 +108,20 @@ class ServiceArchitectureDependencyTest {
     }
 
     @Test
+    void providerFacadeTypesStayOutOfInnerAndInboundLayers() {
+        noClasses().that().resideInAnyPackage(
+                        "${package}.common..",
+                        "${package}.domain..",
+                        "${package}.application..",
+                        "${package}.facade..",
+                        "${package}.adapter..",
+                        "${package}.starter..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "${organizationFacadePackage}..")
+                .check(importedClasses);
+    }
+
+    @Test
     void commonShouldNotDependOnOtherServiceModules() {
         noClasses().that().resideInAPackage("${package}.common..")
                 .should().dependOnClassesThat().resideInAnyPackage(

@@ -74,6 +74,19 @@ class ArchitectureDependencyTest {
     }
 
     @Test
+    void externalEvaluationFacadeStaysBehindInfrastructure() {
+        noClasses().that().resideInAnyPackage(
+                        "${package}.common..",
+                        "${package}.facade..",
+                        "${package}.domain..",
+                        "${package}.application..",
+                        "${package}.adapter..",
+                        "${package}.starter..")
+                .should().dependOnClassesThat().resideInAPackage("${evaluationFacadePackage}..")
+                .check(classes);
+    }
+
+    @Test
     void adapterDoesNotReachTechnicalImplementations() {
         noClasses().that().resideInAPackage("${package}.adapter..")
                 .should().dependOnClassesThat().resideInAnyPackage(

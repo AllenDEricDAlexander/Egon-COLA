@@ -1,5 +1,8 @@
 package ${package}.starter;
 
+import ${package}.domain.client.evaluation.EvaluationQueryPort;
+import ${package}.infrastructure.client.evaluation.DubboEvaluationQueryClient;
+import ${package}.infrastructure.client.evaluation.LocalEvaluationQueryStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +26,9 @@ class OrganizationApplicationTest {
     @Autowired
     private Environment environment;
 
+    @Autowired
+    private EvaluationQueryPort evaluationQueryPort;
+
     @Test
     void testProfileIsExternalFree() {
         assertThat(context.getBeansOfType(RedisConnectionFactory.class)).isEmpty();
@@ -33,5 +39,8 @@ class OrganizationApplicationTest {
         assertThat(environment.getProperty("dubbo.protocol.name")).isEqualTo("injvm");
         assertThat(environment.getProperty("organization.integrations.redis.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.rabbit.enabled")).isEqualTo("false");
+        assertThat(environment.getProperty("organization.integrations.evaluation.enabled")).isEqualTo("false");
+        assertThat(evaluationQueryPort).isInstanceOf(LocalEvaluationQueryStub.class);
+        assertThat(context.getBeansOfType(DubboEvaluationQueryClient.class)).isEmpty();
     }
 }
