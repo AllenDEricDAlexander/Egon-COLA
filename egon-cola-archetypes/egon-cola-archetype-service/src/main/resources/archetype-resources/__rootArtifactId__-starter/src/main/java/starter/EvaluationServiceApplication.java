@@ -11,8 +11,14 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = "${package}")
 @EnableDubbo(scanBasePackages = "${package}.adapter.facade")
-@EntityScan(basePackages = "${package}.infrastructure.repo")
-@EnableJpaRepositories(basePackages = "${package}.infrastructure.repo")
+@EntityScan(basePackages = {
+        "${package}.infrastructure.course.repo",
+        "${package}.infrastructure.exam.repo"
+})
+@EnableJpaRepositories(basePackages = {
+        "${package}.infrastructure.course.repo",
+        "${package}.infrastructure.exam.repo"
+})
 public class EvaluationServiceApplication {
 
     public static void main(String[] args) {

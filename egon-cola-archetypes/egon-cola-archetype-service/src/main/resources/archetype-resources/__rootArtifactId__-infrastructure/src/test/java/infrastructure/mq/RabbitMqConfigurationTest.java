@@ -4,8 +4,8 @@
 package ${package}.infrastructure.mq;
 
 import ${package}.infrastructure.config.RabbitMqConfiguration;
-import ${package}.infrastructure.mq.course.RabbitCourseEventPublisher;
-import ${package}.infrastructure.mq.exam.RabbitExamEventPublisher;
+import ${package}.infrastructure.course.mq.RabbitCourseEventPublisher;
+import ${package}.infrastructure.exam.mq.RabbitExamEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;

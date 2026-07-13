@@ -54,21 +54,6 @@ def requiredPackagePaths = [
     "application/exceptions",
     "application/config",
     "infrastructure",
-    "infrastructure/repo",
-    "infrastructure/repo/course",
-    "infrastructure/repo/course/impl",
-    "infrastructure/repo/course/po",
-    "infrastructure/repo/course/jpa",
-    "infrastructure/repo/course/converter",
-    "infrastructure/repo/exam",
-    "infrastructure/repo/exam/impl",
-    "infrastructure/repo/exam/po",
-    "infrastructure/repo/exam/jpa",
-    "infrastructure/repo/exam/converter",
-    "infrastructure/mq",
-    "infrastructure/mq/course",
-    "infrastructure/mq/exam",
-    "infrastructure/mq/message",
     "infrastructure/validators",
     "infrastructure/aop",
     "infrastructure/config",
@@ -108,6 +93,17 @@ def requiredPackagePaths = [
     }
     requiredPackagePaths << "application/${businessDomain}/manage/impl"
 }
+["course", "exam"].each { businessDomain ->
+    requiredPackagePaths.addAll([
+        "infrastructure/${businessDomain}/repo",
+        "infrastructure/${businessDomain}/repo/impl",
+        "infrastructure/${businessDomain}/repo/po",
+        "infrastructure/${businessDomain}/repo/jpa",
+        "infrastructure/${businessDomain}/repo/converter",
+        "infrastructure/${businessDomain}/mq",
+        "infrastructure/${businessDomain}/mq/message"
+    ])
+}
 requiredPackagePaths.each { packagePath ->
     def separator = packagePath.indexOf('/')
     def module = separator < 0 ? packagePath : packagePath.substring(0, separator)
@@ -124,6 +120,11 @@ requiredPackagePaths.each { packagePath ->
     }
 }
 assertMissing("student-management-evaluation-application/src/main/java/it/pkg/application/assemblers")
+["course", "exam"].each { businessDomain ->
+    assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/${businessDomain}")
+    assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/${businessDomain}")
+}
+assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/message")
 
 modules.each { module ->
     ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"].each { path ->
@@ -209,8 +210,11 @@ modules.each { module ->
     "student-management-evaluation-application/src/main/java/it/pkg/application/exam/manage/impl/ExamManageImpl.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/result/PageResult.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/RabbitMqConfiguration.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/course/RabbitCourseEventPublisher.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/exam/RabbitExamEventPublisher.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisher.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/mq/message/CourseScheduledMessage.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisher.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/message/ExamPublishedMessage.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/message/ScoreRecordedMessage.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClient.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/OrganizationClientFailureMapper.java",
@@ -225,14 +229,14 @@ modules.each { module ->
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/course/CourseDomainServiceTest.java",
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ExamDomainServiceTest.java",
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ScoreDomainServiceTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/course/CourseRepositoryTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/course/CourseScheduleRepositoryTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ExamRepositoryTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ExamPaperRepositoryTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/repo/exam/ScoreRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/course/repo/CourseRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/course/repo/CourseScheduleRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ExamRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ExamPaperRepositoryTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ScoreRepositoryTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/EvaluationMigrationTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitCourseEventPublisherTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitExamEventPublisherTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisherTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisherTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClientTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStubTest.java",
@@ -247,7 +251,7 @@ modules.each { module ->
     "student-management-evaluation-application/src/main/java/it/pkg/application/examing/manage",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/entities",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/repos",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/examing/repo",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/convertor",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/facade/impl/ExamResultFacadeImpl.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/mq/ExamResultMessageConsumer.java",
