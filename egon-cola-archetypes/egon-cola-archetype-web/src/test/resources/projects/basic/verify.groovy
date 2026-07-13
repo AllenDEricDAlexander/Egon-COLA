@@ -1248,10 +1248,49 @@ assert readme.contains("teaching")
 assert readme.contains("clean verify")
 assert !readme.contains("\n./mvnw ")
 assert readme.contains("Evaluation Facade")
+[
+    "facade/user/dto",
+    "domain/user/entities",
+    "application/teaching/manage",
+    "infrastructure/user/repo",
+    "adapter/teaching/controller"
+].each { assert readme.contains(it) }
+assert !readme.contains("adapter/controller/user")
+assert !readme.contains("application/manage/teaching")
 
 def scannedFiles = []
 collectSourceConfigDocFiles(projectDir, scannedFiles)
 def generatedJavaFiles = scannedFiles.findAll { it.name.endsWith(".java") }
+def forbiddenWebPathFragments = [
+    "/facade/dto/user/", "/facade/dto/teaching/",
+    "/domain/aggregates/user/", "/domain/aggregates/teaching/",
+    "/domain/client/user/", "/domain/client/teaching/",
+    "/domain/entities/user/", "/domain/entities/teaching/",
+    "/domain/enums/user/", "/domain/enums/teaching/",
+    "/domain/events/user/", "/domain/events/teaching/",
+    "/domain/repos/user/", "/domain/repos/teaching/",
+    "/domain/service/user/", "/domain/service/teaching/",
+    "/domain/validators/user/", "/domain/validators/teaching/",
+    "/domain/vos/user/", "/domain/vos/teaching/",
+    "/application/command/user/", "/application/command/teaching/",
+    "/application/converter/user/", "/application/converter/teaching/",
+    "/application/manage/user/", "/application/manage/teaching/",
+    "/application/query/user/", "/application/query/teaching/",
+    "/application/result/user/", "/application/result/teaching/",
+    "/application/validators/user/", "/application/validators/teaching/",
+    "/application/assemblers/user/", "/application/assemblers/teaching/",
+    "/infrastructure/repo/user/", "/infrastructure/repo/teaching/",
+    "/adapter/controller/user/", "/adapter/controller/teaching/",
+    "/adapter/dto/user/", "/adapter/dto/teaching/",
+    "/adapter/vo/user/", "/adapter/vo/teaching/",
+    "/adapter/facade/impl/user/", "/adapter/facade/impl/teaching/",
+    "/adapter/mq/user/", "/adapter/mq/teaching/"
+]
+def staleWebPaths = generatedJavaFiles.collect(relativePath).findAll { path ->
+    forbiddenWebPathFragments.any { path.contains(it) }
+}
+assert staleWebPaths.isEmpty(): "Unexpected technical-first Web paths: ${staleWebPaths.join(', ')}"
+
 def providerImports = generatedJavaFiles.findAll {
     it.getText("UTF-8").contains("import fixture.evaluation.facade.")
 }

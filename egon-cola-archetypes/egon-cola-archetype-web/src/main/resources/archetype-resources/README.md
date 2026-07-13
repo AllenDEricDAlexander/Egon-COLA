@@ -15,6 +15,20 @@ student-management-organization-adapter
 student-management-organization-starter
 ```
 
+${symbol_pound}${symbol_pound} Domain-first package layout
+
+Business-owned code puts the domain before the technical responsibility:
+
+```text
+facade/user/dto
+domain/user/entities
+application/teaching/manage
+infrastructure/user/repo
+adapter/teaching/controller
+```
+
+Shared runtime concerns stay at their layer root. The external Evaluation boundary is the deliberate exception at `domain/client/evaluation` and `infrastructure/client/evaluation`.
+
 ${symbol_pound}${symbol_pound} Dependency Direction
 
 ```text
