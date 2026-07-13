@@ -7,7 +7,10 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = "${package}")
-@EnableDubbo(scanBasePackages = "${package}.adapter.facade")
+@EnableDubbo(scanBasePackages = {
+        "${package}.adapter.user.rpc",
+        "${package}.adapter.teaching.rpc"
+})
 @EnableJpaRepositories(basePackages = {
         "${package}.infrastructure.user.repo.jpa",
         "${package}.infrastructure.teaching.repo.jpa"

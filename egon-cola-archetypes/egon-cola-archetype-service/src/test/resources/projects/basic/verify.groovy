@@ -272,6 +272,52 @@ projectDir.eachFileRecurse(FileType.FILES) { file ->
 def javaPath = { file ->
     projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
 }
+def assertPackageDocs = { String sourceRoot ->
+    def root = new File(projectDir, sourceRoot)
+    assert root.isDirectory(): "Expected directory ${sourceRoot}"
+    def javaDirs = [] as Set
+    root.traverse(type: FileType.FILES) { file ->
+        if (file.name.endsWith(".java") && file.name != "package-info.java") {
+            javaDirs << file.parentFile
+        }
+    }
+    javaDirs.each { dir ->
+        assert new File(dir, "package-info.java").isFile():
+                "Missing package-info.java in ${projectDir.toPath().relativize(dir.toPath())}"
+    }
+}
+modules.each { module ->
+    assertPackageDocs("student-management-evaluation-${module}/src/main/java")
+    assertPackageDocs("student-management-evaluation-${module}/src/test/java")
+}
+def forbiddenServicePathFragments = [
+    "/facade/api/", "/facade/dto/course/", "/facade/dto/exam/",
+    "/domain/aggregates/course/", "/domain/aggregates/exam/",
+    "/domain/entities/course/", "/domain/entities/exam/",
+    "/domain/enums/course/", "/domain/enums/exam/",
+    "/domain/event/course/", "/domain/event/exam/",
+    "/domain/repos/course/", "/domain/repos/exam/",
+    "/domain/service/course/", "/domain/service/exam/",
+    "/domain/validators/course/", "/domain/validators/exam/",
+    "/domain/vos/course/", "/domain/vos/exam/",
+    "/application/command/course/", "/application/command/exam/",
+    "/application/converter/course/", "/application/converter/exam/",
+    "/application/manage/course/", "/application/manage/exam/",
+    "/application/query/course/", "/application/query/exam/",
+    "/application/result/course/", "/application/result/exam/",
+    "/application/validators/course/", "/application/validators/exam/",
+    "/infrastructure/repo/course/", "/infrastructure/repo/exam/",
+    "/infrastructure/mq/course/", "/infrastructure/mq/exam/",
+    "/adapter/facade/impl/course/", "/adapter/facade/impl/exam/",
+    "/adapter/converter/course/", "/adapter/converter/exam/",
+    "/adapter/validators/course/", "/adapter/validators/exam/",
+    "/adapter/dto/exam/", "/adapter/mq/exam/"
+]
+def staleServicePaths = javaFiles.collect(javaPath).findAll { path ->
+    forbiddenServicePathFragments.any { path.contains(it) }
+}
+assert staleServicePaths.isEmpty():
+        "Unexpected technical-first Service paths: ${staleServicePaths.join(', ')}"
 def providerImports = javaFiles.findAll {
     it.getText("UTF-8").contains("import fixture.organization.facade.")
 }
@@ -381,6 +427,16 @@ assert readme.contains("require no Nacos, RabbitMQ, or PostgreSQL")
 assert readme.contains("V1__init_student_management_evaluation.sql` is immutable")
 assert readme.contains("RabbitMQ support is intentionally basic transport")
 assert readme.contains("Organization Facade client is an unused infrastructure foundation")
+[
+    "facade/course/dto",
+    "domain/exam/entities",
+    "application/course/manage",
+    "infrastructure/exam/repo",
+    "adapter/exam/mq"
+].each { assert readme.contains(it) }
+assert readme.contains("service-only")
+assert !readme.contains("facade/api")
+assert !readme.contains("application/manage/course")
 
 assert assertFile("mvnw").canExecute() || System.getProperty("os.name").toLowerCase().contains("windows")
 assertFile("mvnw.cmd")

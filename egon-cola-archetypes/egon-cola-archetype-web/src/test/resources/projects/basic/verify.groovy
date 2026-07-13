@@ -1133,7 +1133,9 @@ assertFile("student-management-organization-starter/src/test/java/it/pkg/starter
 
 def organizationApplicationText = assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
 assert organizationApplicationText.contains("@EnableDubbo")
-assert organizationApplicationText.contains('scanBasePackages = "it.pkg.adapter.facade"')
+assert organizationApplicationText.contains('"it.pkg.adapter.user.rpc"')
+assert organizationApplicationText.contains('"it.pkg.adapter.teaching.rpc"')
+assert !organizationApplicationText.contains('"it.pkg.adapter.facade"')
 
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/config/DomainServiceConfiguration.java")
 assertMissing("student-management-organization-application/src/main/java/it/pkg/application/user/manage/UserView.java")
@@ -1348,6 +1350,28 @@ assert !localEvaluationStub.contains("org.apache.dubbo")
     def matches = scannedFiles.findAll { it.getText("UTF-8").toLowerCase(Locale.ROOT).contains(token) }
             .collect { relativePath(it) }
     assert matches.isEmpty(): "Unexpected stale token '${token}' in ${matches.join(', ')}"
+}
+
+def livingArchitectureDoc
+for (def cursor = basedir; cursor != null && livingArchitectureDoc == null; cursor = cursor.parentFile) {
+    def candidate = new File(cursor, "multi-project-multi-module-architecture.md")
+    if (candidate.isFile()) livingArchitectureDoc = candidate
+}
+assert livingArchitectureDoc != null: "Expected Web living architecture document"
+def livingArchitectureText = livingArchitectureDoc.getText("UTF-8")
+def forbiddenLivingArchitecturePatterns = [
+    ~/adapter\/facade\.impl/,
+    ~/adapter\.facade\.impl/,
+    ~/adapter\.(mq|controller|dto|vo)\b/,
+    ~/application\.(manage|command|converter|query|result|validators)\.(user|teaching|course|exam)\b/,
+    ~/\bmanage\.(user|teaching|course|exam)\.impl\b/,
+    ~/domain\.(aggregates|entities|enums|events|repos|service|validators|vos)\.(user|teaching|course|exam)\b/,
+    ~/infrastructure\.(repo|mq|cache)\b/,
+    ~/\brepo\.(user|teaching|course|exam)\b/
+]
+forbiddenLivingArchitecturePatterns.each { pattern ->
+    assert !pattern.matcher(livingArchitectureText).find():
+            "Unexpected technical-first Web living-doc pattern ${pattern}"
 }
 
 null

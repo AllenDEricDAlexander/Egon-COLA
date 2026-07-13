@@ -101,7 +101,7 @@ infrastructure import domain
 ```text
 1. facade 不依赖 common。
 2. facade 有自己的 utils、enums、exceptions。
-3. adapter/facade.impl 是 Facade 实现唯一位置。
+3. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
 4. application 不放 facade.impl。
 5. infrastructure 只声明 infrastructure import domain，直接实现 domain 定义的仓储和出站端口。
 ```
@@ -1603,8 +1603,8 @@ student-management-evaluation-adapter
 ```text
 1. adapter 只处理入站请求。
 2. adapter 可以依赖 application 和 facade。
-3. adapter/facade.impl 是 Facade 实现唯一位置。
-4. adapter.mq 只负责入站消息消费。
+3. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
+4. adapter.<domain>.mq 只负责入站消息消费。
 5. adapter 不直接访问数据库、缓存和 MQ 出站能力。
 ```
 
@@ -1621,7 +1621,7 @@ student-management-evaluation-adapter
 
 ```text
 1. application 不放 facade.impl。
-2. application 的 manage 实现按 manage.user.impl、manage.teaching.impl、manage.course.impl、manage.exam.impl 分包。
+2. application 的 manage 实现按 application.user.manage.impl、application.teaching.manage.impl、application.course.manage.impl、application.exam.manage.impl 分包。
 3. application 负责事务和用例编排。
 4. application 不直接调用 Mapper、RedisTemplate、KafkaTemplate、RabbitTemplate、JpaRepository。
 ```
@@ -1638,12 +1638,12 @@ student-management-evaluation-adapter
 ## 5.7 infrastructure 约束
 
 ```text
-1. infrastructure.repo 必须按领域分包。
-2. organization 使用 repo.user.*、repo.teaching.*。
-3. evaluation 使用 repo.course.*、repo.exam.*。
-4. repo.impl 调用 mp.service 或 jpa.repository。
+1. infrastructure 的 repository 实现必须先按领域分包。
+2. organization 使用 infrastructure.user.repo.*、infrastructure.teaching.repo.*。
+3. evaluation 使用 infrastructure.course.repo.*、infrastructure.exam.repo.*。
+4. infrastructure.<domain>.repo.impl 调用 mp.service 或 jpa.repository。
 5. 业务代码不允许直调 mapper。
-6. infrastructure.mq 只负责出站消息发送。
+6. infrastructure.<domain>.mq 只负责出站消息发送。
 7. infrastructure 只依赖 domain，不依赖 application。
 8. infrastructure.client.<external-project> 只实现对应 domain.client.<external-project> 出站端口。
 ```
@@ -1780,12 +1780,12 @@ infrastructure -> domain
 
 ```text
 1. 两个工程不是一个根工程下的两个模块。
-2. adapter/facade.impl 是 Facade 实现唯一位置。
+2. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
 3. application 不放 facade.impl。
 4. facade 不依赖 common，facade 有自己的 utils、enums、exceptions。
-5. infrastructure.repo 必须按领域分包。
+5. infrastructure 的 repository 实现必须使用 infrastructure.<domain>.repo 方向。
 6. domain service 必须使用 service / service.impl。
-7. application manage 必须使用 manage.user.impl 这种方向。
+7. application manage 必须使用 application.<domain>.manage.impl 方向。
 8. 每个包都保留 package-info.java。
 9. 每个模块都补齐 src/main/resources、src/test/java、src/test/resources。
 ```

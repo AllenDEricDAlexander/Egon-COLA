@@ -13,6 +13,20 @@ ${symbol_pound}${symbol_pound} Module Ownership
 - `${rootArtifactId}-adapter`: Dubbo providers, facade conversion, validation, exception translation, and the score-command MQ consumer.
 - `${rootArtifactId}-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
 
+${symbol_pound}${symbol_pound} Domain-first package layout
+
+Business-owned code puts the domain before the technical responsibility:
+
+```text
+facade/course/dto
+domain/exam/entities
+application/course/manage
+infrastructure/exam/repo
+adapter/exam/mq
+```
+
+This remains service-only: business traffic enters through Dubbo Triple or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary remains at `domain/client/organization` and `infrastructure/client/organization`.
+
 The allowed internal dependency graph is:
 
 ```text
