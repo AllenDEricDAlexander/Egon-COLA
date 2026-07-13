@@ -3,10 +3,10 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam;
 
-import ${package}.application.command.exam.RecordScoreCommand;
-import ${package}.application.converter.exam.ExamApplicationConverter;
-import ${package}.application.manage.exam.impl.ScoreManageImpl;
-import ${package}.application.validators.exam.ExamApplicationValidator;
+import ${package}.application.exam.command.RecordScoreCommand;
+import ${package}.application.exam.converter.ExamApplicationConverter;
+import ${package}.application.exam.manage.impl.ScoreManageImpl;
+import ${package}.application.exam.validators.ExamApplicationValidator;
 import ${package}.domain.exam.entities.Exam;
 import ${package}.domain.exam.entities.ExamPaper;
 import ${package}.domain.exam.entities.Score;

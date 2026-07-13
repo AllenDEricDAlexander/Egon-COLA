@@ -4,8 +4,8 @@
 package ${package}.adapter.mq.exam;
 
 import ${package}.adapter.dto.exam.RecordScoreMessage;
-import ${package}.application.command.exam.RecordScoreCommand;
-import ${package}.application.manage.exam.ScoreManage;
+import ${package}.application.exam.command.RecordScoreCommand;
+import ${package}.application.exam.manage.ScoreManage;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;

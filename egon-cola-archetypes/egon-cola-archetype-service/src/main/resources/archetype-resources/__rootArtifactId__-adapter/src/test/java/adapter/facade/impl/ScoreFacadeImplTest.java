@@ -7,9 +7,9 @@ import ${package}.adapter.converter.exam.ScoreFacadeConverter;
 import ${package}.adapter.facade.impl.exam.ScoreFacadeImpl;
 import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.validators.exam.ScoreFacadeValidator;
-import ${package}.application.command.exam.RecordScoreCommand;
-import ${package}.application.manage.exam.ScoreManage;
-import ${package}.application.result.exam.ScoreResult;
+import ${package}.application.exam.command.RecordScoreCommand;
+import ${package}.application.exam.manage.ScoreManage;
+import ${package}.application.exam.result.ScoreResult;
 import ${package}.facade.exam.dto.RecordScoreRequest;
 import org.junit.jupiter.api.Test;
 

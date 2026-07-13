@@ -4,8 +4,8 @@
 package ${package}.adapter.mq.exam;
 
 import ${package}.adapter.dto.exam.RecordScoreMessage;
-import ${package}.application.command.exam.RecordScoreCommand;
-import ${package}.application.manage.exam.ScoreManage;
+import ${package}.application.exam.command.RecordScoreCommand;
+import ${package}.application.exam.manage.ScoreManage;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 

@@ -2,11 +2,11 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.converter.exam;
-import ${package}.application.command.exam.AttachExamPaperCommand;
-import ${package}.application.command.exam.CreateExamCommand;
-import ${package}.application.command.exam.PublishExamCommand;
-import ${package}.application.result.exam.ExamDetailResult;
-import ${package}.application.result.exam.ExamPaperResult;
+import ${package}.application.exam.command.AttachExamPaperCommand;
+import ${package}.application.exam.command.CreateExamCommand;
+import ${package}.application.exam.command.PublishExamCommand;
+import ${package}.application.exam.result.ExamDetailResult;
+import ${package}.application.exam.result.ExamPaperResult;
 import ${package}.facade.exam.dto.AttachExamPaperRequest;
 import ${package}.facade.exam.dto.CreateExamRequest;
 import ${package}.facade.exam.dto.ExamPaperResponse;

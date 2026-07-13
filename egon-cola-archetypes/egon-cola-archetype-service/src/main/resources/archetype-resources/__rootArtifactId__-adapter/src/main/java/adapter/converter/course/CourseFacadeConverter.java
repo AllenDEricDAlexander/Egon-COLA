@@ -2,10 +2,10 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.converter.course;
-import ${package}.application.command.course.CreateCourseCommand;
-import ${package}.application.command.course.ScheduleCourseCommand;
-import ${package}.application.result.course.CourseResult;
-import ${package}.application.result.course.CourseScheduleResult;
+import ${package}.application.course.command.CreateCourseCommand;
+import ${package}.application.course.command.ScheduleCourseCommand;
+import ${package}.application.course.result.CourseResult;
+import ${package}.application.course.result.CourseScheduleResult;
 import ${package}.facade.course.dto.CourseResponse;
 import ${package}.facade.course.dto.CourseScheduleResponse;
 import ${package}.facade.course.dto.CreateCourseRequest;

@@ -50,29 +50,7 @@ def requiredPackagePaths = [
     "domain/client",
     "domain/client/organization",
     "application",
-    "application/manage",
-    "application/manage/course",
-    "application/manage/course/impl",
-    "application/manage/exam",
-    "application/manage/exam/impl",
-    "application/command",
-    "application/command/course",
-    "application/command/exam",
-    "application/query",
-    "application/query/course",
-    "application/query/exam",
     "application/result",
-    "application/result/course",
-    "application/result/exam",
-    "application/converter",
-    "application/converter/course",
-    "application/converter/exam",
-    "application/validators",
-    "application/validators/course",
-    "application/validators/exam",
-    "application/assemblers",
-    "application/assemblers/course",
-    "application/assemblers/exam",
     "application/exceptions",
     "application/config",
     "infrastructure",
@@ -124,6 +102,12 @@ def requiredPackagePaths = [
         requiredPackagePaths << "domain/${businessDomain}/${role}"
     }
 }
+["course", "exam"].each { businessDomain ->
+    ["command", "converter", "manage", "query", "result", "validators"].each { role ->
+        requiredPackagePaths << "application/${businessDomain}/${role}"
+    }
+    requiredPackagePaths << "application/${businessDomain}/manage/impl"
+}
 requiredPackagePaths.each { packagePath ->
     def separator = packagePath.indexOf('/')
     def module = separator < 0 ? packagePath : packagePath.substring(0, separator)
@@ -134,6 +118,12 @@ requiredPackagePaths.each { packagePath ->
         assertMissing("student-management-evaluation-domain/src/main/java/it/pkg/domain/${role}/${businessDomain}")
     }
 }
+["command", "converter", "manage", "query", "result", "validators"].each { role ->
+    ["course", "exam"].each { businessDomain ->
+        assertMissing("student-management-evaluation-application/src/main/java/it/pkg/application/${role}/${businessDomain}")
+    }
+}
+assertMissing("student-management-evaluation-application/src/main/java/it/pkg/application/assemblers")
 
 modules.each { module ->
     ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"].each { path ->
@@ -215,8 +205,8 @@ modules.each { module ->
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationDirectoryPort.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationUser.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationSchoolClass.java",
-    "student-management-evaluation-application/src/main/java/it/pkg/application/manage/course/impl/CourseManageImpl.java",
-    "student-management-evaluation-application/src/main/java/it/pkg/application/manage/exam/impl/ExamManageImpl.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/course/manage/impl/CourseManageImpl.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/exam/manage/impl/ExamManageImpl.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/result/PageResult.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/RabbitMqConfiguration.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/course/RabbitCourseEventPublisher.java",
@@ -254,7 +244,7 @@ modules.each { module ->
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/api",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/exam",
-    "student-management-evaluation-application/src/main/java/it/pkg/application/manage/examing",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/examing/manage",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/entities",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/repos",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/repo/examing",
@@ -290,7 +280,8 @@ assert dubboReferenceImports.every {
 def applicationManageFiles = javaFiles.findAll {
     def path = javaPath(it)
     path.startsWith("student-management-evaluation-application/src/main/java/")
-            && path.contains("/application/manage/")
+            && (path.contains("/application/course/manage/")
+            || path.contains("/application/exam/manage/"))
 }
 assert applicationManageFiles.every {
     !it.getText("UTF-8").contains("OrganizationDirectoryPort")
@@ -309,7 +300,7 @@ javaFiles.each { file ->
 }
 
 def staleTokens = [
-    ".adapter.convertor.", ".application.manage.examing.",
+    ".adapter.convertor.", ".application.examing.manage.",
     ".domain.examing.entities.", ".domain.examing.repos.", ".domain.examing.service.",
     ".facade.api.ExamResultFacade", ".facade.dto.examing.",
     ".common.constants.ErrorCodes", ".common.exception."

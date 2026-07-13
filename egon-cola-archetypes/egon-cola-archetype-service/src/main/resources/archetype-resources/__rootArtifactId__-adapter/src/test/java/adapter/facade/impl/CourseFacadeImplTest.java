@@ -7,9 +7,9 @@ import ${package}.adapter.converter.course.CourseFacadeConverter;
 import ${package}.adapter.facade.impl.course.CourseFacadeImpl;
 import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.validators.course.CourseFacadeValidator;
-import ${package}.application.command.course.CreateCourseCommand;
-import ${package}.application.manage.course.CourseManage;
-import ${package}.application.result.course.CourseResult;
+import ${package}.application.course.command.CreateCourseCommand;
+import ${package}.application.course.manage.CourseManage;
+import ${package}.application.course.result.CourseResult;
 import ${package}.facade.course.dto.CreateCourseRequest;
 import org.junit.jupiter.api.Test;
 

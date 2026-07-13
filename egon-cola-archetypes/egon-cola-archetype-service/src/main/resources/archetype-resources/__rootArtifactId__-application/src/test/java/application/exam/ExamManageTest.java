@@ -3,10 +3,10 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam;
 
-import ${package}.application.command.exam.CreateExamCommand;
-import ${package}.application.converter.exam.ExamApplicationConverter;
-import ${package}.application.manage.exam.impl.ExamManageImpl;
-import ${package}.application.validators.exam.ExamApplicationValidator;
+import ${package}.application.exam.command.CreateExamCommand;
+import ${package}.application.exam.converter.ExamApplicationConverter;
+import ${package}.application.exam.manage.impl.ExamManageImpl;
+import ${package}.application.exam.validators.ExamApplicationValidator;
 import ${package}.domain.course.entities.Course;
 import ${package}.domain.exam.event.ExamEventPublisher;
 import ${package}.domain.course.repos.CourseRepository;
