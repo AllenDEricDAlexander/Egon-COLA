@@ -217,9 +217,9 @@ Dry Run 通过后，再进入真实发布。
 ### 7.1 发布
 
 ```bash
-./mvnw -B -ntp -N -f ./pom.xml -Prelease clean deploy  # 发布全部的包
-./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease clean deploy # 发布 components 全部的包 parent & children module
-./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease clean deploy # 发布 archetypes 全部的包 parent & children module
+./mvnw -B -ntp -f ./pom.xml -Prelease clean deploy  # 发布全部的包
+./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease clean deploy # 发布 components 全部的包 parent & children module
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease clean deploy # 发布 archetypes 全部的包 parent & children module
 ```
 
 ### 7.2 发布 Components
