@@ -3,7 +3,7 @@
 > Java 21 clean layered architecture scaffolding and reusable Spring Boot components.
 
 [![Fast CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml)
-[![Strong CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_by_multiply_java_versions.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_by_multiply_java_versions.yaml)
+[![Strong CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml)
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-MIT%20%2F%20LGPL--2.1-blue.svg)](#license)
@@ -87,11 +87,10 @@ cd Egon-COLA
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-强验证，等同 Strong CI：使用 Java 21 完整构建，并验证 archetype 生成工程。
+Strong CI 的核心构建需要分别使用 JDK 21 与 JDK 25 执行；完整流程还会验证 archetype 生成项目与 Docker 镜像，具体步骤见 `.github/workflows/ci_java_compatibility.yaml`。
 
 ```bash
-JAVA21_HOME=/path/to/jdk-21 \
-scripts/integration_test
+./mvnw -B -ntp clean install
 ```
 
 针对三类 archetype 的生成验证：
@@ -296,16 +295,16 @@ egon-cola-component-xxx
 
 ## CI
 
-Fast CI 使用 `.github/workflows/ci.yaml`，在 Ubuntu 和 Windows 的 Java 21 上执行：
+Fast CI 使用 `.github/workflows/ci.yaml`，在 Rocky Linux 10 上分别使用 JDK 21 与 JDK 25 执行：
 
 ```bash
 ./mvnw -V --no-transfer-progress -DtrimStackTrace=false clean install
 ```
 
-Strong CI 使用 `.github/workflows/ci_by_multiply_java_versions.yaml`，在 Ubuntu 上安装 Java 21 并执行：
+Strong CI 使用 `.github/workflows/ci_java_compatibility.yaml`，在 Rocky Linux 10 上分别使用 JDK 21 与 JDK 25 执行 `clean install`，再验证三类 archetype 生成项目及其 Docker 镜像：
 
 ```bash
-scripts/integration_test
+./mvnw -B -ntp clean install
 ```
 
 ## 发布
