@@ -1,11 +1,10 @@
 package top.egon.cola.component.methodextension.aop;
 
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.reflect.MethodSignature;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor;
 import org.springframework.core.Ordered;
 import top.egon.cola.component.methodextension.autoconfigure.MethodExtensionProperties;
 import top.egon.cola.component.methodextension.context.MethodExtensionContext;
@@ -18,9 +17,9 @@ import top.egon.cola.component.methodextension.response.MethodExtensionResponseR
 import top.egon.cola.component.methodextension.support.MethodExtensionMethodResolver;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
-@Aspect
-public class MethodExtensionAop implements Ordered {
+public class MethodExtensionAop extends StaticMethodMatcherPointcutAdvisor implements Ordered {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodExtensionAop.class);
 
@@ -42,15 +41,20 @@ public class MethodExtensionAop implements Ordered {
         this.methodResolver = methodResolver;
         this.handlerResolver = handlerResolver;
         this.responseResolver = responseResolver;
+        setAdvice((MethodInterceptor) this::invoke);
     }
 
-    @Around("execution(public * *(..)) && @annotation(top.egon.cola.component.methodextension.annotation.MethodExtension)")
-    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
-        Method invokedMethod = ((MethodSignature) joinPoint.getSignature()).getMethod();
+    @Override
+    public boolean matches(Method method, Class<?> targetClass) {
+        return Modifier.isPublic(method.getModifiers()) && methodResolver.matches(method, targetClass);
+    }
+
+    private Object invoke(MethodInvocation invocation) throws Throwable {
+        Method invokedMethod = invocation.getMethod();
         MethodExtensionMethodResolver.ResolvedMethodExtension resolved;
         MethodExtensionHandler handler;
         try {
-            resolved = methodResolver.resolve(invokedMethod, joinPoint.getTarget());
+            resolved = methodResolver.resolve(invokedMethod, invocation.getThis());
             handler = handlerResolver.resolve(resolved.annotation().handler());
         } catch (MethodExtensionException exception) {
             LOGGER.error("Invalid method extension configuration for {}", invokedMethod.toGenericString(), exception);
@@ -63,7 +67,11 @@ public class MethodExtensionAop implements Ordered {
         MethodExtensionDecision decision;
         try {
             LOGGER.debug("Executing method extension handler {}", handlerType.getName());
-            decision = handler.evaluate(new MethodExtensionContext(joinPoint.getTarget(), method, joinPoint.getArgs()));
+            decision = handler.evaluate(new MethodExtensionContext(
+                    invocation.getThis(),
+                    method,
+                    invocation.getArguments()
+            ));
         } catch (Throwable exception) {
             LOGGER.error(
                     "Method extension handler {} failed for {}",
@@ -82,7 +90,7 @@ public class MethodExtensionAop implements Ordered {
         }
         if (decision.allowed()) {
             LOGGER.debug("Method extension allowed {}", method.toGenericString());
-            return joinPoint.proceed();
+            return invocation.proceed();
         }
 
         LOGGER.info(

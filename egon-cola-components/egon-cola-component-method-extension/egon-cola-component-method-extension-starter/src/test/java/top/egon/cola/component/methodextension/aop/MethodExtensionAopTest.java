@@ -114,9 +114,19 @@ class MethodExtensionAopTest {
         assertThat(aop.getOrder()).isEqualTo(-77);
     }
 
+    @Test
+    void shouldOnlyMatchPublicMethods() throws NoSuchMethodException {
+        MethodExtensionAop aop = aop(-77);
+
+        assertThat(aop.matches(
+                SampleService.class.getDeclaredMethod("protectedMethod"),
+                SampleService.class
+        )).isFalse();
+    }
+
     private SampleService proxy(SampleService target, int order) {
         AspectJProxyFactory proxyFactory = new AspectJProxyFactory(target);
-        proxyFactory.addAspect(aop(order));
+        proxyFactory.addAdvisor(aop(order));
         return proxyFactory.getProxy();
     }
 
@@ -161,6 +171,12 @@ class MethodExtensionAopTest {
 
         @MethodExtension(handler = ThrowingHandler.class)
         public String failure() {
+            businessCalls.incrementAndGet();
+            return "business";
+        }
+
+        @MethodExtension(handler = AllowHandler.class)
+        protected String protectedMethod() {
             businessCalls.incrementAndGet();
             return "business";
         }
