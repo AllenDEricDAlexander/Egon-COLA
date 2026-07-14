@@ -15,8 +15,11 @@ concurrency:
 jobs:
   test:
     name: Fast CI / Rocky Linux 10 / JDK ${{ matrix.java-version }}
-    runs-on: [self-hosted, linux, x64, rocky-linux-10]
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
+
+    env:
+      ROCKY_IMAGE: rockylinux:10
 
     strategy:
       fail-fast: false
@@ -34,15 +37,6 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
-      - name: Verify Rocky Linux 10 runner
-        run: |
-          set -euo pipefail
-          source /etc/os-release
-          if [[ "${ID:-}" != "rocky" || "${VERSION_ID%%.*}" != "10" ]]; then
-            echo "Expected Rocky Linux 10 runner, found ${PRETTY_NAME:-unknown}." >&2
-            exit 1
-          fi
-
       - name: Setup Java ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
@@ -50,18 +44,39 @@ jobs:
           java-version: ${{ matrix.java-version }}
           cache: maven
 
-      - name: Prepare Maven Wrapper
+      - name: Build, test, and install on Rocky Linux 10
         run: |
-          chmod +x ./mvnw || true
-          java -version
-          ./mvnw -version
-
-      - name: Build, test, and install with Maven
-        run: |
-          ./mvnw -B -ntp \
-            -DtrimStackTrace=false \
-            -Dgpg.skip=true \
-            clean install
+          set -euo pipefail
+          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
+          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
+          docker pull "${ROCKY_IMAGE}"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/home/runner \
+            --env JAVA_HOME=/opt/java \
+            --env MAVEN_USER_HOME=/home/runner/.m2 \
+            --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --volume "${ROCKY_HOME}:/home/runner" \
+            --volume "${HOME}/.m2:/home/runner/.m2" \
+            --volume "${JAVA_HOME}:/opt/java:ro" \
+            --workdir /workspace \
+            "${ROCKY_IMAGE}" \
+            bash -lc '
+              set -euo pipefail
+              source /etc/os-release
+              if [[ "${ID:-}" != "rocky" || "${VERSION_ID%%.*}" != "10" ]]; then
+                echo "Expected Rocky Linux 10 container, found ${PRETTY_NAME:-unknown}." >&2
+                exit 1
+              fi
+              chmod +x ./mvnw
+              java -version
+              ./mvnw -version
+              ./mvnw -B -ntp \
+                -DtrimStackTrace=false \
+                -Dgpg.skip=true \
+                clean install
+            '
 
       - name: Remove self-installed Maven artifacts
         if: always()

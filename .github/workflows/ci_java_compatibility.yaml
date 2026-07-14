@@ -18,8 +18,11 @@ concurrency:
 jobs:
   build-and-verify:
     name: Build & Verify / Rocky Linux 10 / JDK ${{ matrix.java-version }}
-    runs-on: [self-hosted, linux, x64, rocky-linux-10]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
+
+    env:
+      ROCKY_IMAGE: rockylinux:10
 
     strategy:
       fail-fast: false
@@ -32,16 +35,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Verify Rocky Linux 10 runner
-        shell: bash
-        run: |
-          set -euo pipefail
-          source /etc/os-release
-          if [[ "${ID:-}" != "rocky" || "${VERSION_ID%%.*}" != "10" ]]; then
-            echo "Expected Rocky Linux 10 runner, found ${PRETTY_NAME:-unknown}." >&2
-            exit 1
-          fi
-
       - name: Setup Java ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
@@ -49,23 +42,58 @@ jobs:
           java-version: ${{ matrix.java-version }}
           cache: maven
 
-      - name: Prepare Maven Wrapper
+      - name: Build and install repository on Rocky Linux 10
         shell: bash
         run: |
-          chmod +x ./mvnw
-          java -version
-          ./mvnw -version
-
-      - name: Build and install repository
-        shell: bash
-        run: |
-          ./mvnw -B -ntp clean install
+          set -euo pipefail
+          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
+          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
+          docker pull "${ROCKY_IMAGE}"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/home/runner \
+            --env JAVA_HOME=/opt/java \
+            --env MAVEN_USER_HOME=/home/runner/.m2 \
+            --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --volume "${ROCKY_HOME}:/home/runner" \
+            --volume "${HOME}/.m2:/home/runner/.m2" \
+            --volume "${JAVA_HOME}:/opt/java:ro" \
+            --workdir /workspace \
+            "${ROCKY_IMAGE}" \
+            bash -lc '
+              set -euo pipefail
+              source /etc/os-release
+              if [[ "${ID:-}" != "rocky" || "${VERSION_ID%%.*}" != "10" ]]; then
+                echo "Expected Rocky Linux 10 container, found ${PRETTY_NAME:-unknown}." >&2
+                exit 1
+              fi
+              chmod +x ./mvnw
+              java -version
+              ./mvnw -version
+              ./mvnw -B -ntp clean install
+            '
 
       - name: Resolve project version
         id: project-version
         shell: bash
         run: |
-          VERSION="$(./mvnw -q -N help:evaluate -Dexpression=project.version -DforceStdout)"
+          set -euo pipefail
+          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
+          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
+          VERSION="$(docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/home/runner \
+            --env JAVA_HOME=/opt/java \
+            --env MAVEN_USER_HOME=/home/runner/.m2 \
+            --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --volume "${ROCKY_HOME}:/home/runner" \
+            --volume "${HOME}/.m2:/home/runner/.m2" \
+            --volume "${JAVA_HOME}:/opt/java:ro" \
+            --workdir /workspace \
+            "${ROCKY_IMAGE}" \
+            bash -lc './mvnw -q -N help:evaluate -Dexpression=project.version -DforceStdout')"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Resolved project version: ${VERSION}"
 
@@ -83,9 +111,31 @@ jobs:
             "egon-cola-archetype-web:web"
           )
 
-          WORK_DIR="${RUNNER_TEMP}/egon-cola-archetype-it"
-          rm -rf "${WORK_DIR}"
-          mkdir -p "${WORK_DIR}"
+          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
+          HOST_WORK_DIR="${RUNNER_TEMP}/egon-cola-archetype-it"
+          CONTAINER_WORK_DIR="/runner-temp/egon-cola-archetype-it"
+          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
+          rm -rf "${HOST_WORK_DIR}"
+          mkdir -p "${HOST_WORK_DIR}"
+
+          rocky_run() {
+            local container_workdir="$1"
+            local command="$2"
+            docker run --rm \
+              --user "$(id -u):$(id -g)" \
+              --env HOME=/home/runner \
+              --env JAVA_HOME=/opt/java \
+              --env MAVEN_USER_HOME=/home/runner/.m2 \
+              --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+              --volume "${GITHUB_WORKSPACE}:/workspace" \
+              --volume "${RUNNER_TEMP}:/runner-temp" \
+              --volume "${ROCKY_HOME}:/home/runner" \
+              --volume "${HOME}/.m2:/home/runner/.m2" \
+              --volume "${JAVA_HOME}:/opt/java:ro" \
+              --workdir "${container_workdir}" \
+              "${ROCKY_IMAGE}" \
+              bash -lc "${command}"
+          }
 
           for item in "${ARCHETYPES[@]}"; do
             IFS=":" read -r ARCHETYPE_ARTIFACT_ID SHORT_NAME <<< "${item}"
@@ -95,18 +145,21 @@ jobs:
 
             echo "Generating ${APP_NAME} by ${ARCHETYPE_ARTIFACT_ID}:${PROJECT_VERSION}"
 
-            ./mvnw -B -ntp archetype:generate \
-              -DarchetypeGroupId=top.egon \
-              -DarchetypeArtifactId="${ARCHETYPE_ARTIFACT_ID}" \
-              -DarchetypeVersion="${PROJECT_VERSION}" \
-              -DgroupId=top.egon.cola.ci \
-              -DartifactId="${APP_NAME}" \
-              -Dversion=1.0.0-SNAPSHOT \
-              -Dpackage="${PACKAGE_NAME}" \
-              -DinteractiveMode=false \
-              -DoutputDirectory="${WORK_DIR}"
+            rocky_run /workspace \
+              "./mvnw -B -ntp archetype:generate \
+                -DarchetypeGroupId=top.egon \
+                -DarchetypeArtifactId=${ARCHETYPE_ARTIFACT_ID} \
+                -DarchetypeVersion=${PROJECT_VERSION} \
+                -DgroupId=top.egon.cola.ci \
+                -DartifactId=${APP_NAME} \
+                -Dversion=1.0.0-SNAPSHOT \
+                -Dpackage=${PACKAGE_NAME} \
+                -DinteractiveMode=false \
+                -DoutputDirectory=${CONTAINER_WORK_DIR}"
 
-            pushd "${WORK_DIR}/${APP_NAME}"
+            HOST_PROJECT_DIR="${HOST_WORK_DIR}/${APP_NAME}"
+            CONTAINER_PROJECT_DIR="${CONTAINER_WORK_DIR}/${APP_NAME}"
+            pushd "${HOST_PROJECT_DIR}"
 
             if [ "${SHORT_NAME}" = "service" ]; then
               test -f .github/workflows/ci.yml
@@ -116,32 +169,21 @@ jobs:
               grep -Fq -- '--tag ci-service-demo-java-${JAVA_VERSION}:ci' .github/workflows/ci.yml
             fi
 
-            if [ -f "./mvnw" ]; then
-              chmod +x ./mvnw
-              export SPRING_PROFILES_ACTIVE=test
-              if [ "${SHORT_NAME}" = "web" ]; then
-                ./mvnw -V --no-transfer-progress clean verify
-              else
-                ./mvnw -V --no-transfer-progress clean test
-              fi
-              ./mvnw -V --no-transfer-progress -DskipTests package
-              docker build \
-                --file deploy/container/Dockerfile \
-                --tag "egon-generated-${SHORT_NAME}:java-${JAVA_VERSION}" \
-                .
+            test -f ./mvnw
+            chmod +x ./mvnw
+            if [ "${SHORT_NAME}" = "web" ]; then
+              rocky_run "${CONTAINER_PROJECT_DIR}" \
+                'SPRING_PROFILES_ACTIVE=test ./mvnw -V --no-transfer-progress clean verify'
             else
-              export SPRING_PROFILES_ACTIVE=test
-              if [ "${SHORT_NAME}" = "web" ]; then
-                mvn -V --no-transfer-progress clean verify
-              else
-                mvn -V --no-transfer-progress clean test
-              fi
-              mvn -V --no-transfer-progress -DskipTests package
-              docker build \
-                --file deploy/container/Dockerfile \
-                --tag "egon-generated-${SHORT_NAME}:java-${JAVA_VERSION}" \
-                .
+              rocky_run "${CONTAINER_PROJECT_DIR}" \
+                'SPRING_PROFILES_ACTIVE=test ./mvnw -V --no-transfer-progress clean test'
             fi
+            rocky_run "${CONTAINER_PROJECT_DIR}" \
+              'SPRING_PROFILES_ACTIVE=test ./mvnw -V --no-transfer-progress -DskipTests package'
+            docker build \
+              --file deploy/container/Dockerfile \
+              --tag "egon-generated-${SHORT_NAME}:java-${JAVA_VERSION}" \
+              .
 
             popd
           done

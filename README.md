@@ -295,13 +295,13 @@ egon-cola-component-xxx
 
 ## CI
 
-Fast CI 使用 `.github/workflows/ci.yaml`，在 Rocky Linux 10 上分别使用 JDK 21 与 JDK 25 执行：
+Fast CI 使用 `.github/workflows/ci.yaml`，由 GitHub-hosted Ubuntu runner 调度，并在 Rocky Linux 10 容器内分别使用 JDK 21 与 JDK 25 执行：
 
 ```bash
 ./mvnw -V --no-transfer-progress -DtrimStackTrace=false clean install
 ```
 
-Strong CI 使用 `.github/workflows/ci_java_compatibility.yaml`，在 Rocky Linux 10 上分别使用 JDK 21 与 JDK 25 执行 `clean install`，再验证三类 archetype 生成项目及其 Docker 镜像：
+Strong CI 使用 `.github/workflows/ci_java_compatibility.yaml`，由 GitHub-hosted Ubuntu runner 调度，在 Rocky Linux 10 容器内分别使用 JDK 21 与 JDK 25 执行 `clean install` 并验证三类 archetype 生成项目，最后在宿主 runner 构建 Docker 镜像：
 
 ```bash
 ./mvnw -B -ntp clean install
