@@ -52,6 +52,7 @@
 
     <build>
         <plugins>
+            <!-- Build the external Facade fixture required to compile the generated consumer during archetype IT. -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <executions>

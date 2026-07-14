@@ -1,4 +1,5 @@
 import groovy.io.FileType
+import groovy.xml.XmlSlurper
 import java.security.MessageDigest
 
 def projectDir = [
@@ -60,7 +61,35 @@ modules.each { module ->
     assert new File(projectDir, "student-management-evaluation-${module}").isDirectory()
 }
 
-def rootPom = new groovy.xml.XmlSlurper(false, false).parse(assertFile("pom.xml"))
+def rootPom = new XmlSlurper(false, false).parse(assertFile("pom.xml"))
+def assertVersionProperty = { pomModel, propertyName ->
+    assert pomModel.properties."${propertyName}".text().trim():
+            "Expected non-empty ${propertyName}"
+}
+def assertEgonColaBom = { pomModel ->
+    assertVersionProperty(pomModel, "egon-cola.version")
+    def bom = pomModel.dependencyManagement.dependencies.dependency.find {
+        it.groupId.text() == "top.egon" &&
+                it.artifactId.text() == "egon-cola-components-bom"
+    }
+    assert bom: "Expected top.egon:egon-cola-components-bom"
+    assert bom.version.text() == '${egon-cola.version}':
+            "Expected Egon-COLA BOM version to reference egon-cola.version"
+    assert bom.type.text() == "pom"
+    assert bom.scope.text() == "import"
+}
+assert rootPom.parent.groupId.text() == "org.springframework.boot"
+assert rootPom.parent.artifactId.text() == "spring-boot-starter-parent"
+assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent version"
+assert rootPom.properties.'java.version'.text() == "21"
+[
+    "lombok.version",
+    "mapstruct-plus.version",
+    "dubbo.version",
+    "spring-cloud.version",
+    "spring-cloud-alibaba.version"
+].each { assertVersionProperty(rootPom, it) }
+assertEgonColaBom(rootPom)
 assert rootPom.modules.module*.text() == modules.collect { "student-management-evaluation-${it}" }
 assert rootPom.properties.'organization-facade.group-id'.text() == "fixture.organization"
 assert rootPom.properties.'organization-facade.artifact-id'.text() ==
@@ -178,7 +207,7 @@ assert !serviceApplication.contains('"it.pkg.adapter.facade"')
 
 
 def internalDependencies = { module ->
-    def pom = new groovy.xml.XmlSlurper(false, false)
+    def pom = new XmlSlurper(false, false)
             .parse(assertFile("student-management-evaluation-${module}/pom.xml"))
     pom.dependencies.dependency.findAll {
         it.groupId.text() == "archetype.it" &&
@@ -195,13 +224,13 @@ assert internalDependencies("adapter") == ["application", "facade"]
 assert internalDependencies("starter") == ["adapter", "infrastructure"]
 
 def dependencyArtifacts = { module ->
-    def pom = new groovy.xml.XmlSlurper(false, false)
+    def pom = new XmlSlurper(false, false)
             .parse(assertFile("student-management-evaluation-${module}/pom.xml"))
     pom.dependencies.dependency*.artifactId*.text()
 }
 
 def externalFacadeDependencies = { module ->
-    def pom = new groovy.xml.XmlSlurper(false, false)
+    def pom = new XmlSlurper(false, false)
             .parse(assertFile("student-management-evaluation-${module}/pom.xml"))
     pom.dependencies.dependency.findAll {
         it.groupId.text() == '${organization-facade.group-id}'

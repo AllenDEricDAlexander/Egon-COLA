@@ -1,3 +1,6 @@
+import groovy.io.FileType
+import groovy.xml.XmlSlurper
+
 def projectDir = new File(basedir, "pom.xml").isFile() ? basedir : context.projectDir
 
 // Canonical organization manifest: intentionally fixed, never discovered from generated output.
@@ -433,7 +436,7 @@ def javaFileTexts = { path ->
     def dir = new File(projectDir, path)
     assert dir.isDirectory(): "Expected directory ${path}"
     def files = []
-    dir.traverse(type: groovy.io.FileType.FILES) { file ->
+    dir.traverse(type: FileType.FILES) { file ->
         if (file.name.endsWith(".java")) {
             files << file
         }
@@ -453,7 +456,7 @@ def assertNoJavaText = { path, token ->
     def matches = []
     def dir = new File(projectDir, path)
     assert dir.isDirectory(): "Expected directory ${path}"
-    dir.traverse(type: groovy.io.FileType.FILES) { file ->
+    dir.traverse(type: FileType.FILES) { file ->
         if (file.name.endsWith(".java") && file.getText("UTF-8").contains(token)) {
             matches << projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
         }
@@ -616,7 +619,7 @@ def forbiddenPaths = [
 forbiddenPaths.each { assertMissing(it) }
 
 def forbiddenMatches = []
-projectDir.traverse(type: groovy.io.FileType.FILES) { file ->
+projectDir.traverse(type: FileType.FILES) { file ->
     def path = projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
     if (path.contains("/src/") && path.contains("/java/") && path.contains("/convertor/")) {
         forbiddenMatches << path
@@ -639,7 +642,7 @@ assert forbiddenMatches.isEmpty(): "Unexpected forbidden generated paths: ${forb
 def assertPackageDocs = { String sourceRoot ->
     def root = assertDir(sourceRoot)
     def javaDirs = [] as Set
-    root.traverse(type: groovy.io.FileType.FILES) { file ->
+    root.traverse(type: FileType.FILES) { file ->
         if (file.name.endsWith(".java") && file.name != "package-info.java") {
             javaDirs << file.parentFile
         }
@@ -958,20 +961,41 @@ assertMissing("student-management-organization-infrastructure/src/main/java/pack
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/package-info.java")
 
 def rootPomText = assertFile("pom.xml").text
-assert rootPomText.contains("<evaluation-facade.group-id>fixture.evaluation</evaluation-facade.group-id>")
-assert rootPomText.contains("<evaluation-facade.artifact-id>student-management-evaluation-facade</evaluation-facade.artifact-id>")
-assert rootPomText.contains("<evaluation-facade.version>1.0.0-fixture</evaluation-facade.version>")
-assert rootPomText.contains("<evaluation-facade.package>fixture.evaluation</evaluation-facade.package>")
-assert rootPomText.contains("<artifactId>spring-boot-starter-parent</artifactId>")
-assert rootPomText.contains("<version>3.5.16</version>")
-assert rootPomText.contains("<java.version>21</java.version>")
-assert rootPomText.contains("<lombok.version>1.18.38</lombok.version>")
-assert rootPomText.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
-assert rootPomText.contains("<dubbo.version>3.3.6</dubbo.version>")
-assert rootPomText.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
-assert rootPomText.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
-assert rootPomText.contains("<artifactId>egon-cola-components-bom</artifactId>")
-assert rootPomText.contains("<egon-cola.version>5.2.2</egon-cola.version>")
+def rootPom = new XmlSlurper(false, false).parse(assertFile("pom.xml"))
+def assertVersionProperty = { pomModel, propertyName ->
+    assert pomModel.properties."${propertyName}".text().trim():
+            "Expected non-empty ${propertyName}"
+}
+def assertEgonColaBom = { pomModel ->
+    assertVersionProperty(pomModel, "egon-cola.version")
+    def bom = pomModel.dependencyManagement.dependencies.dependency.find {
+        it.groupId.text() == "top.egon" &&
+                it.artifactId.text() == "egon-cola-components-bom"
+    }
+    assert bom: "Expected top.egon:egon-cola-components-bom"
+    assert bom.version.text() == '${egon-cola.version}':
+            "Expected Egon-COLA BOM version to reference egon-cola.version"
+    assert bom.type.text() == "pom"
+    assert bom.scope.text() == "import"
+}
+assert rootPom.properties.'evaluation-facade.group-id'.text() == "fixture.evaluation"
+assert rootPom.properties.'evaluation-facade.artifact-id'.text() ==
+        "student-management-evaluation-facade"
+assert rootPom.properties.'evaluation-facade.version'.text() == "1.0.0-fixture"
+assert rootPom.properties.'evaluation-facade.package'.text() == "fixture.evaluation"
+assert rootPom.parent.groupId.text() == "org.springframework.boot"
+assert rootPom.parent.artifactId.text() == "spring-boot-starter-parent"
+assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent version"
+assert rootPom.properties.'java.version'.text() == "21"
+[
+    "lombok.version",
+    "mapstruct-plus.version",
+    "dubbo.version",
+    "spring-cloud.version",
+    "spring-cloud-alibaba.version",
+    "springdoc.version"
+].each { assertVersionProperty(rootPom, it) }
+assertEgonColaBom(rootPom)
 assert !rootPomText.contains("<artifactId>egon-cola-component-common</artifactId>")
 assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>")
 assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
@@ -979,7 +1003,7 @@ assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-poo
 def commonPomText = assertFile("student-management-organization-common/pom.xml").text
 assert commonPomText.contains("<artifactId>egon-cola-component-common-core</artifactId>")
 def generatedPomTexts = []
-projectDir.traverse(type: groovy.io.FileType.FILES) { file ->
+projectDir.traverse(type: FileType.FILES) { file ->
     def path = relativePath(file)
     if (file.name == "pom.xml" && !isGeneratedOrVcsPath(path)) {
         generatedPomTexts << file.getText("UTF-8")
@@ -1051,7 +1075,7 @@ def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
 
 def modulePom = { module ->
-    new groovy.xml.XmlSlurper(false, false).parse(assertFile("student-management-organization-${module}/pom.xml"))
+    new XmlSlurper(false, false).parse(assertFile("student-management-organization-${module}/pom.xml"))
 }
 
 def dependencies = { moduleXml ->

@@ -1,3 +1,6 @@
+import groovy.io.FileType
+import groovy.xml.XmlSlurper
+
 def generatedProjectDir = new File(basedir, "project/basic")
 
 def assertFile = { path ->
@@ -68,7 +71,7 @@ def javaFileTexts = { path ->
     def dir = new File(generatedProjectDir, path)
     assert dir.isDirectory(): "Expected directory ${path}"
     def files = []
-    dir.traverse(type: groovy.io.FileType.FILES) { file ->
+    dir.traverse(type: FileType.FILES) { file ->
         if (file.name.endsWith(".java")) {
             files << file
         }
@@ -306,7 +309,7 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 }
 
 def pom = assertFile("pom.xml").text
-def pomXml = new groovy.xml.XmlSlurper(false, false).parse(assertFile("pom.xml"))
+def pomXml = new XmlSlurper(false, false).parse(assertFile("pom.xml"))
 def generatedPoms = []
 generatedProjectDir.eachFileRecurse { file ->
     if (file.isFile() && file.name == "pom.xml") {
@@ -325,15 +328,35 @@ def assertSpringBootLayeredJarPlugin = { pomModel ->
         it.groupId.text() == "org.projectlombok" && it.artifactId.text() == "lombok"
     }: "Expected spring-boot-maven-plugin to exclude org.projectlombok:lombok"
 }
-assert pom.contains("<artifactId>spring-boot-starter-parent</artifactId>")
-assert pom.contains("<version>3.5.16</version>")
-assert pom.contains("<java.version>21</java.version>")
-assert pom.contains("<lombok.version>1.18.38</lombok.version>")
-assert pom.contains("<mapstruct-plus.version>1.5.1</mapstruct-plus.version>")
-assert pom.contains("<dubbo.version>3.3.6</dubbo.version>")
-assert pom.contains("<spring-cloud.version>2025.0.3</spring-cloud.version>")
-assert pom.contains("<spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>")
-assert pom.contains("<springdoc.version>2.8.17</springdoc.version>")
+def assertVersionProperty = { pomModel, propertyName ->
+    assert pomModel.properties."${propertyName}".text().trim():
+            "Expected non-empty ${propertyName}"
+}
+def assertEgonColaBom = { pomModel ->
+    assertVersionProperty(pomModel, "egon-cola.version")
+    def bom = pomModel.dependencyManagement.dependencies.dependency.find {
+        it.groupId.text() == "top.egon" &&
+                it.artifactId.text() == "egon-cola-components-bom"
+    }
+    assert bom: "Expected top.egon:egon-cola-components-bom"
+    assert bom.version.text() == '${egon-cola.version}':
+            "Expected Egon-COLA BOM version to reference egon-cola.version"
+    assert bom.type.text() == "pom"
+    assert bom.scope.text() == "import"
+}
+assert pomXml.parent.groupId.text() == "org.springframework.boot"
+assert pomXml.parent.artifactId.text() == "spring-boot-starter-parent"
+assert pomXml.parent.version.text().trim(): "Expected a Spring Boot parent version"
+assert pomXml.properties.'java.version'.text() == "21"
+[
+    "lombok.version",
+    "mapstruct-plus.version",
+    "dubbo.version",
+    "spring-cloud.version",
+    "spring-cloud-alibaba.version",
+    "springdoc.version"
+].each { assertVersionProperty(pomXml, it) }
+assertEgonColaBom(pomXml)
 [
     "spring-boot-starter-graphql",
     "spring-boot-starter-amqp",
@@ -348,8 +371,6 @@ assert pom.contains("<springdoc.version>2.8.17</springdoc.version>")
 }
 assert !pom.contains("mybatis-plus")
 assert !pom.contains("mybatis-spring")
-assert pom.contains("<artifactId>egon-cola-components-bom</artifactId>")
-assert pom.contains("<egon-cola.version>5.2.2</egon-cola.version>")
 assert pom.contains("<artifactId>egon-cola-component-common-core</artifactId>")
 assert !pom.contains("<artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>")
 assert !pom.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
