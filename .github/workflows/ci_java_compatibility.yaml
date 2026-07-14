@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      ROCKY_IMAGE: rockylinux:10
+      ROCKY_IMAGE: rockylinux/rockylinux:10
 
     strategy:
       fail-fast: false
