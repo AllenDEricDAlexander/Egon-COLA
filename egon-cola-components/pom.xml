@@ -59,6 +59,7 @@
         <module>egon-cola-component-dynamic-config-center</module>
         <module>egon-cola-component-rule-engine</module>
         <module>egon-cola-component-access-guard</module>
+        <module>egon-cola-component-method-extension</module>
     </modules>
 
     <properties>
