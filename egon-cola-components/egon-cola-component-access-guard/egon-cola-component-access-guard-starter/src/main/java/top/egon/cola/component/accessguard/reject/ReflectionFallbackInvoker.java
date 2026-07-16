@@ -8,6 +8,7 @@ import top.egon.cola.component.accessguard.exception.AccessGuardRejectResponseEx
 import top.egon.cola.component.accessguard.support.AopMethodResolver;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 
 public class ReflectionFallbackInvoker implements RejectResponseInvoker {
@@ -38,11 +39,17 @@ public class ReflectionFallbackInvoker implements RejectResponseInvoker {
 
     public Object reject(Object target, Method method, AccessGuardRule rule, AccessGuardContext context, Object[] args) {
         if (StringUtils.hasText(rule.fallbackMethod())) {
-            Method fallbackMethod = findFallbackMethod(target.getClass(), rule.fallbackMethod(), method.getParameterTypes(), true);
+            Class<?> targetType = target != null ? target.getClass() : method.getDeclaringClass();
+            Method fallbackMethod = findFallbackMethod(targetType, rule.fallbackMethod(), method.getParameterTypes(), true);
             if (fallbackMethod == null) {
-                fallbackMethod = findFallbackMethod(target.getClass(), rule.fallbackMethod(), method.getParameterTypes(), false);
+                fallbackMethod = findFallbackMethod(targetType, rule.fallbackMethod(), method.getParameterTypes(), false);
             }
             if (fallbackMethod != null) {
+                if (target == null && !Modifier.isStatic(fallbackMethod.getModifiers())) {
+                    throw new AccessGuardRejectResponseException(
+                            "Static access guard method requires a static fallback method "
+                                    + fallbackMethod.getName());
+                }
                 return invokeFallback(target, fallbackMethod, context, args);
             }
         }

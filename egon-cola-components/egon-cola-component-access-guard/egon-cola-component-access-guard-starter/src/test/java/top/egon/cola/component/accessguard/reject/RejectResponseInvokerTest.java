@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static top.egon.cola.component.accessguard.annotation.FailStrategy.FAIL_OPEN;
 import static top.egon.cola.component.accessguard.annotation.TimeoutExecutorType.THREAD_POOL;
 import static top.egon.cola.component.accessguard.annotation.WhiteListMode.GATEKEEPER;
@@ -56,6 +57,26 @@ class RejectResponseInvokerTest {
         Object result = invoker.reject(target, method, rule("", "{\"code\":\"limited\"}"), context(), new Object[]{"u-001"});
 
         assertThat(result).isEqualTo(new Payload("limited"));
+    }
+
+    @Test
+    void shouldInvokeStaticFallbackWithoutTarget() throws NoSuchMethodException {
+        Method method = SampleService.class.getDeclaredMethod("staticGuarded", String.class);
+
+        Object result = invoker.reject(
+                null, method, rule("staticFallback", ""), context(), new Object[]{"u-001"});
+
+        assertThat(result).isEqualTo("static-fallback:u-001");
+    }
+
+    @Test
+    void shouldRejectInstanceFallbackForStaticTarget() throws NoSuchMethodException {
+        Method method = SampleService.class.getDeclaredMethod("staticGuarded", String.class);
+
+        assertThatThrownBy(() -> invoker.reject(
+                null, method, rule("fallback", ""), context(), new Object[]{"u-001"}))
+                .isInstanceOf(top.egon.cola.component.accessguard.exception.AccessGuardRejectResponseException.class)
+                .hasMessageContaining("requires a static fallback");
     }
 
     private AccessGuardContext context() {
@@ -111,6 +132,14 @@ class RejectResponseInvokerTest {
 
         String noArgFallback() {
             return "fallback";
+        }
+
+        static String staticGuarded(String userId) {
+            return userId;
+        }
+
+        static String staticFallback(String userId) {
+            return "static-fallback:" + userId;
         }
     }
 
