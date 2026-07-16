@@ -2,16 +2,12 @@ package top.egon.cola.component.methodextension.aop;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.StaticMethodMatcherPointcutAdvisor;
 import org.springframework.core.Ordered;
 import top.egon.cola.component.methodextension.autoconfigure.MethodExtensionProperties;
-import top.egon.cola.component.methodextension.context.MethodExtensionContext;
-import top.egon.cola.component.methodextension.exception.MethodExtensionConfigurationException;
-import top.egon.cola.component.methodextension.exception.MethodExtensionException;
-import top.egon.cola.component.methodextension.handler.MethodExtensionDecision;
-import top.egon.cola.component.methodextension.handler.MethodExtensionHandler;
+import top.egon.cola.component.methodextension.event.NoopMethodExtensionEventPublisher;
+import top.egon.cola.component.methodextension.execution.MethodExtensionExecutionResult;
+import top.egon.cola.component.methodextension.execution.MethodExtensionExecutionService;
 import top.egon.cola.component.methodextension.handler.MethodExtensionHandlerResolver;
 import top.egon.cola.component.methodextension.response.MethodExtensionResponseResolver;
 import top.egon.cola.component.methodextension.support.MethodExtensionMethodResolver;
@@ -21,15 +17,22 @@ import java.lang.reflect.Modifier;
 
 public class MethodExtensionAop extends StaticMethodMatcherPointcutAdvisor implements Ordered {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodExtensionAop.class);
-
     private final MethodExtensionProperties properties;
 
     private final MethodExtensionMethodResolver methodResolver;
 
-    private final MethodExtensionHandlerResolver handlerResolver;
+    private final MethodExtensionExecutionService executionService;
 
-    private final MethodExtensionResponseResolver responseResolver;
+    public MethodExtensionAop(
+            MethodExtensionProperties properties,
+            MethodExtensionMethodResolver methodResolver,
+            MethodExtensionExecutionService executionService
+    ) {
+        this.properties = properties;
+        this.methodResolver = methodResolver;
+        this.executionService = executionService;
+        setAdvice((MethodInterceptor) this::invoke);
+    }
 
     public MethodExtensionAop(
             MethodExtensionProperties properties,
@@ -37,11 +40,12 @@ public class MethodExtensionAop extends StaticMethodMatcherPointcutAdvisor imple
             MethodExtensionHandlerResolver handlerResolver,
             MethodExtensionResponseResolver responseResolver
     ) {
-        this.properties = properties;
-        this.methodResolver = methodResolver;
-        this.handlerResolver = handlerResolver;
-        this.responseResolver = responseResolver;
-        setAdvice((MethodInterceptor) this::invoke);
+        this(properties, methodResolver, new MethodExtensionExecutionService(
+                methodResolver,
+                handlerResolver,
+                responseResolver,
+                new NoopMethodExtensionEventPublisher()
+        ));
     }
 
     @Override
@@ -50,65 +54,9 @@ public class MethodExtensionAop extends StaticMethodMatcherPointcutAdvisor imple
     }
 
     private Object invoke(MethodInvocation invocation) throws Throwable {
-        Method invokedMethod = invocation.getMethod();
-        MethodExtensionMethodResolver.ResolvedMethodExtension resolved;
-        MethodExtensionHandler handler;
-        try {
-            resolved = methodResolver.resolve(invokedMethod, invocation.getThis());
-            handler = handlerResolver.resolve(resolved.annotation().handler());
-        } catch (MethodExtensionException exception) {
-            LOGGER.error("Invalid method extension configuration for {}", invokedMethod.toGenericString(), exception);
-            throw exception;
-        }
-
-        Method method = resolved.method();
-        Class<? extends MethodExtensionHandler> handlerType = resolved.annotation().handler();
-        LOGGER.debug("Matched method extension {} with handler {}", method.toGenericString(), handlerType.getName());
-        MethodExtensionDecision decision;
-        try {
-            LOGGER.debug("Executing method extension handler {}", handlerType.getName());
-            decision = handler.evaluate(new MethodExtensionContext(
-                    invocation.getThis(),
-                    method,
-                    invocation.getArguments()
-            ));
-        } catch (Throwable exception) {
-            LOGGER.error(
-                    "Method extension handler {} failed for {}",
-                    handlerType.getName(),
-                    method.toGenericString(),
-                    exception
-            );
-            throw exception;
-        }
-        if (decision == null) {
-            MethodExtensionConfigurationException exception = new MethodExtensionConfigurationException(
-                    "MethodExtensionHandler " + handlerType.getName() + " returned null for " + method.toGenericString()
-            );
-            LOGGER.error("Invalid method extension decision for {}", method.toGenericString(), exception);
-            throw exception;
-        }
-        if (decision.allowed()) {
-            LOGGER.debug("Method extension allowed {}", method.toGenericString());
-            return invocation.proceed();
-        }
-
-        LOGGER.info(
-                "Method extension rejected {} with handler {} and reason [{}]",
-                method.toGenericString(),
-                handlerType.getName(),
-                decision.reason()
-        );
-        try {
-            return responseResolver.resolve(method, decision, resolved.annotation().returnJson());
-        } catch (MethodExtensionException exception) {
-            LOGGER.error(
-                    "Invalid method extension response for {}: {}",
-                    method.toGenericString(),
-                    exception.getMessage()
-            );
-            throw exception;
-        }
+        MethodExtensionExecutionResult result = executionService.evaluate(
+                invocation.getThis(), invocation.getMethod(), invocation.getArguments());
+        return result.proceed() ? invocation.proceed() : result.rejectionValue();
     }
 
     @Override

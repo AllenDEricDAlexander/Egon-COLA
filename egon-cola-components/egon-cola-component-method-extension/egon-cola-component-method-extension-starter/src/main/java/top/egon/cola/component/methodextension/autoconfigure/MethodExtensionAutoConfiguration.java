@@ -9,6 +9,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.methodextension.aop.MethodExtensionAop;
+import top.egon.cola.component.methodextension.event.MethodExtensionEventPublisher;
+import top.egon.cola.component.methodextension.event.NoopMethodExtensionEventPublisher;
+import top.egon.cola.component.methodextension.execution.MethodExtensionExecutionService;
 import top.egon.cola.component.methodextension.handler.MethodExtensionHandlerResolver;
 import top.egon.cola.component.methodextension.response.MethodExtensionResponseResolver;
 import top.egon.cola.component.methodextension.support.MethodExtensionMethodResolver;
@@ -43,12 +46,29 @@ public class MethodExtensionAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public MethodExtensionEventPublisher methodExtensionEventPublisher() {
+        return new NoopMethodExtensionEventPublisher();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MethodExtensionExecutionService methodExtensionExecutionService(
+            MethodExtensionMethodResolver methodResolver,
+            MethodExtensionHandlerResolver handlerResolver,
+            MethodExtensionResponseResolver responseResolver,
+            MethodExtensionEventPublisher eventPublisher
+    ) {
+        return new MethodExtensionExecutionService(
+                methodResolver, handlerResolver, responseResolver, eventPublisher);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public MethodExtensionAop methodExtensionAop(
             MethodExtensionProperties properties,
             MethodExtensionMethodResolver methodResolver,
-            MethodExtensionHandlerResolver handlerResolver,
-            MethodExtensionResponseResolver responseResolver
+            MethodExtensionExecutionService executionService
     ) {
-        return new MethodExtensionAop(properties, methodResolver, handlerResolver, responseResolver);
+        return new MethodExtensionAop(properties, methodResolver, executionService);
     }
 }
