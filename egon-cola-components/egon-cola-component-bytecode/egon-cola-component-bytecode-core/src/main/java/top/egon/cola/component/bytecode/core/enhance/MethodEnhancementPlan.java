@@ -3,6 +3,7 @@ package top.egon.cola.component.bytecode.core.enhance;
 import java.util.Set;
 import java.util.stream.Collectors;
 import top.egon.cola.component.bytecode.bridge.BridgeCapability;
+import top.egon.cola.component.bytecode.core.enhance.accessguard.AccessGuardPolicy;
 import top.egon.cola.component.bytecode.core.enhance.methodextension.MethodExtensionPolicy;
 import top.egon.cola.component.bytecode.core.enhance.observation.ObservationPolicy;
 
@@ -12,7 +13,8 @@ public record MethodEnhancementPlan(
         Set<EnhancementFeature> features,
         int candidateCount,
         ObservationPolicy observationPolicy,
-        MethodExtensionPolicy methodExtensionPolicy
+        MethodExtensionPolicy methodExtensionPolicy,
+        AccessGuardPolicy accessGuardPolicy
 ) {
     public MethodEnhancementPlan {
         features = Set.copyOf(features);
@@ -24,7 +26,7 @@ public record MethodEnhancementPlan(
             Set<EnhancementFeature> features,
             int candidateCount
     ) {
-        this(methodName, methodDescriptor, features, candidateCount, null, null);
+        this(methodName, methodDescriptor, features, candidateCount, null, null, null);
     }
 
     public Set<BridgeCapability> bridgeCapabilities() {

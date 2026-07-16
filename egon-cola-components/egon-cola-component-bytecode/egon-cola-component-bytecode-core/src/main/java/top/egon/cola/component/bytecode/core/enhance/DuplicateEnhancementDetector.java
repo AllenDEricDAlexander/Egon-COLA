@@ -52,4 +52,17 @@ public final class DuplicateEnhancementDetector {
             return false;
         });
     }
+
+    public boolean containsAccessGuardBridge(ClassNode classNode) {
+        return classNode.methods.stream().anyMatch(method -> {
+            for (AbstractInsnNode instruction : method.instructions) {
+                if (instruction instanceof MethodInsnNode invocation
+                        && POLICY_BRIDGE.equals(invocation.owner)
+                        && "invokeGuarded".equals(invocation.name)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
 }

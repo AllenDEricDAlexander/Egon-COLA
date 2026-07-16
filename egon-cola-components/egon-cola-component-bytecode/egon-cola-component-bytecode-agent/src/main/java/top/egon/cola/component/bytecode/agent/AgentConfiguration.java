@@ -43,4 +43,8 @@ public record AgentConfiguration(
     public boolean methodExtensionEnabled() {
         return enabled && features.contains(BridgeCapability.METHOD_EXTENSION);
     }
+
+    public boolean accessGuardEnabled() {
+        return enabled && features.contains(BridgeCapability.ACCESS_GUARD);
+    }
 }
