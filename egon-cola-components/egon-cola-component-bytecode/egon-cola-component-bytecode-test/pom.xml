@@ -13,8 +13,18 @@
     <name>egon-cola-component-bytecode-test</name>
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
+        <bytecode.agent.jar>${project.parent.basedir}/egon-cola-component-bytecode-agent/target/egon-cola-component-bytecode-agent-${project.version}.jar</bytecode.agent.jar>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-bytecode-agent</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-bytecode-starter</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
@@ -25,6 +35,41 @@
     </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*IntegrationTest.java</exclude>
+                        <exclude>**/*CompatibilityTest.java</exclude>
+                    </excludes>
+                    <systemPropertyVariables>
+                        <egon.bytecode.agent.jar>${bytecode.agent.jar}</egon.bytecode.agent.jar>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.2.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includes>
+                        <include>**/*IntegrationTest.java</include>
+                        <include>**/*CompatibilityTest.java</include>
+                    </includes>
+                    <systemPropertyVariables>
+                        <egon.bytecode.agent.jar>${bytecode.agent.jar}</egon.bytecode.agent.jar>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-invoker-plugin</artifactId>

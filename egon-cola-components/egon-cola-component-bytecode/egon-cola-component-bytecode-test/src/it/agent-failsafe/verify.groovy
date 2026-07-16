@@ -1,0 +1,5 @@
+def log = new File(basedir, "build.log")
+assert log.isFile()
+assert log.text.contains("AGENT_FAILSAFE_OK")
+assert log.text.contains("Egon bytecode Agent state=ACTIVE")
+assert !log.text.contains("include=sample.agent.*")
