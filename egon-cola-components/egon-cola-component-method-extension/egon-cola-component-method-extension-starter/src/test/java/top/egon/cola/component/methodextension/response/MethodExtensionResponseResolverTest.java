@@ -10,6 +10,9 @@ import top.egon.cola.component.methodextension.handler.MethodExtensionDecision;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,6 +46,51 @@ class MethodExtensionResponseResolverTest {
         Object result = resolver().resolve(method, MethodExtensionDecision.reject(response), "");
 
         assertThat(result).isSameAs(response);
+    }
+
+    @Test
+    void shouldWrapDirectPayloadsForSupportedAsyncDeclarations() throws Exception {
+        Payload payload = new Payload("limited");
+
+        for (String methodName : List.of("futurePayload", "stagePayload", "asyncPayload")) {
+            Method method = SampleMethods.class.getDeclaredMethod(methodName);
+            Object result = resolver().resolve(
+                    method, MethodExtensionDecision.reject(payload), "");
+
+            assertThat(result).isInstanceOf(CompletableFuture.class);
+            assertThat(((Future<?>) result).get()).isSameAs(payload);
+        }
+    }
+
+    @Test
+    void shouldConvertJsonToAsyncPayload() throws Exception {
+        Method method = SampleMethods.class.getDeclaredMethod("stagePayload");
+
+        Object result = resolver(new ObjectMapper()).resolve(
+                method, MethodExtensionDecision.reject(), "{\"code\":\"json\"}");
+
+        assertThat(((CompletionStage<?>) result).toCompletableFuture().get())
+                .isEqualTo(new Payload("json"));
+    }
+
+    @Test
+    void shouldTreatRawAsyncInterfacePayloadAsObject() throws Exception {
+        Method method = SampleMethods.class.getDeclaredMethod("rawFuture");
+
+        Object result = resolver().resolve(
+                method, MethodExtensionDecision.reject("raw"), "");
+
+        assertThat(((Future<?>) result).get()).isEqualTo("raw");
+    }
+
+    @Test
+    void shouldRejectPayloadWrappingForConcreteFutureSubclass() throws Exception {
+        Method method = SampleMethods.class.getDeclaredMethod("concreteFuture");
+
+        assertThatThrownBy(() -> resolver().resolve(
+                method, MethodExtensionDecision.reject("value"), ""))
+                .isInstanceOf(MethodExtensionConfigurationException.class)
+                .hasMessageContaining("Unsupported concrete asynchronous return type");
     }
 
     @Test
@@ -169,6 +217,23 @@ class MethodExtensionResponseResolverTest {
             return CompletableFuture.completedFuture(new Payload("business"));
         }
 
+        Future<Payload> futurePayload() {
+            return CompletableFuture.completedFuture(new Payload("business"));
+        }
+
+        CompletionStage<Payload> stagePayload() {
+            return CompletableFuture.completedFuture(new Payload("business"));
+        }
+
+        @SuppressWarnings("rawtypes")
+        Future rawFuture() {
+            return CompletableFuture.completedFuture("business");
+        }
+
+        PayloadFuture concreteFuture() {
+            return new PayloadFuture();
+        }
+
         String text() {
             return "";
         }
@@ -182,5 +247,12 @@ class MethodExtensionResponseResolverTest {
     }
 
     record Payload(String code) {
+    }
+
+    static final class PayloadFuture extends FutureTask<Payload> {
+
+        PayloadFuture() {
+            super(() -> new Payload("business"));
+        }
     }
 }

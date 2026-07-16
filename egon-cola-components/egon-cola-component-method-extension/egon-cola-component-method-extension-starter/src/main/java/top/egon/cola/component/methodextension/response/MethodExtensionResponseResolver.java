@@ -17,6 +17,7 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class MethodExtensionResponseResolver {
 
@@ -31,6 +32,27 @@ public class MethodExtensionResponseResolver {
             throw new MethodExtensionConfigurationException(
                     "Cannot resolve a rejection response from an allow decision for " + method.toGenericString()
             );
+        }
+        AsyncReturnType asyncReturnType = AsyncReturnType.from(method);
+        if (decision.responseProvided()
+                && ClassUtils.isAssignableValue(method.getReturnType(), decision.response())) {
+            return decision.response();
+        }
+        if (asyncReturnType.kind()
+                == AsyncReturnType.Kind.UNSUPPORTED_CONCRETE_FUTURE) {
+            throw new MethodExtensionConfigurationException(
+                    "Unsupported concrete asynchronous return type "
+                            + method.getReturnType().getName() + " for "
+                            + method.toGenericString());
+        }
+        if (asyncReturnType.supported()) {
+            Object payload = resolvePayload(
+                    method,
+                    asyncReturnType.payloadType(),
+                    decision,
+                    returnJson
+            );
+            return CompletableFuture.completedFuture(payload);
         }
         if (decision.responseProvided()) {
             return validateDirectResponse(method, decision.response());
@@ -51,15 +73,55 @@ public class MethodExtensionResponseResolver {
         if (method.getReturnType() == String.class) {
             return returnJson;
         }
-        Type genericReturnType = method.getGenericReturnType();
-        if (containsTypeVariable(genericReturnType)) {
+        return convertJson(method, method.getGenericReturnType(), returnJson);
+    }
+
+    private Object resolvePayload(
+            Method method,
+            Type payloadType,
+            MethodExtensionDecision decision,
+            String returnJson
+    ) {
+        Class<?> payloadClass = rawClass(payloadType);
+        if (decision.responseProvided()) {
+            Object response = decision.response();
+            if (payloadClass != null && !ClassUtils.isAssignableValue(payloadClass, response)) {
+                throw new MethodExtensionResponseException(
+                        "Method extension response type " + response.getClass().getName()
+                                + " is not assignable to async payload "
+                                + payloadType.getTypeName() + " for "
+                                + method.toGenericString());
+            }
+            return response;
+        }
+        if (payloadClass == Void.TYPE || payloadClass == Void.class) {
+            if (StringUtils.hasText(returnJson)) {
+                throw new MethodExtensionConfigurationException(
+                        "returnJson must be empty for void async payload "
+                                + method.toGenericString());
+            }
+            return null;
+        }
+        if (!StringUtils.hasText(returnJson)) {
+            throw new MethodExtensionConfigurationException(
+                    "Method extension rejected without a response or returnJson for "
+                            + method.toGenericString());
+        }
+        if (payloadClass == String.class) {
+            return returnJson;
+        }
+        return convertJson(method, payloadType, returnJson);
+    }
+
+    private Object convertJson(Method method, Type targetType, String returnJson) {
+        if (containsTypeVariable(targetType)) {
             throw new MethodExtensionResponseException(
                     "Cannot convert returnJson for unresolved type variable on " + method.toGenericString()
             );
         }
         ObjectMapper objectMapper = requireUniqueObjectMapper(method);
         try {
-            JavaType javaType = objectMapper.getTypeFactory().constructType(genericReturnType);
+            JavaType javaType = objectMapper.getTypeFactory().constructType(targetType);
             return objectMapper.readerFor(javaType).readValue(returnJson);
         } catch (JsonProcessingException | IllegalArgumentException exception) {
             throw new MethodExtensionResponseException(
@@ -67,6 +129,17 @@ public class MethodExtensionResponseResolver {
                     exception
             );
         }
+    }
+
+    private Class<?> rawClass(Type type) {
+        if (type instanceof Class<?> candidate) {
+            return candidate;
+        }
+        if (type instanceof ParameterizedType parameterizedType
+                && parameterizedType.getRawType() instanceof Class<?> candidate) {
+            return candidate;
+        }
+        return null;
     }
 
     private Object validateDirectResponse(Method method, Object response) {
