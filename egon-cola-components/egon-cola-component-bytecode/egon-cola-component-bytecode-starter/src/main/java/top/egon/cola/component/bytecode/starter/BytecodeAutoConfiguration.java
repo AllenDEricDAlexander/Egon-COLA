@@ -13,6 +13,7 @@ import top.egon.cola.component.bytecode.api.executor.ExecutorEventSink;
 import top.egon.cola.component.bytecode.api.observation.ObservationEventSink;
 import top.egon.cola.component.bytecode.runtime.DefaultBytecodeRuntimeDispatcher;
 import top.egon.cola.component.bytecode.runtime.context.CompositeContextCarrier;
+import top.egon.cola.component.bytecode.runtime.accessguard.GuardedInvocationEvaluator;
 import top.egon.cola.component.bytecode.runtime.event.BoundedFailureStore;
 import top.egon.cola.component.bytecode.runtime.event.RuntimeEventFanout;
 import top.egon.cola.component.bytecode.runtime.executor.ExecutorNameResolver;
@@ -22,6 +23,8 @@ import top.egon.cola.component.bytecode.runtime.methodextension.MethodExtensionI
 import top.egon.cola.component.bytecode.runtime.observation.ObservationRuntime;
 import top.egon.cola.component.bytecode.starter.context.MdcContextCarrier;
 import top.egon.cola.component.bytecode.starter.dtp.DtpTaskDetector;
+import top.egon.cola.component.bytecode.starter.accessguard.CombinedPolicyDispatcher;
+import top.egon.cola.component.bytecode.bridge.BytecodeRuntimeDispatcher;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -123,25 +126,31 @@ public class BytecodeAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public DefaultBytecodeRuntimeDispatcher bytecodeRuntimeDispatcher(
+    public BytecodeRuntimeDispatcher bytecodeRuntimeDispatcher(
             ExecutorTaskDecorator taskDecorator,
             ObservationRuntime observationRuntime,
             ObjectProvider<MethodExtensionInvocationEvaluator> methodExtensionEvaluators,
+            ObjectProvider<GuardedInvocationEvaluator> guardedInvocationEvaluators,
             BytecodeProperties properties
     ) {
-        return new DefaultBytecodeRuntimeDispatcher(
+        DefaultBytecodeRuntimeDispatcher dispatcher = new DefaultBytecodeRuntimeDispatcher(
                 taskDecorator,
                 properties.getExecutor().isEnabled(),
                 observationRuntime,
                 methodExtensionEvaluators.getIfAvailable()
         );
+        GuardedInvocationEvaluator guardedInvocationEvaluator =
+                guardedInvocationEvaluators.getIfAvailable();
+        return guardedInvocationEvaluator == null
+                ? dispatcher
+                : new CombinedPolicyDispatcher(dispatcher, guardedInvocationEvaluator);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public BytecodeRuntimeRegistrar bytecodeRuntimeRegistrar(
             ConfigurableListableBeanFactory beanFactory,
-            DefaultBytecodeRuntimeDispatcher dispatcher,
+            BytecodeRuntimeDispatcher dispatcher,
             BytecodeStartupValidator startupValidator
     ) {
         ClassLoader loader = beanFactory.getBeanClassLoader();

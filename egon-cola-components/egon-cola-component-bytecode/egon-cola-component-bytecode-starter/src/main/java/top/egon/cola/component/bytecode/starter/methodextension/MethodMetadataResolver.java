@@ -22,20 +22,32 @@ public final class MethodMetadataResolver {
             };
 
     public Method resolve(Class<?> declaringClass, long methodId) {
-        return METHODS.get(declaringClass).computeIfAbsent(
-                methodId, ignored -> resolveUncached(declaringClass, methodId));
+        return resolve(declaringClass, methodId, BridgeCapability.METHOD_EXTENSION);
     }
 
-    private Method resolveUncached(Class<?> declaringClass, long methodId) {
+    public Method resolve(
+            Class<?> declaringClass,
+            long methodId,
+            BridgeCapability requiredCapability
+    ) {
+        return METHODS.get(declaringClass).computeIfAbsent(
+                methodId, ignored -> resolveUncached(declaringClass, methodId, requiredCapability));
+    }
+
+    private Method resolveUncached(
+            Class<?> declaringClass,
+            long methodId,
+            BridgeCapability requiredCapability
+    ) {
         MethodMetadata metadata = DispatcherRegistry.method(
                         declaringClass.getClassLoader(), methodId)
                 .orElseThrow(() -> new IllegalStateException(
                         "No transformed method metadata for ID " + methodId));
         String owner = declaringClass.getName().replace('.', '/');
         if (!owner.equals(metadata.owner())
-                || !metadata.features().contains(BridgeCapability.METHOD_EXTENSION)) {
+                || !metadata.features().contains(requiredCapability)) {
             throw new IllegalStateException(
-                    "Method Extension metadata does not match " + declaringClass.getName());
+                    requiredCapability + " metadata does not match " + declaringClass.getName());
         }
         MethodType methodType = MethodType.fromMethodDescriptorString(
                 metadata.methodDescriptor(), declaringClass.getClassLoader());
