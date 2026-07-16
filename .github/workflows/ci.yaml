@@ -111,6 +111,9 @@ jobs:
               java -jar \
                 egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
                 -l | grep -F ExecutorEnhancementBenchmark.transformOneThousandClasses
+              java -jar \
+                egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
+                -l | grep -F MethodObservationBenchmark.enabledSuccess
             '
 
       - name: Remove self-installed Maven artifacts

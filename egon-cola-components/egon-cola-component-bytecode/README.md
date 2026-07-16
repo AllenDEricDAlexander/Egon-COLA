@@ -2,7 +2,7 @@
 
 The bytecode component checks compiled classes against the standard Egon COLA architecture rules without loading or initializing application classes. Its public API is JDK-only; ASM, Maven, and JSON serialization remain implementation details.
 
-## Executor Agent Installation
+## Runtime Agent Installation
 
 The runtime enhancement has two independently installed parts. Add the Spring starter to the application and pass the separately published shaded Agent JAR to the JVM before the application main class:
 
@@ -16,22 +16,31 @@ The runtime enhancement has two independently installed parts. Add the Spring st
 
 ```bash
 java -Xverify:all \
-  -javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor,include=com.example.* \
+  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor;observation,include=com.example.*,observation-include=com.example.*" \
   -jar application.jar
 ```
 
 The published Agent JAR is the main `egon-cola-component-bytecode-agent-${version}.jar`; it already contains relocated ASM and SnakeYAML classes. Do not put an unshaded Agent classifier on the command line. The Agent supports `premain` only.
 
-The Agent is disabled by default and an enabled Agent requires at least one explicit `include` pattern. Supported keys are `enabled`, `features`, `include`, `exclude`, `failure-policy`, `failure-capacity`, and `config`. Configuration precedence from lowest to highest is defaults, environment, JVM system properties, YAML, and `-javaagent` arguments. The `config` path itself is selected from environment, system property, then Agent argument.
+The Agent is disabled by default and an enabled Agent requires at least one explicit `include` pattern. Supported keys are `enabled`, `features`, `include`, `exclude`, `observation-include`, `observation-method`, `observation-exclude`, `observe-constructors`, `observation-slow-threshold-millis`, `failure-policy`, `failure-capacity`, and `config`. Configuration precedence from lowest to highest is defaults, environment, JVM system properties, YAML, and `-javaagent` arguments. The `config` path itself is selected from environment, system property, then Agent argument.
 
 ```yaml
 enabled: true
 features:
   - executor
+  - observation
 include:
   - com.example.*
 exclude:
   - com.example.generated.*
+observation-include:
+  - com.example.application.*
+observation-method:
+  - handle*
+observation-exclude:
+  - com.example.application.internal.*
+observe-constructors: false
+observation-slow-threshold-millis: 500
 failure-policy: skip-class
 failure-capacity: 32
 ```
@@ -78,6 +87,30 @@ egon:
 
 Agent inclusion is decided before Spring starts. Runtime `executor.include` and `executor.exclude` values are reserved requested settings and cannot widen the Agent's effective transformation scope.
 
+## Method Observation Semantics
+
+Method Observation matches in this order: immutable/hard package exclusions and explicit `observation-exclude` patterns win first; `@EgonObserved` then enables an otherwise eligible method; finally `observation-include` plus `observation-method` enables configured methods. The annotation accepts at most eight static `key=value` tags and an optional slow threshold. Static tags are validated and bounded; dynamic `${...}` and `#{...}` values are rejected.
+
+Supported targets are concrete instance methods of every visibility, static, final, and synchronized methods, same-class calls, recursive calls, and non-Spring objects. Abstract, native, synthetic, bridge, generated lambda-body methods, and `<clinit>` are excluded. Constructors are observed only when annotated or when `observe-constructors=true`; timing starts after the first successful `this(...)` or direct `super(...)` call. A failure from that initialization call is not attributed to the child constructor, while each observed constructor in a successful `this(...)` chain records its own remaining body.
+
+The observation wrapper preserves the exact return value and rethrows the exact original `Throwable`. It records method identity metadata, inferred layer, duration, result, exception class group, virtual-thread state, trace ID for event sinks when available, and validated static tags. It never captures arguments, return payloads, exception messages, arbitrary object text, credentials, cookies, authorization headers, or other request payloads. Timing covers synchronous method execution only: returning a `Future`, `CompletionStage`, reactive publisher, or other asynchronous value ends observation at the return and does not track later completion.
+
+Spring runtime controls are independent from transform-time matching:
+
+```yaml
+egon:
+  cola:
+    component:
+      bytecode:
+        observation:
+          enabled: true
+          sampling-rate: 1.0
+          slow-threshold-millis: 500
+          metrics-enabled: true
+```
+
+Sampling and runtime disablement become no-ops without retransformation. Runtime Sink failures are isolated into bounded diagnostics, and a depth guard suppresses observations recursively triggered by event publication. The Agent also hard-excludes the bridge, runtime, logging, and metrics packages.
+
 ## Metrics, Status, And Privacy
 
 When a `MeterRegistry` is present, the starter emits only these bounded metrics:
@@ -87,10 +120,13 @@ When a `MeterRegistry` is present, the starter emits only these bounded metrics:
 - `egon.cola.bytecode.executor.tasks.finished`
 - `egon.cola.bytecode.executor.queue.wait`
 - `egon.cola.bytecode.executor.execution`
+- `egon.bytecode.method.duration`
+- `egon.bytecode.method.errors`
+- `egon.bytecode.method.slow`
 
-Their complete tag set is `executor`, `executor_type`, `result`, `exception_group`, and `virtual_thread`. Unknown or identity-derived executor names collapse to `unmanaged`, values are sanitized and length-bounded, and `sampling-rate` must be between `0.0` and `1.0`.
+Executor tags are `executor`, `executor_type`, `result`, `exception_group`, and `virtual_thread`. Observation tags are bounded class, method, layer, virtual-thread, exception-group where applicable, and validated static annotation tags. Trace IDs, request IDs, thread names, raw descriptors, arguments, and return values are never metric tags. Unknown or identity-derived executor names collapse to `unmanaged`, values are sanitized and length-bounded, and each `sampling-rate` must be between `0.0` and `1.0`.
 
-Actuator is optional and is not pulled transitively by the starter. If Actuator is already installed and the endpoint is exposed, `GET /actuator/egonbytecode` reports Agent/runtime versions, protocol, state, requested/effective features, bounded counts and recent failures, dispatcher registration, and metadata counts. It never reports raw include/exclude patterns, Agent arguments, tasks, `Future` objects, request IDs, trace IDs, or captured context. Agent startup output likewise prints only pattern counts and SHA-256 digests.
+Actuator is optional and is not pulled transitively by the starter. If Actuator is already installed and the endpoint is exposed, `GET /actuator/egonbytecode` reports Agent/runtime versions, protocol, state, requested/effective features, bounded counts and recent failures, dispatcher registration, metadata counts, and aggregate observation counts. It never reports raw include/exclude patterns, Agent arguments, method descriptors, class owners, arguments, returns, exception messages, tasks, `Future` objects, request IDs, trace IDs, or captured context. Agent startup output likewise prints only pattern counts and SHA-256 digests.
 
 States are `DISABLED`, `STARTING`, `ACTIVE`, `DEGRADED`, and `FAILED`; a missing Agent is reported by the starter as `AGENT_UNAVAILABLE`. A running Agent with a different protocol major fails Spring startup. The Agent does not support Attach, `agentmain`, redefinition, retransformation, bootstrap/JDK transformation, or transformed-class dumps.
 
@@ -225,3 +261,5 @@ java -jar egon-cola-components/egon-cola-component-bytecode/egon-cola-component-
 `ArchitectureScanBenchmark.scanOneThousandClasses` generates its 1,000 deterministic class byte arrays before measurement, then measures parsing, graph construction, all ten rules, and result creation. The controlled target is at or below two seconds; shared CI records performance evidence without applying a noisy absolute threshold.
 
 `ExecutorEnhancementBenchmark` separately records unmatched filtering, 1,000 transformations, direct submission, context-only submission, and context-plus-Micrometer submission. The controlled targets are at most one second for 1,000 transformations and less than five microseconds of submission overhead; shared CI lists and records these benchmarks but does not enforce hardware-sensitive absolute numbers.
+
+`MethodObservationBenchmark` records the direct baseline, disabled bridge, enabled success, enabled exception, and slow-event paths without argument capture. The controlled enabled-success target is below two microseconds; shared CI records the result without applying a hardware-sensitive absolute threshold.

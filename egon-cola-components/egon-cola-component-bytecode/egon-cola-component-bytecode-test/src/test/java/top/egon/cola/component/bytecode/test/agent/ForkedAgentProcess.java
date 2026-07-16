@@ -16,10 +16,25 @@ final class ForkedAgentProcess {
 
     Result run(String mainClass) throws Exception {
         Path javaExecutable = Path.of(System.getProperty("java.home"), "bin", "java");
-        return run(javaExecutable, mainClass);
+        return run(javaExecutable, mainClass,
+                "enabled=true,features=executor,include=sample.bytecode.agent.*");
+    }
+
+    Result run(String mainClass, String agentArguments) throws Exception {
+        Path javaExecutable = Path.of(System.getProperty("java.home"), "bin", "java");
+        return run(javaExecutable, mainClass, agentArguments);
     }
 
     Result run(Path javaExecutable, String mainClass) throws Exception {
+        return run(javaExecutable, mainClass,
+                "enabled=true,features=executor,include=sample.bytecode.agent.*");
+    }
+
+    Result run(
+            Path javaExecutable,
+            String mainClass,
+            String agentArguments
+    ) throws Exception {
         Path agent = Path.of(System.getProperty("egon.bytecode.agent.jar"));
         if (!Files.isRegularFile(agent)) {
             throw new IllegalStateException("Agent JAR is missing: " + agent);
@@ -29,8 +44,7 @@ final class ForkedAgentProcess {
         List<String> command = new ArrayList<>();
         command.add(javaExecutable.toString());
         command.add("-Xverify:all");
-        command.add("-javaagent:" + agent + "=enabled=true,features=executor,"
-                + "include=sample.bytecode.agent.*");
+        command.add("-javaagent:" + agent + "=" + agentArguments);
         command.add("-cp");
         command.add(classPath);
         command.add(mainClass);
