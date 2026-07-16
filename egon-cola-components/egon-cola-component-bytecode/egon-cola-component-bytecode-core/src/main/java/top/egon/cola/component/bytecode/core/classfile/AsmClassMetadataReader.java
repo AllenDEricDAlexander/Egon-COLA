@@ -240,6 +240,10 @@ public final class AsmClassMetadataReader implements ClassMetadataReader {
         private void readConstantPool(ClassReader reader) {
             char[] buffer = new char[reader.getMaxStringLength()];
             for (int index = 1; index < reader.getItemCount(); index++) {
+                if (reader.getItem(index) == 0) {
+                    // JVM long and double constants reserve the following constant-pool slot.
+                    continue;
+                }
                 try {
                     addConstant(reader.readConst(index, buffer), DependencyKind.CONSTANT_POOL,
                             LocationKind.CLASS, null, null, null);

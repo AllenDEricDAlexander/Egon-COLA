@@ -389,7 +389,6 @@ def requiredFiles = [
     "student-management-organization-starter/src/main/resources/bootstrap-test.yml",
     "student-management-organization-starter/src/main/resources/bootstrap.yml",
     "student-management-organization-starter/src/main/resources/logback-spring.xml",
-    "student-management-organization-starter/src/test/java/it/pkg/starter/ArchitectureDependencyTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationApplicationTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationOpenApiTest.java",
@@ -1227,7 +1226,7 @@ assertExactExternalDependencies("starter", starterDependencies, [
     "spring-boot-starter", "spring-boot-starter-actuator", "springdoc-openapi-starter-webmvc-ui",
     "spring-cloud-starter-bootstrap", "spring-cloud-starter-alibaba-nacos-discovery",
     "spring-cloud-starter-alibaba-nacos-config", "micrometer-registry-prometheus", "lombok",
-    "spring-boot-starter-test", "archunit-junit5"
+    "spring-boot-starter-test"
 ])
 
 assertDependency(facadeDependencies, "jakarta.validation-api")
@@ -1283,7 +1282,6 @@ assertDependency(starterDependencies, "spring-boot-starter-actuator")
 assertDependency(starterDependencies, "springdoc-openapi-starter-webmvc-ui")
 assertScopedDependency(starterDependencies, "lombok", "provided")
 assertScopedDependency(starterDependencies, "spring-boot-starter-test", "test")
-assertScopedDependency(starterDependencies, "archunit-junit5", "test")
 assert starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</artifactId>")
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
@@ -1338,7 +1336,16 @@ assert springFactories.contains("it.pkg.starter.config.encryption.ConfigDecryptE
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/AesGcmConfigDecryptorTest.java")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java")
 assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java").text.contains('properties = "spring.profiles.active=test"')
-assertFile("student-management-organization-starter/src/test/java/it/pkg/starter/ArchitectureDependencyTest.java")
+assertMissing("student-management-organization-starter/src/test/java/it/pkg/starter/ArchitectureDependencyTest.java")
+def architecturePlugin = starterPom.build.plugins.plugin.find {
+    it.groupId.text() == "top.egon" &&
+            it.artifactId.text() == "egon-cola-component-bytecode-architecture-maven-plugin"
+}
+assert architecturePlugin
+assert architecturePlugin.version.text() == '${egon-cola.version}'
+assert architecturePlugin.executions.execution.goals.goal*.text().contains("check-reactor")
+assertFile("student-management-organization-starter/target/egon-cola-architecture/architecture-report.json")
+assert generatedPomTexts.every { !it.contains("archunit-junit5") && !it.contains("archunit.version") }
 
 def organizationApplicationText = assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
 assert organizationApplicationText.contains("@EnableDubbo")

@@ -23,7 +23,6 @@
         <egon-cola.version>5.2.3</egon-cola.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <archunit.version>1.3.0</archunit.version>
         <lombok.version>1.18.38</lombok.version>
         <mapstruct-plus.version>1.5.1</mapstruct-plus.version>
         <dubbo.version>3.3.6</dubbo.version>
@@ -167,12 +166,6 @@
             <artifactId>spring-graphql-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit-junit5</artifactId>
-            <version>${archunit.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -210,6 +203,29 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
+                <version>${egon-cola.version}</version>
+                <configuration>
+                    <packageMappings>
+                        <it.pkg.domain..>DOMAIN</it.pkg.domain..>
+                        <it.pkg.application..>APPLICATION</it.pkg.application..>
+                        <it.pkg.infrastructure..>INFRASTRUCTURE</it.pkg.infrastructure..>
+                        <it.pkg.adapter..>ADAPTER</it.pkg.adapter..>
+                        <it.pkg.facade..>FACADE</it.pkg.facade..>
+                        <it.pkg.start..>STARTER</it.pkg.start..>
+                        <it.pkg.common..>COMMON</it.pkg.common..>
+                    </packageMappings>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>cola-architecture-check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

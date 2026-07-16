@@ -313,9 +313,25 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClientTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStubTest.java",
-    "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
-    "student-management-evaluation-starter/src/test/java/it/pkg/starter/ServiceArchitectureDependencyTest.java"
+    "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java"
 ].each { assertFile(it) }
+
+assertMissing("student-management-evaluation-starter/src/test/java/it/pkg/starter/ServiceArchitectureDependencyTest.java")
+def serviceStarterPom = new XmlSlurper(false, false)
+        .parse(assertFile("student-management-evaluation-starter/pom.xml"))
+def architecturePlugin = serviceStarterPom.build.plugins.plugin.find {
+    it.groupId.text() == "top.egon" &&
+            it.artifactId.text() == "egon-cola-component-bytecode-architecture-maven-plugin"
+}
+assert architecturePlugin
+assert architecturePlugin.version.text() == '${egon-cola.version}'
+assert architecturePlugin.executions.execution.goals.goal*.text().contains("check-reactor")
+assertFile("student-management-evaluation-starter/target/egon-cola-architecture/architecture-report.json")
+def allPomText = []
+projectDir.eachFileRecurse(FileType.FILES) { file ->
+    if (file.name == "pom.xml") allPomText << file.getText("UTF-8")
+}
+assert allPomText.every { !it.contains("archunit-junit5") && !it.contains("archunit.version") }
 
 [
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/api",

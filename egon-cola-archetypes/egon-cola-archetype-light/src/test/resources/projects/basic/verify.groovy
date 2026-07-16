@@ -940,7 +940,16 @@ assert !new File(generatedProjectDir, "src/test/charge.http").exists()
 def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migration")
 assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 2
 
-assertFile("src/test/java/it/pkg/ArchitectureDependencyTest.java")
+assertMissing("src/test/java/it/pkg/ArchitectureDependencyTest.java")
+def architecturePlugin = pomXml.build.plugins.plugin.find {
+    it.groupId.text() == "top.egon" &&
+            it.artifactId.text() == "egon-cola-component-bytecode-architecture-maven-plugin"
+}
+assert architecturePlugin
+assert architecturePlugin.version.text() == '${egon-cola.version}'
+assert architecturePlugin.executions.execution.goals.goal*.text().contains("check")
+assertFile("target/egon-cola-architecture/architecture-report.json")
+assert generatedPoms.every { !it.text.contains("archunit-junit5") && !it.text.contains("archunit.version") }
 assertFile("src/test/java/it/pkg/adapter/user/rpc/PermissionRpcProviderTest.java")
 assertFile("src/test/java/it/pkg/adapter/teaching/rpc/SchoolClassRpcProviderTest.java")
 

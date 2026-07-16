@@ -63,12 +63,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit-junit5</artifactId>
-            <version>${archunit.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -87,6 +81,18 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
+                <version>${egon-cola.version}</version>
+                <executions>
+                    <execution>
+                        <id>cola-architecture-check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check-reactor</goal></goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

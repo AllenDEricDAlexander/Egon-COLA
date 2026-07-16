@@ -56,6 +56,13 @@ class AsmClassMetadataReaderTest {
         assertEquals(className, metadata.className());
     }
 
+    @Test
+    void skipsReservedConstantPoolSlotsAfterLongAndDoubleConstants() throws IOException {
+        ClassMetadata metadata = reader.read("fixture", classBytes(WideConstantFixture.class));
+
+        assertEquals(WideConstantFixture.class.getName(), metadata.className());
+    }
+
     private byte[] classBytes(Class<?> type) throws IOException {
         return classBytes(type.getName());
     }
@@ -76,5 +83,10 @@ class AsmClassMetadataReaderTest {
                 throw new IllegalStateException("must not initialize");
             }
         }
+    }
+
+    static final class WideConstantFixture {
+        static final long LONG_VALUE = 9_223_372_036_854_775_000L;
+        static final double DOUBLE_VALUE = 3.141592653589793D;
     }
 }

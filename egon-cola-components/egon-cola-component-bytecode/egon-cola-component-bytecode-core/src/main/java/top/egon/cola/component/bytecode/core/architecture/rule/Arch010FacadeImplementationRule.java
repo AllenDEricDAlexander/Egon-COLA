@@ -35,6 +35,7 @@ public final class Arch010FacadeImplementationRule implements ArchitectureRule {
         for (ArchitectureType type : context.types()) {
             if (type.layer() == ArchitectureLayer.FACADE
                     && !type.interfaceType()
+                    && type.className().endsWith("Impl")
                     && !matchesAdapterPackage(type.className())) {
                 findings.add(new ArchitectureFinding(
                         id(),
