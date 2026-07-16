@@ -47,6 +47,8 @@ public final class DispatcherRegistry {
                     ? Map.of() : existing.callSites;
             Map<Long, MethodMetadata> methods = existing == null
                     ? Map.of() : existing.methods;
+            Map<Long, ObservationMetadata> observations = existing == null
+                    ? Map.of() : existing.observations;
             ENTRIES.put(applicationLoader, new Entry(
                     registrationId,
                     new WeakReference<>(dispatcher),
@@ -55,7 +57,8 @@ public final class DispatcherRegistry {
                     runtimeVersion,
                     capabilities,
                     callSites,
-                    methods
+                    methods,
+                    observations
             ));
         }
 
@@ -146,6 +149,31 @@ public final class DispatcherRegistry {
         }
     }
 
+    public static void registerObservation(ClassLoader loader, ObservationMetadata metadata) {
+        Objects.requireNonNull(loader, "loader");
+        Objects.requireNonNull(metadata, "metadata");
+        synchronized (MONITOR) {
+            Entry entry = entryForMetadata(loader);
+            ObservationMetadata existing = entry.observations.get(metadata.methodId());
+            if (existing != null && !existing.equals(metadata)) {
+                throw new IllegalStateException(
+                        "Observation metadata collision for " + metadata.methodId());
+            }
+            entry.observations.putIfAbsent(metadata.methodId(), metadata);
+        }
+    }
+
+    public static Optional<ObservationMetadata> observation(ClassLoader loader, long methodId) {
+        if (loader == null) {
+            return Optional.empty();
+        }
+        synchronized (MONITOR) {
+            Entry entry = ENTRIES.get(loader);
+            return entry == null
+                    ? Optional.empty() : Optional.ofNullable(entry.observations.get(methodId));
+        }
+    }
+
     static Optional<BytecodeRuntimeDispatcher> dispatcher(
             Class<?> callerClass,
             BridgeCapability capability
@@ -175,6 +203,7 @@ public final class DispatcherRegistry {
                 "",
                 Set.of(),
                 Map.of(),
+                Map.of(),
                 Map.of()
         );
         ENTRIES.put(loader, created);
@@ -194,7 +223,8 @@ public final class DispatcherRegistry {
             if (entry == null || entry.registrationId != registrationId) {
                 return;
             }
-            if (entry.callSites.isEmpty() && entry.methods.isEmpty()) {
+            if (entry.callSites.isEmpty() && entry.methods.isEmpty()
+                    && entry.observations.isEmpty()) {
                 ENTRIES.remove(loader);
             } else {
                 ENTRIES.put(loader, entry.withoutDispatcher());
@@ -221,6 +251,7 @@ public final class DispatcherRegistry {
         private final Set<BridgeCapability> capabilities;
         private final Map<Long, CallSiteMetadata> callSites;
         private final Map<Long, MethodMetadata> methods;
+        private final Map<Long, ObservationMetadata> observations;
 
         private Entry(
                 long registrationId,
@@ -230,7 +261,8 @@ public final class DispatcherRegistry {
                 String runtimeVersion,
                 Set<BridgeCapability> capabilities,
                 Map<Long, CallSiteMetadata> callSites,
-                Map<Long, MethodMetadata> methods
+                Map<Long, MethodMetadata> methods,
+                Map<Long, ObservationMetadata> observations
         ) {
             this.registrationId = registrationId;
             this.dispatcher = dispatcher;
@@ -240,6 +272,7 @@ public final class DispatcherRegistry {
             this.capabilities = Set.copyOf(capabilities);
             this.callSites = new LinkedHashMap<>(callSites);
             this.methods = new LinkedHashMap<>(methods);
+            this.observations = new LinkedHashMap<>(observations);
         }
 
         private BytecodeRuntimeDispatcher dispatcher() {
@@ -255,7 +288,8 @@ public final class DispatcherRegistry {
                     "",
                     Set.of(),
                     callSites,
-                    methods
+                    methods,
+                    observations
             );
         }
     }
