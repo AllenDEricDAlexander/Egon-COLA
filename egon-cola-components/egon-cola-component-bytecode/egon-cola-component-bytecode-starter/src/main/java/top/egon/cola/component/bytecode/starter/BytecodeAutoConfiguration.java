@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.bytecode.api.executor.ContextCarrier;
 import top.egon.cola.component.bytecode.api.executor.ExecutorEventSink;
+import top.egon.cola.component.bytecode.api.observation.ObservationEventSink;
 import top.egon.cola.component.bytecode.runtime.DefaultBytecodeRuntimeDispatcher;
 import top.egon.cola.component.bytecode.runtime.context.CompositeContextCarrier;
 import top.egon.cola.component.bytecode.runtime.event.BoundedFailureStore;
@@ -17,10 +18,12 @@ import top.egon.cola.component.bytecode.runtime.event.RuntimeEventFanout;
 import top.egon.cola.component.bytecode.runtime.executor.ExecutorNameResolver;
 import top.egon.cola.component.bytecode.runtime.executor.ExecutorTaskDecorator;
 import top.egon.cola.component.bytecode.runtime.executor.RuntimeTaskDetector;
+import top.egon.cola.component.bytecode.runtime.observation.ObservationRuntime;
 import top.egon.cola.component.bytecode.starter.context.MdcContextCarrier;
 import top.egon.cola.component.bytecode.starter.dtp.DtpTaskDetector;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @AutoConfiguration
 @EnableConfigurationProperties(BytecodeProperties.class)
@@ -100,19 +103,35 @@ public class BytecodeAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public DefaultBytecodeRuntimeDispatcher bytecodeRuntimeDispatcher(
-            ExecutorTaskDecorator taskDecorator
+    public ObservationRuntime bytecodeObservationRuntime(
+            ObjectProvider<ObservationEventSink> sinks,
+            BoundedFailureStore failureStore,
+            BytecodeProperties properties
     ) {
-        return new DefaultBytecodeRuntimeDispatcher(taskDecorator);
+        BytecodeProperties.Observation observation = properties.getObservation();
+        long slowThresholdNanos = observation.getSlowThresholdMillis() < 0L
+                ? -1L : TimeUnit.MILLISECONDS.toNanos(observation.getSlowThresholdMillis());
+        return new ObservationRuntime(
+                observation.isEnabled(),
+                observation.getSamplingRate(),
+                slowThresholdNanos,
+                sinks.orderedStream().toList(),
+                failureStore
+        );
     }
 
     @Bean
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.bytecode.executor",
-            name = "enabled",
-            havingValue = "true",
-            matchIfMissing = true
-    )
+    @ConditionalOnMissingBean
+    public DefaultBytecodeRuntimeDispatcher bytecodeRuntimeDispatcher(
+            ExecutorTaskDecorator taskDecorator,
+            ObservationRuntime observationRuntime,
+            BytecodeProperties properties
+    ) {
+        return new DefaultBytecodeRuntimeDispatcher(
+                taskDecorator, properties.getExecutor().isEnabled(), observationRuntime);
+    }
+
+    @Bean
     @ConditionalOnMissingBean
     public BytecodeRuntimeRegistrar bytecodeRuntimeRegistrar(
             ConfigurableListableBeanFactory beanFactory,

@@ -5,6 +5,7 @@ import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import top.egon.cola.component.bytecode.bridge.AgentBridgeStatus;
 import top.egon.cola.component.bytecode.bridge.BridgeStatus;
 import top.egon.cola.component.bytecode.bridge.DispatcherRegistry;
+import top.egon.cola.component.bytecode.runtime.observation.ObservationRuntime;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,9 +14,18 @@ import java.util.Map;
 public final class EgonBytecodeEndpoint {
 
     private final ClassLoader applicationLoader;
+    private final ObservationRuntime observationRuntime;
 
     public EgonBytecodeEndpoint(ClassLoader applicationLoader) {
+        this(applicationLoader, null);
+    }
+
+    public EgonBytecodeEndpoint(
+            ClassLoader applicationLoader,
+            ObservationRuntime observationRuntime
+    ) {
         this.applicationLoader = applicationLoader;
+        this.observationRuntime = observationRuntime;
     }
 
     @ReadOperation
@@ -38,6 +48,16 @@ public final class EgonBytecodeEndpoint {
         status.put("runtimeCapabilities", dispatcher.capabilities());
         status.put("callSiteCount", dispatcher.callSiteCount());
         status.put("methodCount", dispatcher.methodCount());
+        if (observationRuntime != null) {
+            ObservationRuntime.ObservationSnapshot observation =
+                    observationRuntime.snapshot();
+            status.put("observationEnteredCount", observation.enteredCount());
+            status.put("observationPublishedCount", observation.publishedCount());
+            status.put("observationSuccessCount", observation.successCount());
+            status.put("observationErrorCount", observation.errorCount());
+            status.put("observationSlowCount", observation.slowCount());
+            status.put("observationSuppressedCount", observation.suppressedCount());
+        }
         return Map.copyOf(status);
     }
 }

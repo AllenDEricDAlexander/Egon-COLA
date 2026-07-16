@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,6 +50,21 @@ class BytecodeAutoConfigurationTest {
     void doesNotRegisterRuntimeWhenComponentIsDisabled() {
         contextRunner.withPropertyValues("egon.cola.component.bytecode.enabled=false")
                 .run(context -> assertFalse(context.containsBean("bytecodeRuntimeRegistrar")));
+    }
+
+    @Test
+    void registersObservationCapabilityWhenExecutorIsDisabled() {
+        ClassLoader loader = getClass().getClassLoader();
+
+        contextRunner.withPropertyValues(
+                        "egon.cola.component.bytecode.executor.enabled=false",
+                        "egon.cola.component.bytecode.observation.enabled=true")
+                .run(context -> {
+                    assertTrue(DispatcherRegistry.status(loader).registered());
+                    assertEquals(
+                            Set.of(BridgeCapability.OBSERVATION),
+                            DispatcherRegistry.status(loader).capabilities());
+                });
     }
 
     @Test

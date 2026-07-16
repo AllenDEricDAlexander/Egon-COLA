@@ -30,6 +30,7 @@ class ObservationRuntimeTest {
                 false, 1.0, List.of(event -> { throw new AssertionError(); }),
                 new BoundedFailureStore(4));
         assertNull(runtime.enter(Owner.class, 91_001L));
+        assertEquals(1L, runtime.snapshot().suppressedCount());
     }
 
     @Test
@@ -55,6 +56,9 @@ class ObservationRuntimeTest {
         assertEquals(ObservationResult.ERROR, events.get(1).result());
         assertEquals("IllegalStateException", events.get(1).exceptionGroup());
         assertFalseContains(events.get(1).toString(), "secret-message");
+        assertEquals(2L, runtime.snapshot().publishedCount());
+        assertEquals(1L, runtime.snapshot().successCount());
+        assertEquals(1L, runtime.snapshot().errorCount());
     }
 
     @Test
@@ -76,6 +80,29 @@ class ObservationRuntimeTest {
         assertEquals(1, failures.failures().size());
         assertEquals(IllegalArgumentException.class.getName(),
                 failures.failures().getFirst().exceptionType());
+        assertEquals(1L, holder[0].snapshot().suppressedCount());
+    }
+
+    @Test
+    void samplingAndDefaultSlowThresholdAreRuntimeControlled() {
+        long methodId = register(91_005L, "sampled", -1L);
+        ObservationRuntime unsampled = new ObservationRuntime(
+                true, 0.0, 0L, List.of(event -> { throw new AssertionError(); }),
+                new BoundedFailureStore(4));
+
+        assertNull(unsampled.enter(Owner.class, methodId));
+        assertEquals(1L, unsampled.snapshot().suppressedCount());
+
+        List<ObservationEvent> events = new ArrayList<>();
+        ObservationRuntime runtime = new ObservationRuntime(
+                true, 1.0, 0L, events::add, new BoundedFailureStore(4));
+        ObservationState state = runtime.enter(Owner.class, methodId);
+        runtime.success(state);
+        runtime.exit(state);
+
+        assertEquals(1, events.size());
+        assertEquals(0L, events.getFirst().slowThresholdNanos());
+        assertEquals(1L, runtime.snapshot().slowCount());
     }
 
     private long register(long methodId, String methodName, long slowThresholdNanos) {

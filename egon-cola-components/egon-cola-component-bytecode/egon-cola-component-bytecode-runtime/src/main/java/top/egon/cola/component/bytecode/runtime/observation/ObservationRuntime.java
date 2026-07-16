@@ -12,15 +12,23 @@ import top.egon.cola.component.bytecode.runtime.event.BoundedFailureStore;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class ObservationRuntime {
 
     private final boolean enabled;
     private final double samplingRate;
+    private final long defaultSlowThresholdNanos;
     private final List<ObservationEventSink> sinks;
     private final BoundedFailureStore failureStore;
     private final ObservationReentrancyGuard reentrancyGuard =
             new ObservationReentrancyGuard();
+    private final AtomicLong enteredCount = new AtomicLong();
+    private final AtomicLong publishedCount = new AtomicLong();
+    private final AtomicLong successCount = new AtomicLong();
+    private final AtomicLong errorCount = new AtomicLong();
+    private final AtomicLong slowCount = new AtomicLong();
+    private final AtomicLong suppressedCount = new AtomicLong();
 
     public ObservationRuntime(
             boolean enabled,
@@ -28,11 +36,36 @@ public final class ObservationRuntime {
             List<? extends ObservationEventSink> sinks,
             BoundedFailureStore failureStore
     ) {
+        this(enabled, samplingRate, -1L, sinks, failureStore);
+    }
+
+    public ObservationRuntime(
+            boolean enabled,
+            double samplingRate,
+            long defaultSlowThresholdNanos,
+            ObservationEventSink sink,
+            BoundedFailureStore failureStore
+    ) {
+        this(enabled, samplingRate, defaultSlowThresholdNanos, List.of(sink), failureStore);
+    }
+
+    public ObservationRuntime(
+            boolean enabled,
+            double samplingRate,
+            long defaultSlowThresholdNanos,
+            List<? extends ObservationEventSink> sinks,
+            BoundedFailureStore failureStore
+    ) {
         if (samplingRate < 0.0 || samplingRate > 1.0) {
             throw new IllegalArgumentException("samplingRate must be between 0 and 1");
         }
+        if (defaultSlowThresholdNanos < -1L) {
+            throw new IllegalArgumentException(
+                    "defaultSlowThresholdNanos must be -1 or greater");
+        }
         this.enabled = enabled;
         this.samplingRate = samplingRate;
+        this.defaultSlowThresholdNanos = defaultSlowThresholdNanos;
         this.sinks = List.copyOf(sinks);
         this.failureStore = Objects.requireNonNull(failureStore, "failureStore");
     }
@@ -43,6 +76,7 @@ public final class ObservationRuntime {
 
     public ObservationState enter(Class<?> declaringClass, long methodId) {
         if (!enabled || reentrancyGuard.active() || !sampled()) {
+            suppressedCount.incrementAndGet();
             return null;
         }
         ClassLoader loader = declaringClass == null ? null : declaringClass.getClassLoader();
@@ -51,8 +85,10 @@ public final class ObservationRuntime {
                 .observation(loader, methodId).orElse(null);
         if (method == null || observation == null
                 || !method.features().contains(BridgeCapability.OBSERVATION)) {
+            suppressedCount.incrementAndGet();
             return null;
         }
+        enteredCount.incrementAndGet();
         return new ObservationState(method, observation, System.nanoTime());
     }
 
@@ -78,9 +114,12 @@ public final class ObservationRuntime {
         }
         state.exited = true;
         if (state.result == null) {
+            suppressedCount.incrementAndGet();
             return;
         }
         long duration = Math.max(0L, System.nanoTime() - state.startedNanos);
+        long slowThresholdNanos = state.observation.slowThresholdNanos() >= 0L
+                ? state.observation.slowThresholdNanos() : defaultSlowThresholdNanos;
         ObservationEvent event = new ObservationEvent(
                 state.method.methodId(),
                 state.method.owner().replace('/', '.'),
@@ -93,13 +132,33 @@ public final class ObservationRuntime {
                 "",
                 Thread.currentThread().isVirtual(),
                 state.observation.staticTags(),
-                state.observation.slowThresholdNanos()
+                slowThresholdNanos
         );
+        publishedCount.incrementAndGet();
+        if (state.result == ObservationResult.ERROR) {
+            errorCount.incrementAndGet();
+        } else {
+            successCount.incrementAndGet();
+        }
+        if (slowThresholdNanos >= 0L && duration >= slowThresholdNanos) {
+            slowCount.incrementAndGet();
+        }
         reentrancyGuard.run(() -> publish(event));
     }
 
     public BoundedFailureStore failureStore() {
         return failureStore;
+    }
+
+    public ObservationSnapshot snapshot() {
+        return new ObservationSnapshot(
+                enteredCount.get(),
+                publishedCount.get(),
+                successCount.get(),
+                errorCount.get(),
+                slowCount.get(),
+                suppressedCount.get()
+        );
     }
 
     private boolean sampled() {
@@ -120,5 +179,15 @@ public final class ObservationRuntime {
                 failureStore.record(sink.getClass().getName(), failure);
             }
         }
+    }
+
+    public record ObservationSnapshot(
+            long enteredCount,
+            long publishedCount,
+            long successCount,
+            long errorCount,
+            long slowCount,
+            long suppressedCount
+    ) {
     }
 }

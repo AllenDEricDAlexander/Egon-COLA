@@ -12,6 +12,7 @@ public class BytecodeProperties {
 
     private boolean enabled = true;
     private final Executor executor = new Executor();
+    private final Observation observation = new Observation();
     private final Runtime runtime = new Runtime();
     private final Endpoint endpoint = new Endpoint();
 
@@ -25,6 +26,10 @@ public class BytecodeProperties {
 
     public Executor getExecutor() {
         return executor;
+    }
+
+    public Observation getObservation() {
+        return observation;
     }
 
     public Runtime getRuntime() {
@@ -119,6 +124,54 @@ public class BytecodeProperties {
                         "runtime.failure-capacity must be between 1 and 1024");
             }
             this.failureCapacity = failureCapacity;
+        }
+    }
+
+    public static class Observation {
+
+        private boolean enabled = true;
+        private boolean metricsEnabled = true;
+        private double samplingRate = 1.0;
+        private long slowThresholdMillis = 500L;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isMetricsEnabled() {
+            return metricsEnabled;
+        }
+
+        public void setMetricsEnabled(boolean metricsEnabled) {
+            this.metricsEnabled = metricsEnabled;
+        }
+
+        public double getSamplingRate() {
+            return samplingRate;
+        }
+
+        public void setSamplingRate(double samplingRate) {
+            if (samplingRate < 0.0 || samplingRate > 1.0) {
+                throw new IllegalArgumentException(
+                        "observation.sampling-rate must be between 0 and 1");
+            }
+            this.samplingRate = samplingRate;
+        }
+
+        public long getSlowThresholdMillis() {
+            return slowThresholdMillis;
+        }
+
+        public void setSlowThresholdMillis(long slowThresholdMillis) {
+            if (slowThresholdMillis < -1L) {
+                throw new IllegalArgumentException(
+                        "observation.slow-threshold-millis must be -1 or greater");
+            }
+            this.slowThresholdMillis = slowThresholdMillis;
         }
     }
 

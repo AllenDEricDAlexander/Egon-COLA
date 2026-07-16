@@ -17,17 +17,27 @@ import java.util.concurrent.RejectedExecutionException;
 public final class DefaultBytecodeRuntimeDispatcher implements BytecodeRuntimeDispatcher {
 
     private final ExecutorTaskDecorator taskDecorator;
+    private final boolean executorEnabled;
     private final ObservationRuntime observationRuntime;
 
     public DefaultBytecodeRuntimeDispatcher(ExecutorTaskDecorator taskDecorator) {
-        this(taskDecorator, null);
+        this(taskDecorator, true, null);
     }
 
     public DefaultBytecodeRuntimeDispatcher(
             ExecutorTaskDecorator taskDecorator,
             ObservationRuntime observationRuntime
     ) {
+        this(taskDecorator, true, observationRuntime);
+    }
+
+    public DefaultBytecodeRuntimeDispatcher(
+            ExecutorTaskDecorator taskDecorator,
+            boolean executorEnabled,
+            ObservationRuntime observationRuntime
+    ) {
         this.taskDecorator = Objects.requireNonNull(taskDecorator, "taskDecorator");
+        this.executorEnabled = executorEnabled;
         this.observationRuntime = observationRuntime;
     }
 
@@ -43,9 +53,17 @@ public final class DefaultBytecodeRuntimeDispatcher implements BytecodeRuntimeDi
 
     @Override
     public Set<BridgeCapability> capabilities() {
-        return observationRuntime == null || !observationRuntime.enabled()
-                ? Set.of(BridgeCapability.EXECUTOR)
-                : Set.of(BridgeCapability.EXECUTOR, BridgeCapability.OBSERVATION);
+        boolean observationEnabled = observationRuntime != null && observationRuntime.enabled();
+        if (executorEnabled && observationEnabled) {
+            return Set.of(BridgeCapability.EXECUTOR, BridgeCapability.OBSERVATION);
+        }
+        if (executorEnabled) {
+            return Set.of(BridgeCapability.EXECUTOR);
+        }
+        if (observationEnabled) {
+            return Set.of(BridgeCapability.OBSERVATION);
+        }
+        return Set.of();
     }
 
     @Override
