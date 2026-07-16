@@ -18,6 +18,7 @@ import top.egon.cola.component.bytecode.runtime.event.RuntimeEventFanout;
 import top.egon.cola.component.bytecode.runtime.executor.ExecutorNameResolver;
 import top.egon.cola.component.bytecode.runtime.executor.ExecutorTaskDecorator;
 import top.egon.cola.component.bytecode.runtime.executor.RuntimeTaskDetector;
+import top.egon.cola.component.bytecode.runtime.methodextension.MethodExtensionInvocationEvaluator;
 import top.egon.cola.component.bytecode.runtime.observation.ObservationRuntime;
 import top.egon.cola.component.bytecode.starter.context.MdcContextCarrier;
 import top.egon.cola.component.bytecode.starter.dtp.DtpTaskDetector;
@@ -125,10 +126,15 @@ public class BytecodeAutoConfiguration {
     public DefaultBytecodeRuntimeDispatcher bytecodeRuntimeDispatcher(
             ExecutorTaskDecorator taskDecorator,
             ObservationRuntime observationRuntime,
+            ObjectProvider<MethodExtensionInvocationEvaluator> methodExtensionEvaluators,
             BytecodeProperties properties
     ) {
         return new DefaultBytecodeRuntimeDispatcher(
-                taskDecorator, properties.getExecutor().isEnabled(), observationRuntime);
+                taskDecorator,
+                properties.getExecutor().isEnabled(),
+                observationRuntime,
+                methodExtensionEvaluators.getIfAvailable()
+        );
     }
 
     @Bean

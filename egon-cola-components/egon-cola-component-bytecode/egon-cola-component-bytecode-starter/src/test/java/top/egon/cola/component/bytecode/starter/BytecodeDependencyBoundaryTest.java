@@ -21,7 +21,7 @@ class BytecodeDependencyBoundaryTest {
         assertFalse(pom.contains("redisson"));
         assertFalse(pom.contains("spring-web"));
         assertFalse(pom.contains("egon-cola-component-access-guard-starter"));
-        assertFalse(pom.contains("egon-cola-component-method-extension-starter"));
+        assertTrue(optional(pom, "egon-cola-component-method-extension-starter"));
     }
 
     private boolean optional(String pom, String artifactId) {

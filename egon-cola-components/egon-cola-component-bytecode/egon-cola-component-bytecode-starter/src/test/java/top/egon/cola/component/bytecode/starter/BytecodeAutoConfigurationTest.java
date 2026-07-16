@@ -70,10 +70,13 @@ class BytecodeAutoConfigurationTest {
     @Test
     void rejectsDuplicateDispatcherRegistration() {
         ClassLoader loader = getClass().getClassLoader();
-        var registration = DispatcherRegistry.register(loader, "existing", new TestDispatcher());
+        TestDispatcher existingDispatcher = new TestDispatcher();
+        var registration = DispatcherRegistry.register(
+                loader, "existing", existingDispatcher);
         try {
             contextRunner.run(context -> assertNotNull(context.getStartupFailure()));
         } finally {
+            java.lang.ref.Reference.reachabilityFence(existingDispatcher);
             registration.close();
         }
     }
