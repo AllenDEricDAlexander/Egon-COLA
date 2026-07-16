@@ -2,7 +2,8 @@ package top.egon.cola.component.bytecode.agent;
 
 import top.egon.cola.component.bytecode.agent.transform.CompositeBytecodeTransformer;
 import top.egon.cola.component.bytecode.bridge.BridgeCapability;
-import top.egon.cola.component.bytecode.core.enhance.executor.ExecutorCallSiteEnhancer;
+import top.egon.cola.component.bytecode.core.enhance.ApplicationClassEnhancer;
+import top.egon.cola.component.bytecode.core.enhance.observation.ObservationMatcher;
 
 import java.lang.instrument.Instrumentation;
 
@@ -22,14 +23,28 @@ public final class BytecodeAgent {
                 return;
             }
             stateStore.start(configuration);
-            ExecutorCallSiteEnhancer executorEnhancer = new ExecutorCallSiteEnhancer();
+            ObservationMatcher observationMatcher = configuration.features()
+                    .contains(BridgeCapability.OBSERVATION)
+                    ? new ObservationMatcher(
+                    configuration.observationIncludes(),
+                    configuration.observationMethods(),
+                    configuration.observationExcludes(),
+                    configuration.observeConstructors(),
+                    configuration.observationSlowThresholdMillis() < 0L
+                            ? -1L
+                            : Math.multiplyExact(
+                            configuration.observationSlowThresholdMillis(), 1_000_000L))
+                    : null;
+            ApplicationClassEnhancer applicationEnhancer = new ApplicationClassEnhancer(
+                    configuration.features().contains(BridgeCapability.EXECUTOR),
+                    observationMatcher
+            );
             CompositeBytecodeTransformer transformer = new CompositeBytecodeTransformer(
                     new ClassNameFilter(configuration),
                     configuration,
                     stateStore,
-                    (loader, className, classfileBuffer) -> configuration.features()
-                            .contains(BridgeCapability.EXECUTOR)
-                            ? executorEnhancer.enhance(loader, classfileBuffer) : null
+                    (loader, className, classfileBuffer) ->
+                            applicationEnhancer.enhance(loader, classfileBuffer)
             );
             instrumentation.addTransformer(transformer, false);
             stateStore.active();

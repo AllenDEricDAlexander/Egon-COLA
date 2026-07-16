@@ -74,7 +74,7 @@ public final class ExecutorCallSiteEnhancer {
                 invocation.owner, invocation.name, invocation.desc));
     }
 
-    private boolean rewrite(ClassLoader loader, ClassNode classNode) {
+    public boolean rewrite(ClassLoader loader, ClassNode classNode) {
         boolean changed = false;
         for (MethodNode method : classNode.methods) {
             Integer lineNumber = null;
