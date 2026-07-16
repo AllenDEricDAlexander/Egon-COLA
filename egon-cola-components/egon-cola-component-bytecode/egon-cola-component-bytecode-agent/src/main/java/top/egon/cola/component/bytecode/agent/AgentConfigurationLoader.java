@@ -59,6 +59,13 @@ public final class AgentConfigurationLoader {
         Set<BridgeCapability> features = parseFeatures(values.get("features"));
         List<String> includes = parseList(values.get("include"));
         List<String> excludes = parseList(values.get("exclude"));
+        List<String> observationIncludes = parseList(values.get("observation-include"));
+        List<String> observationMethods = parseList(values.get("observation-method"));
+        List<String> observationExcludes = parseList(values.get("observation-exclude"));
+        boolean observeConstructors = Boolean.parseBoolean(values.get("observe-constructors"));
+        long observationSlowThresholdMillis = parseLong(
+                values.get("observation-slow-threshold-millis"),
+                "observation-slow-threshold-millis");
         AgentFailurePolicy failurePolicy = AgentFailurePolicy.parse(values.get("failure-policy"));
         int failureCapacity = parseCapacity(values.get("failure-capacity"));
         return new AgentConfiguration(
@@ -66,6 +73,11 @@ public final class AgentConfigurationLoader {
                 features,
                 includes,
                 excludes,
+                observationIncludes,
+                observationMethods,
+                observationExcludes,
+                observeConstructors,
+                observationSlowThresholdMillis,
                 failurePolicy,
                 failureCapacity,
                 digest(includes),
@@ -98,7 +110,9 @@ public final class AgentConfigurationLoader {
         Map<String, String> values = new LinkedHashMap<>();
         for (String key : List.of(
                 "enabled", "features", "include", "exclude", "failure-policy",
-                "failure-capacity", "config")) {
+                "failure-capacity", "config", "observation-include",
+                "observation-method", "observation-exclude", "observe-constructors",
+                "observation-slow-threshold-millis")) {
             String value = reader.apply(key);
             if (value != null && !value.isBlank()) {
                 values.put(key, value.trim());
@@ -113,6 +127,11 @@ public final class AgentConfigurationLoader {
         defaults.put("features", "executor");
         defaults.put("include", "");
         defaults.put("exclude", "");
+        defaults.put("observation-include", "");
+        defaults.put("observation-method", "*");
+        defaults.put("observation-exclude", "");
+        defaults.put("observe-constructors", "false");
+        defaults.put("observation-slow-threshold-millis", "-1");
         defaults.put("failure-policy", "skip-class");
         defaults.put("failure-capacity", "32");
         return defaults;
@@ -145,6 +164,14 @@ public final class AgentConfigurationLoader {
             return Integer.parseInt(value);
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException("failure-capacity must be an integer", exception);
+        }
+    }
+
+    private long parseLong(String value, String key) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(key + " must be an integer", exception);
         }
     }
 

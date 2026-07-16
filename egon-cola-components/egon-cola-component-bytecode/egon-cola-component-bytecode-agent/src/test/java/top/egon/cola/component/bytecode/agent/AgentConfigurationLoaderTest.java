@@ -61,6 +61,27 @@ class AgentConfigurationLoaderTest {
     }
 
     @Test
+    void loadsObservationMatchConfigurationAtTransformTime() {
+        AgentConfiguration configuration = new AgentConfigurationLoader(
+                new Properties(), Map.of()).load(
+                "enabled=true,features=observation,include=sample.*,"
+                        + "observation-include=sample.application.*,"
+                        + "observation-method=find*,save*,"
+                        + "observation-exclude=sample.application.Internal#*,"
+                        + "observe-constructors=true,"
+                        + "observation-slow-threshold-millis=25");
+
+        assertEquals(java.util.List.of("sample.application.*"),
+                configuration.observationIncludes());
+        assertEquals(java.util.List.of("find*", "save*"),
+                configuration.observationMethods());
+        assertEquals(java.util.List.of("sample.application.Internal#*"),
+                configuration.observationExcludes());
+        assertEquals(true, configuration.observeConstructors());
+        assertEquals(25L, configuration.observationSlowThresholdMillis());
+    }
+
+    @Test
     void appliesMalformedYamlFailurePolicy() throws Exception {
         Path yaml = temporaryDirectory.resolve("broken.yml");
         Files.writeString(yaml, "enabled: [not-closed");
