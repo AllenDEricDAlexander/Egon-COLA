@@ -29,8 +29,13 @@ egon:
     component:
       method-extension:
         enabled: true
+        engine: AOP
+        not-ready-policy: PROCEED
         order: -2147483548
 ```
+
+`engine` accepts `AOP`, `AGENT`, or `DISABLED`. A missing value preserves the
+existing AOP behavior. `enabled=false` always disables both engines.
 
 ## Handler
 

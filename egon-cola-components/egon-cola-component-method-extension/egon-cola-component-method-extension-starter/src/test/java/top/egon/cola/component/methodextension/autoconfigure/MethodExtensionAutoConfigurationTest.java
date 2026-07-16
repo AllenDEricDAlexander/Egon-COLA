@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.Ordered;
 import top.egon.cola.component.methodextension.aop.MethodExtensionAop;
+import top.egon.cola.component.methodextension.execution.MethodExtensionExecutionService;
 import top.egon.cola.component.methodextension.handler.MethodExtensionHandlerResolver;
 import top.egon.cola.component.methodextension.response.MethodExtensionResponseResolver;
 import top.egon.cola.component.methodextension.support.MethodExtensionMethodResolver;
@@ -34,7 +35,25 @@ class MethodExtensionAutoConfigurationTest {
     @Test
     void shouldDisableAutoConfigurationByProperty() {
         contextRunner.withPropertyValues("egon.cola.component.method-extension.enabled=false")
-                .run(context -> assertThat(context).doesNotHaveBean(MethodExtensionAop.class));
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(MethodExtensionAop.class)
+                        .doesNotHaveBean(MethodExtensionExecutionService.class));
+    }
+
+    @Test
+    void shouldUseAgentEngineWithoutCreatingAopAdvisor() {
+        contextRunner.withPropertyValues("egon.cola.component.method-extension.engine=agent")
+                .run(context -> assertThat(context)
+                        .hasSingleBean(MethodExtensionExecutionService.class)
+                        .doesNotHaveBean(MethodExtensionAop.class));
+    }
+
+    @Test
+    void shouldDisableBothEnginesWhenEngineIsDisabled() {
+        contextRunner.withPropertyValues("egon.cola.component.method-extension.engine=disabled")
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(MethodExtensionExecutionService.class)
+                        .doesNotHaveBean(MethodExtensionAop.class));
     }
 
     @Test
