@@ -102,9 +102,18 @@ jobs:
                 -am \
                 -Prelease \
                 -Dgpg.skip=true \
-                -Degon.release.shape=true \
                 -DegonArchitecture.cache.enabled=false \
                 verify
+              ./mvnw -B -ntp \
+                -pl egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test \
+                -am \
+                -Prelease \
+                -Dgpg.skip=true \
+                -Dtest=BytecodeReleaseShapeTest \
+                -Dsurefire.failIfNoSpecifiedTests=false \
+                -Dinvoker.skip=true \
+                -Degon.release.shape=true \
+                test
               METHOD_EXTENSION_REPORT="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/failsafe-reports/top.egon.cola.component.bytecode.test.agent.MethodExtensionAgentIntegrationTest.txt"
               METHOD_EXTENSION_SPRING_LOG="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/it/method-extension-spring/build.log"
               ACCESS_GUARD_REPORT="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/failsafe-reports/top.egon.cola.component.bytecode.test.agent.AccessGuardAgentIntegrationTest.txt"
