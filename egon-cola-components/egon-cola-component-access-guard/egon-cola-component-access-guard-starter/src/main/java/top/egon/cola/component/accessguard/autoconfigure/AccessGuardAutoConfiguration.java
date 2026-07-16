@@ -20,6 +20,8 @@ import top.egon.cola.component.accessguard.event.AccessGuardEventListener;
 import top.egon.cola.component.accessguard.event.AccessGuardEventPublisher;
 import top.egon.cola.component.accessguard.event.LoggingAccessGuardEventListener;
 import top.egon.cola.component.accessguard.event.NoopAccessGuardEventPublisher;
+import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
+import top.egon.cola.component.accessguard.execution.AccessGuardFailureHandler;
 import top.egon.cola.component.accessguard.key.AccessKeyResolver;
 import top.egon.cola.component.accessguard.key.DefaultAccessKeyResolver;
 import top.egon.cola.component.accessguard.ratelimiter.LocalRateLimiterExecutor;
@@ -134,7 +136,13 @@ public class AccessGuardAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AccessGuardAop accessGuardAop(
+    public AccessGuardFailureHandler accessGuardFailureHandler(AccessGuardProperties properties) {
+        return new AccessGuardFailureHandler(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AccessGuardExecutionService accessGuardExecutionService(
             AccessGuardProperties properties,
             AccessGuardRuleResolver ruleResolver,
             AccessKeyResolver keyResolver,
@@ -143,9 +151,10 @@ public class AccessGuardAutoConfiguration {
             RateLimiterExecutor rateLimiterExecutor,
             TimeoutCircuitBreakerExecutor timeoutCircuitBreakerExecutor,
             RejectResponseInvoker rejectResponseInvoker,
-            AccessGuardEventPublisher eventPublisher
+            AccessGuardEventPublisher eventPublisher,
+            AccessGuardFailureHandler failureHandler
     ) {
-        return new AccessGuardAop(
+        return new AccessGuardExecutionService(
                 properties,
                 ruleResolver,
                 keyResolver,
@@ -154,7 +163,17 @@ public class AccessGuardAutoConfiguration {
                 rateLimiterExecutor,
                 timeoutCircuitBreakerExecutor,
                 rejectResponseInvoker,
-                eventPublisher
+                eventPublisher,
+                failureHandler
         );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AccessGuardAop accessGuardAop(
+            AccessGuardProperties properties,
+            AccessGuardExecutionService executionService
+    ) {
+        return new AccessGuardAop(properties, executionService);
     }
 }
