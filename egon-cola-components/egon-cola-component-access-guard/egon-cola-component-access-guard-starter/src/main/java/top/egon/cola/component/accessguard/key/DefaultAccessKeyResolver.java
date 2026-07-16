@@ -11,11 +11,13 @@ import top.egon.cola.component.accessguard.config.AccessGuardRule;
 import top.egon.cola.component.accessguard.support.AopMethodResolver;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Objects;
 
-public class DefaultAccessKeyResolver implements AccessKeyResolver {
+public class DefaultAccessKeyResolver implements AccessKeyResolver, ExecutableAccessKeyResolver {
 
     private static final String ALL_KEY = "all";
 
@@ -53,12 +55,22 @@ public class DefaultAccessKeyResolver implements AccessKeyResolver {
     }
 
     public AccessKeyResolution resolve(Method method, Object[] args, AccessGuardRule rule) {
+        return resolve((Executable) method, args, rule);
+    }
+
+    @Override
+    public AccessKeyResolution resolve(
+            Executable executable,
+            Object[] arguments,
+            AccessGuardRule rule
+    ) {
+        Object[] args = arguments == null ? new Object[0] : arguments;
         String key = StringUtils.hasText(rule.keyExpression()) ? rule.keyExpression() : rule.key();
         if (!StringUtils.hasText(key) || ALL_KEY.equalsIgnoreCase(key.trim())) {
             return keyGenerator.generate(ALL_KEY);
         }
 
-        Object value = resolveValue(method, args, key.trim());
+        Object value = resolveValue(executable, args, key.trim());
         String rawKey = Objects.toString(value, "");
         String normalizedKey = rawKey.trim();
         if (!StringUtils.hasText(normalizedKey)) {
@@ -67,7 +79,7 @@ public class DefaultAccessKeyResolver implements AccessKeyResolver {
         return keyGenerator.generate(normalizedKey);
     }
 
-    private Object resolveValue(Method method, Object[] args, String key) {
+    private Object resolveValue(Executable executable, Object[] args, String key) {
         if (key.startsWith("header:")) {
             return resolveHeader(key.substring("header:".length()));
         }
@@ -75,7 +87,9 @@ public class DefaultAccessKeyResolver implements AccessKeyResolver {
             return resolveIp();
         }
 
-        String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
+        String[] parameterNames = executable instanceof Method method
+                ? parameterNameDiscoverer.getParameterNames(method)
+                : parameterNameDiscoverer.getParameterNames((Constructor<?>) executable);
         if (parameterNames != null) {
             Object namedValue = resolveFromNamedParameters(parameterNames, args, key);
             if (namedValue != null) {

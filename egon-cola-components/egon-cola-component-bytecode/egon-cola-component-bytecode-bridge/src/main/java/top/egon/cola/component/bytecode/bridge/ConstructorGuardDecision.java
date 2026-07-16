@@ -20,4 +20,10 @@ public record ConstructorGuardDecision(boolean allowed, Throwable throwable) {
     public static ConstructorGuardDecision throwing(Throwable throwable) {
         return new ConstructorGuardDecision(false, throwable);
     }
+
+    public void throwIfRejected() throws Throwable {
+        if (!allowed) {
+            throw throwable;
+        }
+    }
 }

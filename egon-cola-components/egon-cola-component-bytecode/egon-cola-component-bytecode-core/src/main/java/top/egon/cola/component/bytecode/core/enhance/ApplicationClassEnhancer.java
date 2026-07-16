@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.ClassNode;
 import top.egon.cola.component.bytecode.core.enhance.executor.ExecutorCallSiteEnhancer;
 import top.egon.cola.component.bytecode.core.enhance.accessguard.AccessGuardMatcher;
 import top.egon.cola.component.bytecode.core.enhance.accessguard.AccessGuardMethodWrapper;
+import top.egon.cola.component.bytecode.core.enhance.accessguard.ConstructorGuardEnhancer;
 import top.egon.cola.component.bytecode.core.enhance.methodextension.MethodExtensionEnhancer;
 import top.egon.cola.component.bytecode.core.enhance.methodextension.MethodExtensionMatcher;
 import top.egon.cola.component.bytecode.core.enhance.observation.MethodObservationEnhancer;
@@ -29,6 +30,8 @@ public final class ApplicationClassEnhancer {
             new MethodExtensionEnhancer();
     private final AccessGuardMethodWrapper accessGuardWrapper =
             new AccessGuardMethodWrapper();
+    private final ConstructorGuardEnhancer constructorGuardEnhancer =
+            new ConstructorGuardEnhancer();
 
     public ApplicationClassEnhancer(
             boolean executorEnabled,
@@ -73,6 +76,7 @@ public final class ApplicationClassEnhancer {
         }
         if (accessGuardMatcher != null
                 && !duplicateDetector.containsAccessGuardBridge(classNode)) {
+            changed |= constructorGuardEnhancer.rewrite(loader, classNode, plan);
             changed |= accessGuardWrapper.rewrite(loader, classNode, plan);
         }
         if (methodExtensionMatcher != null

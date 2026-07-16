@@ -22,8 +22,11 @@ import top.egon.cola.component.accessguard.event.LoggingAccessGuardEventListener
 import top.egon.cola.component.accessguard.event.NoopAccessGuardEventPublisher;
 import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
 import top.egon.cola.component.accessguard.execution.AccessGuardFailureHandler;
+import top.egon.cola.component.accessguard.execution.ConstructorAccessGuardExecutionService;
+import top.egon.cola.component.accessguard.execution.ConstructorAccessGuardValidator;
 import top.egon.cola.component.accessguard.key.AccessKeyResolver;
 import top.egon.cola.component.accessguard.key.DefaultAccessKeyResolver;
+import top.egon.cola.component.accessguard.key.ExecutableAccessKeyResolver;
 import top.egon.cola.component.accessguard.ratelimiter.LocalRateLimiterExecutor;
 import top.egon.cola.component.accessguard.ratelimiter.RateLimiterExecutor;
 import top.egon.cola.component.accessguard.reject.ReflectionFallbackInvoker;
@@ -65,6 +68,14 @@ public class AccessGuardAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public AccessKeyResolver accessKeyResolver(AccessGuardProperties properties) {
+        return new DefaultAccessKeyResolver(properties.getKeyResolveFailureStrategy());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ExecutableAccessKeyResolver executableAccessKeyResolver(
+            AccessGuardProperties properties
+    ) {
         return new DefaultAccessKeyResolver(properties.getKeyResolveFailureStrategy());
     }
 
@@ -163,6 +174,38 @@ public class AccessGuardAutoConfiguration {
                 rateLimiterExecutor,
                 timeoutCircuitBreakerExecutor,
                 rejectResponseInvoker,
+                eventPublisher,
+                failureHandler
+        );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ConstructorAccessGuardValidator constructorAccessGuardValidator() {
+        return new ConstructorAccessGuardValidator();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public ConstructorAccessGuardExecutionService constructorAccessGuardExecutionService(
+            AccessGuardProperties properties,
+            AccessGuardRuleResolver ruleResolver,
+            ConstructorAccessGuardValidator validator,
+            ExecutableAccessKeyResolver keyResolver,
+            WhiteListService whiteListService,
+            BlacklistService blacklistService,
+            RateLimiterExecutor rateLimiterExecutor,
+            AccessGuardEventPublisher eventPublisher,
+            AccessGuardFailureHandler failureHandler
+    ) {
+        return new ConstructorAccessGuardExecutionService(
+                properties,
+                ruleResolver,
+                validator,
+                keyResolver,
+                whiteListService,
+                blacklistService,
+                rateLimiterExecutor,
                 eventPublisher,
                 failureHandler
         );

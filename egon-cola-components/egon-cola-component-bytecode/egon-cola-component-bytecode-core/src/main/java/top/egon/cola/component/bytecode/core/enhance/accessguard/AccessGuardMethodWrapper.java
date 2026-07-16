@@ -40,6 +40,9 @@ public final class AccessGuardMethodWrapper {
                 continue;
             }
             AccessGuardPolicy policy = methodPlan.accessGuardPolicy();
+            if (policy.constructor()) {
+                continue;
+            }
             String bodyName = SyntheticBodyName.from(policy.methodId());
             ensureAvailable(classNode, bodyName, method.desc);
             MethodNode body = moveBody(method, bodyName);

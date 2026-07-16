@@ -6,8 +6,13 @@ import top.egon.cola.component.accessguard.config.AccessGuardRule;
 import top.egon.cola.component.accessguard.config.AccessGuardRuleResolver;
 import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
 import top.egon.cola.component.accessguard.execution.AccessGuardFailureHandler;
+import top.egon.cola.component.accessguard.execution.ConstructorAccessGuardExecutionService;
+import top.egon.cola.component.accessguard.execution.ConstructorGuardResult;
 import top.egon.cola.component.bytecode.bridge.BridgeCapability;
+import top.egon.cola.component.bytecode.bridge.BridgeConstructorInvocation;
+import top.egon.cola.component.bytecode.bridge.BridgeFailHint;
 import top.egon.cola.component.bytecode.bridge.BridgeGuardedInvocation;
+import top.egon.cola.component.bytecode.bridge.ConstructorGuardDecision;
 import top.egon.cola.component.bytecode.runtime.accessguard.GuardedInvocationEvaluator;
 import top.egon.cola.component.bytecode.starter.methodextension.MethodMetadataResolver;
 
@@ -18,6 +23,7 @@ import java.util.function.Supplier;
 public final class AccessGuardRuntimeAdapter implements GuardedInvocationEvaluator {
 
     private final Supplier<AccessGuardExecutionService> executionServices;
+    private final Supplier<ConstructorAccessGuardExecutionService> constructorServices;
     private final MethodMetadataResolver metadataResolver;
     private final AccessGuardRuleResolver ruleResolver;
     private final AccessGuardFailureHandler failureHandler;
@@ -25,14 +31,25 @@ public final class AccessGuardRuntimeAdapter implements GuardedInvocationEvaluat
 
     public AccessGuardRuntimeAdapter(
             Supplier<AccessGuardExecutionService> executionServices,
+            Supplier<ConstructorAccessGuardExecutionService> constructorServices,
             MethodMetadataResolver metadataResolver,
             AccessGuardRuleResolver ruleResolver,
             AccessGuardFailureHandler failureHandler
     ) {
         this.executionServices = executionServices;
+        this.constructorServices = constructorServices;
         this.metadataResolver = metadataResolver;
         this.ruleResolver = ruleResolver;
         this.failureHandler = failureHandler;
+    }
+
+    public AccessGuardRuntimeAdapter(
+            Supplier<AccessGuardExecutionService> executionServices,
+            MethodMetadataResolver metadataResolver,
+            AccessGuardRuleResolver ruleResolver,
+            AccessGuardFailureHandler failureHandler
+    ) {
+        this(executionServices, () -> null, metadataResolver, ruleResolver, failureHandler);
     }
 
     public void markReady() {
@@ -88,6 +105,41 @@ public final class AccessGuardRuntimeAdapter implements GuardedInvocationEvaluat
             return invocation.proceed();
         }
         throw failure;
+    }
+
+    @Override
+    public ConstructorGuardDecision guardConstructor(BridgeConstructorInvocation invocation) {
+        if (!ready) {
+            return unavailableConstructor(invocation, new IllegalStateException(
+                    "Access Guard constructor runtime is not ready"));
+        }
+        try {
+            ConstructorAccessGuardExecutionService executionService = constructorServices.get();
+            if (executionService == null) {
+                return unavailableConstructor(invocation, new IllegalStateException(
+                        "Access Guard constructor execution service is unavailable"));
+            }
+            ConstructorGuardResult result = executionService.evaluate(
+                    metadataResolver.resolveConstructor(
+                            invocation.declaringClass(), invocation.methodId()),
+                    invocation.arguments()
+            );
+            return result.allowed()
+                    ? ConstructorGuardDecision.allow()
+                    : ConstructorGuardDecision.throwing(result.throwable());
+        } catch (Throwable failure) {
+            return ConstructorGuardDecision.throwing(failure);
+        }
+    }
+
+    private ConstructorGuardDecision unavailableConstructor(
+            BridgeConstructorInvocation invocation,
+            RuntimeException failure
+    ) {
+        if (invocation.failHint() == BridgeFailHint.FAIL_CLOSED) {
+            return ConstructorGuardDecision.throwing(failure);
+        }
+        return ConstructorGuardDecision.allow();
     }
 
     private void validate(Method method, AccessGuardRule rule) {

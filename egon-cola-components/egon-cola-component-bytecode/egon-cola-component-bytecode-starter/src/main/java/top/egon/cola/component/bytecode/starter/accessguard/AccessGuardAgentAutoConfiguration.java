@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.accessguard.config.AccessGuardRuleResolver;
 import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
 import top.egon.cola.component.accessguard.execution.AccessGuardFailureHandler;
+import top.egon.cola.component.accessguard.execution.ConstructorAccessGuardExecutionService;
 import top.egon.cola.component.bytecode.bridge.BridgeCapability;
 import top.egon.cola.component.bytecode.starter.BytecodeAutoConfiguration;
 import top.egon.cola.component.bytecode.starter.BytecodeStartupValidator;
@@ -38,6 +39,7 @@ public class AccessGuardAgentAutoConfiguration {
     @ConditionalOnMissingBean
     public AccessGuardRuntimeAdapter accessGuardRuntimeAdapter(
             ObjectProvider<AccessGuardExecutionService> executionServices,
+            ObjectProvider<ConstructorAccessGuardExecutionService> constructorServices,
             ObjectProvider<MethodMetadataResolver> metadataResolvers,
             AccessGuardRuleResolver ruleResolver,
             AccessGuardFailureHandler failureHandler,
@@ -48,6 +50,7 @@ public class AccessGuardAgentAutoConfiguration {
                 MethodMetadataResolver::new);
         return new AccessGuardRuntimeAdapter(
                 executionServices::getIfAvailable,
+                constructorServices::getIfAvailable,
                 metadataResolver,
                 ruleResolver,
                 failureHandler

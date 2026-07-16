@@ -46,7 +46,10 @@ public final class EgonPolicyBridge {
                 .dispatcher(declaringClass, BridgeCapability.ACCESS_GUARD)
                 .orElse(null);
         if (dispatcher == null) {
-            return ConstructorGuardDecision.allow();
+            return failHint == BridgeFailHint.FAIL_CLOSED
+                    ? ConstructorGuardDecision.throwing(new IllegalStateException(
+                    "Access Guard constructor runtime is unavailable"))
+                    : ConstructorGuardDecision.allow();
         }
         try {
             ConstructorGuardDecision decision = dispatcher.guardConstructor(invocation);

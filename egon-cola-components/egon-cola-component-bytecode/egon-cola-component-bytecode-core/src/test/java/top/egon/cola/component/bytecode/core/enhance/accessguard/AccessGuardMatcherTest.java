@@ -20,11 +20,11 @@ class AccessGuardMatcherTest {
     private final ClassNode owner = owner();
 
     @Test
-    void matchesOnlyApprovedPublicPrivateInstanceAndStaticMethods() {
+    void matchesApprovedPublicPrivateMethodsAndConstructors() {
         assertTrue(matcher.match(owner, method(Opcodes.ACC_PUBLIC, "publicValue")).isPresent());
         assertTrue(matcher.match(owner,
                 method(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC, "staticValue")).isPresent());
-        assertFalse(matcher.match(owner,
+        assertTrue(matcher.match(owner,
                 method(Opcodes.ACC_PUBLIC, "<init>")).isPresent());
         assertFalse(matcher.match(owner,
                 new MethodNode(Opcodes.ACC_PROTECTED, "plain", "()V", null, null)).isPresent());
