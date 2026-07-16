@@ -12,9 +12,10 @@ import top.egon.cola.component.accessguard.annotation.TimeoutExecutorType;
 import top.egon.cola.component.accessguard.annotation.WhiteListAccessInterceptor;
 import top.egon.cola.component.accessguard.annotation.WhiteListMode;
 import top.egon.cola.component.accessguard.ratelimiter.RateLimiterRuleConversion;
-import top.egon.cola.component.accessguard.support.MethodSignatureKey;
+import top.egon.cola.component.accessguard.support.ExecutableSignatureKey;
 import top.egon.cola.component.accessguard.support.SensitiveValueHasher;
 
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -25,10 +26,14 @@ import java.util.concurrent.TimeUnit;
 public class AccessGuardAnnotationResolver {
 
     public AccessGuardRule resolve(Method method) {
-        RuleSpec spec = RuleSpec.defaults(method);
-        AccessGuard accessGuard = AnnotatedElementUtils.findMergedAnnotation(method, AccessGuard.class);
+        return resolve((Executable) method);
+    }
+
+    public AccessGuardRule resolve(Executable executable) {
+        RuleSpec spec = RuleSpec.defaults(executable);
+        AccessGuard accessGuard = AnnotatedElementUtils.findMergedAnnotation(executable, AccessGuard.class);
         if (accessGuard != null) {
-            spec.name = chooseName(accessGuard.name(), method);
+            spec.name = chooseName(accessGuard.name(), executable);
             spec.key = accessGuard.key();
             spec.keyExpression = accessGuard.keyExpression();
             spec.whiteListEnabled = accessGuard.whitelist();
@@ -37,6 +42,14 @@ public class AccessGuardAnnotationResolver {
             spec.timeoutEnabled = accessGuard.timeoutBreaker();
             spec.fallbackMethod = accessGuard.fallbackMethod();
             spec.returnJson = accessGuard.returnJson();
+            spec.failStrategy = accessGuard.failStrategy();
+        }
+
+        if (!(executable instanceof Method method)) {
+            if (accessGuard == null) {
+                throw new IllegalArgumentException("Constructor Access Guard requires @AccessGuard");
+            }
+            return spec.toRule();
         }
 
         WhiteListAccessInterceptor whiteList = AnnotatedElementUtils.findMergedAnnotation(method, WhiteListAccessInterceptor.class);
@@ -117,11 +130,12 @@ public class AccessGuardAnnotationResolver {
         return spec.toRule();
     }
 
-    private String chooseName(String configuredName, Method method) {
+    private String chooseName(String configuredName, Executable executable) {
         if (configuredName != null && !configuredName.isBlank()) {
             return configuredName;
         }
-        return SensitiveValueHasher.sha256Hex(MethodSignatureKey.from(method).asString()).substring(0, 16);
+        return SensitiveValueHasher.sha256Hex(
+                ExecutableSignatureKey.from(executable).asString()).substring(0, 16);
     }
 
     private Duration duration(long value, TimeUnit unit) {
@@ -153,9 +167,10 @@ public class AccessGuardAnnotationResolver {
         private String returnJson = "";
         private FailStrategy failStrategy = FailStrategy.FAIL_OPEN;
 
-        static RuleSpec defaults(Method method) {
+        static RuleSpec defaults(Executable executable) {
             RuleSpec spec = new RuleSpec();
-            spec.name = SensitiveValueHasher.sha256Hex(MethodSignatureKey.from(method).asString()).substring(0, 16);
+            spec.name = SensitiveValueHasher.sha256Hex(
+                    ExecutableSignatureKey.from(executable).asString()).substring(0, 16);
             return spec;
         }
 

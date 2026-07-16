@@ -1,7 +1,10 @@
 package top.egon.cola.component.accessguard.config;
 
+import top.egon.cola.component.accessguard.annotation.FailStrategy;
 import top.egon.cola.component.accessguard.autoconfigure.AccessGuardProperties;
+import top.egon.cola.component.accessguard.support.ExecutableSignatureKey;
 
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Optional;
@@ -29,17 +32,40 @@ public class AccessGuardRuleResolver {
     }
 
     public AccessGuardRule resolve(Method method) {
-        AccessGuardRule rule = applyProperties(annotationResolver.resolve(method));
+        return resolve((Executable) method);
+    }
+
+    public AccessGuardRule resolve(Executable executable) {
+        AccessGuardRule rule = applyProperties(annotationResolver.resolve(executable));
         Optional<AccessGuardRuleOverride> globalOverride = configProvider.findGlobalOverride();
         if (globalOverride.isPresent()) {
             rule = applyOverride(rule, globalOverride.get());
         }
-        String methodSignature = top.egon.cola.component.accessguard.support.MethodSignatureKey.from(method).asString();
+        String methodSignature = ExecutableSignatureKey.from(executable).asString();
         Optional<AccessGuardRuleOverride> methodOverride = configProvider.findMethodOverride(rule.name(), methodSignature);
         if (methodOverride.isPresent()) {
-            return applyOverride(rule, methodOverride.get());
+            rule = applyOverride(rule, methodOverride.get());
         }
-        return rule;
+        return normalizeFailStrategy(rule);
+    }
+
+    private AccessGuardRule normalizeFailStrategy(AccessGuardRule rule) {
+        FailStrategy strategy = rule.failStrategy();
+        if (strategy == null || strategy == FailStrategy.GLOBAL_DEFAULT) {
+            strategy = properties.getFailStrategy();
+        }
+        if (strategy == null || strategy == FailStrategy.GLOBAL_DEFAULT) {
+            strategy = FailStrategy.FAIL_OPEN;
+        }
+        return new AccessGuardRule(
+                rule.name(), rule.key(), rule.keyExpression(), rule.whiteListEnabled(),
+                rule.whiteListUsers(), rule.whiteListMode(), rule.rateLimiterEnabled(),
+                rule.permits(), rule.interval(), rule.intervalUnit(), rule.blacklistEnabled(),
+                rule.blacklistCount(), rule.blacklistTimeout(), rule.enableBlacklistForAllKey(),
+                rule.timeoutEnabled(), rule.timeout(), rule.timeoutExecutor(),
+                rule.fallbackOnException(), rule.cancelRunningTask(), rule.fallbackMethod(),
+                rule.returnJson(), strategy
+        );
     }
 
     private AccessGuardRule applyProperties(AccessGuardRule rule) {

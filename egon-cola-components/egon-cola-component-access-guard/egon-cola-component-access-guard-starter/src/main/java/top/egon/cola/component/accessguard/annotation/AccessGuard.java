@@ -6,7 +6,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface AccessGuard {
@@ -28,4 +28,6 @@ public @interface AccessGuard {
     String fallbackMethod() default "";
 
     String returnJson() default "";
+
+    FailStrategy failStrategy() default FailStrategy.GLOBAL_DEFAULT;
 }

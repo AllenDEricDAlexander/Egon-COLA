@@ -32,6 +32,33 @@ class AccessGuardAnnotationTest {
         assertThat(target.value()).containsExactly(ElementType.METHOD);
     }
 
+    @Test
+    void aggregateAnnotationShouldSupportMethodsAndConstructorsOnly() throws NoSuchMethodException {
+        Target target = AccessGuard.class.getAnnotation(Target.class);
+        AccessGuard annotation = ConstructorSample.class.getDeclaredConstructor(String.class)
+                .getAnnotation(AccessGuard.class);
+
+        assertThat(target.value()).containsExactlyInAnyOrder(
+                ElementType.METHOD, ElementType.CONSTRUCTOR);
+        assertThat(annotation.failStrategy()).isEqualTo(FailStrategy.GLOBAL_DEFAULT);
+    }
+
+    @Test
+    void dedicatedAndCompatibilityAnnotationsShouldRemainMethodOnly() {
+        assertThat(WhiteListAccessInterceptor.class.getAnnotation(Target.class).value())
+                .containsExactly(ElementType.METHOD);
+        assertThat(RateLimiterAccessInterceptor.class.getAnnotation(Target.class).value())
+                .containsExactly(ElementType.METHOD);
+        assertThat(TimeoutCircuitBreaker.class.getAnnotation(Target.class).value())
+                .containsExactly(ElementType.METHOD);
+        assertThat(DoWhiteList.class.getAnnotation(Target.class).value())
+                .containsExactly(ElementType.METHOD);
+        assertThat(DoRateLimiter.class.getAnnotation(Target.class).value())
+                .containsExactly(ElementType.METHOD);
+        assertThat(DoHystrix.class.getAnnotation(Target.class).value())
+                .containsExactly(ElementType.METHOD);
+    }
+
     static class Sample {
 
         @RateLimiterAccessInterceptor(
@@ -43,6 +70,13 @@ class AccessGuardAnnotationTest {
         )
         String rateLimited(String userId) {
             return userId;
+        }
+    }
+
+    static class ConstructorSample {
+
+        @AccessGuard
+        ConstructorSample(String value) {
         }
     }
 }
