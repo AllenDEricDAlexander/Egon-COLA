@@ -5,12 +5,22 @@ import java.util.Set;
 public record ArchitectureRuleConfiguration(
         Set<String> technicalFrameworkPrefixes,
         Set<String> persistencePrefixes,
-        Set<String> adapterPackagePatterns
+        Set<String> adapterPackagePatterns,
+        Set<String> technicalFrameworkAllowPrefixes
 ) {
+    public ArchitectureRuleConfiguration(
+            Set<String> technicalFrameworkPrefixes,
+            Set<String> persistencePrefixes,
+            Set<String> adapterPackagePatterns
+    ) {
+        this(technicalFrameworkPrefixes, persistencePrefixes, adapterPackagePatterns, Set.of());
+    }
+
     public ArchitectureRuleConfiguration {
         technicalFrameworkPrefixes = Set.copyOf(technicalFrameworkPrefixes);
         persistencePrefixes = Set.copyOf(persistencePrefixes);
         adapterPackagePatterns = Set.copyOf(adapterPackagePatterns);
+        technicalFrameworkAllowPrefixes = Set.copyOf(technicalFrameworkAllowPrefixes);
     }
 
     public static ArchitectureRuleConfiguration defaults() {
@@ -33,7 +43,8 @@ public record ArchitectureRuleConfiguration(
                         "com.baomidou.",
                         "java.sql."
                 ),
-                Set.of("..adapter..")
+                Set.of("..adapter.."),
+                Set.of()
         );
     }
 }

@@ -17,6 +17,8 @@ public final class Arch002DomainTechnicalFrameworkRule extends AbstractDependenc
     @Override
     protected boolean violates(ArchitectureRuleContext context, ArchitectureDependency dependency) {
         return dependency.sourceLayer() == ArchitectureLayer.DOMAIN
-                && startsWithAny(dependency.targetClass(), configuration.technicalFrameworkPrefixes());
+                && startsWithAny(dependency.targetClass(), configuration.technicalFrameworkPrefixes())
+                && !startsWithAny(
+                        dependency.targetClass(), configuration.technicalFrameworkAllowPrefixes());
     }
 }

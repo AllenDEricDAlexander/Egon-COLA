@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.Set;
 
@@ -21,6 +23,10 @@ public final class ArchitectureGraphBuilder {
     ) {
         Objects.requireNonNull(metadataCollection, "metadataCollection");
         Objects.requireNonNull(layerResolver, "layerResolver");
+        Map<String, String> modulesByClass = new LinkedHashMap<>();
+        for (ClassMetadata metadata : metadataCollection) {
+            modulesByClass.put(metadata.className(), metadata.module());
+        }
         List<ArchitectureType> types = new ArrayList<>();
         Set<ArchitectureDependency> dependencies = new LinkedHashSet<>();
         for (ClassMetadata metadata : metadataCollection) {
@@ -35,7 +41,9 @@ public final class ArchitectureGraphBuilder {
             ));
             for (ClassDependency dependency : metadata.dependencies()) {
                 ArchitectureLayer targetLayer = nonNullLayer(
-                        layerResolver.resolve(metadata.module(), dependency.targetClass()));
+                        layerResolver.resolve(
+                                modulesByClass.getOrDefault(dependency.targetClass(), metadata.module()),
+                                dependency.targetClass()));
                 dependencies.add(toArchitectureDependency(
                         metadata.module(), sourceLayer, targetLayer, dependency));
             }

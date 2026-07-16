@@ -1,14 +1,10 @@
 package top.egon.cola.component.bytecode.maven.mojo;
 
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 
-@Mojo(name = "check", threadSafe = true)
-public final class ArchitectureCheckMojo extends AbstractMojo {
-
-    @Override
-    public void execute() throws MojoExecutionException {
-        throw new MojoExecutionException("Architecture scan orchestration is not configured yet.");
-    }
+@Mojo(name = "check", defaultPhase = LifecyclePhase.VERIFY,
+        requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, threadSafe = true)
+public final class ArchitectureCheckMojo extends AbstractArchitectureMojo {
 }

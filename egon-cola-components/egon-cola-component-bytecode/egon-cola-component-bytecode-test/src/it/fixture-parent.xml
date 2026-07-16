@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>top.egon.bytecode.it</groupId>
+    <artifactId>architecture-fixture-parent</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
+                <version>5.2.3</version>
+                <configuration>
+                    <unknownLayerPolicy>WARN</unknownLayerPolicy>
+                    <packageMappings>
+                        <sample.domain..>DOMAIN</sample.domain..>
+                        <sample.application..>APPLICATION</sample.application..>
+                        <sample.infrastructure..>INFRASTRUCTURE</sample.infrastructure..>
+                        <sample.adapter..>ADAPTER</sample.adapter..>
+                        <sample.facade..>FACADE</sample.facade..>
+                        <sample.starter..>STARTER</sample.starter..>
+                        <sample.common..>COMMON</sample.common..>
+                    </packageMappings>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>architecture-check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

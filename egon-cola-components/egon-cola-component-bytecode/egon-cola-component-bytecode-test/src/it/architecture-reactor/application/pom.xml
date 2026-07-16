@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion>
+    <parent><groupId>top.egon.bytecode.it</groupId><artifactId>architecture-reactor</artifactId><version>1.0.0</version></parent>
+    <artifactId>orders-application</artifactId>
+    <dependencies><dependency><groupId>top.egon.bytecode.it</groupId><artifactId>orders-domain</artifactId><version>${project.version}</version></dependency></dependencies>
+    <build><plugins><plugin>
+        <groupId>top.egon</groupId><artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
+        <configuration><scanDependencies>true</scanDependencies></configuration>
+        <executions><execution><id>architecture-check</id><phase>verify</phase><goals><goal>check-reactor</goal></goals></execution></executions>
+    </plugin></plugins></build>
+</project>

@@ -14,4 +14,37 @@
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
+    <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
+            <version>${project.version}</version>
+            <type>maven-plugin</type>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-invoker-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>architecture-integration-tests</id>
+                        <goals>
+                            <goal>install</goal>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <projectsDirectory>${project.basedir}/src/it</projectsDirectory>
+                    <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+                    <localRepositoryPath>${project.build.directory}/it-repo</localRepositoryPath>
+                    <settingsFile>${project.basedir}/src/it/settings.xml</settingsFile>
+                    <streamLogs>true</streamLogs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -19,13 +19,15 @@ public final class Arch009DomainPersistenceRule extends AbstractDependencyRule {
         if (dependency.sourceLayer() != ArchitectureLayer.DOMAIN) {
             return false;
         }
+        if (startsWithAny(dependency.targetClass(), configuration.persistencePrefixes())) {
+            return true;
+        }
         if (context.findType(dependency.targetClass())
                 .map(type -> type.interfaceType())
                 .orElse(false)) {
             return false;
         }
-        return startsWithAny(dependency.targetClass(), configuration.persistencePrefixes())
-                || dependency.targetClass().endsWith("MapperImpl")
+        return dependency.targetClass().endsWith("MapperImpl")
                 || dependency.targetClass().endsWith("RepositoryImpl");
     }
 }

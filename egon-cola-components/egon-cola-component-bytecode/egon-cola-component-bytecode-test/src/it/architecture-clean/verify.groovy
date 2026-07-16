@@ -1,0 +1,5 @@
+def reportDir = new File(basedir, "target/egon-cola-architecture")
+assert new File(reportDir, "architecture-report.json").isFile()
+assert new File(reportDir, "architecture-report.txt").isFile()
+assert new File(reportDir, "architecture-report.html").isFile()
+assert new File(reportDir, "architecture-report.json").text.contains('"total" : 0')
