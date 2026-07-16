@@ -24,6 +24,8 @@
         <maven.invoker.plugin.version>3.9.1</maven.invoker.plugin.version>
         <jackson.version>2.19.4</jackson.version>
         <jmh.version>1.37</jmh.version>
+        <snakeyaml.engine.version>2.9</snakeyaml.engine.version>
+        <maven.shade.plugin.version>3.6.1</maven.shade.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -88,6 +90,11 @@
                 <artifactId>jmh-generator-annprocess</artifactId>
                 <version>${jmh.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.snakeyaml</groupId>
+                <artifactId>snakeyaml-engine</artifactId>
+                <version>${snakeyaml.engine.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -115,6 +122,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-invoker-plugin</artifactId>
                     <version>${maven.invoker.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven.shade.plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

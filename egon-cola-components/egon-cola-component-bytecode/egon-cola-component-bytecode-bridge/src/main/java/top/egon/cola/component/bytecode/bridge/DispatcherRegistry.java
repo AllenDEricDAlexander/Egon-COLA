@@ -15,6 +15,7 @@ public final class DispatcherRegistry {
     private static final Object MONITOR = new Object();
     private static final Map<ClassLoader, Entry> ENTRIES = new WeakHashMap<>();
     private static final AtomicLong REGISTRATION_IDS = new AtomicLong();
+    private static volatile AgentBridgeStatus agentStatus = AgentBridgeStatus.disabled();
 
     private DispatcherRegistry() {
     }
@@ -86,6 +87,14 @@ public final class DispatcherRegistry {
                     entry.methods.size()
             );
         }
+    }
+
+    public static void publishAgentStatus(AgentBridgeStatus status) {
+        agentStatus = Objects.requireNonNull(status, "status");
+    }
+
+    public static AgentBridgeStatus agentStatus() {
+        return agentStatus;
     }
 
     public static void registerCallSite(ClassLoader loader, CallSiteMetadata metadata) {

@@ -21,5 +21,68 @@
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-bytecode-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.snakeyaml</groupId>
+            <artifactId>snakeyaml-engine</artifactId>
+        </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <artifactSet>
+                                <includes>
+                                    <include>top.egon:egon-cola-component-bytecode-bridge</include>
+                                    <include>top.egon:egon-cola-component-bytecode-core</include>
+                                    <include>org.ow2.asm:*</include>
+                                    <include>org.snakeyaml:snakeyaml-engine</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/versions/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.objectweb.asm</pattern>
+                                    <shadedPattern>top.egon.cola.component.bytecode.agent.shaded.asm</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.snakeyaml.engine</pattern>
+                                    <shadedPattern>top.egon.cola.component.bytecode.agent.shaded.snakeyaml</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Premain-Class>top.egon.cola.component.bytecode.agent.BytecodeAgent</Premain-Class>
+                                        <Can-Redefine-Classes>false</Can-Redefine-Classes>
+                                        <Can-Retransform-Classes>false</Can-Retransform-Classes>
+                                        <Egon-Bridge-Protocol>1.0</Egon-Bridge-Protocol>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
