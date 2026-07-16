@@ -1,6 +1,8 @@
 package top.egon.cola.component.bytecode.agent;
 
 import top.egon.cola.component.bytecode.agent.transform.CompositeBytecodeTransformer;
+import top.egon.cola.component.bytecode.bridge.BridgeCapability;
+import top.egon.cola.component.bytecode.core.enhance.executor.ExecutorCallSiteEnhancer;
 
 import java.lang.instrument.Instrumentation;
 
@@ -20,11 +22,14 @@ public final class BytecodeAgent {
                 return;
             }
             stateStore.start(configuration);
+            ExecutorCallSiteEnhancer executorEnhancer = new ExecutorCallSiteEnhancer();
             CompositeBytecodeTransformer transformer = new CompositeBytecodeTransformer(
                     new ClassNameFilter(configuration),
                     configuration,
                     stateStore,
-                    (loader, className, classfileBuffer) -> null
+                    (loader, className, classfileBuffer) -> configuration.features()
+                            .contains(BridgeCapability.EXECUTOR)
+                            ? executorEnhancer.enhance(loader, classfileBuffer) : null
             );
             instrumentation.addTransformer(transformer, false);
             stateStore.active();

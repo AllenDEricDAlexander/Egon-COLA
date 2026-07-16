@@ -20,5 +20,18 @@
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-tree</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-util</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-bytecode-bridge</artifactId>
+        </dependency>
     </dependencies>
 </project>
