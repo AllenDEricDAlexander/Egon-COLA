@@ -105,6 +105,11 @@ jobs:
                 -Degon.release.shape=true \
                 -DegonArchitecture.cache.enabled=false \
                 verify
+              METHOD_EXTENSION_REPORT="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/failsafe-reports/top.egon.cola.component.bytecode.test.agent.MethodExtensionAgentIntegrationTest.txt"
+              METHOD_EXTENSION_SPRING_LOG="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/it/method-extension-spring/build.log"
+              test -f "${METHOD_EXTENSION_REPORT}"
+              grep -Fq "Failures: 0, Errors: 0" "${METHOD_EXTENSION_REPORT}"
+              grep -Fq "METHOD_EXTENSION_SPRING_OK handlers=4" "${METHOD_EXTENSION_SPRING_LOG}"
               java -jar \
                 egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
                 -l | grep -F ArchitectureScanBenchmark.scanOneThousandClasses

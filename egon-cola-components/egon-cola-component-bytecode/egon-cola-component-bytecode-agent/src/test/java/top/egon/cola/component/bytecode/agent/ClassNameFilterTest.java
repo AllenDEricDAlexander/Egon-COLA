@@ -42,6 +42,14 @@ class ClassNameFilterTest {
         assertFalse(filter.matches(applicationLoader, "io/micrometer/core/instrument/MeterRegistry", classBytes(65)));
         assertFalse(filter.matches(applicationLoader,
                 "top/egon/cola/component/bytecode/agent/BytecodeAgent", classBytes(65)));
+        assertFalse(filter.matches(applicationLoader,
+                "application/OrderService$$SpringCGLIB$$0", classBytes(65)));
+        assertFalse(filter.matches(applicationLoader,
+                "application/OrderService$$FastClassBySpringCGLIB$$0", classBytes(65)));
+        assertFalse(filter.matches(applicationLoader,
+                "application/$Proxy42", classBytes(65)));
+        assertTrue(filter.matches(applicationLoader,
+                "application/$ProxyFactory", classBytes(65)));
     }
 
     @Test

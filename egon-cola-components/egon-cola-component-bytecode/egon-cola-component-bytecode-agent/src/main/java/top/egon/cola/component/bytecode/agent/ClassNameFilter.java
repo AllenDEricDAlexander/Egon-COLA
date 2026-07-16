@@ -21,6 +21,11 @@ public final class ClassNameFilter {
             "io.micrometer.",
             "top.egon.cola.component.bytecode."
     );
+    private static final List<String> GENERATED_PROXY_MARKERS = List.of(
+            "$$SpringCGLIB$$",
+            "$$FastClassBySpringCGLIB$$",
+            "$$EnhancerBySpringCGLIB$$"
+    );
 
     private final List<Pattern> includes;
     private final List<Pattern> excludes;
@@ -38,8 +43,22 @@ public final class ClassNameFilter {
         if (HARD_EXCLUSIONS.stream().anyMatch(className::startsWith)) {
             return false;
         }
+        if (GENERATED_PROXY_MARKERS.stream().anyMatch(className::contains)) {
+            return false;
+        }
+        String simpleName = className.substring(className.lastIndexOf('.') + 1);
+        if (isJdkProxy(simpleName)) {
+            return false;
+        }
         return includes.stream().anyMatch(pattern -> pattern.matcher(className).matches())
                 && excludes.stream().noneMatch(pattern -> pattern.matcher(className).matches());
+    }
+
+    private boolean isJdkProxy(String simpleName) {
+        if (!simpleName.startsWith("$Proxy") || simpleName.length() == "$Proxy".length()) {
+            return false;
+        }
+        return simpleName.substring("$Proxy".length()).chars().allMatch(Character::isDigit);
     }
 
     private boolean supported(byte[] classfileBuffer) {

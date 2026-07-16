@@ -16,7 +16,7 @@ The runtime enhancement has two independently installed parts. Add the Spring st
 
 ```bash
 java -Xverify:all \
-  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor;observation,include=com.example.*,observation-include=com.example.*" \
+  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor;observation;method-extension,include=com.example.*,observation-include=com.example.*" \
   -jar application.jar
 ```
 
@@ -48,6 +48,8 @@ failure-capacity: 32
 Environment keys use `EGON_COLA_BYTECODE_`, such as `EGON_COLA_BYTECODE_INCLUDE`; system properties use `egon.cola.bytecode.`, such as `-Degon.cola.bytecode.config=/opt/egon/bytecode.yaml`. List values accept commas or semicolons. Failure policies are `skip-class`, `disable-feature`, and `mark-fatal`.
 
 Includes can never override the immutable exclusions for bootstrap classes and the `java`, `javax`, `jakarta`, `jdk`, `sun`, `com.sun`, ASM, Spring, logging, Micrometer, and `top.egon.cola.component.bytecode` packages. Only class-file versions 65 through 69 (Java 21 through Java 25) are eligible.
+
+Generated JDK proxy classes (`$ProxyN`) and Spring CGLIB/FastClass classes are also excluded. The Agent enhances the concrete target class instead, so a proxied invocation evaluates a policy once rather than once at the proxy and again at the target.
 
 ## Executor Enhancement Semantics
 
@@ -110,6 +112,45 @@ egon:
 ```
 
 Sampling and runtime disablement become no-ops without retransformation. Runtime Sink failures are isolated into bounded diagnostics, and a depth guard suppresses observations recursively triggered by event publication. The Agent also hard-excludes the bridge, runtime, logging, and metrics packages.
+
+## Method Extension Agent Semantics
+
+Method Extension Agent mode reuses the existing Method Extension annotation, Handler, response conversion, events, and exceptions. Applications must add both starters explicitly because the Method Extension integration is optional and is not exported transitively by the bytecode starter:
+
+```xml
+<dependency>
+    <groupId>top.egon</groupId>
+    <artifactId>egon-cola-component-method-extension-starter</artifactId>
+    <version>${egon-cola.version}</version>
+</dependency>
+<dependency>
+    <groupId>top.egon</groupId>
+    <artifactId>egon-cola-component-bytecode-starter</artifactId>
+    <version>${egon-cola.version}</version>
+</dependency>
+```
+
+Select Agent mode in Spring and enable the matching Agent feature at JVM startup:
+
+```yaml
+egon:
+  cola:
+    component:
+      method-extension:
+        engine: AGENT
+        not-ready-policy: PROCEED
+```
+
+```bash
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=method-extension,include=com.example.*" \
+  -jar application.jar
+```
+
+Agent mode supports concrete instance methods of every visibility, including private same-class calls, final and synchronized methods, interface-declared annotations, and non-Spring objects. Static methods, constructors, abstract, native, synthetic, and bridge methods are excluded. `AOP` and `AGENT` are mutually exclusive engines; Agent mode does not register the Method Extension AOP advisor.
+
+The Handler runs before Method Observation. A rejected invocation therefore produces a Method Extension event but does not enter the observed business method. Allowed synchronous invocations preserve return identity. Rejections support direct values and `returnJson`, and adapt `Future`, `CompletionStage`, and `CompletableFuture` payloads using the existing response rules. Arbitrary concrete `Future` implementations and reactive types are intentionally unsupported.
+
+Spring marks the runtime ready only after singleton initialization. Before that point, `not-ready-policy` controls `PROCEED`, `REJECT`, or `FAIL`; the default is `PROCEED`. Method metadata is cached per application `ClassLoader` without retaining application loaders globally. Events include bounded method and Handler identities and outcomes, but never arguments, return payloads, credentials, or exception messages.
 
 ## Metrics, Status, And Privacy
 
