@@ -74,7 +74,7 @@ jobs:
               ./mvnw -B -ntp clean install
             '
 
-      - name: Verify bytecode architecture plugin with a clean scan
+      - name: Verify bytecode component and release shape with a clean scan
         shell: bash
         run: |
           set -euo pipefail
@@ -97,11 +97,17 @@ jobs:
               ./mvnw -B -ntp \
                 -pl egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test \
                 -am \
+                -Prelease \
+                -Dgpg.skip=true \
+                -Degon.release.shape=true \
                 -DegonArchitecture.cache.enabled=false \
                 verify
               java -jar \
                 egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
                 -l | grep -F ArchitectureScanBenchmark.scanOneThousandClasses
+              java -jar \
+                egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
+                -l | grep -F ExecutorEnhancementBenchmark.transformOneThousandClasses
             '
 
       - name: Resolve project version

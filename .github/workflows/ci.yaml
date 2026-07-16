@@ -78,7 +78,7 @@ jobs:
                 clean install
             '
 
-      - name: Verify bytecode architecture plugin with a clean scan
+      - name: Verify bytecode component and release shape with a clean scan
         run: |
           set -euo pipefail
           ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
@@ -100,11 +100,17 @@ jobs:
               ./mvnw -B -ntp \
                 -pl egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test \
                 -am \
+                -Prelease \
+                -Dgpg.skip=true \
+                -Degon.release.shape=true \
                 -DegonArchitecture.cache.enabled=false \
                 verify
               java -jar \
                 egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
                 -l | grep -F ArchitectureScanBenchmark.scanOneThousandClasses
+              java -jar \
+                egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
+                -l | grep -F ExecutorEnhancementBenchmark.transformOneThousandClasses
             '
 
       - name: Remove self-installed Maven artifacts

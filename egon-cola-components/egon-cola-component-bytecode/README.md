@@ -2,6 +2,98 @@
 
 The bytecode component checks compiled classes against the standard Egon COLA architecture rules without loading or initializing application classes. Its public API is JDK-only; ASM, Maven, and JSON serialization remain implementation details.
 
+## Executor Agent Installation
+
+The runtime enhancement has two independently installed parts. Add the Spring starter to the application and pass the separately published shaded Agent JAR to the JVM before the application main class:
+
+```xml
+<dependency>
+    <groupId>top.egon</groupId>
+    <artifactId>egon-cola-component-bytecode-starter</artifactId>
+    <version>${egon-cola.version}</version>
+</dependency>
+```
+
+```bash
+java -Xverify:all \
+  -javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor,include=com.example.* \
+  -jar application.jar
+```
+
+The published Agent JAR is the main `egon-cola-component-bytecode-agent-${version}.jar`; it already contains relocated ASM and SnakeYAML classes. Do not put an unshaded Agent classifier on the command line. The Agent supports `premain` only.
+
+The Agent is disabled by default and an enabled Agent requires at least one explicit `include` pattern. Supported keys are `enabled`, `features`, `include`, `exclude`, `failure-policy`, `failure-capacity`, and `config`. Configuration precedence from lowest to highest is defaults, environment, JVM system properties, YAML, and `-javaagent` arguments. The `config` path itself is selected from environment, system property, then Agent argument.
+
+```yaml
+enabled: true
+features:
+  - executor
+include:
+  - com.example.*
+exclude:
+  - com.example.generated.*
+failure-policy: skip-class
+failure-capacity: 32
+```
+
+Environment keys use `EGON_COLA_BYTECODE_`, such as `EGON_COLA_BYTECODE_INCLUDE`; system properties use `egon.cola.bytecode.`, such as `-Degon.cola.bytecode.config=/opt/egon/bytecode.yaml`. List values accept commas or semicolons. Failure policies are `skip-class`, `disable-feature`, and `mark-fatal`.
+
+Includes can never override the immutable exclusions for bootstrap classes and the `java`, `javax`, `jakarta`, `jdk`, `sun`, `com.sun`, ASM, Spring, logging, Micrometer, and `top.egon.cola.component.bytecode` packages. Only class-file versions 65 through 69 (Java 21 through Java 25) are eligible.
+
+## Executor Enhancement Semantics
+
+The Agent rewrites exactly these interface call sites in included application classes:
+
+- `Executor.execute(Runnable)`
+- `ExecutorService.submit(Runnable)`
+- `ExecutorService.submit(Runnable, Object)`
+- `ExecutorService.submit(Callable)`
+
+Calls to scheduler APIs, concrete executor-owner methods, JDK classes, and other overloads are left unchanged. Each rewritten site has a stable ID derived from its owner, enclosing method, target signature, and instruction position. A conflicting ID is a hard registration failure rather than an ambiguous metric.
+
+The underlying executor API is invoked exactly once. `submit` returns the exact `Future` created by that executor, while business exceptions, `RejectedExecutionException`, interruption, and cancellation behavior retain their original identities and timing. The wrapper restores captured context around task execution and cleans worker-thread state in `finally`; cancellation cannot prevent a carrier that already performed capture from doing that capture work.
+
+MDC propagation is enabled when SLF4J is present. Additional carriers implement the JDK-only `ContextCarrier` API. Egon-wrapped tasks and exact DTP wrapper types `DtpRunnable` and `DtpCallable` are not wrapped again; the dynamic-thread-pool registry is neither modified nor used for discovery.
+
+Spring runtime settings use the `egon.cola.component.bytecode` prefix:
+
+```yaml
+egon:
+  cola:
+    component:
+      bytecode:
+        enabled: true
+        executor:
+          enabled: true
+          propagate-mdc: true
+          metrics: true
+          sampling-rate: 1.0
+          names:
+            applicationTaskExecutor: application
+        runtime:
+          failure-capacity: 32
+        endpoint:
+          enabled: true
+```
+
+Agent inclusion is decided before Spring starts. Runtime `executor.include` and `executor.exclude` values are reserved requested settings and cannot widen the Agent's effective transformation scope.
+
+## Metrics, Status, And Privacy
+
+When a `MeterRegistry` is present, the starter emits only these bounded metrics:
+
+- `egon.cola.bytecode.executor.tasks.submitted`
+- `egon.cola.bytecode.executor.tasks.started`
+- `egon.cola.bytecode.executor.tasks.finished`
+- `egon.cola.bytecode.executor.queue.wait`
+- `egon.cola.bytecode.executor.execution`
+
+Their complete tag set is `executor`, `executor_type`, `result`, `exception_group`, and `virtual_thread`. Unknown or identity-derived executor names collapse to `unmanaged`, values are sanitized and length-bounded, and `sampling-rate` must be between `0.0` and `1.0`.
+
+Actuator is optional and is not pulled transitively by the starter. If Actuator is already installed and the endpoint is exposed, `GET /actuator/egonbytecode` reports Agent/runtime versions, protocol, state, requested/effective features, bounded counts and recent failures, dispatcher registration, and metadata counts. It never reports raw include/exclude patterns, Agent arguments, tasks, `Future` objects, request IDs, trace IDs, or captured context. Agent startup output likewise prints only pattern counts and SHA-256 digests.
+
+States are `DISABLED`, `STARTING`, `ACTIVE`, `DEGRADED`, and `FAILED`; a missing Agent is reported by the starter as `AGENT_UNAVAILABLE`. A running Agent with a different protocol major fails Spring startup. The Agent does not support Attach, `agentmain`, redefinition, retransformation, bootstrap/JDK transformation, or transformed-class dumps.
+
 ## Maven Plugin
 
 Always declare the plugin version explicitly. Bind `check` in a single-module project or bind `check-reactor` in the terminal module of a multi-module reactor:
@@ -121,7 +213,7 @@ The light, web, and service archetypes replace their generated ArchUnit test wit
 
 ## Compatibility And Benchmark
 
-Production artifacts compile with `--release 21`. Maven Invoker verifies real Java 21 classes locally and compiles a real `--release 25` record fixture on JDK 25 before the plugin scans it.
+Production artifacts compile with `--release 21`. Maven Invoker verifies real Java 21 classes locally and compiles a real `--release 25` record fixture on JDK 25 before the plugin scans it. Forked tests also start real Java 21/25 processes with `-Xverify:all` and the published `-javaagent` JAR, including Surefire and Failsafe fixtures.
 
 Build and list the JMH benchmark with:
 
@@ -131,3 +223,5 @@ java -jar egon-cola-components/egon-cola-component-bytecode/egon-cola-component-
 ```
 
 `ArchitectureScanBenchmark.scanOneThousandClasses` generates its 1,000 deterministic class byte arrays before measurement, then measures parsing, graph construction, all ten rules, and result creation. The controlled target is at or below two seconds; shared CI records performance evidence without applying a noisy absolute threshold.
+
+`ExecutorEnhancementBenchmark` separately records unmatched filtering, 1,000 transformations, direct submission, context-only submission, and context-plus-Micrometer submission. The controlled targets are at most one second for 1,000 transformations and less than five microseconds of submission overhead; shared CI lists and records these benchmarks but does not enforce hardware-sensitive absolute numbers.

@@ -13,6 +13,7 @@
     <name>egon-cola-component-bytecode-test</name>
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
+        <egon.release.shape>false</egon.release.shape>
         <bytecode.agent.jar>${project.parent.basedir}/egon-cola-component-bytecode-agent/target/egon-cola-component-bytecode-agent-${project.version}.jar</bytecode.agent.jar>
     </properties>
     <dependencies>
@@ -45,6 +46,8 @@
                     </excludes>
                     <systemPropertyVariables>
                         <egon.bytecode.agent.jar>${bytecode.agent.jar}</egon.bytecode.agent.jar>
+                        <egon.bytecode.project.version>${project.version}</egon.bytecode.project.version>
+                        <egon.release.shape>${egon.release.shape}</egon.release.shape>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
