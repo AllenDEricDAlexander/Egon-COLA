@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-components-parent</artifactId>
+        <version>5.2.3</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>egon-cola-component-bytecode</artifactId>
+    <packaging>pom</packaging>
+    <name>egon-cola-component-bytecode</name>
+    <description>Bytecode architecture and runtime enhancement platform for Egon COLA.</description>
+
+    <properties>
+        <asm.version>9.9.1</asm.version>
+        <maven.version>3.9.14</maven.version>
+        <maven.plugin.annotations.version>3.15.2</maven.plugin.annotations.version>
+        <maven.plugin.plugin.version>3.15.2</maven.plugin.plugin.version>
+        <maven.invoker.plugin.version>3.9.1</maven.invoker.plugin.version>
+        <jackson.version>2.19.4</jackson.version>
+        <jmh.version>1.37</jmh.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-tree</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-util</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <modules>
+        <module>egon-cola-component-bytecode-api</module>
+        <module>egon-cola-component-bytecode-core</module>
+        <module>egon-cola-component-bytecode-architecture-maven-plugin</module>
+        <module>egon-cola-component-bytecode-test</module>
+        <module>egon-cola-component-bytecode-benchmark</module>
+    </modules>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-plugin-plugin</artifactId>
+                    <version>${maven.plugin.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-invoker-plugin</artifactId>
+                    <version>${maven.invoker.plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
