@@ -12,6 +12,7 @@ import java.util.Properties;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AgentConfigurationLoaderTest {
 
@@ -51,6 +52,7 @@ class AgentConfigurationLoaderTest {
                 argumentConfiguration.features());
         assertEquals(java.util.List.of("argument.one.*", "argument.two.*"),
                 argumentConfiguration.includes());
+        assertTrue(argumentConfiguration.methodExtensionEnabled());
     }
 
     @Test

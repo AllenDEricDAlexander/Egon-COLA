@@ -22,10 +22,10 @@ public record ObservationPolicy(
         staticTags = Map.copyOf(staticTags);
     }
 
-    public MethodMetadata methodMetadata() {
+    public MethodMetadata methodMetadata(Set<BridgeCapability> features) {
         return new MethodMetadata(
                 methodId, owner, methodName, methodDescriptor, access, constructor,
-                Set.of(BridgeCapability.OBSERVATION));
+                features);
     }
 
     public ObservationMetadata observationMetadata() {

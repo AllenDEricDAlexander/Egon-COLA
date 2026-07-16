@@ -67,13 +67,14 @@ public final class MethodObservationEnhancer {
             ClassNode classNode,
             ClassEnhancementPlan plan
     ) {
-        Map<MethodKey, ObservationPolicy> policies = policies(plan);
+        Map<MethodKey, MethodEnhancementPlan> policies = policies(plan);
         boolean changed = false;
         for (MethodNode method : classNode.methods) {
-            ObservationPolicy policy = policies.get(new MethodKey(method.name, method.desc));
-            if (policy == null) {
+            MethodEnhancementPlan methodPlan = policies.get(new MethodKey(method.name, method.desc));
+            if (methodPlan == null) {
                 continue;
             }
+            ObservationPolicy policy = methodPlan.observationPolicy();
             boolean rewritten;
             if (policy.constructor()) {
                 rewritten = constructorEnhancer.rewriteConstructor(
@@ -85,19 +86,19 @@ public final class MethodObservationEnhancer {
             if (!rewritten) {
                 continue;
             }
-            DispatcherRegistry.registerMethod(loader, policy.methodMetadata());
+            DispatcherRegistry.registerMethod(
+                    loader, policy.methodMetadata(methodPlan.bridgeCapabilities()));
             DispatcherRegistry.registerObservation(loader, policy.observationMetadata());
             changed = true;
         }
         return changed;
     }
 
-    private Map<MethodKey, ObservationPolicy> policies(ClassEnhancementPlan plan) {
-        Map<MethodKey, ObservationPolicy> policies = new HashMap<>();
+    private Map<MethodKey, MethodEnhancementPlan> policies(ClassEnhancementPlan plan) {
+        Map<MethodKey, MethodEnhancementPlan> policies = new HashMap<>();
         for (MethodEnhancementPlan method : plan.methods()) {
             if (method.observationPolicy() != null) {
-                policies.put(new MethodKey(method.methodName(), method.methodDescriptor()),
-                        method.observationPolicy());
+                policies.put(new MethodKey(method.methodName(), method.methodDescriptor()), method);
             }
         }
         return policies;

@@ -39,4 +39,8 @@ public record AgentConfiguration(
                     "observationSlowThresholdMillis must be -1 or non-negative");
         }
     }
+
+    public boolean methodExtensionEnabled() {
+        return enabled && features.contains(BridgeCapability.METHOD_EXTENSION);
+    }
 }

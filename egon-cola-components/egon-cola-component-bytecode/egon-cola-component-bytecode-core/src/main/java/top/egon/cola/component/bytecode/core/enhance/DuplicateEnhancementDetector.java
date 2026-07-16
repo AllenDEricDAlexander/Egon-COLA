@@ -10,6 +10,8 @@ public final class DuplicateEnhancementDetector {
             "top/egon/cola/component/bytecode/bridge/EgonExecutorBridge";
     private static final String OBSERVATION_BRIDGE =
             "top/egon/cola/component/bytecode/bridge/EgonObservationBridge";
+    private static final String POLICY_BRIDGE =
+            "top/egon/cola/component/bytecode/bridge/EgonPolicyBridge";
 
     public boolean containsExecutorBridge(ClassNode classNode) {
         return classNode.methods.stream().anyMatch(method -> {
@@ -31,6 +33,19 @@ public final class DuplicateEnhancementDetector {
                 if (instruction instanceof MethodInsnNode invocation
                         && OBSERVATION_BRIDGE.equals(invocation.owner)
                         && "enter".equals(invocation.name)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    public boolean containsMethodExtensionBridge(ClassNode classNode) {
+        return classNode.methods.stream().anyMatch(method -> {
+            for (AbstractInsnNode instruction : method.instructions) {
+                if (instruction instanceof MethodInsnNode invocation
+                        && POLICY_BRIDGE.equals(invocation.owner)
+                        && "evaluateMethodExtension".equals(invocation.name)) {
                     return true;
                 }
             }

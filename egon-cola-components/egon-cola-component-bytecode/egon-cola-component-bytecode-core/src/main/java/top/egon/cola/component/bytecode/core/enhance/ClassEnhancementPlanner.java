@@ -5,6 +5,8 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import top.egon.cola.component.bytecode.core.enhance.executor.ExecutorCallSiteEnhancer;
+import top.egon.cola.component.bytecode.core.enhance.methodextension.MethodExtensionMatcher;
+import top.egon.cola.component.bytecode.core.enhance.methodextension.MethodExtensionPolicy;
 import top.egon.cola.component.bytecode.core.enhance.observation.ObservationMatcher;
 import top.egon.cola.component.bytecode.core.enhance.observation.ObservationPolicy;
 
@@ -17,12 +19,21 @@ import java.util.Set;
 public final class ClassEnhancementPlanner {
 
     public ClassEnhancementPlan plan(ClassNode classNode) {
-        return plan(classNode, null);
+        return plan(null, classNode, null, null);
     }
 
     public ClassEnhancementPlan plan(
             ClassNode classNode,
             ObservationMatcher observationMatcher
+    ) {
+        return plan(null, classNode, observationMatcher, null);
+    }
+
+    public ClassEnhancementPlan plan(
+            ClassLoader loader,
+            ClassNode classNode,
+            ObservationMatcher observationMatcher,
+            MethodExtensionMatcher methodExtensionMatcher
     ) {
         List<MethodEnhancementPlan> methods = new ArrayList<>();
         EnumSet<EnhancementFeature> classFeatures = EnumSet.noneOf(EnhancementFeature.class);
@@ -36,6 +47,9 @@ public final class ClassEnhancementPlanner {
             }
             Optional<ObservationPolicy> observation = observationMatcher == null
                     ? Optional.empty() : observationMatcher.match(classNode.name, method);
+            Optional<MethodExtensionPolicy> methodExtension = methodExtensionMatcher == null
+                    ? Optional.empty()
+                    : methodExtensionMatcher.match(loader, classNode, method);
             EnumSet<EnhancementFeature> methodFeatures =
                     EnumSet.noneOf(EnhancementFeature.class);
             if (candidates > 0) {
@@ -44,13 +58,17 @@ public final class ClassEnhancementPlanner {
             if (observation.isPresent()) {
                 methodFeatures.add(EnhancementFeature.OBSERVATION);
             }
+            if (methodExtension.isPresent()) {
+                methodFeatures.add(EnhancementFeature.METHOD_EXTENSION);
+            }
             if (!methodFeatures.isEmpty()) {
                 methods.add(new MethodEnhancementPlan(
                         method.name,
                         method.desc,
                         methodFeatures,
                         candidates,
-                        observation.orElse(null)
+                        observation.orElse(null),
+                        methodExtension.orElse(null)
                 ));
                 classFeatures.addAll(methodFeatures);
             }
