@@ -39,6 +39,26 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-bridge</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-agent</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-bytecode-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.ow2.asm</groupId>
                 <artifactId>asm</artifactId>
                 <version>${asm.version}</version>
@@ -73,7 +93,11 @@
 
     <modules>
         <module>egon-cola-component-bytecode-api</module>
+        <module>egon-cola-component-bytecode-bridge</module>
         <module>egon-cola-component-bytecode-core</module>
+        <module>egon-cola-component-bytecode-runtime</module>
+        <module>egon-cola-component-bytecode-agent</module>
+        <module>egon-cola-component-bytecode-starter</module>
         <module>egon-cola-component-bytecode-architecture-maven-plugin</module>
         <module>egon-cola-component-bytecode-test</module>
         <module>egon-cola-component-bytecode-benchmark</module>
