@@ -7,6 +7,7 @@ import top.egon.cola.component.accessguard.aop.AccessGuardAop;
 import top.egon.cola.component.accessguard.config.AccessGuardConfigProvider;
 import top.egon.cola.component.accessguard.event.AccessGuardEventPublisher;
 import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
+import top.egon.cola.component.accessguard.key.AccessKeyResolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,5 +43,17 @@ class AccessGuardAutoConfigurationTest {
     void shouldDisableIntegrationWhenEngineIsDisabled() {
         contextRunner.withPropertyValues("egon.cola.component.access-guard.engine=DISABLED")
                 .run(context -> assertThat(context).doesNotHaveBean(AccessGuardAop.class));
+    }
+
+    @Test
+    void shouldRejectMethodOnlyKeyResolverForAgentConstructorSupport() {
+        AccessKeyResolver methodOnlyResolver = (joinPoint, rule) -> null;
+
+        contextRunner.withPropertyValues("egon.cola.component.access-guard.engine=AGENT")
+                .withBean(AccessKeyResolver.class, () -> methodOnlyResolver)
+                .run(context -> assertThat(context)
+                        .hasFailed()
+                        .getFailure()
+                        .hasMessageContaining("ExecutableAccessKeyResolver"));
     }
 }

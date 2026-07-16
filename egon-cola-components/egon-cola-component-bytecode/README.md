@@ -16,7 +16,7 @@ The runtime enhancement has two independently installed parts. Add the Spring st
 
 ```bash
 java -Xverify:all \
-  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor;observation;method-extension,include=com.example.*,observation-include=com.example.*" \
+  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor;observation;method-extension;access-guard,include=com.example.*,observation-include=com.example.*" \
   -jar application.jar
 ```
 
@@ -29,6 +29,7 @@ enabled: true
 features:
   - executor
   - observation
+  - access-guard
 include:
   - com.example.*
 exclude:
@@ -151,6 +152,31 @@ Agent mode supports concrete instance methods of every visibility, including pri
 The Handler runs before Method Observation. A rejected invocation therefore produces a Method Extension event but does not enter the observed business method. Allowed synchronous invocations preserve return identity. Rejections support direct values and `returnJson`, and adapt `Future`, `CompletionStage`, and `CompletableFuture` payloads using the existing response rules. Arbitrary concrete `Future` implementations and reactive types are intentionally unsupported.
 
 Spring marks the runtime ready only after singleton initialization. Before that point, `not-ready-policy` controls `PROCEED`, `REJECT`, or `FAIL`; the default is `PROCEED`. Method metadata is cached per application `ClassLoader` without retaining application loaders globally. Events include bounded method and Handler identities and outcomes, but never arguments, return payloads, credentials, or exception messages.
+
+## Access Guard Agent Semantics
+
+Access Guard Agent mode reuses the existing annotations, rule resolver, white/black lists, rate limiter, failure strategy, rejection handling, and events. Add both optional starters, select the mutually exclusive `AGENT` engine, and enable the matching Agent feature:
+
+```yaml
+egon:
+  cola:
+    component:
+      access-guard:
+        engine: AGENT
+```
+
+```bash
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=access-guard,include=com.example.*" \
+  -jar application.jar
+```
+
+Supported method targets are public/private instance methods and static methods, including same-class, recursive, final, synchronized, proxied, and non-Spring invocations. Protected, package-private, abstract, native, synthetic, bridge methods, and class initializers fail explicitly. A static guarded method may only use a static fallback. Synchronized methods retain their original monitor boundary; timeout execution is rejected because moving the body to another thread would violate that boundary.
+
+Public/private constructors support only aggregate `@AccessGuard`. The guard runs before the first `this(...)` or direct `super(...)` call and therefore has no initialized receiver. Constructor rules support key resolution from parameters, Header, IP, or `all`, plus white/black lists, rate limiting, fail strategy, and events. They reject timeout, fallback, `returnJson`, `LOCAL_FALLBACK`, return replacement, and instance-state access. Every annotated constructor in a successful `this(...)` chain is evaluated once. A custom key resolver used by constructors must also implement `ExecutableAccessKeyResolver`.
+
+When features overlap, the stable invocation order is Method Extension, Access Guard, Method Observation, then the business body. A Method Extension rejection or Access Guard rejection never reaches Method Observation. Agent `failure-policy=mark-fatal` records state `FAILED` and prevents Spring context completion without halting the JVM or terminating class loading; `skip-class` and runtime `FAIL_OPEN` preserve their documented fail-open boundaries. Avoid constructor guards on framework/bootstrap infrastructure that is created before the Agent runtime becomes ready.
+
+Access Guard diagnostics preserve the same privacy contract as the other runtime features: no arguments, return payloads, credentials, cookies, authorization headers, exception messages, raw include patterns, or object text are emitted.
 
 ## Metrics, Status, And Privacy
 

@@ -62,6 +62,10 @@ public final class AgentStateStore {
 
     public void failed() {
         AgentState current = state.get();
+        if (current == AgentState.FAILED) {
+            publish();
+            return;
+        }
         if (current != AgentState.STARTING
                 && current != AgentState.ACTIVE
                 && current != AgentState.DEGRADED) {

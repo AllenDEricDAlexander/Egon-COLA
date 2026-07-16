@@ -1,12 +1,14 @@
 package top.egon.cola.component.bytecode.core.enhance.accessguard;
 
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import top.egon.cola.component.bytecode.core.enhance.MethodId;
 import top.egon.cola.component.bytecode.bridge.BridgeFailHint;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,10 @@ public final class AccessGuardMatcher {
 
     private static final String ACCESS_GUARD =
             "Ltop/egon/cola/component/accessguard/annotation/AccessGuard;";
+    private static final String TIMEOUT =
+            "Ltop/egon/cola/component/accessguard/annotation/TimeoutCircuitBreaker;";
+    private static final String LEGACY_TIMEOUT =
+            "Ltop/egon/cola/component/accessguard/annotation/DoHystrix;";
 
     private final GovernanceAnnotationFilter annotations = new GovernanceAnnotationFilter();
 
@@ -39,9 +45,77 @@ public final class AccessGuardMatcher {
             throw unsupported(owner, method,
                     "only public and private methods are supported");
         }
+        if ((access & Opcodes.ACC_SYNCHRONIZED) != 0 && timeoutRequested(method)) {
+            throw unsupported(owner, method,
+                    "synchronized methods cannot enable timeout");
+        }
+        if ((access & Opcodes.ACC_STATIC) != 0) {
+            validateStaticFallback(owner, method);
+        }
         return Optional.of(new AccessGuardPolicy(
                 MethodId.compute(owner.name, method.name, method.desc),
                 owner.name, method.name, method.desc, method.access));
+    }
+
+    private boolean timeoutRequested(MethodNode method) {
+        AnnotationNode aggregate = findAccessGuard(method);
+        if (aggregate != null && booleanValue(aggregate, "timeoutBreaker", false)) {
+            return true;
+        }
+        AnnotationNode timeout = findAnnotation(method, TIMEOUT);
+        return (timeout != null && booleanValue(timeout, "enabled", true))
+                || findAnnotation(method, LEGACY_TIMEOUT) != null;
+    }
+
+    private void validateStaticFallback(ClassNode owner, MethodNode method) {
+        String fallback = fallbackMethod(method);
+        if (fallback.isBlank()) {
+            return;
+        }
+        boolean staticFallback = owner.methods.stream().anyMatch(candidate ->
+                candidate.name.equals(fallback)
+                        && (candidate.access & Opcodes.ACC_STATIC) != 0
+                        && supportedFallbackParameters(method.desc, candidate.desc));
+        if (!staticFallback) {
+            throw unsupported(owner, method,
+                    "static methods require a static fallback with compatible parameters");
+        }
+    }
+
+    private boolean supportedFallbackParameters(
+            String guardedDescriptor,
+            String fallbackDescriptor
+    ) {
+        Type[] guarded = Type.getArgumentTypes(guardedDescriptor);
+        Type[] fallback = Type.getArgumentTypes(fallbackDescriptor);
+        if (fallback.length == 0 || Arrays.equals(fallback, guarded)) {
+            return true;
+        }
+        return fallback.length == guarded.length + 1
+                && Arrays.equals(Arrays.copyOf(fallback, guarded.length), guarded)
+                && fallback[fallback.length - 1].getDescriptor().equals(
+                "Ltop/egon/cola/component/accessguard/context/AccessGuardContext;");
+    }
+
+    private String fallbackMethod(MethodNode method) {
+        for (AnnotationNode annotation : allAnnotations(method)) {
+            String fallback = stringValue(annotation, "fallbackMethod", "");
+            if (!fallback.isBlank()) {
+                return fallback;
+            }
+        }
+        return "";
+    }
+
+    private List<AnnotationNode> allAnnotations(MethodNode method) {
+        java.util.ArrayList<AnnotationNode> result = new java.util.ArrayList<>();
+        if (method.visibleAnnotations != null) {
+            result.addAll(method.visibleAnnotations);
+        }
+        if (method.invisibleAnnotations != null) {
+            result.addAll(method.invisibleAnnotations);
+        }
+        return result;
     }
 
     private Optional<AccessGuardPolicy> matchConstructor(ClassNode owner, MethodNode method) {
@@ -71,8 +145,12 @@ public final class AccessGuardMatcher {
     }
 
     private AnnotationNode findAccessGuard(MethodNode method) {
-        AnnotationNode visible = find(method.visibleAnnotations, ACCESS_GUARD);
-        return visible == null ? find(method.invisibleAnnotations, ACCESS_GUARD) : visible;
+        return findAnnotation(method, ACCESS_GUARD);
+    }
+
+    private AnnotationNode findAnnotation(MethodNode method, String descriptor) {
+        AnnotationNode visible = find(method.visibleAnnotations, descriptor);
+        return visible == null ? find(method.invisibleAnnotations, descriptor) : visible;
     }
 
     private AnnotationNode find(List<AnnotationNode> values, String descriptor) {

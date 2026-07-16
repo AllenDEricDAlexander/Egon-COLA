@@ -9,6 +9,7 @@ import org.objectweb.asm.Opcodes;
 import top.egon.cola.component.bytecode.agent.AgentConfiguration;
 import top.egon.cola.component.bytecode.agent.AgentConfigurationLoader;
 import top.egon.cola.component.bytecode.agent.AgentStateStore;
+import top.egon.cola.component.bytecode.agent.AgentState;
 import top.egon.cola.component.bytecode.agent.ClassNameFilter;
 import top.egon.cola.component.bytecode.core.enhance.executor.ExecutorCallSiteEnhancer;
 
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class CompositeBytecodeTransformerTest {
 
@@ -44,6 +46,29 @@ class CompositeBytecodeTransformerTest {
         assertNotNull(transformed);
         assertEquals(1, calls.get());
         assertEquals(1, bridgeCallCount(transformed));
+    }
+
+    @Test
+    void marksFatalButLeavesClassLoadingToTheJvm() throws Exception {
+        AgentConfiguration configuration = new AgentConfigurationLoader().load(
+                "enabled=true,features=access-guard,include=application.*," +
+                        "failure-policy=mark-fatal");
+        AgentStateStore stateStore = new AgentStateStore("test", 4);
+        stateStore.start(configuration);
+        stateStore.active();
+        CompositeBytecodeTransformer transformer = new CompositeBytecodeTransformer(
+                new ClassNameFilter(configuration),
+                configuration,
+                stateStore,
+                (loader, name, bytes) -> {
+                    throw new IllegalArgumentException("unsupported-target");
+                }
+        );
+
+        assertNull(transformer.transform(
+                null, getClass().getClassLoader(), "application/FatalTarget",
+                null, null, fixture()));
+        assertEquals(AgentState.FAILED, stateStore.state());
     }
 
     private byte[] fixture() {

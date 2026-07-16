@@ -58,10 +58,7 @@ public final class CompositeBytecodeTransformer implements ClassFileTransformer 
             stateStore.skipped();
             if (policy == AgentFailurePolicy.MARK_FATAL) {
                 stateStore.failed();
-                IllegalClassFormatException exception = new IllegalClassFormatException(
-                        "Egon bytecode transformation failed for " + className);
-                exception.initCause(failure);
-                throw exception;
+                return null;
             }
             if (stateStore.state() == AgentState.ACTIVE
                     || stateStore.state() == AgentState.STARTING) {

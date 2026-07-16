@@ -2,7 +2,7 @@
 
 ## 简要介绍
 
-`egon-cola-component-access-guard` 是 Egon COLA 的方法级访问治理 starter。它基于 Spring AOP 对标注方法执行白名单、黑名单、限流、超时保护和拒绝响应处理，适合抽奖、优惠券领取、登录、风控校验、热点接口保护等需要在业务方法入口统一治理的场景。
+`egon-cola-component-access-guard` 是 Egon COLA 的方法级访问治理 starter。它可以通过默认的 Spring AOP 引擎或可选的 Bytecode Agent 引擎，对标注入口执行白名单、黑名单、限流、超时保护和拒绝响应处理，适合抽奖、优惠券领取、登录、风控校验、热点接口保护等需要在业务方法入口统一治理的场景。
 
 组件默认提供本地实现和可覆盖扩展点，同时保留 `DoWhiteList`、`DoRateLimiter`、`DoHystrix` 兼容注解，便于从旧式注解平滑迁移。
 
@@ -12,6 +12,37 @@
 |---|---|
 | `egon-cola-component-access-guard-starter` | Spring Boot starter，提供注解、AOP、规则解析、key 解析、白名单、限流、黑名单、超时保护、拒绝响应和事件扩展点 |
 | `egon-cola-component-access-guard-test` | 组件样例和集成验证模块 |
+
+## 执行引擎
+
+`egon.cola.component.access-guard.engine` 支持三种互斥模式：
+
+| 模式 | 行为 |
+|---|---|
+| `AOP` | 默认值，注册 Spring AOP Advisor，适合普通 Spring Bean 方法 |
+| `AGENT` | 不注册 Access Guard AOP，由 Bytecode Agent 治理方法和构造器 |
+| `DISABLED` | 保留基础 Bean，但不注册 AOP 或 Agent 集成 |
+
+Agent 模式需要额外引入 `egon-cola-component-bytecode-starter`，并在 JVM 启动时安装发布的 Agent JAR：
+
+```yaml
+egon:
+  cola:
+    component:
+      access-guard:
+        engine: AGENT
+```
+
+```bash
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-${egon-cola.version}.jar=enabled=true,features=access-guard,include=com.example.*" \
+  -jar application.jar
+```
+
+Agent 模式的方法支持边界是 public/private 实例方法和 static 方法；protected、package-private、abstract、native、synthetic、bridge 方法会在转换阶段明确失败。static 方法配置 fallback 时，fallback 也必须为 static，并继续支持原方法同参、同参追加 `AccessGuardContext` 或无参三种签名。synchronized 方法保留原监视器语义，但不允许开启超时治理。
+
+构造器仅支持 public/private 且只接受组合式 `@AccessGuard`。治理发生在 `this(...)`/`super(...)` 之前，因此没有可用的 `this`，只支持参数、Header、IP、`all` key，以及白名单、黑名单、限流、失败策略和事件；不支持超时、fallback、`returnJson`、`LOCAL_FALLBACK`、返回值替换或实例字段。`this(...)` 链上每个标注构造器各治理一次。基础设施类构造器应谨慎使用，避免在 Spring 运行时就绪前形成启动依赖环。
+
+如果 Agent 构造器模式自定义 `AccessKeyResolver`，该实现还必须实现 `ExecutableAccessKeyResolver`。Agent 事件和诊断不会记录参数、返回值、凭证、Cookie、Authorization 或异常消息。
 
 ## 功能说明
 
@@ -117,6 +148,7 @@ egon:
     component:
       access-guard:
         enabled: true
+        engine: AOP
         storage: REDISSON
         key-prefix: egon:access-guard
         fail-strategy: FAIL_OPEN

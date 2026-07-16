@@ -1,0 +1,6 @@
+def log = new File(basedir, "build.log")
+assert log.isFile()
+assert log.text.contains("ACCESS_GUARD_SPRING_OK")
+assert log.text.contains("Egon bytecode Agent state=ACTIVE")
+assert !log.text.contains("password=secret")
+assert !log.text.contains("include=sample.accessguard.*")

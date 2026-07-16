@@ -99,6 +99,24 @@ class BytecodeAutoConfigurationTest {
         contextRunner.run(context -> assertNotNull(context.getStartupFailure()));
     }
 
+    @Test
+    void rejectsFatalAgentStateWithoutHaltingTheJvm() {
+        DispatcherRegistry.publishAgentStatus(new AgentBridgeStatus(
+                "test",
+                "FAILED",
+                BridgeProtocol.MAJOR,
+                BridgeProtocol.MINOR,
+                Set.of(BridgeCapability.ACCESS_GUARD),
+                Set.of(),
+                0,
+                1,
+                1,
+                List.of()
+        ));
+
+        contextRunner.run(context -> assertNotNull(context.getStartupFailure()));
+    }
+
     private static final class TestDispatcher implements BytecodeRuntimeDispatcher {
 
         @Override

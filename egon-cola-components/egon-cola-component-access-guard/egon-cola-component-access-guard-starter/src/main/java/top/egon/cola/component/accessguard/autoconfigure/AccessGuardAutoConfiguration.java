@@ -73,14 +73,6 @@ public class AccessGuardAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ExecutableAccessKeyResolver executableAccessKeyResolver(
-            AccessGuardProperties properties
-    ) {
-        return new DefaultAccessKeyResolver(properties.getKeyResolveFailureStrategy());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public WhiteListRepository whiteListRepository() {
         return (ruleName, accessKeyHash) -> false;
     }
@@ -187,22 +179,32 @@ public class AccessGuardAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.access-guard",
+            name = "engine",
+            havingValue = "AGENT"
+    )
     public ConstructorAccessGuardExecutionService constructorAccessGuardExecutionService(
             AccessGuardProperties properties,
             AccessGuardRuleResolver ruleResolver,
             ConstructorAccessGuardValidator validator,
-            ExecutableAccessKeyResolver keyResolver,
+            AccessKeyResolver keyResolver,
             WhiteListService whiteListService,
             BlacklistService blacklistService,
             RateLimiterExecutor rateLimiterExecutor,
             AccessGuardEventPublisher eventPublisher,
             AccessGuardFailureHandler failureHandler
     ) {
+        if (!(keyResolver instanceof ExecutableAccessKeyResolver executableKeyResolver)) {
+            throw new IllegalStateException(
+                    "Access Guard Agent constructor support requires an "
+                            + "ExecutableAccessKeyResolver");
+        }
         return new ConstructorAccessGuardExecutionService(
                 properties,
                 ruleResolver,
                 validator,
-                keyResolver,
+                executableKeyResolver,
                 whiteListService,
                 blacklistService,
                 rateLimiterExecutor,

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BytecodeDependencyBoundaryTest {
 
     @Test
-    void keepsActuatorAndMicrometerOptionalAndDoesNotDeclareForbiddenIntegrations() throws Exception {
+    void keepsOptionalIntegrationsOutOfTheDefaultDependencyGraph() throws Exception {
         String pom = Files.readString(Path.of("pom.xml"));
 
         assertTrue(optional(pom, "spring-boot-actuator"));
@@ -20,7 +20,7 @@ class BytecodeDependencyBoundaryTest {
         assertFalse(pom.contains("egon-cola-component-dynamic-thread-pool-starter"));
         assertFalse(pom.contains("redisson"));
         assertFalse(pom.contains("spring-web"));
-        assertFalse(pom.contains("egon-cola-component-access-guard-starter"));
+        assertTrue(optional(pom, "egon-cola-component-access-guard-starter"));
         assertTrue(optional(pom, "egon-cola-component-method-extension-starter"));
     }
 

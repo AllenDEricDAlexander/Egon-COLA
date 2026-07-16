@@ -4,6 +4,7 @@ import org.springframework.util.StringUtils;
 import top.egon.cola.component.accessguard.agent.AgentProceedingJoinPoint;
 import top.egon.cola.component.accessguard.config.AccessGuardRule;
 import top.egon.cola.component.accessguard.config.AccessGuardRuleResolver;
+import top.egon.cola.component.accessguard.context.AccessGuardContext;
 import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
 import top.egon.cola.component.accessguard.execution.AccessGuardFailureHandler;
 import top.egon.cola.component.accessguard.execution.ConstructorAccessGuardExecutionService;
@@ -18,6 +19,7 @@ import top.egon.cola.component.bytecode.starter.methodextension.MethodMetadataRe
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 public final class AccessGuardRuntimeAdapter implements GuardedInvocationEvaluator {
@@ -163,8 +165,7 @@ public final class AccessGuardRuntimeAdapter implements GuardedInvocationEvaluat
         Method fallback = null;
         for (Method candidate : guardedMethod.getDeclaringClass().getDeclaredMethods()) {
             if (candidate.getName().equals(fallbackName)
-                    && java.util.Arrays.equals(
-                    candidate.getParameterTypes(), guardedMethod.getParameterTypes())) {
+                    && supportedFallbackParameters(guardedMethod, candidate)) {
                 fallback = candidate;
                 break;
             }
@@ -173,6 +174,19 @@ public final class AccessGuardRuntimeAdapter implements GuardedInvocationEvaluat
             throw unsupported(guardedMethod,
                     "static methods require a static fallback with matching parameters");
         }
+    }
+
+    private boolean supportedFallbackParameters(Method guardedMethod, Method fallback) {
+        Class<?>[] guardedParameters = guardedMethod.getParameterTypes();
+        Class<?>[] fallbackParameters = fallback.getParameterTypes();
+        if (fallbackParameters.length == 0
+                || Arrays.equals(fallbackParameters, guardedParameters)) {
+            return true;
+        }
+        return fallbackParameters.length == guardedParameters.length + 1
+                && Arrays.equals(
+                Arrays.copyOf(fallbackParameters, guardedParameters.length), guardedParameters)
+                && fallbackParameters[fallbackParameters.length - 1] == AccessGuardContext.class;
     }
 
     private IllegalArgumentException unsupported(Method method, String reason) {

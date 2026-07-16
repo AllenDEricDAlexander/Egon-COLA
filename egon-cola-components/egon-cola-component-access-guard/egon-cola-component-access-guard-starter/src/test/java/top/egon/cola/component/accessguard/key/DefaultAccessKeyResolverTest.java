@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.accessguard.autoconfigure.AccessGuardProperties;
 import top.egon.cola.component.accessguard.config.AccessGuardRule;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.List;
@@ -30,6 +31,17 @@ class DefaultAccessKeyResolverTest {
         assertThat(resolution.rawKey()).isEqualTo("u-001");
         assertThat(resolution.normalizedKey()).isEqualTo("u-001");
         assertThat(resolution.keyHash()).hasSize(64);
+    }
+
+    @Test
+    void shouldResolveScalarConstructorParameterWithoutReflectingIntoJdkType()
+            throws NoSuchMethodException {
+        Constructor<Sample> constructor = Sample.class.getDeclaredConstructor(int.class);
+
+        AccessKeyResolution resolution = resolver.resolve(
+                constructor, new Object[]{7}, rule("value"));
+
+        assertThat(resolution.rawKey()).isEqualTo("7");
     }
 
     @Test
@@ -92,6 +104,12 @@ class DefaultAccessKeyResolverTest {
     }
 
     static class Sample {
+
+        Sample(int value) {
+        }
+
+        Sample() {
+        }
 
         void simple(String userId) {
         }

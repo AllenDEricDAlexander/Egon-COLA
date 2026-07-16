@@ -24,6 +24,10 @@ public final class BytecodeStartupValidator {
             throw new IllegalStateException("Bytecode Agent protocol mismatch: bridge="
                     + BridgeProtocol.MAJOR + ", agent=" + status.protocolMajor());
         }
+        if ("FAILED".equals(status.state())) {
+            throw new IllegalStateException(
+                    "Bytecode Agent entered fatal state before Spring startup");
+        }
     }
 
     public Validation validation() {

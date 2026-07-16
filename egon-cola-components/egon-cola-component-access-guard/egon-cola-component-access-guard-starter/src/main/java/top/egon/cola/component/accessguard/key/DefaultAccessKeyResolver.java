@@ -1,6 +1,7 @@
 package top.egon.cola.component.accessguard.key;
 
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.springframework.beans.BeanUtils;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.util.StringUtils;
@@ -97,7 +98,8 @@ public class DefaultAccessKeyResolver implements AccessKeyResolver, ExecutableAc
             }
         }
         if (args.length == 1) {
-            return resolveFromSingleArgument(args[0], key);
+            return resolveFromSingleArgument(
+                    args[0], executable.getParameterTypes()[0], key);
         }
         return null;
     }
@@ -116,8 +118,15 @@ public class DefaultAccessKeyResolver implements AccessKeyResolver, ExecutableAc
         return null;
     }
 
-    private Object resolveFromSingleArgument(Object argument, String key) {
+    private Object resolveFromSingleArgument(
+            Object argument,
+            Class<?> parameterType,
+            String key
+    ) {
         if (!key.contains(".")) {
+            if (BeanUtils.isSimpleValueType(parameterType)) {
+                return argument;
+            }
             Object propertyValue = readProperty(argument, key);
             return propertyValue != null ? propertyValue : argument;
         }
@@ -157,9 +166,11 @@ public class DefaultAccessKeyResolver implements AccessKeyResolver, ExecutableAc
             return null;
         }
         try {
-            field.setAccessible(true);
+            if (!field.trySetAccessible()) {
+                return null;
+            }
             return field.get(target);
-        } catch (ReflectiveOperationException ignored) {
+        } catch (IllegalAccessException | RuntimeException ignored) {
             return null;
         }
     }

@@ -16,6 +16,8 @@ class AccessGuardMatcherTest {
 
     private static final String ACCESS_GUARD =
             "Ltop/egon/cola/component/accessguard/annotation/AccessGuard;";
+    private static final String TIMEOUT =
+            "Ltop/egon/cola/component/accessguard/annotation/TimeoutCircuitBreaker;";
     private final AccessGuardMatcher matcher = new AccessGuardMatcher();
     private final ClassNode owner = owner();
 
@@ -38,6 +40,38 @@ class AccessGuardMatcherTest {
         assertUnsupported(Opcodes.ACC_PUBLIC | Opcodes.ACC_NATIVE, "nativeValue");
         assertUnsupported(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC, "syntheticValue");
         assertUnsupported(Opcodes.ACC_PUBLIC | Opcodes.ACC_BRIDGE, "bridgeValue");
+    }
+
+    @Test
+    void rejectsSynchronizedMethodsWithTimeout() {
+        MethodNode aggregate = method(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNCHRONIZED,
+                "aggregateTimeout");
+        aggregate.visibleAnnotations.get(0).values = new ArrayList<>(
+                java.util.List.of("timeoutBreaker", true));
+        assertThrows(IllegalArgumentException.class, () -> matcher.match(owner, aggregate));
+
+        MethodNode composed = method(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNCHRONIZED,
+                "composedTimeout");
+        composed.visibleAnnotations.add(new AnnotationNode(TIMEOUT));
+        assertThrows(IllegalArgumentException.class, () -> matcher.match(owner, composed));
+    }
+
+    @Test
+    void requiresStaticFallbackForStaticGuardedMethods() {
+        MethodNode guarded = method(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "guarded");
+        guarded.visibleAnnotations.get(0).values = new ArrayList<>(
+                java.util.List.of("fallbackMethod", "fallback"));
+
+        MethodNode instanceFallback = new MethodNode(
+                Opcodes.ACC_PRIVATE, "fallback", "()V", null, null);
+        owner.methods.add(instanceFallback);
+        assertThrows(IllegalArgumentException.class, () -> matcher.match(owner, guarded));
+
+        instanceFallback.access |= Opcodes.ACC_STATIC;
+        assertTrue(matcher.match(owner, guarded).isPresent());
+
+        instanceFallback.desc = "(Ljava/lang/String;)V";
+        assertThrows(IllegalArgumentException.class, () -> matcher.match(owner, guarded));
     }
 
     private void assertUnsupported(int access, String name) {
