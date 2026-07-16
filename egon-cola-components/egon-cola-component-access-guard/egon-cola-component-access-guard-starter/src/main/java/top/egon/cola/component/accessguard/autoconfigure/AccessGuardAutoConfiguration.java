@@ -170,6 +170,12 @@ public class AccessGuardAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.access-guard",
+            name = "engine",
+            havingValue = "AOP",
+            matchIfMissing = true
+    )
     public AccessGuardAop accessGuardAop(
             AccessGuardProperties properties,
             AccessGuardExecutionService executionService

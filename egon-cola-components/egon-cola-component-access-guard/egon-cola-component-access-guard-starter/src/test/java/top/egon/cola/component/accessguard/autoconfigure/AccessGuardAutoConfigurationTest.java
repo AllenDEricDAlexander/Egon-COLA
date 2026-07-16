@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.accessguard.aop.AccessGuardAop;
 import top.egon.cola.component.accessguard.config.AccessGuardConfigProvider;
 import top.egon.cola.component.accessguard.event.AccessGuardEventPublisher;
+import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,6 +27,20 @@ class AccessGuardAutoConfigurationTest {
     @Test
     void shouldNotCreateAopWhenDisabled() {
         contextRunner.withPropertyValues("egon.cola.component.access-guard.enabled=false")
+                .run(context -> assertThat(context).doesNotHaveBean(AccessGuardAop.class));
+    }
+
+    @Test
+    void shouldSelectAgentWithoutCreatingAop() {
+        contextRunner.withPropertyValues("egon.cola.component.access-guard.engine=AGENT")
+                .run(context -> assertThat(context)
+                        .hasSingleBean(AccessGuardExecutionService.class)
+                        .doesNotHaveBean(AccessGuardAop.class));
+    }
+
+    @Test
+    void shouldDisableIntegrationWhenEngineIsDisabled() {
+        contextRunner.withPropertyValues("egon.cola.component.access-guard.engine=DISABLED")
                 .run(context -> assertThat(context).doesNotHaveBean(AccessGuardAop.class));
     }
 }

@@ -19,6 +19,8 @@ public class AccessGuardProperties {
 
     private boolean enabled = true;
 
+    private AccessGuardEngine engine = AccessGuardEngine.AOP;
+
     private Storage storage = Storage.REDISSON;
 
     private String keyPrefix = "egon:access-guard";
