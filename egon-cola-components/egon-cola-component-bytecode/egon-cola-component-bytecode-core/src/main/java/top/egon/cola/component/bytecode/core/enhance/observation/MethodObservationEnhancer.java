@@ -38,6 +38,8 @@ public final class MethodObservationEnhancer {
     private final ClassEnhancementPlanner planner = new ClassEnhancementPlanner();
     private final DuplicateEnhancementDetector duplicateDetector =
             new DuplicateEnhancementDetector();
+    private final ConstructorObservationEnhancer constructorEnhancer =
+            new ConstructorObservationEnhancer();
 
     public byte[] enhance(
             ClassLoader loader,
@@ -69,12 +71,22 @@ public final class MethodObservationEnhancer {
         boolean changed = false;
         for (MethodNode method : classNode.methods) {
             ObservationPolicy policy = policies.get(new MethodKey(method.name, method.desc));
-            if (policy == null || policy.constructor()) {
+            if (policy == null) {
+                continue;
+            }
+            boolean rewritten;
+            if (policy.constructor()) {
+                rewritten = constructorEnhancer.rewriteConstructor(
+                        classNode.name, classNode.superName, method, policy.methodId());
+            } else {
+                rewriteMethod(classNode.name, method, policy.methodId());
+                rewritten = true;
+            }
+            if (!rewritten) {
                 continue;
             }
             DispatcherRegistry.registerMethod(loader, policy.methodMetadata());
             DispatcherRegistry.registerObservation(loader, policy.observationMetadata());
-            rewriteMethod(classNode.name, method, policy.methodId());
             changed = true;
         }
         return changed;
