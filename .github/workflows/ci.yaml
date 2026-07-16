@@ -78,6 +78,35 @@ jobs:
                 clean install
             '
 
+      - name: Verify bytecode architecture plugin with a clean scan
+        run: |
+          set -euo pipefail
+          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
+          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/home/runner \
+            --env JAVA_HOME=/opt/java \
+            --env MAVEN_USER_HOME=/home/runner/.m2 \
+            --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --volume "${ROCKY_HOME}:/home/runner" \
+            --volume "${HOME}/.m2:/home/runner/.m2" \
+            --volume "${JAVA_HOME}:/opt/java:ro" \
+            --workdir /workspace \
+            "${ROCKY_IMAGE}" \
+            bash -lc '
+              set -euo pipefail
+              ./mvnw -B -ntp \
+                -pl egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test \
+                -am \
+                -DegonArchitecture.cache.enabled=false \
+                verify
+              java -jar \
+                egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
+                -l | grep -F ArchitectureScanBenchmark.scanOneThousandClasses
+            '
+
       - name: Remove self-installed Maven artifacts
         if: always()
         run: |
