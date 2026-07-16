@@ -1,5 +1,7 @@
 # Egon-COLA
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 > Java 21 clean layered architecture scaffolding and reusable Spring Boot components.
 
 [![Fast CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml)
@@ -8,54 +10,52 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-MIT%20%2F%20LGPL--2.1-blue.svg)](#license)
 
-Egon-COLA 是面向 Java 21 与 Spring Boot 3.x 的工程脚手架和基础组件集合。它的目标不是替业务写完所有代码，而是把企业级 Java
-工程中最容易失控的部分先约束住：工程结构、分层边界、入口适配、组件复用和新项目初始化方式。
+Egon-COLA is a Java 21 and Spring Boot 3.x project scaffold and reusable component collection. It does not try to write an entire business system for you. Instead, it constrains the parts of an enterprise Java project that most often drift: project structure, layer boundaries, entry-point adapters, component reuse, and new-project initialization.
 
-一句话：Egon-COLA 负责把工程大方向立住，业务细节仍然交给业务自己完成。
+In short, Egon-COLA establishes the engineering direction while business teams retain ownership of business details.
 
-## 项目定位
+## Project Positioning
 
-Egon-COLA 聚焦三类能力：
+Egon-COLA focuses on three capabilities:
 
-| 能力    | 说明                                                                                   |
-|-------|--------------------------------------------------------------------------------------|
-| 工程脚手架 | 通过 Maven Archetype 生成 light、service、web 三类业务工程骨架。                                    |
-| 分层规范  | 统一 `common / facade / domain / application / infrastructure / adapter / starter` 边界。 |
-| 组件体系  | 提供可复用组件、starter、BOM、测试工具与组件开发规范。                                                     |
+| Capability | Description |
+|---|---|
+| Project scaffolding | Generate light, service, and web business project skeletons through Maven Archetypes. |
+| Layering conventions | Standardize the boundaries of `common / facade / domain / application / infrastructure / adapter / starter`. |
+| Component ecosystem | Provide reusable components, starters, a BOM, test utilities, and component development conventions. |
 
-Egon-COLA 更像工程底座，不是完整业务框架。业务系统可以按需选择组件和技术栈；架构只负责约束方向，不替业务规定所有包名细节，也不强制套用重型
-DDD 模板。
+Egon-COLA is an engineering foundation rather than a complete business framework. Business systems can choose components and technologies as needed; the architecture constrains direction without prescribing every package name or forcing a heavyweight DDD template.
 
-## 仓库结构
+## Repository Layout
 
 ```text
 Egon-COLA
-├── .github/                  # GitHub Actions 工作流
+├── .github/                  # GitHub Actions workflows
 ├── .mvn/wrapper/             # Maven Wrapper
-├── cola-samples/             # archetype 生成的示例工程
+├── cola-samples/             # Example projects generated from archetypes
 │   ├── light/
 │   ├── fable/
 │   └── fable-web/
-├── docs/superpowers/         # 设计规格与执行计划
-├── egon-cola-archetypes/     # Maven Archetype 工程
+├── docs/superpowers/         # Design specifications and execution plans
+├── egon-cola-archetypes/     # Maven Archetype projects
 │   ├── egon-cola-archetype-light/
 │   ├── egon-cola-archetype-service/
 │   ├── egon-cola-archetype-web/
 │   ├── architecture-mermaid-diagrams.md
 │   └── code-style-abstract.md
-├── egon-cola-components/     # 基础组件、starter、BOM 与组件开发脚手架
+├── egon-cola-components/     # Base components, starters, BOM, and component scaffolding
 │   ├── egon-cola-components-bom/
 │   ├── egon-cola-component-common/
 │   └── egon-cola-component-dynamic-thread-pool/
-├── scripts/                  # 本地验证、版本调整、发布说明
+├── scripts/                  # Local verification, version updates, and release notes
 ├── mvnw
 ├── mvnw.cmd
 └── pom.xml
 ```
 
-## 技术版本
+## Technology Versions
 
-| 技术             | 版本                |
+| Technology      | Version             |
 |----------------|-------------------|
 | JDK            | 21                |
 | Maven Wrapper  | 3.9.14            |
@@ -65,7 +65,7 @@ Egon-COLA
 | Lombok         | 1.18.38 / 1.18.46 |
 | JUnit Jupiter  | 5.12.2            |
 
-## 快速开始
+## Quick Start
 
 ```bash
 git clone https://github.com/AllenDEricDAlexander/Egon-COLA.git
@@ -73,27 +73,27 @@ cd Egon-COLA
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-只验证 components 工程：
+To verify only the components reactor:
 
 ```bash
 ./mvnw -V --no-transfer-progress -f egon-cola-components/pom.xml test
 ```
 
-## 本地验证
+## Local Verification
 
-快速验证，等同 Fast CI 的核心构建：
+Quick verification, equivalent to the core Fast CI build:
 
 ```bash
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-Strong CI 的核心构建需要分别使用 JDK 21 与 JDK 25 执行；完整流程还会验证 archetype 生成项目与 Docker 镜像，具体步骤见 `.github/workflows/ci_java_compatibility.yaml`。
+The core Strong CI build runs separately on JDK 21 and JDK 25. The complete workflow also verifies generated archetype projects and Docker images; see `.github/workflows/ci_java_compatibility.yaml` for the exact steps.
 
 ```bash
 ./mvnw -B -ntp clean install
 ```
 
-针对三类 archetype 的生成验证：
+Generation verification for all three archetypes:
 
 ```bash
 ./mvnw -B -ntp \
@@ -101,17 +101,17 @@ Strong CI 的核心构建需要分别使用 JDK 21 与 JDK 25 执行；完整流
   -am clean integration-test
 ```
 
-## 三类 Archetype 生成方式 远程
+## Generating the Three Archetypes from a Remote Repository
 
-Egon-COLA 当前提供三类 Maven Archetype：
+Egon-COLA currently provides three Maven Archetypes:
 
-| Archetype                     | 适用场景                                                                                       | 生成工程                                       |
-|-------------------------------|--------------------------------------------------------------------------------------------|--------------------------------------------|
-| `egon-cola-archetype-light`   | 单模块轻量工程，适合小型服务、组件测试、快速验证。                                                                  | `student-management` 风格单模块工程。              |
-| `egon-cola-archetype-service` | 纯后端服务工程，适合只提供 Dubbo3 Triple RPC / MQ 能力、不暴露 HTTP Controller 的服务。                           | `student-management-evaluation` 风格多模块工程。   |
-| `egon-cola-archetype-web`     | Web 业务工程，适合包含 HTTP adapter、Dubbo3 Triple facade、application、domain、infrastructure 的完整业务服务。 | `student-management-organization` 风格多模块工程。 |
+| Archetype | Use case | Generated project |
+|---|---|---|
+| `egon-cola-archetype-light` | A lightweight single-module project for small services, component tests, and quick verification. | A single-module project in the `student-management` style. |
+| `egon-cola-archetype-service` | A backend-only service that exposes Dubbo3 Triple RPC / MQ capabilities without HTTP Controllers. | A multi-module project in the `student-management-evaluation` style. |
+| `egon-cola-archetype-web` | A complete web business service with HTTP adapters, Dubbo3 Triple facades, application, domain, and infrastructure layers. | A multi-module project in the `student-management-organization` style. |
 
-### 生成 light 工程
+### Generate a light Project
 
 ```bash
 mvn -B archetype:generate \
@@ -125,7 +125,7 @@ mvn -B archetype:generate \
   -DinteractiveMode='false'
 ```
 
-### 生成 service 工程
+### Generate a service Project
 
 ```bash
 mvn -B archetype:generate \
@@ -139,7 +139,7 @@ mvn -B archetype:generate \
   -DinteractiveMode='false'
 ```
 
-### 生成 web 工程
+### Generate a web Project
 
 ```bash
 mvn -B archetype:generate \
@@ -153,25 +153,25 @@ mvn -B archetype:generate \
   -DinteractiveMode='false'
 ```
 
-生成完成后，可以将目标目录直接作为新仓库根目录，使用 IDEA 打开根 `pom.xml`。
+After generation, use the target directory as the root of the new repository and open its root `pom.xml` in IntelliJ IDEA.
 
-## 三类 Archetype 生成方式 本地
+## Generating the Three Archetypes Locally
 
-Egon-COLA 当前提供三类 Maven Archetype：
+Egon-COLA currently provides three Maven Archetypes:
 
-| Archetype                     | 适用场景                                                                                       | 生成工程                                       |
-|-------------------------------|--------------------------------------------------------------------------------------------|--------------------------------------------|
-| `egon-cola-archetype-light`   | 单模块轻量工程，适合小型服务、组件测试、快速验证。                                                                  | `student-management` 风格单模块工程。              |
-| `egon-cola-archetype-service` | 纯后端服务工程，适合只提供 Dubbo3 Triple RPC / MQ 能力、不暴露 HTTP Controller 的服务。                           | `student-management-evaluation` 风格多模块工程。   |
-| `egon-cola-archetype-web`     | Web 业务工程，适合包含 HTTP adapter、Dubbo3 Triple facade、application、domain、infrastructure 的完整业务服务。 | `student-management-organization` 风格多模块工程。 |
+| Archetype | Use case | Generated project |
+|---|---|---|
+| `egon-cola-archetype-light` | A lightweight single-module project for small services, component tests, and quick verification. | A single-module project in the `student-management` style. |
+| `egon-cola-archetype-service` | A backend-only service that exposes Dubbo3 Triple RPC / MQ capabilities without HTTP Controllers. | A multi-module project in the `student-management-evaluation` style. |
+| `egon-cola-archetype-web` | A complete web business service with HTTP adapters, Dubbo3 Triple facades, application, domain, and infrastructure layers. | A multi-module project in the `student-management-organization` style. |
 
-生成前如果要使用本地仓库中的最新 archetype，先执行：
+To use the latest archetype from the local repository, run this before generation:
 
 ```bash
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-### 生成 light 工程
+### Generate a light Project
 
 ```bash
 mvn -B archetype:generate \
@@ -186,7 +186,7 @@ mvn -B archetype:generate \
   -DinteractiveMode='false'
 ```
 
-### 生成 service 工程
+### Generate a service Project
 
 ```bash
 mvn -B archetype:generate \
@@ -201,7 +201,7 @@ mvn -B archetype:generate \
   -DinteractiveMode='false'
 ```
 
-### 生成 web 工程
+### Generate a web Project
 
 ```bash
 mvn -B archetype:generate \
@@ -216,41 +216,41 @@ mvn -B archetype:generate \
   -DinteractiveMode='false'
 ```
 
-生成完成后，可以将目标目录直接作为新仓库根目录，使用 IDEA 打开根 `pom.xml`。
+After generation, use the target directory as the root of the new repository and open its root `pom.xml` in IntelliJ IDEA.
 
-## 组件体系
+## Component Ecosystem
 
-`egon-cola-components` 用于沉淀可复用基础能力。
+`egon-cola-components` stores reusable foundation capabilities.
 
-| 组件 | 说明 |
+| Component | Description |
 |---|---|
-| `egon-cola-component-common-*` | 可按需引入的纯 Jar 基础组件，提供通用错误、模型、响应、ID、加密、脱敏等稳定能力。 |
-| `egon-cola-component-dynamic-thread-pool-starter` | 业务系统按需引入的动态线程池 starter。 |
-| `egon-cola-component-dynamic-thread-pool-admin` | 独立部署的动态线程池管理服务，不进入 BOM。 |
-| `egon-cola-components-bom` | 只导出业务系统可直接依赖的 common 具体模块与 starter 版本。 |
+| `egon-cola-component-common-*` | Optional pure-JAR foundation modules for common errors, models, responses, IDs, cryptography, masking, and related capabilities. |
+| `egon-cola-component-dynamic-thread-pool-starter` | Dynamic thread-pool starter for business systems to add when needed. |
+| `egon-cola-component-dynamic-thread-pool-admin` | Independently deployable dynamic thread-pool management service; not exported by the BOM. |
+| `egon-cola-components-bom` | Exports only the common modules and starter versions that business systems can depend on directly. |
 
-运行时 starter-style 组件推荐结构：
+Recommended structure for runtime starter-style components:
 
 ```text
 egon-cola-component-xxx
 ├── pom.xml
-├── egon-cola-component-xxx-starter   # 业务系统直接引入
-├── egon-cola-component-xxx-test      # 测试工程 / 示例工程
-└── egon-cola-component-xxx-admin     # 可选，后端管理服务
+├── egon-cola-component-xxx-starter   # Direct dependency for business systems
+├── egon-cola-component-xxx-test      # Test / example project
+└── egon-cola-component-xxx-admin     # Optional backend management service
 ```
 
-组件约束：
+Component constraints:
 
-- `egon-cola-component-common` 是 common 聚合 POM，业务系统按需依赖 `egon-cola-component-common-core`、`egon-cola-component-common-result` 等具体 Jar。
-- 除 `common` 这类纯 Jar 基础组件外，运行时 starter-style 组件应由业务系统直接引入 `starter`。
-- `starter` 不反向依赖 `admin`、`test`、`ui`。
-- `test` 只用于组件自测、集成测试和示例启动。
-- `admin` 可选，如果存在，应可以独立部署。
-- 组件工程不放 UI，UI 放到独立前端仓库统一维护。
+- `egon-cola-component-common` is an aggregator POM; business systems depend on concrete JARs such as `egon-cola-component-common-core` and `egon-cola-component-common-result` as needed.
+- Except for pure-JAR foundations such as `common`, runtime starter-style components are consumed through their `starter` module.
+- `starter` must not depend back on `admin`, `test`, or `ui`.
+- `test` is reserved for component self-tests, integration tests, and example startup.
+- `admin` is optional and must be independently deployable when present.
+- Component projects do not contain UI; UI is maintained in a separate frontend repository.
 
-## BOM 使用
+## Using the BOM
 
-业务系统可以通过 BOM 统一管理组件版本：
+Business systems can manage component versions centrally through the BOM:
 
 ```xml
 
@@ -267,7 +267,7 @@ egon-cola-component-xxx
 </dependencyManagement>
 ```
 
-然后按需引入组件：
+Then add only the components you need:
 
 ```xml
 
@@ -279,7 +279,7 @@ egon-cola-component-xxx
 </dependencies>
 ```
 
-动态线程池 starter 是可选运行时组件，业务系统需要线程池治理时再引入：
+The dynamic thread-pool starter is optional; add it only when the business system needs thread-pool governance:
 
 ```xml
 
@@ -291,25 +291,25 @@ egon-cola-component-xxx
 </dependencies>
 ```
 
-如果组件还没有发布到 Maven Central，请先在本仓库执行 `./mvnw clean install`，再在业务工程中使用。
+If a component has not been published to Maven Central, run `./mvnw clean install` in this repository before using it from a business project.
 
 ## CI
 
-Fast CI 使用 `.github/workflows/ci.yaml`，由 GitHub-hosted Ubuntu runner 调度，并在 Rocky Linux 10 容器内分别使用 JDK 21 与 JDK 25 执行：
+Fast CI uses `.github/workflows/ci.yaml`, runs on a GitHub-hosted Ubuntu runner, and executes the following separately on JDK 21 and JDK 25 inside a Rocky Linux 10 container:
 
 ```bash
 ./mvnw -V --no-transfer-progress -DtrimStackTrace=false clean install
 ```
 
-Strong CI 使用 `.github/workflows/ci_java_compatibility.yaml`，由 GitHub-hosted Ubuntu runner 调度，在 Rocky Linux 10 容器内分别使用 JDK 21 与 JDK 25 执行 `clean install` 并验证三类 archetype 生成项目，最后在宿主 runner 构建 Docker 镜像：
+Strong CI uses `.github/workflows/ci_java_compatibility.yaml`, runs on a GitHub-hosted Ubuntu runner, executes `clean install` separately on JDK 21 and JDK 25 inside a Rocky Linux 10 container, verifies projects generated by all three archetypes, and finally builds a Docker image on the host runner:
 
 ```bash
 ./mvnw -B -ntp clean install
 ```
 
-## 发布
+## Release
 
-Egon-COLA 使用 Sonatype Central Portal 发布流程。发布前建议先本地验证 release profile：
+Egon-COLA uses the Sonatype Central Portal release process. Before publishing, verify the release profile locally:
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
@@ -319,7 +319,7 @@ Egon-COLA 使用 Sonatype Central Portal 发布流程。发布前建议先本地
   -Prelease -DskipTests verify
 ```
 
-发布父 POM：
+Publish the parent POMs:
 
 ```bash
 ./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
@@ -327,31 +327,31 @@ Egon-COLA 使用 Sonatype Central Portal 发布流程。发布前建议先本地
 ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 ```
 
-发布 components：
+Publish components:
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
 ```
 
-发布 archetypes：
+Publish archetypes:
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 ```
 
-详细步骤见 [scripts/maven-deploy.md](scripts/maven-deploy.md)。
+See [scripts/maven-deploy.md](scripts/maven-deploy.md) for detailed steps.
 
-## 文档导航
+## Documentation Guide
 
-| 文档                                                                                                                                                                                                                 | 说明                        |
+| Document | Description |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
-| [egon-cola-archetypes/code-style-abstract.md](egon-cola-archetypes/code-style-abstract.md)                                                                                                                         | 大型单体轻量领域分层架构代码风格。         |
-| [egon-cola-archetypes/architecture-mermaid-diagrams.md](egon-cola-archetypes/architecture-mermaid-diagrams.md)                                                                                                     | 分层依赖、调用链路、架构边界 Mermaid 图。 |
-| [egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md](egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md)                           | light archetype 架构说明。     |
-| [egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md](egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md) | service archetype 架构说明。   |
-| [egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md](egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md)                                 | web archetype 架构说明。       |
-| [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md)                                                                                             | 多组件工程结构规范。                |
-| [scripts/maven-deploy.md](scripts/maven-deploy.md)                                                                                                                                                                 | Maven Central 发布操作说明。     |
+| [egon-cola-archetypes/code-style-abstract.md](egon-cola-archetypes/code-style-abstract.md) | Coding style for the large-monolith light domain-layered architecture. |
+| [egon-cola-archetypes/architecture-mermaid-diagrams.md](egon-cola-archetypes/architecture-mermaid-diagrams.md) | Mermaid diagrams for layer dependencies, call flows, and architecture boundaries. |
+| [egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md](egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md) | light archetype architecture. |
+| [egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md](egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md) | service archetype architecture. |
+| [egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md](egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md) | web archetype architecture. |
+| [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md) | Multi-component project structure conventions. |
+| [scripts/maven-deploy.md](scripts/maven-deploy.md) | Maven Central release instructions. |
 
 ## Project Origin
 

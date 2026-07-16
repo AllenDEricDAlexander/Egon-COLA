@@ -1,6 +1,8 @@
 #set( $symbol_pound = '#' )
 ${symbol_pound} ${rootArtifactId}
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 `${rootArtifactId}` is a service-only COLA sample for Course, Schedule, Exam, Paper, and Score workflows. Business traffic enters through Dubbo Triple RPC or RabbitMQ; HTTP is reserved for Spring Boot Actuator management endpoints.
 
 ${symbol_pound}${symbol_pound} Module Ownership

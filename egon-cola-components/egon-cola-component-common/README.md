@@ -1,64 +1,66 @@
 # egon-cola-component-common
 
-## 简要介绍
+[English](README.md) | [中文](README.zh-CN.md)
 
-`egon-cola-component-common` 是 Egon COLA 组件体系的企业级通用能力聚合模块，提供错误码、异常、请求模型、分页模型、响应模型、链路追踪、ID、加密编码、数据脱敏、树结构构建和测试边界断言等基础能力。
+## Overview
 
-这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后按需引入具体子模块，避免把不需要的基础能力一起带入业务工程。
+`egon-cola-component-common` is the enterprise-grade common-capability aggregator for the Egon COLA component ecosystem. It provides foundational capabilities including error codes, exceptions, request models, pagination models, response models, trace context, IDs, cryptographic encoding, data masking, tree construction, and test boundary assertions.
 
-## 模块结构
+This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include only the specific submodules they need, avoiding unnecessary foundational capabilities in the application.
 
-| Module | 说明 |
+## Module Layout
+
+| Module | Description |
 |---|---|
-| `egon-cola-component-common-core` | 通用 `int code` 错误状态、异常基类、业务/系统/校验/权限等异常类型、枚举契约 |
-| `egon-cola-component-common-model` | `PageQuery`、`SortQuery`、`TimeRangeQuery`、`BaseRequest`、`OperatorContext`、`PageModel`、`PageSlice` 等请求和分页模型 |
-| `egon-cola-component-common-trace` | 基于 SLF4J MDC 的 `traceId` 上下文与快照 |
-| `egon-cola-component-common-result` | 对外响应 DTO 与内部服务返回 Model，以及对应工厂方法 |
-| `egon-cola-component-common-id` | UUIDv7 生成工具与 `IdGenerator` 抽象 |
-| `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
-| `egon-cola-component-common-mask` | 手机号、邮箱、首尾保留等稳定脱敏规则 |
-| `egon-cola-component-common-structure` | 通用父子节点树构建器 |
-| `egon-cola-component-common-test` | 组件内部使用的源码依赖边界测试工具 |
+| `egon-cola-component-common-core` | Common `int code` error statuses, exception base classes, business/system/validation/authorization exception types, and enum contracts |
+| `egon-cola-component-common-model` | Request and pagination models such as `PageQuery`, `SortQuery`, `TimeRangeQuery`, `BaseRequest`, `OperatorContext`, `PageModel`, and `PageSlice` |
+| `egon-cola-component-common-trace` | SLF4J MDC-based `traceId` context and snapshots |
+| `egon-cola-component-common-result` | External response DTOs, internal service result Models, and their factory methods |
+| `egon-cola-component-common-id` | UUIDv7 utilities and the `IdGenerator` abstraction |
+| `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
+| `egon-cola-component-common-mask` | Stable masking rules for mobile numbers, email addresses, and prefix/suffix retention |
+| `egon-cola-component-common-structure` | General-purpose parent-child tree builder |
+| `egon-cola-component-common-test` | Source dependency boundary test utilities used internally by components |
 
-## 功能说明
+## Features
 
-### 统一错误状态和异常
+### Unified Error Statuses and Exceptions
 
-`common-core` 以 `CommonStatus` 作为默认错误状态集合，所有状态使用 `int code`，适合 API 响应、日志检索和跨系统传递。业务可以直接使用 `EgonBusinessException`、`EgonValidationException`、`EgonRemoteCallException` 等异常类型，也可以实现 `ErrorStatus` 扩展自己的错误状态。
+`common-core` uses `CommonStatus` as its default error status set. Every status uses an `int code`, making it suitable for API responses, log searches, and cross-system transport. Applications can use exception types such as `EgonBusinessException`, `EgonValidationException`, and `EgonRemoteCallException` directly, or implement `ErrorStatus` to define their own error statuses.
 
-### 请求、查询和分页模型
+### Request, Query, and Pagination Models
 
-`common-model` 的主要契约使用 Java record，并带有稳定 JSON 字段名和字段顺序：
+The primary contracts in `common-model` use Java records with stable JSON field names and ordering:
 
-| 契约 | 用途 |
+| Contract | Purpose |
 |---|---|
-| `PageQuery` | 归一化页码和页大小，页码从 1 开始，默认页大小 10，最大页大小 500 |
-| `SortQuery` | 可选排序字段和 `ASC` / `DESC` 排序方向 |
-| `TimeRangeQuery` | 可选开始/结束时间范围 |
-| `BaseRequest` | 请求元数据容器 |
-| `OperatorContext` | 操作人身份上下文 |
-| `PageModel` / `PageSlice` | 内部分页数据结构，记录集合会被防御性复制为不可变列表 |
+| `PageQuery` | Normalizes page number and page size; page numbers start at 1, the default page size is 10, and the maximum page size is 500 |
+| `SortQuery` | Optional sort field and `ASC` / `DESC` direction |
+| `TimeRangeQuery` | Optional start/end time range |
+| `BaseRequest` | Request metadata container |
+| `OperatorContext` | Operator identity context |
+| `PageModel` / `PageSlice` | Internal pagination structures whose record collections are defensively copied into immutable lists |
 
-### 对外 DTO 与内部 Model 分离
+### Separate External DTOs and Internal Models
 
-`common-result` 区分对外 API 响应和内部应用/服务结果：
+`common-result` distinguishes external API responses from internal application/service results:
 
-| 场景 | 类型 |
+| Scenario | Types |
 |---|---|
-| Controller 对外返回 | `ResultDto`、`PageResultDto`、`ErrorResultDto` |
-| 应用服务/领域服务内部返回 | `ResultModel`、`PageResultModel`、`ErrorResultModel` |
-| 对外响应工厂 | `ResultDtos` |
-| 内部结果工厂 | `ResultModels` |
+| Controller responses | `ResultDto`, `PageResultDto`, `ErrorResultDto` |
+| Internal application/domain service results | `ResultModel`, `PageResultModel`, `ErrorResultModel` |
+| External response factory | `ResultDtos` |
+| Internal result factory | `ResultModels` |
 
-`ResultDtos` 会读取 `TraceContext.getTraceId()`，把当前 MDC 中的 `traceId` 写入响应，便于日志和接口结果关联。
+`ResultDtos` reads `TraceContext.getTraceId()` and writes the current MDC `traceId` into the response, linking API results to logs.
 
-### 基础工具能力
+### Foundational Utilities
 
-`common-id` 提供 UUIDv7，适合生成趋势递增的业务 ID。`common-crypto` 提供稳定的 UTF-8 编码/摘要方法。`common-mask` 负责常用字段脱敏。`common-structure` 的 `TreeBuilder` 可以把平铺节点构造成父子树。
+`common-id` provides UUIDv7 for generating roughly time-ordered business IDs. `common-crypto` provides stable UTF-8 encoding and digest methods. `common-mask` handles common field masking. `TreeBuilder` in `common-structure` converts flat nodes into parent-child trees.
 
-## 依赖方式
+## Dependency Setup
 
-先导入组件 BOM：
+First import the component BOM:
 
 ```xml
 <dependencyManagement>
@@ -74,7 +76,7 @@
 </dependencyManagement>
 ```
 
-再按需引入具体模块：
+Then include the specific modules you need:
 
 ```xml
 <dependencies>
@@ -113,9 +115,9 @@
 </dependencies>
 ```
 
-## 完整的使用示例
+## Complete Usage Example
 
-下面示例展示一个查询订单列表的 Controller：它使用 `PageQuery` 归一化分页参数，用 `ResultDtos` 输出对外响应，用 `TraceContext` 注入响应链路 ID，用 `UuidV7` 生成业务 ID，用 `Masking` 和 `Hmacs` 处理展示和签名。
+The following example shows a Controller that queries a list of orders. It uses `PageQuery` to normalize pagination parameters, `ResultDtos` for external responses, `TraceContext` to include a trace ID in the response, `UuidV7` to generate a business ID, and `Masking` plus `Hmacs` for display and signing:
 
 ```java
 package demo.order;
@@ -179,7 +181,7 @@ public class OrderController {
 }
 ```
 
-配套服务可以返回内部模型，Controller 再决定是否转换为 DTO：
+The associated service can return an internal model, allowing the Controller to decide whether to convert it into a DTO:
 
 ```java
 package demo.order;
@@ -209,7 +211,7 @@ record OrderRecord(String orderId, String buyerMobile) {
 }
 ```
 
-树结构构建示例：
+Tree construction example:
 
 ```java
 import top.egon.cola.component.common.structure.tree.TreeBuilder;
@@ -218,51 +220,51 @@ import top.egon.cola.component.common.structure.tree.TreeNode;
 import java.util.List;
 
 List<TreeNode<Long, String>> nodes = List.of(
-        new TreeNode<>(1L, null, "总部"),
-        new TreeNode<>(2L, 1L, "华东区"),
-        new TreeNode<>(3L, 2L, "上海")
+        new TreeNode<>(1L, null, "Headquarters"),
+        new TreeNode<>(2L, 1L, "East China"),
+        new TreeNode<>(3L, 2L, "Shanghai")
 );
 
 List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 ```
 
-## 设计思想和实现细节
+## Design Principles and Implementation Details
 
-### 设计思想
+### Design Principles
 
-1. 按能力拆分，不做大而全的 common Jar。业务方只引入自己需要的模块。
-2. 对外 DTO 与内部 Model 分离，避免内部调用结果被 Controller 响应格式绑死。
-3. 公共契约优先使用 Java record，保持不可变、可序列化、字段顺序稳定。
-4. `common-core` 保持无 Spring、无 Jackson 依赖，减少基础错误码和异常的传递成本。
-5. 工具能力只保留稳定、明确、低侵入的函数，不引入业务语义。
+1. Split by capability instead of creating an all-inclusive common JAR. Applications include only the modules they need.
+2. Separate external DTOs from internal Models so that Controller response formats do not constrain internal call results.
+3. Prefer Java records for common contracts to preserve immutability, serializability, and stable field ordering.
+4. Keep `common-core` free of Spring and Jackson dependencies to reduce the cost of sharing foundational error codes and exceptions.
+5. Retain only stable, explicit, low-intrusion utility functions without introducing business semantics.
 
-### 实现细节
+### Implementation Details
 
-- `PageQuery` 在构造时完成页码和页大小归一化，`offset()` 根据归一化后的值计算数据库偏移量。
-- `PageModel` 会复制传入 records 并包装为不可变列表，避免分页结果被外部修改。
-- `ResultDtos.success`、`ResultDtos.page` 会读取 `TraceContext`，把 MDC `traceId` 写入响应。
-- `UuidV7` 基于 time-ordered epoch UUID，适合日志排序和索引局部性更好的 ID 场景。
-- `Masking.mobile` 对标准手机号保留前三后四，短字符串走首尾保留规则。
-- `TreeBuilder` 使用 `LinkedHashMap` 保持输入顺序，默认把孤儿节点作为根节点保留。
-- `SourceBoundaryAssert` 位于 `common-test`，用于组件内部测试源码边界，不应作为业务运行时依赖。
+- `PageQuery` normalizes page number and page size during construction, and `offset()` calculates a database offset from the normalized values.
+- `PageModel` copies the supplied records and wraps them in an immutable list so callers cannot modify the pagination result.
+- `ResultDtos.success` and `ResultDtos.page` read `TraceContext` and include the MDC `traceId` in the response.
+- `UuidV7` is based on a time-ordered epoch UUID and suits IDs that benefit from log ordering and better index locality.
+- `Masking.mobile` keeps the first three and last four digits of a standard mobile number; short strings use the prefix/suffix retention rule.
+- `TreeBuilder` uses `LinkedHashMap` to preserve input order and, by default, retains orphan nodes as roots.
+- `SourceBoundaryAssert` is located in `common-test`. It is intended for component-internal source boundary tests and should not be used as a business runtime dependency.
 
-## 迁移说明
+## Migration Notes
 
-| 旧 API | 新 API |
+| Old API | New API |
 |---|---|
-| `top.egon.cola.component.common.result.Result` | `ResultDto` 或 `ResultModel` |
-| `top.egon.cola.component.common.result.PageResult` | `PageResultDto` 或 `PageResultModel` |
+| `top.egon.cola.component.common.result.Result` | `ResultDto` or `ResultModel` |
+| `top.egon.cola.component.common.result.PageResult` | `PageResultDto` or `PageResultModel` |
 | `top.egon.cola.component.common.exception.BusinessException` | `EgonBusinessException` |
 | `top.egon.cola.component.common.exception.SystemException` | `EgonSystemException` |
 | `top.egon.cola.component.common.exception.ErrorCodes` | `CommonStatus` |
-| `top.egon.cola.component.common.util.IdUtils` | `UuidV7` 或 `UuidV7Generator` |
-| `top.egon.cola.component.common.util.CryptoUtils` | `Digests`、`Hmacs`、`Base64s`、`Hexes` |
+| `top.egon.cola.component.common.util.IdUtils` | `UuidV7` or `UuidV7Generator` |
+| `top.egon.cola.component.common.util.CryptoUtils` | `Digests`, `Hmacs`, `Base64s`, `Hexes` |
 | `top.egon.cola.component.common.util.MaskingUtils` | `Masking` |
 | `top.egon.cola.component.common.util.TreeUtils` | `TreeBuilder` |
 
-旧的 `util` 聚合包、JavaBean 风格通用契约、`BaseEntity` 和 `AuditableModel` 已被有意移除。
+The legacy aggregated `util` package, JavaBean-style common contracts, `BaseEntity`, and `AuditableModel` were intentionally removed.
 
-## 验证命令
+## Validation Command
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/pom.xml test

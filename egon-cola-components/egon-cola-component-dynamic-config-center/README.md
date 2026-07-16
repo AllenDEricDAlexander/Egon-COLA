@@ -1,36 +1,38 @@
 # Egon COLA Dynamic Config Center Component
 
-## 简要介绍
+[English](README.md) | [中文](README.zh-CN.md)
 
-`egon-cola-component-dynamic-config-center` 是 Egon COLA 的动态配置中心组件，提供业务应用 starter SDK 和独立 admin 后端。业务应用通过 `@DdcValue` 绑定配置字段，starter 负责默认值注入、配置拉取、Redis 变更监听、运行时刷新、实例注册、心跳和 ACK 上报；admin 负责配置项管理、版本管理、发布任务、实例状态、Redis 缓存和一致性策略。
+## Overview
 
-组件边界是后端闭环能力，不包含 UI、账号登录、RBAC/权限管理，也不包含 MySQL、Spring Boot 2.7 或 JDK 17 兼容目标。
+`egon-cola-component-dynamic-config-center` is the Egon COLA dynamic configuration center component. It provides a starter SDK for business applications and a standalone admin backend. Business applications bind configuration fields through `@DdcValue`; the starter handles default-value injection, configuration pulls, Redis change listening, runtime refresh, instance registration, heartbeats, and ACK reporting. The admin handles configuration item management, version management, publish tasks, instance status, Redis caching, and consistency strategies.
 
-## 模块结构
+The component provides an end-to-end backend capability. It does not include a UI, account login, RBAC/permission management, or compatibility targets for MySQL, Spring Boot 2.7, or JDK 17.
 
-| Module | 说明 |
+## Module Layout
+
+| Module | Description |
 |---|---|
-| `egon-cola-component-dynamic-config-center-starter` | 业务应用 SDK，提供 `@DdcValue`、字段绑定、配置刷新、Redis 订阅、Admin OpenAPI 客户端、注册/心跳/ACK |
-| `egon-cola-component-dynamic-config-center-admin` | 独立管理后端，提供 REST API、JPA 持久化、Flyway 初始化脚本、Redis 缓存、发布任务和实例管理 |
-| `egon-cola-component-dynamic-config-center-test` | starter 样例应用和刷新流程验证 |
+| `egon-cola-component-dynamic-config-center-starter` | Business application SDK that provides `@DdcValue`, field binding, configuration refresh, Redis subscription, the Admin OpenAPI client, registration, heartbeat, and ACK support |
+| `egon-cola-component-dynamic-config-center-admin` | Standalone management backend that provides REST APIs, JPA persistence, Flyway initialization scripts, Redis caching, publish tasks, and instance management |
+| `egon-cola-component-dynamic-config-center-test` | Starter sample application and refresh-flow verification |
 
-## 功能说明
+## Features
 
 ### Starter SDK
 
-业务应用引入 starter 后，`DdcAutoConfig` 会自动装配：
+After a business application includes the starter, `DdcAutoConfig` auto-configures the following:
 
-| Bean / 能力 | 说明 |
+| Bean / Capability | Description |
 |---|---|
-| `DdcValueConverter` | 将字符串配置转换为 `String`、`Integer`、`Long`、`Boolean`、`Double`、`BigDecimal`、`Enum`、`List<String>` 或 JSON 对象 |
-| `DdcLocalConfigRepository` | 保存本地配置值、版本号和字段绑定关系 |
-| `DdcFieldBindingService` | 扫描 `@DdcValue` 字段，注入默认值，并在刷新时反射更新字段 |
-| `DdcAdminClient` | 通过 HTTP 调用 admin OpenAPI |
-| `DdcRefreshService` | 接收发布消息，比较本地版本，更新字段并上报 SUCCESS / FAILED / IGNORED ACK |
-| `DdcRedisChangeListener` | 订阅 Redis Topic，接收 admin 发布的配置变更消息 |
-| `DdcInstanceService` | 注册实例、发送心跳、下线实例 |
+| `DdcValueConverter` | Converts string configurations into `String`, `Integer`, `Long`, `Boolean`, `Double`, `BigDecimal`, `Enum`, `List<String>`, or JSON objects |
+| `DdcLocalConfigRepository` | Stores local configuration values, versions, and field bindings |
+| `DdcFieldBindingService` | Scans `@DdcValue` fields, injects defaults, and updates fields reflectively during refresh |
+| `DdcAdminClient` | Calls the admin OpenAPI over HTTP |
+| `DdcRefreshService` | Receives publish messages, compares local versions, updates fields, and reports SUCCESS / FAILED / IGNORED ACKs |
+| `DdcRedisChangeListener` | Subscribes to the Redis Topic and receives configuration change messages published by the admin |
+| `DdcInstanceService` | Registers instances, sends heartbeats, and takes instances offline |
 
-`@DdcValue` 支持两种写法：
+`@DdcValue` supports two forms:
 
 ```java
 @DdcValue("rateLimit:100")
@@ -40,67 +42,67 @@ private volatile Integer rateLimit;
 private volatile Boolean downgradeSwitch;
 ```
 
-### Admin 后端
+### Admin Backend
 
-Admin API 基础路径为 `/api/v1/ddc`：
+The Admin API base path is `/api/v1/ddc`:
 
-| API | 说明 |
+| API | Description |
 |---|---|
-| `GET /api/v1/ddc/manifest` | 管理 UI 发现用 manifest |
-| `GET /api/v1/ddc/apps` / `POST /api/v1/ddc/apps` | 应用查询和创建 |
-| `GET /api/v1/ddc/namespaces` / `POST /api/v1/ddc/namespaces` | 命名空间查询和创建 |
-| `GET /api/v1/ddc/configs` | 查询配置项 |
-| `POST /api/v1/ddc/configs` | 创建配置项 |
-| `PUT /api/v1/ddc/configs/{id}` | 更新配置项 |
-| `DELETE /api/v1/ddc/configs/{id}` | 软删除配置项 |
-| `POST /api/v1/ddc/configs/{id}/publish` | 发布配置 |
-| `GET /api/v1/ddc/configs/{id}/versions` | 查询配置版本 |
-| `POST /api/v1/ddc/configs/{id}/rollback` | 回滚配置版本 |
-| `GET /api/v1/ddc/publish-tasks` | 查询发布任务 |
-| `GET /api/v1/ddc/publish-tasks/{changeId}` | 查询单个发布任务 |
-| `GET /api/v1/ddc/instances` | 查询实例 |
-| `POST /api/v1/ddc/cache/rebuild` | 重建 Redis 缓存 |
-| `GET /api/v1/ddc/cache/check` | 校验数据库和缓存一致性 |
+| `GET /api/v1/ddc/manifest` | Manifest for management UI discovery |
+| `GET /api/v1/ddc/apps` / `POST /api/v1/ddc/apps` | Query and create applications |
+| `GET /api/v1/ddc/namespaces` / `POST /api/v1/ddc/namespaces` | Query and create namespaces |
+| `GET /api/v1/ddc/configs` | Query configuration items |
+| `POST /api/v1/ddc/configs` | Create a configuration item |
+| `PUT /api/v1/ddc/configs/{id}` | Update a configuration item |
+| `DELETE /api/v1/ddc/configs/{id}` | Soft-delete a configuration item |
+| `POST /api/v1/ddc/configs/{id}/publish` | Publish a configuration |
+| `GET /api/v1/ddc/configs/{id}/versions` | Query configuration versions |
+| `POST /api/v1/ddc/configs/{id}/rollback` | Roll back a configuration version |
+| `GET /api/v1/ddc/publish-tasks` | Query publish tasks |
+| `GET /api/v1/ddc/publish-tasks/{changeId}` | Query a single publish task |
+| `GET /api/v1/ddc/instances` | Query instances |
+| `POST /api/v1/ddc/cache/rebuild` | Rebuild the Redis cache |
+| `GET /api/v1/ddc/cache/check` | Check database/cache consistency |
 
-SDK OpenAPI 位于 `/api/v1/ddc/openapi`，由 starter 调用：
+The SDK OpenAPI is under `/api/v1/ddc/openapi` and is called by the starter:
 
-| API | 说明 |
+| API | Description |
 |---|---|
-| `POST /instances/register` | 实例注册 |
-| `POST /instances/heartbeat` | 实例心跳 |
-| `POST /instances/offline` | 实例下线 |
-| `GET /configs/pull` | 拉取全量配置 |
-| `GET /configs/{key}` | 拉取单个配置 |
-| `POST /publish/ack` | 上报发布 ACK |
-| `POST /defaults/report` | 上报注解默认值 |
+| `POST /instances/register` | Register an instance |
+| `POST /instances/heartbeat` | Send an instance heartbeat |
+| `POST /instances/offline` | Take an instance offline |
+| `GET /configs/pull` | Pull all configurations |
+| `GET /configs/{key}` | Pull a single configuration |
+| `POST /publish/ack` | Report a publish ACK |
+| `POST /defaults/report` | Report annotation defaults |
 
-### 发布一致性
+### Publish Consistency
 
-Admin 支持三种发布模式：
+The admin supports three publish modes:
 
-| PublishMode | 行为 |
+| PublishMode | Behavior |
 |---|---|
-| `ASYNC` | 消息写入 Redis 并发布后立即完成 |
-| `STRONG_ALL_ACK` | 所有目标实例成功 ACK 才成功；全部目标结束且存在失败/超时则失败 |
-| `STRONG_QUORUM_ACK` | 多数实例成功 ACK 即成功；失败/超时数量导致无法达成多数时失败 |
+| `ASYNC` | Completes immediately after the message is written to and published through Redis |
+| `STRONG_ALL_ACK` | Succeeds only after every target instance returns a successful ACK; fails when all targets finish and any failure or timeout exists |
+| `STRONG_QUORUM_ACK` | Succeeds after a majority of instances return successful ACKs; fails when the number of failures/timeouts makes a majority impossible |
 
-### Redis Key
+### Redis Keys
 
-starter 和 admin 共享 `DdcKeys`：
+The starter and admin share `DdcKeys`:
 
-| Key / Topic | 说明 |
+| Key / Topic | Description |
 |---|---|
-| `ddc:config:{appCode}:{env}:{namespace}:{key}` | 配置值 |
-| `ddc:version:{appCode}:{env}:{namespace}:{key}` | 配置版本 |
-| `ddc:instance:{appCode}:{env}:{namespace}:{instanceId}` | 实例详情 |
-| `ddc:instances:{appCode}:{env}:{namespace}` | 实例集合 |
-| `ddc:publish:{changeId}` | 发布任务 |
-| `ddc:publish:ack:{changeId}` | 发布 ACK |
-| `ddc:topic:{appCode}:{env}:{namespace}` | 配置发布 Topic |
+| `ddc:config:{appCode}:{env}:{namespace}:{key}` | Configuration value |
+| `ddc:version:{appCode}:{env}:{namespace}:{key}` | Configuration version |
+| `ddc:instance:{appCode}:{env}:{namespace}:{instanceId}` | Instance details |
+| `ddc:instances:{appCode}:{env}:{namespace}` | Instance set |
+| `ddc:publish:{changeId}` | Publish task |
+| `ddc:publish:ack:{changeId}` | Publish ACK |
+| `ddc:topic:{appCode}:{env}:{namespace}` | Configuration publish Topic |
 
-## 依赖方式
+## Dependency Setup
 
-业务应用引入 starter：
+Include the starter in a business application:
 
 ```xml
 <dependencyManagement>
@@ -123,15 +125,15 @@ starter 和 admin 共享 `DdcKeys`：
 </dependencies>
 ```
 
-Admin 服务作为组件内独立应用构建和部署：
+Build and deploy the Admin service as a standalone application within the component:
 
 ```bash
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin -am package -DskipTests
 ```
 
-## 配置说明
+## Configuration
 
-业务应用配置前缀为 `egon.cola.component.ddc`：
+The business application configuration prefix is `egon.cola.component.ddc`:
 
 ```yaml
 spring:
@@ -165,7 +167,7 @@ egon:
           fail-fast: true
 ```
 
-Admin 默认端口和 Flyway 配置：
+Default Admin port and Flyway configuration:
 
 ```yaml
 server:
@@ -189,18 +191,18 @@ egon:
             database: 0
 ```
 
-Flyway 脚本位置：
+Flyway script locations:
 
 ```text
 classpath:db/postgresql/V1__create_ddc_schema.sql
 classpath:db/sqlite/V1__create_ddc_schema.sql
 ```
 
-## 完整的使用示例
+## Complete Usage Example
 
-### 1. 业务应用绑定动态配置
+### 1. Bind Dynamic Configuration in a Business Application
 
-配置字段建议使用 `volatile`，确保刷新后其他线程可以及时读取到新值。
+Use `volatile` for configuration fields so that other threads can observe refreshed values promptly.
 
 ```java
 package demo.order;
@@ -227,7 +229,7 @@ public class OrderSwitchService {
 }
 ```
 
-### 2. 创建配置项
+### 2. Create a Configuration Item
 
 ```bash
 curl -X POST 'http://localhost:18080/api/v1/ddc/configs?operator=admin' \
@@ -240,11 +242,11 @@ curl -X POST 'http://localhost:18080/api/v1/ddc/configs?operator=admin' \
     "configValue": "100",
     "defaultValue": "100",
     "valueType": "INTEGER",
-    "description": "订单接口限流阈值"
+    "description": "Order API rate-limit threshold"
   }'
 ```
 
-### 3. 发布配置
+### 3. Publish a Configuration
 
 ```bash
 curl -X POST 'http://localhost:18080/api/v1/ddc/configs/{configId}/publish?operator=admin' \
@@ -257,9 +259,9 @@ curl -X POST 'http://localhost:18080/api/v1/ddc/configs/{configId}/publish?opera
   }'
 ```
 
-发布后 admin 会更新数据库版本、写入 Redis 配置值、发布 `DdcPublishMessage`。业务应用收到消息后，`DdcRefreshService` 会更新本地字段并上报 ACK。
+After publication, the admin updates the database version, writes the configuration value to Redis, and publishes a `DdcPublishMessage`. When the business application receives the message, `DdcRefreshService` updates the local field and reports an ACK.
 
-### 4. 查询发布任务和实例
+### 4. Query Publish Tasks and Instances
 
 ```bash
 curl 'http://localhost:18080/api/v1/ddc/publish-tasks'
@@ -267,9 +269,9 @@ curl 'http://localhost:18080/api/v1/ddc/publish-tasks/{changeId}'
 curl 'http://localhost:18080/api/v1/ddc/instances?appCode=order-service&env=dev&namespace=default'
 ```
 
-### 5. 本地无 admin 时使用注解默认值
+### 5. Use Annotation Defaults Without a Local Admin
 
-如果本地开发不启动 admin，可以关闭 Redis 并关闭 fail-fast，字段会保持 `@DdcValue` 中的默认值：
+If the admin is not running during local development, disable Redis and fail-fast. Fields will retain the defaults declared in `@DdcValue`:
 
 ```yaml
 egon:
@@ -286,36 +288,36 @@ egon:
           fail-fast: false
 ```
 
-## 设计思想和实现细节
+## Design Principles and Implementation Details
 
-### 设计思想
+### Design Principles
 
-1. starter 和 admin 分离。业务应用只依赖轻量 SDK，管理端独立部署。
-2. 配置定位使用 `appCode + env + namespace + configKey`，避免不同应用、环境、命名空间互相污染。
-3. 默认值随业务代码声明，admin 不可用时仍能保持本地可启动。
-4. 发布链路先写数据库和版本，再写 Redis 并发布消息，业务侧通过版本号判断是否需要刷新。
-5. 一致性策略独立封装，异步发布、全量 ACK、多数 ACK 三种模式共享发布任务和 ACK 模型。
+1. Separate the starter from the admin. Business applications depend only on the lightweight SDK, while the management backend is deployed independently.
+2. Address configurations with `appCode + env + namespace + configKey` to prevent contamination across applications, environments, and namespaces.
+3. Declare defaults alongside business code so local startup can continue when the admin is unavailable.
+4. In the publish flow, write the database and version first, then update Redis and publish the message. The business side uses the version to decide whether a refresh is needed.
+5. Encapsulate consistency strategies independently so asynchronous, all-ACK, and quorum-ACK modes share the same publish task and ACK models.
 
-### 实现细节
+### Implementation Details
 
-- `DdcBeanPostProcessor` 扫描 Spring Bean 字段上的 `@DdcValue`，并委托 `DdcFieldBindingService` 绑定。
-- `DdcValueParser` 支持 `key:defaultValue` 表达式，也支持通过注解的 `key`、`defaultValue`、`type` 显式声明。
-- `DdcValueConverter` 将字符串配置转换为目标字段类型；复杂对象走 Jackson JSON 反序列化。
-- `DdcLocalConfigRepository` 保存配置版本，收到旧版本消息时会 ACK 为 `IGNORED`。
-- `DdcPublishService.publish` 使用 `TransactionTemplate` 准备发布任务、目标 ACK 记录和版本记录，然后写 Redis 并发布消息。
-- `PublishFailureRecorder` 在发布异常时记录失败任务，避免异常链路没有可追踪的发布记录。
-- `DdcTraceIdFilter` 和全局异常处理器在 admin 侧提供统一 trace 和错误响应。
-- admin 的 PostgreSQL 和 SQLite 脚本各自位于 `classpath:db/postgresql`、`classpath:db/sqlite`，新增数据库变更必须新增 Flyway 版本文件，不能改旧脚本。
+- `DdcBeanPostProcessor` scans Spring Bean fields annotated with `@DdcValue` and delegates binding to `DdcFieldBindingService`.
+- `DdcValueParser` supports the `key:defaultValue` expression and explicit `key`, `defaultValue`, and `type` annotation attributes.
+- `DdcValueConverter` converts string configurations into target field types; complex objects use Jackson JSON deserialization.
+- `DdcLocalConfigRepository` stores configuration versions and reports an `IGNORED` ACK when it receives an older version.
+- `DdcPublishService.publish` uses `TransactionTemplate` to prepare the publish task, target ACK records, and version record, then writes to Redis and publishes the message.
+- `PublishFailureRecorder` records failed tasks when publication raises an exception so failed publish paths remain traceable.
+- `DdcTraceIdFilter` and the global exception handler provide unified tracing and error responses on the admin side.
+- Admin PostgreSQL and SQLite scripts are located under `classpath:db/postgresql` and `classpath:db/sqlite`. Every new database change must use a new Flyway version file; existing scripts must not be modified.
 
-## 边界和注意事项
+## Boundaries and Operational Notes
 
-- 不包含 UI、账号、登录、角色、权限、RBAC。
-- 当前脚本覆盖 PostgreSQL 和 SQLite，不包含 MySQL。
-- `@DdcValue` 字段通过反射更新，字段不应是 `final`。
-- 默认值来自代码注解，运行时发布值来自 admin/Redis。
-- 开启强一致发布时，业务实例必须能正常 ACK，否则发布任务会停留在运行中或最终失败。
+- The component does not include a UI, accounts, login, roles, permissions, or RBAC.
+- The current scripts cover PostgreSQL and SQLite, not MySQL.
+- `@DdcValue` fields are updated through reflection and must not be `final`.
+- Defaults come from code annotations; runtime published values come from the admin/Redis.
+- With strong-consistency publication enabled, business instances must be able to report ACKs. Otherwise, the publish task remains running or eventually fails.
 
-## 验证命令
+## Validation Commands
 
 ```bash
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter -am test

@@ -1,5 +1,7 @@
 # Egon-COLA Method Extension
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 `egon-cola-component-method-extension` is a lightweight Spring Boot Starter for
 running one business-defined decision handler before an annotated method.
 

@@ -1,69 +1,71 @@
 # Egon COLA Dynamic Thread Pool Component
 
-## 简要介绍
+[English](README.md) | [中文](README.zh-CN.md)
 
-`egon-cola-component-dynamic-thread-pool` 是 Egon COLA 的动态线程池治理组件，面向 Spring Boot 业务应用提供线程池注册、运行时快照上报、Redis 配置变更监听、动态容量调整、虚拟线程并发限制、MDC 上下文传播、审计事件和 Micrometer 指标绑定能力。
+## Overview
 
-组件由业务侧 starter 和独立 admin 服务组成。starter 接入业务应用并托管应用内的执行器，admin 通过 REST API 查询 Redis 中的应用/实例/执行器快照，并发布容量调整消息。组件目录不包含 UI，前端可通过 manifest 接口做外部模块发现。
+`egon-cola-component-dynamic-thread-pool` is the Egon COLA dynamic thread-pool governance component. It provides Spring Boot business applications with executor registration, runtime snapshot reporting, Redis configuration change listening, dynamic capacity adjustment, virtual-thread concurrency limiting, MDC context propagation, audit events, and Micrometer metric binding.
 
-## 模块结构
+The component consists of a business-side starter and a standalone admin service. The starter integrates with a business application and manages executors within that application. The admin queries application, instance, and executor snapshots from Redis through REST APIs and publishes capacity adjustment messages. The component directory does not include a UI; an external frontend can discover the module through the manifest endpoint.
 
-| Module | 说明 |
+## Module Layout
+
+| Module | Description |
 |---|---|
-| `egon-cola-component-dynamic-thread-pool-starter` | 业务应用 starter，负责执行器发现、快照采集、Redis 注册、配置变更监听、MDC 传播、审计事件、Micrometer 指标 |
-| `egon-cola-component-dynamic-thread-pool-admin` | 独立 Spring Boot Admin 服务，提供管理 REST API、manifest、Redis 查询和配置变更发布 |
-| `egon-cola-component-dynamic-thread-pool-test` | 组件样例和集成验证模块 |
+| `egon-cola-component-dynamic-thread-pool-starter` | Business application starter responsible for executor discovery, snapshot collection, Redis registration, configuration change listening, MDC propagation, audit events, and Micrometer metrics |
+| `egon-cola-component-dynamic-thread-pool-admin` | Standalone Spring Boot Admin service that provides management REST APIs, a manifest, Redis queries, and configuration change publication |
+| `egon-cola-component-dynamic-thread-pool-test` | Component sample and integration verification module |
 
-## 功能说明
+## Features
 
-### 执行器托管
+### Managed Executors
 
-starter 会收集 Spring 容器中的以下 Bean，并统一适配成 `ManagedExecutor`：
+The starter collects the following Beans from the Spring container and adapts them to `ManagedExecutor`:
 
-| 执行器类型 | 适配器 | 支持能力 |
+| Executor Type | Adapter | Supported Capabilities |
 |---|---|---|
-| `ThreadPoolExecutor` | `ThreadPoolExecutorManagedExecutor` | 快照、核心线程数/最大线程数/keepAlive 调整、队列指标 |
-| `ThreadPoolTaskExecutor` | `ThreadPoolTaskExecutorManagedExecutor` | 快照、核心线程数/最大线程数/keepAlive 调整、队列指标 |
-| `BoundedVirtualThreadExecutor` | `BoundedVirtualThreadManagedExecutor` | 快照、虚拟线程并发上限调整、运行/提交/失败/拒绝指标 |
+| `ThreadPoolExecutor` | `ThreadPoolExecutorManagedExecutor` | Snapshots, core/maximum thread count and keepAlive adjustment, queue metrics |
+| `ThreadPoolTaskExecutor` | `ThreadPoolTaskExecutorManagedExecutor` | Snapshots, core/maximum thread count and keepAlive adjustment, queue metrics |
+| `BoundedVirtualThreadExecutor` | `BoundedVirtualThreadManagedExecutor` | Snapshots, virtual-thread concurrency limit adjustment, running/submitted/failed/rejected metrics |
 
-### Redis 注册和变更监听
+### Redis Registration and Change Listening
 
-starter 会创建名为 `dynamicThreadRedissonClient` 的 Redisson 客户端，并通过 `RedisRegistry` 写入运行时数据：
+The starter creates a Redisson client named `dynamicThreadRedissonClient` and writes runtime data through `RedisRegistry`:
 
-| Key / Topic | 说明 |
+| Key / Topic | Description |
 |---|---|
-| `DTP:APPS` | 已注册应用集合 |
-| `DTP:APP:{appName}:INSTANCES` | 应用实例集合 |
-| `DTP:SNAPSHOT:{appName}:{instanceId}:{executorName}` | 执行器快照 |
-| `DTP:CHANGE_TOPIC:{appName}` | admin 发布容量调整消息的 Topic |
-| `DTP:EVENT:{appName}:{yyyyMMdd}` | 调整审计事件 |
+| `DTP:APPS` | Registered application set |
+| `DTP:APP:{appName}:INSTANCES` | Application instance set |
+| `DTP:SNAPSHOT:{appName}:{instanceId}:{executorName}` | Executor snapshot |
+| `DTP:CHANGE_TOPIC:{appName}` | Topic used by the admin to publish capacity adjustment messages |
+| `DTP:EVENT:{appName}:{yyyyMMdd}` | Adjustment audit events |
 
-### 快照上报和指标
+### Snapshot Reporting and Metrics
 
-`ThreadPoolDataReportJob` 按 `egon.cola.component.dtp.report.interval` 周期上报快照。若业务应用存在 `MeterRegistry`，`DtpMeterBinder` 会绑定执行器指标到 Micrometer。
+`ThreadPoolDataReportJob` reports snapshots at the interval configured by `egon.cola.component.dtp.report.interval`. If a `MeterRegistry` exists in the business application, `DtpMeterBinder` binds executor metrics to Micrometer.
 
-### MDC 上下文传播
+### MDC Context Propagation
 
-`DtpRunnable`、`DtpCallable`、`DtpSupplier`、`DtpContextAwareExecutorService` 和 `DtpThreads` 会捕获提交任务时的 MDC，并在任务执行时恢复，避免异步线程丢失 `traceId` / `requestId`。
+`DtpRunnable`, `DtpCallable`, `DtpSupplier`, `DtpContextAwareExecutorService`, and `DtpThreads` capture the MDC when a task is submitted and restore it while the task runs, preventing asynchronous threads from losing `traceId` / `requestId`.
 
 ### Admin REST API
 
-Admin API 基础路径为 `/api/v1/dtp`：
+The Admin API base path is `/api/v1/dtp`:
 
-| API | 说明 |
+| API | Description |
 |---|---|
-| `GET /api/v1/dtp/manifest` | 管理 UI 发现用 manifest |
-| `GET /api/v1/dtp/apps` | 查询应用列表 |
-| `GET /api/v1/dtp/apps/{appName}/instances` | 查询应用实例 |
-| `GET /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors` | 查询实例下所有执行器快照 |
-| `GET /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}` | 查询单个执行器快照 |
-| `POST /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}/resize` | 调整平台线程池或 Spring 线程池容量 |
-| `POST /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}/virtual-limit` | 调整有界虚拟线程执行器并发上限 |
-| `GET /api/v1/dtp/events?appName={appName}&date={yyyyMMdd}` | 查询审计事件 |
+| `GET /api/v1/dtp/manifest` | Manifest for management UI discovery |
+| `GET /api/v1/dtp/apps` | Query applications |
+| `GET /api/v1/dtp/apps/{appName}/instances` | Query application instances |
+| `GET /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors` | Query all executor snapshots for an instance |
+| `GET /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}` | Query a single executor snapshot |
+| `POST /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}/resize` | Adjust the capacity of a platform thread pool or Spring thread pool |
+| `POST /api/v1/dtp/apps/{appName}/instances/{instanceId}/executors/{executorName}/virtual-limit` | Adjust the concurrency limit of a bounded virtual-thread executor |
+| `GET /api/v1/dtp/events?appName={appName}&date={yyyyMMdd}` | Query audit events |
 
-## 依赖方式
+## Dependency Setup
 
-业务应用引入 starter：
+Include the starter in a business application:
 
 ```xml
 <dependencyManagement>
@@ -86,15 +88,15 @@ Admin API 基础路径为 `/api/v1/dtp`：
 </dependencies>
 ```
 
-Admin 服务作为组件内独立应用构建和部署：
+Build and deploy the Admin service as a standalone application within the component:
 
 ```bash
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-thread-pool/egon-cola-component-dynamic-thread-pool-admin -am package -DskipTests
 ```
 
-## 配置说明
+## Configuration
 
-业务应用配置：
+Business application configuration:
 
 ```yaml
 spring:
@@ -139,7 +141,7 @@ egon:
           default-concurrency-limit: 500
 ```
 
-Admin 默认激活 `dev` profile，`application-dev.yml` 中 Redis 默认指向本机：
+The admin activates the `dev` profile by default. Redis points to the local machine in `application-dev.yml`:
 
 ```yaml
 server:
@@ -156,11 +158,11 @@ egon:
             password: ${EGON_COLA_DTP_REDIS_PASSWORD:}
 ```
 
-## 完整的使用示例
+## Complete Usage Example
 
-### 1. 在业务应用中声明需要治理的执行器
+### 1. Declare Executors to Govern in the Business Application
 
-starter 会自动发现容器中的执行器 Bean。Bean 名就是 admin API 中使用的 `executorName`。
+The starter automatically discovers executor Beans in the container. The Bean name becomes the `executorName` used by the Admin API.
 
 ```java
 package demo.order.config;
@@ -207,7 +209,7 @@ public class OrderExecutorConfig {
 }
 ```
 
-### 2. 提交任务时传播 MDC
+### 2. Propagate MDC When Submitting Tasks
 
 ```java
 package demo.order;
@@ -232,7 +234,7 @@ public class OrderAsyncService {
         MDC.put("traceId", "trace-" + orderId);
         executor.submit(() -> {
             String traceId = MDC.get("traceId");
-            // 这里可以继续写日志、调用下游或执行业务逻辑，traceId 与提交线程一致。
+            // Logs, downstream calls, and business logic continue with the submitting thread's traceId.
             process(orderId, traceId);
         });
     }
@@ -243,9 +245,9 @@ public class OrderAsyncService {
 }
 ```
 
-### 3. 查询快照并调整线程池
+### 3. Query Snapshots and Adjust Thread Pools
 
-查询应用和执行器：
+Query applications and executors:
 
 ```bash
 curl http://localhost:8089/api/v1/dtp/apps
@@ -253,7 +255,7 @@ curl http://localhost:8089/api/v1/dtp/apps/order-service/instances
 curl http://localhost:8089/api/v1/dtp/apps/order-service/instances/order-service-8081/executors
 ```
 
-调整平台线程池或 Spring 线程池容量：
+Adjust the capacity of a platform thread pool or Spring thread pool:
 
 ```bash
 curl -X POST \
@@ -269,7 +271,7 @@ curl -X POST \
   }'
 ```
 
-调整有界虚拟线程并发上限：
+Adjust the concurrency limit of a bounded virtual-thread executor:
 
 ```bash
 curl -X POST \
@@ -281,42 +283,42 @@ curl -X POST \
   }'
 ```
 
-查询审计事件：
+Query audit events:
 
 ```bash
 curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=20260709'
 ```
 
-## 设计思想和实现细节
+## Design Principles and Implementation Details
 
-### 设计思想
+### Design Principles
 
-1. 业务应用只感知 starter，不直接暴露管理接口。
-2. Admin 不直连业务应用，所有状态读取和变更通知都通过 Redis 完成，降低运行时耦合。
-3. 执行器能力通过 `ManagedExecutor` 适配，平台线程池、Spring 线程池、虚拟线程执行器共享一套快照和更新模型。
-4. 调整命令携带 `appName`、`instanceId`、`executorName`、`executorKind`，starter 端先校验身份再更新，避免错误实例消费错误命令。
-5. MDC 传播独立为包装器，不强制改写业务线程池使用方式。
+1. Business applications interact only with the starter and do not expose management endpoints directly.
+2. The admin does not connect directly to business applications. All state reads and change notifications pass through Redis, reducing runtime coupling.
+3. `ManagedExecutor` adapts executor capabilities so platform thread pools, Spring thread pools, and virtual-thread executors share one snapshot and update model.
+4. Adjustment commands include `appName`, `instanceId`, `executorName`, and `executorKind`. The starter validates the identity before updating, preventing a command from being applied to the wrong instance.
+5. MDC propagation is implemented as wrappers and does not require business code to replace its thread-pool usage model.
 
-### 实现细节
+### Implementation Details
 
-- `DynamicThreadPoolAutoConfig` 通过 `AutoConfiguration.imports` 注册，配置前缀为 `egon.cola.component.dtp`，`enabled` 缺省为 `true`。
-- `resolveAppName` 优先使用 `egon.cola.component.dtp.app-name`，其次使用 `spring.application.name`，最后降级为 `default-app`。
-- `resolveInstanceId` 优先使用显式配置，其次使用 `{appName}-{server.port}`，最后使用 JVM runtime name。
-- `ManagedExecutorRegistry` 保存所有托管执行器，`DynamicThreadPoolService` 负责查询快照和执行更新。
-- `ThreadPoolConfigAdjustListener` 订阅 `DTP:CHANGE_TOPIC:{appName}`，收到 `DtpConfigChangeMessage` 后调用 `IDynamicThreadPoolService.updateExecutor`。
-- `BoundedVirtualThreadExecutor` 使用 `Semaphore` 控制并发上限，内置 submitted/running/completed/failed/rejected 指标，`updateConcurrencyLimit` 可以运行时调整许可数量。
-- `ThreadPoolDataReportJob` 周期性写入 snapshot、apps、instances 和审计数据；report 可以通过 `egon.cola.component.dtp.report.enabled=false` 关闭。
-- Admin 的 `/resize` 只允许 `PLATFORM_THREAD_POOL` 和 `SPRING_THREAD_POOL_TASK_EXECUTOR`，`/virtual-limit` 只发布 `VIRTUAL_THREAD_PER_TASK` 更新命令。
+- `DynamicThreadPoolAutoConfig` is registered through `AutoConfiguration.imports`. Its configuration prefix is `egon.cola.component.dtp`, and `enabled` defaults to `true`.
+- `resolveAppName` first uses `egon.cola.component.dtp.app-name`, then `spring.application.name`, and finally falls back to `default-app`.
+- `resolveInstanceId` first uses the explicit configuration, then `{appName}-{server.port}`, and finally the JVM runtime name.
+- `ManagedExecutorRegistry` stores all managed executors, and `DynamicThreadPoolService` queries snapshots and performs updates.
+- `ThreadPoolConfigAdjustListener` subscribes to `DTP:CHANGE_TOPIC:{appName}`. After receiving a `DtpConfigChangeMessage`, it calls `IDynamicThreadPoolService.updateExecutor`.
+- `BoundedVirtualThreadExecutor` uses `Semaphore` to control its concurrency limit, includes submitted/running/completed/failed/rejected metrics, and supports runtime permit adjustment through `updateConcurrencyLimit`.
+- `ThreadPoolDataReportJob` periodically writes snapshot, apps, instances, and audit data. Reporting can be disabled with `egon.cola.component.dtp.report.enabled=false`.
+- Admin `/resize` accepts only `PLATFORM_THREAD_POOL` and `SPRING_THREAD_POOL_TASK_EXECUTOR`; `/virtual-limit` publishes only `VIRTUAL_THREAD_PER_TASK` update commands.
 
-## 边界和注意事项
+## Boundaries and Operational Notes
 
-- 组件目录不包含 UI，UI 应通过 `/api/v1/dtp/manifest` 和 REST API 在外部系统中集成。
-- starter 默认创建自己的 Redisson 客户端 `dynamicThreadRedissonClient`，业务应用需要保证 Redis 可用。
-- 执行器 Bean 名是治理标识，重命名 Bean 会影响 admin 调整路径。
-- 对虚拟线程执行器只能调整并发上限，不能调整平台线程池参数。
-- 对平台线程池或 Spring 线程池的调整会校验 `corePoolSize <= maximumPoolSize`。
+- The component directory does not include a UI. Integrate a UI through `/api/v1/dtp/manifest` and the REST APIs in an external system.
+- By default, the starter creates its own Redisson client named `dynamicThreadRedissonClient`; the business application must ensure Redis is available.
+- Executor Bean names are governance identifiers. Renaming a Bean changes the path used by the admin for adjustments.
+- Virtual-thread executors support only concurrency-limit adjustments, not platform thread-pool parameters.
+- Adjustments to platform thread pools or Spring thread pools validate `corePoolSize <= maximumPoolSize`.
 
-## 验证命令
+## Validation Commands
 
 ```bash
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-thread-pool/egon-cola-component-dynamic-thread-pool-starter -am test

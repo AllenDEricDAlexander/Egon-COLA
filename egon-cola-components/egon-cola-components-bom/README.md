@@ -1,46 +1,54 @@
 # egon-cola-components-bom
 
-## 简要介绍
+[English](README.md) | [中文](README.zh-CN.md)
 
-`egon-cola-components-bom` 是 Egon COLA 组件体系的 Maven BOM。它不提供运行时代码，只负责统一管理 `egon-cola-components` 下可被业务应用直接依赖的组件版本，避免业务工程在每个组件依赖上重复写版本号。
+## Overview
 
-BOM 当前导出的是稳定消费入口：common 的具体子模块，以及各业务组件的 starter 模块。admin、test、聚合 POM 不作为业务依赖入口导出。
+`egon-cola-components-bom` is the Maven BOM for the Egon COLA component ecosystem. It provides no runtime code. Its only responsibility is to manage versions consistently for components under `egon-cola-components` that business applications can consume directly, avoiding repeated version declarations on every component dependency.
 
-## 功能说明
+The BOM exports stable consumption entry points: specific common submodules, business component starters, and the bytecode component's public API, bridge, runtime, Agent, and starter. Admin, test, and aggregator POM modules are not exported as business dependency entry points.
 
-### 统一版本管理
+## Features
 
-业务应用通过 `dependencyManagement` import BOM 后，后续声明组件依赖时不需要再写 `<version>`。所有组件版本跟随 BOM 的 `project.version`，当前为 `5.2.1`。
+### Unified Version Management
 
-### 导出的依赖清单
+After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.2.3`.
 
-| Artifact | 用途 |
+### Exported Dependencies
+
+| Artifact | Purpose |
 |---|---|
-| `egon-cola-component-common-core` | 错误状态、异常、枚举契约 |
-| `egon-cola-component-common-model` | 请求、查询、分页模型 |
-| `egon-cola-component-common-trace` | MDC `traceId` 上下文 |
-| `egon-cola-component-common-result` | 对外响应 DTO 和内部结果 Model |
-| `egon-cola-component-common-id` | UUIDv7 和 ID 生成 |
-| `egon-cola-component-common-crypto` | 摘要、HMAC、Base64、Hex |
-| `egon-cola-component-common-mask` | 数据脱敏 |
-| `egon-cola-component-common-structure` | 树结构构建 |
-| `egon-cola-component-dynamic-thread-pool-starter` | 动态线程池业务侧 starter |
-| `egon-cola-component-dynamic-config-center-starter` | 动态配置中心业务侧 starter |
-| `egon-cola-component-rule-engine-starter` | 规则引擎 starter |
-| `egon-cola-component-access-guard-starter` | 方法访问治理 starter |
+| `egon-cola-component-common-core` | Error statuses, exceptions, and enum contracts |
+| `egon-cola-component-common-model` | Request, query, and pagination models |
+| `egon-cola-component-common-trace` | MDC `traceId` context |
+| `egon-cola-component-common-result` | External response DTOs and internal result Models |
+| `egon-cola-component-common-id` | UUIDv7 and ID generation |
+| `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
+| `egon-cola-component-common-mask` | Data masking |
+| `egon-cola-component-common-structure` | Tree construction |
+| `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
+| `egon-cola-component-dynamic-config-center-starter` | Business-side dynamic configuration center starter |
+| `egon-cola-component-rule-engine-starter` | Rule engine starter |
+| `egon-cola-component-access-guard-starter` | Method access governance starter |
+| `egon-cola-component-method-extension-starter` | Method extension starter |
+| `egon-cola-component-bytecode-api` | Public bytecode capability API |
+| `egon-cola-component-bytecode-bridge` | Bridge between business applications and the Agent |
+| `egon-cola-component-bytecode-runtime` | Bytecode runtime implementation |
+| `egon-cola-component-bytecode-agent` | Java Agent entry point |
+| `egon-cola-component-bytecode-starter` | Spring Boot starter for bytecode capabilities |
 
-### 不导出的模块
+### Modules Not Exported
 
-| Module | 不导出原因 |
+| Module | Reason |
 |---|---|
-| `egon-cola-component-common` | 聚合 POM，不是运行时 Jar |
-| `*-admin` | 独立服务，应按应用部署，不作为业务依赖 |
-| `*-test` | 组件样例和验证模块，不应进入业务运行时 |
-| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rule-engine` / `access-guard` | 组件聚合 POM，不是业务依赖入口 |
+| `egon-cola-component-common` | Aggregator POM, not a runtime JAR |
+| `*-admin` | Standalone services that should be deployed as applications, not used as business dependencies |
+| `*-test` | Component samples and verification modules that should not enter the business runtime |
+| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rule-engine` / `access-guard` / `method-extension` / `bytecode` | Component aggregator POMs, not business dependency entry points |
 
-## 完整的使用示例
+## Complete Usage Example
 
-### 1. 在业务工程中导入 BOM
+### 1. Import the BOM in a Business Project
 
 ```xml
 <dependencyManagement>
@@ -56,7 +64,7 @@ BOM 当前导出的是稳定消费入口：common 的具体子模块，以及各
 </dependencyManagement>
 ```
 
-### 2. 按需引入组件
+### 2. Include Components as Needed
 
 ```xml
 <dependencies>
@@ -79,11 +87,11 @@ BOM 当前导出的是稳定消费入口：common 的具体子模块，以及各
 </dependencies>
 ```
 
-### 3. 在多模块业务项目中集中声明版本
+### 3. Centralize the Version in a Multi-Module Business Project
 
 ```xml
 <properties>
-    <egon-cola.version>5.2.1</egon-cola.version>
+    <egon-cola.version>5.2.3</egon-cola.version>
 </properties>
 
 <dependencyManagement>
@@ -99,7 +107,7 @@ BOM 当前导出的是稳定消费入口：common 的具体子模块，以及各
 </dependencyManagement>
 ```
 
-子模块只声明 artifact：
+Child modules declare only the artifact:
 
 ```xml
 <dependency>
@@ -108,30 +116,30 @@ BOM 当前导出的是稳定消费入口：common 的具体子模块，以及各
 </dependency>
 ```
 
-## 设计思想和实现细节
+## Design Principles and Implementation Details
 
-### 设计思想
+### Design Principles
 
-1. BOM 只管理消费者真正需要的运行时入口，避免 admin/test/聚合模块被业务误依赖。
-2. common 采用细粒度导出，业务按能力选择，避免一个 common 大包传递过多依赖。
-3. 业务组件只导出 starter，保持 Spring Boot 自动配置入口明确。
-4. 版本统一跟随 BOM 自身版本，降低组件组合使用时的版本漂移风险。
+1. The BOM manages only runtime entry points that consumers actually need, preventing accidental business dependencies on admin, test, or aggregator modules.
+2. Common capabilities are exported at fine granularity so applications can choose only what they need instead of receiving a large transitive common package.
+3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. The bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
+4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
 
-### 实现细节
+### Implementation Details
 
-- `packaging` 为 `pom`，没有源码和运行时类。
-- 所有导出组件都在 `<dependencyManagement>` 中声明，版本使用 `${project.version}`。
-- release profile 负责源码包、javadoc、GPG 签名和 Central Portal 发布配置。
-- `maven-deploy-plugin` 默认 `skip=true`，发布路径由 Central Publishing profile 控制。
+- Its `packaging` is `pom`; it has no source code or runtime classes.
+- Every exported component is declared in `<dependencyManagement>` with `${project.version}` as its version.
+- The release profile configures source archives, Javadoc, GPG signing, and Central Portal publishing.
+- `maven-deploy-plugin` defaults to `skip=true`; the Central Publishing profile controls the publication path.
 
-## 边界和注意事项
+## Boundaries and Operational Notes
 
-- 业务应用不能只依赖 BOM；BOM 只能放在 `dependencyManagement` 中 import。
-- admin 模块需要按独立 Spring Boot 应用构建部署，不通过 BOM 作为业务依赖使用。
-- 新增组件时，应优先导出 starter，而不是导出组件聚合 POM 或 test 模块。
-- 若 common 新增子模块，需要明确它是否是业务运行时稳定入口，再决定是否加入 BOM。
+- A business application cannot depend only on the BOM. The BOM must be imported in `dependencyManagement`.
+- Admin modules must be built and deployed as standalone Spring Boot applications, not consumed as business dependencies through the BOM.
+- When adding a component, export its starter instead of its aggregator POM or test module. Export additional modules only when they have an explicit, independent consumption boundary.
+- When common gains a submodule, decide whether it is a stable business runtime entry point before adding it to the BOM.
 
-## 验证命令
+## Validation Command
 
 ```bash
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-components-bom -am test

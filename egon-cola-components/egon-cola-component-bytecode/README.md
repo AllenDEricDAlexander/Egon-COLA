@@ -1,5 +1,7 @@
 # Egon COLA Bytecode Component
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 The bytecode component checks compiled classes against the standard Egon COLA architecture rules without loading or initializing application classes. Its public API is JDK-only; ASM, Maven, and JSON serialization remain implementation details.
 
 ## Runtime Agent Installation

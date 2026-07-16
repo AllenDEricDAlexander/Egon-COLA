@@ -1,56 +1,56 @@
 # Egon COLA Rule Engine Component
 
-[English](README.md) | [中文](README.zh-CN.md)
+[English](README.md) | 中文
 
-## Overview
+## 简要介绍
 
-`egon-cola-component-rule-engine` is a lightweight Java rule orchestration starter for Egon COLA. It does not provide a rule-management backend, an expression language, or remote topology configuration. Instead, it lets business code assemble rule chains, singleton chains of responsibility, and rule trees in Java, while unified executors provide step limits, timeout control, execution traces, listeners, and asynchronous loading.
+`egon-cola-component-rule-engine` 是 Egon COLA 的轻量级 Java 规则编排 starter。它不提供规则后台、表达式语言或远程拓扑配置，而是让业务在 Java 代码中组装规则链、单例责任链和规则树，用统一执行器获得步骤控制、超时控制、执行轨迹、监听器和异步加载能力。
 
-The component suits scenarios with a limited number of rules and explicit variation points where Java type safety and testability should be preserved, such as order pre-validation, login checks, member-benefit routing, preliminary risk control, and checks before canary entry points.
+组件适合订单预校验、登录校验、会员权益路由、风控预判、灰度入口前置判断等规则数量有限、变化点明确、希望保留 Java 类型安全和可测试性的业务场景。
 
-## Module Layout
+## 模块结构
 
-| Module | Description |
+| Module | 说明 |
 |---|---|
-| `egon-cola-component-rule-engine-starter` | Spring Boot starter that provides rule chains, rule trees, executors, context, result models, traces, listeners, asynchronous loading, and auto-configuration |
-| `egon-cola-component-rule-engine-test` | Sample verification for chained rules, singleton chains of responsibility, rule trees, and auto-configuration |
+| `egon-cola-component-rule-engine-starter` | Spring Boot starter，提供规则链、规则树、执行器、上下文、结果模型、轨迹、监听器、异步加载和自动配置 |
+| `egon-cola-component-rule-engine-test` | 链式规则、单例责任链、规则树和自动配置样例验证 |
 
-## Features
+## 功能说明
 
-### Rule Chains
+### 规则链
 
-`RuleChain<T, R>` is a linear orchestration model for validations or transformations that run in sequence. Each `ChainHandler<T, R>` returns a `RuleResult<R>`:
+`RuleChain<T, R>` 是线性编排模型，适合一组顺序执行的校验或转换。每个 `ChainHandler<T, R>` 返回 `RuleResult<R>`：
 
-| Return Value | Behavior |
+| 返回结果 | 行为 |
 |---|---|
-| `RuleResult.success(data)` | The current node succeeds and execution continues to the next handler |
-| `RuleResult.stop(code, message, data)` | The current node stops execution intentionally and returns the stop result |
-| `RuleResult.fail(code, message, exception)` | The current node fails and returns the failure result |
+| `RuleResult.success(data)` | 当前节点成功，继续执行下一个 handler |
+| `RuleResult.stop(code, message, data)` | 当前节点主动停止，返回停止结果 |
+| `RuleResult.fail(code, message, exception)` | 当前节点失败，返回失败结果 |
 
-### Singleton Chain of Responsibility
+### 单例责任链
 
-`AbstractSingletonRuleLink<T, R>` supports assembling singleton links through `appendNext`, making each reusable rule node a long-lived independent class. It follows the Chain of Responsibility pattern: the next node runs only when the current node succeeds and the context has not stopped.
+`AbstractSingletonRuleLink<T, R>` 支持通过 `appendNext` 组装单例链路，适合把每个规则节点作为独立类长期复用。它采用责任链模式：当前节点成功且上下文未停止时才进入下一个节点。
 
-### Rule Trees
+### 规则树
 
-`RuleTree<T, R>` is a routing model based on `RuleNode<T, R>` and `RouteDecision`. It is suitable when the result of the current node dynamically selects the next node. A node can return:
+`RuleTree<T, R>` 是基于 `RuleNode<T, R>` 和 `RouteDecision` 的路由模型，适合根据当前节点结果动态跳转到不同节点。节点可以返回：
 
-| RouteDecision | Behavior |
+| RouteDecision | 行为 |
 |---|---|
-| `RouteDecision.toCode("nodeCode")` | Route to the node with the specified code in the tree |
-| `RouteDecision.toNode(node, reason)` | Route directly to the specified node |
-| `RouteDecision.end(data)` | End the rule tree and return data |
-| `RouteDecision.noRoute(reason)` | Indicate that no route is available |
+| `RouteDecision.toCode("nodeCode")` | 跳转到树中指定 code 的节点 |
+| `RouteDecision.toNode(node, reason)` | 跳转到直接指定的节点 |
+| `RouteDecision.end(data)` | 结束规则树并返回数据 |
+| `RouteDecision.noRoute(reason)` | 没有可用路由 |
 
-### Context, Traces, and Listeners
+### 上下文、轨迹和监听器
 
-`RuleContext` stores the requestId, traceId, execution path, error list, custom attributes, maximum step count, and timeout. When tracing is enabled, the execution result includes `RuleTrace` and `NodeTrace`. Applications can register `RuleExecutionListener` Beans to observe engine, node, routing, stop, timeout, and exception events.
+`RuleContext` 保存 requestId、traceId、执行路径、错误列表、自定义属性、最大步数和超时时间。开启 trace 后，执行结果会携带 `RuleTrace` 和 `NodeTrace`。业务可以注册 `RuleExecutionListener` Bean 监听引擎、节点、路由、停止、超时和异常事件。
 
-### Asynchronous Loading
+### 异步加载
 
-`RuleAsyncExecutor` loads external data during rule execution and writes the result into `RuleContext`. Its default implementation is `DefaultRuleAsyncExecutor`, and configuration controls the thread-pool size.
+`RuleAsyncExecutor` 用于在规则执行期间加载外部数据，并把结果写入 `RuleContext`。默认实现为 `DefaultRuleAsyncExecutor`，线程池大小由配置控制。
 
-## Dependency Setup
+## 依赖方式
 
 ```xml
 <dependencyManagement>
@@ -73,9 +73,9 @@ The component suits scenarios with a limited number of rules and explicit variat
 </dependencies>
 ```
 
-## Configuration
+## 配置说明
 
-The configuration prefix is `egon.cola.component.rule-engine`:
+配置前缀为 `egon.cola.component.rule-engine`：
 
 ```yaml
 egon:
@@ -92,20 +92,20 @@ egon:
         throw-exception: false
 ```
 
-| Property | Default | Description |
+| 配置 | 默认值 | 说明 |
 |---|---:|---|
-| `enabled` | `true` | Whether auto-configuration is enabled |
-| `default-max-steps` | `100` | Default maximum execution steps |
-| `default-timeout-millis` | `3000` | Default timeout |
-| `async-core-pool-size` | `4` | Core thread count for asynchronous loading |
-| `async-max-pool-size` | `16` | Maximum thread count for asynchronous loading |
-| `trace-enabled` | `true` | Whether to record execution traces |
-| `listener-error-ignore` | `true` | Whether listener exceptions are ignored |
-| `throw-exception` | `false` | Whether execution failures are thrown directly |
+| `enabled` | `true` | 是否启用自动配置 |
+| `default-max-steps` | `100` | 默认最大执行步数 |
+| `default-timeout-millis` | `3000` | 默认超时时间 |
+| `async-core-pool-size` | `4` | 异步加载核心线程数 |
+| `async-max-pool-size` | `16` | 异步加载最大线程数 |
+| `trace-enabled` | `true` | 是否记录执行轨迹 |
+| `listener-error-ignore` | `true` | 监听器异常是否忽略 |
+| `throw-exception` | `false` | 执行失败时是否直接抛异常 |
 
-## Complete Usage Examples
+## 完整的使用示例
 
-### 1. Inject RuleEngine in Spring Boot
+### 1. 在 Spring Boot 中注入 RuleEngine
 
 ```java
 package demo.order;
@@ -127,7 +127,7 @@ public class OrderRuleService {
 
     public RuleResult<String> preCheck(OrderRequest request) {
         RuleChain<OrderRequest, String> chain = RuleChain.<OrderRequest, String>builder("order-pre-check")
-                .name("Order submission pre-check")
+                .name("订单提交前置校验")
                 .handler((order, context) -> {
                     context.set("paramChecked", order.orderId() != null);
                     return order.orderId() == null
@@ -150,7 +150,7 @@ public class OrderRuleService {
 }
 ```
 
-### 2. Singleton Chain of Responsibility Example
+### 2. 单例责任链示例
 
 ```java
 package demo.login;
@@ -201,7 +201,7 @@ public class LoginRuleSample {
 }
 ```
 
-### 3. Rule Tree Example
+### 3. 规则树示例
 
 ```java
 package demo.member;
@@ -263,7 +263,7 @@ public class MemberBenefitRuleService {
 }
 ```
 
-### 4. Register a Listener
+### 4. 注册监听器
 
 ```java
 package demo.rule;
@@ -283,35 +283,35 @@ public class RuleAuditListener implements RuleExecutionListener {
 }
 ```
 
-## Design Principles and Implementation Details
+## 设计思想和实现细节
 
-### Design Principles
+### 设计思想
 
-1. Assemble rules in Java to retain type safety, IDE refactoring support, and unit-test visibility.
-2. Use rule chains for linear rules, rule trees for dynamic routing, and a chain of responsibility for singleton rule classes, selecting the most direct model for the complexity involved.
-3. Keep executors responsible only for orchestration, tracing, timeout, step limits, and listeners without intruding into business decisions.
-4. Use `RuleContext` as the sole shared context across rules and avoid global state.
-5. Treat listeners and asynchronous loading as extension points without requiring every rule to inherit a framework base class.
+1. 规则使用 Java 代码组装，保留类型安全、IDE 重构能力和单元测试可见性。
+2. 线性规则使用规则链，动态跳转使用规则树，单例规则类使用责任链，按复杂度选择最直接的模型。
+3. 执行器只负责编排、轨迹、超时、步数和监听，不侵入具体业务判断。
+4. `RuleContext` 是规则之间共享数据的唯一上下文，避免使用全局状态。
+5. 监听器和异步加载是扩展点，不要求每个规则都继承框架基类。
 
-### Implementation Details
+### 实现细节
 
-- `RuleEngineAutoConfiguration` is registered through `AutoConfiguration.imports`, and `enabled` defaults to `true`.
-- `DefaultRuleEngine` combines `RuleChainExecutor` and `RuleTreeExecutor` for chained and tree-based rules respectively.
-- `DefaultRuleChainExecutor` runs handlers in order and stops on a stop/fail result, timeout, or maximum-step violation.
-- `DefaultRuleTreeExecutor` starts at the root and selects the next node from `RouteDecision`, with support for no-route and end nodes plus maximum-step and timeout protection.
-- `RuleResult` is the unified result model. It includes `success`, `status`, `code`, `message`, `data`, `trace`, `exception`, `stoppedNode`, `hitNode`, and `costMillis`.
-- `RuleExecutionListenerComposite` orders all listeners by Spring order and uses `listener-error-ignore` to determine whether a listener exception affects the primary flow.
-- `DefaultRuleAsyncExecutor` is registered as a dedicated thread-pool Bean with `shutdown` as its destroy method.
+- `RuleEngineAutoConfiguration` 通过 `AutoConfiguration.imports` 注册，`enabled` 缺省为 `true`。
+- `DefaultRuleEngine` 组合 `RuleChainExecutor` 和 `RuleTreeExecutor`，分别处理链式和树式规则。
+- `DefaultRuleChainExecutor` 按 handler 顺序执行，遇到 stop/fail、超时或超过最大步数时结束。
+- `DefaultRuleTreeExecutor` 从 root 开始执行节点，再根据 `RouteDecision` 选择下一个节点，支持无路由、结束节点、最大步数和超时保护。
+- `RuleResult` 是统一结果模型，包含 `success`、`status`、`code`、`message`、`data`、`trace`、`exception`、`stoppedNode`、`hitNode` 和 `costMillis`。
+- `RuleExecutionListenerComposite` 会按 Spring order 排序所有监听器，并根据 `listener-error-ignore` 决定监听器异常是否影响主流程。
+- `DefaultRuleAsyncExecutor` 作为独立线程池 Bean 注册，销毁方法为 `shutdown`。
 
-## Boundaries and Operational Notes
+## 边界和注意事项
 
-- V1 rule topologies are assembled in Java. YAML, JSON, database topologies, remote configuration, and hot updates are not supported.
-- The component does not include UI management, tenant binding, permission binding, canary binding, or an expression engine.
-- `maxSteps` protects against rule-tree loops and abnormal rule-chain growth. Complex rule trees should set an explicit, reasonable value.
-- When `throw-exception=false`, execution exceptions are converted into failure results. Enable it only when exceptions must propagate.
-- Rule nodes and handlers should have no shared mutable state. Place data shared across nodes in `RuleContext`.
+- V1 规则拓扑由 Java 代码组装，不支持 YAML、JSON、数据库拓扑、远程配置和热更新。
+- 不包含 UI 管理、租户绑定、权限绑定、灰度绑定和表达式引擎。
+- `maxSteps` 是防止规则树环路和规则链异常扩张的保护，复杂规则树应显式设置合理值。
+- `throw-exception=false` 时执行异常会转成失败结果；需要上抛异常时再开启。
+- 规则节点和 handler 应保持无共享可变状态，跨节点共享数据放入 `RuleContext`。
 
-## Validation Command
+## 验证命令
 
 ```bash
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-rule-engine/egon-cola-component-rule-engine-starter,egon-cola-components/egon-cola-component-rule-engine/egon-cola-component-rule-engine-test -am test

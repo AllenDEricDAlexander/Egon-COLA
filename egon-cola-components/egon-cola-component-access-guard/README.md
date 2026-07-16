@@ -1,29 +1,31 @@
 # Egon COLA Access Guard
 
-## 简要介绍
+[English](README.md) | [中文](README.zh-CN.md)
 
-`egon-cola-component-access-guard` 是 Egon COLA 的方法级访问治理 starter。它可以通过默认的 Spring AOP 引擎或可选的 Bytecode Agent 引擎，对标注入口执行白名单、黑名单、限流、超时保护和拒绝响应处理，适合抽奖、优惠券领取、登录、风控校验、热点接口保护等需要在业务方法入口统一治理的场景。
+## Overview
 
-组件默认提供本地实现和可覆盖扩展点，同时保留 `DoWhiteList`、`DoRateLimiter`、`DoHystrix` 兼容注解，便于从旧式注解平滑迁移。
+`egon-cola-component-access-guard` is a method-level access-governance starter for Egon COLA. Through the default Spring AOP engine or the optional Bytecode Agent engine, it applies allow-list, deny-list, rate-limiting, timeout protection, and rejection handling at annotated entry points. It fits scenarios such as lotteries, coupon claims, login, risk checks, and hot-endpoint protection where governance should be applied consistently at the business-method boundary.
 
-## 模块结构
+The component provides local implementations and replaceable extension points by default. It also keeps the compatible `DoWhiteList`, `DoRateLimiter`, and `DoHystrix` annotations so applications can migrate from legacy annotations gradually.
 
-| Module | 说明 |
+## Module Structure
+
+| Module | Description |
 |---|---|
-| `egon-cola-component-access-guard-starter` | Spring Boot starter，提供注解、AOP、规则解析、key 解析、白名单、限流、黑名单、超时保护、拒绝响应和事件扩展点 |
-| `egon-cola-component-access-guard-test` | 组件样例和集成验证模块 |
+| `egon-cola-component-access-guard-starter` | Spring Boot starter providing annotations, AOP, rule resolution, key resolution, allow-list, rate limiting, deny-list, timeout protection, rejection responses, and event extension points |
+| `egon-cola-component-access-guard-test` | Component examples and integration verification |
 
-## 执行引擎
+## Execution Engines
 
-`egon.cola.component.access-guard.engine` 支持三种互斥模式：
+`egon.cola.component.access-guard.engine` supports three mutually exclusive modes:
 
-| 模式 | 行为 |
+| Mode | Behavior |
 |---|---|
-| `AOP` | 默认值，注册 Spring AOP Advisor，适合普通 Spring Bean 方法 |
-| `AGENT` | 不注册 Access Guard AOP，由 Bytecode Agent 治理方法和构造器 |
-| `DISABLED` | 保留基础 Bean，但不注册 AOP 或 Agent 集成 |
+| `AOP` | Default; registers a Spring AOP advisor and is suitable for ordinary Spring Bean methods |
+| `AGENT` | Does not register Access Guard AOP; the Bytecode Agent governs methods and constructors |
+| `DISABLED` | Keeps the base Beans but registers neither AOP nor Agent integration |
 
-Agent 模式需要额外引入 `egon-cola-component-bytecode-starter`，并在 JVM 启动时安装发布的 Agent JAR：
+Agent mode requires the additional `egon-cola-component-bytecode-starter` dependency and the published Agent JAR installed at JVM startup:
 
 ```yaml
 egon:
@@ -38,82 +40,82 @@ java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-${egon-cola.versio
   -jar application.jar
 ```
 
-Agent 模式的方法支持边界是 public/private 实例方法和 static 方法；protected、package-private、abstract、native、synthetic、bridge 方法会在转换阶段明确失败。static 方法配置 fallback 时，fallback 也必须为 static，并继续支持原方法同参、同参追加 `AccessGuardContext` 或无参三种签名。synchronized 方法保留原监视器语义，但不允许开启超时治理。
+In Agent mode, methods may be public or private instance methods or static methods. Protected, package-private, abstract, native, synthetic, and bridge methods fail explicitly during transformation. When a static method configures a fallback, the fallback must also be static; the original-arguments, original-arguments-plus-`AccessGuardContext`, and no-argument signatures remain supported. Synchronized methods retain their original monitor semantics, but timeout governance cannot be enabled for them.
 
-构造器仅支持 public/private 且只接受组合式 `@AccessGuard`。治理发生在 `this(...)`/`super(...)` 之前，因此没有可用的 `this`，只支持参数、Header、IP、`all` key，以及白名单、黑名单、限流、失败策略和事件；不支持超时、fallback、`returnJson`、`LOCAL_FALLBACK`、返回值替换或实例字段。`this(...)` 链上每个标注构造器各治理一次。基础设施类构造器应谨慎使用，避免在 Spring 运行时就绪前形成启动依赖环。
+Constructors support only public/private constructors with the aggregate `@AccessGuard` annotation. Governance runs before `this(...)`/`super(...)`, so no receiver is available. Only parameters, Header, IP, `all` keys, allow-list, deny-list, rate limiting, failure strategy, and events are supported; timeout, fallback, `returnJson`, `LOCAL_FALLBACK`, return replacement, and instance fields are not. Every annotated constructor in a `this(...)` chain is governed once. Use constructor governance cautiously for infrastructure classes to avoid startup dependency cycles before Spring is ready.
 
-如果 Agent 构造器模式自定义 `AccessKeyResolver`，该实现还必须实现 `ExecutableAccessKeyResolver`。Agent 事件和诊断不会记录参数、返回值、凭证、Cookie、Authorization 或异常消息。
+When Agent constructor mode uses a custom `AccessKeyResolver`, that implementation must also implement `ExecutableAccessKeyResolver`. Agent events and diagnostics never record arguments, return values, credentials, cookies, Authorization headers, or exception messages.
 
-## 功能说明
+## Features
 
-### 注解模型
+### Annotation Model
 
-| 注解 | 说明 |
+| Annotation | Description |
 |---|---|
-| `@AccessGuard` | 组合式注解，可同时启用白名单、限流、黑名单、超时保护 |
-| `@WhiteListAccessInterceptor` | 白名单校验 |
-| `@RateLimiterAccessInterceptor` | 方法限流，支持限流失败后累计黑名单 |
-| `@TimeoutCircuitBreaker` | 方法超时保护，支持 fallback 和 `returnJson` |
-| `@DoWhiteList` | 兼容旧白名单注解 |
-| `@DoRateLimiter` | 兼容旧限流注解 |
-| `@DoHystrix` | 兼容旧超时/熔断注解 |
+| `@AccessGuard` | Composite annotation that can enable allow-list, rate limiting, deny-list, and timeout protection together |
+| `@WhiteListAccessInterceptor` | Allow-list check |
+| `@RateLimiterAccessInterceptor` | Method rate limiting, with optional cumulative deny-listing after rate-limit failures |
+| `@TimeoutCircuitBreaker` | Method timeout protection with fallback and `returnJson` support |
+| `@DoWhiteList` | Compatible legacy allow-list annotation |
+| `@DoRateLimiter` | Compatible legacy rate-limit annotation |
+| `@DoHystrix` | Compatible legacy timeout/circuit-breaker annotation |
 
-### 固定执行顺序
+### Fixed Execution Order
 
-`AccessGuardAop` 对命中的方法按固定顺序执行治理逻辑：
+`AccessGuardAop` applies governance to a matched method in this fixed order:
 
 ```text
 white list -> blacklist -> rate limiter -> timeout protection -> business method
 ```
 
-白名单命中时有两种模式：
+There are two allow-list modes:
 
-| 模式 | 行为 |
+| Mode | Behavior |
 |---|---|
-| `GATEKEEPER` | 白名单作为准入门禁，通过后继续执行黑名单、限流、超时保护 |
-| `BYPASS_GUARD` | 白名单命中后直接执行业务方法，跳过后续治理 |
+| `GATEKEEPER` | The allow-list acts as an admission gate; after it passes, deny-list, rate limiting, and timeout protection continue |
+| `BYPASS_GUARD` | A matching allow-list entry invokes the business method directly and skips the remaining governance steps |
 
-### key 解析
+### Key Resolution
 
-默认 `DefaultAccessKeyResolver` 支持：
+The default `DefaultAccessKeyResolver` supports:
 
-| key 写法 | 说明 |
+| Key syntax | Description |
 |---|---|
-| `all` | 全局共享 key |
-| `userId` | 匹配方法参数名 |
-| `request.userId` | 从对象属性路径读取 |
-| `header:X-User-Id` | 从当前 HTTP 请求 Header 读取 |
-| `ip` | 从 `X-Forwarded-For` 或 `remoteAddr` 读取 IP |
+| `all` | One globally shared key |
+| `userId` | Matches a method parameter name |
+| `request.userId` | Reads an object property path |
+| `header:X-User-Id` | Reads a Header from the current HTTP request |
+| `ip` | Reads the IP from `X-Forwarded-For` or `remoteAddr` |
 
-解析出的原始 key 会经过 `AccessGuardKeyGenerator` 生成 `normalizedKey` 和 `keyHash`，避免把敏感原值直接用于事件和存储。
+The raw key is passed through `AccessGuardKeyGenerator` to produce `normalizedKey` and `keyHash`, so sensitive raw values do not appear directly in events or storage.
 
-### 拒绝响应
+### Rejection Responses
 
-拒绝时按以下顺序返回结果：
+Rejected calls return results in this order:
 
-1. 如果配置了 `fallbackMethod`，优先反射调用 fallback。fallback 可以与原方法同参，也可以额外追加 `AccessGuardContext`，也可以无参。
-2. 如果配置了 `returnJson`，按原方法返回类型解析 JSON。
-3. 如果原方法返回 `String`，返回默认字符串 `access rejected`。
-4. 其他返回类型默认返回 `null`。
+1. If `fallbackMethod` is configured, invoke the fallback reflectively first. It may have the original arguments, the original arguments plus `AccessGuardContext`, or no arguments.
+2. If `returnJson` is configured, parse JSON according to the original method's return type.
+3. If the original method returns `String`, return the default string `access rejected`.
+4. Other return types default to `null`.
 
-### 扩展点
+### Extension Points
 
-AutoConfiguration 中大部分 Bean 都使用 `@ConditionalOnMissingBean`，业务侧可以提供自己的实现：
+Most Beans in auto-configuration use `@ConditionalOnMissingBean`, so applications can provide their own implementations:
 
-| 扩展点 | 用途 |
+| Extension point | Purpose |
 |---|---|
-| `AccessGuardConfigProvider` | 提供全局或方法级动态规则覆盖 |
-| `AccessKeyResolver` | 自定义访问 key 解析 |
-| `WhiteListRepository` / `WhiteListService` | 自定义白名单来源 |
-| `RateLimiterExecutor` | 自定义限流实现 |
-| `BlacklistService` | 自定义黑名单存储和累计策略 |
-| `TimeoutCircuitBreakerExecutor` | 自定义超时执行器 |
-| `RejectResponseInvoker` | 自定义拒绝响应生成 |
-| `AccessGuardEventListener` | 订阅治理事件 |
+| `AccessGuardConfigProvider` | Provide global or method-level dynamic rule overrides |
+| `AccessKeyResolver` | Customize access-key resolution |
+| `WhiteListRepository` / `WhiteListService` | Customize the allow-list source |
+| `RateLimiterExecutor` | Customize rate limiting |
+| `BlacklistService` | Customize deny-list storage and accumulation policy |
+| `TimeoutCircuitBreakerExecutor` | Customize timeout execution |
+| `RejectResponseInvoker` | Customize rejection response generation |
+| `AccessGuardEventListener` | Subscribe to governance events |
 
-starter 内置 `RedissonRateLimiterExecutor`、`RedissonBlacklistService`、`RedissonWhiteListRepository` 和 `AccessGuardRedisKeys`，需要 Redis/Redisson 语义时可以通过自定义 Bean 接入。
+The starter includes `RedissonRateLimiterExecutor`, `RedissonBlacklistService`, `RedissonWhiteListRepository`, and `AccessGuardRedisKeys`. Provide custom Beans when Redis/Redisson semantics are required.
 
-## 依赖方式
+## Dependency
 
 ```xml
 <dependencyManagement>
@@ -136,11 +138,11 @@ starter 内置 `RedissonRateLimiterExecutor`、`RedissonBlacklistService`、`Red
 </dependencies>
 ```
 
-starter 已包含 `spring-boot-starter-aop` 和 `spring-web`，业务应用只需要启用 Spring Boot 自动配置即可。
+The starter already includes `spring-boot-starter-aop` and `spring-web`; the business application only needs to enable Spring Boot auto-configuration.
 
-## 配置说明
+## Configuration
 
-配置前缀为 `egon.cola.component.access-guard`：
+The configuration prefix is `egon.cola.component.access-guard`:
 
 ```yaml
 egon:
@@ -187,7 +189,7 @@ egon:
           expire-after-write: 10m
 ```
 
-可以通过配置覆盖指定规则：
+Specific rules can be overridden through configuration:
 
 ```yaml
 egon:
@@ -217,9 +219,9 @@ egon:
             fail-strategy: FAIL_OPEN
 ```
 
-## 完整的使用示例
+## Complete Examples
 
-### 1. 组合式治理
+### 1. Composite Governance
 
 ```java
 package demo.draw;
@@ -256,7 +258,7 @@ public class DrawService {
 }
 ```
 
-### 2. 单独使用白名单、限流和超时注解
+### 2. Individual Allow-List, Rate-Limit, and Timeout Annotations
 
 ```java
 package demo.draw;
@@ -315,7 +317,7 @@ public class CouponService {
 }
 ```
 
-### 3. 使用兼容注解
+### 3. Compatible Annotations
 
 ```java
 package demo.draw;
@@ -345,7 +347,7 @@ public class LegacyDrawService {
 }
 ```
 
-### 4. 接入 Redisson 限流、白名单和黑名单
+### 4. Using Redisson for Rate Limiting, Allow-Lists, and Deny-Lists
 
 ```java
 package demo.draw.config;
@@ -390,38 +392,38 @@ public class AccessGuardRedisConfig {
 }
 ```
 
-## 设计思想和实现细节
+## Design And Implementation Details
 
-### 设计思想
+### Design Principles
 
-1. 治理逻辑放在方法入口，业务方法保持纯业务代码。
-2. 注解声明静态规则，`AccessGuardConfigProvider` 允许运行时覆盖，兼顾易用性和动态治理。
-3. AOP 流程固定，避免多个治理动作组合后顺序不确定。
-4. key 解析、规则解析、限流、黑名单、拒绝响应和事件发布都拆成接口，业务可以按需替换。
-5. 默认本地实现保证 starter 开箱可用，Redis/Redisson 能力通过自定义 Bean 接入，避免强绑具体基础设施。
+1. Governance runs at the method boundary, keeping business methods focused on business logic.
+2. Annotations declare static rules while `AccessGuardConfigProvider` enables runtime overrides, balancing convenience with dynamic governance.
+3. The AOP flow is fixed so composing multiple governance actions never produces an ambiguous order.
+4. Key resolution, rule resolution, rate limiting, deny-listing, rejection responses, and event publication are interfaces that applications can replace independently.
+5. Local implementations make the starter usable out of the box; Redis/Redisson capabilities are supplied through custom Beans instead of binding the component to one infrastructure choice.
 
-### 实现细节
+### Implementation Details
 
-- `AccessGuardAutoConfiguration` 通过 `AutoConfiguration.imports` 注册，`enabled` 缺省为 `true`。
-- `AccessGuardAnnotationResolver` 把各种注解统一解析为 `AccessGuardRule`。
-- `AccessGuardRuleResolver` 的优先级是注解规则 -> properties 中同名规则 -> 全局动态覆盖 -> 方法级动态覆盖。
-- `AccessGuardAop` 先解析方法和 key，再执行白名单、黑名单、限流、超时保护，最后发布 `AccessGuardEvent`。
-- `LocalRateLimiterExecutor` 使用内存 token bucket，key 为 `{ruleName}:{accessKeyHash}`。
-- `RedissonRateLimiterExecutor` 使用 Redisson `RRateLimiter`，Redis key 由 `AccessGuardRedisKeys` 生成。
-- `ThreadPoolTimeoutCircuitBreakerExecutor` 使用固定线程池执行受保护方法，超时后走 fallback 或 `returnJson`。
-- `ReflectionFallbackInvoker` 会在当前类及父类中查找 fallback 方法，支持同参、追加 `AccessGuardContext` 和无参方法。
-- `NoopAccessGuardEventPublisher` 实际会遍历所有 `AccessGuardEventListener`，默认 `LoggingAccessGuardEventListener` 输出治理事件日志。
+- `AccessGuardAutoConfiguration` is registered through `AutoConfiguration.imports`; `enabled` defaults to `true`.
+- `AccessGuardAnnotationResolver` normalizes the supported annotations into `AccessGuardRule`.
+- `AccessGuardRuleResolver` precedence is annotation rule -> same-name property rule -> global dynamic override -> method-level dynamic override.
+- `AccessGuardAop` resolves the method and key first, then runs allow-list, deny-list, rate limiting, and timeout protection, and finally publishes `AccessGuardEvent`.
+- `LocalRateLimiterExecutor` uses an in-memory token bucket with the key `{ruleName}:{accessKeyHash}`.
+- `RedissonRateLimiterExecutor` uses Redisson `RRateLimiter`; Redis keys are generated by `AccessGuardRedisKeys`.
+- `ThreadPoolTimeoutCircuitBreakerExecutor` runs the protected method on a fixed thread pool and uses fallback or `returnJson` after a timeout.
+- `ReflectionFallbackInvoker` searches the current class and its superclasses for a fallback and supports original arguments, original arguments plus `AccessGuardContext`, and no arguments.
+- `NoopAccessGuardEventPublisher` actually iterates over every `AccessGuardEventListener`; the default `LoggingAccessGuardEventListener` writes governance-event logs.
 
-## 边界和注意事项
+## Boundaries And Notes
 
-- `@AccessGuard` 等注解只作用于方法。
-- 默认 `WhiteListRepository` 总是返回未命中，若启用白名单且没有配置 `users` 或仓储，默认策略会拒绝访问。
-- 默认 `BlacklistService` 不持久化黑名单；需要跨实例黑名单时应接入 `RedissonBlacklistService` 或自定义实现。
-- 默认 `RateLimiterExecutor` 是本地内存限流；多实例全局限流应接入 Redisson 实现。
-- fallback 返回值应与原方法返回类型兼容。
-- `returnJson` 会按原方法返回类型解析，字符串返回值可以直接使用普通字符串或 JSON 字符串。
+- `@AccessGuard` and the related annotations apply only to methods.
+- The default `WhiteListRepository` always reports a miss. If the allow-list is enabled without configured `users` or a repository, the default policy denies access.
+- The default `BlacklistService` does not persist deny-list entries. Use `RedissonBlacklistService` or a custom implementation for cross-instance deny-listing.
+- The default `RateLimiterExecutor` is an in-memory limiter. Use the Redisson implementation for global multi-instance rate limiting.
+- Fallback return values must be compatible with the original method return type.
+- `returnJson` is parsed according to the original return type; string return values may be ordinary strings or JSON strings.
 
-## 验证命令
+## Verification
 
 ```bash
 ./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-access-guard/egon-cola-component-access-guard-starter -am test
