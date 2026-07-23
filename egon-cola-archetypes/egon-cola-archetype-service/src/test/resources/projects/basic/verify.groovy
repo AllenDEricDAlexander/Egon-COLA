@@ -93,8 +93,18 @@ assert rootPom.properties.'java.version'.text() == "21"
     "spring-cloud.version",
     "spring-cloud-alibaba.version"
 ].each { assertVersionProperty(rootPom, it) }
+assert rootPom.properties.'lombok.mapstruct.binding.version'.text() == "0.2.0"
 assertEgonColaBom(rootPom)
 assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
+def compilerPlugin = rootPom.build.plugins.plugin.find {
+    it.artifactId.text() == "maven-compiler-plugin"
+}
+def bindingProcessor = compilerPlugin.configuration.annotationProcessorPaths.path.find {
+    it.groupId.text() == "org.projectlombok" &&
+            it.artifactId.text() == "lombok-mapstruct-binding"
+}
+assert bindingProcessor: "Expected lombok-mapstruct-binding annotation processor"
+assert bindingProcessor.version.text() == '${lombok.mapstruct.binding.version}'
 def lombokConfig = assertFile("lombok.config").text
 [
     "config.stopBubbling = true",
@@ -729,6 +739,7 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
             "student-management-evaluation-adapter/src/main/java/it/pkg/${relativePath}").text
     assert mapper.contains("@Mapper(")
     assert mapper.contains("ReportingPolicy.ERROR")
+    assert mapper.contains("@BeforeMapping")
 }
 
 def coursePo = assertFile(
@@ -744,5 +755,18 @@ assert !coursePo.contains("protected CoursePo()")
 ].each { path ->
     def source = assertFile(path).text
     assert source.contains("@RequiredArgsConstructor")
+}
+
+def genericConverterSources = []
+projectDir.traverse(type: FileType.FILES) { file ->
+    def path = projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
+    if (path.contains("/src/main/java/") && file.name.endsWith(".java")) {
+        genericConverterSources << file.text
+    }
+}
+genericConverterSources.each { source ->
+    assert !source.contains("import io.github.linpeilie.Converter;")
+    assert !source.contains("private final Converter converter;")
+    assert !source.contains('@Qualifier("converter")')
 }
 return true

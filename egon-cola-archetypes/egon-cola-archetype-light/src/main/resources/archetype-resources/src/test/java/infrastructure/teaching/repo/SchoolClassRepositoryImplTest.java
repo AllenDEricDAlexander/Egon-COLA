@@ -13,10 +13,12 @@ import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.teaching.vos.Semester;
 import ${package}.infrastructure.JpaTestApplication;
 import ${package}.infrastructure.teaching.repo.converter.CoursePOConverter;
+import ${package}.infrastructure.teaching.repo.converter.CoursePOMapper;
 import ${package}.infrastructure.teaching.repo.converter.CoursePOMapperImpl;
 import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
 import ${package}.infrastructure.teaching.repo.impl.CourseRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.impl.SchoolClassRepositoryImpl;
+import ${package}.infrastructure.teaching.repo.po.CoursePO;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +29,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DataJpaTest
@@ -44,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class SchoolClassRepositoryImplTest {
     @Autowired SchoolClassRepository schoolClassRepository;
     @Autowired CourseRepository courseRepository;
+    @Autowired CoursePOMapper coursePOMapper;
     @Autowired EntityManager entityManager;
 
     @Test
@@ -75,6 +80,18 @@ class SchoolClassRepositoryImplTest {
             schoolClassRepository.saveAggregate(aggregate);
             entityManager.flush();
         });
+    }
+
+    @Test
+    void updates_target_when_mapping_course() {
+        CoursePO target = new CoursePO(
+                "old", "old", "Old", "INACTIVE", Instant.EPOCH);
+
+        CoursePO mapped = coursePOMapper.convert(course(), target);
+
+        assertSame(target, mapped);
+        assertEquals("course-math", mapped.getId());
+        assertEquals("math", mapped.getCourseCode());
     }
 
     private SchoolClass schoolClass() {

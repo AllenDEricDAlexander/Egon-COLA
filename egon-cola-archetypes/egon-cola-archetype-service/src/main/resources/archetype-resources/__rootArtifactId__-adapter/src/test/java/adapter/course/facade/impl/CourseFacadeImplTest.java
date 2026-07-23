@@ -15,7 +15,9 @@ import org.mapstruct.factory.Mappers;
 import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,5 +39,19 @@ class CourseFacadeImplTest {
         assertTrue(response.isSuccess());
         assertEquals("course-1", response.getData().id());
         verify(manage).create(command);
+    }
+
+    @Test
+    void shouldFailWhenApplicationReturnsNull() {
+        CourseManage manage = mock(CourseManage.class);
+        when(manage.create(any())).thenReturn(null);
+        CourseFacadeImpl facade = new CourseFacadeImpl(
+                manage, Mappers.getMapper(CourseFacadeConverter.class), new CourseFacadeValidator(),
+                new GlobalFacadeExceptionHandler());
+
+        var response = facade.create(new CreateCourseRequest("MATH-101", "Math", 3));
+
+        assertFalse(response.isSuccess());
+        assertEquals("INTERNAL_ERROR", response.getCode());
     }
 }

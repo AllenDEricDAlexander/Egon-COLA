@@ -5,6 +5,7 @@ import ${package}.domain.teaching.enums.GradeStatus;
 import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.teaching.repo.converter.GradePOConverter;
+import ${package}.infrastructure.teaching.repo.converter.GradePOMapper;
 import ${package}.infrastructure.teaching.repo.converter.GradePOMapperImpl;
 import ${package}.infrastructure.teaching.repo.impl.GradeRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.jpa.GradeJpaRepository;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GradeRepositoryImplTest {
     @Autowired GradeRepository repository;
     @Autowired GradeJpaRepository jpaRepository;
+    @Autowired GradePOMapper gradePOMapper;
 
     @Test
     void savesNewGradesAndRestoresLegacyCodes() {
@@ -39,6 +41,19 @@ class GradeRepositoryImplTest {
         assertThat(repository.findByCode(new GradeCode("GRADE_ONE"))).contains(saved);
         assertThat(repository.findById("legacy:Legacy Grade")).get()
             .extracting(grade -> grade.code().value()).isEqualTo("Legacy Grade");
+    }
+
+    @Test
+    void updatesTargetWhenMappingGrade() {
+        GradePO target = new GradePO(
+            "old", "OLD", "Old", "INACTIVE", LocalDateTime.MIN);
+
+        GradePO mapped = gradePOMapper.convert(new Grade(
+            "grade-1", GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE), target);
+
+        assertThat(mapped).isSameAs(target);
+        assertThat(mapped.getId()).isEqualTo("grade-1");
+        assertThat(mapped.getCode()).isEqualTo("GRADE_ONE");
     }
 
     @Configuration(proxyBeanMethods = false)

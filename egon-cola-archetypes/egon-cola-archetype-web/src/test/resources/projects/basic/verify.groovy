@@ -963,6 +963,7 @@ assert rootPom.properties.'java.version'.text() == "21"
     "spring-cloud-alibaba.version",
     "springdoc.version"
 ].each { assertVersionProperty(rootPom, it) }
+assert rootPom.properties.'lombok.mapstruct.binding.version'.text() == "0.2.0"
 assertEgonColaBom(rootPom)
 assert rootPom.modules.module*.text() == [
     "student-management-organization-common",
@@ -998,6 +999,15 @@ assert rootPomText.contains("<artifactId>dubbo-bom</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-processor</artifactId>")
 assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
+def compilerPlugin = rootPom.build.plugins.plugin.find {
+    it.artifactId.text() == "maven-compiler-plugin"
+}
+def bindingProcessor = compilerPlugin.configuration.annotationProcessorPaths.path.find {
+    it.groupId.text() == "org.projectlombok" &&
+            it.artifactId.text() == "lombok-mapstruct-binding"
+}
+assert bindingProcessor: "Expected lombok-mapstruct-binding annotation processor"
+assert bindingProcessor.version.text() == '${lombok.mapstruct.binding.version}'
 assert rootPomText.contains("<module>student-management-organization-common</module>")
 assert rootPomText.contains("<module>student-management-organization-starter</module>")
 assert !rootPomText.contains("spring-ai")
@@ -1568,11 +1578,13 @@ forbiddenLivingArchitecturePatterns.each { pattern ->
             "student-management-organization-adapter/src/main/java/it/pkg/${mapperPath}").text
     assert mapper.contains("@Mapper(")
     assert mapper.contains("ReportingPolicy.ERROR")
+    assert mapper.contains("@BeforeMapping")
 }
 
 def gradePoMapper = assertFile(
         "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/GradePOMapper.java").text
 assert gradePoMapper.contains("extends BaseMapper<Grade, GradePO>")
+assert gradePoMapper.contains("@MappingTarget")
 
 def gradePo = assertFile(
         "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/GradePO.java").text

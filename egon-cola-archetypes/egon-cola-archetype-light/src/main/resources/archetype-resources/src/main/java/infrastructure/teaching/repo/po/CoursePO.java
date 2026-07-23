@@ -6,7 +6,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
@@ -14,6 +16,8 @@ import java.time.Instant;
 @Table(name = "courses")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@Getter
+@Setter
 public class CoursePO {
     @Id
     private String id;
@@ -25,10 +29,4 @@ public class CoursePO {
     private String status;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
-
-    public String getId() { return id; }
-    public String getCourseCode() { return courseCode; }
-    public String getName() { return name; }
-    public String getStatus() { return status; }
-    public Instant getCreatedAt() { return createdAt; }
 }
