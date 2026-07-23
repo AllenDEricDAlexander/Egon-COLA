@@ -2,7 +2,7 @@
 
 ## 1. 文档状态
 
-- 状态：待审核
+- 状态：已审核，待实施
 - 日期：2026-07-23
 - 目标版本：Egon-COLA 5.2.3 archetype 模板
 - 适用范围：`egon-cola-archetype-light`、`egon-cola-archetype-web`、`egon-cola-archetype-service`
@@ -38,6 +38,7 @@ ShardingSphere 模式下存在两个需要同时解决的问题：
 6. 新生成项目默认仍可按现有单数据源模式运行；通过叠加 profile 启用 ShardingSphere。
 7. 同一聚合内、使用同一分片根键的表必须落在同一物理库和同一物理表后缀中。
 8. 业务代码继续只依赖一个逻辑 `DataSource`，不直接选择物理数据源。
+9. 数据库数、每库物理表数和总物理节点数必须是 `2` 的幂；扩容采用 `N → 2N` 的 2N 平滑迁移法（即本需求约定的“2n 法”）。
 
 ### 3.2 事务要求
 
@@ -123,13 +124,14 @@ V20260724_001__add_class_schedule_index.sql
 5. Flyway migration 目录、文件命名、文件头注释和物理节点迁移编排。
 6. Repository/Query 的分片键完整性改造。
 7. 本地事务边界和跨分片业务一致性约束。
-8. `verify.groovy` 生成契约。
-9. 中英文 README。
+8. 2N 平滑扩容所需的稳定槽位算法、追加式节点映射和迁移操作规范。
+9. `verify.groovy` 生成契约。
+10. 中英文 README。
 
 ### 4.2 非本次范围
 
 1. 不迁移历史数据；模板尚未执行，无历史兼容要求。
-2. 不设计在线双写、历史回填、分片扩容或缩容方案。
+2. 不实现在线双写、CDC、数据搬迁执行器或缩容工具；本次实现 2N 扩容的稳定路由契约和操作规范。
 3. 不引入 ShardingSphere Proxy、治理中心、影子库或数据加密规则。
 4. 不引入任何分布式事务实现。
 5. 不实现通用 Saga 框架；仅定义跨分片业务处理原则。
@@ -203,6 +205,14 @@ V20260724_001__add_class_schedule_index.sql
 - `single`：不分片表的逻辑数据源。
 - `shard_0`、`shard_1`：两个逻辑分片数据源。
 - 每个分片数据源内每张分片表有 `_0`、`_1` 两个物理表。
+
+数量约束：
+
+1. 数据库数必须为 `2^a`，每库物理表数必须为 `2^b`，总物理节点数为 `N = 2^(a+b)`。
+2. 初始模板使用 `2 库 × 每库 2 表 = 4 节点`。
+3. 一次扩容只允许把总节点数从 `N` 扩成 `2N`。
+4. 若库数和每库表数都要翻倍，必须拆成两次连续的 `N → 2N`，不能一次从 `N` 跳到 `4N`。
+5. 节点槽位映射只允许在尾部追加，已有槽位对应的物理库表永不改写。
 
 读写分离模式下：
 
@@ -305,6 +315,7 @@ school_classes(grade_id), school_class_users(grade_id)
 3. `school_class_users` 的物理唯一约束至少包含 `(grade_id, school_class_id, user_id)`。
 4. 当前未使用的 `findByUserId` 全路由查询应移除。
 5. 若未来需要“查询用户加入的全部班级”，使用业务事件构建按 `user_id` 分片的只读投影；投影更新是跨分片业务一致性，不放进班级本地事务。
+6. Service archetype 的 `OrganizationDirectoryPort`、Dubbo client 和本地 stub 调用班级 Facade 时也必须携带 `gradeId + schoolClassId`，不能让跨模板调用绕过分片键契约。
 
 选择 `grade_id` 而不是 `school_class_id`，是为了保留同年级班级名称的唯一约束，并使班级及其成员在同一物理节点完成事务。代价是所有班级访问必须带 `gradeId`，该约束由 Facade、Query 和 Repository 签名共同强制。
 
@@ -357,36 +368,71 @@ shard_1.table_1
 
 另外两个组合将永远空置。因此本次不能简单复制两份 `HASH_MOD` 配置。
 
-### 8.2 四虚拟桶算法
+### 8.2 2N 稳定槽位算法
 
 增加一个轻量 `CLASS_BASED` 标准分片算法 `UuidV7BucketShardingAlgorithm`：
 
 ```text
-hash   = floorMod(javaStringHash(shardingKey), 4)
-db     = hash / 2
-table  = hash % 2
+hash = javaStringHash(shardingKey)
+spreadHash = hash ^ (hash >>> 16)
+slot = spreadHash & (nodeCount - 1)
+node = nodeMap[slot]
 ```
 
-映射结果：
+初始 `nodeCount=4` 的追加式映射：
 
-| 虚拟桶 | 物理节点 |
+| 槽位 | 物理节点 |
 | --- | --- |
 | `0` | `shard_0.table_0` |
 | `1` | `shard_0.table_1` |
 | `2` | `shard_1.table_0` |
 | `3` | `shard_1.table_1` |
 
-数据库策略和表策略复用同一算法实现，通过 `target=database/table` 返回不同后缀。UUIDv7 的随机位参与稳定的字符串 hash，避免时间前缀造成单节点热点；UUIDv7 在单节点索引中仍保留大体递增特征。
+扩成 `nodeCount=8` 时保留 `0..3` 不变，只追加 `4..7`。新增节点可以来自：
+
+- 库扩容：追加 `shard_2.table_0`、`shard_2.table_1`、`shard_3.table_0`、`shard_3.table_1`；
+- 表扩容：追加 `shard_0.table_2`、`shard_0.table_3`、`shard_1.table_2`、`shard_1.table_3`。
+
+数据库策略和表策略读取同一份 `nodeMap`，通过 `target=database/table` 分别返回物理数据源名和表后缀。不能再通过 `db = slot / tableCount` 动态推导节点，否则表数翻倍时会改写已有槽位映射。
+
+2N 性质：
+
+```text
+oldSlot = spreadHash & (N - 1)
+newSlot = spreadHash & (2N - 1)
+```
+
+对任意键，`newSlot` 只可能等于 `oldSlot` 或 `oldSlot + N`。因此已有槽位和节点不变，理论上约一半数据保留原节点、另一半迁往新增槽位，避免全量重排。
+
+UUIDv7 的随机位参与稳定 hash，避免时间前缀造成单节点热点；UUIDv7 在单节点索引中仍保留大体递增特征。
 
 算法约束：
 
 1. 仅支持精确值和 `IN` 路由。
 2. 分片键范围查询默认拒绝；业务需要范围查询时必须按业务时间列查询并明确接受跨分片聚合。
 3. `null`、空字符串和格式非法的 UUIDv7 直接失败。
-4. 数据库数和表数是配置项，但本 spec 只验证 `2 × 2`。
-5. 扩缩容会改变桶映射，属于后续治理范围，不在本次实现。
+4. `nodeCount` 必须大于等于 `2` 且为 `2` 的幂。
+5. `nodeMap` 必须连续覆盖 `0..nodeCount-1`，不能缺槽、重复槽位、重复完整物理节点或改写已有槽位；同一库对应多个表槽位不属于重复。
+6. 数据库数和每库表数都必须是 `2` 的幂。
+7. 配置必须携带 `mappingVersion`；版本只递增，不允许回退后复用旧版本号。
+8. 单个应用进程无法仅凭当前配置判断版本是否曾经回退；运行时负责校验版本为正数且 database/table 一致，CI 测试和扩容 runbook 通过 `assertCanExpandTo(oldMap, newMap)` 校验版本递增、`N → 2N` 及旧槽位前缀不变。
 
 该算法是必要的 Strategy 扩展点；直接使用两次相同取模不能覆盖全部物理节点。除这一处外不新增自定义路由 DSL。
+
+### 8.3 2N 平滑迁移流程
+
+本次脚手架实现稳定槽位算法和配置校验，不在应用进程内实现跨库搬数。实际 `N → 2N` 按以下顺序执行：
+
+1. 固化旧 `mappingVersion`、`nodeCount=N` 和 `nodeMap[0..N-1]`。
+2. 新增数据库或物理表；所有新增 primary 先执行 Flyway，schema 校验通过后才参与迁移。
+3. 生成 `nodeCount=2N` 的新映射，只追加 `nodeMap[N..2N-1]`。
+4. 搬迁任务仅扫描 `newSlot = oldSlot + N` 的记录，复制到新节点；保留槽位数据不动。
+5. 在线增量通过业务幂等、CDC 或外部迁移任务解决，不使用分布式事务。
+6. 以分片键执行源目标行数、主键集合和业务摘要校验。
+7. 校验通过后原子发布新的 `mappingVersion`，应用统一切换到 `2N` 路由。
+8. 观察期内旧节点保留已搬记录；确认无回退需求后再按独立 migration runbook 清理。
+
+“平滑”表示旧槽位映射稳定且只迁移约一半数据，不代表脚手架自动提供零停机双写或 CDC。
 
 ## 9. UUIDv7 分布式主键
 
@@ -465,43 +511,31 @@ src/main/resources/
 
 - `application-sharding.yml`
   - 关闭 Spring Boot 默认 Flyway。
-  - 指定 primary-only ShardingSphere YAML。
+  - 用列表定义 primary-only 物理数据源及角色。
+  - 只定义一份 `routing.mapping-version`、`routing.node-count` 和 `routing.node-map`。
+  - 指定 primary-only ShardingSphere 规则 YAML。
   - 显式列出 Flyway target 与 location。
 - `application-readwrite.yml`
+  - 用完整列表替换 primary-only 物理数据源，定义 primary 与 replica。
   - 将规则资源切换为 read/write YAML。
   - 将 Flyway target 切换为各组 primary。
   - 校验必须同时启用 `sharding`。
 - `shardingsphere-sharding.yml`
-  - 定义 `single`、`shard_0`、`shard_1` 三个物理数据源。
-  - 定义 `!SHARDING`、`!SINGLE`。
+  - 只定义 `!SHARDING`、`!SINGLE` 和 ShardingSphere 属性。
 - `shardingsphere-sharding-readwrite.yml`
-  - 定义 primary、replica 物理数据源。
   - 定义逻辑组 `single`、`shard_0`、`shard_1`。
   - 在相同的 `!SHARDING`、`!SINGLE` 规则前增加 `!READWRITE_SPLITTING`。
 
-两份 ShardingSphere YAML 的表规则存在受控重复。增加配置一致性测试，要求两份文件的 `!SHARDING`、`!SINGLE` 语义一致，避免通过自定义 YAML 合并器引入额外复杂度。
+物理连接和 2N 路由映射只存在于 Spring profile。Bootstrapper 从物理连接列表创建一个 `Map<String, DataSource>`，同一批实例先交给 Flyway，再通过 ShardingSphere 5.5.3 的公开重载 `YamlShardingSphereDataSourceFactory.createDataSource(dataSourceMap, yamlBytes)` 创建逻辑数据源。规则 YAML 不重复保存 JDBC URL、用户名、密码或 nodeMap，也不依赖 ShardingSphere 内部 YAML 类。
+
+两份 ShardingSphere 规则 YAML 存在受控重复。文件必须把 `!READWRITE_SPLITTING` 放在最前面，并保证从 `- !SHARDING` 到文件末尾逐字一致；测试截取该后缀做 UTF-8 文本比较。这样不需要解析 ShardingSphere YAML，也能保证两份文件的 `!SHARDING`、`!SINGLE` 和 props 一致。
 
 ### 11.2 代表性规则
 
-以下为 Service 的规则骨架，实际文件补齐全部物理数据源和环境变量：
+以下为 Service 的 read/write 规则骨架；物理 `DataSource` 由 Spring profile 创建后通过 Factory 参数注入：
 
 ```yaml
 databaseName: evaluation
-
-dataSources:
-  single_primary:
-    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: org.postgresql.Driver
-    jdbcUrl: ${EVALUATION_SINGLE_PRIMARY_URL}
-    username: ${EVALUATION_SINGLE_PRIMARY_USERNAME}
-    password: ${EVALUATION_SINGLE_PRIMARY_PASSWORD}
-  single_replica_0:
-    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: org.postgresql.Driver
-    jdbcUrl: ${EVALUATION_SINGLE_REPLICA_0_URL}
-    username: ${EVALUATION_SINGLE_REPLICA_0_USERNAME}
-    password: ${EVALUATION_SINGLE_REPLICA_0_PASSWORD}
-  # shard_0_primary / shard_0_replica_0 / shard_1_primary / shard_1_replica_0 同结构
 
 rules:
   - !READWRITE_SPLITTING
@@ -512,7 +546,18 @@ rules:
           - single_replica_0
         transactionalReadQueryStrategy: PRIMARY
         loadBalancerName: round_robin
-      # shard_0、shard_1 同结构
+      shard_0:
+        writeDataSourceName: shard_0_primary
+        readDataSourceNames:
+          - shard_0_replica_0
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+      shard_1:
+        writeDataSourceName: shard_1_primary
+        readDataSourceNames:
+          - shard_1_replica_0
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
     loadBalancers:
       round_robin:
         type: ROUND_ROBIN
@@ -556,18 +601,20 @@ rules:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: top.egon.cola.evaluation.infrastructure.datasource.UuidV7BucketShardingAlgorithm
+          algorithmClassName: top.egon.cola.evaluation.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
           target: database
-          database-count: 2
-          table-count: 2
+          mapping-version: ${app.sharding.routing.mapping-version}
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
       uuid_v7_table_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: top.egon.cola.evaluation.infrastructure.datasource.UuidV7BucketShardingAlgorithm
+          algorithmClassName: top.egon.cola.evaluation.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
           target: table
-          database-count: 2
-          table-count: 2
+          mapping-version: ${app.sharding.routing.mapping-version}
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
 
   - !SINGLE
     tables:
@@ -578,7 +625,7 @@ props:
   sql-show: ${SHARDING_SQL_SHOW:false}
 ```
 
-ShardingSphere 原生 YAML 不是 Spring 配置文件。Loader 必须先通过 Spring `Environment` 解析 `${ENV_NAME}`，再交给 ShardingSphere；ShardingSphere 行表达式统一写成 `$->{0..1}` 并在解析过程中原样保留，避免与 Spring placeholder 冲突。日志不得输出解析后的密码。
+ShardingSphere 行表达式统一写成 `$->{0..1}`。规则 YAML 不含物理凭证，Loader 只负责加载规则资源并解析路由映射、`sql-show` 等非敏感 Spring placeholder。database/table 两个算法都引用同一组 `app.sharding.routing.*`，不能各自维护值。
 
 ## 12. Flyway 与物理拓扑集成
 
@@ -606,12 +653,59 @@ src/main/resources/db/migration/
 
 ### 12.2 显式迁移 target
 
-不根据名称后缀猜测 primary。`application-sharding.yml` 与 `application-readwrite.yml` 显式声明：
+不根据名称后缀猜测 primary。`application-sharding.yml` 与 `application-readwrite.yml` 使用列表显式声明物理连接角色和 Flyway target；profile 合并时由 read/write 列表整体替换 primary-only 列表：
 
 ```yaml
 app:
   sharding:
     config: classpath:sharding/shardingsphere-sharding-readwrite.yml
+    routing:
+      mapping-version: ${EVALUATION_SHARDING_MAPPING_VERSION:1}
+      node-count: ${EVALUATION_SHARDING_NODE_COUNT:4}
+      node-map: ${EVALUATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}
+    physical-data-sources:
+      - name: single_primary
+        logical-name: single
+        role: PRIMARY
+        driver-class-name: org.postgresql.Driver
+        jdbc-url: ${EVALUATION_SINGLE_PRIMARY_URL}
+        username: ${EVALUATION_SINGLE_PRIMARY_USERNAME}
+        password: ${EVALUATION_SINGLE_PRIMARY_PASSWORD}
+      - name: single_replica_0
+        logical-name: single
+        role: REPLICA
+        driver-class-name: org.postgresql.Driver
+        jdbc-url: ${EVALUATION_SINGLE_REPLICA_0_URL}
+        username: ${EVALUATION_SINGLE_REPLICA_0_USERNAME}
+        password: ${EVALUATION_SINGLE_REPLICA_0_PASSWORD}
+      - name: shard_0_primary
+        logical-name: shard_0
+        role: PRIMARY
+        driver-class-name: org.postgresql.Driver
+        jdbc-url: ${EVALUATION_SHARD_0_PRIMARY_URL}
+        username: ${EVALUATION_SHARD_0_PRIMARY_USERNAME}
+        password: ${EVALUATION_SHARD_0_PRIMARY_PASSWORD}
+      - name: shard_0_replica_0
+        logical-name: shard_0
+        role: REPLICA
+        driver-class-name: org.postgresql.Driver
+        jdbc-url: ${EVALUATION_SHARD_0_REPLICA_0_URL}
+        username: ${EVALUATION_SHARD_0_REPLICA_0_USERNAME}
+        password: ${EVALUATION_SHARD_0_REPLICA_0_PASSWORD}
+      - name: shard_1_primary
+        logical-name: shard_1
+        role: PRIMARY
+        driver-class-name: org.postgresql.Driver
+        jdbc-url: ${EVALUATION_SHARD_1_PRIMARY_URL}
+        username: ${EVALUATION_SHARD_1_PRIMARY_USERNAME}
+        password: ${EVALUATION_SHARD_1_PRIMARY_PASSWORD}
+      - name: shard_1_replica_0
+        logical-name: shard_1
+        role: REPLICA
+        driver-class-name: org.postgresql.Driver
+        jdbc-url: ${EVALUATION_SHARD_1_REPLICA_0_URL}
+        username: ${EVALUATION_SHARD_1_REPLICA_0_USERNAME}
+        password: ${EVALUATION_SHARD_1_REPLICA_0_PASSWORD}
     flyway:
       targets:
         - data-source-name: single_primary
@@ -630,8 +724,12 @@ app:
 1. 每个 `!READWRITE_SPLITTING` 的 `writeDataSourceName` 必须恰好出现在一个 Flyway target 中。
 2. replica 不得出现在 Flyway target。
 3. target 必须引用真实物理数据源，不能引用 `single`、`shard_0` 等逻辑组。
-4. primary-only 配置中的每个物理数据源也必须恰好有一个 target。
+4. primary-only 配置中的每个物理数据源必须恰好有一个 target。
 5. location 为空、重复 target 或存在未迁移的写节点时启动失败。
+6. `REPLICA` 不得出现在 Flyway target。
+7. 物理数据源名称重复、角色缺失或连接属性不完整时启动失败。
+8. `logical-name` 必须覆盖 `single` 和 `nodeMap` 引用的全部 `shard_N`；每个逻辑组只能有一个 primary。
+9. `routing` 只允许一份，database/table 算法必须通过占位符引用该配置，不能在规则 YAML 中写独立 nodeMap。
 
 ### 12.3 启动顺序
 
@@ -677,11 +775,17 @@ flowchart TD
 - `ShardingYamlLoader`
   - 加载资源、解析 Spring 占位符。
 - `ShardingTopologyValidator`
-  - 校验 primary、replica、逻辑组和 Flyway target 的一一对应。
+  - 校验 primary、replica、`logical-name`、单一 routing 映射、规则占位符和 Flyway target 的对应关系。
+- `PhysicalDataSourceFactory`
+  - 从 Spring 绑定的物理连接列表创建具名 Hikari DataSource Map，并在启动失败时统一关闭。
 - `PhysicalDataSourceFlywayMigrator`
   - 只对 target 指定的物理写节点执行 Flyway。
 - `UuidV7BucketShardingAlgorithm`
-  - ShardingSphere `CLASS_BASED` Strategy，实现四虚拟桶路由。
+  - ShardingSphere `CLASS_BASED` Strategy，实现 2N 稳定槽位路由。
+- `ShardingNodeMap`
+  - 不可变值对象，解析并校验 `mappingVersion`、`nodeCount`、槽位与物理节点映射。
+- `ShardingNodeMapCompatibilityValidator`
+  - 比较新旧两版映射，强制版本递增、节点数翻倍和旧映射前缀不变；供 CI 和扩容 runbook 复用。
 
 Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `infrastructure` 模块的 `infrastructure.config.datasource`。Domain、Application 和 Starter 不依赖 ShardingSphere/Flyway 实现。
 
@@ -733,28 +837,43 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
 
 1. `UuidV7BucketShardingAlgorithmTest`
    - 相同键的 database/table 结果稳定；
-   - 四个虚拟桶均可命中；
+   - 初始四个稳定槽位均可命中；
    - 聚合根与子表使用同一根键时共置；
+   - `N → 2N` 后旧槽位映射不变，新槽位只可能是 `oldSlot + N`；
+   - 使用确定性样本验证约一半键保留、约一半键迁移；
+   - 非 `2` 的幂、缺槽、重复节点、算法配置不一致时失败；
    - `null`、空值、非法 UUIDv7 失败；
    - 精确值和 `IN` 路由正确。
-2. `ShardingYamlLoaderTest`
+2. `ShardingNodeMapCompatibilityValidatorTest`
+   - `4 → 8` 且仅尾部追加时通过；
+   - 版本未递增、节点数不是两倍、旧槽位被改写或新节点重复时失败。
+3. `ShardingYamlLoaderTest`
    - 环境变量占位符正确解析；
    - `$->{...}` ShardingSphere 行表达式不被 Spring placeholder 解析破坏；
-   - 异常不泄漏密码。
-3. `ShardingTopologyValidatorTest`
+   - 缺少规则资源时失败。
+4. `ShardingTopologyValidatorTest`
    - write primary 与 Flyway target 一一对应；
    - replica 被配置为 target 时失败；
    - 逻辑组被配置为 target 时失败；
-   - 两份 YAML 的 `SHARDING/SINGLE` 规则语义一致。
-4. `PhysicalDataSourceFlywayMigratorTest`
+   - 两份 YAML 从 `- !SHARDING` 开始的后缀逐字一致；
+   - 库数、每库表数和总节点数必须为 `2` 的幂；
+   - `routing` 引用的 logical name 与物理数据源组一致；
+   - database/table 算法必须只引用同一组 `app.sharding.routing.*`。
+5. `PhysicalDataSourceFactoryTest`
+   - 从 profile 列表创建按名称索引的 Hikari DataSource；
+   - 名称重复、连接属性缺失时失败；
+   - 创建中途失败时关闭已经创建的连接池；
+   - 异常和日志不泄漏密码。
+6. `PhysicalDataSourceFlywayMigratorTest`
    - single 与两个 shard primary 使用各自 location；
    - 第二个节点失败时整体失败；
    - target 按名称稳定排序；
    - replica 从不建立 Flyway 连接。
-5. `ShardingDataSourceBootstrapperTest`
+7. `ShardingDataSourceBootstrapperTest`
    - 全部 migration 完成后才创建逻辑数据源；
-   - migration 失败时不返回逻辑数据源。
-6. `FlywayMigrationConventionTest`
+   - migration 失败时不返回逻辑数据源；
+   - 同一物理 DataSource Map 同时传给 Flyway 和 `YamlShardingSphereDataSourceFactory.createDataSource(Map, byte[])`。
+8. `FlywayMigrationConventionTest`
    - 扫描所有 migration 子目录；
    - 文件名匹配：
 
@@ -765,7 +884,7 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
    - 同日序列号全局不重复；
    - 三项文件头注释完整且无占位词；
    - 原 `V1/V2` 文件不存在。
-7. `LogicalSchemaParityTest`
+9. `LogicalSchemaParityTest`
    - 默认模式与 ShardingSphere 逻辑模式暴露相同的逻辑表、列和 JPA 映射；
    - 允许的差异仅限物理表后缀、物理库名和分片局部约束；
    - 任一模式的 schema 漂移都使生成项目测试失败。
@@ -775,11 +894,12 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
 1. Light 班级、排课用同一 `schoolClassId` 路由到同一节点。
 2. Web 班级、成员用同一 `gradeId` 路由到同一节点。
 3. Web 缺少 `gradeId` 的班级访问在 API/Repository 签名层无法表达。
-4. Service 考试、试卷、成绩用同一 `examId` 路由到同一节点。
-5. Service 查询成绩必须传 `examId + scoreId`。
-6. 写用例均有 Application 层显式事务。
-7. 纯查询无事务时命中 replica；写事务内查询命中 primary。
-8. 对当前全部写用例逐一断言只命中一个写节点；本次不承诺拦截任意未来 SQL 的通用运行时事务守卫。
+4. Service 的组织目录客户端查询班级必须传 `gradeId + schoolClassId`。
+5. Service 考试、试卷、成绩用同一 `examId` 路由到同一节点。
+6. Service 查询成绩必须传 `examId + scoreId`。
+7. 写用例均有 Application 层显式事务。
+8. 纯查询无事务时命中 replica；写事务内查询命中 primary。
+9. 对当前全部写用例逐一断言只命中一个写节点；本次不承诺拦截任意未来 SQL 的通用运行时事务守卫。
 
 ### 15.3 生成项目测试
 
@@ -790,7 +910,7 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
 2. `test,sharding`：
    - 三个物理 primary 按各自 location 完成 migration；
    - `SINGLE` 与 `SHARDING` 表可正常 CRUD；
-   - 四个虚拟桶至少各写入一条数据；
+   - 初始四个稳定槽位至少各写入一条数据；
    - 绑定表共置；
    - JPA validate 通过。
 3. `test,sharding,readwrite`：
@@ -811,9 +931,10 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
 5. ShardingSphere 模式关闭 Spring Boot 默认 Flyway。
 6. Flyway target、migration locations 与 SQL 文件完整。
 7. 原 `V1/V2` 文件和旧中间表 migration 不存在。
-8. UUIDv7 与四虚拟桶算法类位于正确模块。
+8. UUIDv7 与 2N 稳定槽位算法类位于正确模块。
 9. migration 规范测试、分片路由测试和读写分离测试存在。
 10. README 中英文内容包含启用方式、表分类、分片键、事务边界和 SQL 规范。
+11. `node-count=4`、初始追加式 `node-map`、`mapping-version` 和 2N 路由契约已生成。
 
 ### 15.5 验证命令
 
@@ -854,6 +975,7 @@ git status --short
 8. SQL 文件头注释模板。
 9. 模板无历史数据，原 `V1/V2` 已重写为最终初始化 schema。
 10. 本地事务边界，以及跨分片使用业务幂等、状态、事件和补偿的原则。
+11. 2N 平滑扩容的数量约束、追加式节点映射、Flyway 前置条件、数据校验和切换步骤。
 
 ## 17. 验收标准
 
@@ -874,6 +996,9 @@ git status --short
 13. 三个 archetype 的 `clean integration-test` 与三个生成项目的三种 profile 验证通过。
 14. README 中英文内容一致。
 15. 无 `target/` 生成产物被提交。
+16. 数据库数、每库表数和总节点数均为 `2` 的幂。
+17. `4 → 8` 路由测试证明旧槽位映射不变，任意键只保留原槽位或迁往 `oldSlot + 4`。
+18. database/table 算法映射版本不一致或节点映射缺槽时启动失败；CI 的新旧映射兼容性测试拒绝旧槽位覆盖、非翻倍扩容和版本倒退。
 
 ## 18. 风险与控制
 
@@ -897,9 +1022,9 @@ git status --short
 
 控制：Repository 内完成映射，保持 `open-in-view=false`，增加纯查询集成测试；所有写用例显式声明 Application 事务。
 
-### 18.6 UUIDv7 路由算法变更导致重分布
+### 18.6 2N 扩容时误改旧槽位导致全量重排
 
-控制：算法、桶数和字符串格式属于持久化契约，测试固定；扩缩容必须走独立数据迁移设计，不能直接改配置。
+控制：`nodeMap` 是追加式持久化契约；旧槽位映射由测试快照和扩容前导出的已部署配置共同锁定。运行时配置校验拒绝非 `2` 的幂、缺槽、重复槽位以及 database/table 算法映射不一致；CI/runbook 的新旧映射兼容性校验拒绝版本倒退、非 `N → 2N` 和旧槽位改写。
 
 ### 18.7 ShardingSphere 与 Spring Boot 依赖冲突
 
@@ -917,9 +1042,7 @@ git status --short
 
 控制：不同拓扑必须使用不同 DDL，但由 `LogicalSchemaParityTest` 比较逻辑表、列和 JPA 映射；三种 profile 都执行 `ddl-auto=validate`，防止只更新其中一个 location。
 
-## 19. 审核决策点
-
-请重点审核以下已选设计：
+## 19. 已确认决策
 
 1. 三个 archetype 全部纳入。
 2. 默认模式保持单数据源；`sharding` 和 `readwrite` 作为叠加 profile。
@@ -927,11 +1050,12 @@ git status --short
 4. Web 按 `grade_id` 共置班级和成员，所有班级访问都携带 `gradeId`。
 5. Service 按 `exam_id` 共置考试、试卷和成绩；排课按 `course_id` 分片。
 6. 用户、权限、课程、年级等使用 `SINGLE`；当前不使用 `BROADCAST`。
-7. 使用四虚拟桶算法正确覆盖 `2 库 × 2 表`，不对库表重复使用相同 `HASH_MOD`。
-8. 全部业务代理主键使用现有 `UuidV7Generator` 生成的 36 位 UUIDv7，由应用在路由前生成。
-9. Flyway 只迁移 primary，并按 `default/single/shard` 使用不同 locations。
-10. 原 `V1/V2` 可以删除、合并和重写，不考虑历史数据。
-11. 不使用分布式事务；跨分片一致性由业务幂等、状态、事件和补偿解决。
+7. 初始使用 `2 库 × 2 表 = 4 节点`；库数、每库表数和总节点数按 `2` 的幂增长。
+8. 扩容采用 `N → 2N` 的 2N 平滑迁移法（2n 法），旧槽位映射不变，新槽位只在尾部追加；库表同时翻倍时拆成两次 2N。
+9. 全部业务代理主键使用现有 `UuidV7Generator` 生成的 36 位 UUIDv7，由应用在路由前生成。
+10. Flyway 只迁移 primary，并按 `default/single/shard` 使用不同 locations。
+11. 原 `V1/V2` 可以删除、合并和重写，不考虑历史数据。
+12. 不使用分布式事务；跨分片一致性由业务幂等、状态、事件和补偿解决。
 
 ## 20. 参考资料
 
