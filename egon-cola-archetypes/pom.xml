@@ -54,6 +54,7 @@
 
     <modules>
         <module>egon-cola-organization-facade</module>
+        <module>egon-cola-evaluation-facade</module>
         <module>egon-cola-archetype-light</module>
         <module>egon-cola-archetype-service</module>
         <module>egon-cola-archetype-web</module>
