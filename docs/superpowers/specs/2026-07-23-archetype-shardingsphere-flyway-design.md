@@ -1,181 +1,226 @@
-# Archetype 接入 ShardingSphere JDBC 与 Flyway 协同设计
+# Archetype 接入 ShardingSphere JDBC、Flyway 与 UUIDv7 设计
 
 ## 1. 文档状态
 
 - 状态：待审核
 - 日期：2026-07-23
 - 目标版本：Egon-COLA 5.2.3 archetype 模板
-- 术语说明：本文使用当前产品名“Apache ShardingSphere JDBC”；用户所说的 ShardingJDBC 指同一能力，不引入旧版 `sharding-jdbc-spring-boot-starter`。
+- 适用范围：`egon-cola-archetype-light`、`egon-cola-archetype-web`、`egon-cola-archetype-service`
+- 术语说明：本文使用当前产品名“Apache ShardingSphere JDBC”；需求中的 ShardingJDBC 指同一能力，不引入旧版 `sharding-jdbc-spring-boot-starter`。
 
 ## 2. 背景与现状
 
-当前三个 archetype 均已接入 Flyway，但尚未接入 ShardingSphere JDBC：
+三个 archetype 已接入 Flyway，但尚未接入 ShardingSphere JDBC。当前共同特征如下：
 
-- `egon-cola-archetype-light`
-- `egon-cola-archetype-service`
-- `egon-cola-archetype-web`
+1. `dev`、`prod` 使用 PostgreSQL 与 HikariCP，`test` 使用 PostgreSQL 兼容模式的 H2。
+2. Flyway 当前扫描 `classpath:db/migration`，JPA 使用 `ddl-auto=validate`。
+3. 每个 archetype 各有两份 `V1__*.sql`、`V2__*.sql`。
+4. 这些 SQL 是尚未对真实数据库执行的脚手架源码，不存在历史数据、checksum 或滚动升级兼容负担。
+5. 当前部分实体使用 `UUID.randomUUID()`，部分关系表使用数据库 `IDENTITY` 自增主键，尚未形成统一的分布式主键规范。
+6. 生成模板的有效修改面是 `src/main/resources/archetype-resources` 与 `verify.groovy`；`target/` 下的生成项目仅作为验证产物，不能直接修改。
 
-现有模板的共同特征如下：
+ShardingSphere 模式下存在两个需要同时解决的问题：
 
-1. `dev`、`prod` 使用 `spring.datasource` 配置 PostgreSQL 与 HikariCP。
-2. `test` 使用 PostgreSQL 兼容模式的 H2。
-3. Flyway 默认扫描 `classpath:db/migration`，并在启动时执行迁移。
-4. JPA 使用 `ddl-auto=validate`，依赖 Flyway 先完成建表。
-5. 每个模板已有 `V1__*.sql`、`V2__*.sql` 历史迁移。
-6. archetype 的有效修改面是 `src/main/resources/archetype-resources` 与 `verify.groovy`；`target/` 下的生成项目只能作为验证产物，不能直接修改。
+- Flyway 不能只对 ShardingSphere 逻辑数据源执行 DDL，必须按物理拓扑迁移各个写节点。
+- 不是所有表都适合分库分表；分片表、单表和广播表的建表位置、路由规则及事务边界不同。
 
-直接把 `spring.datasource` 替换为 ShardingSphere 逻辑数据源会产生启动顺序问题：Flyway 可能拿到逻辑数据源，而不是需要真正执行 DDL 的物理数据源。多物理库场景下，只迁移其中一个库也会导致各分片 schema 不一致。因此本次不能只增加 Maven 依赖和一段 YAML，必须同时定义物理数据源迁移、逻辑数据源创建和 JPA 初始化的先后关系。
+因此，本次不是简单增加一个依赖和一份 YAML，而是要同时定义数据布局、分片键、读写分离、UUIDv7 主键、Flyway 物理节点迁移及本地事务边界。
 
-## 3. 需求目标
+## 3. 已确认需求
 
-### 3.1 功能目标
+### 3.1 功能要求
 
-1. 三个 archetype 全部具备 ShardingSphere JDBC 接入能力。
-2. 新生成项目默认仍可按现有单数据源方式运行，避免升级 archetype 后强制改变部署拓扑。
-3. 新生成项目可通过额外启用 `sharding` profile 切换到 ShardingSphere JDBC 逻辑数据源。
-4. ShardingSphere 模式下，Flyway 必须先对配置中的每个物理数据源完成迁移，再创建逻辑数据源。
-5. 任一物理数据源迁移失败时，应用必须启动失败，不能带着不一致的 schema 继续运行。
-6. JPA、事务管理器、JdbcTemplate 以及现有 Repository 继续只依赖主 `DataSource`，业务代码不感知单数据源或 ShardingSphere 模式。
-7. 支持一个或多个物理数据源；默认示例保持单物理库和单表路由，不擅自改变现有学生管理领域表的分片语义。
-8. ShardingSphere 规则使用独立 YAML 表达，便于生成项目根据业务需要增加分库、分表、广播表或绑定表配置。
+1. 三个 archetype 全部接入 ShardingSphere JDBC。
+2. 同时支持数据分片和读写分离。
+3. 同时支持不分库分表的业务表。
+4. 分布式主键统一使用 UUIDv7。
+5. Flyway 必须与 ShardingSphere 物理拓扑协同，先迁移写节点，再创建逻辑数据源。
+6. 新生成项目默认仍可按现有单数据源模式运行；通过叠加 profile 启用 ShardingSphere。
+7. 同一聚合内、使用同一分片根键的表必须落在同一物理库和同一物理表后缀中。
+8. 业务代码继续只依赖一个逻辑 `DataSource`，不直接选择物理数据源。
 
-### 3.2 Flyway 规范目标
+### 3.2 事务要求
 
-1. 所有新建的 SQL versioned migration 使用“日期 + 当日序列号”版本。
-2. 文件名统一为：
+1. 不引入 XA、BASE、Seata 或 ShardingSphere 分布式事务能力。
+2. 一个本地事务只允许写：
+   - 一个 `SINGLE` 数据源；或
+   - 一个分片根键所路由到的一个物理主库。
+3. 同一分片根键下的聚合根、明细表和关系表必须共置，以 PostgreSQL 单机事务保证原子性。
+4. 跨分片、跨分片与单表库的多写操作，不允许依赖一个 `@Transactional` 获得原子性。
+5. 跨分片业务一致性通过业务状态、幂等键、重试、补偿和领域事件解决。
 
-   ```text
-   VyyyyMMdd_NNN__lower_snake_case_description.sql
-   ```
+### 3.3 Flyway SQL 规范
 
-   示例：
+模板工程 `db/migration` 下的全部 versioned migration 统一使用：
 
-   ```text
-   V20260723_001__create_user_sharding_tables.sql
-   V20260723_002__add_score_query_indexes.sql
-   ```
+```text
+VyyyyMMdd_NNN__lower_snake_case_description.sql
+```
 
-3. `yyyyMMdd` 使用迁移文件创建日期；`NNN` 是同一生成项目、同一天内从 `001` 开始递增的三位序列号。
+例如：
+
+```text
+V20260723_001__init_light_default_schema.sql
+V20260723_003__init_light_sharding_schema.sql
+V20260724_001__add_class_schedule_index.sql
+```
+
+规则如下：
+
+1. `yyyyMMdd` 是文件创建日期。
+2. `NNN` 是同一生成项目、同一天内从 `001` 开始递增的三位序列号。
+3. 同一生成项目内，即使文件位于不同 migration location，同一天的序列号也不能重复。
 4. 描述只允许小写字母、数字和下划线。
-5. 每个新 SQL 文件的开头必须包含以下注释，内容必须具体，不能保留占位文字：
+5. 每个 SQL 文件必须在首个 SQL 语句之前包含：
 
    ```sql
-   -- 变更内容：说明本次新增、修改或删除的数据库对象及数据处理逻辑。
-   -- 影响范围：说明涉及的表、索引、约束、数据范围和受影响的应用模块。
-   -- 兼容性说明：说明对已有数据、滚动发布和回滚处理的约束。
+   -- 变更内容：具体说明本次新增、修改或删除的数据库对象及数据处理逻辑。
+   -- 影响范围：具体说明涉及的表、索引、约束、数据范围和应用模块。
+   -- 兼容性说明：具体说明已有数据、发布和回滚约束；初始化模板需明确无历史数据。
    ```
 
-6. 配置 `spring.flyway.validate-migration-naming=true`，使不符合 Flyway 基础命名约定的文件在启动时快速失败。
-7. 生成项目增加迁移规范测试，使用正则校验日期、三位序列号和描述格式，并校验三个必需的文件头注释。`validate-migration-naming` 只能校验 Flyway 基础格式，不能替代此项目级测试。
+6. 注释值不得为空，不得使用 `TODO`、`TBD` 或“待补充”。
+7. 配置 `spring.flyway.validate-migration-naming=true`，并增加项目级规范测试；Flyway 自带校验不能替代日期、序列号和注释校验。
 
-### 3.3 历史迁移兼容
+### 3.4 现有 SQL 的处理
 
-现有六个 `V1__*.sql`、`V2__*.sql` 属于历史迁移，不改名、不移动、不补注释。原因如下：
+现有六个 `V1/V2` migration 属于未执行的脚手架模板。用户已明确授权本次修改、重命名、合并或删除这些文件，因此不保留历史兼容白名单，也不设计数据回填。
 
-1. Flyway 会记录 versioned migration 的名称和 checksum；修改已执行文件会破坏验证。
-2. 仓库规则明确要求历史 Flyway migration 不可变。
-3. 日期 + 序列号规范从本次变更之后的新 migration 开始执行。
+本次不机械保留“V1 建旧模型、V2 再迁移到新模型”的中间过程，而是按最终数据拓扑重写为干净的初始化 schema：
 
-迁移规范测试必须维护这六个历史文件的精确白名单。白名单只用于兼容当前文件，不能使用 `V1/V2` 这类宽泛规则放过未来新增文件。
+| Archetype | Location | 文件 |
+| --- | --- | --- |
+| Light | `db/migration/default` | `V20260723_001__init_light_default_schema.sql` |
+| Light | `db/migration/sharding/single` | `V20260723_002__init_light_single_schema.sql` |
+| Light | `db/migration/sharding/shard` | `V20260723_003__init_light_sharding_schema.sql` |
+| Web | `db/migration/default` | `V20260723_001__init_organization_default_schema.sql` |
+| Web | `db/migration/sharding/single` | `V20260723_002__init_organization_single_schema.sql` |
+| Web | `db/migration/sharding/shard` | `V20260723_003__init_organization_sharding_schema.sql` |
+| Service | `db/migration/default` | `V20260723_001__init_evaluation_default_schema.sql` |
+| Service | `db/migration/sharding/single` | `V20260723_002__init_evaluation_single_schema.sql` |
+| Service | `db/migration/sharding/shard` | `V20260723_003__init_evaluation_sharding_schema.sql` |
+
+每个 archetype 虽有三份初始化文件，但它们分别服务互斥的默认库、单表库和分片库，是三个独立 Flyway target；每个 target 本次只有一份初始化 migration，不把同一物理数据库变更任意拆成多份。
+
+处理约束：
+
+1. `default` 文件直接创建当前最终领域模型使用的无后缀逻辑表。
+2. `sharding/single` 只创建不分片的表。
+3. `sharding/shard` 只创建分片物理表及其本地索引、约束。
+4. Light 的 `students`、`student_course_assignments` 和 Service 的 `exam_result` 等仅服务旧中间模型的表与搬数 SQL 不再保留。
+5. 初始化数据按最终表结构直接插入，不先插旧表再搬迁。
+6. 原 `V1/V2` 文件路径必须从 archetype 模板和重新生成的验证项目中消失。
+7. 依赖固定 Flyway version `"1"` 的测试改为断言新的目标版本或当前 migration 状态。
 
 ## 4. 范围
 
 ### 4.1 本次范围
 
-1. 三个 archetype 的生成项目 POM。
-2. 三个 archetype 的 `dev`、`test`、`prod` 数据源与 Flyway 配置。
-3. 新增 `sharding` profile 及 ShardingSphere YAML 规则模板。
-4. Light 的 `infrastructure/config` 数据源启动编排。
-5. Web、Service 的 `infrastructure` 模块数据源启动编排。
-6. Flyway 迁移命名与注释规范测试。
-7. 三个 archetype 的 `verify.groovy` 生成契约。
-8. 中英文 README 中的数据源模式、启用方式、Flyway 规则和故障处理说明。
+1. 三个 archetype 的 POM、配置、基础设施代码与测试。
+2. 数据分片、单表、读写分离规则。
+3. 现有领域表的分片分类和分片键。
+4. UUIDv7 生成与现有主键改造。
+5. Flyway migration 目录、文件命名、文件头注释和物理节点迁移编排。
+6. Repository/Query 的分片键完整性改造。
+7. 本地事务边界和跨分片业务一致性约束。
+8. `verify.groovy` 生成契约。
+9. 中英文 README。
 
 ### 4.2 非本次范围
 
-1. 不把现有 `users`、`course`、`score` 等业务表直接改造成物理分片表。
-2. 不迁移已有生产数据，不设计在线双写、历史数据回填或切片扩容方案。
-3. 不引入 ShardingSphere Proxy、治理中心或集群持久化模式。
-4. 不引入读写分离、数据加密、影子库、分布式事务等额外规则。
-5. 不修改现有六个 Flyway migration。
-6. 不修改 `target/` 下的 archetype 生成产物。
+1. 不迁移历史数据；模板尚未执行，无历史兼容要求。
+2. 不设计在线双写、历史回填、分片扩容或缩容方案。
+3. 不引入 ShardingSphere Proxy、治理中心、影子库或数据加密规则。
+4. 不引入任何分布式事务实现。
+5. 不实现通用 Saga 框架；仅定义跨分片业务处理原则。
+6. 不修改或提交 `target/` 下的生成产物。
 
-实际业务表采用何种分片键、分片算法、物理节点数及跨表关联策略，需要基于具体业务访问模式另行设计，不能由通用 archetype 猜测。
+## 5. 方案选择
 
-## 5. 方案比较
+### 5.1 Flyway 与 ShardingSphere 的集成方式
 
-### 5.1 方案 A：直接使用 ShardingSphere JDBC Driver，并让 Flyway 连接逻辑数据源
+#### 方案 A：Flyway 迁移 ShardingSphere 逻辑数据源
 
-做法：
-
-- `spring.datasource.driver-class-name` 改为 `ShardingSphereDriver`。
-- `spring.datasource.url` 指向 ShardingSphere YAML。
-- 保留 Spring Boot 默认 Flyway 自动配置。
-
-优点：
-
-- 配置和代码改动最少。
-
-缺点：
-
-- Flyway 面向逻辑数据源执行 DDL，多物理库迁移行为不明确。
-- 无法清晰保证每个物理节点拥有相同 schema。
-- 启动顺序与失败边界不可控。
+改动少，但不能明确控制 DDL 落到哪些物理节点，也无法保证全部主库 schema 一致。
 
 结论：不采用。
 
-### 5.2 方案 B：应用内先迁移物理数据源，再创建 ShardingSphere 逻辑数据源
+#### 方案 B：应用内迁移物理写节点，再创建逻辑数据源
 
-做法：
+在 `sharding` profile 下关闭 Spring Boot 默认 Flyway 执行，按显式 target 列表迁移物理主库；全部成功后再创建 ShardingSphere 逻辑 `DataSource`。
 
-- 单数据源模式继续使用 Spring Boot 原生自动配置。
-- `sharding` profile 下关闭默认 Flyway 自动执行。
-- 读取并解析同一份 ShardingSphere YAML 中的物理数据源。
-- 对每个物理数据源依次执行 Flyway。
-- 所有迁移成功后，通过 `YamlShardingSphereDataSourceFactory` 创建主逻辑 `DataSource`。
+结论：采用。该方式保留脚手架开箱即用能力，并能严格控制启动顺序和失败边界。
 
-优点：
+#### 方案 C：由 CI/CD 或独立 Job 迁移
 
-- 生成项目自包含，启动即可完成 schema 检查和迁移。
-- 支持一个或多个物理数据源。
-- 能明确保证“物理迁移完成 → 逻辑数据源可用 → JPA validate”顺序。
-- ShardingSphere 规则仍由官方 YAML 表达，不需要自建一套规则 DSL。
+适合成熟生产平台，但会使模板的本地开发和小型部署依赖额外设施。
 
-缺点：
+结论：本次不采用；生成项目后续可将同一套 migration 外置执行。
 
-- 需要少量启动编排代码和针对性的测试。
-- 启动时间随物理数据源数量增加。
+### 5.2 数据布局方式
+
+#### 方案 A：全部表都分片
+
+会破坏邮箱、课程编码、角色编码等全局唯一约束，并增加无必要的广播查询和多库写入。
+
+结论：不采用。
+
+#### 方案 B：全部表都保持单表，仅提供空白分片示例
+
+无法验证分片键、绑定表、物理 DDL 和 Repository 路由是否真正可用，不满足“接入数据分片”的要求。
+
+结论：不采用。
+
+#### 方案 C：按聚合选择性分片
+
+高增长聚合按稳定的聚合根键分片；全局身份、权限和小型目录表使用 `SINGLE`；当前没有真实需要的表不滥用 `BROADCAST`。
 
 结论：采用。
 
-### 5.3 方案 C：Flyway 完全移出应用，由 CI/CD 或独立 Job 执行
+## 6. 总体运行模式
 
-优点：
+### 6.1 profile 契约
 
-- 应用启动职责最简单。
-- 大规模生产环境更容易独立控制 migration 权限和发布窗口。
+| 激活 profile | 数据源模式 | 数据分片 | 读写分离 | Flyway |
+| --- | --- | --- | --- | --- |
+| `dev` / `test` / `prod` | 单数据源 | 否 | 否 | Spring Boot 迁移 `db/migration/default` |
+| `dev,sharding` / `test,sharding` / `prod,sharding` | ShardingSphere | 是 | 否 | 自定义编排迁移单表主库和分片主库 |
+| `dev,sharding,readwrite` / `prod,sharding,readwrite` | ShardingSphere | 是 | 是 | 仅迁移各组 primary，replica 通过数据库复制获得 DDL |
+| `test,sharding,readwrite` | ShardingSphere 测试拓扑 | 是 | 是 | primary 与 replica 可指向同一 H2 测试库别名 |
 
-缺点：
+约束：
 
-- archetype 生成项目不再开箱即用。
-- 本地开发、测试和小型部署必须额外维护迁移流程。
-- 与当前三个模板的应用内 Flyway 约定不一致。
+1. `sharding` 和 `readwrite` 都是叠加 profile。
+2. `readwrite` 不能单独启用；缺少 `sharding` 时启动失败并给出明确错误。
+3. 默认 profile 仍为 `dev`。
+4. `sharding` 与 `sharding,readwrite` 使用相同逻辑数据源名和分片规则，仅物理拓扑不同。
+5. 默认模式与分片模式必须在新建数据库时二选一；不支持把已有默认数据库直接切换成分片拓扑，后者属于独立数据迁移项目。
 
-结论：本次不采用；可作为生成项目后续生产治理选项。
+### 6.2 逻辑与物理拓扑
 
-## 6. 选定设计
+每个生成项目的 ShardingSphere 模式包含：
 
-### 6.1 依赖
+- `single`：不分片表的逻辑数据源。
+- `shard_0`、`shard_1`：两个逻辑分片数据源。
+- 每个分片数据源内每张分片表有 `_0`、`_1` 两个物理表。
 
-使用 Apache ShardingSphere JDBC 5.5.2：
+读写分离模式下：
 
-```xml
-<shardingsphere.version>5.5.2</shardingsphere.version>
+```text
+single  -> single_primary  + single_replica_0
+shard_0 -> shard_0_primary + shard_0_replica_0
+shard_1 -> shard_1_primary + shard_1_replica_0
 ```
 
-依赖坐标：
+非读写分离模式下，`single`、`shard_0`、`shard_1` 本身就是物理数据源。稳定的逻辑名称使两份 ShardingSphere YAML 可以复用完全相同的 `!SHARDING` 与 `!SINGLE` 规则。
+
+### 6.3 依赖边界
+
+使用 Apache ShardingSphere JDBC 5.5.3：
 
 ```xml
+<shardingsphere.version>5.5.3</shardingsphere.version>
+
 <dependency>
     <groupId>org.apache.shardingsphere</groupId>
     <artifactId>shardingsphere-jdbc</artifactId>
@@ -183,183 +228,594 @@
 </dependency>
 ```
 
-依赖放置规则：
+依赖放置：
 
-- Light：放入生成项目根 POM。
-- Web、Service：版本放入生成父 POM，实际依赖放入 `infrastructure` 模块。
-- 不引入旧版 ShardingSphere Spring Boot Starter。
-- Flyway、PostgreSQL、H2 与 JPA 现有依赖保持原位置。
+1. Light 在生成项目根 POM 引入 ShardingSphere JDBC 和 `egon-cola-component-common-id`。
+2. Web、Service 在生成父 POM 管理版本：
+   - ShardingSphere JDBC 只由 `infrastructure` 引入；
+   - `egon-cola-component-common-id` 由生成项目的 `common` 模块引入；
+   - Domain 不直接依赖 ShardingSphere、Flyway 或 JDBC。
+3. 不引入旧版 ShardingSphere Spring Boot Starter。
+4. Flyway、PostgreSQL、H2 与 JPA 的现有依赖位置保持不变，除非生成项目编译边界要求做最小调整。
 
-实施时必须通过 Maven 依赖树和生成项目测试验证 ShardingSphere 5.5.2 与当前 Java 21、Spring Boot 3.5.16、Flyway 组合；不得因传递依赖冲突静默降级现有依赖。
+实施时通过 Maven 依赖树和生成项目启动测试验证 ShardingSphere 5.5.3 与当前 Java 21、Spring Boot 3.5.16、Flyway 组合，不允许通过静默降级现有依赖解决冲突。
 
-### 6.2 profile 契约
+## 7. 表分类与分片键
 
-| 激活 profile | 数据源模式 | Flyway 执行方式 |
+### 7.1 分类原则
+
+| 类型 | 适用条件 | 本次策略 |
 | --- | --- | --- |
-| `dev` | 现有单数据源 | Spring Boot 默认 Flyway |
-| `test` | 现有 H2 单数据源 | Spring Boot 默认 Flyway |
-| `prod` | 现有单数据源 | Spring Boot 默认 Flyway |
-| `dev,sharding` | ShardingSphere JDBC | 自定义物理节点迁移编排 |
-| `test,sharding` | ShardingSphere JDBC 测试拓扑 | 自定义物理节点迁移编排 |
-| `prod,sharding` | ShardingSphere JDBC | 自定义物理节点迁移编排 |
+| `SHARDING` | 数据持续增长；所有核心读写都能携带稳定分片根键；聚合内表可共置 | 用于班级排课、班级成员和考试聚合 |
+| `SINGLE` | 需要全局唯一、小数据量、管理类或目录类数据；不要求与分片表做数据库 JOIN | 用于用户、权限、角色、课程、年级等 |
+| `BROADCAST` | 极小、低频变更，并且必须在每个分片本地参与 SQL JOIN | 当前不使用，只保留扩展规范 |
 
-`sharding` 是叠加 profile，不替代 `dev/test/prod`。默认 profile 仍为 `dev`，因此现有生成项目和部署配置不会被强制切换。
+当前不使用 `BROADCAST` 的原因：
 
-### 6.3 配置文件职责
+1. 现有 Repository 通过独立查询读取引用数据，不依赖跨表 SQL JOIN。
+2. 广播表写入会变成多主库写入，与“只使用单机事务”的约束冲突。
+3. 用户、权限和课程存在全局唯一或管理语义，放在 `SINGLE` 更清晰。
 
-1. `application-dev.yml`、`application-test.yml`、`application-prod.yml`
-   - 保留当前单数据源配置。
-   - 增加 `validate-migration-naming: true`。
-2. `application-sharding.yml`
-   - 启用自定义 ShardingSphere 数据源配置。
-   - 关闭 Spring Boot 默认 Flyway 自动执行，避免逻辑数据源被误迁移。
-   - 指定 ShardingSphere YAML 资源位置。
-   - 复用现有 `spring.flyway.locations`、`baseline-on-migrate`、`validate-on-migrate` 和 `clean-disabled` 语义。
-3. `sharding/shardingsphere.yml`
-   - 定义逻辑数据库名、物理数据源、规则和 ShardingSphere 属性。
-   - 数据源 URL、用户名、密码和池参数继续使用环境变量占位符。
-   - 默认模板使用单物理数据源与单表路由，保证启用后不改变现有业务表语义。
-   - 文件中提供说明性注释，标明增加物理节点或 `!SHARDING` 规则时必须同步考虑 Flyway 和业务分片键。
+未来只有在“分片内 JOIN 的收益明确、表极小、更新可通过业务幂等复制”时才增加 `!BROADCAST`，并为每个 primary 增加专用 migration target。
 
-ShardingSphere 原生 YAML 不是 Spring 配置文件。启动编排必须先通过 Spring `Environment` 解析模板占位符，再把解析后的内容交给 ShardingSphere，避免把 `${...}` 原样传给 HikariCP。
+### 7.2 Light archetype
 
-### 6.4 启动顺序
+| 逻辑表 | 类型 | 分片列 | 说明 |
+| --- | --- | --- | --- |
+| `users` | `SINGLE` | 无 | 保持 `external_id`、`email` 的全局唯一性 |
+| `roles` | `SINGLE` | 无 | 权限目录 |
+| `permissions` | `SINGLE` | 无 | 权限目录 |
+| `user_roles` | `SINGLE` | 无 | 与用户、角色在同一单表库完成本地事务 |
+| `role_permissions` | `SINGLE` | 无 | 与角色、权限在同一单表库完成本地事务 |
+| `courses` | `SINGLE` | 无 | 小型课程目录，保持课程编码全局唯一 |
+| `school_classes` | `SHARDING` | `id` | 班级聚合根，UUIDv7 |
+| `class_course_schedules` | `SHARDING` | `school_class_id` | 与班级使用同一根键 |
+
+绑定表组：
+
+```text
+school_classes(id), class_course_schedules(school_class_id)
+```
+
+班级与排课使用相同的虚拟桶算法，保证相同班级 ID 落在同一库和同一表后缀。本地事务可原子写入班级与排课。课程只在单表库读取，排课记录保存必要课程快照；事务不同时写课程表。
+
+### 7.3 Web archetype
+
+| 逻辑表 | 类型 | 分片列 | 说明 |
+| --- | --- | --- | --- |
+| `users` | `SINGLE` | 无 | 保持 email 全局唯一 |
+| `roles` | `SINGLE` | 无 | 权限目录 |
+| `permissions` | `SINGLE` | 无 | 权限目录 |
+| `user_roles` | `SINGLE` | 无 | 用户授权只写单表库 |
+| `role_permissions` | `SINGLE` | 无 | 权限配置只写单表库 |
+| `grades` | `SINGLE` | 无 | 年级目录 |
+| `school_classes` | `SHARDING` | `grade_id` | 同一年级的班级共置，保证 `(grade_id, name)` 可在物理库内唯一 |
+| `school_class_users` | `SHARDING` | `grade_id` | 新增 `grade_id` 路由列，与班级共置 |
+
+绑定表组：
+
+```text
+school_classes(grade_id), school_class_users(grade_id)
+```
+
+接口与 Repository 约束：
+
+1. 班级详情、成员维护和删除等命令必须同时携带 `gradeId` 与 `schoolClassId`。
+2. Repository 不允许仅按 `schoolClassId` 访问分片表。
+3. `school_class_users` 的物理唯一约束至少包含 `(grade_id, school_class_id, user_id)`。
+4. 当前未使用的 `findByUserId` 全路由查询应移除。
+5. 若未来需要“查询用户加入的全部班级”，使用业务事件构建按 `user_id` 分片的只读投影；投影更新是跨分片业务一致性，不放进班级本地事务。
+
+选择 `grade_id` 而不是 `school_class_id`，是为了保留同年级班级名称的唯一约束，并使班级及其成员在同一物理节点完成事务。代价是所有班级访问必须带 `gradeId`，该约束由 Facade、Query 和 Repository 签名共同强制。
+
+### 7.4 Service archetype
+
+| 逻辑表 | 类型 | 分片列 | 说明 |
+| --- | --- | --- | --- |
+| `course` | `SINGLE` | 无 | 课程目录，保持 code 全局唯一 |
+| `course_schedule` | `SHARDING` | `course_id` | 排课查询天然携带课程 ID |
+| `exam` | `SHARDING` | `id` | 考试聚合根，UUIDv7 |
+| `exam_paper` | `SHARDING` | `exam_id` | 与考试共置 |
+| `score` | `SHARDING` | `exam_id` | 与考试共置，唯一约束包含 `(exam_id, student_id)` |
+
+绑定表组：
+
+```text
+exam(id), exam_paper(exam_id), score(exam_id)
+```
+
+接口与 Repository 约束：
+
+1. `exam` 按 `id` 路由。
+2. `exam_paper`、`score` 的所有查询与写入必须携带 `examId`。
+3. 现有仅按 `scoreId` 的查询契约改为 `examId + scoreId`。
+4. `course_schedule` 的所有查询与写入必须携带 `courseId`。
+5. 创建考试可以读取 `SINGLE course` 后只写一个考试分片；该读取用于业务校验，不宣称与课程变更具有跨库原子性。
+
+### 7.5 分片键通用约束
+
+1. 分片键必须在记录创建时已知，创建后不可修改。
+2. 子表必须冗余聚合根分片键，不能依赖 JOIN 后再路由。
+3. 在线点查、更新、删除必须包含分片键；缺少分片键不能静默全路由。
+4. 分片键不是“默认等于当前表主键”：
+   - 聚合根通常使用自己的 UUIDv7 主键；
+   - 聚合子表使用根 ID，即使子表有自己的 UUIDv7 主键。
+5. 全局唯一约束若不包含分片键，不能仅依赖分片库的数据库唯一索引；本次这类表统一放入 `SINGLE`。
+6. 不为分片表建立指向 `SINGLE` 表的数据库外键。
+7. 同一绑定表组内允许在对应物理表之间建立本地外键，但外键列必须包含分片键并验证 PostgreSQL/H2 兼容性。
+
+## 8. 分片算法
+
+### 8.1 为什么不直接对库和表都使用同一个 `HASH_MOD`
+
+如果数据库和表都对同一键执行 `hash % 2`，只会命中：
+
+```text
+shard_0.table_0
+shard_1.table_1
+```
+
+另外两个组合将永远空置。因此本次不能简单复制两份 `HASH_MOD` 配置。
+
+### 8.2 四虚拟桶算法
+
+增加一个轻量 `CLASS_BASED` 标准分片算法 `UuidV7BucketShardingAlgorithm`：
+
+```text
+hash   = floorMod(javaStringHash(shardingKey), 4)
+db     = hash / 2
+table  = hash % 2
+```
+
+映射结果：
+
+| 虚拟桶 | 物理节点 |
+| --- | --- |
+| `0` | `shard_0.table_0` |
+| `1` | `shard_0.table_1` |
+| `2` | `shard_1.table_0` |
+| `3` | `shard_1.table_1` |
+
+数据库策略和表策略复用同一算法实现，通过 `target=database/table` 返回不同后缀。UUIDv7 的随机位参与稳定的字符串 hash，避免时间前缀造成单节点热点；UUIDv7 在单节点索引中仍保留大体递增特征。
+
+算法约束：
+
+1. 仅支持精确值和 `IN` 路由。
+2. 分片键范围查询默认拒绝；业务需要范围查询时必须按业务时间列查询并明确接受跨分片聚合。
+3. `null`、空字符串和格式非法的 UUIDv7 直接失败。
+4. 数据库数和表数是配置项，但本 spec 只验证 `2 × 2`。
+5. 扩缩容会改变桶映射，属于后续治理范围，不在本次实现。
+
+该算法是必要的 Strategy 扩展点；直接使用两次相同取模不能覆盖全部物理节点。除这一处外不新增自定义路由 DSL。
+
+## 9. UUIDv7 分布式主键
+
+### 9.1 生成规范
+
+1. 复用仓库现有 `top.egon:egon-cola-component-common-id`。
+2. 复用现有 `IdGenerator` Strategy 与 `UuidV7Generator`，不再创建新的主键接口。
+3. Infrastructure/Starter 注册 `UuidV7Generator` Bean，Application 构造边界注入 `IdGenerator`，生成 ID 后再传入 Domain，Domain 不直接依赖主键组件。
+4. 数据库业务主键统一使用 `IdGenerator.nextId()`；现有 `UuidV7Generator` 返回 RFC 形式的 36 位小写 UUIDv7 字符串。
+5. 主键由应用在构造聚合或实体时生成，不使用数据库自增、数据库 UUID 默认值或 ShardingSphere key generator。
+6. 先生成根 ID，再用根 ID 计算分片，确保 insert 前路由已确定。
+
+### 9.2 改造范围
+
+1. 所有业务实体的代理主键改为 UUIDv7 字符串。
+2. Web 的 `user_roles`、`role_permissions`、`school_class_users` 等现有 `IDENTITY` 主键改为 UUIDv7。
+3. Service 的自增主键改为 UUIDv7。
+4. 纯关系表可以使用由 UUIDv7 外键组成的复合主键，不强制增加无业务价值的代理主键。
+5. traceId、requestId、幂等键等非数据库业务主键不在本次统一替换范围内。
+
+数据库字段统一使用 `VARCHAR(36)`；索引、外键和 PO 字段类型同步调整。由于模板无历史数据，不保留旧 Long ID 或随机 UUIDv4 的兼容逻辑。
+
+## 10. 读写分离设计
+
+### 10.1 路由规则
+
+每个 `SINGLE` 或分片逻辑数据源组配置：
+
+```yaml
+transactionalReadQueryStrategy: PRIMARY
+loadBalancerName: round_robin
+```
+
+行为：
+
+1. insert、update、delete 始终路由 primary。
+2. 事务中的 select 始终路由 primary，保证事务内读己之写。
+3. 非事务 select 在 replica 间轮询。
+4. 没有配置 `readwrite` profile 时，所有请求使用 primary-only 拓扑。
+
+### 10.2 Spring/JPA 事务配合
+
+Spring Data JPA 默认会给查询 Repository 增加只读事务；在 `PRIMARY` 策略下，这些查询仍会路由主库。为了让纯查询真正使用 replica：
+
+1. 生成项目关闭 Spring Data Repository 默认事务。
+2. Application 层写用例继续显式使用 `@Transactional`。
+3. 纯查询用例移除不必要的 `@Transactional(readOnly = true)`。
+4. Repository 必须在方法内完成 PO 到领域对象/DTO 的映射，不依赖事务外 lazy loading。
+5. 需要强一致读取的查询显式进入本地事务，从而路由 primary。
+
+实施时必须审计三个 archetype 的全部写用例，确认其外层都有明确事务；若发现依赖 Repository 默认事务的写操作，先补齐 Application 事务再关闭默认事务。
+
+### 10.3 replica schema
+
+1. Flyway 只连接 primary，不直接迁移 replica。
+2. 生产 replica 必须是 primary 的数据库级复制节点，DDL 和 `flyway_schema_history` 由复制链路同步。
+3. 独立、无复制关系的只读数据库不能配置成 replica。
+4. 运维 readiness 应检查复制延迟和 schema 可读性，但不能让应用对 replica 重复执行 migration。
+
+## 11. ShardingSphere 配置文件
+
+### 11.1 文件布局
+
+每个 archetype 生成：
+
+```text
+src/main/resources/
+├── application-sharding.yml
+├── application-readwrite.yml
+└── sharding/
+    ├── shardingsphere-sharding.yml
+    └── shardingsphere-sharding-readwrite.yml
+```
+
+职责：
+
+- `application-sharding.yml`
+  - 关闭 Spring Boot 默认 Flyway。
+  - 指定 primary-only ShardingSphere YAML。
+  - 显式列出 Flyway target 与 location。
+- `application-readwrite.yml`
+  - 将规则资源切换为 read/write YAML。
+  - 将 Flyway target 切换为各组 primary。
+  - 校验必须同时启用 `sharding`。
+- `shardingsphere-sharding.yml`
+  - 定义 `single`、`shard_0`、`shard_1` 三个物理数据源。
+  - 定义 `!SHARDING`、`!SINGLE`。
+- `shardingsphere-sharding-readwrite.yml`
+  - 定义 primary、replica 物理数据源。
+  - 定义逻辑组 `single`、`shard_0`、`shard_1`。
+  - 在相同的 `!SHARDING`、`!SINGLE` 规则前增加 `!READWRITE_SPLITTING`。
+
+两份 ShardingSphere YAML 的表规则存在受控重复。增加配置一致性测试，要求两份文件的 `!SHARDING`、`!SINGLE` 语义一致，避免通过自定义 YAML 合并器引入额外复杂度。
+
+### 11.2 代表性规则
+
+以下为 Service 的规则骨架，实际文件补齐全部物理数据源和环境变量：
+
+```yaml
+databaseName: evaluation
+
+dataSources:
+  single_primary:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: ${EVALUATION_SINGLE_PRIMARY_URL}
+    username: ${EVALUATION_SINGLE_PRIMARY_USERNAME}
+    password: ${EVALUATION_SINGLE_PRIMARY_PASSWORD}
+  single_replica_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: ${EVALUATION_SINGLE_REPLICA_0_URL}
+    username: ${EVALUATION_SINGLE_REPLICA_0_USERNAME}
+    password: ${EVALUATION_SINGLE_REPLICA_0_PASSWORD}
+  # shard_0_primary / shard_0_replica_0 / shard_1_primary / shard_1_replica_0 同结构
+
+rules:
+  - !READWRITE_SPLITTING
+    dataSourceGroups:
+      single:
+        writeDataSourceName: single_primary
+        readDataSourceNames:
+          - single_replica_0
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+      # shard_0、shard_1 同结构
+    loadBalancers:
+      round_robin:
+        type: ROUND_ROBIN
+
+  - !SHARDING
+    tables:
+      exam:
+        actualDataNodes: shard_$->{0..1}.exam_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: uuid_v7_table_bucket
+      exam_paper:
+        actualDataNodes: shard_$->{0..1}.exam_paper_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_table_bucket
+      score:
+        actualDataNodes: shard_$->{0..1}.score_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_table_bucket
+    bindingTables:
+      - exam,exam_paper,score
+    shardingAlgorithms:
+      uuid_v7_database_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.evaluation.infrastructure.datasource.UuidV7BucketShardingAlgorithm
+          target: database
+          database-count: 2
+          table-count: 2
+      uuid_v7_table_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.evaluation.infrastructure.datasource.UuidV7BucketShardingAlgorithm
+          target: table
+          database-count: 2
+          table-count: 2
+
+  - !SINGLE
+    tables:
+      - single.public.course
+    defaultDataSource: single
+
+props:
+  sql-show: ${SHARDING_SQL_SHOW:false}
+```
+
+ShardingSphere 原生 YAML 不是 Spring 配置文件。Loader 必须先通过 Spring `Environment` 解析 `${ENV_NAME}`，再交给 ShardingSphere；ShardingSphere 行表达式统一写成 `$->{0..1}` 并在解析过程中原样保留，避免与 Spring placeholder 冲突。日志不得输出解析后的密码。
+
+## 12. Flyway 与物理拓扑集成
+
+### 12.1 migration locations
+
+```text
+src/main/resources/db/migration/
+├── default/
+├── sharding/
+│   ├── single/
+│   └── shard/
+└── broadcast/  # 当前不创建；未来确有广播表时再增加
+```
+
+执行映射：
+
+| 模式/节点 | Flyway locations |
+| --- | --- |
+| 默认单数据源 | `classpath:db/migration/default` |
+| `single` 或 `single_primary` | `classpath:db/migration/sharding/single` |
+| `shard_0` / `shard_1` 或对应 primary | `classpath:db/migration/sharding/shard` |
+| replica | 不执行 Flyway |
+
+每个分片 primary 执行相同的 `sharding/shard` migration，因此每个库都创建 `_0`、`_1` 物理表；ShardingSphere 根据虚拟桶只把数据路由到正确组合。
+
+### 12.2 显式迁移 target
+
+不根据名称后缀猜测 primary。`application-sharding.yml` 与 `application-readwrite.yml` 显式声明：
+
+```yaml
+app:
+  sharding:
+    config: classpath:sharding/shardingsphere-sharding-readwrite.yml
+    flyway:
+      targets:
+        - data-source-name: single_primary
+          locations:
+            - classpath:db/migration/sharding/single
+        - data-source-name: shard_0_primary
+          locations:
+            - classpath:db/migration/sharding/shard
+        - data-source-name: shard_1_primary
+          locations:
+            - classpath:db/migration/sharding/shard
+```
+
+启动校验：
+
+1. 每个 `!READWRITE_SPLITTING` 的 `writeDataSourceName` 必须恰好出现在一个 Flyway target 中。
+2. replica 不得出现在 Flyway target。
+3. target 必须引用真实物理数据源，不能引用 `single`、`shard_0` 等逻辑组。
+4. primary-only 配置中的每个物理数据源也必须恰好有一个 target。
+5. location 为空、重复 target 或存在未迁移的写节点时启动失败。
+
+### 12.3 启动顺序
 
 ```mermaid
 flowchart TD
-    A["加载 dev/test/prod 与 sharding 配置"] --> B["解析 ShardingSphere YAML 和环境变量"]
-    B --> C["提取物理数据源定义"]
-    C --> D["按数据源名称稳定排序"]
-    D --> E["逐个执行 Flyway migrate + validate"]
+    A["加载基础 profile、sharding 与可选 readwrite"] --> B["解析 YAML 占位符"]
+    B --> C["校验物理拓扑和 Flyway targets"]
+    C --> D["按 target 名称稳定排序"]
+    D --> E["逐个 primary 执行 Flyway migrate + validate"]
     E --> F{"全部成功？"}
     F -- "否" --> G["关闭临时连接并终止启动"]
     F -- "是" --> H["创建 ShardingSphere 逻辑 DataSource"]
-    H --> I["注册主 DataSource"]
-    I --> J["创建事务管理器、JdbcTemplate 和 JPA"]
-    J --> K["Hibernate ddl-auto=validate"]
+    H --> I["注册事务管理器、JdbcTemplate 与 JPA"]
+    I --> J["Hibernate ddl-auto=validate"]
 ```
 
 约束：
 
-1. 物理数据源名称排序后串行迁移，保证日志与故障定位稳定。
-2. 不并行执行 migration，避免模板默认场景下增加连接峰值和复杂失败处理。
-3. 每个物理数据源使用自己的 `flyway_schema_history`。
-4. 所有物理数据源使用同一组 `classpath:db/migration` 脚本，保证 schema 一致。
-5. Flyway 只对物理 JDBC URL 执行，不对 ShardingSphere 逻辑 JDBC URL 执行。
-6. 迁移完成前不得暴露主 `DataSource` Bean。
-7. 迁移或 YAML 解析失败时，异常必须包含物理数据源名称和 migration location，但不得打印密码。
+1. 串行迁移 primary，保证日志、连接峰值和失败定位可控。
+2. 每个 primary 使用自己的 `flyway_schema_history`。
+3. Flyway 只连接物理 JDBC URL，不连接 ShardingSphere 逻辑 JDBC URL。
+4. 任一节点 migration 或 validate 失败，主 `DataSource` 不得创建。
+5. 异常包含 target 名称和 migration location，不包含密码。
 
-### 6.5 组件边界
+### 12.4 配置继承
 
-各 archetype 采用相同职责，包路径按自身结构放置：
+自定义迁移复用现有 Flyway 属性：
+
+- `baseline-on-migrate=false`，允许环境变量覆盖；
+- `validate-on-migrate=true`；
+- `validate-migration-naming=true`；
+- `clean-disabled=true`，仅测试环境按现有约定放开；
+- encoding、placeholders 等后续属性通过统一 properties 映射，不维护第二套默认值。
+
+## 13. 组件边界与设计模式
+
+各 archetype 按自身模块结构放置相同职责：
 
 - `ShardingSphereDataSourceConfiguration`
-  - 仅负责条件装配和 Bean 定义。
+  - 条件装配和 Bean 定义。
 - `ShardingDataSourceBootstrapper`
-  - 作为 Facade，编排“加载配置、迁移物理库、创建逻辑数据源”完整流程。
+  - Facade，编排加载、校验、迁移和逻辑数据源创建。
 - `ShardingYamlLoader`
-  - 加载资源、解析 Spring 占位符并校验必要字段。
+  - 加载资源、解析 Spring 占位符。
+- `ShardingTopologyValidator`
+  - 校验 primary、replica、逻辑组和 Flyway target 的一一对应。
 - `PhysicalDataSourceFlywayMigrator`
-  - 从解析后的配置提取物理连接信息，逐节点执行 Flyway。
+  - 只对 target 指定的物理写节点执行 Flyway。
+- `UuidV7BucketShardingAlgorithm`
+  - ShardingSphere `CLASS_BASED` Strategy，实现四虚拟桶路由。
 
-Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `infrastructure` 模块的 `infrastructure.config.datasource`。不在 Domain、Application 或 Starter 模块放置 ShardingSphere/Flyway 实现。
+Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `infrastructure` 模块的 `infrastructure.config.datasource`。Domain、Application 和 Starter 不依赖 ShardingSphere/Flyway 实现。
 
-## 7. 设计模式判断
+模式判断：
 
-本次采用轻量的 Facade 模式：`ShardingDataSourceBootstrapper` 对外只暴露“创建已完成物理迁移的逻辑数据源”这一职责，内部协调 YAML 加载和 Flyway 迁移。
+1. 使用 Facade 是因为启动过程有严格的阶段顺序，配置解析、迁移和逻辑数据源创建需要独立测试。
+2. 使用 ShardingSphere Strategy 是因为库、表需要从同一虚拟桶派生不同后缀，简单配置无法正确覆盖 `2 × 2` 节点。
+3. UUIDv7 复用已有 `IdGenerator` Strategy，不重复抽象。
+4. 不增加 Factory、Builder、责任链或继承体系；Spring 条件装配和 ShardingSphere 官方 Factory 已覆盖对象创建变化。
 
-采用原因：
+## 14. 本地事务与跨分片业务
 
-1. 启动过程存在严格且不可交换的三阶段顺序。
-2. 配置解析、数据库迁移和逻辑数据源创建需要分别测试。
-3. 如果全部堆在一个 `@Bean` 方法中，错误处理和资源关闭会难以维护。
+### 14.1 允许的本地事务
 
-不引入 Strategy、Factory 接口层或继承体系。单数据源与 ShardingSphere 的切换已经由 Spring profile/条件装配表达；额外抽象不会增加真实扩展能力。逻辑数据源创建直接使用 ShardingSphere 官方 Factory。
+```text
+允许：SINGLE 用户 + SINGLE 用户角色
+允许：同一 school_class_id 的班级 + 排课
+允许：同一 grade_id 的班级 + 班级成员
+允许：同一 exam_id 的考试 + 试卷 + 成绩
+允许：同一 course_id 的排课写入
+```
 
-## 8. Flyway 执行细则
+### 14.2 禁止的隐式分布式事务
 
-### 8.1 配置继承
+```text
+禁止：一个事务写两个不同 exam_id
+禁止：一个事务写两个不同 grade_id
+禁止：一个事务同时写 SINGLE 与 SHARDING
+禁止：一个事务同时写两个分片组
+禁止：依赖 @Transactional 让跨分片消息发布与数据库写入原子提交
+```
 
-自定义物理迁移必须与现有配置保持一致：
+### 14.3 跨分片处理规则
 
-- `locations=classpath:db/migration`
-- `baseline-on-migrate=false`（允许环境变量覆盖）
-- `validate-on-migrate=true`
-- `validate-migration-naming=true`
-- `clean-disabled=true`，仅测试环境允许现有测试按需清理
+确需跨分片时：
 
-不得在 ShardingSphere 模式下另建一套默认值不同的 Flyway 配置。
+1. 命令拆成可独立提交的单分片步骤。
+2. 每一步使用稳定业务幂等键。
+3. 状态变更采用明确的中间态和终态。
+4. 本地提交后发布领域事件；消费者幂等处理。
+5. 失败通过重试或补偿命令处理。
+6. 查询聚合优先使用异步投影，不在在线事务里跨库 JOIN。
 
-### 8.2 schema 一致性
+本次不建设通用 Saga 框架，但 README 和代码注释必须明确以上边界，避免后续误用 `@Transactional`。
 
-1. 每个物理节点执行完全相同的 versioned migrations。
-2. 任一节点的 `info`、`migrate` 或 `validate` 失败，整体启动失败。
-3. 错误信息要指出失败节点，但密码和完整密文不得进入日志。
-4. 本次不支持每个分片使用不同 migration location；这会破坏统一逻辑表的 schema 一致性。
+## 15. 自动化约束与测试
 
-### 8.3 命名规范的持续约束
+### 15.1 单元测试
 
-生成项目中的测试必须扫描 `src/main/resources/db/migration`，并执行以下检查：
+1. `UuidV7BucketShardingAlgorithmTest`
+   - 相同键的 database/table 结果稳定；
+   - 四个虚拟桶均可命中；
+   - 聚合根与子表使用同一根键时共置；
+   - `null`、空值、非法 UUIDv7 失败；
+   - 精确值和 `IN` 路由正确。
+2. `ShardingYamlLoaderTest`
+   - 环境变量占位符正确解析；
+   - `$->{...}` ShardingSphere 行表达式不被 Spring placeholder 解析破坏；
+   - 异常不泄漏密码。
+3. `ShardingTopologyValidatorTest`
+   - write primary 与 Flyway target 一一对应；
+   - replica 被配置为 target 时失败；
+   - 逻辑组被配置为 target 时失败；
+   - 两份 YAML 的 `SHARDING/SINGLE` 规则语义一致。
+4. `PhysicalDataSourceFlywayMigratorTest`
+   - single 与两个 shard primary 使用各自 location；
+   - 第二个节点失败时整体失败；
+   - target 按名称稳定排序；
+   - replica 从不建立 Flyway 连接。
+5. `ShardingDataSourceBootstrapperTest`
+   - 全部 migration 完成后才创建逻辑数据源；
+   - migration 失败时不返回逻辑数据源。
+6. `FlywayMigrationConventionTest`
+   - 扫描所有 migration 子目录；
+   - 文件名匹配：
 
-1. 历史白名单文件必须存在且名称不变。
-2. 白名单之外的 SQL 文件名必须匹配：
+     ```regex
+     ^V\d{8}_\d{3}__[a-z0-9]+(?:_[a-z0-9]+)*\.sql$
+     ```
 
-   ```regex
-   ^V\d{8}_\d{3}__[a-z0-9]+(?:_[a-z0-9]+)*\.sql$
-   ```
+   - 同日序列号全局不重复；
+   - 三项文件头注释完整且无占位词；
+   - 原 `V1/V2` 文件不存在。
+7. `LogicalSchemaParityTest`
+   - 默认模式与 ShardingSphere 逻辑模式暴露相同的逻辑表、列和 JPA 映射；
+   - 允许的差异仅限物理表后缀、物理库名和分片局部约束；
+   - 任一模式的 schema 漂移都使生成项目测试失败。
 
-3. 同一天的序列号不能重复。
-4. 新 migration 的 version 必须大于现有最大 version。
-5. 新文件必须在首个 SQL 语句之前包含“变更内容”“影响范围”“兼容性说明”三项注释。
-6. 注释值不能为空，也不能使用 `TODO`、`TBD` 或“待补充”。
+### 15.2 Repository 与事务契约测试
 
-## 9. 生成契约
+1. Light 班级、排课用同一 `schoolClassId` 路由到同一节点。
+2. Web 班级、成员用同一 `gradeId` 路由到同一节点。
+3. Web 缺少 `gradeId` 的班级访问在 API/Repository 签名层无法表达。
+4. Service 考试、试卷、成绩用同一 `examId` 路由到同一节点。
+5. Service 查询成绩必须传 `examId + scoreId`。
+6. 写用例均有 Application 层显式事务。
+7. 纯查询无事务时命中 replica；写事务内查询命中 primary。
+8. 对当前全部写用例逐一断言只命中一个写节点；本次不承诺拦截任意未来 SQL 的通用运行时事务守卫。
 
-三个 `verify.groovy` 均需断言：
+### 15.3 生成项目测试
 
-1. 生成 POM 包含 `org.apache.shardingsphere:shardingsphere-jdbc` 和显式版本管理。
-2. Web、Service 的 ShardingSphere 依赖只位于 `infrastructure`，不泄漏到 Domain/Application。
-3. `application-sharding.yml` 和 `sharding/shardingsphere.yml` 已生成。
-4. 默认 profile 仍为 `dev`，ShardingSphere 不会被默认强制启用。
-5. ShardingSphere 模式关闭默认 Flyway 自动执行。
-6. 启动编排类位于正确模块和包路径。
-7. 历史 migration 名称和 checksum 不变。
-8. 迁移规范测试存在，并包含日期序列号正则、历史白名单和注释校验。
-9. README 中英文版本均说明启用命令、配置项、物理节点迁移行为和命名规范。
+1. 默认 `test` profile：
+   - Flyway 执行 `db/migration/default`；
+   - JPA validate 通过；
+   - 原有用例通过。
+2. `test,sharding`：
+   - 三个物理 primary 按各自 location 完成 migration；
+   - `SINGLE` 与 `SHARDING` 表可正常 CRUD；
+   - 四个虚拟桶至少各写入一条数据；
+   - 绑定表共置；
+   - JPA validate 通过。
+3. `test,sharding,readwrite`：
+   - 写入路由 primary；
+   - 非事务读取路由 replica；
+   - 事务内读取路由 primary；
+   - Flyway 不迁移 replica。
+4. 不生成第二套 EntityManagerFactory，不重复执行 Flyway 自动配置。
 
-## 10. 测试设计
+### 15.4 `verify.groovy` 生成契约
 
-### 10.1 单元测试
+三个 archetype 均断言：
 
-1. `ShardingYamlLoaderTest`
-   - 正确解析环境变量占位符。
-   - 缺失 URL、用户名或规则资源时失败。
-   - 异常中不泄漏密码。
-2. `PhysicalDataSourceFlywayMigratorTest`
-   - 使用两个独立 H2 数据源验证 migration 都被执行。
-   - 第二个节点失败时整体失败。
-   - 验证节点按名称稳定排序。
-3. `ShardingDataSourceBootstrapperTest`
-   - 证明 Flyway 完成后才调用 ShardingSphere Factory。
-   - 证明 migration 失败时不会返回逻辑数据源。
-4. `FlywayMigrationConventionTest`
-   - 验证历史白名单。
-   - 验证新文件命名。
-   - 验证必需注释。
+1. POM 包含 ShardingSphere JDBC 5.5.3 和 `egon-cola-component-common-id`。
+2. Web、Service 的基础设施依赖不泄漏到 Domain/Application。
+3. 两份 application profile 和两份 ShardingSphere YAML 已生成。
+4. 默认 profile 仍为 `dev`。
+5. ShardingSphere 模式关闭 Spring Boot 默认 Flyway。
+6. Flyway target、migration locations 与 SQL 文件完整。
+7. 原 `V1/V2` 文件和旧中间表 migration 不存在。
+8. UUIDv7 与四虚拟桶算法类位于正确模块。
+9. migration 规范测试、分片路由测试和读写分离测试存在。
+10. README 中英文内容包含启用方式、表分类、分片键、事务边界和 SQL 规范。
 
-### 10.2 生成项目测试
-
-1. 原有 `test` profile 全量测试保持通过。
-2. 增加 `test,sharding` 集成测试：
-   - 使用 H2 物理数据源；
-   - Flyway 创建 schema；
-   - ShardingSphere 逻辑数据源成功建立；
-   - JPA `ddl-auto=validate` 通过；
-   - 至少通过现有 Repository 或 JdbcTemplate 完成一次写入和查询。
-3. 验证主事务管理器使用逻辑数据源。
-4. 验证没有生成第二套 EntityManagerFactory 或重复 Flyway 自动配置。
-
-### 10.3 验证命令
+### 15.5 验证命令
 
 实施完成后至少执行：
 
@@ -372,84 +828,119 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
 ```bash
 ./mvnw -B -ntp clean verify
 ./mvnw -B -ntp -Dspring.profiles.active=test,sharding clean verify
+./mvnw -B -ntp -Dspring.profiles.active=test,sharding,readwrite clean verify
 ```
 
 最后执行：
 
 ```bash
 git diff --check
+git status --short
 ```
 
-不得以 archetype 模块 `compile` 代替生成项目契约验证。
+不得以 archetype 模块 `compile` 代替生成项目契约和运行时路由验证。
 
-## 11. 文档要求
+## 16. 文档要求
 
 每个 archetype 的 README 与 README.zh-CN 同步更新：
 
-1. 单数据源与 ShardingSphere 两种模式的适用场景。
-2. `dev,sharding`、`test,sharding`、`prod,sharding` 的启用方法。
-3. 物理数据源环境变量和规则文件位置。
-4. Flyway 在每个物理节点执行的行为。
-5. 日期 + 三位序列号命名规则。
-6. SQL 文件头注释模板。
-7. 历史 `V1/V2` 不可修改的原因。
-8. 新增分片规则前必须先确定业务分片键和物理表 migration。
+1. 默认、分片、分片加读写分离三种模式。
+2. profile 启用命令和所需环境变量。
+3. 每张表属于 `SINGLE`、`SHARDING` 或未来 `BROADCAST` 的原因。
+4. 分片键必须进入 API、Query、Command 和 Repository 签名。
+5. UUIDv7 的 36 位 RFC 字符串格式及应用侧生成规则。
+6. Flyway 只迁移 primary 的行为。
+7. 日期加三位序列号的 SQL 命名规则。
+8. SQL 文件头注释模板。
+9. 模板无历史数据，原 `V1/V2` 已重写为最终初始化 schema。
+10. 本地事务边界，以及跨分片使用业务幂等、状态、事件和补偿的原则。
 
-## 12. 验收标准
+## 17. 验收标准
 
-以下条件全部满足才视为完成：
+以下条件全部满足才视为实现完成：
 
-1. 三个 archetype 均包含 ShardingSphere JDBC 依赖、配置、启动编排和测试。
-2. 不启用 `sharding` 时，现有单数据源行为与测试不变。
-3. 启用 `test,sharding` 时，Flyway 对所有测试物理节点迁移成功，逻辑数据源和 JPA 正常工作。
-4. 任一物理节点迁移失败时，应用启动失败且错误不泄漏凭证。
-5. 历史 migration 文件内容、路径和 checksum 不变。
-6. 新 migration 命名与注释规范可被自动化测试强制执行。
-7. 三个 archetype 的 `clean integration-test` 通过。
-8. 三个生成项目的单数据源与 ShardingSphere 验证均通过。
-9. README 中英文内容一致。
-10. 无 `target/` 生成产物被提交。
+1. 三个 archetype 都能生成默认单数据源、分片、分片加读写分离三种可验证模式。
+2. 不启用 `sharding` 时，现有业务行为保持一致。
+3. Light、Web、Service 按本文表分类和分片键完成物理分片。
+4. 同一聚合根键的绑定表落在同一物理库和表后缀。
+5. 全部业务代理主键使用应用侧 UUIDv7，不再依赖数据库自增。
+6. 每个 primary 只执行与自身角色匹配的 Flyway locations，replica 不被迁移。
+7. 任一 primary migration 失败时应用启动失败，且错误不泄漏凭证。
+8. 纯查询可路由 replica，写事务和事务内读取路由 primary。
+9. 不存在 XA、BASE、Seata 或其他分布式事务依赖及配置。
+10. 分片写事务只触达一个物理主库；跨分片流程不伪装成本地事务。
+11. 原 `V1/V2` migration 已删除并重写为带日期序列号、完整注释的最终 schema。
+12. migration 规范由自动化测试强制执行。
+13. 三个 archetype 的 `clean integration-test` 与三个生成项目的三种 profile 验证通过。
+14. README 中英文内容一致。
+15. 无 `target/` 生成产物被提交。
 
-## 13. 风险与控制
+## 18. 风险与控制
 
-### 13.1 ShardingSphere 与 Spring Boot 依赖冲突
+### 18.1 分片键缺失导致全路由
 
-控制：显式锁定 ShardingSphere 版本，检查依赖树，并以三个生成项目的实际启动测试作为兼容性结论。
+控制：让分片键进入 Facade、Command、Query 和 Repository 签名；在线更新、删除和点查不提供缺失分片键的重载方法。
 
-### 13.2 Flyway 与逻辑数据源初始化顺序错误
+### 18.2 Web 按年级分片造成热点
 
-控制：逻辑数据源只允许由 Bootstrapper 在全部物理 migration 成功后创建；增加调用顺序测试。
+控制：初始拓扑仅两个库，使用 UUIDv7 年级 ID 的稳定 hash 分布；生成项目测试验证不同年级覆盖全部虚拟桶。若实际业务只有极少年级或数据严重倾斜，应在落地项目中重新评估组织/租户键，不能照搬模板。
 
-### 13.3 多节点 schema 漂移
+### 18.3 两份 ShardingSphere YAML 漂移
 
-控制：所有物理节点共用 migration locations，任一节点失败则整体失败，不支持节点级差异脚本。
+控制：配置一致性测试比较 `SHARDING`、`SINGLE` 规则语义；不通过复制粘贴人工检查。
 
-### 13.4 配置中凭证泄漏
+### 18.4 replica schema 延迟
 
-控制：凭证只从环境变量或现有加密占位符进入，日志与异常只输出数据源名称和脱敏 URL。
+控制：Flyway 只迁移 primary，数据库复制同步 DDL；运维健康检查监控复制延迟。事务内读取固定走 primary。
 
-### 13.5 把“已接入”误解为“已有业务表已完成分片”
+### 18.5 关闭 Repository 默认事务后出现 lazy loading
 
-控制：README 与示例明确说明本次提供基础设施接入和可运行逻辑数据源，不替业务决定分片键，也不改造现有业务表。
+控制：Repository 内完成映射，保持 `open-in-view=false`，增加纯查询集成测试；所有写用例显式声明 Application 事务。
 
-## 14. 审核重点
+### 18.6 UUIDv7 路由算法变更导致重分布
 
-本 spec 采用以下明确决策，请审核时重点确认：
+控制：算法、桶数和字符串格式属于持久化契约，测试固定；扩缩容必须走独立数据迁移设计，不能直接改配置。
 
-1. 作用范围是 Light、Web、Service 三个 archetype。
-2. ShardingSphere 通过叠加 `sharding` profile 启用，不默认强制开启。
-3. 本次提供 ShardingSphere/Flyway 基础设施协同，不直接改造现有业务表为分片表。
-4. Flyway 在应用内逐个迁移物理数据源，不迁移逻辑数据源。
-5. 新 SQL 使用 `VyyyyMMdd_NNN__description.sql`。
-6. 现有 `V1/V2` 完全不动，日期规则只约束后续新 migration。
-7. 新 SQL 必须包含“变更内容、影响范围、兼容性说明”头注释。
+### 18.7 ShardingSphere 与 Spring Boot 依赖冲突
 
-## 15. 参考资料
+控制：显式锁定版本，检查依赖树，以三个生成项目的实际启动与路由测试作为结论，不静默降级现有依赖。
 
-- [Apache ShardingSphere JDBC 5.5.2 Java API](https://shardingsphere.apache.org/document/5.5.2/en/user-manual/shardingsphere-jdbc/java-api/)
-- [Apache ShardingSphere JDBC YAML 配置](https://shardingsphere.apache.org/document/current/cn/user-manual/shardingsphere-jdbc/yaml-config/)
-- [Apache ShardingSphere JDBC Driver](https://shardingsphere.apache.org/document/current/cn/user-manual/shardingsphere-jdbc/yaml-config/jdbc-driver/)
-- [Spring Boot 3.5.16 FlywayAutoConfiguration](https://docs.spring.io/spring-boot/3.5/api/java/org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration.html)
-- [Spring Boot 3.5.16 FlywayDataSource](https://docs.spring.io/spring-boot/3.5/api/java/org/springframework/boot/autoconfigure/flyway/FlywayDataSource.html)
+### 18.8 把本地事务误认为跨库事务
+
+控制：不引入分布式事务模块；文档列出禁止场景；对当前写用例增加物理写节点路由断言。后续新增批量或跨聚合命令时，必须先设计业务一致性流程，不能默认复用本地事务。
+
+### 18.9 在已有默认数据库上直接切换分片 profile
+
+控制：三种模式是新建项目的部署拓扑选项，不是原地数据迁移开关。已有默认库迁移到分片拓扑需要独立的数据搬迁、校验和切流方案，不在本次脚手架范围内。
+
+### 18.10 默认与分片初始化 SQL 重复导致逻辑 schema 漂移
+
+控制：不同拓扑必须使用不同 DDL，但由 `LogicalSchemaParityTest` 比较逻辑表、列和 JPA 映射；三种 profile 都执行 `ddl-auto=validate`，防止只更新其中一个 location。
+
+## 19. 审核决策点
+
+请重点审核以下已选设计：
+
+1. 三个 archetype 全部纳入。
+2. 默认模式保持单数据源；`sharding` 和 `readwrite` 作为叠加 profile。
+3. Light 按 `school_class_id` 共置班级和排课。
+4. Web 按 `grade_id` 共置班级和成员，所有班级访问都携带 `gradeId`。
+5. Service 按 `exam_id` 共置考试、试卷和成绩；排课按 `course_id` 分片。
+6. 用户、权限、课程、年级等使用 `SINGLE`；当前不使用 `BROADCAST`。
+7. 使用四虚拟桶算法正确覆盖 `2 库 × 2 表`，不对库表重复使用相同 `HASH_MOD`。
+8. 全部业务代理主键使用现有 `UuidV7Generator` 生成的 36 位 UUIDv7，由应用在路由前生成。
+9. Flyway 只迁移 primary，并按 `default/single/shard` 使用不同 locations。
+10. 原 `V1/V2` 可以删除、合并和重写，不考虑历史数据。
+11. 不使用分布式事务；跨分片一致性由业务幂等、状态、事件和补偿解决。
+
+## 20. 参考资料
+
+- [Apache ShardingSphere JDBC 5.5.3 Java API](https://shardingsphere.apache.org/document/5.5.3/en/user-manual/shardingsphere-jdbc/java-api/)
+- [Apache ShardingSphere JDBC YAML 配置](https://shardingsphere.apache.org/document/5.5.3/en/user-manual/shardingsphere-jdbc/yaml-config/)
+- [Apache ShardingSphere 数据分片规则](https://shardingsphere.apache.org/document/5.5.3/en/user-manual/shardingsphere-jdbc/java-api/rules/sharding/)
+- [Apache ShardingSphere 单表规则](https://shardingsphere.apache.org/document/5.5.3/en/user-manual/shardingsphere-jdbc/yaml-config/rules/single/)
+- [Apache ShardingSphere 广播表规则](https://shardingsphere.apache.org/document/5.5.3/en/user-manual/shardingsphere-jdbc/yaml-config/rules/broadcast/)
+- [Apache ShardingSphere 读写分离规则](https://shardingsphere.apache.org/document/5.5.3/en/user-manual/shardingsphere-jdbc/yaml-config/rules/readwrite-splitting/)
 - [Flyway Versioned Migrations](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/versioned-migrations)
 - [Flyway Validate Migration Naming](https://documentation.red-gate.com/flyway/reference/configuration/flyway-namespace/flyway-validate-migration-naming-setting)
+- [RFC 9562 UUID Version 7](https://www.rfc-editor.org/rfc/rfc9562.html#name-uuid-version-7)
