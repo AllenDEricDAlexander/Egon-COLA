@@ -2,6 +2,7 @@ package ${package}.infrastructure.aop;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -9,12 +10,9 @@ import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
+@RequiredArgsConstructor
 public class RepositoryMonitorAspect {
     private final MeterRegistry meterRegistry;
-
-    public RepositoryMonitorAspect(MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-    }
 
     @Around("execution(* ${package}.infrastructure..*(..))"
             + " && (within(*..*Repository) || within(*..repo..*))")

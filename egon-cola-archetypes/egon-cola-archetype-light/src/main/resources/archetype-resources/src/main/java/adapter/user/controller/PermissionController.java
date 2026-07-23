@@ -25,6 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PermissionController {
     private final PermissionManage permissionManage;
+    private final UserAdapterConvertor convertor;
 
     @PostMapping("/roles/{roleCode}/permissions")
     public PermissionResult grantPermission(
@@ -40,7 +41,7 @@ public class PermissionController {
 
     @GetMapping("/users/{userId}/permissions")
     public List<PermissionTreeVO> getUserPermissions(@PathVariable String userId) {
-        return UserAdapterConvertor.toPermissionTree(
+        return convertor.toPermissionTree(
                 permissionManage.getByUser(new GetUserPermissionsQuery(userId)));
     }
 }

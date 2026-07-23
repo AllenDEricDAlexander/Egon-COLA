@@ -17,15 +17,16 @@ import org.springframework.stereotype.Controller;
 public class CourseResolver {
     private final CourseManage courseManage;
     private final SchoolClassManage schoolClassManage;
+    private final TeachingAdapterConvertor convertor;
 
     @QueryMapping
     public CourseDetailVO course(@Argument String id) {
-        return TeachingAdapterConvertor.toCourse(courseManage.get(new GetCourseQuery(id)));
+        return convertor.toCourse(courseManage.get(new GetCourseQuery(id)));
     }
 
     @QueryMapping
     public SchoolClassDetailVO schoolClass(@Argument String id) {
-        return TeachingAdapterConvertor.toSchoolClass(
+        return convertor.toSchoolClass(
                 schoolClassManage.get(new GetSchoolClassQuery(id)));
     }
 }

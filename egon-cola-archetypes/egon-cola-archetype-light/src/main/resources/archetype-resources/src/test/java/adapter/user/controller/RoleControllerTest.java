@@ -1,5 +1,6 @@
 package ${package}.adapter.user.controller;
 
+import ${package}.adapter.user.convertor.UserAdapterConvertorImpl;
 import ${package}.application.user.command.AssignRoleCommand;
 import ${package}.application.user.manage.RoleManage;
 import ${package}.application.user.result.UserResult;
@@ -22,7 +23,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RoleController.class)
-@ContextConfiguration(classes = {RoleController.class, TraceIdFilter.class, RequestContextFilter.class})
+@ContextConfiguration(classes = {
+        RoleController.class,
+        UserAdapterConvertorImpl.class,
+        TraceIdFilter.class,
+        RequestContextFilter.class
+})
 class RoleControllerTest {
     @Autowired
     private MockMvc mockMvc;

@@ -877,6 +877,27 @@ assertFile("src/main/resources/graphql/teaching.graphqls")
     assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/teaching/${packageName}").isDirectory()
 }
 
+def teachingAdapterMapper = assertFile(
+        "src/main/java/it/pkg/adapter/teaching/convertor/TeachingAdapterConvertor.java").text
+assert teachingAdapterMapper.contains("@Mapper(")
+assert teachingAdapterMapper.contains("ReportingPolicy.ERROR")
+def userAdapterMapper = assertFile(
+        "src/main/java/it/pkg/adapter/user/convertor/UserAdapterConvertor.java").text
+assert userAdapterMapper.contains("@Mapper(")
+assert userAdapterMapper.contains("ReportingPolicy.ERROR")
+def coursePoMapper = assertFile(
+        "src/main/java/it/pkg/infrastructure/teaching/repo/converter/CoursePOMapper.java").text
+assert coursePoMapper.contains("extends BaseMapper<Course, CoursePO>")
+def coursePo = assertFile(
+        "src/main/java/it/pkg/infrastructure/teaching/repo/po/CoursePO.java").text
+assert coursePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+assert coursePo.contains("@AllArgsConstructor")
+assert !coursePo.contains("protected CoursePO()")
+def rabbitMqConfig = assertFile(
+        "src/main/java/it/pkg/infrastructure/config/RabbitMqConfig.java").text
+assert rabbitMqConfig.contains("@RequiredArgsConstructor")
+assert !rabbitMqConfig.contains("public RabbitMqConfig(")
+
 def facadeJavaFiles = []
 new File(generatedProjectDir, "src/main/java/it/pkg/facade").eachFileRecurse { file ->
     if (file.isFile() && file.name.endsWith(".java")) {

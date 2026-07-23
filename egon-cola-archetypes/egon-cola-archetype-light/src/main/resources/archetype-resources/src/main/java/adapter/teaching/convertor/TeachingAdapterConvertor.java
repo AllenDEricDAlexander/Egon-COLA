@@ -4,17 +4,13 @@ import ${package}.adapter.teaching.vo.CourseDetailVO;
 import ${package}.adapter.teaching.vo.SchoolClassDetailVO;
 import ${package}.application.teaching.result.CourseResult;
 import ${package}.application.teaching.result.SchoolClassResult;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 
-public final class TeachingAdapterConvertor {
-    private TeachingAdapterConvertor() {
-    }
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface TeachingAdapterConvertor {
 
-    public static CourseDetailVO toCourse(CourseResult result) {
-        return new CourseDetailVO(result.id(), result.code(), result.name(), result.status());
-    }
+    CourseDetailVO toCourse(CourseResult result);
 
-    public static SchoolClassDetailVO toSchoolClass(SchoolClassResult result) {
-        return new SchoolClassDetailVO(
-                result.id(), result.name(), result.semester(), result.status(), result.scheduleCount());
-    }
+    SchoolClassDetailVO toSchoolClass(SchoolClassResult result);
 }

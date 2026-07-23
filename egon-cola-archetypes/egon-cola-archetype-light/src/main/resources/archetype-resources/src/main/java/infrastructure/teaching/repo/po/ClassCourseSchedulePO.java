@@ -6,12 +6,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "class_course_schedules")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ClassCourseSchedulePO {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,9 +29,6 @@ public class ClassCourseSchedulePO {
     private LocalDateTime endsAt;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
-
-    protected ClassCourseSchedulePO() {
-    }
 
     public ClassCourseSchedulePO(
             String schoolClassId,

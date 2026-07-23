@@ -26,17 +26,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class SchoolClassController {
     private final SchoolClassManage schoolClassManage;
     private final TeachingRequestValidator validator;
+    private final TeachingAdapterConvertor convertor;
 
     @PostMapping
     public SchoolClassDetailVO create(@Valid @RequestBody CreateSchoolClassRequest request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
-        return TeachingAdapterConvertor.toSchoolClass(schoolClassManage.create(new CreateSchoolClassCommand(
+        return convertor.toSchoolClass(schoolClassManage.create(new CreateSchoolClassCommand(
                 request.name(), request.semester(), context.operatorId(), context.requestId())));
     }
 
     @GetMapping("/{schoolClassId}")
     public SchoolClassDetailVO get(@PathVariable String schoolClassId) {
-        return TeachingAdapterConvertor.toSchoolClass(
+        return convertor.toSchoolClass(
                 schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
     }
 
@@ -47,7 +48,7 @@ public class SchoolClassController {
             @Valid @RequestBody ScheduleCourseRequest request) {
         validator.validateSchedule(request);
         RequestContext context = RequestContextHolder.currentOrAnonymous();
-        return TeachingAdapterConvertor.toSchoolClass(schoolClassManage.schedule(new ScheduleCourseCommand(
+        return convertor.toSchoolClass(schoolClassManage.schedule(new ScheduleCourseCommand(
                 schoolClassId,
                 courseId,
                 request.startsAt(),

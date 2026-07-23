@@ -2,6 +2,7 @@ package ${package}.adapter.teaching.controller;
 
 import ${package}.adapter.filter.RequestContextFilter;
 import ${package}.adapter.filter.TraceIdFilter;
+import ${package}.adapter.teaching.convertor.TeachingAdapterConvertorImpl;
 import ${package}.application.teaching.manage.CourseManage;
 import ${package}.application.teaching.result.CourseResult;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CourseController.class)
-@ContextConfiguration(classes = {CourseController.class, TraceIdFilter.class, RequestContextFilter.class})
+@ContextConfiguration(classes = {
+        CourseController.class,
+        TeachingAdapterConvertorImpl.class,
+        TraceIdFilter.class,
+        RequestContextFilter.class
+})
 class CourseControllerTest {
     @Autowired
     private MockMvc mockMvc;

@@ -3,6 +3,7 @@ package ${package}.infrastructure.user.cache;
 import ${package}.domain.user.service.UserCacheService;
 import ${package}.domain.user.vos.UserSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
+import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -11,14 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@RequiredArgsConstructor
 public class InMemoryUserCacheService implements UserCacheService {
     private final ConcurrentMap<String, UserSnapshot> users = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Instant> claims = new ConcurrentHashMap<>();
     private final TransactionCompletionExecutor transactionCompletionExecutor;
-
-    public InMemoryUserCacheService(TransactionCompletionExecutor transactionCompletionExecutor) {
-        this.transactionCompletionExecutor = transactionCompletionExecutor;
-    }
 
     @Override
     public Optional<UserSnapshot> getUser(String userId) {

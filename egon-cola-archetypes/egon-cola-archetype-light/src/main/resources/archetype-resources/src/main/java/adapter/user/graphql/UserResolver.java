@@ -19,15 +19,16 @@ import java.util.List;
 public class UserResolver {
     private final UserManage userManage;
     private final PermissionManage permissionManage;
+    private final UserAdapterConvertor convertor;
 
     @QueryMapping
     public UserDetailVO user(@Argument String id) {
-        return UserAdapterConvertor.toUserDetail(userManage.get(new GetUserQuery(id)));
+        return convertor.toUserDetail(userManage.get(new GetUserQuery(id)));
     }
 
     @QueryMapping
     public List<PermissionTreeVO> permissions(@Argument String userId) {
-        return UserAdapterConvertor.toPermissionTree(
+        return convertor.toPermissionTree(
                 permissionManage.getByUser(new GetUserPermissionsQuery(userId)));
     }
 }

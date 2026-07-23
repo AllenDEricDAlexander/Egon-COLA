@@ -1,5 +1,6 @@
 package ${package}.adapter.user.graphql;
 
+import ${package}.adapter.user.convertor.UserAdapterConvertorImpl;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.manage.UserManage;
 import ${package}.application.user.result.PermissionDetailResult;
@@ -17,7 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @GraphQlTest(UserResolver.class)
-@ContextConfiguration(classes = UserResolver.class)
+@ContextConfiguration(classes = {UserResolver.class, UserAdapterConvertorImpl.class})
 class UserResolverTest {
     @Autowired
     private GraphQlTester graphQlTester;

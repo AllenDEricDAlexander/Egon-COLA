@@ -2,6 +2,7 @@ package ${package}.adapter.teaching.controller;
 
 import ${package}.adapter.filter.RequestContextFilter;
 import ${package}.adapter.filter.TraceIdFilter;
+import ${package}.adapter.teaching.convertor.TeachingAdapterConvertorImpl;
 import ${package}.adapter.teaching.validators.TeachingRequestValidator;
 import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(SchoolClassController.class)
 @ContextConfiguration(classes = {
         SchoolClassController.class,
+        TeachingAdapterConvertorImpl.class,
         TeachingRequestValidator.class,
         TraceIdFilter.class,
         RequestContextFilter.class

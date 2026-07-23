@@ -3,6 +3,7 @@ package ${package}.infrastructure.teaching.cache;
 import ${package}.domain.teaching.service.CourseCacheService;
 import ${package}.domain.teaching.vos.CourseSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
+import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -11,14 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@RequiredArgsConstructor
 public class InMemoryCourseCacheService implements CourseCacheService {
     private final ConcurrentMap<String, CourseSnapshot> courses = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Instant> claims = new ConcurrentHashMap<>();
     private final TransactionCompletionExecutor transactionCompletionExecutor;
-
-    public InMemoryCourseCacheService(TransactionCompletionExecutor transactionCompletionExecutor) {
-        this.transactionCompletionExecutor = transactionCompletionExecutor;
-    }
 
     @Override
     public Optional<CourseSnapshot> getCourse(String courseId) {

@@ -4,15 +4,17 @@ import ${package}.domain.teaching.entities.Course;
 import ${package}.domain.teaching.enums.CourseStatus;
 import ${package}.domain.teaching.vos.CourseCode;
 import ${package}.infrastructure.teaching.repo.po.CoursePO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-
 @Component
+@RequiredArgsConstructor
 public class CoursePOConverter {
+
+    private final CoursePOMapper mapper;
+
     public CoursePO toPO(Course course) {
-        return new CoursePO(
-                course.id(), course.code().value(), course.name(), course.status().name(), Instant.now());
+        return mapper.convert(course);
     }
 
     public Course toDomain(CoursePO course) {

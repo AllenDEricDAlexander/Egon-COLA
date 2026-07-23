@@ -13,6 +13,7 @@ import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.teaching.vos.Semester;
 import ${package}.infrastructure.JpaTestApplication;
 import ${package}.infrastructure.teaching.repo.converter.CoursePOConverter;
+import ${package}.infrastructure.teaching.repo.converter.CoursePOMapperImpl;
 import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
 import ${package}.infrastructure.teaching.repo.impl.CourseRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.impl.SchoolClassRepositoryImpl;
@@ -37,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         SchoolClassRepositoryImpl.class,
         CourseRepositoryImpl.class,
         SchoolClassPOConverter.class,
-        CoursePOConverter.class
+        CoursePOConverter.class,
+        CoursePOMapperImpl.class
 })
 class SchoolClassRepositoryImplTest {
     @Autowired SchoolClassRepository schoolClassRepository;

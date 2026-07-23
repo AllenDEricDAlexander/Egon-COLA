@@ -22,16 +22,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CourseController {
     private final CourseManage courseManage;
+    private final TeachingAdapterConvertor convertor;
 
     @PostMapping
     public CourseDetailVO create(@Valid @RequestBody CreateCourseRequest request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
-        return TeachingAdapterConvertor.toCourse(courseManage.create(new CreateCourseCommand(
+        return convertor.toCourse(courseManage.create(new CreateCourseCommand(
                 request.code(), request.name(), context.operatorId(), context.requestId())));
     }
 
     @GetMapping("/{courseId}")
     public CourseDetailVO get(@PathVariable String courseId) {
-        return TeachingAdapterConvertor.toCourse(courseManage.get(new GetCourseQuery(courseId)));
+        return convertor.toCourse(courseManage.get(new GetCourseQuery(courseId)));
     }
 }

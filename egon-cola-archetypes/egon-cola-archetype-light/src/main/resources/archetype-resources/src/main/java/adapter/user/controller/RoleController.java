@@ -20,11 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class RoleController {
     private final RoleManage roleManage;
+    private final UserAdapterConvertor convertor;
 
     @PostMapping
     public UserDetailVO assignRole(@PathVariable String userId, @Valid @RequestBody AssignRoleRequest request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
-        return UserAdapterConvertor.toUserDetail(roleManage.assignRole(new AssignRoleCommand(
+        return convertor.toUserDetail(roleManage.assignRole(new AssignRoleCommand(
                 userId,
                 request.roleCode(),
                 context.operatorId(),

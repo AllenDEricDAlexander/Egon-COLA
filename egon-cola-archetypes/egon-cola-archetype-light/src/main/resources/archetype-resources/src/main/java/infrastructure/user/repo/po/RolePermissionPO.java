@@ -5,6 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.Instant;
@@ -13,6 +16,8 @@ import java.util.Objects;
 @Entity
 @Table(name = "role_permissions")
 @IdClass(RolePermissionPO.Key.class)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class RolePermissionPO {
     @Id
     @Column(name = "role_code")
@@ -23,30 +28,15 @@ public class RolePermissionPO {
     @Column(name = "granted_at", nullable = false)
     private Instant grantedAt;
 
-    protected RolePermissionPO() {
-    }
-
-    public RolePermissionPO(String roleCode, String permissionCode, Instant grantedAt) {
-        this.roleCode = roleCode;
-        this.permissionCode = permissionCode;
-        this.grantedAt = grantedAt;
-    }
-
     public String getRoleCode() { return roleCode; }
     public String getPermissionCode() { return permissionCode; }
     public Instant getGrantedAt() { return grantedAt; }
 
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static final class Key implements Serializable {
         private String roleCode;
         private String permissionCode;
-
-        public Key() {
-        }
-
-        public Key(String roleCode, String permissionCode) {
-            this.roleCode = roleCode;
-            this.permissionCode = permissionCode;
-        }
 
         @Override
         public boolean equals(Object other) {
