@@ -28,6 +28,7 @@ import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,14 +45,14 @@ class EvaluationDubboTripleIntegrationTest {
         when(manage.create(any(CreateCourseCommand.class))).thenReturn(
                 new CourseResult("course-1", "MATH-101", "Math", 3, "ACTIVE"));
         CourseFacade provider = new CourseFacadeImpl(
-                manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
+                manage, Mappers.getMapper(CourseFacadeConverter.class), new CourseFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
         ExamManage examManage = mock(ExamManage.class);
         when(examManage.create(any())).thenReturn(new ExamDetailResult(
                 "exam-1", "course-1", "Midterm",
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
         ExamFacade examProvider = new ExamFacadeImpl(
-                examManage, new ExamFacadeConverter(), new ExamFacadeValidator(),
+                examManage, Mappers.getMapper(ExamFacadeConverter.class), new ExamFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
 
         ServiceConfig<CourseFacade> service = new ServiceConfig<>();

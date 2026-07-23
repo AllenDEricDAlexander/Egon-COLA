@@ -11,6 +11,7 @@ import ${package}.domain.exam.event.ExamEventPublisher;
 import ${package}.infrastructure.exam.mq.message.ExamPublishedMessage;
 import ${package}.infrastructure.exam.mq.message.ScoreRecordedMessage;
 import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,20 +20,15 @@ import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnProperty(prefix = "app.integrations.rabbitmq", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RabbitExamEventPublisher implements ExamEventPublisher {
     private final RabbitTemplate rabbitTemplate;
+    @Value("${symbol_dollar}{app.integrations.rabbitmq.exchange}")
     private final String exchange;
+    @Value("${symbol_dollar}{app.integrations.rabbitmq.exam-published-routing-key}")
     private final String examRoutingKey;
+    @Value("${symbol_dollar}{app.integrations.rabbitmq.score-recorded-routing-key}")
     private final String scoreRoutingKey;
-
-    public RabbitExamEventPublisher(
-            RabbitTemplate rabbitTemplate,
-            @Value("${symbol_dollar}{app.integrations.rabbitmq.exchange}") String exchange,
-            @Value("${symbol_dollar}{app.integrations.rabbitmq.exam-published-routing-key}") String examRoutingKey,
-            @Value("${symbol_dollar}{app.integrations.rabbitmq.score-recorded-routing-key}") String scoreRoutingKey) {
-        this.rabbitTemplate = rabbitTemplate; this.exchange = exchange;
-        this.examRoutingKey = examRoutingKey; this.scoreRoutingKey = scoreRoutingKey;
-    }
 
     public void examPublished(Exam exam, ExamPaper paper) {
         send(examRoutingKey, new ExamPublishedMessage(

@@ -13,6 +13,7 @@ import ${package}.application.exam.result.ExamDetailResult;
 import top.egon.cola.evaluation.facade.exam.dto.CreateExamRequest;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +32,7 @@ class ExamFacadeImplTest {
                 "exam-1", "course-1", "Midterm",
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
         ExamFacadeImpl facade = new ExamFacadeImpl(
-                manage, new ExamFacadeConverter(), new ExamFacadeValidator(),
+                manage, Mappers.getMapper(ExamFacadeConverter.class), new ExamFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
 
         var response = facade.createExam(new CreateExamRequest(

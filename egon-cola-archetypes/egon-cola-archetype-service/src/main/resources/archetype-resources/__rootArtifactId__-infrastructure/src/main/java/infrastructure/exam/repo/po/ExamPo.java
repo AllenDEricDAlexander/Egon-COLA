@@ -7,10 +7,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 
 @Entity
 @Table(name = "exam")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class ExamPo {
     @Id private String id;
     @Column(name = "course_id", nullable = false) private String courseId;
@@ -21,12 +27,6 @@ public class ExamPo {
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
-    protected ExamPo() { }
-    public ExamPo(String id, String courseId, String title, Instant startsAt, Instant endsAt,
-                  String status, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.courseId = courseId; this.title = title; this.startsAt = startsAt;
-        this.endsAt = endsAt; this.status = status; this.createdAt = createdAt; this.updatedAt = updatedAt;
-    }
     public String getId() { return id; } public String getCourseId() { return courseId; }
     public String getTitle() { return title; } public Instant getStartsAt() { return startsAt; }
     public Instant getEndsAt() { return endsAt; } public String getStatus() { return status; }

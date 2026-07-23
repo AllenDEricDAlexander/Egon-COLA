@@ -7,10 +7,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 
 @Entity
 @Table(name = "exam_paper")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class ExamPaperPo {
     @Id private String id;
     @Column(name = "exam_id", nullable = false) private String examId;
@@ -19,12 +25,6 @@ public class ExamPaperPo {
     @Column(nullable = false) private String status;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
-    protected ExamPaperPo() { }
-    public ExamPaperPo(String id, String examId, String title, int totalPoints, String status,
-                       Instant createdAt, Instant updatedAt) {
-        this.id = id; this.examId = examId; this.title = title; this.totalPoints = totalPoints;
-        this.status = status; this.createdAt = createdAt; this.updatedAt = updatedAt;
-    }
     public String getId() { return id; } public String getExamId() { return examId; }
     public String getTitle() { return title; } public int getTotalPoints() { return totalPoints; }
     public String getStatus() { return status; } public Instant getCreatedAt() { return createdAt; }

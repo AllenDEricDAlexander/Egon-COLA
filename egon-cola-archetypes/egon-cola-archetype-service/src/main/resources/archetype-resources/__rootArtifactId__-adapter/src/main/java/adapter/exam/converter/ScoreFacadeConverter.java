@@ -2,18 +2,18 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.exam.converter;
+
 import ${package}.application.exam.command.RecordScoreCommand;
 import ${package}.application.exam.result.ScoreResult;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 import top.egon.cola.evaluation.facade.exam.dto.RecordScoreRequest;
 import top.egon.cola.evaluation.facade.exam.dto.ScoreResponse;
-import org.springframework.stereotype.Component;
-@Component
-public class ScoreFacadeConverter {
-    public RecordScoreCommand toCommand(RecordScoreRequest request) {
-        return new RecordScoreCommand(request.examId(), request.studentId(), request.points());
-    }
-    public ScoreResponse toResponse(ScoreResult result) {
-        return new ScoreResponse(result.id(), result.examId(), result.courseId(),
-                result.studentId(), result.points(), result.status());
-    }
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface ScoreFacadeConverter {
+
+    RecordScoreCommand toCommand(RecordScoreRequest request);
+
+    ScoreResponse toResponse(ScoreResult result);
 }

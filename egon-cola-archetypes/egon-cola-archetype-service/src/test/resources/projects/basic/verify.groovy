@@ -719,4 +719,30 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 ].each {
     assert gitignoreLines.contains(it): "Expected .gitignore to contain line ${it}"
 }
+
+[
+    "adapter/course/converter/CourseFacadeConverter.java",
+    "adapter/exam/converter/ExamFacadeConverter.java",
+    "adapter/exam/converter/ScoreFacadeConverter.java"
+].each { relativePath ->
+    def mapper = assertFile(
+            "student-management-evaluation-adapter/src/main/java/it/pkg/${relativePath}").text
+    assert mapper.contains("@Mapper(")
+    assert mapper.contains("ReportingPolicy.ERROR")
+}
+
+def coursePo = assertFile(
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/repo/po/CoursePo.java").text
+assert coursePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+assert coursePo.contains("@AllArgsConstructor")
+assert !coursePo.contains("protected CoursePo()")
+
+[
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/mq/RecordScoreConsumer.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisher.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisher.java"
+].each { path ->
+    def source = assertFile(path).text
+    assert source.contains("@RequiredArgsConstructor")
+}
 return true

@@ -12,6 +12,7 @@ import ${package}.application.exam.manage.ScoreManage;
 import ${package}.application.exam.result.ScoreResult;
 import top.egon.cola.evaluation.facade.exam.dto.RecordScoreRequest;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +29,7 @@ class ScoreFacadeImplTest {
         when(manage.record(command)).thenReturn(new ScoreResult(
                 "score-1", "exam-1", "course-1", "student-1", 92, "RECORDED"));
         ScoreFacadeImpl facade = new ScoreFacadeImpl(
-                manage, new ScoreFacadeConverter(), new ScoreFacadeValidator(),
+                manage, Mappers.getMapper(ScoreFacadeConverter.class), new ScoreFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
 
         var response = facade.recordScore(new RecordScoreRequest("exam-1", "student-1", 92));

@@ -10,8 +10,9 @@ import ${package}.adapter.course.validators.CourseFacadeValidator;
 import ${package}.application.course.command.CreateCourseCommand;
 import ${package}.application.course.manage.CourseManage;
 import ${package}.application.course.result.CourseResult;
-import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +29,7 @@ class CourseFacadeImplTest {
         when(manage.create(command)).thenReturn(
                 new CourseResult("course-1", "MATH-101", "Math", 3, "ACTIVE"));
         CourseFacadeImpl facade = new CourseFacadeImpl(
-                manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
+                manage, Mappers.getMapper(CourseFacadeConverter.class), new CourseFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
 
         var response = facade.create(new CreateCourseRequest("MATH-101", "Math", 3));
