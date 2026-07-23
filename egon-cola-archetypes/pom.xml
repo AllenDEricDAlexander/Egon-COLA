@@ -112,6 +112,7 @@
         <plugins>
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
+                <inherited>false</inherited>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
