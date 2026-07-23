@@ -81,7 +81,37 @@ dubbo:
     timeout: 3000
     retries: 0
 
+logging:
+  file:
+    path: ${symbol_dollar}{LOG_HOME:./logs}
+  group:
+    web-stack: org.springframework.web,org.springframework.http,org.apache.catalina,org.apache.coyote
+    persistence: org.mybatis,org.mybatis.spring,com.baomidou.mybatisplus,org.springframework.jdbc,org.hibernate.SQL
+    rpc: org.apache.dubbo,io.grpc
+    messaging: org.springframework.kafka,org.springframework.amqp
+  level:
+    root: info
+    web-stack: info
+    persistence: warn
+    rpc: info
+    messaging: info
+    ${groupId}: info
+  logback:
+    rollingpolicy:
+      max-file-size: ${symbol_dollar}{LOG_MAX_FILE_SIZE:100MB}
+      max-history: ${symbol_dollar}{LOG_MAX_HISTORY:30}
+      total-size-cap: ${symbol_dollar}{LOG_TOTAL_SIZE_CAP:10GB}
+      clean-history-on-start: ${symbol_dollar}{LOG_CLEAN_HISTORY_ON_START:false}
+
 app:
+  logging:
+    instance-name: ${symbol_dollar}{INSTANCE_ID:${symbol_dollar}{HOSTNAME:local}}
+    error-total-size-cap: ${symbol_dollar}{LOG_ERROR_TOTAL_SIZE_CAP:2GB}
+    async:
+      queue-size: ${symbol_dollar}{LOG_ASYNC_QUEUE_SIZE:8192}
+      discarding-threshold: ${symbol_dollar}{LOG_ASYNC_DISCARDING_THRESHOLD:0}
+      never-block: ${symbol_dollar}{LOG_ASYNC_NEVER_BLOCK:false}
+      max-flush-time: ${symbol_dollar}{LOG_ASYNC_MAX_FLUSH_TIME:5000}
   integrations:
     rabbitmq:
       enabled: false

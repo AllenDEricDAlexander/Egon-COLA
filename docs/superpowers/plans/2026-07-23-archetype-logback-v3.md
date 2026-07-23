@@ -147,6 +147,7 @@ main logging XML, and Web lacks the V3 tokens.
 
 **Files:**
 - Delete: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/logback.xml`
+- Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/META-INF/maven/archetype-metadata.xml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/logback-spring.xml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/resources/logback-test.xml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/logback-spring.xml`
@@ -189,7 +190,7 @@ Each runnable module receives:
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <property name="TEST_LOG_PATTERN"
-              value="%d{HH:mm:ss.SSS} %-5level [%thread] traceId=%X{traceId:-} spanId=%X{spanId:-} requestId=%X{requestId:-} %logger{40} %kvp - %msg%n${symbol_dollar}{LOG_EXCEPTION_CONVERSION_WORD}"/>
+              value="%d{HH:mm:ss.SSS} %-5level [%thread] traceId=%X{traceId:-} spanId=%X{spanId:-} requestId=%X{requestId:-} %logger{40} %kvp - %msg%n${symbol_dollar}{LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>${symbol_dollar}{TEST_LOG_PATTERN}</pattern>
@@ -202,7 +203,14 @@ Each runnable module receives:
 </configuration>
 ```
 
-- [ ] **Step 3: Add common runtime values**
+- [ ] **Step 3: Include Light test resources in generated projects**
+
+Add a filtered UTF-8 `src/test/resources` file set to Light's
+`archetype-metadata.xml`, including `**/*.yml`, `**/*.properties`, and
+`**/*.xml`. Service and Web already have the equivalent starter-module file
+set.
+
+- [ ] **Step 4: Add common runtime values**
 
 Merge this shape into each existing `application.yml` without duplicating an
 existing top-level `app` key:
@@ -243,7 +251,7 @@ logging:
 
 In archetype sources all `${...}` expressions use `$symbol_dollar`.
 
-- [ ] **Step 4: Run focused archetype verification**
+- [ ] **Step 5: Run focused archetype verification**
 
 Run:
 
@@ -255,7 +263,7 @@ bash ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
 
 Expected: all selected modules and generated-project verifiers succeed.
 
-- [ ] **Step 5: Commit the implementation task**
+- [ ] **Step 6: Commit the implementation task**
 
 ```bash
 git add egon-cola-archetypes

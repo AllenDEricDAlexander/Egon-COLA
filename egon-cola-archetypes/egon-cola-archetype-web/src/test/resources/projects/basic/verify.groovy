@@ -3,6 +3,107 @@ import groovy.xml.XmlSlurper
 
 def projectDir = new File(basedir, "pom.xml").isFile() ? basedir : context.projectDir
 
+def assertLoggingContract = { mainConfigPath, testConfigPath, applicationConfigPath ->
+    def mainConfig = new File(projectDir, mainConfigPath)
+    assert mainConfig.isFile(): "Expected file ${mainConfigPath}"
+    def mainText = mainConfig.getText("UTF-8")
+    def mainXml = new XmlSlurper(false, false).parse(mainConfig)
+    assert mainXml.name() == "configuration"
+    assert !mainXml.attributes().containsKey("scan")
+
+    [
+        "org/springframework/boot/logging/logback/defaults.xml",
+        'source="spring.application.name"',
+        'source="spring.profiles.active"',
+        'source="logging.file.path"',
+        'source="app.logging.instance-name"',
+        'source="logging.level.root"',
+        'traceId=%X{traceId:-}',
+        'spanId=%X{spanId:-}',
+        'requestId=%X{requestId:-}',
+        'tenantId=%X{tenantId:-}',
+        'userId=%X{userId:-}',
+        'entId=%X{entId:-}',
+        "%kvp",
+        '${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}',
+        'name="(local | dev | test) &amp; !k8s"',
+        'name="k8s"',
+        'name="!local &amp; !dev &amp; !test &amp; !k8s"',
+        "StructuredLogEncoder",
+        'name="ASYNC_APP_FILE"',
+        '<discardingThreshold>${ASYNC_DISCARDING_THRESHOLD}</discardingThreshold>',
+        '<neverBlock>${ASYNC_NEVER_BLOCK}</neverBlock>',
+        "<includeCallerData>false</includeCallerData>",
+        'name="ERROR_FILE"',
+        "LevelFilter",
+        "<level>ERROR</level>",
+        "SizeAndTimeBasedRollingPolicy",
+        ".%i.log.gz"
+    ].each { token ->
+        assert mainText.contains(token): "Expected ${mainConfigPath} to contain ${token}"
+    }
+    assert !mainText.contains("%class")
+    assert !mainText.contains("%method")
+    assert !mainText.contains("%line")
+    assert !mainText.contains("%caller")
+    assert !mainText.contains("<contextName>")
+
+    def appenderRefsForProfile = { profileName ->
+        def profile = mainXml.springProfile.find { it.@name.text() == profileName }
+        assert profile: "Expected ${mainConfigPath} to define profile ${profileName}"
+        profile.root.'appender-ref'.collect { it.@ref.text() } as Set
+    }
+    assert appenderRefsForProfile("(local | dev | test) & !k8s") == (["CONSOLE"] as Set)
+    assert appenderRefsForProfile("k8s") == (["JSON_CONSOLE"] as Set)
+    assert appenderRefsForProfile("!local & !dev & !test & !k8s") ==
+            (["CONSOLE", "ASYNC_APP_FILE", "ERROR_FILE"] as Set)
+
+    mainXml.depthFirst().findAll { it.name() == "root" }.each { rootLogger ->
+        def appenderRefs = rootLogger.'appender-ref'.collect { it.@ref.text() }
+        assert !(appenderRefs.contains("APP_FILE") && appenderRefs.contains("ASYNC_APP_FILE")):
+                "ROOT must not reference synchronous and asynchronous main-file appenders together"
+    }
+
+    def testConfig = new File(projectDir, testConfigPath)
+    assert testConfig.isFile(): "Expected file ${testConfigPath}"
+    def testText = testConfig.getText("UTF-8")
+    def testXml = new XmlSlurper(false, false).parse(testConfig)
+    [
+        "UTF-8",
+        'traceId=%X{traceId:-}',
+        'spanId=%X{spanId:-}',
+        'requestId=%X{requestId:-}',
+        "%kvp",
+        '${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}'
+    ].each { token ->
+        assert testText.contains(token): "Expected ${testConfigPath} to contain ${token}"
+    }
+    assert testXml.root.@level.text() == "WARN"
+
+    def applicationConfig = new File(projectDir, applicationConfigPath)
+    assert applicationConfig.isFile(): "Expected file ${applicationConfigPath}"
+    def applicationText = applicationConfig.getText("UTF-8")
+    [
+        "logging:",
+        "instance-name:",
+        "error-total-size-cap:",
+        "queue-size:",
+        "discarding-threshold:",
+        "never-block:",
+        "max-flush-time:",
+        "web-stack:",
+        "persistence:",
+        "rpc:",
+        "messaging:",
+        "max-file-size:",
+        "max-history:",
+        "total-size-cap:",
+        "clean-history-on-start:"
+    ].each { token ->
+        assert applicationText.contains(token): "Expected ${applicationConfigPath} to contain ${token}"
+    }
+}
+
 // Canonical organization manifest: intentionally fixed, never discovered from generated output.
 def requiredFiles = [
     ".dockerignore",
@@ -1005,6 +1106,10 @@ assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.spr
 assertRuntimeConfigFiles("student-management-organization-starter/src/main/resources")
 
 def webApplicationYaml = assertFile("student-management-organization-starter/src/main/resources/application.yml").text
+assertLoggingContract(
+        "student-management-organization-starter/src/main/resources/logback-spring.xml",
+        "student-management-organization-starter/src/test/resources/logback-test.xml",
+        "student-management-organization-starter/src/main/resources/application.yml")
 assert webApplicationYaml.contains("threads:")
 assert webApplicationYaml.contains("virtual:")
 assert webApplicationYaml.contains('${SPRING_THREADS_VIRTUAL_ENABLED:true}')

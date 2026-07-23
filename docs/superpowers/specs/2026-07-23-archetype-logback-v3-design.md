@@ -59,6 +59,10 @@ Text logs contain:
 The pattern deliberately excludes class, method, line, caller, and file
 lookups.
 
+The XML does not set `contextName`. Spring Cloud can initialize the same
+Logback `LoggerContext` during bootstrap and again for the main application;
+renaming that context twice causes Logback startup failure.
+
 ## 5. Runtime Configuration Contract
 
 Every generated `application.yml` defines:
@@ -96,6 +100,9 @@ Spring and Logback `${...}` placeholders.
 
 Light's `logback.xml` is replaced, not retained, because two main Logback
 configuration files would create ambiguous startup behavior.
+Light's archetype metadata also gains the missing filtered
+`src/test/resources` file set so its `logback-test.xml` reaches generated
+projects, matching the existing Service and Web metadata contract.
 
 ## 7. Test Logging
 
