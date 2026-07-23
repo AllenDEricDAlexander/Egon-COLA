@@ -49,11 +49,13 @@ RabbitMQ support is intentionally basic transport. The sample does not promise r
 
 ${symbol_pound}${symbol_pound} Profiles And Integrations
 
-`local` is the default profile. Both `local` and `test` use H2 in PostgreSQL compatibility mode and require no Nacos, RabbitMQ, or PostgreSQL service. RabbitMQ publishers and listeners are disabled in `test`; `local` uses the local publisher implementation unless explicitly enabled.
+`dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, Nacos, RabbitMQ, and Dubbo integrations.
 
-The Organization Facade client is an unused infrastructure foundation. `local` and `test` select a deterministic `OrganizationDirectoryPort` stub. `dev` and `prod` select the real Dubbo client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. The adapter implements `top.egon:egon-cola-evaluation-facade`. No current Application use case calls the Organization port.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, disables RabbitMQ publishers and listeners, and selects a deterministic `OrganizationDirectoryPort` stub, so it requires no Nacos, RabbitMQ, PostgreSQL, or external Dubbo provider.
 
-`dev` and `prod` are external-integration profiles. Configure them through environment variables rather than committed secrets:
+The Organization Facade client is an unused infrastructure foundation; no current Application use case calls the Organization port.
+
+`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization Dubbo client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
 
 - Database: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DRIVER_CLASS_NAME`.
 - Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_GROUP`, `NACOS_USERNAME`, `NACOS_PASSWORD`.

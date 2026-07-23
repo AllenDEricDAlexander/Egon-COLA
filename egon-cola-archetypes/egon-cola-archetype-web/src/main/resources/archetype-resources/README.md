@@ -62,9 +62,11 @@ RabbitMQ command retries use three total attempts with bounded backoff and dead-
 
 ${symbol_pound}${symbol_pound} Runtime Profiles
 
-`local` and `test` use H2 in PostgreSQL compatibility mode, in-memory cache/idempotency adapters, a local event publisher, a deterministic Evaluation query stub, disabled RabbitMQ and Nacos connections, and Dubbo `injvm` with no registry.
+`dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, Redis, RabbitMQ, Nacos, and Dubbo integrations.
 
-`dev` and `prod` use the Dubbo Evaluation Facade client with a 3000 ms timeout, zero retries, and startup reference checks. Facade groups and version use `EVALUATION_*_FACADE_GROUP` and `EVALUATION_FACADE_SERVICE_VERSION`; other datasource, Redis, RabbitMQ, Nacos, cache, and idempotency settings remain environment-backed.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, in-memory cache/idempotency adapters, a local event publisher, a deterministic Evaluation query stub, disabled RabbitMQ and Nacos connections, and Dubbo `injvm` with no registry.
+
+`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` use the Dubbo Evaluation Facade client with a 3000 ms timeout, zero retries, and startup reference checks. Facade groups and version use `EVALUATION_*_FACADE_GROUP` and `EVALUATION_FACADE_SERVICE_VERSION`; other datasource, Redis, RabbitMQ, Nacos, cache, and idempotency settings remain environment-backed.
 
 ${symbol_pound}${symbol_pound} Error Contract
 
@@ -120,7 +122,7 @@ The root `Jenkinsfile` runs tests and can publish immutable images. Set
 Optional local run:
 
 ```bash
-SPRING_PROFILES_ACTIVE=local bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
+SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
 ```
 
 Sensitive values belong in environment variables, mounted files, `config/application-secrets.yml`, or `configtree:/run/secrets/`. Do not commit credentials or decryption keys.

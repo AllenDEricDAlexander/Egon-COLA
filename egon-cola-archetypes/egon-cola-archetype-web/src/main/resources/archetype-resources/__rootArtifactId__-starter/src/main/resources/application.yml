@@ -1,7 +1,7 @@
 #set( $symbol_dollar = '$' )
 spring:
   profiles:
-    default: local
+    default: dev
   config:
     import:
       - optional:file:./config/application-secrets.yml

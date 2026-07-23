@@ -66,14 +66,11 @@ ${symbol_pound}${symbol_pound} 持久化与集成
 
 JPA 是唯一的持久化实现。Flyway 负责 H2/PostgreSQL schema。RabbitMQ、Redis、GraphQL、Dubbo Triple、Springdoc OpenAPI、AOP 监控、请求上下文过滤器和外部 HTTP client 都包含可运行的实现。
 
-`local` 和 `test` profile 不需要 Redis、RabbitMQ、Nacos、PostgreSQL、Dubbo registry 或外部 HTTP 服务：
+`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、Nacos、Dubbo 和外部 HTTP 集成。
 
-- H2 提供本地数据库。
-- 内存缓存和本地事件发布器实现相同的 Domain 端口。
-- 确定性的本地用户和教学 client 替代网络调用。
-- RabbitMQ、Redis、Nacos discovery/config、真实 HTTP client 和 Dubbo registry 访问均已关闭。
+Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 H2、内存 adapter 和确定性 stub，并关闭 RabbitMQ、Redis、Nacos、Dubbo registry 和外部 HTTP 调用。
 
-对于 `dev` 或 `prod`，可以通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`NACOS_CONFIG_ENABLED=true`、`NACOS_DISCOVERY_ENABLED=true` 和 `DUBBO_REGISTRY_ADDRESS=nacos://host:8848` 等环境变量启用真实 adapter。请为目标环境设置数据库、broker、Redis、Nacos 和外部 client 的连接变量。
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`NACOS_CONFIG_ENABLED=true`、`NACOS_DISCOVERY_ENABLED=true` 和 `DUBBO_REGISTRY_ADDRESS=nacos://host:8848` 等环境变量配置真实 adapter。
 
 ${symbol_pound}${symbol_pound} 命令
 
@@ -89,7 +86,7 @@ ${symbol_pound}${symbol_pound} 命令
 ./mvnw -B -ntp -DskipTests package
 ```
 
-检查本地配置后在本地运行：
+配置好 `dev` 集成后在本地运行：
 
 ```bash
 ./mvnw spring-boot:run
