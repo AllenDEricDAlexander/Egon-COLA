@@ -591,7 +591,9 @@ projectDir.traverse(type: FileType.FILES) { file ->
     }
     if (path.startsWith("student-management-organization-infrastructure/src/main/java/")
             && (path.contains("/mp/")
-            || (file.name.endsWith("Mapper.java") && !path.contains("/client/")))) {
+            || (file.name.endsWith("Mapper.java")
+            && !path.contains("/client/")
+            && !path.contains("/repo/converter/")))) {
         forbiddenMatches << path
     }
     if (path.contains("/src/") && path.contains("/java/") && file.name.endsWith("Po.java")) {
@@ -954,12 +956,14 @@ assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent vers
 assert rootPom.properties.'java.version'.text() == "21"
 [
     "lombok.version",
+    "lombok.mapstruct.binding.version",
     "mapstruct-plus.version",
     "dubbo.version",
     "spring-cloud.version",
     "spring-cloud-alibaba.version",
     "springdoc.version"
 ].each { assertVersionProperty(rootPom, it) }
+assert rootPom.properties.'lombok.mapstruct.binding.version'.text() == "0.2.0"
 assertEgonColaBom(rootPom)
 assert rootPom.modules.module*.text() == [
     "student-management-organization-common",
@@ -994,13 +998,32 @@ assert rootPomText.contains("<artifactId>spring-cloud-alibaba-dependencies</arti
 assert rootPomText.contains("<artifactId>dubbo-bom</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-processor</artifactId>")
+assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
+def compilerPlugin = rootPom.build.plugins.plugin.find {
+    it.artifactId.text() == "maven-compiler-plugin"
+}
+def bindingProcessor = compilerPlugin.configuration.annotationProcessorPaths.path.find {
+    it.groupId.text() == "org.projectlombok" &&
+            it.artifactId.text() == "lombok-mapstruct-binding"
+}
+assert bindingProcessor: "Expected lombok-mapstruct-binding annotation processor"
+assert bindingProcessor.version.text() == '${lombok.mapstruct.binding.version}'
 assert rootPomText.contains("<module>student-management-organization-common</module>")
 assert rootPomText.contains("<module>student-management-organization-starter</module>")
 assert !rootPomText.contains("spring-ai")
 assert !rootPomText.contains("drools")
 assert !rootPomText.contains("mcp")
 
-assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+def lombokConfig = assertFile("lombok.config").text
+[
+    "config.stopBubbling = true",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value",
+    "lombok.addLombokGeneratedAnnotation = true",
+    "lombok.anyConstructor.addConstructorProperties = true",
+    "lombok.data.flagUsage = warning",
+    "lombok.val.flagUsage = warning"
+].each { expected -> assert lombokConfig.contains(expected) }
 
 assertRuntimeConfigFiles("student-management-organization-starter/src/main/resources")
 
@@ -1542,6 +1565,41 @@ def forbiddenLivingArchitecturePatterns = [
 forbiddenLivingArchitecturePatterns.each { pattern ->
     assert !pattern.matcher(livingArchitectureText).find():
             "Unexpected technical-first Web living-doc pattern ${pattern}"
+}
+
+[
+    "adapter/teaching/converter/GradeAdapterConverter.java",
+    "adapter/teaching/converter/SchoolClassAdapterConverter.java",
+    "adapter/user/converter/PermissionAdapterConverter.java",
+    "adapter/user/converter/RoleAdapterConverter.java",
+    "adapter/user/converter/UserAdapterConverter.java"
+].each { mapperPath ->
+    def mapper = assertFile(
+            "student-management-organization-adapter/src/main/java/it/pkg/${mapperPath}").text
+    assert mapper.contains("@Mapper(")
+    assert mapper.contains("ReportingPolicy.ERROR")
+    assert mapper.contains("@BeforeMapping")
+}
+
+def gradePoMapper = assertFile(
+        "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/GradePOMapper.java").text
+assert gradePoMapper.contains("extends BaseMapper<Grade, GradePO>")
+assert gradePoMapper.contains("@MappingTarget")
+
+def gradePo = assertFile(
+        "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/GradePO.java").text
+assert gradePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+assert gradePo.contains("@AllArgsConstructor")
+assert !gradePo.contains("protected GradePO()")
+
+[
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/controller/GradeController.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/impl/GradeManageImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/impl/GradeRepositoryImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/cache/RedisGradeCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/mq/RabbitOrganizationEventPublisher.java"
+].each { path ->
+    assert assertFile(path).text.contains("@RequiredArgsConstructor")
 }
 
 null

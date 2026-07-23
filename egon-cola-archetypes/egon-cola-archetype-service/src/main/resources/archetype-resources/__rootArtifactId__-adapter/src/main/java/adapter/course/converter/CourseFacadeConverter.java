@@ -2,28 +2,49 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.course.converter;
+
 import ${package}.application.course.command.CreateCourseCommand;
 import ${package}.application.course.command.ScheduleCourseCommand;
 import ${package}.application.course.result.CourseResult;
 import ${package}.application.course.result.CourseScheduleResult;
+import org.mapstruct.BeforeMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 import top.egon.cola.evaluation.facade.course.dto.CourseResponse;
 import top.egon.cola.evaluation.facade.course.dto.CourseScheduleResponse;
 import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
 import top.egon.cola.evaluation.facade.course.dto.ScheduleCourseRequest;
-import org.springframework.stereotype.Component;
-@Component
-public class CourseFacadeConverter {
-    public CreateCourseCommand toCommand(CreateCourseRequest request) {
-        return new CreateCourseCommand(request.code(), request.name(), request.credit());
+
+import java.util.Objects;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface CourseFacadeConverter {
+
+    CreateCourseCommand toCommand(CreateCourseRequest request);
+
+    ScheduleCourseCommand toCommand(ScheduleCourseRequest request);
+
+    CourseResponse toResponse(CourseResult result);
+
+    CourseScheduleResponse toResponse(CourseScheduleResult result);
+
+    @BeforeMapping
+    default void requireCreateRequest(CreateCourseRequest request) {
+        Objects.requireNonNull(request, "request");
     }
-    public ScheduleCourseCommand toCommand(ScheduleCourseRequest request) {
-        return new ScheduleCourseCommand(request.courseId(), request.classId(), request.startsAt(), request.endsAt());
+
+    @BeforeMapping
+    default void requireScheduleRequest(ScheduleCourseRequest request) {
+        Objects.requireNonNull(request, "request");
     }
-    public CourseResponse toResponse(CourseResult result) {
-        return new CourseResponse(result.id(), result.code(), result.name(), result.credit(), result.status());
+
+    @BeforeMapping
+    default void requireCourseResult(CourseResult result) {
+        Objects.requireNonNull(result, "result");
     }
-    public CourseScheduleResponse toResponse(CourseScheduleResult result) {
-        return new CourseScheduleResponse(result.id(), result.courseId(), result.classId(),
-                result.startsAt(), result.endsAt(), result.status());
+
+    @BeforeMapping
+    default void requireScheduleResult(CourseScheduleResult result) {
+        Objects.requireNonNull(result, "result");
     }
 }

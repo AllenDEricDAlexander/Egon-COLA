@@ -4,17 +4,26 @@ import ${package}.adapter.teaching.vo.CourseDetailVO;
 import ${package}.adapter.teaching.vo.SchoolClassDetailVO;
 import ${package}.application.teaching.result.CourseResult;
 import ${package}.application.teaching.result.SchoolClassResult;
+import org.mapstruct.BeforeMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 
-public final class TeachingAdapterConvertor {
-    private TeachingAdapterConvertor() {
+import java.util.Objects;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface TeachingAdapterConvertor {
+
+    CourseDetailVO toCourse(CourseResult result);
+
+    SchoolClassDetailVO toSchoolClass(SchoolClassResult result);
+
+    @BeforeMapping
+    default void requireCourseResult(CourseResult result) {
+        Objects.requireNonNull(result, "result");
     }
 
-    public static CourseDetailVO toCourse(CourseResult result) {
-        return new CourseDetailVO(result.id(), result.code(), result.name(), result.status());
-    }
-
-    public static SchoolClassDetailVO toSchoolClass(SchoolClassResult result) {
-        return new SchoolClassDetailVO(
-                result.id(), result.name(), result.semester(), result.status(), result.scheduleCount());
+    @BeforeMapping
+    default void requireSchoolClassResult(SchoolClassResult result) {
+        Objects.requireNonNull(result, "result");
     }
 }

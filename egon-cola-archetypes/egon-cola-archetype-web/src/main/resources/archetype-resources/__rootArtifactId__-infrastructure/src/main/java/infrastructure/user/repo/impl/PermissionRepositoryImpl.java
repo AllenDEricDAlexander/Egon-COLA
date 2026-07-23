@@ -12,6 +12,7 @@ import ${package}.infrastructure.user.repo.jpa.RolePermissionJpaRepository;
 import ${package}.infrastructure.user.repo.jpa.UserRoleJpaRepository;
 import ${package}.infrastructure.user.repo.po.RolePermissionPO;
 import ${package}.infrastructure.user.repo.po.UserRolePO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -19,22 +20,12 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository("permissionRepositoryImpl")
+@RequiredArgsConstructor
 public class PermissionRepositoryImpl implements PermissionRepository {
     private final PermissionJpaRepository permissionJpaRepository;
     private final UserRoleJpaRepository userRoleJpaRepository;
     private final RolePermissionJpaRepository rolePermissionJpaRepository;
     private final PermissionPOConverter converter;
-
-    public PermissionRepositoryImpl(
-            PermissionJpaRepository permissionJpaRepository,
-            UserRoleJpaRepository userRoleJpaRepository,
-            RolePermissionJpaRepository rolePermissionJpaRepository,
-            PermissionPOConverter converter) {
-        this.permissionJpaRepository = permissionJpaRepository;
-        this.userRoleJpaRepository = userRoleJpaRepository;
-        this.rolePermissionJpaRepository = rolePermissionJpaRepository;
-        this.converter = converter;
-    }
 
     @Override
     public Optional<Permission> findByCode(PermissionCode code) {

@@ -62,7 +62,9 @@ modules.each { module ->
 }
 assertMissing("student-management-evaluation-facade")
 
-def rootPom = new XmlSlurper(false, false).parse(assertFile("pom.xml"))
+def rootPomFile = assertFile("pom.xml")
+def rootPomText = rootPomFile.text
+def rootPom = new XmlSlurper(false, false).parse(rootPomFile)
 def assertVersionProperty = { pomModel, propertyName ->
     assert pomModel.properties."${propertyName}".text().trim():
             "Expected non-empty ${propertyName}"
@@ -85,12 +87,34 @@ assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent vers
 assert rootPom.properties.'java.version'.text() == "21"
 [
     "lombok.version",
+    "lombok.mapstruct.binding.version",
     "mapstruct-plus.version",
     "dubbo.version",
     "spring-cloud.version",
     "spring-cloud-alibaba.version"
 ].each { assertVersionProperty(rootPom, it) }
+assert rootPom.properties.'lombok.mapstruct.binding.version'.text() == "0.2.0"
 assertEgonColaBom(rootPom)
+assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
+def compilerPlugin = rootPom.build.plugins.plugin.find {
+    it.artifactId.text() == "maven-compiler-plugin"
+}
+def bindingProcessor = compilerPlugin.configuration.annotationProcessorPaths.path.find {
+    it.groupId.text() == "org.projectlombok" &&
+            it.artifactId.text() == "lombok-mapstruct-binding"
+}
+assert bindingProcessor: "Expected lombok-mapstruct-binding annotation processor"
+assert bindingProcessor.version.text() == '${lombok.mapstruct.binding.version}'
+def lombokConfig = assertFile("lombok.config").text
+[
+    "config.stopBubbling = true",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value",
+    "lombok.addLombokGeneratedAnnotation = true",
+    "lombok.anyConstructor.addConstructorProperties = true",
+    "lombok.data.flagUsage = warning",
+    "lombok.val.flagUsage = warning"
+].each { expected -> assert lombokConfig.contains(expected) }
 assert rootPom.modules.module*.text() == modules.collect { "student-management-evaluation-${it}" }
 assert rootPom.properties.'organization-facade.group-id'.text() == "top.egon"
 assert rootPom.properties.'organization-facade.artifact-id'.text() == "egon-cola-organization-facade"
@@ -704,5 +728,45 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
     "config/application-secrets.yml", "secrets/", "*.pem", "*.key"
 ].each {
     assert gitignoreLines.contains(it): "Expected .gitignore to contain line ${it}"
+}
+
+[
+    "adapter/course/converter/CourseFacadeConverter.java",
+    "adapter/exam/converter/ExamFacadeConverter.java",
+    "adapter/exam/converter/ScoreFacadeConverter.java"
+].each { relativePath ->
+    def mapper = assertFile(
+            "student-management-evaluation-adapter/src/main/java/it/pkg/${relativePath}").text
+    assert mapper.contains("@Mapper(")
+    assert mapper.contains("ReportingPolicy.ERROR")
+    assert mapper.contains("@BeforeMapping")
+}
+
+def coursePo = assertFile(
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/repo/po/CoursePo.java").text
+assert coursePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+assert coursePo.contains("@AllArgsConstructor")
+assert !coursePo.contains("protected CoursePo()")
+
+[
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/mq/RecordScoreConsumer.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisher.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisher.java"
+].each { path ->
+    def source = assertFile(path).text
+    assert source.contains("@RequiredArgsConstructor")
+}
+
+def genericConverterSources = []
+projectDir.traverse(type: FileType.FILES) { file ->
+    def path = projectDir.toPath().relativize(file.toPath()).toString().replace(File.separator, "/")
+    if (path.contains("/src/main/java/") && file.name.endsWith(".java")) {
+        genericConverterSources << file.text
+    }
+}
+genericConverterSources.each { source ->
+    assert !source.contains("import io.github.linpeilie.Converter;")
+    assert !source.contains("private final Converter converter;")
+    assert !source.contains('@Qualifier("converter")')
 }
 return true

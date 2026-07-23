@@ -1,5 +1,6 @@
 package ${package}.adapter.teaching.graphql;
 
+import ${package}.adapter.teaching.convertor.TeachingAdapterConvertorImpl;
 import ${package}.application.teaching.manage.CourseManage;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.result.CourseResult;
@@ -15,7 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @GraphQlTest(CourseResolver.class)
-@ContextConfiguration(classes = CourseResolver.class)
+@ContextConfiguration(classes = {CourseResolver.class, TeachingAdapterConvertorImpl.class})
 class CourseResolverTest {
     @Autowired
     private GraphQlTester graphQlTester;

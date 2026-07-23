@@ -4,6 +4,7 @@ import ${package}.domain.teaching.service.TeachingQueryService;
 import ${package}.domain.teaching.vos.CourseCode;
 import ${package}.domain.teaching.vos.ExternalCourse;
 import ${package}.infrastructure.teaching.validators.TeachingInfrastructureValidator;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -14,16 +15,11 @@ import java.util.Optional;
 
 @Component("teachingQueryService")
 @ConditionalOnProperty(name = "app.integrations.external-http.enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RestTeachingQueryService implements TeachingQueryService {
+    @Qualifier("teachingRestClient")
     private final RestClient restClient;
     private final TeachingInfrastructureValidator validator;
-
-    public RestTeachingQueryService(
-            @Qualifier("teachingRestClient") RestClient restClient,
-            TeachingInfrastructureValidator validator) {
-        this.restClient = restClient;
-        this.validator = validator;
-    }
 
     @Override
     public Optional<ExternalCourse> findExternalCourse(CourseCode code) {

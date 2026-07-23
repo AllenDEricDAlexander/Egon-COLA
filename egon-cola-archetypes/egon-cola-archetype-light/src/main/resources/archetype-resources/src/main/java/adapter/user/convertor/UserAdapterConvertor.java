@@ -1,23 +1,42 @@
 package ${package}.adapter.user.convertor;
 
-import ${package}.adapter.user.vo.UserDetailVO;
 import ${package}.adapter.user.vo.PermissionTreeVO;
+import ${package}.adapter.user.vo.UserDetailVO;
 import ${package}.application.user.result.PermissionDetailResult;
 import ${package}.application.user.result.UserResult;
+import org.mapstruct.BeforeMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
 import java.util.List;
+import java.util.Objects;
 
-public final class UserAdapterConvertor {
-    private UserAdapterConvertor() {
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.ERROR,
+        imports = List.class)
+public interface UserAdapterConvertor {
+
+    UserDetailVO toUserDetail(UserResult result);
+
+    List<PermissionTreeVO> toPermissionTree(List<PermissionDetailResult> results);
+
+    @Mapping(target = "children", expression = "java(List.of())")
+    PermissionTreeVO toPermissionTreeItem(PermissionDetailResult result);
+
+    @BeforeMapping
+    default void requireUserResult(UserResult result) {
+        Objects.requireNonNull(result, "result");
     }
 
-    public static UserDetailVO toUserDetail(UserResult result) {
-        return new UserDetailVO(result.id(), result.name(), result.email(), result.status());
+    @BeforeMapping
+    default void requirePermissionResults(List<PermissionDetailResult> results) {
+        Objects.requireNonNull(results, "results");
     }
 
-    public static List<PermissionTreeVO> toPermissionTree(List<PermissionDetailResult> results) {
-        return results.stream()
-                .map(result -> new PermissionTreeVO(result.code(), result.name(), List.of()))
-                .toList();
+    @BeforeMapping
+    default void requirePermissionResult(PermissionDetailResult result) {
+        Objects.requireNonNull(result, "result");
     }
 }

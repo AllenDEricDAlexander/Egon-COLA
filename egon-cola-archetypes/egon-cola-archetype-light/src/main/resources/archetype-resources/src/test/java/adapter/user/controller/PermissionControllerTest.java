@@ -1,5 +1,6 @@
 package ${package}.adapter.user.controller;
 
+import ${package}.adapter.user.convertor.UserAdapterConvertorImpl;
 import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.result.PermissionDetailResult;
@@ -27,7 +28,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PermissionController.class)
-@ContextConfiguration(classes = {PermissionController.class, TraceIdFilter.class, RequestContextFilter.class})
+@ContextConfiguration(classes = {
+        PermissionController.class,
+        UserAdapterConvertorImpl.class,
+        TraceIdFilter.class,
+        RequestContextFilter.class
+})
 class PermissionControllerTest {
     @Autowired
     private MockMvc mockMvc;

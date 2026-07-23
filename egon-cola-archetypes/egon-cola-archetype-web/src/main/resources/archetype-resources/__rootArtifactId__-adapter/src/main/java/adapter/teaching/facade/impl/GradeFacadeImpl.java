@@ -5,6 +5,7 @@ import ${package}.application.teaching.command.CreateGradeCommand;
 import ${package}.application.teaching.manage.GradeManage;
 import ${package}.application.teaching.query.GradeDetailQuery;
 import ${package}.application.teaching.result.GradeDetailResult;
+import lombok.RequiredArgsConstructor;
 import top.egon.cola.organization.facade.teaching.dto.CreateGradeDTO;
 import top.egon.cola.organization.facade.teaching.dto.GradeDetailDTO;
 import top.egon.cola.organization.facade.teaching.GradeFacade;
@@ -13,9 +14,9 @@ import org.springframework.validation.annotation.Validated;
 
 @Service("gradeFacade")
 @Validated
+@RequiredArgsConstructor
 public class GradeFacadeImpl implements GradeFacade {
     private final GradeManage gradeManage;
-    public GradeFacadeImpl(GradeManage gradeManage) { this.gradeManage = gradeManage; }
 
     @Override public GradeDetailDTO createGrade(CreateGradeDTO request) {
         return OrganizationFacadeSupport.invoke(() -> toDTO(gradeManage.createGrade(new CreateGradeCommand(

@@ -4,14 +4,17 @@ import ${package}.domain.teaching.entities.Grade;
 import ${package}.domain.teaching.enums.GradeStatus;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.teaching.repo.po.GradePO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-
 @Component("gradePOConverter")
+@RequiredArgsConstructor
 public final class GradePOConverter {
+
+    private final GradePOMapper mapper;
+
     public GradePO toPO(Grade grade) {
-        return new GradePO(grade.id(), grade.code().value(), grade.name(), grade.status().name(), LocalDateTime.now());
+        return mapper.convert(grade);
     }
 
     public Grade toEntity(GradePO gradePO) {

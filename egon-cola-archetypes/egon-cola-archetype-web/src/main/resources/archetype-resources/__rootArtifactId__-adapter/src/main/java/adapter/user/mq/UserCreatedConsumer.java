@@ -5,17 +5,15 @@ import ${package}.adapter.user.dto.CreateUserMessage;
 import ${package}.adapter.mq.OrganizationMessageSupport;
 import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.user.manage.UserManage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class UserCreatedConsumer {
 
     private final UserManage userManage;
-
-    public UserCreatedConsumer(UserManage userManage) {
-        this.userManage = userManage;
-    }
 
     @RabbitListener(
             queues = "student.organization.user.create.v1",

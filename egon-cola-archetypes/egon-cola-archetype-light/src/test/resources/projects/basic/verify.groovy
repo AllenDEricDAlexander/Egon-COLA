@@ -350,12 +350,14 @@ assert pomXml.parent.version.text().trim(): "Expected a Spring Boot parent versi
 assert pomXml.properties.'java.version'.text() == "21"
 [
     "lombok.version",
+    "lombok.mapstruct.binding.version",
     "mapstruct-plus.version",
     "dubbo.version",
     "spring-cloud.version",
     "spring-cloud-alibaba.version",
     "springdoc.version"
 ].each { assertVersionProperty(pomXml, it) }
+assert pomXml.properties.'lombok.mapstruct.binding.version'.text() == "0.2.0"
 assertEgonColaBom(pomXml)
 [
     "spring-boot-starter-graphql",
@@ -380,6 +382,16 @@ assert pom.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>"
 assert pom.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-processor</artifactId>")
+assert pom.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
+def compilerPlugin = pomXml.build.plugins.plugin.find {
+    it.artifactId.text() == "maven-compiler-plugin"
+}
+def bindingProcessor = compilerPlugin.configuration.annotationProcessorPaths.path.find {
+    it.groupId.text() == "org.projectlombok" &&
+            it.artifactId.text() == "lombok-mapstruct-binding"
+}
+assert bindingProcessor: "Expected lombok-mapstruct-binding annotation processor"
+assert bindingProcessor.version.text() == '${lombok.mapstruct.binding.version}'
 assert pom.contains("<artifactId>spring-boot-dependencies</artifactId>")
 assert !pom.contains("spring-ai")
 assert !pom.contains("drools")
@@ -395,7 +407,16 @@ assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-d
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
 assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
 
-assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+def lombokConfig = assertFile("lombok.config").text
+[
+    "config.stopBubbling = true",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value",
+    "lombok.addLombokGeneratedAnnotation = true",
+    "lombok.anyConstructor.addConstructorProperties = true",
+    "lombok.data.flagUsage = warning",
+    "lombok.val.flagUsage = warning"
+].each { expected -> assert lombokConfig.contains(expected) }
 
 assertRuntimeConfigFiles("src/main/resources")
 
@@ -865,6 +886,31 @@ assertFile("src/main/resources/graphql/teaching.graphqls")
 ["controller", "mq", "rpc"].each { packageName ->
     assert new File(generatedProjectDir, "src/main/java/it/pkg/adapter/teaching/${packageName}").isDirectory()
 }
+
+def teachingAdapterMapper = assertFile(
+        "src/main/java/it/pkg/adapter/teaching/convertor/TeachingAdapterConvertor.java").text
+assert teachingAdapterMapper.contains("@Mapper(")
+assert teachingAdapterMapper.contains("ReportingPolicy.ERROR")
+assert teachingAdapterMapper.contains("@BeforeMapping")
+def userAdapterMapper = assertFile(
+        "src/main/java/it/pkg/adapter/user/convertor/UserAdapterConvertor.java").text
+assert userAdapterMapper.contains("@Mapper(")
+assert userAdapterMapper.contains("ReportingPolicy.ERROR")
+assert userAdapterMapper.contains("@BeforeMapping")
+def coursePoMapper = assertFile(
+        "src/main/java/it/pkg/infrastructure/teaching/repo/converter/CoursePOMapper.java").text
+assert coursePoMapper.contains("extends BaseMapper<Course, CoursePO>")
+assert coursePoMapper.contains("@MappingTarget")
+def coursePo = assertFile(
+        "src/main/java/it/pkg/infrastructure/teaching/repo/po/CoursePO.java").text
+assert coursePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+assert coursePo.contains("@AllArgsConstructor")
+assert !coursePo.contains("protected CoursePO()")
+def rabbitMqConfig = assertFile(
+        "src/main/java/it/pkg/infrastructure/config/RabbitMqConfig.java").text
+assert rabbitMqConfig.contains("@RequiredArgsConstructor")
+assert !rabbitMqConfig.contains("public RabbitMqConfig(")
+assertNoGenericMapStructConverterInjection("src/main/java/it/pkg")
 
 def facadeJavaFiles = []
 new File(generatedProjectDir, "src/main/java/it/pkg/facade").eachFileRecurse { file ->

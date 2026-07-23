@@ -6,6 +6,7 @@ import ${package}.domain.user.service.UserCacheService;
 import ${package}.domain.user.vos.UserSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import ${package}.infrastructure.user.validators.UserInfrastructureValidator;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -16,28 +17,16 @@ import java.util.Optional;
 
 @Component("userCacheService")
 @ConditionalOnProperty(name = "app.integrations.redis.enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RedisUserCacheService implements UserCacheService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final UserInfrastructureValidator validator;
     private final TransactionCompletionExecutor transactionCompletionExecutor;
+    @Value("${symbol_dollar}{spring.application.name}")
     private final String applicationName;
+    @Value("${symbol_dollar}{app.integrations.redis.ttl:10m}")
     private final Duration ttl;
-
-    public RedisUserCacheService(
-            StringRedisTemplate redisTemplate,
-            ObjectMapper objectMapper,
-            UserInfrastructureValidator validator,
-            TransactionCompletionExecutor transactionCompletionExecutor,
-            @Value("${symbol_dollar}{spring.application.name}") String applicationName,
-            @Value("${symbol_dollar}{app.integrations.redis.ttl:10m}") Duration ttl) {
-        this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
-        this.validator = validator;
-        this.transactionCompletionExecutor = transactionCompletionExecutor;
-        this.applicationName = applicationName;
-        this.ttl = ttl;
-    }
 
     @Override
     public Optional<UserSnapshot> getUser(String userId) {

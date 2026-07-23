@@ -4,11 +4,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "users")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class UserPO {
     @Id
     private String id;
@@ -22,18 +27,6 @@ public class UserPO {
     private String status;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
-
-    protected UserPO() {
-    }
-
-    public UserPO(String id, String externalId, String name, String email, String status, Instant createdAt) {
-        this.id = id;
-        this.externalId = externalId;
-        this.name = name;
-        this.email = email;
-        this.status = status;
-        this.createdAt = createdAt;
-    }
 
     public String getId() { return id; }
     public String getExternalId() { return externalId; }

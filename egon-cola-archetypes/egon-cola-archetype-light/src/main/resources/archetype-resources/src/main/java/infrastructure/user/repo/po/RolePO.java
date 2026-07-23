@@ -4,11 +4,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "roles")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class RolePO {
     @Id
     private String code;
@@ -18,16 +23,6 @@ public class RolePO {
     private String status;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
-
-    protected RolePO() {
-    }
-
-    public RolePO(String code, String name, String status, Instant createdAt) {
-        this.code = code;
-        this.name = name;
-        this.status = status;
-        this.createdAt = createdAt;
-    }
 
     public String getCode() { return code; }
     public String getName() { return name; }

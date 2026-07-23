@@ -2,11 +2,23 @@ package ${package}.adapter.user.converter;
 
 import ${package}.adapter.user.dto.AssignRoleRequest;
 import ${package}.application.user.command.AssignRoleCommand;
-import org.springframework.stereotype.Component;
+import org.mapstruct.BeforeMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-@Component("roleAdapterConverter")
-public final class RoleAdapterConverter {
-    public AssignRoleCommand toCommand(String requestId, String userId, AssignRoleRequest request) {
-        return new AssignRoleCommand(requestId, userId, request.roleCode());
+import java.util.Objects;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface RoleAdapterConverter {
+
+    @Mapping(target = "requestId", source = "requestId")
+    @Mapping(target = "userId", source = "userId")
+    @Mapping(target = "roleCode", source = "request.roleCode")
+    AssignRoleCommand toCommand(String requestId, String userId, AssignRoleRequest request);
+
+    @BeforeMapping
+    default void requireRequest(AssignRoleRequest request) {
+        Objects.requireNonNull(request, "request");
     }
 }

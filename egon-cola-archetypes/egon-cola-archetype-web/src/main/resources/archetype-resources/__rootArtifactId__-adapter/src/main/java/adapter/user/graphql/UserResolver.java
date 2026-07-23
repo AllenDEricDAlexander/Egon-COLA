@@ -10,6 +10,7 @@ import ${package}.application.user.query.PermissionTreeQuery;
 import ${package}.application.user.query.UserDetailQuery;
 import ${package}.application.user.result.PermissionTreeResult;
 import ${package}.application.user.result.UserDetailResult;
+import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -19,17 +20,12 @@ import org.springframework.stereotype.Controller;
 import java.util.UUID;
 
 @Controller
+@RequiredArgsConstructor
 public class UserResolver {
 
     private final UserManage userManage;
     private final RoleManage roleManage;
     private final PermissionManage permissionManage;
-
-    public UserResolver(UserManage userManage, RoleManage roleManage, PermissionManage permissionManage) {
-        this.userManage = userManage;
-        this.roleManage = roleManage;
-        this.permissionManage = permissionManage;
-    }
 
     @QueryMapping
     public UserDetailResult user(@Argument String id) {

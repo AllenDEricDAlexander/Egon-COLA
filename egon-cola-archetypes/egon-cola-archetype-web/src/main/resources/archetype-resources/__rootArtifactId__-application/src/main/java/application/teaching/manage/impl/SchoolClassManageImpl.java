@@ -27,6 +27,7 @@ import ${package}.domain.teaching.service.SchoolClassDomainService;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.user.vos.UserId;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ import java.util.UUID;
 import java.time.Instant;
 
 @Service("schoolClassManage")
+@RequiredArgsConstructor
 public class SchoolClassManageImpl implements SchoolClassManage {
     private final SchoolClassRepository schoolClassRepository;
     private final GradeRepository gradeRepository;
@@ -44,25 +46,6 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
     private final SchoolClassAssembler assembler = new SchoolClassAssembler();
-
-    public SchoolClassManageImpl(
-            SchoolClassRepository schoolClassRepository,
-            GradeRepository gradeRepository,
-            UserRepository userRepository,
-            SchoolClassDomainService schoolClassDomainService,
-            TeachingApplicationValidator validator,
-            SchoolClassCachePort schoolClassCache,
-            CommandIdempotencyPort idempotency,
-            OrganizationEventPublisher eventPublisher) {
-        this.schoolClassRepository = schoolClassRepository;
-        this.gradeRepository = gradeRepository;
-        this.userRepository = userRepository;
-        this.schoolClassDomainService = schoolClassDomainService;
-        this.validator = validator;
-        this.schoolClassCache = schoolClassCache;
-        this.idempotency = idempotency;
-        this.eventPublisher = eventPublisher;
-    }
 
     @Override
     @Transactional

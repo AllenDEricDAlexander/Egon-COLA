@@ -22,11 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
     private final UserManage userManage;
+    private final UserAdapterConvertor convertor;
 
     @PostMapping
     public UserDetailVO create(@Valid @RequestBody CreateUserRequest request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
-        return UserAdapterConvertor.toUserDetail(userManage.create(new CreateUserCommand(
+        return convertor.toUserDetail(userManage.create(new CreateUserCommand(
                 request.externalId(),
                 request.name(),
                 request.email(),
@@ -36,6 +37,6 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public UserDetailVO get(@PathVariable String userId) {
-        return UserAdapterConvertor.toUserDetail(userManage.get(new GetUserQuery(userId)));
+        return convertor.toUserDetail(userManage.get(new GetUserQuery(userId)));
     }
 }

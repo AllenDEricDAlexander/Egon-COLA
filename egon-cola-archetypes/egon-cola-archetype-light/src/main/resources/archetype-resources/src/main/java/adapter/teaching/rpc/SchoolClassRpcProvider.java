@@ -4,17 +4,15 @@ import ${package}.facade.teaching.SchoolClassFacade;
 import ${package}.facade.teaching.dto.CreateSchoolClassDTO;
 import ${package}.facade.teaching.dto.ScheduleCourseDTO;
 import ${package}.facade.teaching.dto.SchoolClassDetailDTO;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 @DubboService(interfaceClass = SchoolClassFacade.class, version = "1.0.0", group = "teaching")
+@RequiredArgsConstructor
 public class SchoolClassRpcProvider implements SchoolClassFacade {
+    @Qualifier("schoolClassFacadeImpl")
     private final SchoolClassFacade delegate;
-
-    public SchoolClassRpcProvider(
-            @Qualifier("schoolClassFacadeImpl") SchoolClassFacade delegate) {
-        this.delegate = delegate;
-    }
 
     @Override
     public SchoolClassDetailDTO createSchoolClass(CreateSchoolClassDTO request) {

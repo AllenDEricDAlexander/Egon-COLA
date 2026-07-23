@@ -7,6 +7,7 @@ import ${package}.adapter.teaching.vo.SchoolClassDetailVO;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,14 +22,10 @@ import java.util.UUID;
 
 @RestController("schoolClassController")
 @RequestMapping("/api/v1/school-classes")
+@RequiredArgsConstructor
 public class SchoolClassController {
     private final SchoolClassManage schoolClassManage;
     private final SchoolClassAdapterConverter converter;
-
-    public SchoolClassController(SchoolClassManage schoolClassManage, SchoolClassAdapterConverter converter) {
-        this.schoolClassManage = schoolClassManage;
-        this.converter = converter;
-    }
 
     @PostMapping
     public ResponseEntity<SchoolClassDetailVO> create(

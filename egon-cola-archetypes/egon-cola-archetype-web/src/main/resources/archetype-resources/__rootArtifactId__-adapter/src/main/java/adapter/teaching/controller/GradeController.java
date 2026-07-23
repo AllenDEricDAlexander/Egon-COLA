@@ -6,6 +6,7 @@ import ${package}.adapter.teaching.vo.GradeDetailVO;
 import ${package}.application.teaching.manage.GradeManage;
 import ${package}.application.teaching.query.GradeDetailQuery;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,14 +21,10 @@ import java.util.UUID;
 
 @RestController("gradeController")
 @RequestMapping("/api/v1/grades")
+@RequiredArgsConstructor
 public class GradeController {
     private final GradeManage gradeManage;
     private final GradeAdapterConverter converter;
-
-    public GradeController(GradeManage gradeManage, GradeAdapterConverter converter) {
-        this.gradeManage = gradeManage;
-        this.converter = converter;
-    }
 
     @PostMapping
     public ResponseEntity<GradeDetailVO> create(

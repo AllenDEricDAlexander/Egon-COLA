@@ -9,6 +9,7 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -17,16 +18,12 @@ import org.springframework.context.annotation.Configuration;
 @EnableRabbit
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "app.integrations.rabbitmq.enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RabbitMqConfig {
+    @Value("${symbol_dollar}{app.integrations.rabbitmq.exchange}")
     private final String exchangeName;
+    @Value("${symbol_dollar}{spring.application.name}")
     private final String applicationName;
-
-    public RabbitMqConfig(
-            @Value("${symbol_dollar}{app.integrations.rabbitmq.exchange}") String exchangeName,
-            @Value("${symbol_dollar}{spring.application.name}") String applicationName) {
-        this.exchangeName = exchangeName;
-        this.applicationName = applicationName;
-    }
 
     @Bean
     TopicExchange domainExchange() {

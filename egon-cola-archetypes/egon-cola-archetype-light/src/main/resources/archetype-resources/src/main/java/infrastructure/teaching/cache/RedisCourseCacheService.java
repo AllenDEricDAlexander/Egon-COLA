@@ -6,6 +6,7 @@ import ${package}.domain.teaching.service.CourseCacheService;
 import ${package}.domain.teaching.vos.CourseSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import ${package}.infrastructure.teaching.validators.TeachingInfrastructureValidator;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -16,28 +17,16 @@ import java.util.Optional;
 
 @Component("courseCacheService")
 @ConditionalOnProperty(name = "app.integrations.redis.enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RedisCourseCacheService implements CourseCacheService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final TeachingInfrastructureValidator validator;
     private final TransactionCompletionExecutor transactionCompletionExecutor;
+    @Value("${symbol_dollar}{spring.application.name}")
     private final String applicationName;
+    @Value("${symbol_dollar}{app.integrations.redis.ttl:10m}")
     private final Duration ttl;
-
-    public RedisCourseCacheService(
-            StringRedisTemplate redisTemplate,
-            ObjectMapper objectMapper,
-            TeachingInfrastructureValidator validator,
-            TransactionCompletionExecutor transactionCompletionExecutor,
-            @Value("${symbol_dollar}{spring.application.name}") String applicationName,
-            @Value("${symbol_dollar}{app.integrations.redis.ttl:10m}") Duration ttl) {
-        this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
-        this.validator = validator;
-        this.transactionCompletionExecutor = transactionCompletionExecutor;
-        this.applicationName = applicationName;
-        this.ttl = ttl;
-    }
 
     @Override
     public Optional<CourseSnapshot> getCourse(String courseId) {

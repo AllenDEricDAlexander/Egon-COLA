@@ -8,21 +8,21 @@ import ${package}.domain.teaching.events.SchoolClassMembershipChangedEvent;
 import ${package}.domain.user.events.PermissionGrantedEvent;
 import ${package}.domain.user.events.RoleAssignedEvent;
 import ${package}.domain.user.events.UserChangedEvent;
+import io.micrometer.core.instrument.Metrics;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import io.micrometer.core.instrument.Metrics;
 
 import java.util.Map;
 
 @Component("rabbitOrganizationEventPublisher")
 @ConditionalOnProperty(prefix = "organization.integrations.rabbit", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
+@Slf4j
 public class RabbitOrganizationEventPublisher implements OrganizationEventPublisher {
-    private static final Logger log = LoggerFactory.getLogger(RabbitOrganizationEventPublisher.class);
     public static final String EVENT_EXCHANGE = "student.organization.event.v1";
     private final OrganizationEventProducer producer;
-    public RabbitOrganizationEventPublisher(OrganizationEventProducer producer) { this.producer = producer; }
 
     @Override public void publish(OrganizationDomainEvent event) {
         MappedEvent mapped = map(event);

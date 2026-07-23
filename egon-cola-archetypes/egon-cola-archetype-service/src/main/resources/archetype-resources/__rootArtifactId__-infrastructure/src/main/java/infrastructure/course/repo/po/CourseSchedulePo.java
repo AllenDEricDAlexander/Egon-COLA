@@ -7,10 +7,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 
 @Entity
 @Table(name = "course_schedule")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class CourseSchedulePo {
     @Id private String id;
     @Column(name = "course_id", nullable = false) private String courseId;
@@ -20,16 +26,6 @@ public class CourseSchedulePo {
     @Column(nullable = false) private String status;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
-
-    protected CourseSchedulePo() { }
-
-    public CourseSchedulePo(
-            String id, String courseId, String classId, Instant startsAt, Instant endsAt,
-            String status, Instant createdAt, Instant updatedAt) {
-        this.id = id; this.courseId = courseId; this.classId = classId;
-        this.startsAt = startsAt; this.endsAt = endsAt; this.status = status;
-        this.createdAt = createdAt; this.updatedAt = updatedAt;
-    }
 
     public String getId() { return id; }
     public String getCourseId() { return courseId; }

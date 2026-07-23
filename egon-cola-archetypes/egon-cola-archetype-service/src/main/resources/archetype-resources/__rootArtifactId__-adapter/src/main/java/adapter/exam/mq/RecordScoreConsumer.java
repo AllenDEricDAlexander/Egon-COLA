@@ -6,15 +6,16 @@ package ${package}.adapter.exam.mq;
 import ${package}.adapter.exam.dto.RecordScoreMessage;
 import ${package}.application.exam.command.RecordScoreCommand;
 import ${package}.application.exam.manage.ScoreManage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnProperty(prefix = "app.integrations.rabbitmq", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RecordScoreConsumer {
     private final ScoreManage scoreManage;
-    public RecordScoreConsumer(ScoreManage scoreManage) { this.scoreManage = scoreManage; }
 
     @RabbitListener(
             queues = "${symbol_dollar}{app.integrations.rabbitmq.score-command-queue}",

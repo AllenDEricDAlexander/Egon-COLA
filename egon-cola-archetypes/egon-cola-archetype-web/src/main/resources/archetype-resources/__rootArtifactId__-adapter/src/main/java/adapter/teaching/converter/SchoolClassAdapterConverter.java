@@ -5,18 +5,35 @@ import ${package}.adapter.teaching.vo.SchoolClassDetailVO;
 import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.command.AssignUserToClassCommand;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
-import org.springframework.stereotype.Component;
+import org.mapstruct.BeforeMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-@Component("schoolClassAdapterConverter")
-public final class SchoolClassAdapterConverter {
-    public CreateSchoolClassCommand toCommand(String requestId, CreateSchoolClassRequest request) {
-        return new CreateSchoolClassCommand(requestId, request.name(), request.gradeCode());
+import java.util.Objects;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface SchoolClassAdapterConverter {
+
+    @Mapping(target = "requestId", source = "requestId")
+    @Mapping(target = "name", source = "request.name")
+    @Mapping(target = "gradeCode", source = "request.gradeCode")
+    CreateSchoolClassCommand toCommand(String requestId, CreateSchoolClassRequest request);
+
+    @Mapping(target = "requestId", source = "requestId")
+    @Mapping(target = "schoolClassId", source = "schoolClassId")
+    @Mapping(target = "userId", source = "userId")
+    AssignUserToClassCommand toCommand(String requestId, String schoolClassId, String userId);
+
+    SchoolClassDetailVO toVO(SchoolClassDetailResult result);
+
+    @BeforeMapping
+    default void requireRequest(CreateSchoolClassRequest request) {
+        Objects.requireNonNull(request, "request");
     }
-    public AssignUserToClassCommand toCommand(String requestId, String schoolClassId, String userId) {
-        return new AssignUserToClassCommand(requestId, userId, schoolClassId);
-    }
-    public SchoolClassDetailVO toVO(SchoolClassDetailResult result) {
-        return new SchoolClassDetailVO(result.id(), result.name(), result.gradeCode(),
-            result.gradeName(), result.status(), result.userIds());
+
+    @BeforeMapping
+    default void requireResult(SchoolClassDetailResult result) {
+        Objects.requireNonNull(result, "result");
     }
 }

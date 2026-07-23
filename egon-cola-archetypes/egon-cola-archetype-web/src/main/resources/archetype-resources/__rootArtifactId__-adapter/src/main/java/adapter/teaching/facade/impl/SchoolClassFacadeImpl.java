@@ -6,6 +6,7 @@ import ${package}.application.teaching.command.AssignUserToClassCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
+import lombok.RequiredArgsConstructor;
 import top.egon.cola.organization.facade.teaching.dto.AssignUserToClassDTO;
 import top.egon.cola.organization.facade.teaching.dto.CreateSchoolClassDTO;
 import top.egon.cola.organization.facade.teaching.dto.SchoolClassDetailDTO;
@@ -15,9 +16,9 @@ import org.springframework.validation.annotation.Validated;
 
 @Service("schoolClassFacade")
 @Validated
+@RequiredArgsConstructor
 public class SchoolClassFacadeImpl implements SchoolClassFacade {
     private final SchoolClassManage schoolClassManage;
-    public SchoolClassFacadeImpl(SchoolClassManage schoolClassManage) { this.schoolClassManage = schoolClassManage; }
 
     @Override public SchoolClassDetailDTO createSchoolClass(CreateSchoolClassDTO request) {
         return OrganizationFacadeSupport.invoke(() -> toDTO(schoolClassManage.createSchoolClass(

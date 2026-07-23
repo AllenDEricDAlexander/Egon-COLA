@@ -13,6 +13,7 @@ import ${package}.infrastructure.user.repo.jpa.UserRoleJpaRepository;
 import ${package}.infrastructure.user.repo.jpa.UserJpaRepository;
 import ${package}.infrastructure.user.repo.po.UserPO;
 import ${package}.infrastructure.user.repo.po.UserRolePO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -21,23 +22,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository("userRepositoryImpl")
+@RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
 
     private final UserJpaRepository userJpaRepository;
     private final UserRoleJpaRepository userRoleJpaRepository;
     private final RoleJpaRepository roleJpaRepository;
     private final UserPOConverter converter;
-
-    public UserRepositoryImpl(
-            UserJpaRepository userJpaRepository,
-            UserRoleJpaRepository userRoleJpaRepository,
-            RoleJpaRepository roleJpaRepository,
-            UserPOConverter converter) {
-        this.userJpaRepository = userJpaRepository;
-        this.userRoleJpaRepository = userRoleJpaRepository;
-        this.roleJpaRepository = roleJpaRepository;
-        this.converter = converter;
-    }
 
     @Override
     public User save(User user) {

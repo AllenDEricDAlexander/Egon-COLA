@@ -7,20 +7,17 @@ import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.teaching.repo.converter.GradePOConverter;
 import ${package}.infrastructure.teaching.repo.jpa.GradeJpaRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository("gradeRepositoryImpl")
+@RequiredArgsConstructor
 public class GradeRepositoryImpl implements GradeRepository {
     private final GradeJpaRepository gradeJpaRepository;
     private final GradePOConverter converter;
-
-    public GradeRepositoryImpl(GradeJpaRepository gradeJpaRepository, GradePOConverter converter) {
-        this.gradeJpaRepository = gradeJpaRepository;
-        this.converter = converter;
-    }
 
     @Override public Optional<Grade> findById(String gradeId) {
         return gradeJpaRepository.findById(gradeId).map(converter::toEntity);

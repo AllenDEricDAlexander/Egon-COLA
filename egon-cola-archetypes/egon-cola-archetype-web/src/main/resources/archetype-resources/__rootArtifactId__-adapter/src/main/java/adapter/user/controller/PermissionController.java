@@ -6,6 +6,7 @@ import ${package}.adapter.user.vo.PermissionTreeVO;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.query.PermissionTreeQuery;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,15 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController("permissionController")
+@RequiredArgsConstructor
 public class PermissionController {
 
     private final PermissionManage permissionManage;
     private final PermissionAdapterConverter converter;
-
-    public PermissionController(PermissionManage permissionManage, PermissionAdapterConverter converter) {
-        this.permissionManage = permissionManage;
-        this.converter = converter;
-    }
 
     @PostMapping("/api/v1/roles/{roleCode}/permissions")
     public ResponseEntity<Void> grant(

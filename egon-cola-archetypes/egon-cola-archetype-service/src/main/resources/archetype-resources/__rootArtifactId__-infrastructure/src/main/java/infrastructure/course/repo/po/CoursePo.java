@@ -9,9 +9,14 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "course")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class CoursePo {
 
     @Id
@@ -35,26 +40,6 @@ public class CoursePo {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    protected CoursePo() {
-    }
-
-    public CoursePo(
-            String id,
-            String code,
-            String name,
-            int credit,
-            String status,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt) {
-        this.id = id;
-        this.code = code;
-        this.name = name;
-        this.credit = credit;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
 
     public String getId() {
         return id;

@@ -1,14 +1,15 @@
 package ${package}.infrastructure.mq;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component("organizationEventProducer")
 @ConditionalOnProperty(prefix = "organization.integrations.rabbit", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class OrganizationEventProducer {
     private final RabbitTemplate rabbitTemplate;
-    public OrganizationEventProducer(RabbitTemplate rabbitTemplate) { this.rabbitTemplate = rabbitTemplate; }
 
     public void send(String exchange, String routingKey, OrganizationEventMessage message) {
         long delayMillis = 1_000;

@@ -7,6 +7,7 @@ import ${package}.domain.common.EvaluationPortException;
 import ${package}.domain.course.entities.CourseSchedule;
 import ${package}.domain.course.event.CourseEventPublisher;
 import ${package}.infrastructure.course.mq.message.CourseScheduledMessage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,17 +16,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnProperty(prefix = "app.integrations.rabbitmq", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RabbitCourseEventPublisher implements CourseEventPublisher {
     private final RabbitTemplate rabbitTemplate;
+    @Value("${symbol_dollar}{app.integrations.rabbitmq.exchange}")
     private final String exchange;
+    @Value("${symbol_dollar}{app.integrations.rabbitmq.course-scheduled-routing-key}")
     private final String routingKey;
-
-    public RabbitCourseEventPublisher(
-            RabbitTemplate rabbitTemplate,
-            @Value("${symbol_dollar}{app.integrations.rabbitmq.exchange}") String exchange,
-            @Value("${symbol_dollar}{app.integrations.rabbitmq.course-scheduled-routing-key}") String routingKey) {
-        this.rabbitTemplate = rabbitTemplate; this.exchange = exchange; this.routingKey = routingKey;
-    }
 
     @Override
     public void courseScheduled(CourseSchedule schedule) {

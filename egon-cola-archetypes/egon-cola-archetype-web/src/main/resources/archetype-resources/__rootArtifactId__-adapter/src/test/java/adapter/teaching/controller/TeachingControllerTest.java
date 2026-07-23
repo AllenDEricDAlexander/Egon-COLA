@@ -10,6 +10,7 @@ import ${package}.application.teaching.result.GradeDetailResult;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -41,8 +42,9 @@ class TeachingControllerTest {
         when(schoolClassManage.getSchoolClass(any())).thenReturn(
             new SchoolClassDetailResult("class-1", "Class A", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new GradeController(gradeManage, new GradeAdapterConverter()),
-            new SchoolClassController(schoolClassManage, new SchoolClassAdapterConverter())).build();
+            new GradeController(gradeManage, Mappers.getMapper(GradeAdapterConverter.class)),
+            new SchoolClassController(
+                schoolClassManage, Mappers.getMapper(SchoolClassAdapterConverter.class))).build();
 
         mockMvc.perform(post("/api/v1/grades").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"GRADE_ONE\",\"name\":\"Grade One\"}"))
