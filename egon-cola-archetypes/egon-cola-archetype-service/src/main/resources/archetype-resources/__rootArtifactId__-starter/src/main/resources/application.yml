@@ -1,7 +1,7 @@
 #set( $symbol_dollar = '$' )
 spring:
   profiles:
-    default: local
+    default: dev
   config:
     import:
       - optional:file:./config/application-secrets.yml
@@ -21,6 +21,10 @@ spring:
         core-size: ${symbol_dollar}{ASYNC_CORE_SIZE:8}
         max-size: ${symbol_dollar}{ASYNC_MAX_SIZE:32}
         queue-capacity: ${symbol_dollar}{ASYNC_QUEUE_CAPACITY:500}
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: ${symbol_dollar}{SCHEDULING_AWAIT_TERMINATION:30s}
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: ${symbol_dollar}{APP_TIME_ZONE:Asia/Shanghai}

@@ -66,14 +66,11 @@ ${symbol_pound}${symbol_pound} Persistence And Integrations
 
 JPA is the only persistence implementation. Flyway owns the H2/PostgreSQL schema. RabbitMQ, Redis, GraphQL, Dubbo Triple, Springdoc OpenAPI, AOP monitoring, request-context filters, and external HTTP clients are included with exercised implementations.
 
-The `local` and `test` profiles require no Redis, RabbitMQ, Nacos, PostgreSQL, Dubbo registry, or external HTTP service:
+`dev` is the default profile for workstation development and `feature/*` branch verification. It uses environment-backed PostgreSQL, Redis, RabbitMQ, Nacos, Dubbo, and external HTTP integrations.
 
-- H2 provides the local database.
-- In-memory cache and local event publishers implement the same Domain ports.
-- Deterministic local user and teaching clients replace network calls.
-- RabbitMQ, Redis, Nacos discovery/config, real HTTP clients, and Dubbo registry access are disabled.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2, in-memory adapters, and deterministic stubs; RabbitMQ, Redis, Nacos, Dubbo registry access, and external HTTP calls are disabled.
 
-For `dev` or `prod`, enable real adapters with environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `NACOS_CONFIG_ENABLED=true`, `NACOS_DISCOVERY_ENABLED=true`, and `DUBBO_REGISTRY_ADDRESS=nacos://host:8848`. Set database, broker, Redis, Nacos, and external-client connection variables for the target environment.
+`prod` is reserved for runtime builds and deployments from `main`. Configure `dev` and `prod` through environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `NACOS_CONFIG_ENABLED=true`, `NACOS_DISCOVERY_ENABLED=true`, and `DUBBO_REGISTRY_ADDRESS=nacos://host:8848`.
 
 ${symbol_pound}${symbol_pound} Commands
 
@@ -89,7 +86,7 @@ Package the application:
 ./mvnw -B -ntp -DskipTests package
 ```
 
-Run locally after reviewing local configuration:
+Run locally after configuring the `dev` integrations:
 
 ```bash
 ./mvnw spring-boot:run

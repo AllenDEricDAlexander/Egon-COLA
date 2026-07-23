@@ -53,18 +53,18 @@ def assertPortableDockerfile = { jarFile, exposedPorts, readinessPort ->
 def assertRuntimeConfigFiles = { resourcesDir ->
     [
         "bootstrap.yml",
-        "bootstrap-local.yml",
         "bootstrap-dev.yml",
         "bootstrap-test.yml",
         "bootstrap-prod.yml",
         "application.yml",
-        "application-local.yml",
         "application-dev.yml",
         "application-test.yml",
         "application-prod.yml"
     ].each {
         assertFile("${resourcesDir}/${it}")
     }
+    assertMissing("${resourcesDir}/bootstrap-local.yml")
+    assertMissing("${resourcesDir}/application-local.yml")
 }
 
 def javaFileTexts = { path ->
@@ -151,6 +151,7 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("CONTAINER_ENGINE: ${engine}")
     assert text.contains("dockerfile: deploy/container/Dockerfile")
     assert text.contains("context: ../..")
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
     assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
@@ -183,6 +184,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
@@ -267,6 +269,10 @@ def generatedReadme = assertFile("README.md").text
 ].each { token ->
     assert generatedReadme.contains(token): "Expected generated README to contain ${token}"
 }
+assert generatedReadme.contains("`dev` is the default profile")
+assert generatedReadme.contains("`feature/*`")
+assert generatedReadme.contains("`dev`, `release/*`, and `hotfix/*`")
+assert generatedReadme.contains("from `main`")
 assert !generatedReadme.contains("docker build -t")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
@@ -406,6 +412,7 @@ assert starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</arti
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
 assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
+assert starterPomText.contains("<spring.profiles.active>test</spring.profiles.active>")
 
 def lombokConfig = assertFile("lombok.config").text
 [
@@ -428,27 +435,33 @@ assertEncryptedPasswordDefault("src/main/resources/application-dev.yml", "DB_PAS
 assertEncryptedPasswordDefault("src/main/resources/application-prod.yml", "DB_PASSWORD")
 assertEncryptedPasswordDefault("src/main/resources/bootstrap-dev.yml", "NACOS_PASSWORD")
 assertEncryptedPasswordDefault("src/main/resources/bootstrap-prod.yml", "NACOS_PASSWORD")
-assert assertFile("src/main/resources/application-local.yml").text.contains('password: ${DB_PASSWORD:}')
 assert assertFile("src/main/resources/application-test.yml").text.contains('password: ${DB_PASSWORD:}')
-assert !assertFile("src/main/resources/bootstrap-local.yml").text.contains('ENC(')
 assert !assertFile("src/main/resources/bootstrap-test.yml").text.contains('ENC(')
 
-def localConfig = assertFile("src/main/resources/application-local.yml").text
 def testConfig = assertFile("src/main/resources/application-test.yml").text
-[localConfig, testConfig].each { profileConfig ->
-    assert profileConfig.contains("rabbitmq:\n      enabled: false")
-    assert profileConfig.contains("redis:\n      enabled: false")
-    assert profileConfig.contains("external-http:\n      enabled: false")
-}
+assert testConfig.contains("rabbitmq:\n      enabled: false")
+assert testConfig.contains("redis:\n      enabled: false")
+assert testConfig.contains("external-http:\n      enabled: false")
 assert testConfig.contains("export: false")
 assert testConfig.contains("rabbit:\n      enabled: false")
 assert testConfig.contains("redis:\n      enabled: false")
 
 def applicationYaml = assertFile("src/main/resources/application.yml").text
+assert applicationYaml.contains("default: dev")
 assert applicationYaml.contains("threads:")
 assert applicationYaml.contains("virtual:")
 assert applicationYaml.contains('${SPRING_THREADS_VIRTUAL_ENABLED:true}')
 assert applicationYaml.contains("timeout-per-shutdown-phase")
+assert applicationYaml.contains("shutdown: graceful")
+assert applicationYaml.contains("scheduling:")
+assert applicationYaml.contains('${SCHEDULING_AWAIT_TERMINATION:30s}')
+assert applicationYaml.contains('${TOMCAT_MAX_HTTP_FORM_POST_SIZE:2MB}')
+assert applicationYaml.contains('${TOMCAT_MAX_SWALLOW_SIZE:2MB}')
+assert applicationYaml.contains('${TOMCAT_PROCESSOR_CACHE:200}')
+assert applicationYaml.contains('${TOMCAT_MBEAN_REGISTRY_ENABLED:true}')
+def bootstrapYaml = assertFile("src/main/resources/bootstrap.yml").text
+assert bootstrapYaml.contains("default: dev")
+assert bootstrapYaml.contains('${NACOS_NAMESPACE:dev}')
 assert applicationYaml.contains("write-dates-as-timestamps: false")
 assert applicationYaml.contains("prometheus")
 assert applicationYaml.contains("tomcat:")

@@ -452,6 +452,8 @@ def localOrganizationStub = assertFile(
         "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java").text
 assert !localOrganizationStub.contains("top.egon.cola.organization.facade")
 assert !localOrganizationStub.contains("org.apache.dubbo")
+assert localOrganizationStub.contains('@Profile("test")')
+assert !localOrganizationStub.contains('"local"')
 
 def forbiddenSegments = ["controller", "web", "filter", "graphql", "vo"]
 javaFiles.each { file ->
@@ -494,18 +496,23 @@ assert digest == "ed5d26a47aef8337b204ab3e77b8d4583fcfc22c3f30cb46fc2055a4429b5d
 
 def applicationYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application.yml").text
-def localYaml = assertFile(
-        "student-management-evaluation-starter/src/main/resources/application-local.yml").text
 def testYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application-test.yml").text
+assert applicationYaml.contains("default: dev")
+assert applicationYaml.contains("shutdown: graceful")
+assert applicationYaml.contains("scheduling:")
+assert applicationYaml.contains('${SCHEDULING_AWAIT_TERMINATION:30s}')
 assert applicationYaml.contains("rabbitmq:")
 assert applicationYaml.contains("organization:")
 assert applicationYaml.contains("DUBBO_CONSUMER_TIMEOUT:3000")
-assert localYaml.contains("console:\n      enabled: false")
-assert localYaml.contains("organization:\n      enabled: false")
+assert !applicationYaml.contains("tomcat:")
 assert testYaml.contains("rabbitmq:\n      enabled: false")
 assert testYaml.contains("organization:\n      enabled: false")
 assert testYaml.contains("listener-auto-startup: false")
+def bootstrapYaml = assertFile(
+        "student-management-evaluation-starter/src/main/resources/bootstrap.yml").text
+assert bootstrapYaml.contains("default: dev")
+assert bootstrapYaml.contains('${NACOS_NAMESPACE:dev}')
 
 def tripleTest = assertFile(
         "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java").text
@@ -515,11 +522,14 @@ assert tripleTest.contains("reference.get().create")
 assert tripleTest.contains("examReference.get().createExam")
 
 [
-    "bootstrap.yml", "bootstrap-local.yml", "bootstrap-dev.yml", "bootstrap-test.yml", "bootstrap-prod.yml",
-    "application.yml", "application-local.yml", "application-dev.yml", "application-test.yml", "application-prod.yml"
+    "bootstrap.yml", "bootstrap-dev.yml", "bootstrap-test.yml", "bootstrap-prod.yml",
+    "application.yml", "application-dev.yml", "application-test.yml", "application-prod.yml"
 ].each { name ->
     assertFile("student-management-evaluation-starter/src/main/resources/${name}")
 }
+assertMissing("student-management-evaluation-starter/src/main/resources/bootstrap-local.yml")
+assertMissing("student-management-evaluation-starter/src/main/resources/application-local.yml")
+assert assertFile("pom.xml").text.contains("<spring.profiles.active>test</spring.profiles.active>")
 
 def generatedWorkflow = assertFile(".github/workflows/ci.yml").text
 def normalizedGeneratedWorkflow = generatedWorkflow.replaceAll(/\s+/, " ")
@@ -531,7 +541,10 @@ assert normalizedGeneratedWorkflow.contains("--tag student-management-evaluation
 assert !normalizedGeneratedWorkflow.contains("docker build -t student-management-evaluation:ci .")
 
 def readme = assertFile("README.md").text
-assert readme.contains("require no Nacos, RabbitMQ, or PostgreSQL")
+assert readme.contains("`dev` is the default profile")
+assert readme.contains("`feature/*`")
+assert readme.contains("`dev`, `release/*`, and `hotfix/*`")
+assert readme.contains("`main`")
 assert readme.contains("V1__init_student_management_evaluation.sql` is immutable")
 assert readme.contains("RabbitMQ support is intentionally basic transport")
 assert readme.contains("Organization Facade client is an unused infrastructure foundation")
@@ -597,6 +610,7 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("CONTAINER_ENGINE: ${engine}")
     assert text.contains("dockerfile: deploy/container/Dockerfile")
     assert text.contains("context: ../..")
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
     assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
@@ -629,6 +643,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')

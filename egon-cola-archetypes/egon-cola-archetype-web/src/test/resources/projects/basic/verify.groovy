@@ -352,12 +352,10 @@ def requiredFiles = [
     "student-management-organization-starter/src/main/java/it/pkg/starter/package-info.java",
     "student-management-organization-starter/src/main/resources/META-INF/spring.factories",
     "student-management-organization-starter/src/main/resources/application-dev.yml",
-    "student-management-organization-starter/src/main/resources/application-local.yml",
     "student-management-organization-starter/src/main/resources/application-prod.yml",
     "student-management-organization-starter/src/main/resources/application-test.yml",
     "student-management-organization-starter/src/main/resources/application.yml",
     "student-management-organization-starter/src/main/resources/bootstrap-dev.yml",
-    "student-management-organization-starter/src/main/resources/bootstrap-local.yml",
     "student-management-organization-starter/src/main/resources/bootstrap-prod.yml",
     "student-management-organization-starter/src/main/resources/bootstrap-test.yml",
     "student-management-organization-starter/src/main/resources/bootstrap.yml",
@@ -390,18 +388,18 @@ def assertDir = { path ->
 def assertRuntimeConfigFiles = { resourcesDir ->
     [
         "bootstrap.yml",
-        "bootstrap-local.yml",
         "bootstrap-dev.yml",
         "bootstrap-test.yml",
         "bootstrap-prod.yml",
         "application.yml",
-        "application-local.yml",
         "application-dev.yml",
         "application-test.yml",
         "application-prod.yml"
     ].each {
         assertFile("${resourcesDir}/${it}")
     }
+    assert !new File(projectDir, "${resourcesDir}/bootstrap-local.yml").exists()
+    assert !new File(projectDir, "${resourcesDir}/application-local.yml").exists()
 }
 
 def javaFileTexts = { path ->
@@ -728,6 +726,7 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("CONTAINER_ENGINE: ${engine}")
     assert text.contains("dockerfile: deploy/container/Dockerfile")
     assert text.contains("context: ../..")
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
     assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
@@ -760,6 +759,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
@@ -844,6 +844,10 @@ def generatedReadme = assertFile("README.md").text
 ].each { token ->
     assert generatedReadme.contains(token): "Expected generated README to contain ${token}"
 }
+assert generatedReadme.contains("`dev` is the default profile")
+assert generatedReadme.contains("`feature/*`")
+assert generatedReadme.contains("`dev`, `release/*`, and `hotfix/*`")
+assert generatedReadme.contains("from `main`")
 assert !generatedReadme.contains("docker build -t")
 def dockerignoreLines = assertFile(".dockerignore").readLines("UTF-8")
 [
@@ -1010,6 +1014,7 @@ assert bindingProcessor: "Expected lombok-mapstruct-binding annotation processor
 assert bindingProcessor.version.text() == '${lombok.mapstruct.binding.version}'
 assert rootPomText.contains("<module>student-management-organization-common</module>")
 assert rootPomText.contains("<module>student-management-organization-starter</module>")
+assert rootPomText.contains("<spring.profiles.active>test</spring.profiles.active>")
 assert !rootPomText.contains("spring-ai")
 assert !rootPomText.contains("drools")
 assert !rootPomText.contains("mcp")
@@ -1028,14 +1033,22 @@ def lombokConfig = assertFile("lombok.config").text
 assertRuntimeConfigFiles("student-management-organization-starter/src/main/resources")
 
 def webApplicationYaml = assertFile("student-management-organization-starter/src/main/resources/application.yml").text
+assert webApplicationYaml.contains("default: dev")
 assert webApplicationYaml.contains("threads:")
 assert webApplicationYaml.contains("virtual:")
 assert webApplicationYaml.contains('${SPRING_THREADS_VIRTUAL_ENABLED:true}')
 assert webApplicationYaml.contains("timeout-per-shutdown-phase")
+assert webApplicationYaml.contains("shutdown: graceful")
+assert webApplicationYaml.contains("scheduling:")
+assert webApplicationYaml.contains('${SCHEDULING_AWAIT_TERMINATION:30s}')
 assert webApplicationYaml.contains("write-dates-as-timestamps: false")
 assert webApplicationYaml.contains("prometheus")
 assert webApplicationYaml.contains("tomcat:")
 assert webApplicationYaml.contains('${TOMCAT_MAX_CONNECTIONS:8192}')
+assert webApplicationYaml.contains('${TOMCAT_MAX_HTTP_FORM_POST_SIZE:2MB}')
+assert webApplicationYaml.contains('${TOMCAT_MAX_SWALLOW_SIZE:2MB}')
+assert webApplicationYaml.contains('${TOMCAT_PROCESSOR_CACHE:200}')
+assert webApplicationYaml.contains('${TOMCAT_MBEAN_REGISTRY_ENABLED:true}')
 assert webApplicationYaml.contains("dubbo:")
 assert webApplicationYaml.contains('name: ${spring.application.name}')
 assert webApplicationYaml.contains('${DUBBO_REGISTRY_ADDRESS:N/A}')
@@ -1050,22 +1063,20 @@ def webApplicationDevYaml = assertFile("student-management-organization-starter/
 def webApplicationProdYaml = assertFile("student-management-organization-starter/src/main/resources/application-prod.yml").text
 def webBootstrapDevYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-dev.yml").text
 def webBootstrapProdYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-prod.yml").text
-def webApplicationLocalYaml = assertFile("student-management-organization-starter/src/main/resources/application-local.yml").text
 def webApplicationTestYaml = assertFile("student-management-organization-starter/src/main/resources/application-test.yml").text
-def webBootstrapLocalYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-local.yml").text
 def webBootstrapTestYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-test.yml").text
 assert webApplicationDevYaml.contains('password: ${DB_PASSWORD:ENC(')
 assert webApplicationProdYaml.contains('password: ${DB_PASSWORD:ENC(')
 assert webBootstrapDevYaml.contains('password: ${NACOS_PASSWORD:ENC(')
 assert webBootstrapProdYaml.contains('password: ${NACOS_PASSWORD:ENC(')
-assert webApplicationLocalYaml.contains('password: ${DB_PASSWORD:}')
 assert webApplicationTestYaml.contains('password: ${DB_PASSWORD:}')
-assert !webBootstrapLocalYaml.contains('ENC(')
 assert !webBootstrapTestYaml.contains('ENC(')
-assert webApplicationLocalYaml.contains("evaluation:\n      enabled: false")
 assert webApplicationTestYaml.contains("evaluation:\n      enabled: false")
 assert webApplicationDevYaml.contains('EVALUATION_FACADE_ENABLED:true')
 assert webApplicationProdYaml.contains('EVALUATION_FACADE_ENABLED:true')
+def webBootstrapYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap.yml").text
+assert webBootstrapYaml.contains("default: dev")
+assert webBootstrapYaml.contains('${NACOS_NAMESPACE:dev}')
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
@@ -1516,6 +1527,8 @@ def localEvaluationStub = assertFile(
         "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStub.java").text
 assert !localEvaluationStub.contains("top.egon.cola.evaluation.facade")
 assert !localEvaluationStub.contains("org.apache.dubbo")
+assert localEvaluationStub.contains('@Profile("test")')
+assert !localEvaluationStub.contains('"local"')
 
 [
     "__rootArtifactId__-client",

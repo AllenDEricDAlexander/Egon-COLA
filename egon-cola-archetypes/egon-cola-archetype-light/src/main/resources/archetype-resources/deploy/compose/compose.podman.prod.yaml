@@ -9,6 +9,7 @@ x-logging: &default-logging
 services:
   application:
     image: ${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}
+    stop_grace_period: ${STOP_GRACE_PERIOD:-40s}
     environment:
       APPLICATION_PORT: ${APPLICATION_PORT:-8080}
       SPRING_PROFILES_ACTIVE: prod

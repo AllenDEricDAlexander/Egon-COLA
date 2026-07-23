@@ -1,7 +1,7 @@
 #set( $symbol_dollar = '$' )
 spring:
   profiles:
-    default: local
+    default: dev
   config:
     import:
       - optional:file:./config/application-secrets.yml
@@ -21,6 +21,10 @@ spring:
         core-size: ${symbol_dollar}{ASYNC_CORE_SIZE:8}
         max-size: ${symbol_dollar}{ASYNC_MAX_SIZE:32}
         queue-capacity: ${symbol_dollar}{ASYNC_QUEUE_CAPACITY:500}
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: ${symbol_dollar}{SCHEDULING_AWAIT_TERMINATION:30s}
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: ${symbol_dollar}{APP_TIME_ZONE:Asia/Shanghai}
@@ -52,6 +56,11 @@ server:
     connection-timeout: ${symbol_dollar}{TOMCAT_CONNECTION_TIMEOUT:20s}
     keep-alive-timeout: ${symbol_dollar}{TOMCAT_KEEP_ALIVE_TIMEOUT:20s}
     max-keep-alive-requests: ${symbol_dollar}{TOMCAT_MAX_KEEP_ALIVE_REQUESTS:100}
+    max-http-form-post-size: ${symbol_dollar}{TOMCAT_MAX_HTTP_FORM_POST_SIZE:2MB}
+    max-swallow-size: ${symbol_dollar}{TOMCAT_MAX_SWALLOW_SIZE:2MB}
+    processor-cache: ${symbol_dollar}{TOMCAT_PROCESSOR_CACHE:200}
+    mbeanregistry:
+      enabled: ${symbol_dollar}{TOMCAT_MBEAN_REGISTRY_ENABLED:true}
 
 management:
   endpoints:
