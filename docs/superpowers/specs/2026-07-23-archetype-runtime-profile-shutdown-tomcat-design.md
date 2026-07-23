@@ -23,7 +23,7 @@ The graceful-shutdown reference recommends four cooperating layers:
 3. task-execution and task-scheduling shutdown waits for in-flight background work.
 4. health probes and an external SIGTERM/grace-period contract for deployment platforms.
 
-The archetypes already have items 1, 2, task-execution waiting, and health probes. They do not configure task-scheduling waiting.
+The archetypes already have items 1, 2, task-execution waiting, and health probes. They do not configure task-scheduling waiting, and their Compose application services do not reserve enough time for the 30-second Spring lifecycle window.
 
 The Tomcat reference groups the useful controls into:
 
@@ -55,7 +55,7 @@ This is the selected approach. It removes ambiguity without breaking the current
 | --- | --- | --- |
 | developer workstation | `dev` | local development with environment-backed integrations |
 | `feature/*` validation | `dev` | feature integration testing |
-| `develop` integration pipeline | `test` | repeatable integration tests without required external infrastructure |
+| `dev` integration pipeline | `test` | repeatable integration tests without required external infrastructure |
 | `release/*` validation | `test` | release-candidate verification |
 | `hotfix/*` validation | `test` | urgent-fix verification before merge |
 | `main` runtime artifact | `prod` | production-only configuration |
@@ -73,7 +73,7 @@ All three archetypes retain:
 - task-execution termination waiting;
 - liveness and readiness probes.
 
-They add task-scheduling termination waiting with the same environment-overridable 30-second default. No placeholder `@PreDestroy` bean or custom `SmartLifecycle` abstraction is added because the templates do not own a custom resource whose shutdown order requires one.
+They add task-scheduling termination waiting with the same environment-overridable 30-second default. Every development and production Compose template gives the application container an environment-overridable 40-second stop grace period, so the container runtime does not cut off the Spring shutdown phase prematurely. No placeholder `@PreDestroy` bean or custom `SmartLifecycle` abstraction is added because the templates do not own a custom resource whose shutdown order requires one.
 
 ## Tomcat Design
 

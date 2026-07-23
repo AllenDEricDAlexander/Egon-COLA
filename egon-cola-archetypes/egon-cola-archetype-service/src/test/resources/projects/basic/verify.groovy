@@ -474,6 +474,9 @@ def localYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application-local.yml").text
 def testYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application-test.yml").text
+assert applicationYaml.contains("shutdown: graceful")
+assert applicationYaml.contains("scheduling:")
+assert applicationYaml.contains('${SCHEDULING_AWAIT_TERMINATION:30s}')
 assert applicationYaml.contains("rabbitmq:")
 assert applicationYaml.contains("organization:")
 assert applicationYaml.contains("DUBBO_CONSUMER_TIMEOUT:3000")
@@ -573,6 +576,7 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("CONTAINER_ENGINE: ${engine}")
     assert text.contains("dockerfile: deploy/container/Dockerfile")
     assert text.contains("context: ../..")
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
     assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
@@ -605,6 +609,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
+    assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')

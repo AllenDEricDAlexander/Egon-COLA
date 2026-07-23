@@ -29,10 +29,12 @@
 - Modify: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/application.yml`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/application.yml`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/application.yml`
+- Modify: all `deploy/compose/*.yaml` templates under the three archetypes
 
 **Interfaces:**
 - Consumes: Spring Boot `spring.task.execution.shutdown` and `spring.task.scheduling.shutdown` properties.
-- Produces: generated applications whose executor and scheduler wait up to `${SCHEDULING_AWAIT_TERMINATION:30s}` during shutdown.
+- Consumes: Compose `stop_grace_period`.
+- Produces: generated applications whose executor and scheduler wait up to `${SCHEDULING_AWAIT_TERMINATION:30s}` during shutdown, with a `${STOP_GRACE_PERIOD:-40s}` container stop window.
 
 - [ ] **Step 1: Add failing generated-contract assertions**
 
@@ -42,6 +44,7 @@ Add assertions for:
 assert applicationYaml.contains("scheduling:")
 assert applicationYaml.contains('${SCHEDULING_AWAIT_TERMINATION:30s}')
 assert applicationYaml.contains("shutdown: graceful")
+assert composeYaml.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
 ```
 
 - [ ] **Step 2: Run the Light archetype contract and verify RED**
@@ -52,7 +55,7 @@ Run:
 ./mvnw -B -ntp -pl egon-cola-archetypes/egon-cola-archetype-light -am clean integration-test
 ```
 
-Expected: failure in `verify.groovy` because scheduling shutdown is not present.
+Expected: failure in `verify.groovy` because scheduling shutdown or the Compose stop grace period is not present.
 
 - [ ] **Step 3: Add scheduler termination waiting**
 
@@ -67,7 +70,17 @@ scheduling:
 
 Apply the same structure to all three archetypes.
 
-- [ ] **Step 4: Run targeted contracts and verify GREEN**
+- [ ] **Step 4: Align the external container stop window**
+
+Add the following to the application service in every development and production Compose template:
+
+```yaml
+stop_grace_period: ${STOP_GRACE_PERIOD:-40s}
+```
+
+The 40-second default is deliberately longer than Spring's 30-second lifecycle phase timeout.
+
+- [ ] **Step 5: Run targeted contracts and verify GREEN**
 
 Run:
 
@@ -77,7 +90,7 @@ Run:
 
 Expected: all six reactor modules succeed.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add -- egon-cola-archetypes

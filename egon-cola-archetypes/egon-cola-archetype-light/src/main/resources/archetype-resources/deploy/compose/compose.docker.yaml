@@ -3,6 +3,7 @@ name: ${COMPOSE_PROJECT_NAME:?Set COMPOSE_PROJECT_NAME}
 services:
   application:
     image: ${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:-local}
+    stop_grace_period: ${STOP_GRACE_PERIOD:-40s}
     build:
       context: ../..
       dockerfile: deploy/container/Dockerfile
