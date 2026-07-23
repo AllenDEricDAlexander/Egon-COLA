@@ -8,6 +8,7 @@ import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.cache.OrganizationCacheKey;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -17,12 +18,10 @@ import java.util.Optional;
 
 @Component("redisSchoolClassCache")
 @ConditionalOnProperty(prefix = "organization.integrations.redis", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RedisSchoolClassCache implements SchoolClassCachePort {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OrganizationIntegrationProperties properties;
-    public RedisSchoolClassCache(RedisTemplate<String, Object> redisTemplate, OrganizationIntegrationProperties properties) {
-        this.redisTemplate = redisTemplate; this.properties = properties;
-    }
     @Override public Optional<SchoolClass> findById(SchoolClassId id) {
         Object value = redisTemplate.opsForValue().get(OrganizationCacheKey.schoolClass(id.value()));
         if (!(value instanceof SchoolClassCacheValue cached)) return Optional.empty();

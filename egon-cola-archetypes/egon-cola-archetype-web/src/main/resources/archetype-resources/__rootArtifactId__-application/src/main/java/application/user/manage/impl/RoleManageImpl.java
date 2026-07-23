@@ -18,6 +18,7 @@ import ${package}.domain.user.repos.RoleRepository;
 import ${package}.domain.user.repos.UserRepository;
 import ${package}.domain.user.vos.RoleCode;
 import ${package}.domain.user.vos.UserId;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service("roleManage")
+@RequiredArgsConstructor
 public class RoleManageImpl implements RoleManage {
 
     private final UserRepository userRepository;
@@ -33,21 +35,6 @@ public class RoleManageImpl implements RoleManage {
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-
-    public RoleManageImpl(
-            UserRepository userRepository,
-            RoleRepository roleRepository,
-            UserApplicationValidator validator,
-            UserCachePort userCache,
-            CommandIdempotencyPort idempotency,
-            OrganizationEventPublisher eventPublisher) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.validator = validator;
-        this.userCache = userCache;
-        this.idempotency = idempotency;
-        this.eventPublisher = eventPublisher;
-    }
 
     @Override
     @Transactional

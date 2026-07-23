@@ -9,6 +9,7 @@ import ${package}.application.teaching.query.GradeDetailQuery;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.GradeDetailResult;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
+import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -18,15 +19,11 @@ import org.springframework.stereotype.Controller;
 import java.util.UUID;
 
 @Controller
+@RequiredArgsConstructor
 public class SchoolClassResolver {
 
     private final GradeManage gradeManage;
     private final SchoolClassManage schoolClassManage;
-
-    public SchoolClassResolver(GradeManage gradeManage, SchoolClassManage schoolClassManage) {
-        this.gradeManage = gradeManage;
-        this.schoolClassManage = schoolClassManage;
-    }
 
     @QueryMapping
     public GradeDetailResult grade(@Argument String id) {

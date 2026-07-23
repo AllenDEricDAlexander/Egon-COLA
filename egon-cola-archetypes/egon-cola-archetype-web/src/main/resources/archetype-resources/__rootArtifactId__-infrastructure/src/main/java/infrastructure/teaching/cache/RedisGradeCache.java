@@ -6,6 +6,7 @@ import ${package}.domain.teaching.enums.GradeStatus;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.cache.OrganizationCacheKey;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -14,12 +15,10 @@ import java.util.Optional;
 
 @Component("redisGradeCache")
 @ConditionalOnProperty(prefix = "organization.integrations.redis", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RedisGradeCache implements GradeCachePort {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OrganizationIntegrationProperties properties;
-    public RedisGradeCache(RedisTemplate<String, Object> redisTemplate, OrganizationIntegrationProperties properties) {
-        this.redisTemplate = redisTemplate; this.properties = properties;
-    }
     @Override public Optional<Grade> findById(String id) {
         Object value = redisTemplate.opsForValue().get(OrganizationCacheKey.grade(id));
         if (!(value instanceof GradeCacheValue cached)) return Optional.empty();

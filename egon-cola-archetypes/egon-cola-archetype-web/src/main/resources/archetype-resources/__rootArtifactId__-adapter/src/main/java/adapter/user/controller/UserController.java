@@ -6,6 +6,7 @@ import ${package}.adapter.user.vo.UserDetailVO;
 import ${package}.application.user.manage.UserManage;
 import ${package}.application.user.query.UserDetailQuery;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,15 +21,11 @@ import java.util.UUID;
 
 @RestController("userController")
 @RequestMapping("/api/v1/users")
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserManage userManage;
     private final UserAdapterConverter converter;
-
-    public UserController(UserManage userManage, UserAdapterConverter converter) {
-        this.userManage = userManage;
-        this.converter = converter;
-    }
 
     @PostMapping
     public ResponseEntity<UserDetailVO> create(

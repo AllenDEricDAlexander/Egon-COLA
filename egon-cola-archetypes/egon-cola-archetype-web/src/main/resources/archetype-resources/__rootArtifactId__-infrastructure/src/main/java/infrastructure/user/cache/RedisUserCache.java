@@ -7,6 +7,7 @@ import ${package}.domain.user.vos.RoleCode;
 import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.cache.OrganizationCacheKey;
 import ${package}.infrastructure.config.OrganizationIntegrationProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -16,14 +17,10 @@ import java.util.Optional;
 
 @Component("redisUserCache")
 @ConditionalOnProperty(prefix = "organization.integrations.redis", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class RedisUserCache implements UserCachePort {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OrganizationIntegrationProperties properties;
-
-    public RedisUserCache(RedisTemplate<String, Object> redisTemplate, OrganizationIntegrationProperties properties) {
-        this.redisTemplate = redisTemplate;
-        this.properties = properties;
-    }
 
     @Override public Optional<User> findById(UserId id) {
         Object value = redisTemplate.opsForValue().get(OrganizationCacheKey.user(id.value()));

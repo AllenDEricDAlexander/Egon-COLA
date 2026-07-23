@@ -12,6 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -35,7 +36,7 @@ class OrganizationHttpErrorContractTest {
     void mapsApplicationFailures(OrganizationFailureType type, HttpStatus httpStatus, String code) throws Exception {
         when(userManage.getUser(any())).thenThrow(new OrganizationApplicationException(type, code, "failure"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new UserController(userManage, new UserAdapterConverter()))
+                new UserController(userManage, Mappers.getMapper(UserAdapterConverter.class)))
             .setControllerAdvice(new OrganizationGlobalExceptionHandler())
             .addFilters(new OrganizationTraceFilter(), new OrganizationAuthContextFilter())
             .build();

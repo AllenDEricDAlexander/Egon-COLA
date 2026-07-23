@@ -4,6 +4,7 @@ import ${package}.adapter.user.converter.RoleAdapterConverter;
 import ${package}.adapter.user.dto.AssignRoleRequest;
 import ${package}.application.user.manage.RoleManage;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,15 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController("roleController")
+@RequiredArgsConstructor
 public class RoleController {
 
     private final RoleManage roleManage;
     private final RoleAdapterConverter converter;
-
-    public RoleController(RoleManage roleManage, RoleAdapterConverter converter) {
-        this.roleManage = roleManage;
-        this.converter = converter;
-    }
 
     @PostMapping("/api/v1/users/{userId}/roles")
     public ResponseEntity<Void> assign(

@@ -9,6 +9,7 @@ import ${package}.application.user.manage.RoleManage;
 import ${package}.application.user.result.PermissionTreeResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -35,8 +36,9 @@ class RolePermissionControllerTest {
         when(permissionManage.getPermissionTree(any()))
             .thenReturn(new PermissionTreeResult("u-1", List.of("CLASS_READ")));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new RoleController(roleManage, new RoleAdapterConverter()),
-            new PermissionController(permissionManage, new PermissionAdapterConverter())).build();
+            new RoleController(roleManage, Mappers.getMapper(RoleAdapterConverter.class)),
+            new PermissionController(
+                permissionManage, Mappers.getMapper(PermissionAdapterConverter.class))).build();
 
         mockMvc.perform(post("/api/v1/users/u-1/roles")
                 .contentType(MediaType.APPLICATION_JSON)

@@ -18,6 +18,7 @@ import ${package}.application.support.OrganizationTransactionHooks;
 import ${package}.domain.user.repos.UserRepository;
 import ${package}.domain.user.service.UserDomainService;
 import ${package}.domain.user.vos.UserId;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.UUID;
 import java.time.Instant;
 
 @Service("userManage")
+@RequiredArgsConstructor
 public class UserManageImpl implements UserManage {
 
     private final UserRepository userRepository;
@@ -34,23 +36,6 @@ public class UserManageImpl implements UserManage {
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-
-    public UserManageImpl(
-            UserRepository userRepository,
-            UserDomainService userDomainService,
-            UserApplicationValidator validator,
-            UserAssembler assembler,
-            UserCachePort userCache,
-            CommandIdempotencyPort idempotency,
-            OrganizationEventPublisher eventPublisher) {
-        this.userRepository = userRepository;
-        this.userDomainService = userDomainService;
-        this.validator = validator;
-        this.assembler = assembler;
-        this.userCache = userCache;
-        this.idempotency = idempotency;
-        this.eventPublisher = eventPublisher;
-    }
 
     @Override
     @Transactional

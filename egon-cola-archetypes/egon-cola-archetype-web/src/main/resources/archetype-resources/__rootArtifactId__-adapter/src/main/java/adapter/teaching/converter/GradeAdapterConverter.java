@@ -4,14 +4,17 @@ import ${package}.adapter.teaching.dto.CreateGradeRequest;
 import ${package}.adapter.teaching.vo.GradeDetailVO;
 import ${package}.application.teaching.command.CreateGradeCommand;
 import ${package}.application.teaching.result.GradeDetailResult;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-@Component("gradeAdapterConverter")
-public final class GradeAdapterConverter {
-    public CreateGradeCommand toCommand(String requestId, CreateGradeRequest request) {
-        return new CreateGradeCommand(requestId, request.code(), request.name());
-    }
-    public GradeDetailVO toVO(GradeDetailResult result) {
-        return new GradeDetailVO(result.id(), result.code(), result.name(), result.status());
-    }
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
+public interface GradeAdapterConverter {
+
+    @Mapping(target = "requestId", source = "requestId")
+    @Mapping(target = "code", source = "request.code")
+    @Mapping(target = "name", source = "request.name")
+    CreateGradeCommand toCommand(String requestId, CreateGradeRequest request);
+
+    GradeDetailVO toVO(GradeDetailResult result);
 }

@@ -18,6 +18,7 @@ import ${package}.application.support.OrganizationTransactionHooks;
 import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.teaching.service.GradeDomainService;
 import ${package}.domain.teaching.vos.GradeCode;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.UUID;
 import java.time.Instant;
 
 @Service("gradeManage")
+@RequiredArgsConstructor
 public class GradeManageImpl implements GradeManage {
     private final GradeRepository gradeRepository;
     private final GradeDomainService gradeDomainService;
@@ -33,21 +35,6 @@ public class GradeManageImpl implements GradeManage {
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
     private final GradeAssembler assembler = new GradeAssembler();
-
-    public GradeManageImpl(
-            GradeRepository gradeRepository,
-            GradeDomainService gradeDomainService,
-            TeachingApplicationValidator validator,
-            GradeCachePort gradeCache,
-            CommandIdempotencyPort idempotency,
-            OrganizationEventPublisher eventPublisher) {
-        this.gradeRepository = gradeRepository;
-        this.gradeDomainService = gradeDomainService;
-        this.validator = validator;
-        this.gradeCache = gradeCache;
-        this.idempotency = idempotency;
-        this.eventPublisher = eventPublisher;
-    }
 
     @Override
     @Transactional

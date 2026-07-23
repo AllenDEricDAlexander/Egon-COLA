@@ -4,11 +4,16 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "school_classes")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class SchoolClassPO {
     @Id
     @Column(length = 64)
@@ -28,24 +33,6 @@ public class SchoolClassPO {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    protected SchoolClassPO() {
-    }
-
-    public SchoolClassPO(
-            String id,
-            String name,
-            String gradeName,
-            String gradeId,
-            String status,
-            LocalDateTime createdAt) {
-        this.id = id;
-        this.name = name;
-        this.gradeName = gradeName;
-        this.gradeId = gradeId;
-        this.status = status;
-        this.createdAt = createdAt;
-    }
 
     public String getId() {
         return id;

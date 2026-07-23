@@ -5,17 +5,15 @@ import ${package}.adapter.teaching.dto.CreateSchoolClassMessage;
 import ${package}.adapter.mq.OrganizationMessageSupport;
 import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class SchoolClassChangedConsumer {
 
     private final SchoolClassManage schoolClassManage;
-
-    public SchoolClassChangedConsumer(SchoolClassManage schoolClassManage) {
-        this.schoolClassManage = schoolClassManage;
-    }
 
     @RabbitListener(
             queues = "student.organization.school-class.create.v1",

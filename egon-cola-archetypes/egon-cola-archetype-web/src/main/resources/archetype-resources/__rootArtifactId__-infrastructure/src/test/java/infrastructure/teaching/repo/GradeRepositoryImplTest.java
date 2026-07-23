@@ -5,6 +5,7 @@ import ${package}.domain.teaching.enums.GradeStatus;
 import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.teaching.repo.converter.GradePOConverter;
+import ${package}.infrastructure.teaching.repo.converter.GradePOMapperImpl;
 import ${package}.infrastructure.teaching.repo.impl.GradeRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.jpa.GradeJpaRepository;
 import ${package}.infrastructure.teaching.repo.po.GradePO;
@@ -22,7 +23,7 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"})
-@Import({GradeRepositoryImpl.class, GradePOConverter.class})
+@Import({GradeRepositoryImpl.class, GradePOConverter.class, GradePOMapperImpl.class})
 @ContextConfiguration(classes = GradeRepositoryImplTest.TestConfiguration.class)
 class GradeRepositoryImplTest {
     @Autowired GradeRepository repository;

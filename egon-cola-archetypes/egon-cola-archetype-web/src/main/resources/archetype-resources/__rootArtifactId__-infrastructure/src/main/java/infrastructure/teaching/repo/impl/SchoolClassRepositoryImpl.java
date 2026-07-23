@@ -13,6 +13,7 @@ import ${package}.infrastructure.teaching.repo.jpa.SchoolClassJpaRepository;
 import ${package}.infrastructure.teaching.repo.jpa.SchoolClassUserJpaRepository;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassPO;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassUserPO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
@@ -21,22 +22,12 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository("schoolClassRepositoryImpl")
+@RequiredArgsConstructor
 public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     private final SchoolClassJpaRepository schoolClassJpaRepository;
     private final GradeJpaRepository gradeJpaRepository;
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
     private final SchoolClassPOConverter converter;
-
-    public SchoolClassRepositoryImpl(
-            SchoolClassJpaRepository schoolClassJpaRepository,
-            GradeJpaRepository gradeJpaRepository,
-            SchoolClassUserJpaRepository schoolClassUserJpaRepository,
-            SchoolClassPOConverter converter) {
-        this.schoolClassJpaRepository = schoolClassJpaRepository;
-        this.gradeJpaRepository = gradeJpaRepository;
-        this.schoolClassUserJpaRepository = schoolClassUserJpaRepository;
-        this.converter = converter;
-    }
 
     @Override public SchoolClass save(SchoolClass schoolClass) {
         try {

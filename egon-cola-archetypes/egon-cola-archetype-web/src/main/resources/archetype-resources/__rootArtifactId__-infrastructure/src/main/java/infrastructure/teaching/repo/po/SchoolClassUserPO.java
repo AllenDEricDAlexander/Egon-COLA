@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
         name = "school_class_users",
         uniqueConstraints = @UniqueConstraint(name = "uk_school_class_user", columnNames = {"user_id", "school_class_id"})
 )
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SchoolClassUserPO {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,9 +31,6 @@ public class SchoolClassUserPO {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    protected SchoolClassUserPO() {
-    }
 
     public SchoolClassUserPO(String userId, String schoolClassId, LocalDateTime createdAt) {
         this.userId = userId;

@@ -5,6 +5,7 @@ import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.user.manage.UserManage;
 import ${package}.application.user.query.UserDetailQuery;
+import lombok.RequiredArgsConstructor;
 import top.egon.cola.organization.facade.user.dto.CreateUserDTO;
 import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
 import top.egon.cola.organization.facade.user.UserFacade;
@@ -13,15 +14,11 @@ import org.springframework.validation.annotation.Validated;
 
 @Component("userFacade")
 @Validated
+@RequiredArgsConstructor
 public class UserFacadeImpl implements UserFacade {
 
     private final UserManage userManage;
     private final UserAdapterConverter converter;
-
-    public UserFacadeImpl(UserManage userManage, UserAdapterConverter converter) {
-        this.userManage = userManage;
-        this.converter = converter;
-    }
 
     @Override
     public UserDetailDTO createUser(CreateUserDTO request) {

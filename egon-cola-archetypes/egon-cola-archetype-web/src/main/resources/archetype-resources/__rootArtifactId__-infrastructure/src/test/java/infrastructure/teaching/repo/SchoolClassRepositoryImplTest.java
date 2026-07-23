@@ -9,6 +9,7 @@ import ${package}.domain.teaching.repos.SchoolClassRepository;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.infrastructure.teaching.repo.converter.GradePOConverter;
+import ${package}.infrastructure.teaching.repo.converter.GradePOMapperImpl;
 import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
 import ${package}.infrastructure.teaching.repo.impl.GradeRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.impl.SchoolClassRepositoryImpl;
@@ -27,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"})
 @Import({GradeRepositoryImpl.class, SchoolClassRepositoryImpl.class,
-    GradePOConverter.class, SchoolClassPOConverter.class})
+    GradePOConverter.class, GradePOMapperImpl.class, SchoolClassPOConverter.class})
 @ContextConfiguration(classes = SchoolClassRepositoryImplTest.TestConfiguration.class)
 class SchoolClassRepositoryImplTest {
     @Autowired GradeRepository gradeRepository;

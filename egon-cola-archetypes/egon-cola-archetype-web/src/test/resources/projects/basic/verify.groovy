@@ -591,7 +591,9 @@ projectDir.traverse(type: FileType.FILES) { file ->
     }
     if (path.startsWith("student-management-organization-infrastructure/src/main/java/")
             && (path.contains("/mp/")
-            || (file.name.endsWith("Mapper.java") && !path.contains("/client/")))) {
+            || (file.name.endsWith("Mapper.java")
+            && !path.contains("/client/")
+            && !path.contains("/repo/converter/")))) {
         forbiddenMatches << path
     }
     if (path.contains("/src/") && path.contains("/java/") && file.name.endsWith("Po.java")) {
@@ -1553,6 +1555,39 @@ def forbiddenLivingArchitecturePatterns = [
 forbiddenLivingArchitecturePatterns.each { pattern ->
     assert !pattern.matcher(livingArchitectureText).find():
             "Unexpected technical-first Web living-doc pattern ${pattern}"
+}
+
+[
+    "adapter/teaching/converter/GradeAdapterConverter.java",
+    "adapter/teaching/converter/SchoolClassAdapterConverter.java",
+    "adapter/user/converter/PermissionAdapterConverter.java",
+    "adapter/user/converter/RoleAdapterConverter.java",
+    "adapter/user/converter/UserAdapterConverter.java"
+].each { mapperPath ->
+    def mapper = assertFile(
+            "student-management-organization-adapter/src/main/java/it/pkg/${mapperPath}").text
+    assert mapper.contains("@Mapper(")
+    assert mapper.contains("ReportingPolicy.ERROR")
+}
+
+def gradePoMapper = assertFile(
+        "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/GradePOMapper.java").text
+assert gradePoMapper.contains("extends BaseMapper<Grade, GradePO>")
+
+def gradePo = assertFile(
+        "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/GradePO.java").text
+assert gradePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+assert gradePo.contains("@AllArgsConstructor")
+assert !gradePo.contains("protected GradePO()")
+
+[
+    "student-management-organization-adapter/src/main/java/it/pkg/adapter/teaching/controller/GradeController.java",
+    "student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/impl/GradeManageImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/impl/GradeRepositoryImpl.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/cache/RedisGradeCache.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/mq/RabbitOrganizationEventPublisher.java"
+].each { path ->
+    assert assertFile(path).text.contains("@RequiredArgsConstructor")
 }
 
 null

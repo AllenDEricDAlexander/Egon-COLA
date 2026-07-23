@@ -20,6 +20,7 @@ import ${package}.domain.user.repos.RoleRepository;
 import ${package}.domain.user.vos.PermissionCode;
 import ${package}.domain.user.vos.RoleCode;
 import ${package}.domain.user.vos.UserId;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service("permissionManage")
+@RequiredArgsConstructor
 public class PermissionManageImpl implements PermissionManage {
 
     private final RoleRepository roleRepository;
@@ -34,19 +36,6 @@ public class PermissionManageImpl implements PermissionManage {
     private final UserApplicationValidator validator;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-
-    public PermissionManageImpl(
-            RoleRepository roleRepository,
-            PermissionRepository permissionRepository,
-            UserApplicationValidator validator,
-            CommandIdempotencyPort idempotency,
-            OrganizationEventPublisher eventPublisher) {
-        this.roleRepository = roleRepository;
-        this.permissionRepository = permissionRepository;
-        this.validator = validator;
-        this.idempotency = idempotency;
-        this.eventPublisher = eventPublisher;
-    }
 
     @Override
     @Transactional
