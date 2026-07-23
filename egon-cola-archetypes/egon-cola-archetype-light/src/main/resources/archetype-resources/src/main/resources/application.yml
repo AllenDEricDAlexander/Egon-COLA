@@ -56,6 +56,11 @@ server:
     connection-timeout: ${symbol_dollar}{TOMCAT_CONNECTION_TIMEOUT:20s}
     keep-alive-timeout: ${symbol_dollar}{TOMCAT_KEEP_ALIVE_TIMEOUT:20s}
     max-keep-alive-requests: ${symbol_dollar}{TOMCAT_MAX_KEEP_ALIVE_REQUESTS:100}
+    max-http-form-post-size: ${symbol_dollar}{TOMCAT_MAX_HTTP_FORM_POST_SIZE:2MB}
+    max-swallow-size: ${symbol_dollar}{TOMCAT_MAX_SWALLOW_SIZE:2MB}
+    processor-cache: ${symbol_dollar}{TOMCAT_PROCESSOR_CACHE:200}
+    mbeanregistry:
+      enabled: ${symbol_dollar}{TOMCAT_MBEAN_REGISTRY_ENABLED:true}
 
 management:
   endpoints:
