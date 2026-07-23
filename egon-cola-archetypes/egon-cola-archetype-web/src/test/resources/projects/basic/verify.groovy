@@ -954,6 +954,7 @@ assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent vers
 assert rootPom.properties.'java.version'.text() == "21"
 [
     "lombok.version",
+    "lombok.mapstruct.binding.version",
     "mapstruct-plus.version",
     "dubbo.version",
     "spring-cloud.version",
@@ -994,13 +995,23 @@ assert rootPomText.contains("<artifactId>spring-cloud-alibaba-dependencies</arti
 assert rootPomText.contains("<artifactId>dubbo-bom</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert rootPomText.contains("<artifactId>mapstruct-plus-processor</artifactId>")
+assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
 assert rootPomText.contains("<module>student-management-organization-common</module>")
 assert rootPomText.contains("<module>student-management-organization-starter</module>")
 assert !rootPomText.contains("spring-ai")
 assert !rootPomText.contains("drools")
 assert !rootPomText.contains("mcp")
 
-assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+def lombokConfig = assertFile("lombok.config").text
+[
+    "config.stopBubbling = true",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value",
+    "lombok.addLombokGeneratedAnnotation = true",
+    "lombok.anyConstructor.addConstructorProperties = true",
+    "lombok.data.flagUsage = warning",
+    "lombok.val.flagUsage = warning"
+].each { expected -> assert lombokConfig.contains(expected) }
 
 assertRuntimeConfigFiles("student-management-organization-starter/src/main/resources")
 

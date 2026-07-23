@@ -350,6 +350,7 @@ assert pomXml.parent.version.text().trim(): "Expected a Spring Boot parent versi
 assert pomXml.properties.'java.version'.text() == "21"
 [
     "lombok.version",
+    "lombok.mapstruct.binding.version",
     "mapstruct-plus.version",
     "dubbo.version",
     "spring-cloud.version",
@@ -380,6 +381,7 @@ assert pom.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>"
 assert pom.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-processor</artifactId>")
+assert pom.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
 assert pom.contains("<artifactId>spring-boot-dependencies</artifactId>")
 assert !pom.contains("spring-ai")
 assert !pom.contains("drools")
@@ -395,7 +397,16 @@ assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-d
 assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
 assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
 
-assertFile("lombok.config").text.contains("lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier")
+def lombokConfig = assertFile("lombok.config").text
+[
+    "config.stopBubbling = true",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value",
+    "lombok.addLombokGeneratedAnnotation = true",
+    "lombok.anyConstructor.addConstructorProperties = true",
+    "lombok.data.flagUsage = warning",
+    "lombok.val.flagUsage = warning"
+].each { expected -> assert lombokConfig.contains(expected) }
 
 assertRuntimeConfigFiles("src/main/resources")
 

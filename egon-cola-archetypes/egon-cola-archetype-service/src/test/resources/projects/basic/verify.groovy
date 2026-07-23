@@ -62,7 +62,9 @@ modules.each { module ->
 }
 assertMissing("student-management-evaluation-facade")
 
-def rootPom = new XmlSlurper(false, false).parse(assertFile("pom.xml"))
+def rootPomFile = assertFile("pom.xml")
+def rootPomText = rootPomFile.text
+def rootPom = new XmlSlurper(false, false).parse(rootPomFile)
 def assertVersionProperty = { pomModel, propertyName ->
     assert pomModel.properties."${propertyName}".text().trim():
             "Expected non-empty ${propertyName}"
@@ -85,12 +87,24 @@ assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent vers
 assert rootPom.properties.'java.version'.text() == "21"
 [
     "lombok.version",
+    "lombok.mapstruct.binding.version",
     "mapstruct-plus.version",
     "dubbo.version",
     "spring-cloud.version",
     "spring-cloud-alibaba.version"
 ].each { assertVersionProperty(rootPom, it) }
 assertEgonColaBom(rootPom)
+assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
+def lombokConfig = assertFile("lombok.config").text
+[
+    "config.stopBubbling = true",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier",
+    "lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value",
+    "lombok.addLombokGeneratedAnnotation = true",
+    "lombok.anyConstructor.addConstructorProperties = true",
+    "lombok.data.flagUsage = warning",
+    "lombok.val.flagUsage = warning"
+].each { expected -> assert lombokConfig.contains(expected) }
 assert rootPom.modules.module*.text() == modules.collect { "student-management-evaluation-${it}" }
 assert rootPom.properties.'organization-facade.group-id'.text() == "top.egon"
 assert rootPom.properties.'organization-facade.artifact-id'.text() == "egon-cola-organization-facade"
