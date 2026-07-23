@@ -2,8 +2,8 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.course.validators;
-import ${package}.facade.enums.EvaluationFacadeErrorCode;
-import ${package}.facade.exceptions.EvaluationFacadeException;
+import top.egon.cola.evaluation.facade.enums.EvaluationFacadeErrorCode;
+import top.egon.cola.evaluation.facade.exceptions.EvaluationFacadeException;
 import org.springframework.stereotype.Component;
 @Component
 public class CourseFacadeValidator {

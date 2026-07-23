@@ -32,11 +32,17 @@
 ```text
 starter         启动装配层
 adapter         入站适配层，仅 RPC / MQ
-facade          RPC 对外契约层
 application     应用编排层
 domain          领域核心层
 infrastructure  基础设施层
 common          通用基础层
+```
+
+RPC 对外契约不再由生成项目内的本地模块持有，而是依赖两个独立发布的规范契约：
+
+```text
+top.egon:egon-cola-organization-facade
+top.egon:egon-cola-evaluation-facade
 ```
 
 纯 Service 架构下，adapter 层不再包含：
@@ -85,7 +91,7 @@ student-management-evaluation
 ```text
 1. student-management-organization 是一个独立工程，不是根聚合工程下的普通模块。
 2. student-management-evaluation 是另一个独立工程，不是根聚合工程下的普通模块。
-3. 每个 Project 内部再拆 starter / common / facade / application / domain / infrastructure / adapter 等 Maven 子模块。
+3. 每个 Project 内部再拆 starter / common / application / domain / infrastructure / adapter 等 Maven 子模块。
 4. 每个 Project 内部可以包含多个相近领域。
 ```
 
@@ -102,7 +108,7 @@ student-management-organization-starter import student-management-organization-a
 student-management-organization-starter import student-management-organization-infrastructure
 
 student-management-organization-adapter import student-management-organization-application
-student-management-organization-adapter import student-management-organization-facade
+student-management-organization-adapter import top.egon:egon-cola-organization-facade
 
 student-management-organization-application import student-management-organization-domain
 
@@ -111,9 +117,7 @@ student-management-organization-domain import student-management-organization-co
 student-management-organization-infrastructure import student-management-organization-domain
 ```
 
-`facade` 不依赖 `common`。
-
-`facade` 内部有自己的：
+规范 Facade artifact 是生成项目之外的自包含契约，内部有自己的：
 
 ```text
 utils
@@ -125,37 +129,32 @@ dto
 也就是说：
 
 ```text
-facade 是自包含契约模块。
-facade 不依赖 common。
-facade 不依赖 application。
-facade 不依赖 domain。
-facade 不依赖 infrastructure。
+canonical facade 是自包含契约 artifact。
+canonical facade 不依赖生成项目的 common。
+canonical facade 不依赖 application。
+canonical facade 不依赖 domain。
+canonical facade 不依赖 infrastructure。
+生成项目只依赖 canonical facade；canonical facade 不反向依赖生成项目。
 ```
 
 ## 2.2 依赖关系图
 
 ```text
-                        starter
-                           |
-            -------------------------------
-            |                             |
-         adapter                    infrastructure
-            |                             |
-     ----------------                  application
-     |              |                       |
- application     facade                  domain
-     |                                      |
-   domain                                  common
-     |
-   common
+Canonical Provider Facade -> adapter -> application -> domain -> common
+                                      starter
+                                         |
+                             adapter ----+---- infrastructure
+                                                |
+                                              domain
+Canonical Consumer Facade -> infrastructure
 ```
 
 说明：
 
 ```text
 1. starter 负责启动和装配 adapter、infrastructure。
-2. adapter 负责 RPC / MQ 入站，依赖 application 和 facade。
-3. facade 是 RPC 契约模块，不依赖 common。
+2. adapter 负责 RPC / MQ 入站，依赖 application 和对应的 canonical facade。
+3. canonical facade 是独立发布的 RPC 契约，不依赖任何生成项目模块。
 4. application 负责编排业务流程，依赖 domain。
 5. domain 负责核心规则，依赖 common。
 6. infrastructure 负责技术实现，依赖 domain。
@@ -185,7 +184,6 @@ student-management-organization/
     pom.xml
     student-management-organization-starter/
     student-management-organization-common/
-    student-management-organization-facade/
     student-management-organization-application/
     student-management-organization-domain/
     student-management-organization-infrastructure/
@@ -195,7 +193,6 @@ student-management-evaluation/
     pom.xml
     student-management-evaluation-starter/
     student-management-evaluation-common/
-    student-management-evaluation-facade/
     student-management-evaluation-application/
     student-management-evaluation-domain/
     student-management-evaluation-infrastructure/
@@ -207,7 +204,7 @@ student-management-evaluation/
 推荐方式：
 
 ```text
-1. 通过对方 facade 进行 RPC 调用。
+1. 通过独立发布的 canonical facade 进行 RPC 调用。
 2. 通过 MQ 进行事件通知。
 3. 通过 infrastructure.client.impl 封装外部调用细节。
 ```
@@ -216,6 +213,7 @@ student-management-evaluation/
 
 ```text
 student-management-evaluation-infrastructure
+    -> top.egon:egon-cola-organization-facade
     -> OrganizationUserFacade
     -> student-management-organization-adapter/user/facade/impl
     -> student-management-organization-application
@@ -337,16 +335,16 @@ MQ Consumer  -> Application
 
 ---
 
-## 3.3 facade 模块
+## 3.3 canonical facade 契约 artifact
 
 ### 3.3.1 职责
 
-`facade` 是 RPC 对外契约层。Facade 接口直接放在业务领域下，DTO 再放在该领域的 `dto` 子包中。
+canonical facade 是独立发布的 RPC 对外契约，不属于任何生成项目的本地 Maven 模块。Facade 接口直接放在业务领域下，DTO 再放在该领域的 `dto` 子包中。
 
 ### 3.3.2 推荐结构
 
 ```text
-facade
+top.egon.cola.<bounded-context>.facade
     - <domain>
         - XxxFacade.java
         - dto
@@ -364,14 +362,14 @@ facade
 ```text
 1. 定义 RPC 接口、请求 DTO、响应 DTO。
 2. 定义对外枚举、异常和轻量工具。
-3. 作为其他 Project 的 RPC 契约依赖。
+3. 以 `top.egon:egon-cola-organization-facade` 或 `top.egon:egon-cola-evaluation-facade` 供 Provider 和 Consumer 共同依赖。
 ```
 
 ### 3.3.4 不能做什么
 
 ```text
 1. 不写 Facade 实现类。
-2. 不依赖 Common、Application、Domain、Infrastructure 或 Adapter。
+2. 不依赖任何生成项目的 Common、Application、Domain、Infrastructure 或 Adapter。
 3. 不写业务、数据库、缓存或 MQ 消费逻辑。
 ```
 
@@ -523,7 +521,7 @@ infrastructure
 
 `common` 是当前 Project 内部通用基础层。
 
-注意：`common` 不给 `facade` 使用。`facade` 有自己的 utils、enums、exceptions。
+注意：`common` 只供当前生成项目内部使用。独立发布的 canonical facade 有自己的 utils、enums、exceptions，不依赖该模块。
 
 ### 3.7.2 推荐结构
 
@@ -588,7 +586,6 @@ student-management-organization/
 ├── pom.xml
 ├── student-management-organization-starter
 ├── student-management-organization-common
-├── student-management-organization-facade
 ├── student-management-organization-domain
 ├── student-management-organization-application
 ├── student-management-organization-infrastructure
@@ -598,7 +595,6 @@ student-management-evaluation/
 ├── pom.xml
 ├── student-management-evaluation-starter
 ├── student-management-evaluation-common
-├── student-management-evaluation-facade
 ├── student-management-evaluation-domain
 ├── student-management-evaluation-application
 ├── student-management-evaluation-infrastructure
@@ -620,20 +616,6 @@ student-management-organization
 ├── student-management-organization-common
 │   └── src/main/java/com/example/student/organization/common
 │       ├── constants
-│       ├── enums
-│       ├── exceptions
-│       └── utils
-├── student-management-organization-facade
-│   └── src/main/java/com/example/student/organization/facade
-│       ├── user
-│       │   ├── UserFacade.java
-│       │   ├── RoleFacade.java
-│       │   ├── PermissionFacade.java
-│       │   └── dto
-│       ├── teaching
-│       │   ├── GradeFacade.java
-│       │   ├── SchoolClassFacade.java
-│       │   └── dto
 │       ├── enums
 │       ├── exceptions
 │       └── utils
@@ -739,19 +721,6 @@ student-management-evaluation
 │       ├── enums
 │       ├── exceptions
 │       └── utils
-├── student-management-evaluation-facade
-│   └── src/main/java/com/example/student/evaluation/facade
-│       ├── course
-│       │   ├── CourseFacade.java
-│       │   └── dto
-│       ├── exam
-│       │   ├── ExamFacade.java
-│       │   ├── ScoreFacade.java
-│       │   └── dto
-│       ├── dto
-│       ├── enums
-│       ├── exceptions
-│       └── utils
 ├── student-management-evaluation-domain
 │   └── src/main/java/com/example/student/evaluation/domain
 │       ├── course
@@ -836,7 +805,7 @@ student-management-evaluation
         └── handler
 ```
 
-Facade 接口直接位于 `facade/course` 与 `facade/exam`。外部 Organization 边界继续保留在 `domain/client/organization` 与 `infrastructure/client/organization`，不混入本地 `course` 或 `exam` 领域。
+Adapter 实现 `top.egon.cola.evaluation.facade.course` 与 `top.egon.cola.evaluation.facade.exam` 中的契约。外部 Organization 边界继续保留在 `domain/client/organization` 与 `infrastructure/client/organization`，不混入本地 `course` 或 `exam` 领域。
 
 该工程保持纯 Service：不创建业务 Controller、Web、Filter、GraphQL 或 VO 包；业务流量只通过 Dubbo Triple 或 RabbitMQ 进入。
 
@@ -1083,7 +1052,7 @@ Infrastructure Validator 负责技术适配校验。
 4. 不提供 GraphQL。
 5. 对外只提供 RPC 或 MQ。
 6. adapter 只处理 RPC / MQ 入站。
-7. facade 只定义 RPC 契约。
+7. canonical facade artifact 只定义 RPC 契约。
 8. Facade 实现只能放在 `adapter.<domain>.facade.impl`。
 9. MQ 入站放在 `adapter.<domain>.mq`。
 10. MQ 出站放在 `infrastructure.<domain>.mq`。
@@ -1106,12 +1075,13 @@ student-management-evaluation
 ```text
 starter
 common
-facade
 domain
 application
 infrastructure
 adapter
 ```
+
+两个 canonical facade artifact 位于生成项目之外，由 Provider 与 Consumer 共同依赖。
 
 最终调用链路：
 
@@ -1124,10 +1094,10 @@ MQ  -> Adapter -> Application -> Domain -> Repository Interface -> Infrastructur
 
 ```text
 starter -> adapter / infrastructure
-adapter -> application / facade
+adapter -> application / canonical provider facade
 application -> domain
 domain -> common
-infrastructure -> application
+infrastructure -> domain / canonical consumer facade
 ```
 
 一句话总结：

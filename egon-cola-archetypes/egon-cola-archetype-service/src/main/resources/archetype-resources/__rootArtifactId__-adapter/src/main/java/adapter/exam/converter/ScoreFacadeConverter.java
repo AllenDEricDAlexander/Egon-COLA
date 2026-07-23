@@ -4,8 +4,8 @@
 package ${package}.adapter.exam.converter;
 import ${package}.application.exam.command.RecordScoreCommand;
 import ${package}.application.exam.result.ScoreResult;
-import ${package}.facade.exam.dto.RecordScoreRequest;
-import ${package}.facade.exam.dto.ScoreResponse;
+import top.egon.cola.evaluation.facade.exam.dto.RecordScoreRequest;
+import top.egon.cola.evaluation.facade.exam.dto.ScoreResponse;
 import org.springframework.stereotype.Component;
 @Component
 public class ScoreFacadeConverter {

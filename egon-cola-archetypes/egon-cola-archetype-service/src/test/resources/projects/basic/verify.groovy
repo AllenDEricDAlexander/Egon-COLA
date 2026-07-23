@@ -56,10 +56,11 @@ def assertPortableDockerfile = { jarFile, exposedPorts, readinessPort ->
     assert !text.contains("--mount=type=cache")
 }
 
-def modules = ["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"]
+def modules = ["common", "domain", "application", "infrastructure", "adapter", "starter"]
 modules.each { module ->
     assert new File(projectDir, "student-management-evaluation-${module}").isDirectory()
 }
+assertMissing("student-management-evaluation-facade")
 
 def rootPom = new XmlSlurper(false, false).parse(assertFile("pom.xml"))
 def assertVersionProperty = { pomModel, propertyName ->
@@ -91,26 +92,20 @@ assert rootPom.properties.'java.version'.text() == "21"
 ].each { assertVersionProperty(rootPom, it) }
 assertEgonColaBom(rootPom)
 assert rootPom.modules.module*.text() == modules.collect { "student-management-evaluation-${it}" }
-assert rootPom.properties.'organization-facade.group-id'.text() == "fixture.organization"
-assert rootPom.properties.'organization-facade.artifact-id'.text() ==
-        "student-management-organization-facade"
-assert rootPom.properties.'organization-facade.version'.text() == "1.0.0-fixture"
-assert rootPom.properties.'organization-facade.package'.text() == "fixture.organization"
+assert rootPom.properties.'organization-facade.group-id'.text() == "top.egon"
+assert rootPom.properties.'organization-facade.artifact-id'.text() == "egon-cola-organization-facade"
+assert rootPom.properties.'organization-facade.version'.text() == '${egon-cola.version}'
+assert rootPom.properties.'organization-facade.package'.text() == "top.egon.cola.organization"
+assert rootPom.properties.'evaluation-facade.group-id'.text() == "top.egon"
+assert rootPom.properties.'evaluation-facade.artifact-id'.text() == "egon-cola-evaluation-facade"
+assert rootPom.properties.'evaluation-facade.version'.text() == '${egon-cola.version}'
+assert rootPom.properties.'evaluation-facade.package'.text() == "top.egon.cola.evaluation"
 def requiredPackagePaths = [
     "common",
     "common/constants",
     "common/enums",
     "common/exceptions",
     "common/utils",
-    "facade",
-    "facade/course",
-    "facade/course/dto",
-    "facade/dto",
-    "facade/exam",
-    "facade/exam/dto",
-    "facade/enums",
-    "facade/exceptions",
-    "facade/utils",
     "domain",
     "domain/common",
     "domain/client",
@@ -216,11 +211,10 @@ def internalDependencies = { module ->
 }
 
 assert internalDependencies("common") == []
-assert internalDependencies("facade") == []
 assert internalDependencies("domain") == ["common"]
 assert internalDependencies("application") == ["domain"]
 assert internalDependencies("infrastructure") == ["domain"]
-assert internalDependencies("adapter") == ["application", "facade"]
+assert internalDependencies("adapter") == ["application"]
 assert internalDependencies("starter") == ["adapter", "infrastructure"]
 
 def dependencyArtifacts = { module ->
@@ -233,17 +227,23 @@ def externalFacadeDependencies = { module ->
     def pom = new XmlSlurper(false, false)
             .parse(assertFile("student-management-evaluation-${module}/pom.xml"))
     pom.dependencies.dependency.findAll {
-        it.groupId.text() == '${organization-facade.group-id}'
-                || it.artifactId.text() == '${organization-facade.artifact-id}'
+        it.artifactId.text() in [
+            '${organization-facade.artifact-id}',
+            '${evaluation-facade.artifact-id}'
+        ]
     }.collect { [groupId: it.groupId.text(), artifactId: it.artifactId.text()] }
 }
 assert externalFacadeDependencies("infrastructure") == [[
     groupId: '${organization-facade.group-id}',
     artifactId: '${organization-facade.artifact-id}'
 ]]
-modules.findAll { it != "infrastructure" }.each { module ->
+assert externalFacadeDependencies("adapter") == [[
+    groupId: '${evaluation-facade.group-id}',
+    artifactId: '${evaluation-facade.artifact-id}'
+]]
+modules.findAll { !(it in ["infrastructure", "adapter"]) }.each { module ->
     assert externalFacadeDependencies(module).isEmpty():
-            "Unexpected Organization Facade dependency in ${module}"
+            "Unexpected canonical Facade dependency in ${module}"
 }
 
 modules.each { module ->
@@ -256,20 +256,21 @@ modules.each { module ->
     if (module == "infrastructure") {
         assert "flyway-database-postgresql" in artifacts
         assert '${organization-facade.artifact-id}' in artifacts
+        assert !('${evaluation-facade.artifact-id}' in artifacts)
         assert "dubbo-spring-boot-starter" in artifacts
+    } else if (module == "adapter") {
+        assert '${evaluation-facade.artifact-id}' in artifacts
+        assert !('${organization-facade.artifact-id}' in artifacts)
+        assert !("flyway-database-postgresql" in artifacts)
     } else {
         assert !("flyway-database-postgresql" in artifacts)
         assert !('${organization-facade.artifact-id}' in artifacts)
+        assert !('${evaluation-facade.artifact-id}' in artifacts)
     }
 }
 
 [
     "student-management-evaluation-common/src/main/java/it/pkg/common/exceptions/EvaluationBizException.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/course/CourseFacade.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/course/dto/CourseResponse.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ExamFacade.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ScoreFacade.java",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/dto/ScoreResponse.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/entities/Course.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/entities/Exam.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/event/CourseEventPublisher.java",
@@ -334,9 +335,6 @@ projectDir.eachFileRecurse(FileType.FILES) { file ->
 assert allPomText.every { !it.contains("archunit-junit5") && !it.contains("archunit.version") }
 
 [
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/api",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/course",
-    "student-management-evaluation-facade/src/main/java/it/pkg/facade/dto/exam",
     "student-management-evaluation-application/src/main/java/it/pkg/application/examing/manage",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/entities",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/examing/repos",
@@ -401,7 +399,7 @@ def staleServicePaths = javaFiles.collect(javaPath).findAll { path ->
 assert staleServicePaths.isEmpty():
         "Unexpected technical-first Service paths: ${staleServicePaths.join(', ')}"
 def providerImports = javaFiles.findAll {
-    it.getText("UTF-8").contains("import fixture.organization.facade.")
+    it.getText("UTF-8").contains("import top.egon.cola.organization.facade.")
 }
 assert providerImports.every {
     def path = javaPath(it)
@@ -428,7 +426,7 @@ assert applicationManageFiles.every {
 
 def localOrganizationStub = assertFile(
         "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java").text
-assert !localOrganizationStub.contains("fixture.organization")
+assert !localOrganizationStub.contains("top.egon.cola.organization.facade")
 assert !localOrganizationStub.contains("org.apache.dubbo")
 
 def forbiddenSegments = ["controller", "web", "filter", "graphql", "vo"]
@@ -514,7 +512,8 @@ assert readme.contains("V1__init_student_management_evaluation.sql` is immutable
 assert readme.contains("RabbitMQ support is intentionally basic transport")
 assert readme.contains("Organization Facade client is an unused infrastructure foundation")
 [
-    "facade/course/dto",
+    "top.egon:egon-cola-evaluation-facade",
+    "top.egon:egon-cola-organization-facade",
     "domain/exam/entities",
     "application/course/manage",
     "infrastructure/exam/repo",

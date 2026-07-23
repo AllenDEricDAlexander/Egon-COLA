@@ -8,10 +8,10 @@ import ${package}.adapter.exam.validators.ScoreFacadeValidator;
 import ${package}.application.exam.manage.ScoreManage;
 import ${package}.application.exam.query.GetScoreQuery;
 import ${package}.application.exam.query.PageScoreQuery;
-import ${package}.facade.exam.ScoreFacade;
-import ${package}.facade.dto.PageResponse;
-import ${package}.facade.dto.SingleResponse;
-import ${package}.facade.exam.dto.*;
+import top.egon.cola.evaluation.facade.exam.ScoreFacade;
+import top.egon.cola.evaluation.facade.dto.PageResponse;
+import top.egon.cola.evaluation.facade.dto.SingleResponse;
+import top.egon.cola.evaluation.facade.exam.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 @DubboService(interfaceClass = ScoreFacade.class, version = "1.0.0", group = "score")

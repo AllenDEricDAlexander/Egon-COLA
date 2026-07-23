@@ -3,8 +3,8 @@
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.handler;
 import ${package}.application.exceptions.ApplicationException;
-import ${package}.facade.dto.SingleResponse;
-import ${package}.facade.exceptions.EvaluationFacadeException;
+import top.egon.cola.evaluation.facade.dto.SingleResponse;
+import top.egon.cola.evaluation.facade.exceptions.EvaluationFacadeException;
 import org.springframework.stereotype.Component;
 @Component
 public class GlobalFacadeExceptionHandler {

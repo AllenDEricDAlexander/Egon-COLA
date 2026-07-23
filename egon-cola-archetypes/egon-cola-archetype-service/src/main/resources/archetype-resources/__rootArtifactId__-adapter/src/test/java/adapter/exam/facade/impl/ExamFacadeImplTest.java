@@ -10,7 +10,7 @@ import ${package}.adapter.exam.validators.ExamFacadeValidator;
 import ${package}.application.exam.command.CreateExamCommand;
 import ${package}.application.exam.manage.ExamManage;
 import ${package}.application.exam.result.ExamDetailResult;
-import ${package}.facade.exam.dto.CreateExamRequest;
+import top.egon.cola.evaluation.facade.exam.dto.CreateExamRequest;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 

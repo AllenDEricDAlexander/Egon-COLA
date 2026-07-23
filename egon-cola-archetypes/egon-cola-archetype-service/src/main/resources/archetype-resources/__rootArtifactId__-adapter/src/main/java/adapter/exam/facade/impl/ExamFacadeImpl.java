@@ -7,9 +7,9 @@ import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.exam.validators.ExamFacadeValidator;
 import ${package}.application.exam.manage.ExamManage;
 import ${package}.application.exam.query.GetExamQuery;
-import ${package}.facade.exam.ExamFacade;
-import ${package}.facade.dto.SingleResponse;
-import ${package}.facade.exam.dto.*;
+import top.egon.cola.evaluation.facade.exam.ExamFacade;
+import top.egon.cola.evaluation.facade.dto.SingleResponse;
+import top.egon.cola.evaluation.facade.exam.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 @DubboService(interfaceClass = ExamFacade.class, version = "1.0.0", group = "exam")

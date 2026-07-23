@@ -28,15 +28,18 @@
         <dubbo.version>3.3.6</dubbo.version>
         <spring-cloud.version>2025.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
-        <organization-facade.group-id>${organizationFacadeGroupId}</organization-facade.group-id>
-        <organization-facade.artifact-id>${organizationFacadeArtifactId}</organization-facade.artifact-id>
-        <organization-facade.version>${organizationFacadeVersion}</organization-facade.version>
-        <organization-facade.package>${organizationFacadePackage}</organization-facade.package>
+        <organization-facade.group-id>top.egon</organization-facade.group-id>
+        <organization-facade.artifact-id>egon-cola-organization-facade</organization-facade.artifact-id>
+        <organization-facade.version>${egon-cola.version}</organization-facade.version>
+        <organization-facade.package>top.egon.cola.organization</organization-facade.package>
+        <evaluation-facade.group-id>top.egon</evaluation-facade.group-id>
+        <evaluation-facade.artifact-id>egon-cola-evaluation-facade</evaluation-facade.artifact-id>
+        <evaluation-facade.version>${egon-cola.version}</evaluation-facade.version>
+        <evaluation-facade.package>top.egon.cola.evaluation</evaluation-facade.package>
     </properties>
 
     <modules>
         <module>${rootArtifactId}-common</module>
-        <module>${rootArtifactId}-facade</module>
         <module>${rootArtifactId}-domain</module>
         <module>${rootArtifactId}-application</module>
         <module>${rootArtifactId}-infrastructure</module>
@@ -80,6 +83,11 @@
                 <version>${dubbo.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>${evaluation-facade.group-id}</groupId>
+                <artifactId>${evaluation-facade.artifact-id}</artifactId>
+                <version>${evaluation-facade.version}</version>
             </dependency>
             <dependency>
                 <groupId>${organization-facade.group-id}</groupId>

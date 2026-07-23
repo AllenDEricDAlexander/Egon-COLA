@@ -8,11 +8,10 @@ ${symbol_pound} ${rootArtifactId}
 ${symbol_pound}${symbol_pound} 模块职责
 
 - `${rootArtifactId}-common`：稳定的错误、常量、枚举和标识符工具。
-- `${rootArtifactId}-facade`：可序列化的 Dubbo 请求/响应契约和公开 facade API。
 - `${rootArtifactId}-domain`：实体、聚合、值对象、领域服务、仓储/事件端口，以及由消费者拥有的 Organization 目录端口。不包含持久化、MQ、Facade 或 Dubbo 实现。
 - `${rootArtifactId}-application`：命令、查询、用例管理器、应用校验和结果模型。
-- `${rootArtifactId}-infrastructure`：Spring Data JPA 仓储、Flyway migration、RabbitMQ/本地发布器实现，以及 Organization Facade 防腐适配器。
-- `${rootArtifactId}-adapter`：Dubbo provider、facade 转换、校验、异常转换和 score-command MQ consumer。
+- `${rootArtifactId}-infrastructure`：Spring Data JPA 仓储、Flyway migration、RabbitMQ/本地发布器实现，以及 `top.egon:egon-cola-organization-facade` 防腐适配器。
+- `${rootArtifactId}-adapter`：`top.egon:egon-cola-evaluation-facade` 的 Dubbo provider、facade 转换、校验、异常转换和 score-command MQ consumer。
 - `${rootArtifactId}-starter`：Spring Boot 组装、profile、管理配置以及架构/上下文测试。
 
 ${symbol_pound}${symbol_pound} 领域优先包布局
@@ -20,10 +19,10 @@ ${symbol_pound}${symbol_pound} 领域优先包布局
 业务代码先按领域组织，再按技术职责组织：
 
 ```text
-facade/course/dto
 domain/exam/entities
 application/course/manage
 infrastructure/exam/repo
+adapter/course/facade/impl
 adapter/exam/mq
 ```
 
@@ -32,13 +31,12 @@ adapter/exam/mq
 允许的内部依赖图为：
 
 ```text
-Common <- Domain <- Application <- Adapter
-Facade <------------------------- Adapter
-          Domain <- Infrastructure
+Common <- Domain <- Application <- Adapter <- Canonical Evaluation Facade
+          Domain <- Infrastructure <- Canonical Organization Facade
           Adapter <- Starter -> Infrastructure
 ```
 
-更精确地说：Domain 只依赖 Common；Application 和 Infrastructure 只依赖 Domain；Adapter 依赖 Application 和 Facade。Facade 与 Common 没有向内依赖。Starter 是组合根。
+更精确地说：Domain 只依赖 Common；Application 和 Infrastructure 只依赖 Domain；Adapter 只依赖 Application。Adapter 实现外部 Evaluation Facade 契约，Infrastructure 消费外部 Organization Facade 契约，两个已发布 Facade 都不依赖当前生成项目。Starter 是组合根，因此不存在 Web/Service Maven 循环依赖。
 
 ${symbol_pound}${symbol_pound} 示例流程
 
@@ -53,7 +51,7 @@ ${symbol_pound}${symbol_pound} Profile 与集成
 
 `local` 是默认 profile。`local` 和 `test` 都使用 PostgreSQL 兼容模式的 H2，不需要 Nacos、RabbitMQ 或 PostgreSQL 服务。`test` 中 RabbitMQ publisher 和 listener 已关闭；`local` 使用本地 publisher，除非显式启用 RabbitMQ。
 
-Organization Facade client 是一个暂未使用的 infrastructure 基础能力。`local` 和 `test` 选择确定性的 `OrganizationDirectoryPort` stub。`dev` 和 `prod` 选择真实 Dubbo client，通过生成的 POM 固定其 Facade artifact，并在 provider 不可用时显式失败。当前没有 Application 用例调用该 port。
+Organization Facade client 是一个暂未使用的 infrastructure 基础能力。`local` 和 `test` 选择确定性的 `OrganizationDirectoryPort` stub。`dev` 和 `prod` 选择真实 Dubbo client，通过生成的 POM 固定 `top.egon:egon-cola-organization-facade`，并在 provider 不可用时显式失败。Adapter 实现 `top.egon:egon-cola-evaluation-facade`。当前没有 Application 用例调用 Organization port。
 
 `dev` 和 `prod` 是外部集成 profile。请通过环境变量配置，不要提交敏感信息：
 

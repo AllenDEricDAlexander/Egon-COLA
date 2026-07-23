@@ -6,10 +6,10 @@ import ${package}.application.course.command.CreateCourseCommand;
 import ${package}.application.course.command.ScheduleCourseCommand;
 import ${package}.application.course.result.CourseResult;
 import ${package}.application.course.result.CourseScheduleResult;
-import ${package}.facade.course.dto.CourseResponse;
-import ${package}.facade.course.dto.CourseScheduleResponse;
-import ${package}.facade.course.dto.CreateCourseRequest;
-import ${package}.facade.course.dto.ScheduleCourseRequest;
+import top.egon.cola.evaluation.facade.course.dto.CourseResponse;
+import top.egon.cola.evaluation.facade.course.dto.CourseScheduleResponse;
+import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
+import top.egon.cola.evaluation.facade.course.dto.ScheduleCourseRequest;
 import org.springframework.stereotype.Component;
 @Component
 public class CourseFacadeConverter {

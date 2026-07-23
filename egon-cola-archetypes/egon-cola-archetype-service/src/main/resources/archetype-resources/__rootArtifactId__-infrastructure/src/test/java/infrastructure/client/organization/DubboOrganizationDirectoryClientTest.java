@@ -8,11 +8,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import ${organizationFacadePackage}.facade.teaching.dto.SchoolClassDetailDTO;
-import ${organizationFacadePackage}.facade.user.dto.UserDetailDTO;
-import ${organizationFacadePackage}.facade.exceptions.OrganizationFacadeException;
-import ${organizationFacadePackage}.facade.teaching.SchoolClassFacade;
-import ${organizationFacadePackage}.facade.user.UserFacade;
+import top.egon.cola.organization.facade.teaching.dto.SchoolClassDetailDTO;
+import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
+import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
+import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
+import top.egon.cola.organization.facade.user.UserFacade;
 import ${package}.domain.client.ExternalDependencyException;
 import ${package}.domain.client.ExternalDependencyFailure;
 import ${package}.domain.client.organization.OrganizationSchoolClass;

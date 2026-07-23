@@ -3,10 +3,10 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.client.organization;
 
-import ${organizationFacadePackage}.facade.teaching.dto.SchoolClassDetailDTO;
-import ${organizationFacadePackage}.facade.user.dto.UserDetailDTO;
-import ${organizationFacadePackage}.facade.teaching.SchoolClassFacade;
-import ${organizationFacadePackage}.facade.user.UserFacade;
+import top.egon.cola.organization.facade.teaching.dto.SchoolClassDetailDTO;
+import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
+import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
+import top.egon.cola.organization.facade.user.UserFacade;
 import ${package}.domain.client.ExternalDependencyException;
 import ${package}.domain.client.organization.OrganizationDirectoryPort;
 import ${package}.domain.client.organization.OrganizationSchoolClass;

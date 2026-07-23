@@ -8,11 +8,10 @@ ${symbol_pound} ${rootArtifactId}
 ${symbol_pound}${symbol_pound} Module Ownership
 
 - `${rootArtifactId}-common`: stable errors, constants, enums, and identifier utilities.
-- `${rootArtifactId}-facade`: serializable Dubbo request/response contracts and public facade APIs.
 - `${rootArtifactId}-domain`: entities, aggregates, value objects, domain services, repository/event ports, and the consumer-owned Organization directory port. It contains no persistence, MQ, Facade, or Dubbo implementation.
 - `${rootArtifactId}-application`: commands, queries, use-case managers, application validation, and result models.
-- `${rootArtifactId}-infrastructure`: Spring Data JPA repositories, Flyway migrations, RabbitMQ/local publisher implementations, and the Organization Facade anti-corruption adapter.
-- `${rootArtifactId}-adapter`: Dubbo providers, facade conversion, validation, exception translation, and the score-command MQ consumer.
+- `${rootArtifactId}-infrastructure`: Spring Data JPA repositories, Flyway migrations, RabbitMQ/local publisher implementations, and the `top.egon:egon-cola-organization-facade` anti-corruption adapter.
+- `${rootArtifactId}-adapter`: Dubbo providers for `top.egon:egon-cola-evaluation-facade`, facade conversion, validation, exception translation, and the score-command MQ consumer.
 - `${rootArtifactId}-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
 
 ${symbol_pound}${symbol_pound} Domain-first package layout
@@ -20,10 +19,10 @@ ${symbol_pound}${symbol_pound} Domain-first package layout
 Business-owned code puts the domain before the technical responsibility:
 
 ```text
-facade/course/dto
 domain/exam/entities
 application/course/manage
 infrastructure/exam/repo
+adapter/course/facade/impl
 adapter/exam/mq
 ```
 
@@ -32,13 +31,12 @@ This remains service-only: business traffic enters through Dubbo Triple or Rabbi
 The allowed internal dependency graph is:
 
 ```text
-Common <- Domain <- Application <- Adapter
-Facade <------------------------- Adapter
-          Domain <- Infrastructure
+Common <- Domain <- Application <- Adapter <- Canonical Evaluation Facade
+          Domain <- Infrastructure <- Canonical Organization Facade
           Adapter <- Starter -> Infrastructure
 ```
 
-More precisely: Domain depends only on Common; Application and Infrastructure depend only on Domain; Adapter depends only on Application and Facade. Facade and Common have no inward dependency. Starter is the composition root.
+More precisely: Domain depends only on Common; Application and Infrastructure depend only on Domain; Adapter depends only on Application. Adapter implements the external Evaluation Facade contract, Infrastructure consumes the external Organization Facade contract, and neither published Facade depends on this generated project. Starter is the composition root, so there is no Web/Service Maven dependency cycle.
 
 ${symbol_pound}${symbol_pound} Example Flows
 
@@ -53,7 +51,7 @@ ${symbol_pound}${symbol_pound} Profiles And Integrations
 
 `local` is the default profile. Both `local` and `test` use H2 in PostgreSQL compatibility mode and require no Nacos, RabbitMQ, or PostgreSQL service. RabbitMQ publishers and listeners are disabled in `test`; `local` uses the local publisher implementation unless explicitly enabled.
 
-The Organization Facade client is an unused infrastructure foundation. `local` and `test` select a deterministic `OrganizationDirectoryPort` stub. `dev` and `prod` select the real Dubbo client, pin its Facade artifact through the generated POM, and fail explicitly when the provider is unavailable. No current Application use case calls this port.
+The Organization Facade client is an unused infrastructure foundation. `local` and `test` select a deterministic `OrganizationDirectoryPort` stub. `dev` and `prod` select the real Dubbo client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. The adapter implements `top.egon:egon-cola-evaluation-facade`. No current Application use case calls the Organization port.
 
 `dev` and `prod` are external-integration profiles. Configure them through environment variables rather than committed secrets:
 

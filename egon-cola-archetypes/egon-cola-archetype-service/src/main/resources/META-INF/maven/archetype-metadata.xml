@@ -9,10 +9,6 @@
         <requiredProperty key="gitignore">
             <defaultValue>.gitignore</defaultValue>
         </requiredProperty>
-        <requiredProperty key="organizationFacadeGroupId"/>
-        <requiredProperty key="organizationFacadeArtifactId"/>
-        <requiredProperty key="organizationFacadeVersion"/>
-        <requiredProperty key="organizationFacadePackage"/>
     </requiredProperties>
 
     <fileSets>
@@ -86,51 +82,6 @@
 
     <modules>
         <module id="${rootArtifactId}-common" dir="__rootArtifactId__-common" name="${rootArtifactId}-common">
-            <fileSets>
-                <fileSet filtered="true" encoding="UTF-8">
-                    <directory></directory>
-                    <includes>
-                        <include>pom.xml</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" packaged="true" encoding="UTF-8">
-                    <directory>src/main/java</directory>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" encoding="UTF-8">
-                    <directory>src/main/resources</directory>
-                    <includes>
-                        <include>**/*.xml</include>
-                        <include>**/*.yml</include>
-                        <include>**/*.yaml</include>
-                        <include>**/*.properties</include>
-                        <include>**/*.sql</include>
-                        <include>.gitkeep</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" packaged="true" encoding="UTF-8">
-                    <directory>src/test/java</directory>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" encoding="UTF-8">
-                    <directory>src/test/resources</directory>
-                    <includes>
-                        <include>**/*.xml</include>
-                        <include>**/*.yml</include>
-                        <include>**/*.yaml</include>
-                        <include>**/*.properties</include>
-                        <include>**/*.sql</include>
-                        <include>.gitkeep</include>
-                    </includes>
-                </fileSet>
-            </fileSets>
-        </module>
-
-        <module id="${rootArtifactId}-facade" dir="__rootArtifactId__-facade" name="${rootArtifactId}-facade">
             <fileSets>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory></directory>
