@@ -5,9 +5,9 @@ import ${package}.application.teaching.command.CreateGradeCommand;
 import ${package}.application.teaching.manage.GradeManage;
 import ${package}.application.teaching.query.GradeDetailQuery;
 import ${package}.application.teaching.result.GradeDetailResult;
-import ${package}.facade.teaching.dto.CreateGradeDTO;
-import ${package}.facade.teaching.dto.GradeDetailDTO;
-import ${package}.facade.teaching.GradeFacade;
+import top.egon.cola.organization.facade.teaching.dto.CreateGradeDTO;
+import top.egon.cola.organization.facade.teaching.dto.GradeDetailDTO;
+import top.egon.cola.organization.facade.teaching.GradeFacade;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 

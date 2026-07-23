@@ -4,8 +4,8 @@ import ${package}.adapter.user.dto.CreateUserRequest;
 import ${package}.adapter.user.vo.UserDetailVO;
 import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.user.result.UserDetailResult;
-import ${package}.facade.user.dto.CreateUserDTO;
-import ${package}.facade.user.dto.UserDetailDTO;
+import top.egon.cola.organization.facade.user.dto.CreateUserDTO;
+import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
 import org.springframework.stereotype.Component;
 
 @Component("userAdapterConverter")

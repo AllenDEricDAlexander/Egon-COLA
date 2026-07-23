@@ -3,7 +3,7 @@ package ${package}.adapter.facade.impl;
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
-import ${package}.facade.exceptions.OrganizationFacadeException;
+import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
 import org.apache.dubbo.rpc.RpcContext;
 
 import java.util.Arrays;

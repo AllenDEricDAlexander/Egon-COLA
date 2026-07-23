@@ -3,8 +3,8 @@ package ${package}.adapter.user.facade.impl;
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import ${package}.application.user.command.AssignRoleCommand;
 import ${package}.application.user.manage.RoleManage;
-import ${package}.facade.user.dto.AssignRoleDTO;
-import ${package}.facade.user.RoleFacade;
+import top.egon.cola.organization.facade.user.dto.AssignRoleDTO;
+import top.egon.cola.organization.facade.user.RoleFacade;
 import org.springframework.stereotype.Service;
 
 @Service("roleFacade")

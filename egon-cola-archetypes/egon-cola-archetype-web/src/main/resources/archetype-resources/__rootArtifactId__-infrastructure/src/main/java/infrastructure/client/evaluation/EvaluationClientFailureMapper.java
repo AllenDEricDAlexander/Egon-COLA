@@ -3,7 +3,7 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.client.evaluation;
 
-import ${evaluationFacadePackage}.facade.dto.SingleResponse;
+import top.egon.cola.evaluation.facade.dto.SingleResponse;
 import ${package}.domain.client.ExternalDependencyException;
 import ${package}.domain.client.ExternalDependencyFailure;
 import java.util.Locale;

@@ -1,7 +1,7 @@
 package ${package}.adapter.teaching.rpc;
 
-import ${package}.facade.teaching.GradeFacade;
-import ${package}.facade.teaching.SchoolClassFacade;
+import top.egon.cola.organization.facade.teaching.GradeFacade;
+import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.springframework.context.annotation.Bean;

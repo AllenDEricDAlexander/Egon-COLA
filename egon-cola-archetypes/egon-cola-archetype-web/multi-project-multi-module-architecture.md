@@ -16,11 +16,17 @@ student-management-evaluation    // 评价管理工程：course + exam
 ```text
 starter          // 启动类和业务无关配置
 adapter          // 入站适配层
-facade           // 对外契约层
 application      // 应用编排层
 domain           // 领域核心层
 infrastructure   // 基础设施层
 common           // 工程内部通用基础层
+```
+
+对外契约不在生成项目内重复创建，而是由 Provider 和 Consumer 共同依赖两个独立 artifact：
+
+```text
+top.egon:egon-cola-organization-facade
+top.egon:egon-cola-evaluation-facade
 ```
 
 两个 Project 的领域划分如下：
@@ -45,7 +51,7 @@ student-management-evaluation
 5. application 只做应用编排。
 6. domain 只沉淀核心业务规则。
 7. infrastructure 只处理技术实现。
-8. facade 独立承载对外契约。
+8. canonical facade artifact 独立承载对外契约，不反向依赖生成项目。
 ```
 
 一句话：
@@ -87,20 +93,21 @@ starter import adapter
 starter import infrastructure
 
 adapter import application
-adapter import facade
+adapter import canonical provider facade
 
 application import domain
 
 domain import common
 
 infrastructure import domain
+infrastructure import canonical consumer facade
 ```
 
 注意：
 
 ```text
-1. facade 不依赖 common。
-2. facade 有自己的 utils、enums、exceptions。
+1. canonical facade 不依赖生成项目的 common。
+2. canonical facade 有自己的 utils、enums、exceptions。
 3. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
 4. application 不放 facade.impl。
 5. infrastructure 只声明 infrastructure import domain，直接实现 domain 定义的仓储和出站端口。
@@ -109,19 +116,13 @@ infrastructure import domain
 ## 2.3 依赖关系图
 
 ```text
-                    starter
-                       |
-            -----------------------
-            |                     |
-         adapter             infrastructure
-            |                     |
-      -------------               |
-      |           |               |
-application   facade              |
-      |                           |
-    domain <-----------------------
-      |
-    common
+Canonical Provider Facade -> adapter -> application -> domain -> common
+                                      starter
+                                         |
+                             adapter ----+---- infrastructure
+                                                |
+                                              domain
+Canonical Consumer Facade -> infrastructure
 ```
 
 ## 2.4 禁止依赖
@@ -130,13 +131,13 @@ application   facade              |
 1. domain 不依赖 application。
 2. domain 不依赖 infrastructure。
 3. domain 不依赖 adapter。
-4. domain 不依赖 facade。
+4. domain 不依赖 canonical facade。
 5. application 不依赖 infrastructure。
 6. application 不依赖 adapter。
-7. application 不依赖 facade。
-8. facade 不依赖 application。
-9. facade 不依赖 domain。
-10. facade 不依赖 common。
+7. application 不依赖 canonical facade。
+8. canonical facade 不依赖 application。
+9. canonical facade 不依赖 domain。
+10. canonical facade 不依赖 common。
 11. infrastructure 不依赖 adapter。
 12. starter 不写业务，只负责装配 adapter 和 infrastructure。
 ```
@@ -237,16 +238,16 @@ adapter
 
 ---
 
-## 3.3 facade 模块
+## 3.3 canonical facade 契约 artifact
 
 ### 职责
 
-`facade` 是对外契约层，只定义对外接口、DTO、枚举、异常、工具类。
+canonical facade 是生成项目之外独立发布的对外契约，只定义接口、DTO、枚举、异常和工具类。
 
 ### 结构
 
 ```text
-facade
+top.egon.cola.<bounded-context>.facade
     - <business-domain>
         - Facade定义
         - dto
@@ -270,7 +271,7 @@ facade
 
 ```text
 1. 不写 Facade 实现。
-2. 不依赖 common。
+2. 不依赖任何生成项目的 common。
 3. 不依赖 application。
 4. 不依赖 domain。
 5. 不依赖 infrastructure。
@@ -508,7 +509,6 @@ workspace
 │   ├── pom.xml
 │   ├── student-management-organization-starter
 │   ├── student-management-organization-common
-│   ├── student-management-organization-facade
 │   ├── student-management-organization-application
 │   ├── student-management-organization-domain
 │   ├── student-management-organization-infrastructure
@@ -518,7 +518,6 @@ workspace
     ├── pom.xml
     ├── student-management-evaluation-starter
     ├── student-management-evaluation-common
-    ├── student-management-evaluation-facade
     ├── student-management-evaluation-application
     ├── student-management-evaluation-domain
     ├── student-management-evaluation-infrastructure
@@ -539,7 +538,7 @@ teaching    // 班级、年级、教学组织
 业务代码统一采用领域优先路径，下面各模块的类型清单均以此映射为准：
 
 ```text
-facade/{user,teaching}/dto
+top.egon.cola.organization.facade/{user,teaching}/dto // canonical artifact
 domain/{user,teaching}/{aggregates,client,entities,enums,events,repos,service,validators,vos}
 application/{user,teaching}/{assemblers,command,converter,manage,query,result,validators}
 infrastructure/{user,teaching}/{repo,cache}
@@ -614,54 +613,9 @@ student-management-organization-common
 │           └── application-test.yml                               // 测试配置
 ```
 
-### 4.2.3 organization-facade
+### 4.2.3 organization canonical facade
 
-```text
-student-management-organization-facade
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/organization/facade
-│   │           ├── package-info.java
-│   │           ├── user
-│   │           │   ├── package-info.java
-│   │           │   ├── UserFacade.java                            // 用户 Facade
-│   │           │   ├── RoleFacade.java                            // 角色 Facade
-│   │           │   ├── PermissionFacade.java                      // 权限 Facade
-│   │           │   └── dto
-│   │           │       ├── CreateUserDTO.java                     // 创建用户 DTO
-│   │           │       ├── UserDetailDTO.java                     // 用户详情 DTO
-│   │           │       ├── AssignRoleDTO.java                     // 分配角色 DTO
-│   │           │       └── PermissionTreeDTO.java                 // 权限树 DTO
-│   │           ├── teaching
-│   │           │   ├── package-info.java
-│   │           │   ├── SchoolClassFacade.java                     // 班级 Facade
-│   │           │   ├── GradeFacade.java                           // 年级 Facade
-│   │           │   └── dto
-│   │           │       ├── CreateSchoolClassDTO.java              // 创建班级 DTO
-│   │           │       ├── SchoolClassDetailDTO.java              // 班级详情 DTO
-│   │           │       ├── CreateGradeDTO.java                    // 创建年级 DTO
-│   │           │       └── GradeDetailDTO.java                    // 年级详情 DTO
-│   │           ├── enums
-│   │           │   ├── package-info.java
-│   │           │   ├── OrganizationFacadeStatus.java              // Facade 状态枚举
-│   │           │   ├── UserFacadeType.java                        // 用户 Facade 类型
-│   │           │   └── TeachingFacadeType.java                    // 教学组织 Facade 类型
-│   │           ├── exceptions
-│   │           │   ├── package-info.java
-│   │           │   └── OrganizationFacadeException.java           // Facade 异常
-│   │           └── utils
-│   │               ├── package-info.java
-│   │               └── OrganizationFacadeUtils.java               // Facade 工具
-│   └── test
-│       ├── java
-│       │   └── com/example/student/organization/facade
-│       │       ├── package-info.java
-│       │       └── OrganizationFacadeContractTest.java            // Facade 契约测试
-│       └── resources
-│           └── application-test.yml
-```
+Organization Provider 契约位于独立 artifact `top.egon:egon-cola-organization-facade`，稳定包根为 `top.egon.cola.organization.facade`。生成项目的 Adapter 实现该契约，但不会生成本地 facade 模块；契约 artifact 不依赖生成项目。
 
 ### 4.2.4 organization-application
 
@@ -1088,8 +1042,8 @@ exam        // 考试、成绩、评价
 业务代码统一采用领域优先路径，Service Project 不创建 Controller、Web Filter、GraphQL 或 VO 包：
 
 ```text
-facade/course/{CourseFacade,dto}
-facade/exam/{ExamFacade,ScoreFacade,dto}
+top.egon.cola.evaluation.facade/course/{CourseFacade,dto} // canonical artifact
+top.egon.cola.evaluation.facade/exam/{ExamFacade,ScoreFacade,dto} // canonical artifact
 domain/{course,exam}/{aggregates,entities,enums,event,repos,service,validators,vos}
 application/{course,exam}/{command,converter,manage,query,result,validators}
 infrastructure/{course,exam}/{repo,mq}
@@ -1163,56 +1117,9 @@ student-management-evaluation-common
 │           └── application-test.yml
 ```
 
-### 4.3.3 evaluation-facade
+### 4.3.3 evaluation canonical facade
 
-```text
-student-management-evaluation-facade
-├── pom.xml
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── com/example/student/evaluation/facade
-│   │           ├── package-info.java
-│   │           ├── course
-│   │           │   ├── package-info.java
-│   │           │   ├── CourseFacade.java                         // 课程 Facade
-│   │           │   └── CourseScheduleFacade.java                 // 课程安排 Facade
-│   │           ├── exam
-│   │           │   ├── package-info.java
-│   │           │   ├── ExamFacade.java                           // 考试 Facade
-│   │           │   └── ScoreFacade.java                          // 成绩 Facade
-│   │           ├── dto
-│   │           │   ├── package-info.java
-│   │           │   ├── course
-│   │           │   │   ├── package-info.java
-│   │           │   │   ├── CreateCourseDTO.java                  // 创建课程 DTO
-│   │           │   │   ├── CourseDetailDTO.java                  // 课程详情 DTO
-│   │           │   │   └── CourseScheduleDTO.java                // 课程安排 DTO
-│   │           │   └── exam
-│   │           │       ├── package-info.java
-│   │           │       ├── CreateExamDTO.java                    // 创建考试 DTO
-│   │           │       ├── ExamDetailDTO.java                    // 考试详情 DTO
-│   │           │       ├── SubmitScoreDTO.java                   // 提交成绩 DTO
-│   │           │       └── ScoreDetailDTO.java                   // 成绩详情 DTO
-│   │           ├── enums
-│   │           │   ├── package-info.java
-│   │           │   ├── EvaluationFacadeStatus.java               // Facade 状态枚举
-│   │           │   ├── CourseFacadeType.java                     // 课程 Facade 类型
-│   │           │   └── ExamFacadeType.java                       // 考试 Facade 类型
-│   │           ├── exceptions
-│   │           │   ├── package-info.java
-│   │           │   └── EvaluationFacadeException.java            // Facade 异常
-│   │           └── utils
-│   │               ├── package-info.java
-│   │               └── EvaluationFacadeUtils.java                // Facade 工具
-│   └── test
-│       ├── java
-│       │   └── com/example/student/evaluation/facade
-│       │       ├── package-info.java
-│       │       └── EvaluationFacadeContractTest.java             // Facade 契约测试
-│       └── resources
-│           └── application-test.yml
-```
+Evaluation Provider 契约位于独立 artifact `top.egon:egon-cola-evaluation-facade`，稳定包根为 `top.egon.cola.evaluation.facade`。生成项目的 Adapter 实现该契约，但不会生成本地 facade 模块；契约 artifact 不依赖生成项目。
 
 ### 4.3.4 evaluation-application
 
@@ -1585,7 +1492,7 @@ student-management-evaluation-adapter
 ```text
 1. student-management-organization 和 student-management-evaluation 是两个独立 Project。
 2. 不允许再额外创建 student-management 根聚合工程统一管理两个 Project。
-3. 跨 Project 调用只能通过 facade、RPC、HTTP、MQ 或 domain.client 出站端口完成。
+3. 跨 Project 调用只能通过 canonical facade、RPC、HTTP、MQ 或 domain.client 出站端口完成。
 4. 一个 Project 内部可以有多个领域包。
 5. 一个 Project 内部领域之间由 application 编排，不建议 domain 之间互相依赖。
 ```
@@ -1602,19 +1509,19 @@ student-management-evaluation-adapter
 
 ```text
 1. adapter 只处理入站请求。
-2. adapter 可以依赖 application 和 facade。
+2. adapter 可以依赖 application 和对应的 canonical provider facade。
 3. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
 4. adapter.<domain>.mq 只负责入站消息消费。
 5. adapter 不直接访问数据库、缓存和 MQ 出站能力。
 ```
 
-## 5.4 facade 约束
+## 5.4 canonical facade 约束
 
 ```text
-1. facade 不依赖 common。
-2. facade 拥有自己的 utils、enums、exceptions。
-3. facade 只定义接口契约，不写实现。
-4. facade 不依赖 application、domain、infrastructure、adapter。
+1. canonical facade 不依赖生成项目的 common。
+2. canonical facade 拥有自己的 utils、enums、exceptions。
+3. canonical facade 只定义接口契约，不写实现。
+4. canonical facade 不依赖 application、domain、infrastructure、adapter。
 ```
 
 ## 5.5 application 约束
@@ -1747,12 +1654,13 @@ student-management-evaluation    // 独立 Project
 ```text
 starter
 common
-facade
 application
 domain
 infrastructure
 adapter
 ```
+
+两个 canonical facade artifact 位于生成项目之外，由 Provider 与 Consumer 共同依赖。
 
 每个分层模块内部再按领域分包：
 
@@ -1770,10 +1678,10 @@ evaluation:
 
 ```text
 starter -> adapter / infrastructure
-adapter -> application / facade
+adapter -> application / canonical provider facade
 application -> domain
 domain -> common
-infrastructure -> domain
+infrastructure -> domain / canonical consumer facade
 ```
 
 关键规范：
@@ -1782,7 +1690,7 @@ infrastructure -> domain
 1. 两个工程不是一个根工程下的两个模块。
 2. adapter/<domain>/facade/impl 是 Facade 实现唯一位置。
 3. application 不放 facade.impl。
-4. facade 不依赖 common，facade 有自己的 utils、enums、exceptions。
+4. canonical facade 不依赖生成项目，且有自己的 utils、enums、exceptions。
 5. infrastructure 的 repository 实现必须使用 infrastructure.<domain>.repo 方向。
 6. domain service 必须使用 service / service.impl。
 7. application manage 必须使用 application.<domain>.manage.impl 方向。

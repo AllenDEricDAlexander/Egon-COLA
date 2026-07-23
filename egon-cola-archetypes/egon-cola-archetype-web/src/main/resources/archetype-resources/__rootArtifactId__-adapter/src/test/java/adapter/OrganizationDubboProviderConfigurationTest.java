@@ -2,11 +2,11 @@ package ${package}.adapter;
 
 import ${package}.adapter.teaching.rpc.SchoolClassRpcProvider;
 import ${package}.adapter.user.rpc.UserRpcProvider;
-import ${package}.facade.teaching.GradeFacade;
-import ${package}.facade.teaching.SchoolClassFacade;
-import ${package}.facade.user.PermissionFacade;
-import ${package}.facade.user.RoleFacade;
-import ${package}.facade.user.UserFacade;
+import top.egon.cola.organization.facade.teaching.GradeFacade;
+import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
+import top.egon.cola.organization.facade.user.PermissionFacade;
+import top.egon.cola.organization.facade.user.RoleFacade;
+import top.egon.cola.organization.facade.user.UserFacade;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.junit.jupiter.api.Test;
 

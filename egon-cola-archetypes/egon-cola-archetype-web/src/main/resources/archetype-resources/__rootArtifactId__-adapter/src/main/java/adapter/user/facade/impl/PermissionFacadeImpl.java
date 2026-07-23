@@ -5,9 +5,9 @@ import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.query.PermissionTreeQuery;
 import ${package}.application.user.result.PermissionTreeResult;
-import ${package}.facade.user.dto.GrantPermissionDTO;
-import ${package}.facade.user.dto.PermissionTreeDTO;
-import ${package}.facade.user.PermissionFacade;
+import top.egon.cola.organization.facade.user.dto.GrantPermissionDTO;
+import top.egon.cola.organization.facade.user.dto.PermissionTreeDTO;
+import top.egon.cola.organization.facade.user.PermissionFacade;
 import org.springframework.stereotype.Service;
 
 @Service("permissionFacade")

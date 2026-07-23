@@ -261,33 +261,6 @@ def requiredFiles = [
     "student-management-organization-domain/src/test/java/it/pkg/domain/user/UserDomainServiceTest.java",
     "student-management-organization-domain/src/test/java/it/pkg/domain/user/package-info.java",
     "student-management-organization-domain/src/test/resources/.gitkeep",
-    "student-management-organization-facade/pom.xml",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/AssignUserToClassDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/CreateGradeDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/CreateSchoolClassDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/GradeDetailDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/SchoolClassDetailDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/package-info.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/AssignRoleDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/CreateUserDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/GrantPermissionDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/PermissionTreeDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/UserDetailDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/package-info.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/exceptions/OrganizationFacadeException.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/exceptions/package-info.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/GradeFacade.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/SchoolClassFacade.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/teaching/package-info.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/PermissionFacade.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/RoleFacade.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/UserFacade.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/user/package-info.java",
-    "student-management-organization-facade/src/main/resources/.gitkeep",
-    "student-management-organization-facade/src/test/java/it/pkg/.gitkeep",
-    "student-management-organization-facade/src/test/java/it/pkg/facade/OrganizationFacadeContractTest.java",
-    "student-management-organization-facade/src/test/java/it/pkg/facade/package-info.java",
-    "student-management-organization-facade/src/test/resources/.gitkeep",
     "student-management-organization-infrastructure/pom.xml",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/aop/OrganizationLogAspect.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/aop/package-info.java",
@@ -582,24 +555,13 @@ requiredFiles.addAll([
 requiredFiles.each { assertFile(it) }
 
 [
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/package-info.java"
 ].each { assertMissing(it) }
-assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/dto/CreateUserDTO.java")
-assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/dto/SchoolClassDetailDTO.java")
 
 def forbiddenPaths = [
     "student-management-evaluation",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/user",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/facade/teaching",
     "student-management-organization-adapter/src/main/java/it/pkg/adapter/validation",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/PageResponse.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/CreateUserRequest.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/user/UserDTO.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/CreateSchoolClassRequest.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/AssignUserToClassRequest.java",
-    "student-management-organization-facade/src/main/java/it/pkg/facade/dto/teaching/SchoolClassDTO.java",
     "student-management-organization-common/src/main/java/it/pkg/common/response",
     "student-management-organization-domain/src/main/java/it/pkg/domain/common",
     "student-management-organization-domain/src/main/java/it/pkg/domain/enums/UserStatus.java",
@@ -652,7 +614,7 @@ def assertPackageDocs = { String sourceRoot ->
     }
 }
 
-["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each { module ->
+["common", "domain", "application", "infrastructure", "adapter", "starter"].each { module ->
     assertPackageDocs("student-management-organization-${module}/src/main/java")
     assertPackageDocs("student-management-organization-${module}/src/test/java")
 }
@@ -688,6 +650,7 @@ collectSourceConfigDocFiles = { dir, files ->
         }
     }
 }
+assertMissing("student-management-organization-facade")
 
 def assertNoStaleText = { files, token ->
     def matches = []
@@ -920,7 +883,7 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
     assert gitignoreLines.contains(it): "Expected .gitignore to contain line ${it}"
 }
 
-["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"].each { module ->
+["common", "domain", "application", "infrastructure", "adapter", "starter"].each { module ->
     def root = "student-management-organization-${module}"
     assertDir(root)
     ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"].each { sourceDirectory ->
@@ -977,11 +940,14 @@ def assertEgonColaBom = { pomModel ->
     assert bom.type.text() == "pom"
     assert bom.scope.text() == "import"
 }
-assert rootPom.properties.'evaluation-facade.group-id'.text() == "fixture.evaluation"
-assert rootPom.properties.'evaluation-facade.artifact-id'.text() ==
-        "student-management-evaluation-facade"
-assert rootPom.properties.'evaluation-facade.version'.text() == "1.0.0-fixture"
-assert rootPom.properties.'evaluation-facade.package'.text() == "fixture.evaluation"
+assert rootPom.properties.'organization-facade.group-id'.text() == "top.egon"
+assert rootPom.properties.'organization-facade.artifact-id'.text() == "egon-cola-organization-facade"
+assert rootPom.properties.'organization-facade.version'.text() == '${egon-cola.version}'
+assert rootPom.properties.'organization-facade.package'.text() == "top.egon.cola.organization"
+assert rootPom.properties.'evaluation-facade.group-id'.text() == "top.egon"
+assert rootPom.properties.'evaluation-facade.artifact-id'.text() == "egon-cola-evaluation-facade"
+assert rootPom.properties.'evaluation-facade.version'.text() == '${egon-cola.version}'
+assert rootPom.properties.'evaluation-facade.package'.text() == "top.egon.cola.evaluation"
 assert rootPom.parent.groupId.text() == "org.springframework.boot"
 assert rootPom.parent.artifactId.text() == "spring-boot-starter-parent"
 assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent version"
@@ -995,6 +961,14 @@ assert rootPom.properties.'java.version'.text() == "21"
     "springdoc.version"
 ].each { assertVersionProperty(rootPom, it) }
 assertEgonColaBom(rootPom)
+assert rootPom.modules.module*.text() == [
+    "student-management-organization-common",
+    "student-management-organization-domain",
+    "student-management-organization-application",
+    "student-management-organization-infrastructure",
+    "student-management-organization-adapter",
+    "student-management-organization-starter"
+]
 assert !rootPomText.contains("<artifactId>egon-cola-component-common</artifactId>")
 assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>")
 assert !rootPomText.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
@@ -1111,7 +1085,6 @@ def assertSpringBootLayeredJarPlugin = { pomModel ->
 
 def moduleArtifactIds = [
     "student-management-organization-common",
-    "student-management-organization-facade",
     "student-management-organization-domain",
     "student-management-organization-application",
     "student-management-organization-infrastructure",
@@ -1130,7 +1103,6 @@ def assertModuleDependencies = { deps, expected ->
 }
 
 def commonPom = modulePom("common")
-def facadePom = modulePom("facade")
 def domainPom = modulePom("domain")
 def applicationPom = modulePom("application")
 def infrastructurePom = modulePom("infrastructure")
@@ -1143,14 +1115,12 @@ assert starterPomText.contains("<enabled>true</enabled>")
 assertSpringBootLayeredJarPlugin(starterPom)
 
 assert commonPom.artifactId.text() == "student-management-organization-common"
-assert facadePom.artifactId.text() == "student-management-organization-facade"
 assert domainPom.artifactId.text() == "student-management-organization-domain"
 assert applicationPom.artifactId.text() == "student-management-organization-application"
 assert infrastructurePom.artifactId.text() == "student-management-organization-infrastructure"
 assert adapterPom.artifactId.text() == "student-management-organization-adapter"
 assert starterPom.artifactId.text() == "student-management-organization-starter"
 
-def facadeDependencies = dependencies(facadePom)
 def domainDependencies = dependencies(domainPom)
 def applicationDependencies = dependencies(applicationPom)
 def infrastructureDependencies = dependencies(infrastructurePom)
@@ -1159,24 +1129,28 @@ def starterDependencies = dependencies(starterPom)
 
 def externalFacadeDependencies = { pomModel ->
     pomModel.dependencies.dependency.findAll {
-        it.groupId.text() == '${evaluation-facade.group-id}'
-                || it.artifactId.text() == '${evaluation-facade.artifact-id}'
+        it.artifactId.text() in [
+            '${organization-facade.artifact-id}',
+            '${evaluation-facade.artifact-id}'
+        ]
     }.collect { [groupId: it.groupId.text(), artifactId: it.artifactId.text()] }
 }
 assert externalFacadeDependencies(infrastructurePom) == [[
     groupId: '${evaluation-facade.group-id}',
     artifactId: '${evaluation-facade.artifact-id}'
 ]]
+assert externalFacadeDependencies(adapterPom) == [[
+    groupId: '${organization-facade.group-id}',
+    artifactId: '${organization-facade.artifact-id}'
+]]
 [
     common: commonPom,
-    facade: facadePom,
     domain: domainPom,
     application: applicationPom,
-    adapter: adapterPom,
     starter: starterPom
 ].each { module, pomModel ->
     assert externalFacadeDependencies(pomModel).isEmpty():
-            "Unexpected Evaluation Facade dependency in ${module}"
+            "Unexpected canonical Facade dependency in ${module}"
 }
 
 def assertExactExternalDependencies = { module, actual, expected ->
@@ -1187,14 +1161,10 @@ def assertExactExternalDependencies = { module, actual, expected ->
 }
 
 assertModuleDependencies(dependencies(commonPom), [])
-assertModuleDependencies(facadeDependencies, [])
 assertModuleDependencies(domainDependencies, ["student-management-organization-common"])
 assertModuleDependencies(applicationDependencies, ["student-management-organization-domain"])
 assertModuleDependencies(infrastructureDependencies, ["student-management-organization-domain"])
-assertModuleDependencies(adapterDependencies, [
-    "student-management-organization-application",
-    "student-management-organization-facade"
-])
+assertModuleDependencies(adapterDependencies, ["student-management-organization-application"])
 assertModuleDependencies(starterDependencies, [
     "student-management-organization-adapter",
     "student-management-organization-infrastructure"
@@ -1202,9 +1172,6 @@ assertModuleDependencies(starterDependencies, [
 
 assertExactExternalDependencies("common", dependencies(commonPom), [
     "egon-cola-component-common-core", "junit-jupiter"
-])
-assertExactExternalDependencies("facade", facadeDependencies, [
-    "jakarta.validation-api", "lombok", "junit-jupiter", "hibernate-validator", "jackson-databind"
 ])
 assertExactExternalDependencies("domain", domainDependencies, ["junit-jupiter"])
 assertExactExternalDependencies("application", applicationDependencies, [
@@ -1218,6 +1185,7 @@ assertExactExternalDependencies("infrastructure", infrastructureDependencies, [
     "mapstruct-plus-spring-boot-starter", "lombok", "spring-boot-starter-test"
 ])
 assertExactExternalDependencies("adapter", adapterDependencies, [
+    '${organization-facade.artifact-id}',
     "spring-boot-starter-web", "spring-boot-starter-validation", "spring-boot-starter-graphql",
     "spring-boot-starter-amqp", "springdoc-openapi-starter-webmvc-api", "dubbo-spring-boot-starter",
     "mapstruct-plus-spring-boot-starter", "lombok", "spring-boot-starter-test", "spring-graphql-test"
@@ -1228,10 +1196,6 @@ assertExactExternalDependencies("starter", starterDependencies, [
     "spring-cloud-starter-alibaba-nacos-config", "micrometer-registry-prometheus", "lombok",
     "spring-boot-starter-test"
 ])
-
-assertDependency(facadeDependencies, "jakarta.validation-api")
-assertNoDependency(facadeDependencies, "spring-boot-starter-validation")
-assertScopedDependency(facadeDependencies, "lombok", "provided")
 
 assertDependency(domainDependencies, "student-management-organization-common")
 assertNoDependency(domainDependencies, "spring-boot-starter-validation")
@@ -1248,6 +1212,7 @@ assertNoDependency(applicationDependencies, "student-management-organization-inf
 
 assertDependency(infrastructureDependencies, "student-management-organization-domain")
 assertDependency(infrastructureDependencies, '${evaluation-facade.artifact-id}')
+assertNoDependency(infrastructureDependencies, '${organization-facade.artifact-id}')
 assertDependency(infrastructureDependencies, "dubbo-spring-boot-starter")
 assertNoDependency(infrastructureDependencies, "student-management-organization-common")
 assertNoDependency(infrastructureDependencies, "spring-boot-starter-validation")
@@ -1263,7 +1228,8 @@ assertScopedDependency(infrastructureDependencies, "postgresql", "runtime")
 assertScopedDependency(infrastructureDependencies, "lombok", "provided")
 
 assertDependency(adapterDependencies, "student-management-organization-application")
-assertDependency(adapterDependencies, "student-management-organization-facade")
+assertDependency(adapterDependencies, '${organization-facade.artifact-id}')
+assertNoDependency(adapterDependencies, '${evaluation-facade.artifact-id}')
 assertNoDependency(adapterDependencies, "student-management-organization-common")
 assertDependency(adapterDependencies, "spring-boot-starter-web")
 assertDependency(adapterDependencies, "spring-boot-starter-validation")
@@ -1289,11 +1255,6 @@ assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</arti
 
 assertMissing("student-management-organization-common/src/main/java/it/pkg/common/response/Response.java")
 assertMissing("student-management-organization-common/src/main/java/it/pkg/common/response/SingleResponse.java")
-assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/UserFacade.java")
-assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/RoleFacade.java")
-assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/PermissionFacade.java")
-assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/SchoolClassFacade.java")
-assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/teaching/GradeFacade.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/entities/User.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/user/aggregates/RolePermissionAggregate.java")
@@ -1409,7 +1370,6 @@ assertFile("student-management-organization-application/src/main/java/it/pkg/app
 assertFile("student-management-organization-domain/src/main/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate.java")
 assertFile("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/po/SchoolClassUserPO.java")
 assertMissing("student-management-organization-domain/src/main/java/it/pkg/domain/common")
-assertMissing("student-management-organization-facade/src/main/java/it/pkg/facade/dto/PageResponse.java")
 
 assertMissing("student-management-organization-adapter/src/main/java/it/pkg/adapter/convertor/SchoolClassAdapterMapper.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/converter/SchoolClassPoMapper.java")
@@ -1422,10 +1382,6 @@ def userControllerText = assertFile("student-management-organization-adapter/src
 assert userControllerText.contains('@RequestMapping("/api/v1/users")')
 assert userControllerText.contains("ResponseEntity<UserDetailVO> create")
 
-def userFacadeContractText = assertFile("student-management-organization-facade/src/main/java/it/pkg/facade/user/UserFacade.java").text
-assert userFacadeContractText.contains("UserDetailDTO createUser")
-assert userFacadeContractText.contains("UserDetailDTO getUser")
-
 def applicationJava = []
 new File(projectDir, "student-management-organization-application/src/main/java").eachFileRecurse { file ->
     if (file.isFile() && file.name.endsWith(".java")) {
@@ -1435,16 +1391,6 @@ new File(projectDir, "student-management-organization-application/src/main/java"
 assert applicationJava.every { !it.text.contains("View") }
 assert applicationJava.every { !it.text.contains("facade.dto") }
 assert applicationJava.every { !it.text.contains("common.response") }
-
-def facadeJava = []
-new File(projectDir, "student-management-organization-facade/src/main/java").eachFileRecurse { file ->
-    if (file.isFile() && file.name.endsWith(".java")) {
-        facadeJava << file
-    }
-}
-assert facadeJava.every { !it.text.contains("import it.pkg.domain.") }
-assert facadeJava.every { !it.text.contains("@AutoMapper") }
-assert facadeJava.every { !it.text.contains("@Component") }
 
 def migrationDir = new File(projectDir, "student-management-organization-infrastructure/src/main/resources/db/migration")
 def migrationFiles = migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter)
@@ -1467,7 +1413,8 @@ assert readme.contains("clean verify")
 assert !readme.contains("\n./mvnw ")
 assert readme.contains("Evaluation Facade")
 [
-    "facade/user/dto",
+    "top.egon:egon-cola-organization-facade",
+    "top.egon:egon-cola-evaluation-facade",
     "domain/user/entities",
     "application/teaching/manage",
     "infrastructure/user/repo",
@@ -1509,14 +1456,21 @@ def staleWebPaths = generatedJavaFiles.collect(relativePath).findAll { path ->
 }
 assert staleWebPaths.isEmpty(): "Unexpected technical-first Web paths: ${staleWebPaths.join(', ')}"
 
-def providerImports = generatedJavaFiles.findAll {
-    it.getText("UTF-8").contains("import fixture.evaluation.facade.")
+def evaluationFacadeImports = generatedJavaFiles.findAll {
+    it.getText("UTF-8").contains("import top.egon.cola.evaluation.facade.")
 }
-assert providerImports.every {
+assert evaluationFacadeImports.every {
     def path = relativePath(it)
     path.startsWith("student-management-organization-infrastructure/src/")
             && path.contains("/infrastructure/client/evaluation/")
-}: "Evaluation Facade imports escaped Infrastructure client: ${providerImports.collect(relativePath)}"
+}: "Evaluation Facade imports escaped Infrastructure client: ${evaluationFacadeImports.collect(relativePath)}"
+
+def organizationFacadeImports = generatedJavaFiles.findAll {
+    it.getText("UTF-8").contains("import top.egon.cola.organization.facade.")
+}
+assert organizationFacadeImports.every {
+    relativePath(it).startsWith("student-management-organization-adapter/src/")
+}: "Organization Facade imports escaped Adapter: ${organizationFacadeImports.collect(relativePath)}"
 
 def dubboReferenceImports = generatedJavaFiles.findAll {
     it.getText("UTF-8").contains("import org.apache.dubbo.config.annotation.DubboReference;")
@@ -1537,7 +1491,7 @@ assert applicationManageFiles.every {
 
 def localEvaluationStub = assertFile(
         "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStub.java").text
-assert !localEvaluationStub.contains("fixture.evaluation")
+assert !localEvaluationStub.contains("top.egon.cola.evaluation.facade")
 assert !localEvaluationStub.contains("org.apache.dubbo")
 
 [

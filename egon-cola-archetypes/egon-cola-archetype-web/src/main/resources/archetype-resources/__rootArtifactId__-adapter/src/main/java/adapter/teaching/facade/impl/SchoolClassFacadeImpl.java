@@ -6,10 +6,10 @@ import ${package}.application.teaching.command.AssignUserToClassCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
-import ${package}.facade.teaching.dto.AssignUserToClassDTO;
-import ${package}.facade.teaching.dto.CreateSchoolClassDTO;
-import ${package}.facade.teaching.dto.SchoolClassDetailDTO;
-import ${package}.facade.teaching.SchoolClassFacade;
+import top.egon.cola.organization.facade.teaching.dto.AssignUserToClassDTO;
+import top.egon.cola.organization.facade.teaching.dto.CreateSchoolClassDTO;
+import top.egon.cola.organization.facade.teaching.dto.SchoolClassDetailDTO;
+import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 

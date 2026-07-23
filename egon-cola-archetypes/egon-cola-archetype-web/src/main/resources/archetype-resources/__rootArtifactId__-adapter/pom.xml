@@ -21,8 +21,8 @@
             <artifactId>${rootArtifactId}-application</artifactId>
         </dependency>
         <dependency>
-            <groupId>${groupId}</groupId>
-            <artifactId>${rootArtifactId}-facade</artifactId>
+            <groupId>${organization-facade.group-id}</groupId>
+            <artifactId>${organization-facade.artifact-id}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

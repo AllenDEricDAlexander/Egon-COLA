@@ -5,9 +5,9 @@ import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.user.manage.UserManage;
 import ${package}.application.user.query.UserDetailQuery;
-import ${package}.facade.user.dto.CreateUserDTO;
-import ${package}.facade.user.dto.UserDetailDTO;
-import ${package}.facade.user.UserFacade;
+import top.egon.cola.organization.facade.user.dto.CreateUserDTO;
+import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
+import top.egon.cola.organization.facade.user.UserFacade;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 

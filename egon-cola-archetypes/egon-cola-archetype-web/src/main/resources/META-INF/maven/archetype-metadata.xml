@@ -8,10 +8,6 @@
         <requiredProperty key="gitignore">
             <defaultValue>.gitignore</defaultValue>
         </requiredProperty>
-        <requiredProperty key="evaluationFacadeGroupId"/>
-        <requiredProperty key="evaluationFacadeArtifactId"/>
-        <requiredProperty key="evaluationFacadeVersion"/>
-        <requiredProperty key="evaluationFacadePackage"/>
     </requiredProperties>
 
     <fileSets>
@@ -78,46 +74,6 @@
     </fileSets>
     <modules>
         <module id="${rootArtifactId}-common" dir="__rootArtifactId__-common" name="${rootArtifactId}-common">
-            <fileSets>
-                <fileSet filtered="true" encoding="UTF-8">
-                    <directory></directory>
-                    <includes>
-                        <include>pom.xml</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" packaged="true" encoding="UTF-8">
-                    <directory>src/main/java</directory>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" encoding="UTF-8">
-                    <directory>src/main/resources</directory>
-                    <includes>
-                        <include>.gitkeep</include>
-                        <include>**/*.yml</include>
-                        <include>**/*.xml</include>
-                        <include>**/*.sql</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" packaged="true" encoding="UTF-8">
-                    <directory>src/test/java</directory>
-                    <includes>
-                        <include>.gitkeep</include>
-                        <include>**/*.java</include>
-                    </includes>
-                </fileSet>
-                <fileSet filtered="true" encoding="UTF-8">
-                    <directory>src/test/resources</directory>
-                    <includes>
-                        <include>.gitkeep</include>
-                        <include>**/*.yml</include>
-                        <include>**/*.xml</include>
-                    </includes>
-                </fileSet>
-            </fileSets>
-        </module>
-        <module id="${rootArtifactId}-facade" dir="__rootArtifactId__-facade" name="${rootArtifactId}-facade">
             <fileSets>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory></directory>

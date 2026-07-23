@@ -3,13 +3,12 @@ ${symbol_pound} 学生管理组织
 
 [English](README.md) | 中文
 
-该项目由 `egon-cola-archetype-web` 生成，是一个独立的、只负责组织领域的 Project。它发布自己的 Facade artifact，并且只通过 Infrastructure adapter 使用 Evaluation Facade。
+该项目由 `egon-cola-archetype-web` 生成，是一个独立的、只负责组织领域的 Project。Adapter 实现 `top.egon:egon-cola-organization-facade`，Infrastructure 消费 `top.egon:egon-cola-evaluation-facade`。
 
 ${symbol_pound}${symbol_pound} 模块
 
 ```text
 student-management-organization-common
-student-management-organization-facade
 student-management-organization-domain
 student-management-organization-application
 student-management-organization-infrastructure
@@ -22,10 +21,10 @@ ${symbol_pound}${symbol_pound} 领域优先包布局
 业务代码先按领域组织，再按技术职责组织：
 
 ```text
-facade/user/dto
 domain/user/entities
 application/teaching/manage
 infrastructure/user/repo
+adapter/user/facade/impl
 adapter/teaching/controller
 ```
 
@@ -35,15 +34,14 @@ ${symbol_pound}${symbol_pound} 依赖方向
 
 ```text
 common         -> no generated module
-facade         -> no generated module
 domain         -> common
 application    -> domain
-infrastructure -> domain
-adapter        -> application, facade
+infrastructure -> domain, canonical Evaluation Facade
+adapter        -> application, canonical Organization Facade
 starter        -> adapter, infrastructure
 ```
 
-Infrastructure 实现 Domain 所有的端口。Adapter 不能直接访问 Infrastructure，Starter 只包含组装配置。
+Infrastructure 实现 Domain 所有的端口。Adapter 不能直接访问 Infrastructure，Starter 只包含组装配置。两个 canonical Facade 都是独立 artifact，不依赖当前生成项目，因此 Web/Service Maven 依赖图不会形成循环。
 
 ${symbol_pound}${symbol_pound} 领域
 
@@ -56,7 +54,7 @@ ${symbol_pound}${symbol_pound} 集成职责
 - Adapter 负责 HTTP `/api/v1/**`、GraphQL `/graphql`、入站 RabbitMQ command、Dubbo Facade export、请求校验、过滤器和协议转换。
 - Infrastructure 负责 JPA、Flyway、Redis adapter、出站 RabbitMQ event、Evaluation Facade 防腐 adapter、本地 fallback adapter，以及 Application 方法日志 AOP。
 - Starter 负责 OpenAPI 组装、运行时 profile、Actuator、Prometheus、Jackson、异步执行和配置解密。
-- Facade 是外部消费者可安全依赖的契约，不包含实现。
+- `top.egon:egon-cola-organization-facade` 是 Provider 契约，`top.egon:egon-cola-evaluation-facade` 是消费契约；两者都不会作为本地模块重复生成。
 
 生成的 `EvaluationQueryPort` 是暂未使用的集成基础能力；当前没有 Application 用例调用它。
 

@@ -1,8 +1,8 @@
 package ${package}.adapter.user.rpc;
 
-import ${package}.facade.user.PermissionFacade;
-import ${package}.facade.user.RoleFacade;
-import ${package}.facade.user.UserFacade;
+import top.egon.cola.organization.facade.user.PermissionFacade;
+import top.egon.cola.organization.facade.user.RoleFacade;
+import top.egon.cola.organization.facade.user.UserFacade;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.springframework.context.annotation.Bean;
