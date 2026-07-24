@@ -435,14 +435,12 @@ public class PostgresqlJdbcOutboxStore implements OutboxStore {
         }
         StringBuilder sanitized = new StringBuilder(Math.min(value.length(), maximumLength));
         value.codePoints().forEach(codePoint -> {
-            if (sanitized.length() >= maximumLength) {
-                return;
+            int width = Character.charCount(codePoint);
+            if (width <= maximumLength - sanitized.length()) {
+                sanitized.appendCodePoint(Character.isISOControl(codePoint) ? ' ' : codePoint);
             }
-            sanitized.appendCodePoint(Character.isISOControl(codePoint) ? ' ' : codePoint);
         });
-        return sanitized.length() <= maximumLength
-                ? sanitized.toString()
-                : sanitized.substring(0, maximumLength);
+        return sanitized.toString();
     }
 
     private <T> T inWorkerTransaction(WorkerOperation<T> operation, String publicMessage) {

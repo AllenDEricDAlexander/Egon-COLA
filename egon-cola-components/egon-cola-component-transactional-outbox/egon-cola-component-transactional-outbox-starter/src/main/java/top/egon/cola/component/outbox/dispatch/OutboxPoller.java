@@ -35,10 +35,12 @@ public class OutboxPoller implements SmartLifecycle {
             return;
         }
         running = true;
-        pollingFuture = taskScheduler.scheduleWithFixedDelay(
-                this::submitDueWhenRunning,
-                properties.getPolling().getFixedDelay()
-        );
+        if (properties.getPolling().isEnabled()) {
+            pollingFuture = taskScheduler.scheduleWithFixedDelay(
+                    this::submitDueWhenRunning,
+                    properties.getPolling().getFixedDelay()
+            );
+        }
         if (properties.getCleanup().isEnabled()) {
             cleanupFuture = taskScheduler.scheduleWithFixedDelay(
                     this::cleanupWhenRunning,

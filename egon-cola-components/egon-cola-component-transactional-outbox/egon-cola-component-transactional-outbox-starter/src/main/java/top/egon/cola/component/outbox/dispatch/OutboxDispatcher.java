@@ -230,22 +230,27 @@ public class OutboxDispatcher {
 
     private void deliver(OutboxRecord record) {
         Instant startedAt = clock.instant();
+        String metricResult = "error";
         DeliveryResult result;
         try {
             DeliveryHandler handler;
             try {
                 handler = handlerRegistry.required(record.channel());
             } catch (RuntimeException exception) {
-                applyResult(record, DeliveryResult.permanentFailure(HANDLER_MISSING, HANDLER_MISSING));
+                result = DeliveryResult.permanentFailure(HANDLER_MISSING, HANDLER_MISSING);
+                metricResult = metricResult(result);
+                applyResult(record, result);
                 return;
             }
             try {
                 handler.validateDestination(record.destination());
             } catch (RuntimeException exception) {
-                applyResult(
-                        record,
-                        DeliveryResult.permanentFailure(DESTINATION_INVALID, DESTINATION_INVALID)
+                result = DeliveryResult.permanentFailure(
+                        DESTINATION_INVALID,
+                        DESTINATION_INVALID
                 );
+                metricResult = metricResult(result);
+                applyResult(record, result);
                 return;
             }
             DeliveryContext context = new DeliveryContext(
@@ -272,6 +277,7 @@ public class OutboxDispatcher {
                         "OUTBOX_INVALID_DELIVERY_RESULT"
                 );
             }
+            metricResult = metricResult(result);
             applyResult(record, result);
         } catch (Error error) {
             LOGGER.error(
@@ -284,8 +290,12 @@ public class OutboxDispatcher {
             if (duration.isNegative()) {
                 duration = Duration.ZERO;
             }
-            metrics.delivery(record.channel(), "attempted", duration);
+            metrics.delivery(record.channel(), metricResult, duration);
         }
+    }
+
+    private String metricResult(DeliveryResult result) {
+        return result.kind().name().toLowerCase(java.util.Locale.ROOT);
     }
 
     private void applyResult(OutboxRecord record, DeliveryResult result) {
@@ -367,13 +377,11 @@ public class OutboxDispatcher {
         }
         StringBuilder sanitized = new StringBuilder(Math.min(value.length(), maximumLength));
         value.codePoints().forEach(codePoint -> {
-            if (sanitized.length() < maximumLength) {
+            int width = Character.charCount(codePoint);
+            if (width <= maximumLength - sanitized.length()) {
                 sanitized.appendCodePoint(Character.isISOControl(codePoint) ? ' ' : codePoint);
             }
         });
-        if (sanitized.length() > maximumLength) {
-            return sanitized.substring(0, maximumLength);
-        }
         return sanitized.toString();
     }
 

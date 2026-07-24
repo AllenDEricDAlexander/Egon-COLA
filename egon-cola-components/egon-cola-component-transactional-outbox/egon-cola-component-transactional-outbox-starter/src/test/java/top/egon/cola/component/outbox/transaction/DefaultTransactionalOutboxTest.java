@@ -13,6 +13,7 @@ import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryHandlerRegistry;
 import top.egon.cola.component.outbox.serialization.OutboxMessageSerializer;
 import top.egon.cola.component.outbox.serialization.SerializedOutboxPayload;
+import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 import top.egon.cola.component.outbox.store.NewOutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxStore;
 import top.egon.cola.component.outbox.validation.OutboxMessageValidator;
@@ -55,6 +56,7 @@ class DefaultTransactionalOutboxTest {
                 store,
                 new DeliveryHandlerRegistry(List.of(handler)),
                 afterCommitBuffer,
+                new NoopOutboxMetrics(),
                 properties
         );
     }

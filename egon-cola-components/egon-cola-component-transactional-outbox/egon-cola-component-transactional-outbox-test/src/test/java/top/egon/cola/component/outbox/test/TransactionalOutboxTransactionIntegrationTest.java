@@ -19,6 +19,7 @@ import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.component.outbox.event.OutboxCommittedEvent;
 import top.egon.cola.component.outbox.exception.OutboxTransactionMismatchException;
 import top.egon.cola.component.outbox.exception.OutboxTransactionRequiredException;
+import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 import top.egon.cola.component.outbox.serialization.JacksonOutboxMessageSerializer;
 import top.egon.cola.component.outbox.store.OutboxStore;
 import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
@@ -149,7 +150,8 @@ class TransactionalOutboxTransactionIntegrationTest extends PostgresqlOutboxTest
                 new OutboxTransactionGuard(selectedDataSource),
                 store,
                 new DeliveryHandlerRegistry(List.of(new NoOpHttpDeliveryHandler())),
-                new OutboxAfterCommitBuffer(publisher),
+                new OutboxAfterCommitBuffer(publisher, new NoopOutboxMetrics()),
+                new NoopOutboxMetrics(),
                 properties
         );
     }

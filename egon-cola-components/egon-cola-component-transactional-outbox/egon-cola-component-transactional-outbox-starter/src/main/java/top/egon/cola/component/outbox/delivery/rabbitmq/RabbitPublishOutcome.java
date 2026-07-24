@@ -38,10 +38,11 @@ public record RabbitPublishOutcome(Kind kind, String reason, Integer replyCode) 
         }
         StringBuilder sanitized = new StringBuilder(Math.min(value.length(), 256));
         value.codePoints().forEach(codePoint -> {
-            if (sanitized.length() < 256) {
+            int width = Character.charCount(codePoint);
+            if (width <= 256 - sanitized.length()) {
                 sanitized.appendCodePoint(Character.isISOControl(codePoint) ? ' ' : codePoint);
             }
         });
-        return sanitized.length() > 256 ? sanitized.substring(0, 256) : sanitized.toString();
+        return sanitized.toString();
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import top.egon.cola.component.outbox.event.OutboxCommittedEvent;
+import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -19,7 +20,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class OutboxAfterCommitBufferTest {
 
     private final ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
-    private final OutboxAfterCommitBuffer buffer = new OutboxAfterCommitBuffer(publisher);
+    private final OutboxAfterCommitBuffer buffer =
+            new OutboxAfterCommitBuffer(publisher, new NoopOutboxMetrics());
 
     @BeforeEach
     void initializeSynchronization() {

@@ -10,6 +10,7 @@ import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxPropertie
 import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryHandlerRegistry;
 import top.egon.cola.component.outbox.exception.OutboxSerializationException;
+import top.egon.cola.component.outbox.observability.OutboxMetrics;
 import top.egon.cola.component.outbox.serialization.OutboxMessageFingerprint;
 import top.egon.cola.component.outbox.serialization.OutboxMessageSerializer;
 import top.egon.cola.component.outbox.serialization.SerializedOutboxPayload;
@@ -29,6 +30,7 @@ public class DefaultTransactionalOutbox implements TransactionalOutbox {
     private final OutboxStore store;
     private final DeliveryHandlerRegistry handlerRegistry;
     private final OutboxAfterCommitBuffer afterCommitBuffer;
+    private final OutboxMetrics metrics;
     private final TransactionalOutboxProperties properties;
 
     public DefaultTransactionalOutbox(
@@ -40,6 +42,7 @@ public class DefaultTransactionalOutbox implements TransactionalOutbox {
             OutboxStore store,
             DeliveryHandlerRegistry handlerRegistry,
             OutboxAfterCommitBuffer afterCommitBuffer,
+            OutboxMetrics metrics,
             TransactionalOutboxProperties properties
     ) {
         this.validator = validator;
@@ -50,6 +53,7 @@ public class DefaultTransactionalOutbox implements TransactionalOutbox {
         this.store = store;
         this.handlerRegistry = handlerRegistry;
         this.afterCommitBuffer = afterCommitBuffer;
+        this.metrics = metrics;
         this.properties = properties;
     }
 
@@ -86,6 +90,7 @@ public class DefaultTransactionalOutbox implements TransactionalOutbox {
                 message.availableAt(),
                 properties.getRetry().getMaxAttempts()
         ));
+        metrics.enqueue(receipt.created());
         if (receipt.created()) {
             afterCommitBuffer.record(receipt.messageId());
         }
