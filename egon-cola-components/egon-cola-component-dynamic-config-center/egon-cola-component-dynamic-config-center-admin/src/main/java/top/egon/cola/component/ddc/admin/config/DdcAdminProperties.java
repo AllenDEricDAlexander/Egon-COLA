@@ -94,6 +94,8 @@ public class DdcAdminProperties {
 
         private int maximumSeconds = 300;
 
+        private long scanIntervalMillis = 5000;
+
         public int getMinimumSeconds() {
             return minimumSeconds;
         }
@@ -108,6 +110,14 @@ public class DdcAdminProperties {
 
         public void setMaximumSeconds(int maximumSeconds) {
             this.maximumSeconds = maximumSeconds;
+        }
+
+        public long getScanIntervalMillis() {
+            return scanIntervalMillis;
+        }
+
+        public void setScanIntervalMillis(long scanIntervalMillis) {
+            this.scanIntervalMillis = scanIntervalMillis;
         }
     }
 

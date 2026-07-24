@@ -39,6 +39,12 @@ public class DdcInstanceEntity {
     @Column(name = "sdk_version")
     private String sdkVersion;
 
+    @Column(name = "lease_id", length = 64)
+    private String leaseId;
+
+    @Column(name = "lease_expire_at")
+    private LocalDateTime leaseExpireAt;
+
     private String status;
 
     @Column(name = "last_heartbeat_at")

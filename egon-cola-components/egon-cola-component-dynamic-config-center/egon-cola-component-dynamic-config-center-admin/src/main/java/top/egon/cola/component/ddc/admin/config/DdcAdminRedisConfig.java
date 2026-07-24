@@ -11,12 +11,16 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.service.DdcConfigLeaseService;
+import top.egon.cola.component.ddc.admin.service.DdcLeaseExpiryScanner;
 import top.egon.cola.component.ddc.admin.service.DdcLeaseValidator;
 
 @Configuration
+@EnableScheduling
 @EnableConfigurationProperties(DdcAdminProperties.class)
 public class DdcAdminRedisConfig {
 
@@ -57,5 +61,13 @@ public class DdcAdminRedisConfig {
     public DdcConfigLeaseService ddcConfigLeaseService(DdcConfigLeaseRedisRepository repository,
                                                        DdcAdminProperties properties) {
         return new DdcConfigLeaseService(repository, new DdcLeaseValidator(properties));
+    }
+
+    @Bean
+    @ConditionalOnBean(DdcConfigLeaseRedisRepository.class)
+    @ConditionalOnMissingBean
+    public DdcLeaseExpiryScanner ddcLeaseExpiryScanner(DdcInstanceRepository instanceRepository,
+                                                       DdcConfigLeaseRedisRepository leaseRepository) {
+        return new DdcLeaseExpiryScanner(instanceRepository, leaseRepository);
     }
 }

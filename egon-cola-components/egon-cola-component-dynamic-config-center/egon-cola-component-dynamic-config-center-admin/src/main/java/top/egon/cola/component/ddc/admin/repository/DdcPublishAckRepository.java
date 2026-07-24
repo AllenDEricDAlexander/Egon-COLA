@@ -8,7 +8,11 @@ import java.util.Optional;
 
 public interface DdcPublishAckRepository extends JpaRepository<DdcPublishAckEntity, String> {
 
-    Optional<DdcPublishAckEntity> findByChangeIdAndInstanceId(String changeId, String instanceId);
+    Optional<DdcPublishAckEntity> findByChangeIdAndInstanceIdAndLeaseId(
+            String changeId,
+            String instanceId,
+            String leaseId
+    );
 
     List<DdcPublishAckEntity> findByChangeId(String changeId);
 }

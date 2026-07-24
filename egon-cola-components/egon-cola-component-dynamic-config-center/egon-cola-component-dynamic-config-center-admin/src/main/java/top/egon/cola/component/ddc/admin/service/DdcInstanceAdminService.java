@@ -12,6 +12,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -33,6 +34,8 @@ public class DdcInstanceAdminService {
         DdcInstanceEntity instance = instanceRepository.findByInstanceId(request.getInstanceId())
                 .orElseGet(() -> newInstance(request));
         fillInstance(instance, request);
+        instance.setLeaseId(session.leaseId());
+        instance.setLeaseExpireAt(LocalDateTime.ofInstant(session.leaseExpireAt(), ZoneOffset.UTC));
         instance.setStatus(InstanceStatus.ONLINE.name());
         instance.setLastHeartbeatAt(LocalDateTime.now());
         instance.setUpdatedAt(LocalDateTime.now());
@@ -45,8 +48,12 @@ public class DdcInstanceAdminService {
         DdcLeaseOperationResult result = configLeaseService.heartbeat(request);
         if (result.renewed()) {
             instanceRepository.findByInstanceId(request.getInstanceId()).ifPresent(instance -> {
+                if (!request.getLeaseId().equals(instance.getLeaseId())) {
+                    return;
+                }
                 instance.setStatus(InstanceStatus.ONLINE.name());
                 instance.setLastHeartbeatAt(LocalDateTime.now());
+                instance.setLeaseExpireAt(LocalDateTime.ofInstant(result.leaseExpireAt(), ZoneOffset.UTC));
                 instance.setUpdatedAt(LocalDateTime.now());
                 instanceRepository.save(instance);
             });
@@ -58,11 +65,12 @@ public class DdcInstanceAdminService {
     public DdcLeaseOperationResult offline(DdcHeartbeatRequest request) {
         DdcLeaseOperationResult result = configLeaseService.deregister(request);
         if (result.deleted()) {
-            instanceRepository.findByInstanceId(request.getInstanceId()).ifPresent(instance -> {
-                instance.setStatus(InstanceStatus.OFFLINE.name());
-                instance.setUpdatedAt(LocalDateTime.now());
-                instanceRepository.save(instance);
-            });
+            instanceRepository.markOfflineIfLeaseMatches(
+                    request.getInstanceId(),
+                    request.getLeaseId(),
+                    InstanceStatus.OFFLINE.name(),
+                    LocalDateTime.now()
+            );
         }
         return result;
     }

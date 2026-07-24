@@ -6,5 +6,6 @@ public enum PublishStatus {
     SUCCESS,
     PARTIAL_SUCCESS,
     FAILED,
-    TIMEOUT
+    TIMEOUT,
+    UNKNOWN
 }

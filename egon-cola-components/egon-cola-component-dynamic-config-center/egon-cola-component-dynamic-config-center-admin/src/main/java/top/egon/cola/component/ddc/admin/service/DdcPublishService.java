@@ -110,8 +110,14 @@ public class DdcPublishService {
     public DdcPublishResultVO ack(DdcAckRequest request) {
         DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(request.getChangeId())
                 .orElseThrow(() -> new DdcAdminException("publish task not found"));
-        DdcPublishAckEntity ack = publishAckRepository.findByChangeIdAndInstanceId(request.getChangeId(), request.getInstanceId())
-                .orElseGet(() -> newPublishAck(task, request.getInstanceId()));
+        DdcPublishAckEntity ack = publishAckRepository.findByChangeIdAndInstanceIdAndLeaseId(
+                        request.getChangeId(),
+                        request.getInstanceId(),
+                        request.getLeaseId()
+                )
+                .orElseGet(() -> newPublishAck(task, request.getInstanceId(), request.getLeaseId()));
+        ack.setLeaseId(request.getLeaseId());
+        ack.setContentChecksum(request.getContentChecksum());
         ack.setAppCode(request.getAppCode());
         ack.setEnv(request.getEnv());
         ack.setNamespace(request.getNamespace());
@@ -166,7 +172,9 @@ public class DdcPublishService {
                 request.getAppCode(), request.getEnv(), request.getNamespace(), InstanceStatus.ONLINE.name());
         DdcPublishTaskEntity task = newPublishTask(changeId, config, publishMode, targets.size(), request.getTimeoutMs(), operator);
         publishTaskRepository.save(task);
-        targets.forEach(instance -> publishAckRepository.save(newPublishAck(task, instance.getInstanceId())));
+        targets.forEach(instance -> publishAckRepository.save(
+                newPublishAck(task, instance.getInstanceId(), instance.getLeaseId())
+        ));
         savePublishOperation(config, changeId, operator);
         DdcPublishMessage message = buildPublishMessage(changeId, config, publishMode, operator);
         return new PublishPrepareResult(task, message, publishMode);
@@ -219,11 +227,15 @@ public class DdcPublishService {
         return task;
     }
 
-    private DdcPublishAckEntity newPublishAck(DdcPublishTaskEntity task, String instanceId) {
+    private DdcPublishAckEntity newPublishAck(DdcPublishTaskEntity task,
+                                              String instanceId,
+                                              String leaseId) {
         DdcPublishAckEntity ack = new DdcPublishAckEntity();
         ack.setId(UuidV7.simpleString());
         ack.setChangeId(task.getChangeId());
         ack.setInstanceId(instanceId);
+        ack.setLeaseId(leaseId);
+        ack.setContentChecksum(task.getContentChecksum());
         ack.setAppCode(task.getAppCode());
         ack.setEnv(task.getEnv());
         ack.setNamespace(task.getNamespace());

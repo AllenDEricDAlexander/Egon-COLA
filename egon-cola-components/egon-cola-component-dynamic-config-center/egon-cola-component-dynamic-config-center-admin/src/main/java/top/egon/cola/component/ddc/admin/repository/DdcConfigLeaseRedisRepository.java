@@ -28,6 +28,8 @@ public class DdcConfigLeaseRedisRepository {
 
     private static final String DEREGISTER_SCRIPT = script("redis/ddc_config_lease_deregister.lua");
 
+    private static final String EXPIRE_SCRIPT = script("redis/ddc_config_lease_expire.lua");
+
     private final RedissonClient redissonClient;
 
     private final ObjectMapper objectMapper;
@@ -99,6 +101,27 @@ public class DdcConfigLeaseRedisRepository {
             return new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_DELETED, null);
         }
         throw new IllegalStateException("invalid DDC deregistration script status: " + result);
+    }
+
+    public boolean removeExpiredProjection(String appCode,
+                                           String env,
+                                           String namespace,
+                                           String instanceId,
+                                           String leaseId,
+                                           Instant now) {
+        Number result = redissonClient.getScript().eval(
+                RScript.Mode.READ_WRITE,
+                EXPIRE_SCRIPT,
+                RScript.ReturnType.INTEGER,
+                keys(env, namespace, appCode, instanceId),
+                instanceId,
+                leaseId,
+                now.toEpochMilli()
+        );
+        if (result == null || (result.intValue() != 0 && result.intValue() != 1)) {
+            throw new IllegalStateException("invalid DDC lease expiry script status: " + result);
+        }
+        return result.intValue() == 1;
     }
 
     private List<Object> keys(String env, String namespace, String appCode, String instanceId) {
