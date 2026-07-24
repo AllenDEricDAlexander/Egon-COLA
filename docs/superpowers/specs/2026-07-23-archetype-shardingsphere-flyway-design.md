@@ -61,8 +61,8 @@ VyyyyMMdd_NNN__lower_snake_case_description.sql
 例如：
 
 ```text
-V20260723_001__init_light_default_schema.sql
-V20260723_003__init_light_sharding_schema.sql
+V20260724_001__init_light_default_schema.sql
+V20260724_003__init_light_sharding_schema.sql
 V20260724_001__add_class_schedule_index.sql
 ```
 
@@ -91,15 +91,15 @@ V20260724_001__add_class_schedule_index.sql
 
 | Archetype | Location | 文件 |
 | --- | --- | --- |
-| Light | `db/migration/default` | `V20260723_001__init_light_default_schema.sql` |
-| Light | `db/migration/sharding/single` | `V20260723_002__init_light_single_schema.sql` |
-| Light | `db/migration/sharding/shard` | `V20260723_003__init_light_sharding_schema.sql` |
-| Web | `db/migration/default` | `V20260723_001__init_organization_default_schema.sql` |
-| Web | `db/migration/sharding/single` | `V20260723_002__init_organization_single_schema.sql` |
-| Web | `db/migration/sharding/shard` | `V20260723_003__init_organization_sharding_schema.sql` |
-| Service | `db/migration/default` | `V20260723_001__init_evaluation_default_schema.sql` |
-| Service | `db/migration/sharding/single` | `V20260723_002__init_evaluation_single_schema.sql` |
-| Service | `db/migration/sharding/shard` | `V20260723_003__init_evaluation_sharding_schema.sql` |
+| Light | `db/migration/default` | `V20260724_001__init_light_default_schema.sql` |
+| Light | `db/migration/sharding/single` | `V20260724_002__init_light_single_schema.sql` |
+| Light | `db/migration/sharding/shard` | `V20260724_003__init_light_sharding_schema.sql` |
+| Web | `db/migration/default` | `V20260724_001__init_organization_default_schema.sql` |
+| Web | `db/migration/sharding/single` | `V20260724_002__init_organization_single_schema.sql` |
+| Web | `db/migration/sharding/shard` | `V20260724_003__init_organization_sharding_schema.sql` |
+| Service | `db/migration/default` | `V20260724_001__init_evaluation_default_schema.sql` |
+| Service | `db/migration/sharding/single` | `V20260724_002__init_evaluation_single_schema.sql` |
+| Service | `db/migration/sharding/shard` | `V20260724_003__init_evaluation_sharding_schema.sql` |
 
 每个 archetype 虽有三份初始化文件，但它们分别服务互斥的默认库、单表库和分片库，是三个独立 Flyway target；每个 target 本次只有一份初始化 migration，不把同一物理数据库变更任意拆成多份。
 
