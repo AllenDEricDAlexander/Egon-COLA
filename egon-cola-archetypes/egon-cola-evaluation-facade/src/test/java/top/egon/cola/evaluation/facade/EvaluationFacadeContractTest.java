@@ -1,6 +1,7 @@
 package top.egon.cola.evaluation.facade;
 
 import top.egon.cola.evaluation.facade.course.dto.ScheduleCourseRequest;
+import top.egon.cola.evaluation.facade.exam.dto.GetScoreRequest;
 import top.egon.cola.evaluation.facade.exam.dto.RecordScoreRequest;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -33,5 +34,14 @@ class EvaluationFacadeContractTest {
         assertNotNull(studentId.getAnnotation(NotBlank.class));
         assertEquals(0, points.getAnnotation(Min.class).value());
         assertEquals(100, points.getAnnotation(Max.class).value());
+    }
+
+    @Test
+    void shouldRequireExamIdWhenGettingScore() throws NoSuchMethodException {
+        var examId = GetScoreRequest.class.getMethod("examId");
+        var scoreId = GetScoreRequest.class.getMethod("scoreId");
+
+        assertNotNull(examId.getAnnotation(NotBlank.class));
+        assertNotNull(scoreId.getAnnotation(NotBlank.class));
     }
 }

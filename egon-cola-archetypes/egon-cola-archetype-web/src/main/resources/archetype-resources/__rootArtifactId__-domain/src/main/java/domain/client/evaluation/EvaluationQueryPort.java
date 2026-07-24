@@ -6,5 +6,5 @@ public interface EvaluationQueryPort {
 
     EvaluationExam getExam(String examId);
 
-    EvaluationScore getScore(String scoreId);
+    EvaluationScore getScore(String examId, String scoreId);
 }

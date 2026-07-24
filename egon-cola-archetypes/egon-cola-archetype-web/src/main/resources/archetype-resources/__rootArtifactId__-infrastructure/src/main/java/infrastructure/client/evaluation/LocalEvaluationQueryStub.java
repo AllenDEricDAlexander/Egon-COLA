@@ -36,10 +36,11 @@ public class LocalEvaluationQueryStub implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationScore getScore(String scoreId) {
+    public EvaluationScore getScore(String examId, String scoreId) {
+        rejectMissing(examId, "exam");
         rejectMissing(scoreId, "score");
         return new EvaluationScore(
-                scoreId, "local-exam", "local-course", "local-student", 100, "RECORDED");
+                scoreId, examId, "local-course", "local-student", 100, "RECORDED");
     }
 
     private static void rejectMissing(String id, String resource) {

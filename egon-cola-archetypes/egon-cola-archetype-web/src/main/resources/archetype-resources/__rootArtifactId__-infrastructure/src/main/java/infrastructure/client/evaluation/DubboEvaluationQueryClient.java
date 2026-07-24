@@ -92,10 +92,10 @@ public class DubboEvaluationQueryClient implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationScore getScore(String scoreId) {
+    public EvaluationScore getScore(String examId, String scoreId) {
         try {
             ScoreResponse response = EvaluationClientFailureMapper.requireData(
-                    scoreFacade.getScore(new GetScoreRequest(scoreId)), "getScore");
+                    scoreFacade.getScore(new GetScoreRequest(examId, scoreId)), "getScore");
             return new EvaluationScore(
                     response.id(),
                     response.examId(),

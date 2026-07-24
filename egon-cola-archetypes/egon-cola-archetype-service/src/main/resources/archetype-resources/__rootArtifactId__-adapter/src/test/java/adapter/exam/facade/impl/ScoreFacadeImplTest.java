@@ -9,7 +9,9 @@ import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.exam.validators.ScoreFacadeValidator;
 import ${package}.application.exam.command.RecordScoreCommand;
 import ${package}.application.exam.manage.ScoreManage;
+import ${package}.application.exam.query.GetScoreQuery;
 import ${package}.application.exam.result.ScoreResult;
+import top.egon.cola.evaluation.facade.exam.dto.GetScoreRequest;
 import top.egon.cola.evaluation.facade.exam.dto.RecordScoreRequest;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -37,5 +39,21 @@ class ScoreFacadeImplTest {
         assertTrue(response.isSuccess());
         assertEquals("score-1", response.getData().id());
         verify(manage).record(command);
+    }
+
+    @Test
+    void shouldDelegateExamAwareScoreQuery() {
+        ScoreManage manage = mock(ScoreManage.class);
+        GetScoreQuery query = new GetScoreQuery("exam-1", "score-1");
+        when(manage.get(query)).thenReturn(new ScoreResult(
+            "score-1", "exam-1", "course-1", "student-1", 92, "RECORDED"));
+        ScoreFacadeImpl facade = new ScoreFacadeImpl(
+            manage, Mappers.getMapper(ScoreFacadeConverter.class), new ScoreFacadeValidator(),
+            new GlobalFacadeExceptionHandler());
+
+        var response = facade.getScore(new GetScoreRequest("exam-1", "score-1"));
+
+        assertTrue(response.isSuccess());
+        verify(manage).get(query);
     }
 }

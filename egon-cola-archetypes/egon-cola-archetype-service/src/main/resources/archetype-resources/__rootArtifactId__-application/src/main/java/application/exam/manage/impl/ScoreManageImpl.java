@@ -64,8 +64,9 @@ public class ScoreManageImpl implements ScoreManage {
     @Override
     @Transactional(readOnly = true)
     public ScoreResult get(GetScoreQuery query) {
+        validator.notBlank(query.examId(), "examId");
         validator.notBlank(query.scoreId(), "scoreId");
-        return scoreRepository.findById(query.scoreId())
+        return scoreRepository.findByExamIdAndId(new ExamId(query.examId()), query.scoreId())
                 .map(converter::toResult)
                 .orElseThrow(() -> failure(ApplicationErrorCode.SCORE_NOT_FOUND, "score not found"));
     }

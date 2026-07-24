@@ -24,11 +24,14 @@ public class ScoreRepositoryImpl implements ScoreRepository {
     private final ScoreConverter converter;
     private final EvaluationPersistenceValidator validator;
     public Score save(Score score) {
-        Instant createdAt = repository.findById(score.getId()).map(ScorePo::getCreatedAt).orElseGet(Instant::now);
+        Instant createdAt = repository.findByExamIdAndId(score.getExamId().value(), score.getId())
+                .map(ScorePo::getCreatedAt).orElseGet(Instant::now);
         try { return converter.toDomain(repository.saveAndFlush(converter.toPo(score, createdAt))); }
         catch (DataIntegrityViolationException failure) { throw validator.translate("save score", failure); }
     }
-    public Optional<Score> findById(String id) { return repository.findById(id).map(converter::toDomain); }
+    public Optional<Score> findByExamIdAndId(ExamId examId, String id) {
+        return repository.findByExamIdAndId(examId.value(), id).map(converter::toDomain);
+    }
     public boolean existsByExamIdAndStudentId(ExamId id, String studentId) {
         return repository.existsByExamIdAndStudentId(id.value(), studentId);
     }

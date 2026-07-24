@@ -8,6 +8,8 @@ import ${package}.domain.course.vos.CourseId;
 import ${package}.domain.exam.vos.ExamId;
 import ${package}.domain.exam.vos.ScoreValue;
 import ${package}.infrastructure.exam.repo.converter.ScoreConverter;
+import ${package}.domain.exam.repos.ScoreRepository;
+import ${package}.infrastructure.exam.repo.jpa.ScoreJpaRepository;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,5 +19,11 @@ class ScoreRepositoryTest {
         var score = new Score("score-1", new ExamId("exam-1"), new CourseId("course-1"),
                 "student-1", new ScoreValue(90), ScoreStatus.RECORDED);
         assertEquals(90, converter.toDomain(converter.toPo(score, Instant.EPOCH)).getPoints().value());
+    }
+
+    @Test
+    void shouldExposeExamAwarePointLookup() throws NoSuchMethodException {
+        ScoreRepository.class.getMethod("findByExamIdAndId", ExamId.class, String.class);
+        ScoreJpaRepository.class.getMethod("findByExamIdAndId", String.class, String.class);
     }
 }
