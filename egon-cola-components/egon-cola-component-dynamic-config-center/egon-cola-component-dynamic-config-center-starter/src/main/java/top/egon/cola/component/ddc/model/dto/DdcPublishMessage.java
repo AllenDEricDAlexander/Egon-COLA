@@ -1,5 +1,8 @@
 package top.egon.cola.component.ddc.model.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DdcPublishMessage {
 
     private String changeId;
@@ -23,6 +26,10 @@ public class DdcPublishMessage {
     private String operator;
 
     private Long timestamp;
+
+    private String contentChecksum;
+
+    private List<DdcPublishTarget> targets = new ArrayList<>();
 
     private String checksum;
 
@@ -112,6 +119,22 @@ public class DdcPublishMessage {
 
     public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getContentChecksum() {
+        return contentChecksum;
+    }
+
+    public void setContentChecksum(String contentChecksum) {
+        this.contentChecksum = contentChecksum;
+    }
+
+    public List<DdcPublishTarget> getTargets() {
+        return List.copyOf(targets);
+    }
+
+    public void setTargets(List<DdcPublishTarget> targets) {
+        this.targets = targets == null ? new ArrayList<>() : new ArrayList<>(targets);
     }
 
     public String getChecksum() {

@@ -8,5 +8,10 @@ egon:
         namespace: default
         redis:
           enabled: false
+        instance:
+          lease-seconds: 30
+          heartbeat-interval-seconds: 10
+        registry:
+          enabled: false
         consistency:
           fail-fast: false

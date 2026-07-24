@@ -42,6 +42,21 @@ public class DdcPublishTaskEntity {
     @Column(name = "publish_mode", length = 32)
     private String publishMode;
 
+    @Column(name = "content_checksum", length = 64)
+    private String contentChecksum;
+
+    @Column(name = "attempt_count", nullable = false)
+    private Integer attemptCount = 0;
+
+    @Column(name = "dispatched_at")
+    private LocalDateTime dispatchedAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(name = "failure_stage", length = 64)
+    private String failureStage;
+
     @Column(length = 32)
     private String status;
 

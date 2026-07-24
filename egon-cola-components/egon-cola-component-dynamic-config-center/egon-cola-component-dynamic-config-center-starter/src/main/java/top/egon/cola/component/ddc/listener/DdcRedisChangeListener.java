@@ -19,7 +19,10 @@ public class DdcRedisChangeListener implements MessageListener<DdcPublishMessage
 
     @Override
     public void onMessage(CharSequence channel, DdcPublishMessage message) {
-        if (message == null || !matchesScope(message) || !matchesChecksum(message)) {
+        if (message == null
+                || !matchesScope(message)
+                || !matchesChecksum(message)
+                || !matchesContentChecksum(message)) {
             return;
         }
         refreshService.refresh(message);
@@ -32,7 +35,13 @@ public class DdcRedisChangeListener implements MessageListener<DdcPublishMessage
     }
 
     private boolean matchesChecksum(DdcPublishMessage message) {
-        return message.getChecksum() == null || message.getChecksum().isEmpty()
-                || message.getChecksum().equals(DdcChecksum.sha256(message));
+        return message.getChecksum() != null
+                && !message.getChecksum().isBlank()
+                && message.getChecksum().equals(DdcChecksum.sha256(message));
+    }
+
+    private boolean matchesContentChecksum(DdcPublishMessage message) {
+        return message.getContentChecksum() != null
+                && message.getContentChecksum().equals(DdcChecksum.content(message.getConfigValue()));
     }
 }

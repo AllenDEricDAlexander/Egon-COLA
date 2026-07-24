@@ -24,6 +24,12 @@ public class DdcPublishAckEntity {
     @Column(name = "instance_id", nullable = false, length = 256)
     private String instanceId;
 
+    @Column(name = "lease_id", length = 64)
+    private String leaseId;
+
+    @Column(name = "content_checksum", length = 64)
+    private String contentChecksum;
+
     @Column(name = "app_code", length = 128)
     private String appCode;
 

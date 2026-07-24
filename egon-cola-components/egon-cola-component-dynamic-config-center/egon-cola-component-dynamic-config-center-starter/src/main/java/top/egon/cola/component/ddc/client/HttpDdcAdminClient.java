@@ -1,19 +1,33 @@
 package top.egon.cola.component.ddc.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.crypto.hmac.Hmacs;
+import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.security.DdcRequestSigner;
 
+import java.net.URI;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class HttpDdcAdminClient implements DdcAdminClient {
 
@@ -21,73 +35,162 @@ public class HttpDdcAdminClient implements DdcAdminClient {
 
     private final RestClient restClient;
 
+    private final ObjectMapper objectMapper;
+
+    private final DdcRequestSigner signer = new DdcRequestSigner();
+
     public HttpDdcAdminClient(DdcProperties properties) {
-        this(properties, RestClient.builder().baseUrl(properties.getAdmin().getEndpoint()).build());
+        this(properties, RestClient.builder());
     }
 
-    HttpDdcAdminClient(DdcProperties properties, RestClient restClient) {
+    HttpDdcAdminClient(DdcProperties properties, RestClient.Builder restClientBuilder) {
         this.properties = properties;
-        this.restClient = restClient;
+        this.objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        this.restClient = restClientBuilder
+                .baseUrl(properties.getAdmin().getEndpoint())
+                .messageConverters(converters -> {
+                    converters.removeIf(MappingJackson2HttpMessageConverter.class::isInstance);
+                    converters.add(new MappingJackson2HttpMessageConverter(objectMapper));
+                })
+                .build();
     }
 
     @Override
-    public void register(DdcInstanceRegisterRequest request) {
-        post("/api/v1/ddc/openapi/instances/register", request);
+    public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
+        return post(
+                "/api/v1/ddc/openapi/instances/register",
+                request,
+                new ParameterizedTypeReference<>() {
+                },
+                true
+        );
     }
 
     @Override
-    public void heartbeat(DdcHeartbeatRequest request) {
-        post("/api/v1/ddc/openapi/instances/heartbeat", request);
+    public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
+        return post(
+                "/api/v1/ddc/openapi/instances/heartbeat",
+                request,
+                new ParameterizedTypeReference<>() {
+                },
+                true
+        );
     }
 
     @Override
-    public void offline(DdcHeartbeatRequest request) {
-        post("/api/v1/ddc/openapi/instances/offline", request);
+    public DdcLeaseOperationResult offline(DdcHeartbeatRequest request) {
+        return post(
+                "/api/v1/ddc/openapi/instances/offline",
+                request,
+                new ParameterizedTypeReference<>() {
+                },
+                true
+        );
     }
 
     @Override
     public List<DdcConfigValue> pull() {
+        String path = "/api/v1/ddc/openapi/configs/pull";
+        Map<String, List<String>> query = new LinkedHashMap<>();
+        query.put("appCode", List.of(properties.getAppCode()));
+        query.put("env", List.of(properties.getEnv()));
+        query.put("namespace", List.of(properties.getNamespace()));
+        DdcCanonicalRequest canonicalRequest = canonicalRequest("GET", path, query, new byte[0]);
         ResultDto<List<DdcConfigValue>> result = restClient.get()
-                .uri("/api/v1/ddc/openapi/configs/pull?appCode={appCode}&env={env}&namespace={namespace}",
-                        properties.getAppCode(), properties.getEnv(), properties.getNamespace())
-                .headers(headers -> sign(headers, "/api/v1/ddc/openapi/configs/pull"))
+                .uri(URI.create(path + "?" + canonicalRequest.canonicalQuery()))
+                .headers(headers -> sign(headers, canonicalRequest))
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
-        return result == null || result.data() == null ? Collections.emptyList() : result.data();
+        List<DdcConfigValue> values = data(result, false);
+        return values == null ? Collections.emptyList() : values;
     }
 
     @Override
     public void reportDefaults(DdcDefaultReportRequest request) {
-        post("/api/v1/ddc/openapi/defaults/report", request);
+        post(
+                "/api/v1/ddc/openapi/defaults/report",
+                request,
+                new ParameterizedTypeReference<ResultDto<Void>>() {
+                },
+                false
+        );
     }
 
     @Override
     public void ack(DdcAckRequest request) {
-        post("/api/v1/ddc/openapi/publish/ack", request);
+        post(
+                "/api/v1/ddc/openapi/publish/ack",
+                request,
+                new ParameterizedTypeReference<ResultDto<Void>>() {
+                },
+                false
+        );
     }
 
-    String signature(String path, long timestamp) {
-        String value = properties.getAdmin().getAccessKey() + "|" + timestamp + "|" + path;
-        return Hmacs.sha256Hex(value, properties.getAdmin().getSecretKey());
-    }
-
-    private void post(String path, Object request) {
-        restClient.post()
+    private <T> T post(String path,
+                       Object request,
+                       ParameterizedTypeReference<ResultDto<T>> responseType,
+                       boolean required) {
+        byte[] body = serialize(request);
+        DdcCanonicalRequest canonicalRequest = canonicalRequest("POST", path, Map.of(), body);
+        ResultDto<T> result = restClient.post()
                 .uri(path)
-                .headers(headers -> sign(headers, path))
-                .body(request)
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(headers -> sign(headers, canonicalRequest))
+                .body(body)
                 .retrieve()
-                .toBodilessEntity();
+                .body(responseType);
+        return data(result, required);
     }
 
-    private void sign(HttpHeaders headers, String path) {
+    private <T> T data(ResultDto<T> result, boolean required) {
+        if (result == null) {
+            throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE);
+        }
+        if (!result.success()) {
+            throw new DdcException(result.code(), result.status(), result.message());
+        }
+        if (required && result.data() == null) {
+            throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE);
+        }
+        return result.data();
+    }
+
+    private byte[] serialize(Object request) {
+        try {
+            return objectMapper.writeValueAsBytes(request);
+        } catch (JsonProcessingException exception) {
+            throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE, exception);
+        }
+    }
+
+    private DdcCanonicalRequest canonicalRequest(String method,
+                                                 String path,
+                                                 Map<String, List<String>> query,
+                                                 byte[] body) {
+        return new DdcCanonicalRequest(
+                method,
+                path,
+                query,
+                System.currentTimeMillis(),
+                UUID.randomUUID().toString(),
+                body
+        );
+    }
+
+    private void sign(HttpHeaders headers, DdcCanonicalRequest request) {
         if (!properties.getAdmin().isSignatureEnabled()) {
             return;
         }
-        long timestamp = System.currentTimeMillis();
-        headers.add("X-DDC-Access-Key", properties.getAdmin().getAccessKey());
-        headers.add("X-DDC-Timestamp", String.valueOf(timestamp));
-        headers.add("X-DDC-Signature", signature(path, timestamp));
+        headers.set(DdcRequestSigner.ACCESS_KEY_HEADER, properties.getAdmin().getAccessKey());
+        headers.set(DdcRequestSigner.TIMESTAMP_HEADER, Long.toString(request.timestamp()));
+        headers.set(DdcRequestSigner.NONCE_HEADER, request.nonce());
+        headers.set(DdcRequestSigner.CONTENT_SHA256_HEADER, request.contentSha256());
+        headers.set(
+                DdcRequestSigner.SIGNATURE_HEADER,
+                signer.sign(request, properties.getAdmin().getSecretKey())
+        );
     }
 }

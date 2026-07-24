@@ -7,6 +7,7 @@ import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -16,13 +17,17 @@ import top.egon.cola.component.ddc.client.HttpDdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.common.DdcValueConverter;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeListener;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
+import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
+import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.processor.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
+import top.egon.cola.component.ddc.service.DdcInstanceIdentityFactory;
 import top.egon.cola.component.ddc.service.DdcInstanceService;
+import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
+import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 
 @AutoConfiguration
 @EnableScheduling
@@ -54,8 +59,9 @@ public class DdcAutoConfig {
     @Bean
     public DdcRefreshService ddcRefreshService(DdcLocalConfigRepository repository,
                                                DdcFieldBindingService fieldBindingService,
-                                               DdcAdminClient adminClient) {
-        return new DdcRefreshService(repository, fieldBindingService::apply, adminClient);
+                                               DdcAdminClient adminClient,
+                                               DdcLeaseSessionHolder sessionHolder) {
+        return new DdcRefreshService(repository, fieldBindingService::apply, adminClient, sessionHolder);
     }
 
     @Bean
@@ -63,7 +69,8 @@ public class DdcAutoConfig {
         return new DdcBeanPostProcessor(fieldBindingService);
     }
 
-    @Bean("ddcRedissonClient")
+    @Bean(name = "ddcRedissonClient", destroyMethod = "shutdown")
+    @ConditionalOnMissingBean(RedissonClient.class)
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcRedissonClient(DdcProperties properties) {
         Config config = new Config();
@@ -93,16 +100,56 @@ public class DdcAutoConfig {
     @Bean("ddcRedisTopic")
     @ConditionalOnBean(RedissonClient.class)
     public RTopic ddcRedisTopic(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
-                                DdcProperties properties,
-                                DdcRedisChangeListener listener) {
-        RTopic topic = redissonClient.getTopic(DdcKeys.topic(properties.getAppCode(), properties.getEnv(), properties.getNamespace()));
-        topic.addListener(DdcPublishMessage.class, listener);
-        return topic;
+                                DdcProperties properties) {
+        return redissonClient.getTopic(
+                DdcKeys.topic(properties.getAppCode(), properties.getEnv(), properties.getNamespace())
+        );
+    }
+
+    @Bean
+    @ConditionalOnBean(name = "ddcRedisTopic")
+    public DdcRedisChangeSubscription ddcRedisChangeSubscription(
+            @Qualifier("ddcRedisTopic") RTopic topic,
+            DdcRedisChangeListener listener) {
+        return new DdcRedisChangeSubscription(topic, listener);
+    }
+
+    @Bean
+    public DdcLeaseSessionHolder ddcLeaseSessionHolder() {
+        return new DdcLeaseSessionHolder();
+    }
+
+    @Bean
+    public DdcInstanceIdentity ddcInstanceIdentity(DdcProperties properties) {
+        return new DdcInstanceIdentityFactory(properties).create();
     }
 
     @Bean
     public DdcInstanceService ddcInstanceService(DdcProperties properties,
-                                                 DdcAdminClient adminClient) {
-        return new DdcInstanceService(properties, adminClient);
+                                                 DdcAdminClient adminClient,
+                                                 DdcInstanceIdentity identity,
+                                                 DdcLeaseSessionHolder sessionHolder) {
+        return new DdcInstanceService(properties, adminClient, identity, sessionHolder);
+    }
+
+    @Bean
+    @ConditionalOnBean(DdcRedisChangeSubscription.class)
+    public DdcRuntimeCoordinator ddcRuntimeCoordinator(
+            DdcProperties properties,
+            DdcInstanceService instanceService,
+            DdcAdminClient adminClient,
+            DdcLocalConfigRepository repository,
+            DdcRefreshService refreshService,
+            DdcRedisChangeSubscription subscription,
+            DdcLeaseSessionHolder sessionHolder) {
+        return new DdcRuntimeCoordinator(
+                properties,
+                instanceService,
+                adminClient,
+                repository,
+                refreshService,
+                subscription,
+                sessionHolder
+        );
     }
 }

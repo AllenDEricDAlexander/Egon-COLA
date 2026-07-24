@@ -20,6 +20,14 @@ public class DdcPublishResultVO {
 
     private Integer ignoredCount;
 
+    private Integer timeoutCount;
+
+    private Integer attemptCount;
+
+    private Long targetVersion;
+
+    private String contentChecksum;
+
     private String errorMessage;
 
     public static DdcPublishResultVO from(DdcPublishTaskEntity task) {
@@ -30,6 +38,10 @@ public class DdcPublishResultVO {
         vo.setAckCount(task.getAckCount());
         vo.setFailedCount(task.getFailedCount());
         vo.setIgnoredCount(task.getIgnoredCount());
+        vo.setTimeoutCount(task.getTimeoutCount());
+        vo.setAttemptCount(task.getAttemptCount());
+        vo.setTargetVersion(task.getTargetVersion());
+        vo.setContentChecksum(task.getContentChecksum());
         vo.setErrorMessage(task.getErrorMessage());
         return vo;
     }

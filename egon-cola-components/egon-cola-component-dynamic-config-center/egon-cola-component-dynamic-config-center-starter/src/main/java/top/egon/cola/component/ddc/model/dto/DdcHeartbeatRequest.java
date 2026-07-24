@@ -4,6 +4,8 @@ public class DdcHeartbeatRequest {
 
     private String instanceId;
 
+    private String leaseId;
+
     private String appCode;
 
     private String env;
@@ -24,6 +26,14 @@ public class DdcHeartbeatRequest {
 
     public void setInstanceId(String instanceId) {
         this.instanceId = instanceId;
+    }
+
+    public String getLeaseId() {
+        return leaseId;
+    }
+
+    public void setLeaseId(String leaseId) {
+        this.leaseId = leaseId;
     }
 
     public String getAppCode() {

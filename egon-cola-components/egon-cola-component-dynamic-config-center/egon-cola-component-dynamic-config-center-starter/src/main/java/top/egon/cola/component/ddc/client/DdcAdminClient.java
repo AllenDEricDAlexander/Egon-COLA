@@ -5,16 +5,18 @@ import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 
 import java.util.List;
 
 public interface DdcAdminClient {
 
-    void register(DdcInstanceRegisterRequest request);
+    DdcLeaseSession register(DdcInstanceRegisterRequest request);
 
-    void heartbeat(DdcHeartbeatRequest request);
+    DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request);
 
-    void offline(DdcHeartbeatRequest request);
+    DdcLeaseOperationResult offline(DdcHeartbeatRequest request);
 
     List<DdcConfigValue> pull();
 

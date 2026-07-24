@@ -2,19 +2,27 @@ package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
+import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.common.DdcValueConverter;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
+import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
+import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
+import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,7 +37,10 @@ class DdcSampleRefreshFlowTest {
         DdcFieldBindingService bindingService = new DdcFieldBindingService(repository, new DdcValueConverter());
         SampleConfigService sample = new SampleConfigService();
         bindingService.bind(sample, SampleConfigService.class);
-        DdcRefreshService refreshService = new DdcRefreshService(repository, bindingService::apply, adminClient);
+        DdcLeaseSessionHolder sessionHolder = new DdcLeaseSessionHolder();
+        sessionHolder.replace(adminClient.session());
+        DdcRefreshService refreshService =
+                new DdcRefreshService(repository, bindingService::apply, adminClient, sessionHolder);
 
         refreshService.refresh(message("rateLimit", "200", 2L));
 
@@ -46,6 +57,8 @@ class DdcSampleRefreshFlowTest {
         message.setConfigKey(key);
         message.setConfigValue(value);
         message.setTargetVersion(version);
+        message.setContentChecksum(DdcChecksum.content(value));
+        message.setTargets(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         return message;
     }
 
@@ -54,15 +67,30 @@ class DdcSampleRefreshFlowTest {
         private DdcAckRequest lastAck;
 
         @Override
-        public void register(DdcInstanceRegisterRequest request) {
+        public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
+            Instant registeredAt = Instant.parse("2026-07-24T12:00:00Z");
+            return new DdcLeaseSession(
+                    request.getInstanceId(),
+                    "lease-1",
+                    DdcLeaseRole.CONFIG_CLIENT,
+                    30,
+                    10,
+                    registeredAt,
+                    registeredAt.plusSeconds(30)
+            );
         }
 
         @Override
-        public void heartbeat(DdcHeartbeatRequest request) {
+        public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
+            return new DdcLeaseOperationResult(
+                    DdcLeaseOperationStatus.RENEWED,
+                    Instant.parse("2026-07-24T12:00:30Z")
+            );
         }
 
         @Override
-        public void offline(DdcHeartbeatRequest request) {
+        public DdcLeaseOperationResult offline(DdcHeartbeatRequest request) {
+            return new DdcLeaseOperationResult(DdcLeaseOperationStatus.DELETED, null);
         }
 
         @Override
@@ -81,6 +109,19 @@ class DdcSampleRefreshFlowTest {
 
         DdcAckRequest lastAck() {
             return lastAck;
+        }
+
+        DdcLeaseSession session() {
+            Instant registeredAt = Instant.parse("2026-07-24T12:00:00Z");
+            return new DdcLeaseSession(
+                    "instance-1",
+                    "lease-1",
+                    DdcLeaseRole.CONFIG_CLIENT,
+                    30,
+                    10,
+                    registeredAt,
+                    registeredAt.plusSeconds(30)
+            );
         }
     }
 }
