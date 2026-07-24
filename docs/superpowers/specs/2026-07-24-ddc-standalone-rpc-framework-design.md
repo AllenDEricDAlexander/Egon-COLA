@@ -1,8 +1,8 @@
 # 2026-07-24 DDC 单机闭环与轻量 gRPC + Protobuf RPC 框架设计 Spec
 
-状态：已确认，进入实施计划
+状态：Gateway Mock 边界修订，待用户确认
 
-文档阶段：实施基线
+文档阶段：设计复审
 
 涉及范围：
 
@@ -11,7 +11,8 @@
 - 新增独立 `egon-cola-component-rpc` Component；
 - RPC Component 顶层只包含 `starter` 与 `test` 聚合器，`test` 内允许拆分多个
   不发布的测试模块；
-- Provider、Consumer 和内部网关统一使用 DDC 注册发现；
+- Provider 和 Consumer 接入 DDC 注册发现；本轮测试使用独立 Mock Gateway，
+  生产 Gateway 延后到 DDC 与 RPC 完成后单独开发；
 - DDC 仅支持单 Admin 和单 Redis，不实现多 Admin、Redis 集群或分布式协调代码。
 
 ## 1. 背景
@@ -31,9 +32,11 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 8. DDC 目前只有配置实例概念，没有 Provider Service、内部 Gateway Node、
    服务分组、版本和动态发现模型。
 
-本次在修复上述单机缺口的基础上，将 DDC 扩展为 RPC Provider 与内部网关
+本次在修复上述单机缺口的基础上，将 DDC 扩展为 RPC Provider 与后续内部网关
 共同使用的服务注册中心，并在独立 RPC Component 中实现一套以 grpc-java
 作为传输运行时、Protocol Buffers 作为 IDL 和序列化协议的轻量 RPC 框架。
+生产 Gateway 必须等待 DDC 与 RPC 完成后再单独开发；当前仅在 RPC Test 中
+提供 Mock Gateway 验证固定的 Consumer→Gateway→Provider 调用边界。
 
 ## 2. 已确认需求
 
@@ -61,8 +64,14 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 4. Provider 通过心跳或租约维持状态，停止时主动注销。
 5. Consumer 只发现内部网关，不发现、缓存或连接 Provider。
 6. Consumer 的所有业务 RPC 请求都发送到内部网关。
-7. 网关发现 Provider Service Group，把同一服务的多个实例视为一个逻辑集群。
-8. Provider 实例选择、流量分发、故障摘除和请求转发由网关负责。
+7. Provider 实例选择、流量分发、故障摘除和请求转发最终由生产 Gateway
+   负责，但生产 Gateway 不在本轮开发。
+8. 本轮使用测试范围的 `MockRpcGateway` 模拟 Gateway：
+   - 作为独立 Spring Context 或独立 JVM 启动；
+   - 注册为 `INTERNAL_GATEWAY`；
+   - 从 DDC 发现 Provider；
+   - 在测试代码内完成确定性实例选择和透明 unary 转发；
+   - 不进入 RPC Starter、不进入 BOM、不作为生产 API。
 9. RPC 框架负责：
    - gRPC 服务暴露；
    - Protobuf Service Descriptor 装载与 Contract 校验；
@@ -71,8 +80,8 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
    - 服务元数据传递；
    - 超时配置；
    - 异常转换；
-   - 基础 Trace 信息透传；
-   - 为网关提供 Provider Directory 和 gRPC 转发基础适配。
+   - Consumer 到 Gateway 的 Channel 管理；
+   - Provider 与 Consumer 两端的基础 Trace 和 Metadata 处理。
 10. RPC 框架不负责：
     - Consumer 侧 Provider 负载均衡；
     - Consumer 直连 Provider；
@@ -80,6 +89,10 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
     - 熔断和限流；
     - 重试策略；
     - Provider 权重或标签路由；
+    - Provider Directory；
+    - Gateway Provider Channel Factory；
+    - 动态 Gateway Handler Registry；
+    - Gateway Unary Forwarder；
     - 完整 Gateway Engine。
 11. RPC Component 顶层只包含 `starter` 和 `test` 聚合器；测试聚合器内部
     可以按 Contract、Provider、Consumer 和 E2E 职责拆分。
@@ -105,8 +118,9 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 10. Consumer 只接受唯一活跃内部网关实例；启动和运行期间发现零个或多个活跃
     Gateway 时快速失败，不保留过期 Channel，不实现客户端负载均衡。
 11. 生产网关实现仍属于 Gateway 项目，不放入 RPC Component。
-12. `rpc-starter` 提供网关接入契约和转发基础设施；`rpc-test-suite` 提供仅
-    用于验证的最小测试网关。
+12. `rpc-starter` 不提供任何生产 Gateway 接入或转发基础设施；
+    `rpc-test-suite` 提供仅用于验证的 `MockRpcGateway` 及其测试私有
+    Directory、Handler、Provider Channel 和 Forwarder。
 13. 本 Spec 对现有 Gateway 总览 Spec 的影响仅限：
     - gRPC 成为后续 Gateway Engine 的新 `UpstreamAdapter`；
     - RPC Provider 与内部 Gateway Node 使用 DDC，而不是 Nacos；
@@ -126,9 +140,7 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 - 标准 Protobuf IDL、代码生成约定与 Descriptor 校验；
 - RPC Provider 服务暴露与注册；
 - RPC Consumer 代理创建与网关连接；
-- RPC Gateway Node 注册；
-- RPC 网关侧 Provider 目录订阅；
-- unary gRPC 原始请求转发基础适配；
+- 测试范围 Mock Gateway 的节点注册、Provider 发现、实例选择和 unary 转发；
 - RPC 元数据、Deadline、Trace 和异常模型；
 - 单元、组件和进程内闭环测试；
 - README、配置说明和示例。
@@ -144,9 +156,13 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 - Consumer 侧负载均衡或故障转移；
 - RPC 灰度、权重、标签、限流、熔断和业务重试；
 - RPC Streaming；
-- RPC 服务 Mock 平台；
+- 通用 RPC 服务 Mock 平台；
 - RPC 控制台或管理 UI；
 - TLS/mTLS 证书管理平台；
+- RPC Starter 内的 Gateway 生产包和公共 API；
+- `RpcGatewayNodeRegistrar`、`RpcProviderDirectory`、
+  `RpcProviderChannelFactory`、`RpcGatewayHandlerRegistry` 和
+  `RpcUnaryForwarder`；
 - 完整 Gateway Engine；
 - 修改现有 Gateway HTTP/Dubbo 主路线；
 - 通用跨语言 RPC IDL 管理平台。
@@ -156,7 +172,7 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 ```mermaid
 flowchart LR
     Consumer["RPC Consumer"]
-    Gateway["Internal Gateway"]
+    MockGateway["MockRpcGateway<br/>test only"]
     Provider1["RPC Provider 1"]
     Provider2["RPC Provider 2"]
     RpcStarter["RPC Starter"]
@@ -169,16 +185,16 @@ flowchart LR
     DdcStarter --> DdcAdmin
     DdcAdmin --> Redis
 
-    Consumer -->|"all business RPC"| Gateway
-    Gateway -->|"discover Provider Service Group"| DdcStarter
-    Gateway -->|"select + forward"| Provider1
-    Gateway -->|"select + forward"| Provider2
+    Consumer -->|"all test RPC"| MockGateway
+    MockGateway -->|"discover Provider Service Group"| DdcStarter
+    MockGateway -->|"test-only select + forward"| Provider1
+    MockGateway -->|"test-only select + forward"| Provider2
 
     Provider1 --> RpcStarter
     Provider2 --> RpcStarter
     RpcStarter -->|"register / heartbeat / deregister"| DdcStarter
 
-    Gateway -->|"register gateway node"| DdcStarter
+    MockGateway -->|"register INTERNAL_GATEWAY"| DdcStarter
 
     DdcAdmin --> Database
     DdcAdmin --> Redis
@@ -189,8 +205,11 @@ flowchart LR
 1. DDC 是配置与注册事实的管理入口。
 2. Redis 是配置通知和服务租约的运行基础设施。
 3. Consumer 永远只持有 Gateway Channel。
-4. Gateway 才持有 Provider Directory 和 Provider Channel。
-5. RPC Starter 提供协议与注册发现适配，不决定网关流量策略。
+4. 本轮只有测试范围的 Mock Gateway 持有 Provider Directory 和 Provider
+   Channel；RPC Starter 不持有二者。
+5. RPC Starter 提供 Provider/Consumer 协议与 DDC 适配，不包含 Gateway
+   生产代码。
+6. 生产 Gateway 在 PR1 DDC 与 PR2 RPC 完成后通过独立 Spec、Plan 和 PR 开发。
 
 ## 6. 模块结构
 
@@ -263,7 +282,8 @@ egon-cola-component-rpc/
   - 只通过 `@EgonRpcReference` 获得代理，不允许配置 Provider 地址。
 - `rpc-test-suite`
   - 依赖 Provider/Consumer 测试应用；
-  - 提供 `TestRpcGateway`、确定性测试注册中心适配和 JUnit E2E；
+  - 提供 `MockRpcGateway`、测试私有 Provider Directory/Forwarder、
+    确定性测试注册中心适配和 JUnit E2E；
   - 负责启动和关闭多个隔离 Spring Context；
   - 断言 Consumer→Gateway→Provider 调用成功。
 
@@ -279,13 +299,16 @@ top.egon.cola.component.rpc
 ├── contract
 ├── provider
 ├── consumer
-├── gateway
 ├── registry
 ├── protocol
 ├── trace
 ├── exception
 └── lifecycle
 ```
+
+`rpc-starter` 不创建 `top.egon.cola.component.rpc.gateway` 生产包。Mock Gateway
+及其 Directory、Channel、Handler、Forwarder 全部位于
+`rpc-test-suite` 的测试包，不形成可发布契约。
 
 ## 7. DDC 单机闭环完善
 
@@ -734,8 +757,10 @@ version?
 - `env + namespace + serviceKind + protocol` 必填。
 - 其他字段为空时表示该维度不过滤。
 - Consumer 使用完整字段查询固定 Gateway Service。
-- Gateway 使用 `serviceKind=RPC_PROVIDER + protocol=grpc` 查询 Provider
-  Service Catalog，再分别维护每个 Service Key 的 Instance Snapshot。
+- 本轮 `MockRpcGateway` 使用
+  `serviceKind=RPC_PROVIDER + protocol=grpc` 查询 Provider Service Catalog，
+  再分别维护每个 Service Key 的 Instance Snapshot；生产 Gateway 后续复用
+  同一 DDC 公共查询与订阅能力。
 - 查询结果是稳定排序、不可变的 `DdcServiceKey` 集合。
 
 ### 8.2 Redis Key
@@ -849,7 +874,8 @@ Service Catalog 订阅流程：
 6. 周期对账同时校正 Catalog 与各 Service Snapshot。
 
 Consumer 使用固定 Gateway 的 Instance Snapshot 订阅，不订阅 Provider Catalog；
-Gateway 的 `RpcProviderDirectory` 才使用 Provider Catalog 订阅。
+本轮只有 `rpc-test-suite` 内的 Mock Provider Directory 使用 Provider Catalog
+订阅。生产 Gateway 的 Directory 后续单独设计。
 
 短时 Admin 或 Redis 异常：
 
@@ -1014,12 +1040,13 @@ tracestate
 规则：
 
 - Service 来自生成 Descriptor，Group、Version 来自已校验 Contract；业务代理
-  API 不允许逐次动态修改。原始网络调用仍可能伪造 Metadata，Gateway 必须按
-  12.3 节重新校验。
+  API 不允许逐次动态修改。原始网络调用仍可能伪造 Metadata，本轮 Mock
+  Gateway 按 12.3 节校验；生产 Gateway 后续必须重新定义同等级校验。
 - Invocation ID 每次调用生成。
 - Trace 优先复用当前线程或框架上下文。
-- Gateway 只能透传白名单 Metadata。
-- Gateway 转发前移除调用方伪造的内部目标地址、Provider Instance ID 等字段。
+- Mock Gateway 只能透传白名单 Metadata。
+- Mock Gateway 转发前移除调用方伪造的内部目标地址、Provider Instance ID
+  等字段。
 - 不透传 Access Key、DDC Secret 或管理认证信息。
 
 ## 10. RPC Provider 运行链
@@ -1147,153 +1174,93 @@ Gateway 实例变化时：
 - 全局默认 Deadline。
 - `@EgonRpcReference` 可配置接口默认 Deadline。
 - 调用方显式上下文 Deadline 更短时使用更短值。
-- Consumer 和 Gateway Channel 均显式关闭 gRPC Retry。
+- Consumer Channel 显式关闭 gRPC Retry。
 - 框架不发起透明重试或业务重试。
-- Gateway 转发使用剩余 Deadline，不能重新开始完整超时时间。
-- Consumer 调用取消时，Gateway 取消对应 Provider `ClientCall`。
-- Gateway 收到 Provider Cancellation 或 Deadline Status 后原样结束上游调用。
+- 本轮 Mock Gateway 的测试私有 Provider Channel 同样显式关闭 gRPC Retry。
+- Mock Gateway 转发使用剩余 Deadline，不能重新开始完整超时时间。
+- Consumer 调用取消时，Mock Gateway 取消对应 Provider `ClientCall`。
+- Mock Gateway 收到 Provider Cancellation 或 Deadline Status 后原样结束上游
+  调用，用于验证 Consumer 和 Provider 两端的协议行为。
 - Consumer 将最终 gRPC Status 转换为稳定 `EgonRpcException`。
 
-## 12. 内部网关接入契约
+## 12. Mock Gateway 与生产 Gateway 延期边界
 
-### 12.1 生产边界
+### 12.1 本轮不交付的生产能力
 
-RPC Component 不实现完整 Gateway Engine，但 Starter 提供以下可复用边界：
+生产 Gateway 必须等待 DDC PR1 和 RPC PR2 完成、公共契约稳定后再开发。本轮
+RPC Starter 明确不创建以下类型或等价生产实现：
 
 ```text
 RpcGatewayNodeRegistrar
 RpcProviderDirectory
-RpcInvocationMetadata
 RpcProviderEndpoint
 RpcProviderChannelFactory
 RpcGatewayHandlerRegistry
 RpcUnaryForwarder
 ```
 
-职责：
+本轮也不确定生产 Gateway 的动态方法缓存、Provider Channel 复用、摘除、
+路由、失败评分和治理模型。后续 Gateway 使用独立 Spec、Plan 和 PR，不在
+当前两个 PR 中预埋半成品生产 API。
 
-- `RpcGatewayNodeRegistrar`
-  - 将 Gateway 注册为 `INTERNAL_GATEWAY`；
-  - 保存注册返回的 `leaseId`；
-  - 使用 `instanceId + leaseId` 维持租约并在停止时注销。
-- `RpcProviderDirectory`
-  - 先订阅 DDC Provider Service Catalog，再维护每个 Service Key 的 Instance
-    Snapshot；
-  - 输出不可变 Provider Cluster Snapshot；
-  - 不选择实例。
-- `RpcProviderChannelFactory`
-  - 为网关已经选中的 Provider Endpoint 创建/复用 Channel；
-  - 所有 Provider Channel 显式调用 `disableRetry()`；
-  - 不执行负载均衡。
-- `RpcGatewayHandlerRegistry`
-  - 作为 grpc-java `ServerBuilder.fallbackHandlerRegistry(...)` 的动态后备
-    `HandlerRegistry`；
-  - 根据完整 gRPC Method 名按需生成 unary `ServerMethodDefinition`；
-  - 使用框架内部 Byte Array Marshaller 接收和返回已经由 gRPC transport
-    分帧后的 Protobuf Payload；
-  - 只负责动态方法接入，不选择 Provider。
-- `RpcUnaryForwarder`
-  - 必须接收 Gateway 已选定的 `RpcProviderEndpoint`；
-  - 使用原始 gRPC Method 全名和 Protobuf Bytes 转发 unary 请求；
-  - 透传剩余 Deadline、Cancellation、Status 和白名单 Metadata；
-  - 不查询 Directory，不决定实例，不执行路由、重试、熔断和摘除。
+### 12.2 Mock Gateway 测试替身
 
-Provider 实例选择由 Gateway Engine 调用上述边界前完成。
-
-### 12.2 Provider Cluster Snapshot
+`rpc-test-suite` 提供测试私有的 `MockRpcGateway`，以及同包内的：
 
 ```text
-serviceKey
-revision
-instances
-observedAt
+MockProviderDirectory
+MockProviderChannelFactory
+MockDynamicHandlerRegistry
+MockUnaryForwarder
+MockRoundRobinSelector
 ```
 
-同一个：
+全部类型只能位于 RPC Test 模块，不进入 Starter，不进入 BOM，不允许业务模块
+依赖。它们只为证明 Provider/Consumer 和 DDC 公共能力能够支撑后续 Gateway：
 
-```text
-env + namespace + serviceName + group + version + protocol
-```
+- `MockRpcGateway` 直接使用 DDC Starter 公共 `DdcServiceRegistryClient`；
+- 注册为 `INTERNAL_GATEWAY` 并维持独立测试租约；
+- `MockProviderDirectory` 订阅 `RPC_PROVIDER` Catalog 和完整 Instance
+  Snapshot；
+- 使用 grpc-java 测试代码接收透明 unary 请求；
+- `MockRoundRobinSelector` 在多 Provider 测试中提供确定性选择；
+- `MockUnaryForwarder` 使用测试私有 Provider Channel 转发原始 Method 全名和
+  Protobuf Payload；
+- Provider Channel 显式调用 `disableRetry()`；
+- 透传剩余 Deadline、Cancellation、Status 和白名单 Metadata；
+- 记录 Invocation ID、选中 Provider 和转发次数供断言。
 
-下的所有有效 Provider Instance 组成一个逻辑集群。
+Mock Gateway 不承诺生产兼容性，不作为后续 Gateway 的二进制或源码依赖，不
+实现限流、熔断、灰度、鉴权、业务重试或生产故障治理。
 
-RPC Starter 只保证：
+### 12.3 Mock 转发测试流
 
-- 快照完整；
-- 实例租约有效；
-- 变化可订阅；
-- 地址和元数据已校验。
+Consumer 调用保留生成 Descriptor 的原始 Method 全名。Mock Gateway 的测试
+流程固定为：
 
-RPC Starter 不解释：
+1. 从 Method 全名和 Metadata 得到测试 Service Key。
+2. 从 `MockProviderDirectory` 读取当前完整快照。
+3. 由 `MockRoundRobinSelector` 选择一个有效 Provider。
+4. 使用测试私有 Channel 连接选中 Provider。
+5. 以相同 Method 全名转发 Protobuf Payload。
+6. 绑定剩余 Deadline 和 Consumer Cancellation。
+7. 将 Provider Payload 和最终 gRPC Status 返回 Consumer。
 
-- weight；
-- gray tag；
-- zone preference；
-- circuit state；
-- failure score。
+该流程只验证目标架构的网络边界。RPC Starter 的生产代码不得引用
+`MockProviderDirectory`、`MockUnaryForwarder` 或任何测试 Gateway 类型。
 
-这些字段即使存在于 Metadata，也只能由 Gateway 的治理实现消费。
+### 12.4 后续 Gateway 开发入口
 
-### 12.3 透明 unary 转发
+DDC 与 RPC 完成后，生产 Gateway 专项以已经发布的公共能力为输入：
 
-Consumer 调用 Gateway 时保留原始 Method 全名。
+- DDC 的 `DdcServiceRegistryClient`、Service Catalog 和 Instance Snapshot；
+- RPC 的 Protobuf Method 全名、Wire Metadata 和异常约定；
+- Consumer 只连接唯一 Gateway 的外部契约；
+- Provider 的标准 grpc-java 服务端。
 
-Gateway Server 不能预先依赖所有业务 Proto，也不能只注册一个固定 Envelope
-方法。因此使用 grpc-java 的动态后备 `HandlerRegistry`：
-
-1. Primary Registry 继续承载 Gateway 自身的固定管理服务。
-2. Primary Registry 未命中业务 Method 时，grpc-java 调用
-   `RpcGatewayHandlerRegistry.lookupMethod(fullMethodName, authority)`。
-3. Registry 只接受合法的 `serviceName/methodName`，并确认 Provider Catalog
-   中至少存在同名 Service；具体 Group/Version 在收到调用 Metadata 后校验。
-4. Registry 按完整 Method 名缓存 unary Byte Array Method Definition；实现
-   必须线程安全，并使用可配置上限的 LRU 缓存，防止任意 Method 名耗尽内存。
-5. Provider Service 消失后，已有 Method Definition 可以保留为无状态缓存，
-   但调用必须重新查询实时 Directory 并返回 `RPC_SERVICE_NOT_FOUND`，不能
-   继续使用过期 Endpoint。
-
-该设计利用 grpc-java 官方
-[`fallbackHandlerRegistry`](https://grpc.github.io/grpc-java/javadoc/io/grpc/ServerBuilder.html#fallbackHandlerRegistry(io.grpc.HandlerRegistry))
-和
-[`HandlerRegistry`](https://grpc.github.io/grpc-java/javadoc/io/grpc/HandlerRegistry.html)
-扩展点，不引入统一 `GatewayInvoke` Envelope，也不要求 Gateway 编译所有
-业务 Proto。
-
-Gateway 处理步骤：
-
-1. 从 Method 全名解析 `serviceName`，并要求它与框架生成的
-   `x-egon-rpc-service` 一致。
-2. 校验 `group/version` Metadata 的格式和长度；V1 内网模型不提供调用方身份
-   鉴权，因此不得把这些 Header 视为不可伪造的安全凭证。
-3. 根据校验后的 Service、Group、Version 确定 Provider Service Key。
-4. 从 `RpcProviderDirectory` 获取 Provider Cluster Snapshot。
-5. Gateway 自己选择实例。
-6. 将选中的 Endpoint 交给 `RpcProviderChannelFactory`。
-7. Gateway 将选中的 Endpoint 显式传给 `RpcUnaryForwarder`。
-8. `RpcUnaryForwarder` 以原始 Method 全名和 Byte Array Marshaller 转发
-   Payload，并绑定剩余 Deadline 与 Cancellation。
-9. Provider 响应 Payload 和 gRPC Status 返回 Consumer。
-
-RPC Starter 不定义网关选择算法。
-
-### 12.4 测试网关
-
-`rpc-test-suite` 提供最小 `TestRpcGateway` 参考实现，只依赖 RPC Starter
-公共 API：
-
-- 注册为 `INTERNAL_GATEWAY`；
-- 订阅 `RPC_PROVIDER`；
-- 接收透明 unary 调用；
-- 在测试中使用明确的 Round Robin 选择两个 Provider；
-- 转发请求和响应；
-- 记录调用实际经过 Gateway；
-- 不作为生产类发布；
-- 不进入 BOM；
-- 不引用 Starter `internal` 包；架构测试对此进行约束；
-- 不承诺限流、熔断、灰度或生产故障摘除能力。
-
-测试网关使用 Round Robin 只为证明 Provider 多实例由 Gateway 选择，不代表
-Consumer 或 RPC Starter 实现负载均衡。
+后续 Gateway 是否采用动态 `HandlerRegistry`、何种 Provider Directory、
+Channel 生命周期和治理模型，由 Gateway 专项重新设计；当前 Mock 不提前锁定
+这些生产决策。
 
 ## 13. 异常模型
 
@@ -1347,10 +1314,11 @@ Trace 规则：
 1. 优先读取当前 Egon Trace Context。
 2. 没有 Trace ID 时生成新 Trace ID。
 3. Consumer 将 Trace 写入 gRPC Metadata。
-4. Gateway 校验后透传。
+4. 本轮由 Mock Gateway 校验后透传；后续生产 Gateway 必须遵循同一外部约定。
 5. Provider 建立调用作用域并写入日志上下文。
 6. Provider 返回后清理线程上下文。
-7. Gateway 和 Provider 不修改合法的上游 Trace ID。
+7. Mock Gateway 和 Provider 不修改合法的上游 Trace ID；后续生产 Gateway
+   继续遵循该约定。
 8. 非法 Trace 字段被丢弃并重新生成。
 
 上下文只透传有明确白名单的字段，V1 不提供任意 ThreadLocal 或任意 Header
@@ -1436,8 +1404,6 @@ egon:
           graceful-shutdown-timeout-ms: 10000
         consumer:
           enabled: false
-        gateway:
-          enabled: false
 ```
 
 ### 15.3 RPC Consumer
@@ -1458,36 +1424,28 @@ egon:
           gateway-group: default
           gateway-version: 1.0.0
           channel-drain-timeout-ms: 5000
-        gateway:
-          enabled: false
 ```
 
-### 15.4 RPC Gateway Adapter
+### 15.4 Mock Gateway 测试配置
 
 ```yaml
 egon:
-  cola:
-    component:
-      rpc:
-        enabled: true
-        provider:
-          enabled: false
-        consumer:
-          enabled: false
-        gateway:
-          enabled: true
-          service-name: egon-internal-rpc-gateway
-          group: default
-          version: 1.0.0
-          advertised-host: 127.0.0.1
-          advertised-port: 19100
-          lease-seconds: 15
-          heartbeat-interval-seconds: 5
-          max-dynamic-methods: 2048
+  rpc:
+    test:
+      mock-gateway:
+        service-name: egon-internal-rpc-gateway
+        group: default
+        version: 1.0.0
+        bind-host: 127.0.0.1
+        bind-port: 0
+        advertised-host: 127.0.0.1
+        lease-seconds: 15
+        heartbeat-interval-seconds: 5
 ```
 
-Provider、Consumer 和 Gateway 能力使用独立开关；同一个业务应用可以同时开启
-Provider 与 Consumer，但普通业务应用不能开启 Gateway。
+该前缀只存在于 `rpc-test-suite`，不属于 `EgonRpcProperties`，不生成 Starter
+配置元数据。同一个业务应用可以同时开启 Provider 与 Consumer；RPC Starter
+没有 Gateway 开关。
 
 ## 16. 依赖与版本管理
 
@@ -1519,7 +1477,8 @@ protobuf-java
 约束：
 
 - 不引入第三方 gRPC Spring Boot Starter。
-- gRPC Server、Channel、Spring 生命周期和自动装配由本项目实现。
+- Provider gRPC Server、Consumer Gateway Channel、Spring 生命周期和自动装配
+  由本项目实现。
 - 业务模块必须使用标准 `protobuf-maven-plugin` 执行 `compile` 和
   `compile-custom`，分别生成 Protobuf Message 与 grpc-java 类。
 - `protoc`、`protoc-gen-grpc-java` 和运行时 Protobuf 版本由父 POM 统一管理，
@@ -1546,8 +1505,8 @@ protobuf-java
 | Lifecycle Coordinator | DDC 和 RPC 启停 | 注册、同步、心跳和注销必须有确定顺序 |
 | Observer | DDC 服务快照订阅 | 注册实例变化需要推送本地只读目录 |
 | Proxy | RPC Consumer JDK Proxy | 把 Java Contract 调用转换为 gRPC 调用 |
-| Adapter | DDC Registry、gRPC Transport、Gateway 接入 | 隔离基础设施和业务契约 |
-| Facade | RPC Provider/Gateway 运行入口 | 为自动装配提供稳定、少量入口 |
+| Adapter | DDC Registry、gRPC Transport | 隔离基础设施和业务契约 |
+| Facade | RPC Provider、Consumer 运行入口 | 为自动装配提供稳定、少量入口 |
 | Idempotent Receiver | DDC changeId、ACK、Retry | 重复请求不能创建第二个发布或重复计数 |
 | Keyed Lock | DDC 配置资源发布 | 同一配置资源只允许一个发布流程 |
 
@@ -1557,6 +1516,7 @@ protobuf-java
 - 不为固定 Protobuf 编解码创建 Serializer SPI。
 - 不创建 Consumer LoadBalancer Strategy。
 - 不创建 Provider Router、CircuitBreaker 或 Retry Strategy。
+- 不创建生产 Gateway Facade、Directory、Handler、Channel Factory 或 Forwarder。
 - 不为发布一致性创建多策略层，V1 只有 `SYNC_ALL_ACK`。
 - 不为了 Maven 模块纯度拆分额外 API/Core 模块。
 - 不建立通用 Service Mesh 抽象。
@@ -1635,28 +1595,24 @@ protobuf-java
 14. 启动时零 Gateway 快速失败。
 15. 启动时多 Gateway 快速失败。
 16. 运行时零或多 Gateway 停止新调用并关闭非唯一有效 Channel。
-17. Consumer 和 Provider Channel 显式关闭 gRPC Retry。
-18. Deadline 优先级和剩余时间转发。
-19. Consumer Cancellation 取消 Gateway 到 Provider 的 `ClientCall`。
+17. Consumer Channel 显式关闭 gRPC Retry。
+18. Deadline 优先级。
+19. Consumer Cancellation 取消当前 Gateway `ClientCall`。
 20. gRPC Status 到 `EgonRpcException` 的转换。
-21. Trace 与白名单 Metadata 透传和清理。
-22. Gateway Provider Directory 快照。
-23. 动态 `HandlerRegistry` 只接受合法 Method，并创建 unary Byte Array
-    Method Definition。
-24. 动态 Method LRU 达到上限后有界淘汰。
-25. Provider Service 消失后，已缓存的 Method Definition 不使用过期 Endpoint。
-26. Forwarder 必须接收已选 Endpoint，且不查询 Directory 或选择实例。
-27. Test Gateway 只引用 Starter 公共 API。
+21. Consumer 写入和 Provider 读取 Trace 与白名单 Metadata。
+22. Starter 生产代码不存在 Gateway 包、Provider Directory、动态 Handler、
+    Provider Channel Factory 或 Unary Forwarder。
 
 ### 18.4 RPC Test 分层
 
-测试分为三层，不能只用 Mock 验证方法调用：
+测试分为三层。Gateway 行为由 Mock 提供，但 TCP Smoke 和 Process E2E 必须使用
+真实 grpc-java TCP，不能把整个调用退化为 Java Mock：
 
 | 层级 | 模块 | 传输 | 注册中心 | 目的 |
 |---|---|---|---|---|
-| Unit | `rpc-starter` | Mock/In-Process | Mock | 验证单类和边界规则 |
-| TCP Smoke | `rpc-test-suite` / `mvn test` | 同 JVM、真实 TCP | 确定性内存 Adapter | 每次构建验证 Consumer→Gateway→Provider |
-| Process E2E | `rpc-test-suite` / `mvn verify` | 独立 JVM、真实 TCP | 单 DDC Admin + 单 Redis | 验证完整注册发现与进程边界 |
+| Unit | `rpc-starter` | Mock/直接单元 | Mock | 验证单类和边界规则 |
+| TCP Smoke | `rpc-test-suite` / `mvn test` | 同 JVM、真实 TCP + Mock Gateway | 确定性内存 Adapter | 每次构建验证 Consumer→Mock Gateway→Provider |
+| Process E2E | `rpc-test-suite` / `mvn verify` | 独立 JVM、真实 TCP + Mock Gateway | 单 DDC Admin + 单 Redis | 验证完整注册发现与进程边界 |
 
 TCP Smoke 必须进入普通 Maven `test`，使用 Netty Server、随机 loopback TCP
 端口和真实 ManagedChannel；禁止使用 `InProcessServerBuilder` 或直接 Java 调用。
@@ -1670,12 +1626,12 @@ Process E2E 由 Maven Failsafe 在 `mvn verify -Pddc-live-test` 中执行。
 - `RpcConsumerApplicationTest`
   - 只启动 Consumer Context；
   - 验证代理创建、零 Gateway 错误，以及不存在 Provider 发现和直连能力。
-- `RpcProviderConsumerTcpTest`
-  - 启动 Provider、Test Gateway 和 Consumer 三个隔离 Context；
+- `RpcTcpCallTest`
+  - 启动 Provider、Mock Gateway 和 Consumer 三个隔离 Context；
   - 使用真实 TCP 验证一次完整 RPC 调用成功。
-- `RpcMultipleProvidersTest`
+- `RpcMultiProviderDirectoryTest`
   - 启动两个 Provider；
-  - 验证 Provider Cluster、Gateway 选择和下线摘除。
+  - 验证 Mock Provider Directory、Mock Gateway 选择和下线摘除。
 
 确定性内存 Adapter 只能实现 DDC Starter 已定义的
 `DdcServiceRegistryClient` 接口，支持注册、心跳、注销、Service Catalog 和
@@ -1685,14 +1641,14 @@ instanceId + leaseId”的语义；RPC 生产代码不能感知或特判该 Adap
 ### 18.5 单 Provider、单 Consumer 调用成功
 
 这是 RPC Component 的最低验收用例，测试类命名为
-`RpcProviderConsumerTcpTest`。
+`RpcTcpCallTest`。
 
 测试拓扑：
 
 ```mermaid
 flowchart LR
     Consumer["TestRpcConsumerApplication"]
-    Gateway["TestRpcGateway"]
+    Gateway["MockRpcGateway"]
     Provider["TestRpcProviderApplication"]
     Registry["Deterministic DDC Registry Adapter"]
 
@@ -1710,42 +1666,45 @@ flowchart LR
 2. 创建全新的确定性 Registry Adapter，禁止复用其他测试状态。
 3. 启动 `TestRpcProviderApplication` 的独立 Spring Context 和随机 gRPC 端口。
 4. 等待 Registry 出现一个 `RPC_PROVIDER` 实例。
-5. 启动 `TestRpcGateway` 的独立 Context 和随机 gRPC 端口。
-6. 等待 Gateway 目录发现 Provider，并注册一个 `INTERNAL_GATEWAY` 实例。
+5. 启动 `MockRpcGateway` 的独立 Context 和随机 gRPC 端口。
+6. 等待 Mock Provider Directory 发现 Provider，并注册一个
+   `INTERNAL_GATEWAY` 实例。
 7. 启动 `TestRpcConsumerApplication` 的独立 Spring Context。
 8. Consumer 通过 `@EgonRpcReference` 获得 Echo Contract 代理。
 9. Consumer 发起 `echo("hello")`，返回值必须为 Provider 生成的确定性响应。
-10. 断言 Gateway 转发计数为 1，Provider 调用计数为 1。
+10. 断言 Mock Gateway 转发计数为 1，Provider 调用计数为 1。
 11. 断言 Consumer 只创建 Gateway Channel，Provider Channel 数量为 0。
 12. 断言 Provider 收到的 Invocation ID、Deadline 和 Trace 与调用上下文一致。
-13. 按 Consumer、Gateway、Provider、Registry 的逆序关闭所有资源。
+13. 按 Consumer、Mock Gateway、Provider、Registry 的逆序关闭所有资源。
 14. 断言不存在存活的 RPC Scheduler、Channel、Server 或 Listener。
 
-测试成功不能只断言响应内容，还必须证明请求实际经过 Gateway；Provider
+测试成功不能只断言响应内容，还必须证明请求实际经过 Mock Gateway；Provider
 不得与 Consumer 共享 Spring Bean、Channel 或直接 Java 方法引用。测试必须
 断言 Server 与 Channel 使用 loopback TCP Socket，不能退化为 gRPC In-Process。
 
 ### 18.6 多 Provider 与摘除
 
-在最低成功用例之外，增加 `RpcMultipleProvidersTest`：
+在最低成功用例之外，增加 `RpcMultiProviderDirectoryTest`：
 
 1. 启动两个 Provider Context，暴露同一个 Proto Service、Group 和 Version。
 2. 两个实例注册到同一个 DDC Service Group。
-3. Test Gateway 将其识别为一个逻辑集群。
-4. Consumer 连续调用，Test Gateway 的确定性 Round Robin 分别命中两个实例。
+3. 测试私有 `MockProviderDirectory` 将其识别为一个逻辑集群。
+4. Consumer 连续调用，`MockRpcGateway` 的确定性 Round Robin 分别命中两个
+   实例。
 5. 主动停止第一个 Provider，并等待注销或租约过期。
-6. Gateway Directory 收敛到一个实例。
+6. Mock Provider Directory 收敛到一个实例。
 7. 后续调用只命中剩余 Provider。
 8. Consumer 全程不订阅 Provider Catalog，也不创建 Provider Channel。
 
-Round Robin 仅存在于 `rpc-test-suite`，用于证明实例选择属于 Gateway，不进入
-RPC Starter 生产 API。
+Round Robin、Directory 和 Provider Channel 全部仅存在于 `rpc-test-suite`，
+用于验证未来 Gateway 所需的 DDC/RPC 基础，不进入 RPC Starter 生产 API。
 
 ### 18.7 完整进程级 E2E
 
 `RpcProcessIT` 由 Maven Failsafe 在
 `mvn verify -Pddc-live-test` 中执行。测试 Harness 使用 `ProcessBuilder` 启动
-独立 JVM，不把 Provider、Gateway 和 Consumer 放在同一个 Spring Context。
+独立 JVM，不把 Provider、Mock Gateway 和 Consumer 放在同一个 Spring
+Context。
 
 进程拓扑：
 
@@ -1753,7 +1712,7 @@ RPC Starter 生产 API。
 Failsafe Harness
 ├── DDC Admin JVM + temporary SQLite
 ├── Test Provider JVM
-├── Test Gateway JVM
+├── Mock Gateway JVM
 └── Test Consumer JVM
 ```
 
@@ -1764,16 +1723,17 @@ Failsafe Harness
 3. 启动 DDC Admin JVM，使用临时 SQLite 和随机管理端口。
 4. 启动 Test Provider JVM，等待 DDC 中出现有效
    `RPC_PROVIDER instanceId + leaseId`。
-5. 启动 Test Gateway JVM，等待其发现 Provider 并注册唯一
+5. 启动 Mock Gateway JVM，等待其发现 Provider 并注册唯一
    `INTERNAL_GATEWAY` 租约。
 6. 启动一次性 Test Consumer JVM；Consumer 从 DDC 发现 Gateway，执行 Echo
    RPC，写出结构化结果后以退出码 0 结束。
-7. Harness 校验 Consumer 响应、Gateway 转发事件和 Provider 调用事件使用同一
-   Invocation ID。
-8. Harness 校验 Provider、Gateway、Consumer 使用不同 PID 和真实 TCP 地址。
-9. 停止 Provider，验证主动注销后 Gateway Directory 摘除该
+7. Harness 校验 Consumer 响应、Mock Gateway 转发事件和 Provider 调用事件
+   使用同一 Invocation ID。
+8. Harness 校验 Provider、Mock Gateway、Consumer 使用不同 PID 和真实 TCP
+   地址。
+9. 停止 Provider，验证主动注销后 Mock Provider Directory 摘除该
    `instanceId + leaseId`。
-10. 关闭 Gateway 和 DDC Admin，等待全部子进程退出。
+10. 关闭 Mock Gateway 和 DDC Admin，等待全部子进程退出。
 11. 清理本次命名空间 Redis Key、临时 SQLite 和工作目录，不清空共享 Redis。
 12. 测试失败时保留各进程 stdout/stderr 到 `target/process-it`，并强制终止
     遗留子进程。
@@ -1793,7 +1753,8 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 7. Provider 异常不向 Consumer 暴露堆栈。
 8. 服务地址必须经过 Host、Port 和保留地址校验。
 9. Consumer 不能通过参数覆盖目标 Provider。
-10. Gateway 必须忽略客户端伪造的 Provider Instance ID。
+10. 本轮 Mock Gateway 必须忽略客户端伪造的 Provider Instance ID；生产
+    Gateway 后续至少保持同等级约束。
 
 ## 20. 与现有功能的兼容性
 
@@ -1820,6 +1781,8 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 - 不替换现有 Facade Contract。
 - 只有需要 RPC 能力的业务模块引入 RPC Starter。
 - RPC Starter 默认关闭，未配置时不创建 Server、Channel 或 Registry Listener。
+- RPC Starter 不包含 Gateway 生产包、Gateway 开关或转发基础设施。
+- Mock Gateway 只存在于 RPC Test，不形成发布兼容性承诺。
 - Gateway 总览 Spec 中 HTTP/Dubbo 路线保持不变；gRPC Adapter 由后续 Gateway
   实施 Spec 接入。
 
@@ -1862,20 +1825,24 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 - [ ] Consumer 可以通过注解获得类型安全代理。
 - [ ] Consumer 只发现唯一活跃内部 Gateway。
 - [ ] 启动和运行期间发现零个或多个 Gateway 时快速失败。
-- [ ] Consumer 所有请求经过 Gateway。
-- [ ] Gateway 可以发现同一 Service Group 的多个 Provider。
-- [ ] Test Gateway 负责实例选择和转发。
-- [ ] Test Gateway 只依赖 RPC Starter 公共 API。
+- [ ] Consumer 所有测试请求经过 Mock Gateway。
+- [ ] Mock Provider Directory 可以发现同一 Service Group 的多个 Provider。
+- [ ] Mock Gateway 负责测试范围的实例选择和转发。
+- [ ] Mock Gateway 只存在于 RPC Test，只依赖 RPC Starter、DDC Starter 和
+  grpc-java 公共 API。
 - [ ] Consumer 不包含 Provider LoadBalancer 或直连代码。
-- [ ] Unary Forwarder 只接受 Gateway 已选 Endpoint，不查询 Directory 或选择实例。
-- [ ] Consumer 和 Provider Channel 显式关闭 gRPC Retry。
+- [ ] RPC Starter 不包含生产 Gateway Directory、Handler、Provider Channel
+  Factory 或 Unary Forwarder。
+- [ ] Consumer Channel 和 Mock Gateway 测试 Provider Channel 显式关闭
+  gRPC Retry。
 - [ ] Deadline、Cancellation、Status、Trace 和白名单 Metadata 可传播。
 - [ ] gRPC Status 转换为稳定框架异常。
 - [ ] RPC Starter 不实现限流、熔断、灰度或重试。
 - [ ] 普通 Maven `test` 中，一个独立 Provider 和一个独立 Consumer 可以通过
-  Test Gateway 完成真实 TCP grpc-java 调用。
-- [ ] 成功用例同时证明请求经过 Gateway，Consumer 没有 Provider Channel。
-- [ ] 多 Provider、主动注销和租约摘除用例通过。
+  Mock Gateway 完成真实 TCP grpc-java 调用。
+- [ ] 成功用例同时证明请求经过 Mock Gateway，Consumer 没有 Provider
+  Channel。
+- [ ] Mock Provider Directory 的多 Provider、主动注销和租约摘除用例通过。
 - [ ] 闭环测试结束后没有 Server、Channel、Scheduler 或 Listener 泄漏。
 - [ ] `mvn verify -Pddc-live-test` 可以完成独立 JVM 进程级链路验证。
 
@@ -1955,14 +1922,18 @@ PR2 基于已经合入的 PR1：
 
 - 新增 RPC Starter；
 - 接入 DDC 公共租约和 Registry API；
-- 实现 Protobuf Descriptor 绑定、Provider、Consumer 和 Gateway 公共能力；
+- 实现 Protobuf Descriptor 绑定、Provider 和 Consumer 公共能力；
 - 实现唯一 Gateway 快速失败、Deadline、Cancellation、Status、Metadata 和
   Retry Disabled；
-- 新增 Contract、Provider、Consumer、Suite 测试模块；
+- 新增 Contract、Provider、Consumer、Suite 测试模块，并在 Suite 内实现
+  测试私有 Mock Gateway；
 - 完成普通 `mvn test` 真实 TCP 链路与 `mvn verify` 进程级链路。
 
-PR2 不实现生产 Gateway 和流量治理。PR2 合入前必须独立完成 RPC 模块及其依赖
+PR2 不实现任何生产 Gateway 接入、Directory、Handler、Provider Channel
+Factory、Forwarder 或流量治理能力。PR2 合入前必须独立完成 RPC 模块及其依赖
 的编译、测试和打包验证。
 
 两个 PR 都不得提交无法独立编译的跨 PR 半成品；PR2 只能引用 PR1 已发布的
 DDC Starter 公共 API。
+
+生产 Gateway 是两个 PR 之后的独立后续项目，不属于本实施计划。

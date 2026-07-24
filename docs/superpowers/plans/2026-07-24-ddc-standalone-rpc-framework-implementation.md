@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在不引入任何集群协调代码的前提下，先完成单 Admin、单 Redis 的 DDC 运行闭环和 Redis-only 服务注册发现，再基于该公共能力交付只含 Starter 与测试资产的轻量 gRPC + Protobuf RPC Component。
+**Goal:** 在不引入任何集群协调代码的前提下，先完成单 Admin、单 Redis 的 DDC 运行闭环和 Redis-only 服务注册发现，再交付 Provider/Consumer 轻量 gRPC + Protobuf RPC Component，并仅用测试范围的 Mock Gateway 验证调用链。
 
-**Architecture:** PR1 将 DDC 重构为统一 `instanceId + leaseId` 租约协议、配置客户端生命周期协调器、Redis-only 服务目录和单 Admin 同步全目标确认发布。PR2 只依赖已经合入的 PR1，使用标准 Proto 生成的 gRPC Descriptor 作为唯一协议事实，通过注解绑定 Provider、JDK Proxy Consumer 和网关公共转发边界；Consumer 永远只连接唯一 Gateway，Provider 选择只存在于测试 Gateway。
+**Architecture:** PR1 将 DDC 重构为统一 `instanceId + leaseId` 租约协议、配置客户端生命周期协调器、Redis-only 服务目录和单 Admin 同步全目标确认发布。PR2 只依赖已经合入的 PR1，使用标准 Proto 生成的 gRPC Descriptor 作为唯一协议事实，通过注解绑定 Provider 和 JDK Proxy Consumer；Consumer 永远只连接唯一 Gateway，但本轮 Gateway、Provider Directory、动态 Handler 和转发器全部是 `rpc-test-suite` 内的 Mock，生产 Gateway 延后到 PR1/PR2 完成后单独开发。
 
 **Tech Stack:** Java 21、Spring Boot 3.5.16、Maven、Redisson 3.26.0、PostgreSQL、SQLite、Flyway 11.15.0、grpc-java 1.75.0、Protocol Buffers 4.32.0、`protobuf-maven-plugin` 0.6.1、JUnit 5、Mockito、AssertJ、Awaitility、Maven Surefire/Failsafe。
 
@@ -42,6 +42,8 @@ Do not create PR2 files on the PR1 branch. Do not combine the two pull requests 
 - `.proto` is the only RPC IDL. Do not create a second serializer, envelope IDL, schema registry, or custom protoc plugin.
 - RPC V1 supports only unary methods whose request and response implement `com.google.protobuf.Message`.
 - Do not add a production Gateway engine, Provider selector, Consumer-to-Provider channel, retry, gray routing, rate limiting, circuit breaking, or business retry.
+- Do not add a production RPC Gateway package or the production types `RpcGatewayNodeRegistrar`, `RpcProviderDirectory`, `RpcProviderChannelFactory`, `RpcGatewayHandlerRegistry`, or `RpcUnaryForwarder`.
+- All Gateway registration, Provider discovery, selection, dynamic handling, Provider channels, and forwarding used by current tests must remain under `rpc-test-suite/src/test`; they are Mock fixtures, not published APIs.
 - Every `ManagedChannelBuilder` in RPC production code must call `disableRetry()`.
 - Do not start any application after implementation verification. Tests may start bounded test servers/processes and must close them.
 
@@ -51,8 +53,8 @@ Use patterns only at the variation points already present in the design:
 
 - **Facade / lifecycle coordinator:** `DdcRuntimeCoordinator`, `RpcProviderLifecycle`, and `RpcConsumerGatewayManager` own ordered startup and shutdown.
 - **Observer:** DDC service snapshot/catalog subscriptions publish immutable complete snapshots.
-- **Adapter:** `DdcOpenApiServiceRegistryClient` is the production registry adapter; the deterministic in-memory adapter exists only in RPC test code.
-- **Registry:** publish locks, publish Waiters, Provider method bindings, Gateway handlers, and Provider channels use narrow registries keyed by their real identities.
+- **Adapter:** `DdcOpenApiServiceRegistryClient` is the production registry adapter; deterministic registry and Gateway adapters exist only in RPC test code.
+- **Registry:** publish locks, publish Waiters, and Provider method bindings use narrow registries keyed by their real identities; Mock Gateway registries remain test-private.
 - **Proxy:** Consumer bindings use JDK Dynamic Proxy only.
 - **Factory:** channel creation is isolated in channel factories, with retry disabled in the only creation path.
 
@@ -709,7 +711,7 @@ Because the canonical Redis bucket is keyed by kind + instanceId, Register must 
 
 Split auto-configuration so `egon.cola.component.ddc.enabled=false` can disable the CONFIG_CLIENT lifecycle while `egon.cola.component.ddc.registry.enabled=true` still creates the public registry client for RPC applications.
 
-`registry.enabled` defaults to `false` and uses `matchIfMissing=false`. RPC Provider/Gateway deployments and their test applications enable it explicitly; this prevents the Admin application's existing `ddc.enabled=false` setting from accidentally auto-configuring a registry client back to itself.
+`registry.enabled` defaults to `false` and uses `matchIfMissing=false`. RPC Provider applications and the test-only Mock Gateway enable it explicitly; the future production Gateway will opt in during its own project. This prevents the Admin application's existing `ddc.enabled=false` setting from accidentally auto-configuring a registry client back to itself.
 
 ### TDD steps
 
@@ -997,7 +999,7 @@ The DDC test module must prove:
 
 - config-client startup Register → defaults → snapshot → READY ordering;
 - new lease replaces old lease and stale heartbeat/offline cannot mutate it;
-- Provider/Gateway-style registry entry Register → subscribe → heartbeat → deregister;
+- Provider and Mock-Gateway-style registry entry Register → subscribe → heartbeat → deregister;
 - registry state is absent from all JPA tables;
 - one publish snapshots exact config-client leases and returns only after every success ACK;
 - same-resource concurrent publish rejects one request without blocking ACK handling;
@@ -1578,158 +1580,106 @@ Do not expose `StatusRuntimeException` as the public proxy contract.
 
 ---
 
-## Task 14: Provide Gateway registration, Provider Directory, dynamic handler, channels, and unary forwarding
+## Task 14: Build the test-only Mock Gateway fixture
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcGatewayRegistration.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcGatewayNodeRegistrar.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcProviderEndpoint.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcProviderClusterSnapshot.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcProviderDirectory.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/DdcRpcProviderDirectory.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcProviderChannelFactory.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcGatewayInvocation.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcGatewayInvocationHandler.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcGatewayHandlerRegistry.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcByteArrayMarshaller.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/RpcUnaryForwarder.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway/DefaultRpcUnaryForwarder.java`
-- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcAutoConfig.java`
-- Test: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc/gateway/RpcGatewayNodeRegistrarTest.java`
-- Test: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc/gateway/DdcRpcProviderDirectoryTest.java`
-- Test: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc/gateway/RpcGatewayHandlerRegistryTest.java`
-- Test: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc/gateway/DefaultRpcUnaryForwarderTest.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockGatewayProperties.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockProviderEndpoint.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockProviderClusterSnapshot.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockProviderDirectory.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockProviderChannelFactory.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockByteArrayMarshaller.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockGatewayInvocation.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockDynamicHandlerRegistry.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockUnaryForwarder.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockRoundRobinSelector.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockRpcGateway.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockProviderDirectoryTest.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockDynamicHandlerRegistryTest.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockUnaryForwarderTest.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockGatewayBoundaryTest.java`
+- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/pom.xml`
 
-### Public Gateway API
+### Mock-only boundary
 
-`RpcGatewayNodeRegistrar` exposes explicit lifecycle methods for a Gateway implementation:
+Every class in this task is under `rpc-test-suite/src/test`. Nothing is added to
+`rpc-starter/src/main`, no Gateway auto-configuration is created, and no Mock type is
+exported through the BOM.
 
-```java
-public interface RpcGatewayNodeRegistrar extends AutoCloseable {
-    DdcLeaseSession register(RpcGatewayRegistration registration);
-    DdcLeaseSession currentLease();
-    void startHeartbeat();
-    void close();
-}
-```
+`MockRpcGateway` uses public DDC and grpc-java APIs directly:
 
-It registers `INTERNAL_GATEWAY`, keeps only the current lease, re-registers on missing/mismatched lease, and deregisters before stopping its heartbeat executor.
+1. starts one grpc-netty-shaded Server on loopback port `0`;
+2. registers itself through `DdcServiceRegistryClient.register` as
+   `INTERNAL_GATEWAY`;
+3. stores the returned current lease and heartbeats/deregisters with exact
+   `instanceId + leaseId`;
+4. uses `MockProviderDirectory` to subscribe to `RPC_PROVIDER/grpc`;
+5. delegates deterministic selection to `MockRoundRobinSelector`;
+6. delegates byte-level unary forwarding to `MockUnaryForwarder`;
+7. records invocation ID, selected Provider, and forwarding count;
+8. closes lease, subscriptions, Provider channels, Server, and executors in reverse
+   order.
 
-`RpcProviderDirectory` never selects:
+`MockProviderDirectory` consumes `DdcServiceRegistryClient.getServiceKeys`,
+`subscribeServices`, and `subscribe` directly. It publishes immutable test snapshots
+and never becomes an RPC Starter dependency.
 
-```java
-public interface RpcProviderDirectory extends AutoCloseable {
-    void start();
-    RpcProviderClusterSnapshot get(DdcServiceKey serviceKey);
-    Map<DdcServiceKey, RpcProviderClusterSnapshot> snapshots();
-    void addListener(Consumer<RpcProviderClusterSnapshot> listener);
-    void close();
-}
-```
+`MockProviderChannelFactory` caches by exact
+`instanceId + leaseId + host + port + secure`, calls `disableRetry()` on every
+creation path, and evicts removed/replaced leases.
 
-`DdcRpcProviderDirectory` subscribes to the `RPC_PROVIDER/grpc` catalog, starts/stops one instance subscription per Service Key, publishes immutable complete snapshots, and removes expired/deleted services. It maps DDC instances to validated `RpcProviderEndpoint` values but does not interpret weight/tags/zone.
+`MockDynamicHandlerRegistry` is a test implementation of grpc-java
+`HandlerRegistry` using `MethodDescriptor<byte[], byte[]>`; it retains the original
+full method name and does not parse business Proto.
 
-`RpcProviderChannelFactory`:
-
-```java
-ManagedChannel channel(RpcProviderEndpoint endpoint);
-void evict(RpcProviderEndpoint endpoint);
-void close();
-```
-
-It caches by exact endpoint identity (`instanceId + leaseId + host + port + secure`), calls `disableRetry()` on creation, and closes channels for removed/changed leases. It has no picker.
-
-### Dynamic Gateway handler
-
-`RpcGatewayHandlerRegistry` extends grpc-java `HandlerRegistry` and delegates an invocation to a Gateway-supplied callback:
-
-```java
-public interface RpcGatewayInvocationHandler {
-    boolean supportsService(String serviceName);
-
-    void handle(
-            RpcGatewayInvocation invocation,
-            StreamObserver<byte[]> responseObserver);
-}
-```
-
-`RpcGatewayInvocation` contains:
-
-```text
-fullMethodName
-serviceName
-payload
-RpcInvocationMetadata
-Deadline
-```
-
-The registry:
-
-- validates `serviceName/methodName`;
-- asks `supportsService(serviceName)` before creating/caching a definition, so unknown services do not consume the cache;
-- uses a thread-safe access-order LRU capped by `gateway.max-dynamic-methods`, default `2048`;
-- creates unary `MethodDescriptor<byte[], byte[]>` using only `RpcByteArrayMarshaller`;
-- never parses a business Message and never depends on business Proto;
-- never accesses a Provider Directory itself;
-- returns `UNIMPLEMENTED` for invalid method names or cache rejection.
-
-This callback is the seam where a production Gateway engine would query the Directory and select an endpoint. The Starter does not supply a production selector or callback implementation.
-
-### Unary forwarder
-
-```java
-public interface RpcUnaryForwarder {
-    void forward(
-            RpcProviderEndpoint selectedEndpoint,
-            RpcGatewayInvocation invocation,
-            StreamObserver<byte[]> responseObserver);
-}
-```
-
-`DefaultRpcUnaryForwarder`:
-
-1. requires the caller-selected endpoint;
-2. gets that endpoint's channel;
-3. builds the byte-array unary MethodDescriptor with the unchanged full method name;
-4. copies only whitelisted Metadata;
-5. applies the remaining inbound Deadline;
-6. starts one `ClientCall<byte[], byte[]>`;
-7. binds current gRPC Context cancellation to `ClientCall.cancel`;
-8. forwards one response payload and the Provider Status;
-9. performs no directory query, endpoint selection, retry, breaker, rate limit, or failure scoring.
+`MockUnaryForwarder` receives the endpoint already chosen by
+`MockRoundRobinSelector`, forwards one payload, applies the remaining Deadline, binds
+Consumer cancellation to the Provider `ClientCall`, copies only the Metadata
+whitelist, and returns the Provider Status. These semantics validate the target
+network boundary but make no production Gateway API commitment.
 
 ### TDD steps
 
-- [ ] Add registrar tests for new leases, strict current-lease heartbeat, recovery, and owner-safe shutdown.
-- [ ] Add Directory tests for catalog discovery, per-service snapshots, removal, lease replacement, stable ordering, and explicit proof no selection method exists.
-- [ ] Add handler tests for transparent full method name, byte payload, unary type, LRU bound, invalid name, concurrent lookup, and no business Proto dependency.
-- [ ] Add forwarder tests for required selected endpoint, retry-disabled channel, remaining deadline, cancellation, status, Metadata whitelist, and proof that no Directory dependency is accepted by its constructor.
+- [ ] Add Directory tests for catalog discovery, snapshot replacement, deregistration,
+  lease expiry, and stable ordering using a mocked public `DdcServiceRegistryClient`.
+- [ ] Add Handler tests for original method name, unary byte marshalling, invalid method
+  rejection, and concurrent lookup.
+- [ ] Add Forwarder tests for preselected endpoint, retry-disabled channel, remaining
+  Deadline, cancellation, Status, and Metadata whitelist.
+- [ ] Add a boundary test proving:
+  - every Mock Gateway type is under `rpc-test-suite/src/test`;
+  - RPC Starter has no `top.egon.cola.component.rpc.gateway` package;
+  - RPC Starter has none of the deferred Gateway production type names.
 - [ ] Run:
 
   ```bash
   ./mvnw -B -ntp \
-    -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
-    -am -Dtest=RpcGatewayNodeRegistrarTest,DdcRpcProviderDirectoryTest,RpcGatewayHandlerRegistryTest,DefaultRpcUnaryForwarderTest \
+    -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
+    -am -Dtest=MockProviderDirectoryTest,MockDynamicHandlerRegistryTest,MockUnaryForwarderTest,MockGatewayBoundaryTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
 
-  Expected: failure because Gateway public boundaries do not exist.
+  Expected: failure because the Mock Gateway fixtures do not exist.
 
-- [ ] Implement Gateway public APIs and auto-config only for reusable beans. Do not create or start a production Gateway Server.
-- [ ] Rerun focused and complete Starter tests.
-- [ ] Assert production Gateway code contains no selector:
+- [ ] Implement only the test fixtures and keep their lifecycle manually controlled by
+  the test suite.
+- [ ] Rerun the focused command. Expected: `BUILD SUCCESS`.
+- [ ] Assert no production Gateway implementation exists:
 
   ```bash
-  ! rg -n 'RoundRobin|Random|Selector|LoadBalancer|choose\\(|pick\\(' \
+  test ! -d \
     egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway
+
+  ! rg -n 'RpcGatewayNodeRegistrar|RpcProviderDirectory|RpcProviderChannelFactory|RpcGatewayHandlerRegistry|RpcUnaryForwarder' \
+    egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main
   ```
 
 - [ ] Commit:
 
   ```bash
   git add egon-cola-components/egon-cola-component-rpc
-  git commit -m "feat(rpc): expose gateway forwarding boundaries"
+  git commit -m "test(rpc): add mock gateway fixture"
   ```
 
 ---
@@ -1784,7 +1734,9 @@ Both applications depend on the same `rpc-test-contract` artifact. Neither copie
 ### TDD steps
 
 - [ ] Add Provider test proving its implementation returns a Protobuf response and is discovered as an RPC Provider.
-- [ ] Add Consumer context test proving `EchoRpcClient` receives a JDK Proxy when a one-Gateway registry fixture is supplied, and context startup fails for zero/multiple Gateways.
+- [ ] Add Consumer context test proving `EchoRpcClient` receives a JDK Proxy when a
+  one-Mock-Gateway lease fixture is supplied, and context startup fails for
+  zero/multiple Gateways.
 - [ ] Run:
 
   ```bash
@@ -1814,14 +1766,14 @@ Both applications depend on the same `rpc-test-contract` artifact. Neither copie
 
 ---
 
-## Task 16: Prove Consumer → Gateway → Provider over real TCP in ordinary mvn test
+## Task 16: Prove Consumer → Mock Gateway → Provider over real TCP in ordinary mvn test
 
 **Files:**
 
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/support/InMemoryDdcRegistryBackend.java`
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/support/InMemoryDdcServiceRegistryClient.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/gateway/TestRoundRobinSelector.java`
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/gateway/TestRpcGateway.java`
+- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockRpcGateway.java`
+- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockProviderDirectory.java`
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/RpcTcpCallTest.java`
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/RpcTcpCancellationTest.java`
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/RpcTestBoundaryTest.java`
@@ -1836,29 +1788,24 @@ The in-memory backend exists only under `rpc-test-suite/src/test`. It implements
 - full immutable snapshot/catalog callbacks;
 - explicit clock/expiry advancement for deterministic tests.
 
-Each Spring context receives a distinct `InMemoryDdcServiceRegistryClient` facade over the shared test backend. Provider, Gateway, and Consumer do not share Spring beans, application contexts, channels, or direct service object references.
+Each Spring context receives a distinct `InMemoryDdcServiceRegistryClient` facade over
+the shared test backend. Provider, Mock Gateway, and Consumer do not share Spring
+beans, application contexts, channels, or direct service object references.
 
-### Test Gateway
+### Mock Gateway integration
 
-`TestRpcGateway` imports only public Starter packages. It:
-
-1. starts a grpc-netty-shaded Server on loopback port `0`;
-2. installs `RpcGatewayHandlerRegistry` as `fallbackHandlerRegistry`;
-3. registers itself with `RpcGatewayNodeRegistrar`;
-4. starts `RpcProviderDirectory`;
-5. handles a dynamic invocation by resolving the requested cluster;
-6. asks `TestRoundRobinSelector` for an endpoint;
-7. passes that selected endpoint to `RpcUnaryForwarder`;
-8. records invocation IDs and selected Provider IDs for assertions.
-
-The selector is under test source only. Do not move it into Starter.
+Wire the Task 14 `MockRpcGateway` to a distinct
+`InMemoryDdcServiceRegistryClient` facade. It registers through the DDC public
+interface, discovers Provider snapshots through `MockProviderDirectory`, and uses its
+test-private Handler/Channel/Forwarder. Do not add an RPC Starter Gateway adapter to
+make this wiring easier.
 
 ### TCP smoke test
 
 `RpcTcpCallTest` starts three isolated Spring contexts in one JVM:
 
 - Provider context with a real Netty Server on loopback random TCP port;
-- Test Gateway context/server on a different loopback random TCP port;
+- Mock Gateway context/server on a different loopback random TCP port;
 - Consumer context with only the Gateway snapshot/channel.
 
 Call:
@@ -1871,20 +1818,21 @@ Assert:
 
 - response message is `hello`;
 - response provider ID is the Provider's ID;
-- Gateway recorded the invocation;
-- Consumer channel target equals Gateway address;
-- Gateway Provider channel target equals Provider address;
+- Mock Gateway recorded the invocation;
+- Consumer channel target equals Mock Gateway address;
+- Mock Gateway Provider channel target equals Provider address;
 - Consumer Provider-channel creation count is zero;
 - Server/channel classes are not gRPC In-Process;
 - full method name remains `/egon.rpc.test.v1.EchoService/Echo`;
-- retry is disabled on Consumer and Gateway channels;
+- retry is disabled on the Consumer Channel and Mock Gateway Provider Channels;
 - all contexts, subscriptions, schedulers, channels, servers, and executors terminate in teardown.
 
-`RpcTcpCancellationTest` uses a blocking Provider method, cancels the Consumer context/call, and asserts the Gateway's Provider `ClientCall` is cancelled and the Consumer receives `RPC_CANCELLED`.
+`RpcTcpCancellationTest` uses a blocking Provider method, cancels the Consumer context/call, and asserts the Mock Gateway's Provider `ClientCall` is cancelled and the Consumer receives `RPC_CANCELLED`.
 
 ### TDD steps
 
-- [ ] Add boundary test that scans test Gateway imports and fails if it references a Starter `.internal` package.
+- [ ] Add boundary test that proves the Mock Gateway is test-only and the Starter has no
+  Gateway production package or deferred Gateway type.
 - [ ] Add the TCP/cancellation tests first.
 - [ ] Run:
 
@@ -1895,9 +1843,10 @@ Assert:
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
 
-  Expected: failure because the test registry/Gateway/topology do not exist.
+  Expected: failure because the test registry integration/topology does not exist.
 
-- [ ] Implement the deterministic registry facade and Test Gateway only in test scope.
+- [ ] Implement the deterministic registry facade and wire the existing Mock Gateway,
+  only in test scope.
 - [ ] Use Awaitility for every directory/channel readiness wait.
 - [ ] Rerun focused tests and then ordinary RPC tests:
 
@@ -1918,36 +1867,39 @@ Assert:
 
   ```bash
   git add egon-cola-components/egon-cola-component-rpc
-  git commit -m "test(rpc): verify gateway TCP call path"
+  git commit -m "test(rpc): verify mock gateway TCP call path"
   ```
 
 ---
 
-## Task 17: Verify multi-Provider Directory convergence and eviction
+## Task 17: Verify test-only multi-Provider Directory convergence and eviction
 
 **Files:**
 
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/RpcMultiProviderDirectoryTest.java`
-- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/gateway/TestRpcGateway.java`
-- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/gateway/TestRoundRobinSelector.java`
+- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockRpcGateway.java`
+- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockProviderDirectory.java`
+- Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/mockgateway/MockRoundRobinSelector.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/support/InMemoryDdcRegistryBackend.java`
 
 ### Test flow
 
-Use one Consumer, one Gateway, and two Provider contexts exposing the same Echo Service Key but different instance IDs/ports.
+Use one Consumer, one Mock Gateway, and two Provider contexts exposing the same Echo Service Key but different instance IDs/ports.
 
-1. Start both Providers and wait until Directory snapshot has two exact lease identities.
+1. Start both Providers and wait until `MockProviderDirectory` has two exact lease identities.
 2. Make four Consumer calls.
-3. Assert Test Gateway's round robin selected both Provider IDs and Consumer stayed on the one Gateway channel.
+3. Assert `MockRpcGateway` selected both Provider IDs and Consumer stayed on the one Gateway channel.
 4. Deregister/stop Provider A.
-5. Wait until Directory snapshot contains only Provider B and Provider A's cached channel is evicted.
+5. Wait until the Mock Directory contains only Provider B and Provider A's cached
+   test channel is evicted.
 6. Make two more calls and assert both use Provider B.
 7. Re-register Provider A with the same instance ID but a new lease.
-8. Assert Directory replaces the old identity rather than duplicating it.
+8. Assert the Mock Directory replaces the old identity rather than duplicating it.
 9. Advance the deterministic clock past A's lease without heartbeat.
-10. Assert expiry removes A and Test Gateway never forwards to the expired lease.
+10. Assert expiry removes A and Mock Gateway never forwards to the expired lease.
 
-This test validates discovery and removal only. Do not add selection methods to `RpcProviderDirectory` or production Starter code.
+This test validates DDC discovery and removal through test fixtures only. Do not add
+`RpcProviderDirectory`, a selector, or Provider Channel code to production Starter.
 
 ### TDD steps
 
@@ -1978,7 +1930,7 @@ This test validates discovery and removal only. Do not add selection methods to 
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/process/RpcTestGatewayApplication.java`
+- Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/process/RpcMockGatewayApplication.java`
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/process/RpcProcessHarness.java`
 - Create: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite/src/test/java/top/egon/cola/component/rpc/test/process/RpcProcessIT.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-consumer/src/main/java/top/egon/cola/component/rpc/test/consumer/RpcTestConsumerApplication.java`
@@ -2000,7 +1952,7 @@ Use `ProcessBuilder` and the Surefire/Failsafe test classpath to launch exactly 
 
 1. `DynamicConfigCenterAdminApplication`;
 2. `RpcTestProviderApplication`;
-3. `RpcTestGatewayApplication`;
+3. `RpcMockGatewayApplication`;
 4. `RpcTestConsumerApplication`.
 
 The harness:
@@ -2024,9 +1976,10 @@ The Consumer process performs one Echo call, prints one machine-readable success
 
 - Admin applied V1 + V2 against SQLite;
 - Provider is visible in DDC as `RPC_PROVIDER` with a lease;
-- Gateway is visible as the only `INTERNAL_GATEWAY` with a different lease/TTL;
-- Consumer discovers only Gateway and completes Consumer → Gateway → Provider over TCP;
-- stopping Provider actively deregisters it and Gateway Directory removes its exact `instanceId + leaseId`;
+- Mock Gateway is visible as the only `INTERNAL_GATEWAY` with a different lease/TTL;
+- Consumer discovers only Mock Gateway and completes Consumer → Mock Gateway → Provider over TCP;
+- stopping Provider actively deregisters it and the Mock Provider Directory removes
+  its exact `instanceId + leaseId`;
 - child exit codes and logs contain no leaked credential;
 - every remaining child is stopped after the test.
 
@@ -2060,7 +2013,7 @@ The Consumer process performs one Echo call, prints one machine-readable success
 - [ ] Confirm no child remains:
 
   ```bash
-  ! jps -l | rg 'DynamicConfigCenterAdminApplication|RpcTestProviderApplication|RpcTestGatewayApplication|RpcTestConsumerApplication'
+  ! jps -l | rg 'DynamicConfigCenterAdminApplication|RpcTestProviderApplication|RpcMockGatewayApplication|RpcTestConsumerApplication'
   ```
 
 - [ ] Commit:
@@ -2087,14 +2040,16 @@ The English and Chinese READMEs must stay structurally aligned and include:
 - module graph and BOM usage;
 - standard `protobuf-maven-plugin` setup;
 - one complete Proto, annotated Java Contract, Provider, and Consumer example;
-- Provider/Consumer/Gateway property reference;
+- Provider/Consumer property reference;
 - unique-Gateway startup/runtime behavior;
-- Gateway public API usage showing endpoint selection outside `RpcUnaryForwarder`;
+- Mock Gateway test topology and its non-production boundary;
 - deadline, cancellation, status, trace, and Metadata rules;
 - real TCP test and opt-in process-test commands;
-- V1 non-goals: direct Provider, client LB, gray, retry, rate limiting, circuit breaking, production Gateway.
+- V1 non-goals: direct Provider, client LB, gray, retry, rate limiting, circuit
+  breaking, production Gateway, Provider Directory, dynamic Gateway Handler, Provider
+  Channel Factory, and Unary Forwarder.
 
-Do not describe the test Gateway as production-ready.
+Do not document Mock Gateway classes as reusable public APIs or production-ready.
 
 ### Final verification
 
@@ -2143,6 +2098,12 @@ Do not describe the test Gateway as production-ready.
   ! rg -n 'RoundRobin|RandomSelector|LoadBalancer|CircuitBreaker|RateLimiter' \
     egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main
 
+  test ! -d \
+    egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway
+
+  ! rg -n 'RpcGatewayNodeRegistrar|RpcProviderDirectory|RpcProviderChannelFactory|RpcGatewayHandlerRegistry|RpcUnaryForwarder' \
+    egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main
+
   ! rg -n 'RPC_PROVIDER' \
     egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer
 
@@ -2171,13 +2132,13 @@ Do not describe the test Gateway as production-ready.
 
   ```bash
   git add egon-cola-components/egon-cola-component-rpc
-  git commit -m "docs(rpc): document protobuf gateway architecture"
+  git commit -m "docs(rpc): document mock gateway test boundary"
   ```
 
 - [ ] Open PR2 only after every available command passes. PR2 title:
 
   ```text
-  feat(rpc): add protobuf grpc starter and gateway test path
+  feat(rpc): add protobuf grpc starter and mock gateway tests
   ```
 
 ---
@@ -2189,7 +2150,8 @@ Do not describe the test Gateway as production-ready.
 - [ ] DDC contains no multi-Admin, Raft, Redis Cluster, Sentinel, or distributed-lock code.
 - [ ] Every Register creates a new Admin-issued lease.
 - [ ] Heartbeat/deregister atomically compare exact `instanceId + leaseId`.
-- [ ] Config client, Provider, and Gateway roles use one lease contract with separate defaults.
+- [ ] Config client, Provider, and Gateway-role registrations use one lease contract
+  with separate defaults.
 - [ ] Provider/Gateway service registration facts exist only in Redis.
 - [ ] Config-client lifecycle starts, recovers, ACKs, and shuts down in the specified order.
 - [ ] New publish requests accept caller changeId and only `SYNC_ALL_ACK`.
@@ -2212,11 +2174,13 @@ Do not describe the test Gateway as production-ready.
 - [ ] Zero/multiple Gateway states fail fast at startup and runtime.
 - [ ] Every production channel disables gRPC Retry.
 - [ ] Deadline, cancellation, status, trace, and Metadata tests pass.
-- [ ] Provider Directory discovers/removes instances but never selects.
-- [ ] Unary Forwarder requires a caller-selected endpoint.
-- [ ] Test Gateway selection exists only in test code and imports only public Starter APIs.
-- [ ] Ordinary `mvn test` proves Consumer → Gateway → Provider over real loopback TCP.
-- [ ] Multi-Provider test proves Directory convergence/eviction.
+- [ ] RPC Starter contains no production Gateway package, Directory, dynamic Handler,
+  Provider Channel Factory, or Unary Forwarder.
+- [ ] Mock Provider Directory discovers/removes instances only in test code.
+- [ ] Mock Gateway selection/forwarding exists only in `rpc-test-suite/src/test`.
+- [ ] Ordinary `mvn test` proves Consumer → Mock Gateway → Provider over real loopback
+  TCP.
+- [ ] Multi-Provider test proves Mock Directory convergence/eviction.
 - [ ] Opt-in `mvn verify -Pddc-live-test` proves the four-JVM path with one Admin/Redis.
 - [ ] RPC and combined DDC/RPC regression suites pass.
 
