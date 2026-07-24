@@ -32,6 +32,8 @@ public class DdcInstanceService {
     public void register() {
         DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
         fill(request);
+        request.setLeaseSeconds(properties.getInstance().getHeartbeatTimeoutSeconds());
+        request.setHeartbeatIntervalSeconds(properties.getInstance().getHeartbeatIntervalSeconds());
         adminClient.register(request);
     }
 
@@ -48,6 +50,16 @@ public class DdcInstanceService {
     }
 
     private void fill(DdcHeartbeatRequest request) {
+        request.setInstanceId(instanceId);
+        request.setAppCode(properties.getAppCode());
+        request.setEnv(properties.getEnv());
+        request.setNamespace(properties.getNamespace());
+        request.setHost(host());
+        request.setPid(pid());
+        request.setSdkVersion(SDK_VERSION);
+    }
+
+    private void fill(DdcInstanceRegisterRequest request) {
         request.setInstanceId(instanceId);
         request.setAppCode(properties.getAppCode());
         request.setEnv(properties.getEnv());

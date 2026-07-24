@@ -9,6 +9,7 @@ import top.egon.cola.component.ddc.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +25,19 @@ public class DdcInstanceAdminService {
                                    ObjectProvider<DdcRedisRepository> redisRepositoryProvider) {
         this.instanceRepository = instanceRepository;
         this.redisRepositoryProvider = redisRepositoryProvider;
+    }
+
+    public DdcInstanceEntity register(DdcInstanceRegisterRequest request) {
+        DdcHeartbeatRequest heartbeatRequest = new DdcHeartbeatRequest();
+        heartbeatRequest.setInstanceId(request.getInstanceId());
+        heartbeatRequest.setAppCode(request.getAppCode());
+        heartbeatRequest.setEnv(request.getEnv());
+        heartbeatRequest.setNamespace(request.getNamespace());
+        heartbeatRequest.setHost(request.getHost());
+        heartbeatRequest.setPort(request.getPort());
+        heartbeatRequest.setPid(request.getPid());
+        heartbeatRequest.setSdkVersion(request.getSdkVersion());
+        return register(heartbeatRequest);
     }
 
     @Transactional

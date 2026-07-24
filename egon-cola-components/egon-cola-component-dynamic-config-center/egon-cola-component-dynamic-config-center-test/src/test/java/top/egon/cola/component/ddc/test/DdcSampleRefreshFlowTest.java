@@ -9,7 +9,13 @@ import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
+import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+
+import java.time.Instant;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
@@ -54,15 +60,30 @@ class DdcSampleRefreshFlowTest {
         private DdcAckRequest lastAck;
 
         @Override
-        public void register(DdcInstanceRegisterRequest request) {
+        public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
+            Instant registeredAt = Instant.parse("2026-07-24T12:00:00Z");
+            return new DdcLeaseSession(
+                    request.getInstanceId(),
+                    "lease-1",
+                    DdcLeaseRole.CONFIG_CLIENT,
+                    30,
+                    10,
+                    registeredAt,
+                    registeredAt.plusSeconds(30)
+            );
         }
 
         @Override
-        public void heartbeat(DdcHeartbeatRequest request) {
+        public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
+            return new DdcLeaseOperationResult(
+                    DdcLeaseOperationStatus.RENEWED,
+                    Instant.parse("2026-07-24T12:00:30Z")
+            );
         }
 
         @Override
-        public void offline(DdcHeartbeatRequest request) {
+        public DdcLeaseOperationResult offline(DdcHeartbeatRequest request) {
+            return new DdcLeaseOperationResult(DdcLeaseOperationStatus.DELETED, null);
         }
 
         @Override

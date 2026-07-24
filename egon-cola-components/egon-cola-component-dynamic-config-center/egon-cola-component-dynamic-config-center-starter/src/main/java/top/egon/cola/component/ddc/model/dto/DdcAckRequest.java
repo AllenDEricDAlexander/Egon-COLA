@@ -8,6 +8,8 @@ public class DdcAckRequest {
 
     private String instanceId;
 
+    private String leaseId;
+
     private String appCode;
 
     private String env;
@@ -19,6 +21,8 @@ public class DdcAckRequest {
     private Long targetVersion;
 
     private Long currentVersion;
+
+    private String contentChecksum;
 
     private DdcAckStatus status;
 
@@ -40,6 +44,14 @@ public class DdcAckRequest {
 
     public void setInstanceId(String instanceId) {
         this.instanceId = instanceId;
+    }
+
+    public String getLeaseId() {
+        return leaseId;
+    }
+
+    public void setLeaseId(String leaseId) {
+        this.leaseId = leaseId;
     }
 
     public String getAppCode() {
@@ -88,6 +100,14 @@ public class DdcAckRequest {
 
     public void setCurrentVersion(Long currentVersion) {
         this.currentVersion = currentVersion;
+    }
+
+    public String getContentChecksum() {
+        return contentChecksum;
+    }
+
+    public void setContentChecksum(String contentChecksum) {
+        this.contentChecksum = contentChecksum;
     }
 
     public DdcAckStatus getStatus() {
