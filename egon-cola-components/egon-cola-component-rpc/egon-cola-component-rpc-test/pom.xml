@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-rpc</artifactId>
+        <version>5.2.3</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>egon-cola-component-rpc-test</artifactId>
+    <packaging>pom</packaging>
+    <name>egon-cola-component-rpc-test</name>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <egon.release.shape>false</egon.release.shape>
+    </properties>
+
+    <modules>
+        <module>egon-cola-component-rpc-test-contract</module>
+        <module>egon-cola-component-rpc-test-provider</module>
+        <module>egon-cola-component-rpc-test-consumer</module>
+        <module>egon-cola-component-rpc-test-suite</module>
+    </modules>
+</project>
