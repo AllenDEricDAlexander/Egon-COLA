@@ -14,6 +14,11 @@ import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.RpcProcessIdentityFactory;
 import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
 import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
+import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
+import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
+import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
+import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.provider.RpcProviderAvailabilityRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderBeanScanner;
 import top.egon.cola.component.rpc.provider.RpcProviderLeaseManager;
@@ -82,5 +87,54 @@ public class EgonRpcAutoConfig {
                 properties,
                 processIdentity
         );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public RpcConsumerGatewayManager rpcConsumerGatewayManager(
+            DdcServiceRegistryClient registryClient,
+            EgonRpcProperties properties,
+            RpcProcessIdentity processIdentity) {
+        return new RpcConsumerGatewayManager(
+                registryClient,
+                new RpcConsumerChannelFactory(),
+                properties,
+                processIdentity
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public RpcConsumerProxyFactory rpcConsumerProxyFactory(
+            RpcContractValidator contractValidator,
+            RpcConsumerGatewayManager gatewayManager,
+            RpcProcessIdentity processIdentity,
+            EgonRpcProperties properties) {
+        return new RpcConsumerProxyFactory(
+                contractValidator,
+                gatewayManager,
+                processIdentity,
+                new RpcStatusExceptionMapper(),
+                properties.getConsumer().getDefaultTimeoutMs()
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public EgonRpcReferenceBeanPostProcessor egonRpcReferenceBeanPostProcessor(
+            RpcConsumerProxyFactory proxyFactory) {
+        return new EgonRpcReferenceBeanPostProcessor(proxyFactory);
     }
 }
