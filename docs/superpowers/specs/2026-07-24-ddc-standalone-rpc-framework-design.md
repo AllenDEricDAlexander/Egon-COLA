@@ -1,8 +1,8 @@
 # 2026-07-24 DDC 单机闭环与轻量 gRPC + Protobuf RPC 框架设计 Spec
 
-状态：草案，等待审核
+状态：已确认，进入实施计划
 
-文档阶段：需求与架构设计确认
+文档阶段：实施基线
 
 涉及范围：
 
@@ -12,7 +12,7 @@
 - RPC Component 顶层只包含 `starter` 与 `test` 聚合器，`test` 内允许拆分多个
   不发布的测试模块；
 - Provider、Consumer 和内部网关统一使用 DDC 注册发现；
-- 暂不建设 DDC 集群、Raft、Redis Cluster 或多 Admin 高可用。
+- DDC 仅支持单 Admin 和单 Redis，不实现多 Admin、Redis 集群或分布式协调代码。
 
 ## 1. 背景
 
@@ -23,7 +23,7 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
    拉取、定时心跳和优雅下线。
 2. SDK 刷新后发送的 ACK 没有填写 `instanceId`，而 Admin 按
    `changeId + instanceId` 识别 ACK。
-3. `ack-enabled`、`fail-fast`、心跳间隔和超时等配置没有完整进入运行链。
+3. `fail-fast`、心跳间隔、租约和确认超时等配置没有完整进入运行链。
 4. Redis 实例记录没有租约 TTL，数据库中的在线实例也没有过期摘除。
 5. 强一致发布只具备 ACK 数量判断，没有同步等待、超时扫描和恢复逻辑。
 6. SDK 可以生成 HMAC 请求头，但 Admin 没有验签。
@@ -42,8 +42,8 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 1. 当前只支持单 Admin 进程。
 2. 当前只支持一个 Redis 单节点连接。
 3. PostgreSQL 和 SQLite 继续作为支持的数据库。
-4. 不实现 Raft、Leader 选举、节点成员管理和复制日志。
-5. 不实现多 Admin 并发写协调。
+4. 不实现 Raft、Leader 选举、节点成员管理、复制日志或其他分布式协调代码。
+5. 不实现多 Admin 并发写协调、Redis Sentinel 或 Redis Cluster。
 6. 修复 Starter 启动、刷新、ACK、心跳、租约、下线、发布超时和验签闭环。
 7. DDC 新增服务注册与发现能力。
 8. 服务注册事实是临时运行态数据，存储在 Redis，不新增数据库表。
@@ -84,9 +84,7 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 11. RPC Component 顶层只包含 `starter` 和 `test` 聚合器；测试聚合器内部
     可以按 Contract、Provider、Consumer 和 E2E 职责拆分。
 
-## 3. 本 Spec 的关键设计假设
-
-以下假设写入设计并等待本轮审核：
+## 3. 实现约束
 
 1. “单机”指一个 DDC Admin 和一个 Redis 实例，不限制业务 Provider 数量。
 2. DDC 不内嵌 Redis；开发和生产均由部署环境提供 Redis 单节点。
@@ -104,8 +102,8 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
    `rpc-test-contract` 提供测试专用样例 Proto 和生成验证。
 9. RPC Method 全名直接取自生成的 gRPC Descriptor，稳定为
    `/{protoPackage.serviceName}/{methodName}`。
-10. Consumer 在当前单机阶段只接受一个健康内部网关实例；发现零个实例时调用
-   失败，发现多个实例时启动或刷新失败，不隐式实现客户端负载均衡。
+10. Consumer 只接受唯一活跃内部网关实例；启动和运行期间发现零个或多个活跃
+    Gateway 时快速失败，不保留过期 Channel，不实现客户端负载均衡。
 11. 生产网关实现仍属于 Gateway 项目，不放入 RPC Component。
 12. `rpc-starter` 提供网关接入契约和转发基础设施；`rpc-test-suite` 提供仅
     用于验证的最小测试网关。
@@ -122,7 +120,7 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 - DDC 配置快照首次加载；
 - DDC ACK 身份和幂等闭环；
 - DDC 实例租约、过期和下线；
-- DDC 强一致发布同步等待与超时完成；
+- DDC 单 Admin 同步全目标确认发布、超时、重启 UNKNOWN 和幂等重试；
 - DDC OpenAPI HMAC 验签；
 - DDC 通用服务注册、心跳、注销、查询和订阅；
 - 标准 Protobuf IDL、代码生成约定与 Descriptor 校验；
@@ -144,7 +142,7 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 - Kubernetes、Helm 或多节点部署编排；
 - Consumer 发现 Provider；
 - Consumer 侧负载均衡或故障转移；
-- RPC 灰度、权重、标签、限流、熔断和重试；
+- RPC 灰度、权重、标签、限流、熔断和业务重试；
 - RPC Streaming；
 - RPC 服务 Mock 平台；
 - RPC 控制台或管理 UI；
@@ -272,7 +270,7 @@ egon-cola-component-rpc/
 测试应用放在测试子模块的 `src/main`，便于 Suite 作为普通依赖复用；它们只能
 被 `rpc-test-suite` 使用，禁止被业务模块或 BOM 引用。
 
-建议包结构：
+Starter 包结构：
 
 ```text
 top.egon.cola.component.rpc
@@ -300,7 +298,7 @@ top.egon.cola.component.rpc
 1. 校验 `appCode + env + namespace`。
 2. 生成并固定本进程 `instanceId`。
 3. Redis Topic Listener 已进入可接收状态。
-4. 向 Admin 注册实例。
+4. 向 Admin 注册实例并取得新的 `leaseId`。
 5. 收集所有 `@DdcValue` Binding，批量上报默认值。
 6. 从 Admin 拉取完整配置快照。
 7. 只应用版本高于本地版本的配置。
@@ -327,7 +325,7 @@ top.egon.cola.component.rpc
 
 1. SDK 状态改为 `STOPPING`。
 2. 停止发送新心跳。
-3. 尽力调用 Admin 下线接口。
+3. 使用当前 `instanceId + leaseId` 尽力调用 Admin 下线接口。
 4. 移除本地 Listener。
 5. 关闭 DDC 专用 Redisson Client。
 
@@ -346,12 +344,27 @@ pid
 sdkVersion
 ```
 
+注册成功后创建当前租约会话 `DdcLeaseSession`：
+
+```text
+instanceId
+leaseId
+role
+leaseSeconds
+heartbeatIntervalSeconds
+registeredAt
+leaseExpireAt
+```
+
 规则：
 
 - `instanceId` 在进程生命周期内保持不变。
-- 注册、心跳、默认值上报和 ACK 使用同一个 `instanceId`。
+- `leaseId` 由 Admin 在每次注册时重新生成；重新注册会使旧租约立即失效。
+- 心跳、注销和 ACK 必须使用当前 `instanceId + leaseId`。
+- 默认值上报和首次快照拉取在当前租约建立后执行。
+- 当前 `DdcLeaseSession` 使用原子引用替换，业务线程不得缓存旧 `leaseId`。
 - SDK 版本从构建 Manifest 或 Maven 过滤属性读取，不再在 Java 类中硬编码。
-- 未取得有效 `instanceId` 时禁止发送 ACK。
+- 未取得有效 `instanceId + leaseId` 时禁止发送心跳、注销和 ACK。
 
 ### 7.3 配置快照与运行时刷新
 
@@ -372,30 +385,61 @@ sdkVersion
 2. 转换全部成功后才更新字段和本地版本。
 3. 单个配置 Key 绑定多个字段时，转换阶段先完成，再执行字段写入。
 4. 写入中发生异常时不推进本地版本。
-5. `ack-enabled=false` 时仍刷新字段，但不调用 Admin ACK。
-6. ACK 必须包含 `instanceId`。
+5. Redis 发布消息匹配当前目标时必须发送 ACK，V1 不提供关闭 ACK 的配置。
+6. ACK 必须包含当前 `instanceId + leaseId`、目标版本和内容摘要。
 7. ACK 调用失败不能把已成功的字段刷新重新标记成业务转换失败。
 
 ### 7.4 实例租约
 
-配置实例和服务实例统一采用“主动注销 + 租约过期”模型。
+配置客户端、RPC Provider 和内部 Gateway 统一采用“注册换取租约 + 心跳续租 +
+主动注销 + 超时过期”协议。
 
 租约字段：
 
 ```text
+instanceId
+leaseId
 leaseSeconds
+heartbeatIntervalSeconds
 registeredAt
 lastHeartbeatAt
 leaseExpireAt
 status
 ```
 
+`role` 固定为：
+
+```text
+CONFIG_CLIENT
+RPC_PROVIDER
+INTERNAL_GATEWAY
+```
+
+三类角色的当前租约统一存储为：
+
+```text
+ddc:lease:instance:{env}:{namespace}:{role}:{instanceId}
+```
+
 约束：
 
-- 默认租约：30 秒。
-- 默认心跳：10 秒。
+- 配置客户端默认租约 30 秒、默认心跳 10 秒。
+- RPC Provider 默认租约 30 秒、默认心跳 10 秒。
+- 内部 Gateway 默认租约 15 秒、默认心跳 5 秒。
+- 三类角色使用同一协议和校验逻辑，但分别配置 TTL 和心跳参数。
 - 允许租约范围：5～300 秒。
 - 心跳间隔必须小于租约。
+- Register 请求携带 `instanceId` 和完整实例信息，不接受调用方指定 `leaseId`。
+- Admin 每次 Register 都生成新的 `leaseId` 并原子替换该 `instanceId` 的旧租约。
+- Heartbeat 和 Deregister 必须通过 Lua 原子比较
+  `stored.instanceId + stored.leaseId`；不匹配时不得延长或删除当前租约。
+- Redis 中租约不存在时 Heartbeat 返回 `DDC_LEASE_NOT_FOUND`，客户端重新
+  Register 并取得新 `leaseId`，不得在 Heartbeat 中隐式重建。
+- 旧租约的迟到 Heartbeat 返回 `DDC_LEASE_MISMATCH`。
+- 旧租约的迟到 Deregister 幂等返回“未删除”，不得删除同一 `instanceId`
+  后来建立的新租约。
+- Redis 是当前租约事实；配置客户端的 `ddc_instance` 数据库记录只是管理投影。
+- 发布目标从 Redis 当前有效租约快照生成，不从数据库 `ONLINE` 状态推断。
 - Redis Instance Bucket 使用真实 TTL。
 - Redis Service Index 使用过期时间作为 ZSET Score。
 - 每次心跳同时延长 Bucket TTL 和 Index Score。
@@ -405,78 +449,137 @@ Admin 运行一个单机租约清理任务：
 
 1. 扫描已经超过 `leaseExpireAt` 的实例。
 2. 从服务索引移除。
-3. 将配置 SDK 实例投影更新为 `OFFLINE`。
+3. 仅当数据库投影中的 `instanceId + leaseId` 仍匹配过期租约时，将配置 SDK
+   实例投影更新为 `OFFLINE`。
 4. 对服务注册实例发布 `EXPIRED` 事件。
 5. 清理操作必须幂等。
 
-本设计明确依赖单 Admin，不提供分布式调度锁。
+所有租约脚本只面向单 Redis。Admin 清理任务只面向单 Admin，不提供分布式锁、
+选主、Redis Cluster Slot 兼容或跨节点协调代码。
 
 ### 7.5 发布一致性
 
-发布模式保持：
+V1 只提供单 Admin 范围内的同步全目标确认发布，模式固定为
+`SYNC_ALL_ACK`。新发布请求不接受 `ASYNC`、`STRONG_QUORUM_ACK` 或其他完成策略。
 
-- `ASYNC`
-- `STRONG_ALL_ACK`
-- `STRONG_QUORUM_ACK`
+#### 7.5.1 资源串行化
 
-行为修正：
+配置资源标识 `DdcConfigResourceKey`：
 
-#### ASYNC
+```text
+appCode
+env
+namespace
+configKey
+```
 
-1. 数据库事务提交。
-2. Redis 当前值和版本写入成功。
-3. Redis 消息发布成功。
-4. 发布接口返回 `SUCCESS`。
-5. 后续 ACK 只更新明细，不改变已成功的异步结果。
+规则：
 
-#### STRONG_ALL_ACK
+1. `PublishResourceLockRegistry` 按 `DdcConfigResourceKey` 原子维护
+   `resourceKey -> ownerChangeId`。
+2. 同一资源同时只允许一个 `PENDING/PUBLISHING` 发布流程。
+3. 占位使用 `putIfAbsent` 语义，不使用由管理请求线程长期持有的
+   `ReentrantLock`，避免等待 ACK 时阻塞 ACK 线程。
+4. 新请求无法取得资源占位时立即返回 `DDC_PUBLISH_IN_PROGRESS` 和当前
+   `changeId`，不阻塞等待另一个管理请求。
+5. 不同配置资源可以并行发布。
+6. 发布进入 `SUCCESS/FAILED/TIMEOUT/UNKNOWN` 后，只有匹配
+   `ownerChangeId` 的流程可以释放占位。
+7. ACK、超时和失败使用数据库事务条件更新任务状态，不等待资源占位。
+8. 不实现分布式锁；该正确性边界明确依赖单 Admin。
 
-1. 发布目标只包含当前租约有效的在线配置 SDK 实例。
-2. 没有有效目标时立即返回 `FAILED`，错误为 `DDC_NO_LIVE_INSTANCE`。
-3. 发布接口等待所有目标 `SUCCESS` 或超时。
-4. 任一目标 `FAILED` 或 `TIMEOUT` 后，在不可能全部成功时完成为 `FAILED`。
+#### 7.5.2 发布准备
 
-#### STRONG_QUORUM_ACK
+发布请求必须携带调用方预先生成的 UUIDv7 `changeId`，用于请求重试和结果查询。
 
-1. 多数值为 `floor(targetCount / 2) + 1`。
-2. 达到多数 `SUCCESS` 后立即完成。
-3. 失败和超时数量导致不可能达到多数时立即失败。
-4. 没有有效目标时立即失败。
+取得资源锁后，在一个数据库事务中：
 
-单机等待模型：
+1. 校验期望版本。
+2. 固化 `DdcConfigResourceKey`、目标版本和配置内容 SHA-256 摘要。
+3. 查询当前租约有效的配置客户端。
+4. 将每个发布目标固化为 `instanceId + leaseId`。
+5. 为每个目标预建唯一 ACK 记录，写入目标版本和内容摘要。
+6. 创建状态为 `PENDING` 的发布任务。
+7. 提交配置版本、任务、目标集合和操作日志。
 
-- 发布准备事务将任务写为 `PENDING`，同时固化目标实例和待发布版本。
-- 强一致任务在数据库事务提交后、Redis 派发前注册 Waiter；Waiter 的等待条件
-  始终以持久化任务状态为准，不能只依赖一次进程内 Signal。
-- 数据库事务提交后，再写 Redis 当前值并发布消息；不得在数据库事务内等待 ACK。
-- Redis 写入和消息发布成功后，任务从 `PENDING` 进入 `PUBLISHING`。
-- Redis 写入或消息发布失败时，任务进入 `FAILED` 并记录失败阶段；已经提交的
-  配置版本不做伪回滚，管理端可使用同一当前版本重新发起发布。
-- 使用进程内 `PublishCompletionWaiter` 按 `changeId` 等待。
-- ACK、失败和超时处理完成后唤醒 Waiter。
-- 使用进程内按 `changeId` 串行锁保护同一发布任务的并发 ACK。
-- 终态后移除 Waiter 和串行锁，避免内存增长。
-- 该实现明确不支持多 Admin；未来集群化时替换为分布式协调。
+没有有效目标时发布立即进入 `FAILED`，错误为 `DDC_NO_LIVE_INSTANCE`。
 
-ACK 计数规则：
+数据库事务提交后：
 
-1. 发布准备阶段为每个目标实例预建唯一 ACK 记录。
-2. ACK 请求的 `instanceId` 必须属于本次发布目标；不得根据任意请求补建目标。
-3. `appCode + env + namespace + configKey + targetVersion` 必须与任务一致。
-4. 同一 `changeId + instanceId` 重复 ACK 幂等更新，不增加目标数。
-5. 已进入终态的任务不再被迟到 ACK 改写，只记录可观测日志。
-6. `IGNORED` 不计为成功；对强一致发布，它与 `FAILED/TIMEOUT` 一起参与
-   “已不可能满足条件”的判断。
+1. `PublishCompletionWaiterRegistry` 按 `changeId` 注册 Waiter。
+2. 写入 Redis 当前配置和版本。
+3. 发布包含 `changeId + targetVersion + contentChecksum` 的消息。
+4. 派发成功后任务进入 `PUBLISHING`。
+5. 当前管理请求在数据库事务外等待全部目标 ACK 或超时。
 
-超时恢复：
+Redis 写入或消息发布失败时任务进入 `FAILED` 并记录失败阶段。已经提交的配置
+版本不做伪回滚；后续使用同一 `changeId` 执行显式幂等重试。
 
-- `PublishTimeoutScanner` 周期扫描 `PENDING/PUBLISHING` 任务。
-- `PENDING` 超过派发超时后进入 `FAILED`，避免任务永久悬挂。
-- 对超过 `createdAt + timeoutMs` 且仍未完成的目标记录 `TIMEOUT`。
-- 重新运行对应一致性策略并更新任务终态。
-- Admin 重启后也能根据数据库任务和 ACK 明细完成遗留任务。
-- `timeoutMs` 未填写时使用 Admin 默认值。
-- 配置最大等待时间，避免管理请求无限占用线程。
+#### 7.5.3 ACK 严格匹配
+
+ACK 请求必须包含：
+
+```text
+changeId
+instanceId
+leaseId
+targetVersion
+contentChecksum
+currentVersion
+status
+ackTime
+```
+
+处理规则：
+
+1. ACK 必须同时匹配任务 `changeId`、目标版本、内容摘要和
+   `instanceId + leaseId` 目标身份。
+2. 不得根据 ACK 请求动态补建目标。
+3. 旧 `leaseId`、错误版本或错误摘要返回稳定错误，不计入完成条件。
+4. 同一 `changeId + instanceId + leaseId` 重复 ACK 幂等，不增加目标数。
+5. 客户端已经应用相同版本和摘要时返回 `SUCCESS`，不得用 `IGNORED` 代替成功。
+6. 任一固化目标返回 `FAILED` 时，任务立即进入 `FAILED`。
+7. 只有全部固化目标返回 `SUCCESS` 时，任务进入 `SUCCESS`。
+8. 迟到 ACK 不改写 `SUCCESS/FAILED/TIMEOUT` 终态。
+
+ACK 保存后唤醒对应 `changeId` Waiter。Waiter 每次被唤醒都重新读取持久化任务
+和 ACK 状态，不能只依赖一次进程内 Signal。
+
+#### 7.5.4 超时与 Admin 重启
+
+`PublishTimeoutScanner` 周期扫描 `PENDING/PUBLISHING`：
+
+- 超过派发超时的 `PENDING` 任务进入 `FAILED`。
+- 超过确认超时的未完成目标记为 `TIMEOUT`，任务进入 `TIMEOUT`。
+- Scanner、ACK 和请求线程复用同一个事务状态转换服务，通过条件更新保证终态
+  只写一次；它们不等待资源占位。
+
+Admin 启动时：
+
+1. 在恢复事务中将所有遗留 `PENDING/PUBLISHING` 任务统一更新为 `UNKNOWN`。
+2. `UNKNOWN` 表示 Admin 无法证明发布最终结果，不等同于成功或失败。
+3. 不根据部分 ACK 自动推断成功，不自动更换目标集合，不自动继续等待。
+4. 释放对应资源占用，使显式重试可以重新取得资源锁。
+
+#### 7.5.5 changeId 幂等重试
+
+相同 `changeId` 的重复请求必须匹配原任务的配置资源、目标版本、内容摘要和超时
+参数；任一字段不一致返回 `DDC_CHANGE_ID_CONFLICT`。
+
+幂等行为：
+
+- 原任务为 `SUCCESS`：直接返回原结果，不再次派发。
+- 原任务为 `PENDING/PUBLISHING`：返回当前状态并复用现有 Waiter，不创建任务。
+- 原任务为 `FAILED/TIMEOUT/UNKNOWN`：只有显式 Retry API 可以增加
+  `attemptCount` 并重新派发。
+- Retry 固定复用原 `instanceId + leaseId` 目标集合，不重新快照在线实例。
+- 原目标租约已经失效时 Retry 进入 `FAILED`，错误为
+  `DDC_TARGET_LEASE_EXPIRED`。
+- 原目标仍存活且已经应用相同版本和摘要时，客户端重新返回 `SUCCESS` ACK。
+- 需要面向当前在线实例重新发布时必须使用新的 `changeId`。
+
+Waiter 始终按 `changeId` 管理；资源串行锁始终按 `DdcConfigResourceKey` 管理，
+两者不得共用 Key 或生命周期。
 
 ### 7.6 OpenAPI HMAC 验签
 
@@ -575,12 +678,14 @@ INTERNAL_GATEWAY
 
 ```text
 instanceId
+leaseId
 serviceKey
 host
 port
 secure
 metadata
 leaseSeconds
+heartbeatIntervalSeconds
 registeredAt
 lastHeartbeatAt
 leaseExpireAt
@@ -636,7 +741,7 @@ version?
 ### 8.2 Redis Key
 
 ```text
-ddc:registry:instance:{env}:{namespace}:{kind}:{instanceId}
+ddc:lease:instance:{env}:{namespace}:{kind}:{instanceId}
 ddc:registry:service:{env}:{namespace}:{kind}:{serviceKeyDigest}
 ddc:registry:revision:{env}:{namespace}:{kind}:{serviceKeyDigest}
 ddc:registry:catalog:{env}:{namespace}:{kind}:{protocol}
@@ -656,10 +761,10 @@ ddc:registry:topic:{env}:{namespace}:{kind}:{protocol}
 `serviceKeyDigest` 为 Canonical Service Key 的 SHA-256，避免业务名称中的分隔符
 污染 Redis Key；实例 JSON 和 Catalog Member 保留完整 Service Key 用于回读。
 
-注册、变更、注销和过期时递增 Service Revision；Service 第一次出现或最后一个
-实例消失时同时更新 Catalog 与 Catalog Revision。注册、心跳、注销和过期清理
-使用 Lua 脚本原子维护 Bucket、Service Index、Catalog 和 Revision，避免部分
-写入留下幽灵实例或空目录。
+每次注册、实例信息变更、注销和过期时递增 Service Revision；Service 第一次
+出现或最后一个实例消失时同时更新 Catalog 与 Catalog Revision。注册、心跳、
+注销和过期清理使用 Lua 脚本原子维护 Bucket、Service Index、Catalog 和
+Revision，避免部分写入留下幽灵实例或空目录。
 
 心跳只延长租约；地址或元数据没有变化时不发送高频目录事件。
 
@@ -679,20 +784,26 @@ GET    /api/v1/ddc/openapi/registry/services
 
 - Register：
   - 校验服务 Key、地址、端口、租约和元数据；
-  - 相同 `instanceId + serviceKey` 重复注册幂等；
-  - 元数据变化视为更新并递增 Revision。
+  - 每次调用都由 Admin 生成新的 `leaseId`；
+  - 原子替换相同 `instanceId + serviceKey` 的旧租约；
+  - 返回完整 `DdcLeaseSession`；
+  - 旧租约立即失效并递增 Service Revision。
 - Heartbeat：
-  - 已存在时延长租约；
-  - Redis 重启导致实例丢失时按完整请求自动重建注册；
+  - 必须携带 `instanceId + leaseId`；
+  - Lua 原子校验成功后才延长 Bucket TTL 和 Index Score；
+  - Redis 重启或租约过期导致实例丢失时返回 `DDC_LEASE_NOT_FOUND`；
+  - 不在心跳中自动重建注册；
   - Service Key 不允许在心跳中漂移。
 - Deregister：
-  - 重复注销幂等；
-  - 删除 Instance、Service Index Member；
+  - 必须携带 `instanceId + leaseId`；
+  - 只有 Lua 原子校验匹配时才删除 Instance 和 Service Index Member；
+  - 重复注销或旧租约注销幂等返回“未删除”，不影响当前租约；
   - 发布新 Revision。
 - List：
   - 返回租约仍有效的实例；
   - 查询时顺便清理已过期成员；
-  - 实例按 `instanceId` 稳定排序。
+  - 返回当前 `leaseId`；
+  - 实例按 `instanceId + leaseId` 稳定排序。
 - Services：
   - 按 `DdcServiceQuery` 返回 Service Catalog；
   - 不使用 Redis `KEYS` 或全量 `SCAN` 发现服务；
@@ -705,9 +816,9 @@ GET    /api/v1/ddc/openapi/registry/services
 DDC Starter 通过 `DdcServiceRegistryClient` 接口暴露：
 
 ```text
-register(instance)
-heartbeat(instance)
-deregister(instance)
+register(instance) -> leaseSession
+heartbeat(instanceId, leaseId)
+deregister(instanceId, leaseId)
 getInstances(serviceKey)
 subscribe(serviceKey, snapshotListener)
 getServiceKeys(serviceQuery)
@@ -750,8 +861,11 @@ Gateway 的 `RpcProviderDirectory` 才使用 Provider Catalog 订阅。
 
 服务注册实例是临时运行状态，本次不新增 `ddc_service_instance` 数据库表：
 
-- 不新增 Flyway Migration。
-- Redis 丢失后由下一次心跳自动恢复。
+- Provider 和 Gateway 的实例、租约、Catalog 与 Snapshot 全部只存 Redis。
+- 发布目标身份所需的 `leaseId` 和内容摘要只扩展现有配置实例、发布任务和 ACK
+  表，不创建服务注册表。
+- Redis 丢失后心跳收到 `DDC_LEASE_NOT_FOUND`，客户端重新注册并取得新
+  `leaseId` 后恢复。
 - Admin 管理查询直接读取 Redis 当前事实。
 - 历史审计、容量报表和实例事件持久化留到后续需求。
 
@@ -919,8 +1033,9 @@ tracestate
 5. 获取实际监听地址和端口。
 6. 为每个 Service 构建 `DdcServiceInstance`。
 7. 注册为 `RPC_PROVIDER`。
-8. 全部注册成功后 Provider 状态变为 `READY`。
-9. 启动心跳。
+8. 保存每个 Service 注册返回的当前 `leaseId`。
+9. 全部注册成功后 Provider 状态变为 `READY`。
+10. 启动心跳。
 
 一个进程可以暴露多个 RPC Service：
 
@@ -954,6 +1069,11 @@ advertisedPort
 ### 10.3 心跳和停止
 
 Provider 心跳复用 DDC Service Registry 租约。
+
+- 每个 Service 使用自己的 `instanceId + leaseId`。
+- 心跳收到 `DDC_LEASE_NOT_FOUND` 或 `DDC_LEASE_MISMATCH` 时暂停该 Service
+  接流，重新注册并取得新 `leaseId` 后恢复。
+- 停止时只使用当前租约注销，旧租约注销不得影响新租约。
 
 优雅停止：
 
@@ -993,22 +1113,22 @@ RPC Starter 的 Consumer 包不暴露查询 `RPC_PROVIDER` 的 API。
 
 ### 11.2 单 Gateway 规则
 
-当前阶段不考虑 Gateway 集群，因此：
+Consumer 启动时在 `gateway-discovery-timeout-ms` 内等待 Gateway Snapshot：
 
-- 零个健康 Gateway：
-  - Proxy 已创建；
-  - 调用返回 `RPC_GATEWAY_UNAVAILABLE`。
-- 一个健康 Gateway：
-  - 创建或复用 ManagedChannel。
-- 多个健康 Gateway：
-  - 不做轮询、随机或 Failover；
-  - 标记状态为 `AMBIGUOUS_GATEWAY`；
-  - 新调用失败并提示当前单机模式只允许一个 Gateway。
+- 恰好一个有效 `instanceId + leaseId`：创建 Channel，Consumer 进入 `READY`。
+- 零个有效实例：启动失败，错误为 `RPC_GATEWAY_UNAVAILABLE`。
+- 多个有效实例：启动失败，错误为 `RPC_GATEWAY_AMBIGUOUS`。
 
-这样既满足动态发现，也不会在 Consumer 中暗含负载均衡。
+运行期间 Snapshot 变化：
 
-后续 Gateway 集群化必须通过独立 Spec 决定由 DNS、前置 LB、Service Mesh
-还是 Consumer Gateway Selector 处理，不能在本次实现中提前选择。
+- 恰好一个有效实例：保持或切换到该 Gateway。
+- 零个有效实例：立即进入 `UNAVAILABLE`，新调用快速失败。
+- 多个有效实例：立即进入 `AMBIGUOUS`，新调用快速失败。
+- `UNAVAILABLE/AMBIGUOUS` 状态不选择实例、不发起业务调用，并关闭不再唯一有效
+  的旧 Channel。
+
+Consumer 不保留过期 Gateway Channel，不提供 Gateway Selector，不实现轮询、
+随机或 Failover。
 
 ### 11.3 Channel 切换
 
@@ -1020,15 +1140,19 @@ Gateway 实例变化时：
 4. 旧 Channel 在 Drain Timeout 后关闭。
 5. 如果新 Channel 建立失败，旧实例租约仍有效时保留旧 Channel。
 6. 旧实例租约过期后不得无限使用旧 Channel。
+7. 所有 Channel 构建时显式调用 `disableRetry()`。
 
-### 11.4 超时
+### 11.4 Deadline、Cancellation 与 Status
 
 - 全局默认 Deadline。
 - `@EgonRpcReference` 可配置接口默认 Deadline。
-- 后续方法级配置可以覆盖接口级配置，但不属于 V1 必需项。
 - 调用方显式上下文 Deadline 更短时使用更短值。
-- Consumer 不自动重试。
+- Consumer 和 Gateway Channel 均显式关闭 gRPC Retry。
+- 框架不发起透明重试或业务重试。
 - Gateway 转发使用剩余 Deadline，不能重新开始完整超时时间。
+- Consumer 调用取消时，Gateway 取消对应 Provider `ClientCall`。
+- Gateway 收到 Provider Cancellation 或 Deadline Status 后原样结束上游调用。
+- Consumer 将最终 gRPC Status 转换为稳定 `EgonRpcException`。
 
 ## 12. 内部网关接入契约
 
@@ -1050,7 +1174,8 @@ RpcUnaryForwarder
 
 - `RpcGatewayNodeRegistrar`
   - 将 Gateway 注册为 `INTERNAL_GATEWAY`；
-  - 维持租约并在停止时注销。
+  - 保存注册返回的 `leaseId`；
+  - 使用 `instanceId + leaseId` 维持租约并在停止时注销。
 - `RpcProviderDirectory`
   - 先订阅 DDC Provider Service Catalog，再维护每个 Service Key 的 Instance
     Snapshot；
@@ -1058,6 +1183,7 @@ RpcUnaryForwarder
   - 不选择实例。
 - `RpcProviderChannelFactory`
   - 为网关已经选中的 Provider Endpoint 创建/复用 Channel；
+  - 所有 Provider Channel 显式调用 `disableRetry()`；
   - 不执行负载均衡。
 - `RpcGatewayHandlerRegistry`
   - 作为 grpc-java `ServerBuilder.fallbackHandlerRegistry(...)` 的动态后备
@@ -1067,9 +1193,10 @@ RpcUnaryForwarder
     分帧后的 Protobuf Payload；
   - 只负责动态方法接入，不选择 Provider。
 - `RpcUnaryForwarder`
+  - 必须接收 Gateway 已选定的 `RpcProviderEndpoint`；
   - 使用原始 gRPC Method 全名和 Protobuf Bytes 转发 unary 请求；
-  - 透传剩余 Deadline 和白名单 Metadata；
-  - 不决定路由、重试、熔断和摘除。
+  - 透传剩余 Deadline、Cancellation、Status 和白名单 Metadata；
+  - 不查询 Directory，不决定实例，不执行路由、重试、熔断和摘除。
 
 Provider 实例选择由 Gateway Engine 调用上述边界前完成。
 
@@ -1142,15 +1269,17 @@ Gateway 处理步骤：
 4. 从 `RpcProviderDirectory` 获取 Provider Cluster Snapshot。
 5. Gateway 自己选择实例。
 6. 将选中的 Endpoint 交给 `RpcProviderChannelFactory`。
-7. `RpcUnaryForwarder` 以原始 Method 全名和 Byte Array Marshaller 转发
-   Payload。
-8. Provider 响应 Payload 和 gRPC Status 返回 Consumer。
+7. Gateway 将选中的 Endpoint 显式传给 `RpcUnaryForwarder`。
+8. `RpcUnaryForwarder` 以原始 Method 全名和 Byte Array Marshaller 转发
+   Payload，并绑定剩余 Deadline 与 Cancellation。
+9. Provider 响应 Payload 和 gRPC Status 返回 Consumer。
 
 RPC Starter 不定义网关选择算法。
 
 ### 12.4 测试网关
 
-`rpc-test-suite` 提供最小 `TestRpcGateway`，只用于证明架构链路：
+`rpc-test-suite` 提供最小 `TestRpcGateway` 参考实现，只依赖 RPC Starter
+公共 API：
 
 - 注册为 `INTERNAL_GATEWAY`；
 - 订阅 `RPC_PROVIDER`；
@@ -1160,6 +1289,7 @@ RPC Starter 不定义网关选择算法。
 - 记录调用实际经过 Gateway；
 - 不作为生产类发布；
 - 不进入 BOM；
+- 不引用 Starter `internal` 包；架构测试对此进行约束；
 - 不承诺限流、熔断、灰度或生产故障摘除能力。
 
 测试网关使用 Round Robin 只为证明 Provider 多实例由 Gateway 选择，不代表
@@ -1251,9 +1381,8 @@ egon:
           database: 0
         instance:
           heartbeat-interval-seconds: 10
-          heartbeat-timeout-seconds: 30
+          lease-seconds: 30
         consistency:
-          ack-enabled: true
           fail-fast: true
         registry:
           enabled: true
@@ -1281,6 +1410,7 @@ egon:
           instance:
             scan-interval-seconds: 5
           publish:
+            dispatch-timeout-ms: 5000
             default-timeout-ms: 30000
             max-timeout-ms: 60000
             scan-interval-ms: 1000
@@ -1323,7 +1453,7 @@ egon:
         consumer:
           enabled: true
           default-timeout-ms: 3000
-          startup-fail-fast: false
+          gateway-discovery-timeout-ms: 5000
           gateway-service-name: egon-internal-rpc-gateway
           gateway-group: default
           gateway-version: 1.0.0
@@ -1351,8 +1481,8 @@ egon:
           version: 1.0.0
           advertised-host: 127.0.0.1
           advertised-port: 19100
-          lease-seconds: 30
-          heartbeat-interval-seconds: 10
+          lease-seconds: 15
+          heartbeat-interval-seconds: 5
           max-dynamic-methods: 2048
 ```
 
@@ -1418,7 +1548,8 @@ protobuf-java
 | Proxy | RPC Consumer JDK Proxy | 把 Java Contract 调用转换为 gRPC 调用 |
 | Adapter | DDC Registry、gRPC Transport、Gateway 接入 | 隔离基础设施和业务契约 |
 | Facade | RPC Provider/Gateway 运行入口 | 为自动装配提供稳定、少量入口 |
-| Strategy | DDC 发布一致性 | 现有三种 ACK 完成规则确有变化点 |
+| Idempotent Receiver | DDC changeId、ACK、Retry | 重复请求不能创建第二个发布或重复计数 |
+| Keyed Lock | DDC 配置资源发布 | 同一配置资源只允许一个发布流程 |
 
 ### 17.2 明确不引入
 
@@ -1426,6 +1557,7 @@ protobuf-java
 - 不为固定 Protobuf 编解码创建 Serializer SPI。
 - 不创建 Consumer LoadBalancer Strategy。
 - 不创建 Provider Router、CircuitBreaker 或 Retry Strategy。
+- 不为发布一致性创建多策略层，V1 只有 `SYNC_ALL_ACK`。
 - 不为了 Maven 模块纯度拆分额外 API/Core 模块。
 - 不建立通用 Service Mesh 抽象。
 
@@ -1438,41 +1570,50 @@ protobuf-java
 1. Coordinator 启动顺序。
 2. `fail-fast=true/false`。
 3. 首次快照只应用更高版本。
-4. ACK 包含统一 `instanceId`。
-5. `ack-enabled=false` 不发送 ACK。
+4. 每次注册生成新 `leaseId`，旧租约立即失效。
+5. ACK 包含 `instanceId + leaseId + targetVersion + contentChecksum`。
 6. ACK 失败不篡改字段刷新结果。
 7. Redis Instance Bucket 使用 TTL。
-8. 心跳延长租约。
-9. 注销幂等。
-10. 过期实例清理。
-11. 强一致无目标立即失败。
-12. ALL ACK 成功和失败。
-13. QUORUM ACK 成功和不可能完成。
-14. 超时扫描。
-15. 同一 `changeId` 并发 ACK 串行更新。
-16. HMAC 成功、错误签名、过期 Timestamp、重复 Nonce 和 Body 被修改。
-17. SDK/Manifest 版本不再硬编码。
+8. 正确租约心跳延长 TTL。
+9. 旧 `leaseId` 心跳返回 `DDC_LEASE_MISMATCH`。
+10. 旧 `leaseId` 注销不删除新租约。
+11. 过期实例清理。
+12. 无发布目标立即失败。
+13. 全部目标 ACK 成功。
+14. 任一目标 ACK 失败使任务失败。
+15. 错误版本、摘要或目标身份的 ACK 被拒绝。
+16. Waiter 按 `changeId` 唤醒并重新读取持久化状态。
+17. 同一配置资源并发发布返回 `DDC_PUBLISH_IN_PROGRESS`。
+18. 不同配置资源可以并行发布。
+19. 派发超时和确认超时。
+20. Admin 启动把遗留任务更新为 `UNKNOWN`。
+21. 相同 `changeId` 幂等返回、显式重试和冲突检测。
+22. Retry 复用固化目标，目标租约失效时失败。
+23. HMAC 成功、错误签名、过期 Timestamp、重复 Nonce 和 Body 被修改。
+24. SDK/Manifest 版本不再硬编码。
 
 ### 18.2 DDC 注册中心测试
 
 至少覆盖：
 
-1. Provider 注册和重复注册。
-2. Metadata 更新递增 Revision。
-3. 心跳自动恢复丢失实例。
-4. Service Key 漂移被拒绝。
-5. 主动注销。
-6. 租约过期。
-7. List 只返回有效实例并稳定排序。
-8. Topic 消息后重新拉取完整快照。
-9. 消息丢失后周期对账收敛。
-10. Listener 异常隔离。
-11. Provider 和 Gateway Key 空间隔离。
-12. 元数据大小和保留前缀校验。
-13. Service Catalog 新增、删除和 Revision。
-14. Catalog 订阅自动建立和关闭 Instance Snapshot 订阅。
-15. Redis Key 使用 Service Key Digest，不受分隔符污染。
-16. Lua 原子更新失败时不留下部分 Bucket、Index 或 Catalog 数据。
+1. Provider 每次注册取得新 `leaseId`。
+2. Gateway 使用独立 TTL 和心跳参数注册。
+3. 新注册原子替换旧租约并递增 Revision。
+4. 正确 `instanceId + leaseId` 心跳续租。
+5. 租约丢失时心跳返回 `DDC_LEASE_NOT_FOUND`，重新注册后恢复。
+6. Service Key 漂移被拒绝。
+7. 旧租约主动注销不删除当前租约。
+8. 租约过期。
+9. List 只返回有效 `instanceId + leaseId` 并稳定排序。
+10. Topic 消息后重新拉取完整快照。
+11. 消息丢失后周期对账收敛。
+12. Listener 异常隔离。
+13. Provider 和 Gateway Key 空间隔离。
+14. 元数据大小和保留前缀校验。
+15. Service Catalog 新增、删除和 Revision。
+16. Catalog 订阅自动建立和关闭 Instance Snapshot 订阅。
+17. Redis Key 使用 Service Key Digest，不受分隔符污染。
+18. Lua 原子更新失败时不留下部分 Bucket、Index 或 Catalog 数据。
 
 ### 18.3 RPC Starter 单元测试
 
@@ -1491,17 +1632,21 @@ protobuf-java
 11. Provider 心跳和注销。
 12. Consumer Proxy 创建。
 13. Consumer 只发现 Gateway。
-14. 零 Gateway 调用失败。
-15. 多 Gateway 在单机模式失败。
-16. Deadline 优先级。
-17. gRPC Status 到 `EgonRpcException` 的转换。
-18. Trace Metadata 透传和清理。
-19. Gateway Provider Directory 快照。
-20. 动态 `HandlerRegistry` 只接受合法 Method，并创建 unary Byte Array
+14. 启动时零 Gateway 快速失败。
+15. 启动时多 Gateway 快速失败。
+16. 运行时零或多 Gateway 停止新调用并关闭非唯一有效 Channel。
+17. Consumer 和 Provider Channel 显式关闭 gRPC Retry。
+18. Deadline 优先级和剩余时间转发。
+19. Consumer Cancellation 取消 Gateway 到 Provider 的 `ClientCall`。
+20. gRPC Status 到 `EgonRpcException` 的转换。
+21. Trace 与白名单 Metadata 透传和清理。
+22. Gateway Provider Directory 快照。
+23. 动态 `HandlerRegistry` 只接受合法 Method，并创建 unary Byte Array
     Method Definition。
-21. 动态 Method LRU 达到上限后有界淘汰。
-22. Provider Service 消失后，已缓存的 Method Definition 不使用过期 Endpoint。
-23. Forwarder 不包含实例选择逻辑。
+24. 动态 Method LRU 达到上限后有界淘汰。
+25. Provider Service 消失后，已缓存的 Method Definition 不使用过期 Endpoint。
+26. Forwarder 必须接收已选 Endpoint，且不查询 Directory 或选择实例。
+27. Test Gateway 只引用 Starter 公共 API。
 
 ### 18.4 RPC Test 分层
 
@@ -1510,11 +1655,12 @@ protobuf-java
 | 层级 | 模块 | 传输 | 注册中心 | 目的 |
 |---|---|---|---|---|
 | Unit | `rpc-starter` | Mock/In-Process | Mock | 验证单类和边界规则 |
-| Smoke E2E | `rpc-test-suite` | 真实 loopback gRPC | 确定性内存 Adapter | 每次构建验证 Consumer→Gateway→Provider |
-| Live Registry E2E | `rpc-test-suite` Live Profile | 真实 loopback gRPC | 单 DDC Admin + 单 Redis | 验证真实注册、订阅和租约 |
+| TCP Smoke | `rpc-test-suite` / `mvn test` | 同 JVM、真实 TCP | 确定性内存 Adapter | 每次构建验证 Consumer→Gateway→Provider |
+| Process E2E | `rpc-test-suite` / `mvn verify` | 独立 JVM、真实 TCP | 单 DDC Admin + 单 Redis | 验证完整注册发现与进程边界 |
 
-Smoke E2E 必须进入普通 Maven `test`，不能依赖本机常驻服务或 Docker。Live
-Registry E2E 使用显式 Profile，避免普通开发构建因为外部基础设施不可用而失败。
+TCP Smoke 必须进入普通 Maven `test`，使用 Netty Server、随机 loopback TCP
+端口和真实 ManagedChannel；禁止使用 `InProcessServerBuilder` 或直接 Java 调用。
+Process E2E 由 Maven Failsafe 在 `mvn verify -Pddc-live-test` 中执行。
 
 至少包含以下独立测试类：
 
@@ -1524,30 +1670,22 @@ Registry E2E 使用显式 Profile，避免普通开发构建因为外部基础�
 - `RpcConsumerApplicationTest`
   - 只启动 Consumer Context；
   - 验证代理创建、零 Gateway 错误，以及不存在 Provider 发现和直连能力。
-- `RpcProviderConsumerCallTest`
+- `RpcProviderConsumerTcpTest`
   - 启动 Provider、Test Gateway 和 Consumer 三个隔离 Context；
-  - 验证一次完整 RPC 调用成功。
+  - 使用真实 TCP 验证一次完整 RPC 调用成功。
 - `RpcMultipleProvidersTest`
   - 启动两个 Provider；
   - 验证 Provider Cluster、Gateway 选择和下线摘除。
 
-结构选择：
-
-- 采用“Test 聚合器 + Contract/Provider/Consumer/Suite 子模块”，因为它同时
-  保持 Provider/Consumer 编译边界和统一 E2E 编排。
-- 不把所有夹具源代码放进一个 Maven Test 模块，避免失去独立编译边界，或因
-  默认组件扫描把 Provider Bean 注入 Consumer Context 而形成假成功。
-- 不只拆 Provider/Consumer 两个模块；共享 Contract 如果复制会漂移，而没有
-  Suite 就无法统一证明请求经过 Gateway 并完成资源清理。
-
 确定性内存 Adapter 只能实现 DDC Starter 已定义的
 `DdcServiceRegistryClient` 接口，支持注册、心跳、注销、Service Catalog 和
-Snapshot 订阅；RPC 生产代码不能感知或特判该 Adapter。
+Snapshot 订阅，并严格执行“每次注册新 leaseId、心跳/注销匹配
+instanceId + leaseId”的语义；RPC 生产代码不能感知或特判该 Adapter。
 
 ### 18.5 单 Provider、单 Consumer 调用成功
 
 这是 RPC Component 的最低验收用例，测试类命名为
-`RpcProviderConsumerCallTest`。
+`RpcProviderConsumerTcpTest`。
 
 测试拓扑：
 
@@ -1584,7 +1722,8 @@ flowchart LR
 14. 断言不存在存活的 RPC Scheduler、Channel、Server 或 Listener。
 
 测试成功不能只断言响应内容，还必须证明请求实际经过 Gateway；Provider
-不得与 Consumer 共享 Spring Bean、Channel 或直接 Java 方法引用。
+不得与 Consumer 共享 Spring Bean、Channel 或直接 Java 方法引用。测试必须
+断言 Server 与 Channel 使用 loopback TCP Socket，不能退化为 gRPC In-Process。
 
 ### 18.6 多 Provider 与摘除
 
@@ -1602,35 +1741,51 @@ flowchart LR
 Round Robin 仅存在于 `rpc-test-suite`，用于证明实例选择属于 Gateway，不进入
 RPC Starter 生产 API。
 
-### 18.7 真实 DDC 注册中心 E2E
+### 18.7 完整进程级 E2E
 
-`RpcLiveRegistryIT` 使用显式 `ddc-live-test` Maven Profile：
+`RpcProcessIT` 由 Maven Failsafe 在
+`mvn verify -Pddc-live-test` 中执行。测试 Harness 使用 `ProcessBuilder` 启动
+独立 JVM，不把 Provider、Gateway 和 Consumer 放在同一个 Spring Context。
 
-1. 连接外部提供的单个 Redis 测试实例。
-2. 使用 SQLite 启动单个 DDC Admin Spring Context。
-3. 为本次执行生成唯一 `env + namespace`，避免污染其他 Live Test。
-4. Provider 通过真实 DDC OpenAPI 注册并维持租约。
-5. Gateway 通过真实 Catalog 和 Snapshot 订阅发现 Provider。
-6. Gateway 注册为 `INTERNAL_GATEWAY`。
-7. Consumer 通过真实 DDC 发现 Gateway。
-8. 执行与 18.5 相同的 Echo 成功断言和链路断言。
-9. 验证 Provider 主动注销和租约过期各一条路径。
-10. 测试结束后清理本次命名空间 Redis Key、临时 SQLite、Context、Server 和
-   Channel，不清空共享 Redis。
+进程拓扑：
 
-Live Profile 固定使用外部提供的单 Redis 地址，通过
-`DDC_TEST_REDIS_HOST/DDC_TEST_REDIS_PORT` 传入；Profile 开启但地址缺失时立即
-失败，不能静默跳过。SQLite 使用测试临时文件并在结束后删除。
+```text
+Failsafe Harness
+├── DDC Admin JVM + temporary SQLite
+├── Test Provider JVM
+├── Test Gateway JVM
+└── Test Consumer JVM
+```
 
-本项目当前 CI 在 Rocky Linux 容器内执行 Maven，没有向构建容器暴露 Docker
-Socket，因此本次不引入 Testcontainers。后续若将 Live Profile 纳入 CI，由
-CI 在 Maven 容器可访问的位置提供单 Redis Service；本 Spec 不修改 CI 拓扑，
-也不引入任何集群测试。
+执行顺序：
+
+1. 从 `DDC_TEST_REDIS_HOST/DDC_TEST_REDIS_PORT` 连接外部提供的单 Redis。
+2. 为本次执行生成唯一 `env + namespace` 和临时工作目录。
+3. 启动 DDC Admin JVM，使用临时 SQLite 和随机管理端口。
+4. 启动 Test Provider JVM，等待 DDC 中出现有效
+   `RPC_PROVIDER instanceId + leaseId`。
+5. 启动 Test Gateway JVM，等待其发现 Provider 并注册唯一
+   `INTERNAL_GATEWAY` 租约。
+6. 启动一次性 Test Consumer JVM；Consumer 从 DDC 发现 Gateway，执行 Echo
+   RPC，写出结构化结果后以退出码 0 结束。
+7. Harness 校验 Consumer 响应、Gateway 转发事件和 Provider 调用事件使用同一
+   Invocation ID。
+8. Harness 校验 Provider、Gateway、Consumer 使用不同 PID 和真实 TCP 地址。
+9. 停止 Provider，验证主动注销后 Gateway Directory 摘除该
+   `instanceId + leaseId`。
+10. 关闭 Gateway 和 DDC Admin，等待全部子进程退出。
+11. 清理本次命名空间 Redis Key、临时 SQLite 和工作目录，不清空共享 Redis。
+12. 测试失败时保留各进程 stdout/stderr 到 `target/process-it`，并强制终止
+    遗留子进程。
+
+Profile 开启但 Redis 地址缺失时立即失败，不能静默跳过。当前 CI 的 Maven
+运行容器没有 Docker Socket，因此不引入 Testcontainers；Process E2E 使用
+CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 
 ## 19. 安全与运行约束
 
 1. DDC 与 RPC 默认运行在受信任内网。
-2. DDC OpenAPI 可开启 HMAC；生产建议开启。
+2. DDC OpenAPI 在生产环境必须开启 HMAC；本地开发和测试环境允许关闭。
 3. RPC V1 不管理 TLS/mTLS 证书。
 4. RPC Plaintext 只能用于受信任网络或本地测试。
 5. Metadata 不允许携带 Secret。
@@ -1649,15 +1804,21 @@ CI 在 Maven 容器可访问的位置提供单 Redis Service；本 Spec 不修�
 - 现有 Redis Config Key 保持不变。
 - 新 Registry Key 使用独立前缀。
 - HMAC 默认关闭，避免直接破坏已有开发配置。
-- 旧 ACK 请求缺少 `instanceId` 时返回明确错误，SDK 同步升级后发送正确值。
+- 旧 ACK 请求缺少 `leaseId`、目标版本或内容摘要时返回明确错误。
+- 新发布请求只接受 `SYNC_ALL_ACK`；旧 `ASYNC/STRONG_QUORUM_ACK` 历史任务
+  保持可读，不再创建。
+- 发布状态新增 `UNKNOWN`，Admin 启动时用于标记遗留未完成任务。
 - 不修改现有 Flyway V1 文件。
-- 本次 Registry 不新增数据库结构，因此不新增 Migration。
+- 新增唯一 V2 迁移版本，在 PostgreSQL 与 SQLite 现有方言目录中同步扩展
+  `ddc_instance`、`ddc_publish_task` 和 `ddc_publish_ack` 所需租约、摘要及重试
+  字段。
+- Registry 不创建数据库表，Provider/Gateway 注册状态仍只存在 Redis。
 
 ### 20.2 RPC
 
 - 新 Component 不修改现有 Dubbo Triple Archetype。
 - 不替换现有 Facade Contract。
-- 业务可选择是否引入 RPC Starter。
+- 只有需要 RPC 能力的业务模块引入 RPC Starter。
 - RPC Starter 默认关闭，未配置时不创建 Server、Channel 或 Registry Listener。
 - Gateway 总览 Spec 中 HTTP/Dubbo 路线保持不变；gRPC Adapter 由后续 Gateway
   实施 Spec 接入。
@@ -1668,15 +1829,22 @@ CI 在 Maven 容器可访问的位置提供单 Redis Service；本 Spec 不修�
 
 - [ ] Starter 自动完成注册、默认值上报、首次拉取、心跳和下线。
 - [ ] 首次拉取与 Redis 消息并发时版本单调。
-- [ ] ACK 必须携带当前进程 `instanceId`。
-- [ ] `ack-enabled` 和 `fail-fast` 行为与配置一致。
-- [ ] 实例记录具有 TTL，过期后不再进入发布目标。
-- [ ] 强一致发布可等待 ACK，并能成功、失败或超时结束。
-- [ ] Admin 重启后能收敛遗留超时任务。
+- [ ] 配置客户端、Provider 和 Gateway 每次注册都取得新的 `leaseId`。
+- [ ] 心跳和注销原子校验 `instanceId + leaseId`，旧租约不能续租或删除新租约。
+- [ ] 三类角色复用统一租约协议，并使用各自 TTL 和心跳参数。
+- [ ] 发布目标固定为 `instanceId + leaseId` 集合。
+- [ ] ACK 同时匹配 `changeId`、目标版本、内容摘要和目标身份。
+- [ ] Waiter 按 `changeId` 管理，资源锁按
+  `appCode + env + namespace + configKey` 管理。
+- [ ] 同一配置资源同时只有一个发布流程，不同资源可以并行。
+- [ ] `SYNC_ALL_ACK` 可以成功、失败或超时结束，V1 不创建其他发布模式。
+- [ ] Admin 重启后遗留未完成任务统一变为 `UNKNOWN`。
+- [ ] 同一 `changeId` 可以幂等查询和显式重试，不更换固化目标集合。
 - [ ] OpenAPI HMAC 可完整验签并拒绝重放。
 - [ ] SDK 和 Manifest 版本无硬编码漂移。
 - [ ] 服务注册、心跳、注销、查询和订阅闭环可用。
-- [ ] DDC 仍保持单 Admin、单 Redis，不引入集群代码。
+- [ ] Provider/Gateway 服务注册状态只存 Redis，不新增服务注册数据库表。
+- [ ] DDC 仅支持单 Admin、单 Redis，不包含集群或分布式协调代码。
 
 ### 21.2 RPC
 
@@ -1692,21 +1860,26 @@ CI 在 Maven 容器可访问的位置提供单 Redis Service；本 Spec 不修�
 - [ ] Provider 启动后注册服务名称、分组、版本、地址、端口和元数据。
 - [ ] Provider 心跳维持租约，停止时注销。
 - [ ] Consumer 可以通过注解获得类型安全代理。
-- [ ] Consumer 只发现内部 Gateway。
+- [ ] Consumer 只发现唯一活跃内部 Gateway。
+- [ ] 启动和运行期间发现零个或多个 Gateway 时快速失败。
 - [ ] Consumer 所有请求经过 Gateway。
 - [ ] Gateway 可以发现同一 Service Group 的多个 Provider。
 - [ ] Test Gateway 负责实例选择和转发。
+- [ ] Test Gateway 只依赖 RPC Starter 公共 API。
 - [ ] Consumer 不包含 Provider LoadBalancer 或直连代码。
-- [ ] Deadline、Trace 和白名单 Metadata 可透传。
+- [ ] Unary Forwarder 只接受 Gateway 已选 Endpoint，不查询 Directory 或选择实例。
+- [ ] Consumer 和 Provider Channel 显式关闭 gRPC Retry。
+- [ ] Deadline、Cancellation、Status、Trace 和白名单 Metadata 可传播。
 - [ ] gRPC Status 转换为稳定框架异常。
 - [ ] RPC Starter 不实现限流、熔断、灰度或重试。
 - [ ] 普通 Maven `test` 中，一个独立 Provider 和一个独立 Consumer 可以通过
-  Test Gateway 完成真实 grpc-java 调用。
+  Test Gateway 完成真实 TCP grpc-java 调用。
 - [ ] 成功用例同时证明请求经过 Gateway，Consumer 没有 Provider Channel。
 - [ ] 多 Provider、主动注销和租约摘除用例通过。
 - [ ] 闭环测试结束后没有 Server、Channel、Scheduler 或 Listener 泄漏。
+- [ ] `mvn verify -Pddc-live-test` 可以完成独立 JVM 进程级链路验证。
 
-## 22. 建议验证命令
+## 22. 验证命令
 
 DDC：
 
@@ -1732,14 +1905,14 @@ Provider、Consumer 定向测试：
   -am test
 ```
 
-真实 DDC Registry 测试：
+完整进程级测试：
 
 ```bash
 DDC_TEST_REDIS_HOST=127.0.0.1 \
 DDC_TEST_REDIS_PORT=6379 \
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
-  -am -Pddc-live-test -Dit.test=RpcLiveRegistryIT verify
+  -am -Pddc-live-test -Dit.test=RpcProcessIT verify
 ```
 
 组合验证：
@@ -1758,107 +1931,38 @@ DDC_TEST_REDIS_PORT=6379 \
   -am package -DskipTests
 ```
 
-## 23. 路线比较与选择
+## 23. 实施交付边界
 
-### 路线 A：DDC 通用注册中心 + 注解式透明 gRPC（推荐）
+DDC 与 RPC 使用同一份总体实施计划，按顺序拆分为两个独立 PR。
 
-特点：
+### 23.1 PR1：DDC 单机闭环与注册中心
 
-- DDC 定义通用 Registry，不依赖 RPC；
-- `.proto` 是唯一 IDL，并使用标准工具生成 Message 和 gRPC Descriptor；
-- Java Contract 绑定并校验生成 Descriptor，不自建线上 Method；
-- Consumer 代理直接发标准 gRPC Method 到 Gateway；
-- Gateway 保留原始 Method 并透明转发；
-- 业务不直接依赖 grpc-java Stub。
+范围：
 
-优点：
+- 统一 `instanceId + leaseId` 租约协议；
+- 配置客户端生命周期闭环；
+- Redis-only Provider/Gateway 服务注册与目录订阅；
+- 配置资源串行发布、changeId Waiter、严格目标 ACK；
+- `SYNC_ALL_ACK`、超时、重启 `UNKNOWN` 和幂等重试；
+- HMAC 验签、数据库 V2 迁移和 DDC 测试。
 
-- 符合“自研轻量 RPC 框架”目标；
-- Provider/Consumer API 简洁；
-- 不发明新序列化协议；
-- Consumer→Gateway→Provider 边界清晰；
-- 后续 Gateway 可以直接接入。
+PR1 不依赖 RPC Component。PR1 合入前必须独立完成 DDC Starter、Admin、Test
+编译、测试和 Admin 打包验证。
 
-成本：
+### 23.2 PR2：RPC Starter 与测试体系
 
-- 需要实现 Descriptor 解析校验、Dynamic Proxy 和动态 Server Definition；
-- V1 必须严格限制 unary 和 Protobuf 类型。
+PR2 基于已经合入的 PR1：
 
-结论：本 Spec 选择此路线。
+- 新增 RPC Starter；
+- 接入 DDC 公共租约和 Registry API；
+- 实现 Protobuf Descriptor 绑定、Provider、Consumer 和 Gateway 公共能力；
+- 实现唯一 Gateway 快速失败、Deadline、Cancellation、Status、Metadata 和
+  Retry Disabled；
+- 新增 Contract、Provider、Consumer、Suite 测试模块；
+- 完成普通 `mvn test` 真实 TCP 链路与 `mvn verify` 进程级链路。
 
-### 路线 B：标准生成 Stub + DDC 注册包装
+PR2 不实现生产 Gateway 和流量治理。PR2 合入前必须独立完成 RPC 模块及其依赖
+的编译、测试和打包验证。
 
-特点：
-
-- Provider 直接实现生成的 `BindableService`；
-- Consumer 使用生成的 Blocking/Future Stub；
-- 框架只创建 Gateway Channel 和注册生命周期。
-
-优点：
-
-- grpc-java 原生程度最高；
-- 实现成本最低；
-- Streaming 扩展更自然。
-
-缺点：
-
-- “自研 RPC 框架”能力偏弱；
-- 自动代理、统一异常和 Contract 管理较难形成稳定框架体验；
-- 业务代码直接感知较多 grpc-java 类型。
-
-结论：作为后续兼容模式保留，不作为 V1 主 API。
-
-### 路线 C：统一 `GatewayInvoke` Envelope
-
-特点：
-
-- 所有 Consumer 调用一个统一 gRPC 方法；
-- Envelope 携带 Service、Method 和 Payload；
-- Gateway 解包后调用 Provider。
-
-优点：
-
-- Gateway 实现简单；
-- 容易做统一审计。
-
-缺点：
-
-- 丢失原生 gRPC Method 语义；
-- Streaming、Status、工具链和跨语言兼容更差；
-- 容易演变为自定义私有协议。
-
-结论：不采用。
-
-## 24. 本轮审核项
-
-请重点审核以下决策：
-
-1. DDC 当前只做单 Admin + 单 Redis，不加入任何集群代码。
-2. DDC 服务注册状态只存 Redis，不新增数据库表和 Flyway Migration。
-3. 配置实例与服务实例统一使用租约、心跳、主动注销和过期清理。
-4. 强一致发布在单机内使用进程 Waiter 和按 `changeId` 串行锁。
-   ACK 只接受发布准备阶段固化的目标实例。
-5. RPC Component 顶层只有 Starter 和 Test 聚合器；Test 内拆 Contract、
-   Provider、Consumer 和 Suite 四个测试模块，均不发布。
-6. RPC V1 只支持 unary + 标准 Protobuf `Message`。
-7. `.proto` 是唯一 IDL，必须定义 Service 和 Message，并使用标准
-   `protoc + protoc-gen-grpc-java` 生成代码。
-8. RPC 主 API 使用“生成 Descriptor + 注解式 Java Contract + Provider Bean
-   + Consumer JDK Proxy”，启动时强校验两者一致。
-9. Consumer 只发现 Gateway，绝不发现 Provider。
-10. 单机阶段只允许一个健康 Gateway；多个 Gateway 不做客户端负载均衡。
-11. RPC Starter 提供 Gateway 注册、Provider Directory、Channel Factory 和
-    动态 Handler Registry、Unary Forwarder，但不提供实例选择策略。
-12. 生产 Gateway 不在 RPC Component 中实现。
-13. RPC Test 至少包含一个独立 Provider、一个独立 Consumer 和一个测试专用
-    Gateway；普通 Maven `test` 必须验证 Consumer→Gateway→Provider 调用成功。
-14. 在单 Provider/Consumer 成功用例外，另行验证多 Provider 的选择和下线摘除。
-15. RPC 不实现灰度、限流、熔断、重试和 Consumer 直连。
-16. 现有 Gateway 总览 Spec 的 HTTP/Dubbo 主路线暂不修改，后续单独增加
-    gRPC + DDC Adapter 实施 Spec。
-17. DDC 与 RPC 采用一次完整实现计划，但实施时分为两个独立提交：
-    - DDC 单机闭环与注册中心；
-    - RPC Starter/Test。
-
-本 Spec 审核通过后，再编写实施级 Plan；审核前不创建 RPC 模块、不修改 POM、
-不修改 DDC 代码，也不启动项目。
+两个 PR 都不得提交无法独立编译的跨 PR 半成品；PR2 只能引用 PR1 已发布的
+DDC Starter 公共 API。
