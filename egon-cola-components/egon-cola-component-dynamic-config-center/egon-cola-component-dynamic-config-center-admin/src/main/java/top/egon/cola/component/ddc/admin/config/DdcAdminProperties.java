@@ -11,6 +11,8 @@ public class DdcAdminProperties {
 
     private Openapi openapi = new Openapi();
 
+    private Publish publish = new Publish();
+
     private Manifest manifest = new Manifest();
 
     public Redis getRedis() {
@@ -35,6 +37,14 @@ public class DdcAdminProperties {
 
     public void setOpenapi(Openapi openapi) {
         this.openapi = openapi;
+    }
+
+    public Publish getPublish() {
+        return publish;
+    }
+
+    public void setPublish(Publish publish) {
+        this.publish = publish;
     }
 
     public Manifest getManifest() {
@@ -194,6 +204,49 @@ public class DdcAdminProperties {
 
         public void setNonceCacheMaxSize(int nonceCacheMaxSize) {
             this.nonceCacheMaxSize = nonceCacheMaxSize;
+        }
+    }
+
+    public static class Publish {
+
+        private long dispatchTimeoutMs = 5000;
+
+        private long defaultTimeoutMs = 30000;
+
+        private long maxTimeoutMs = 60000;
+
+        private long scanIntervalMs = 1000;
+
+        public long getDispatchTimeoutMs() {
+            return dispatchTimeoutMs;
+        }
+
+        public void setDispatchTimeoutMs(long dispatchTimeoutMs) {
+            this.dispatchTimeoutMs = dispatchTimeoutMs;
+        }
+
+        public long getDefaultTimeoutMs() {
+            return defaultTimeoutMs;
+        }
+
+        public void setDefaultTimeoutMs(long defaultTimeoutMs) {
+            this.defaultTimeoutMs = defaultTimeoutMs;
+        }
+
+        public long getMaxTimeoutMs() {
+            return maxTimeoutMs;
+        }
+
+        public void setMaxTimeoutMs(long maxTimeoutMs) {
+            this.maxTimeoutMs = maxTimeoutMs;
+        }
+
+        public long getScanIntervalMs() {
+            return scanIntervalMs;
+        }
+
+        public void setScanIntervalMs(long scanIntervalMs) {
+            this.scanIntervalMs = scanIntervalMs;
         }
     }
 }

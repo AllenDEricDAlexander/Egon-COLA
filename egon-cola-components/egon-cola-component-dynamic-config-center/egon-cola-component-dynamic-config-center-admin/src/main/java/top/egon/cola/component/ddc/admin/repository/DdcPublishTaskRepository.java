@@ -20,6 +20,37 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update DdcPublishTaskEntity task
+               set task.status = :publishingStatus,
+                   task.dispatchedAt = :dispatchedAt,
+                   task.updatedAt = :dispatchedAt
+             where task.changeId = :changeId
+               and task.status = :pendingStatus
+            """)
+    int transitionToPublishing(@Param("changeId") String changeId,
+                               @Param("pendingStatus") String pendingStatus,
+                               @Param("publishingStatus") String publishingStatus,
+                               @Param("dispatchedAt") LocalDateTime dispatchedAt);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update DdcPublishTaskEntity task
+               set task.ackCount = :ackCount,
+                   task.failedCount = :failedCount,
+                   task.ignoredCount = :ignoredCount,
+                   task.timeoutCount = :timeoutCount,
+                   task.updatedAt = :updatedAt
+             where task.changeId = :changeId
+            """)
+    int updateCounters(@Param("changeId") String changeId,
+                       @Param("ackCount") int ackCount,
+                       @Param("failedCount") int failedCount,
+                       @Param("ignoredCount") int ignoredCount,
+                       @Param("timeoutCount") int timeoutCount,
+                       @Param("updatedAt") LocalDateTime updatedAt);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update DdcPublishTaskEntity task
                set task.status = :terminalStatus,
                    task.completedAt = :completedAt,
                    task.failureStage = :failureStage,

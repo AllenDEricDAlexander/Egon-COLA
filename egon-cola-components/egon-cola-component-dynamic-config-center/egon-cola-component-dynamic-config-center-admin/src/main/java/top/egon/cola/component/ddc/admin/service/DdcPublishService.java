@@ -1,42 +1,46 @@
 package top.egon.cola.component.ddc.admin.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
+import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
-import top.egon.cola.component.ddc.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcOperationLogEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.ChangeType;
-import top.egon.cola.component.ddc.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.ddc.admin.model.enums.PublishMode;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
+import top.egon.cola.component.ddc.admin.model.vo.DdcConfigResourceKey;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
-import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
-import top.egon.cola.component.ddc.admin.service.policy.PublishConsistencyPolicyFactory;
-import top.egon.cola.component.ddc.admin.service.policy.PublishDecision;
 import top.egon.cola.component.ddc.common.DdcChecksum;
+import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
+import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 public class DdcPublishService {
@@ -49,172 +53,335 @@ public class DdcPublishService {
 
     private final DdcPublishAckRepository publishAckRepository;
 
-    private final DdcInstanceRepository instanceRepository;
-
     private final DdcOperationLogRepository operationLogRepository;
 
     private final DdcRedisRepository redisRepository;
 
-    private final PublishConsistencyPolicyFactory policyFactory;
+    private final DdcConfigLeaseService leaseService;
+
+    private final PublishResourceLockRegistry resourceRegistry;
+
+    private final PublishCompletionWaiterRegistry waiterRegistry;
+
+    private final DdcPublishStateTransitionService stateTransitions;
 
     private final PublishFailureRecorder failureRecorder;
 
+    private final DdcAdminProperties properties;
+
     private final TransactionTemplate transactionTemplate;
 
-    public DdcPublishService(DdcConfigItemRepository configItemRepository,
-                             DdcConfigVersionRepository versionRepository,
-                             DdcPublishTaskRepository publishTaskRepository,
-                             DdcPublishAckRepository publishAckRepository,
-                             DdcInstanceRepository instanceRepository,
-                             DdcOperationLogRepository operationLogRepository,
-                             DdcRedisRepository redisRepository,
-                             PublishConsistencyPolicyFactory policyFactory,
-                             PublishFailureRecorder failureRecorder,
-                             PlatformTransactionManager transactionManager) {
+    private final Clock clock;
+
+    @Autowired
+    public DdcPublishService(
+            DdcConfigItemRepository configItemRepository,
+            DdcConfigVersionRepository versionRepository,
+            DdcPublishTaskRepository publishTaskRepository,
+            DdcPublishAckRepository publishAckRepository,
+            DdcOperationLogRepository operationLogRepository,
+            DdcRedisRepository redisRepository,
+            DdcConfigLeaseService leaseService,
+            PublishResourceLockRegistry resourceRegistry,
+            PublishCompletionWaiterRegistry waiterRegistry,
+            DdcPublishStateTransitionService stateTransitions,
+            PublishFailureRecorder failureRecorder,
+            DdcAdminProperties properties,
+            PlatformTransactionManager transactionManager) {
+        this(
+                configItemRepository,
+                versionRepository,
+                publishTaskRepository,
+                publishAckRepository,
+                operationLogRepository,
+                redisRepository,
+                leaseService,
+                resourceRegistry,
+                waiterRegistry,
+                stateTransitions,
+                failureRecorder,
+                properties,
+                transactionManager,
+                Clock.systemUTC()
+        );
+    }
+
+    DdcPublishService(
+            DdcConfigItemRepository configItemRepository,
+            DdcConfigVersionRepository versionRepository,
+            DdcPublishTaskRepository publishTaskRepository,
+            DdcPublishAckRepository publishAckRepository,
+            DdcOperationLogRepository operationLogRepository,
+            DdcRedisRepository redisRepository,
+            DdcConfigLeaseService leaseService,
+            PublishResourceLockRegistry resourceRegistry,
+            PublishCompletionWaiterRegistry waiterRegistry,
+            DdcPublishStateTransitionService stateTransitions,
+            PublishFailureRecorder failureRecorder,
+            DdcAdminProperties properties,
+            PlatformTransactionManager transactionManager,
+            Clock clock) {
         this.configItemRepository = configItemRepository;
         this.versionRepository = versionRepository;
         this.publishTaskRepository = publishTaskRepository;
         this.publishAckRepository = publishAckRepository;
-        this.instanceRepository = instanceRepository;
         this.operationLogRepository = operationLogRepository;
         this.redisRepository = redisRepository;
-        this.policyFactory = policyFactory;
+        this.leaseService = leaseService;
+        this.resourceRegistry = resourceRegistry;
+        this.waiterRegistry = waiterRegistry;
+        this.stateTransitions = stateTransitions;
         this.failureRecorder = failureRecorder;
+        this.properties = properties;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.clock = clock;
     }
 
     public DdcPublishResultVO publish(DdcPublishRequest request, String operator) {
-        String changeId = UuidV7.simpleString();
+        validatePublishRequest(request);
+        long timeoutMs = timeout(request.getTimeoutMs());
+        DdcPublishTaskEntity existing =
+                publishTaskRepository.findByChangeId(request.getChangeId()).orElse(null);
+        if (existing != null) {
+            validateIdempotentRequest(existing, request, timeoutMs);
+            return awaitIfActive(existing);
+        }
+
+        DdcConfigResourceKey resourceKey = resourceKey(request);
+        if (!resourceRegistry.tryAcquire(resourceKey, request.getChangeId())) {
+            throw new DdcAdminException(DdcErrorStatus.PUBLISH_IN_PROGRESS);
+        }
+
+        PublishPrepareResult prepared;
         try {
-            PublishPrepareResult prepareResult = transactionTemplate.execute(status -> transactionalPublishPrepare(changeId, request, operator));
-            if (prepareResult == null) {
+            prepared = transactionTemplate.execute(status ->
+                    prepare(request, timeoutMs, operator));
+            if (prepared == null) {
                 throw new DdcAdminException("publish prepare failed");
             }
-            DdcPublishMessage message = prepareResult.message();
-            redisRepository.writeConfig(message.getAppCode(), message.getEnv(), message.getNamespace(),
-                    message.getConfigKey(), message.getConfigValue(), message.getTargetVersion());
-            redisRepository.publish(message);
-            PublishDecision decision = policyFactory.get(prepareResult.publishMode()).afterMessagePublished();
-            if (decision.completed()) {
-                completeAfterMessagePublished(changeId, decision);
-            }
-            return DdcPublishResultVO.from(publishTaskRepository.findByChangeId(changeId).orElse(prepareResult.task()));
-        } catch (Exception e) {
-            failureRecorder.recordFailure(changeId, request.getAppCode(), request.getEnv(), request.getNamespace(),
-                    request.getConfigKey(), e.getMessage());
-            throw new DdcAdminException("publish config failed", e);
+        } catch (RuntimeException exception) {
+            recordPreparationFailure(request, exception);
+            resourceRegistry.release(resourceKey, request.getChangeId());
+            throw exception;
         }
+
+        PublishCompletionWaiterRegistry.PublishWaiter waiter =
+                waiterRegistry.register(request.getChangeId());
+        if (prepared.dispatchRequired()) {
+            try {
+                dispatch(prepared.message());
+            } catch (RuntimeException exception) {
+                DdcPublishTaskEntity terminal = stateTransitions.fail(
+                        request.getChangeId(),
+                        "REDIS_DISPATCH",
+                        exception.getMessage()
+                );
+                if (!PublishStatus.SUCCESS.name().equals(terminal.getStatus())) {
+                    waiterRegistry.remove(request.getChangeId(), waiter);
+                    throw new DdcAdminException("publish dispatch failed", exception);
+                }
+            }
+        }
+        return await(request.getChangeId(), waiter);
     }
 
     @Transactional
     public DdcPublishResultVO ack(DdcAckRequest request) {
+        validateAckRequest(request);
         DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(request.getChangeId())
                 .orElseThrow(() -> new DdcAdminException("publish task not found"));
-        DdcPublishAckEntity ack = publishAckRepository.findByChangeIdAndInstanceIdAndLeaseId(
-                        request.getChangeId(),
-                        request.getInstanceId(),
-                        request.getLeaseId()
-                )
-                .orElseGet(() -> newPublishAck(task, request.getInstanceId(), request.getLeaseId()));
-        ack.setLeaseId(request.getLeaseId());
-        ack.setContentChecksum(request.getContentChecksum());
-        ack.setAppCode(request.getAppCode());
-        ack.setEnv(request.getEnv());
-        ack.setNamespace(request.getNamespace());
-        ack.setConfigKey(request.getConfigKey());
-        ack.setTargetVersion(request.getTargetVersion());
-        ack.setCurrentVersion(request.getCurrentVersion());
-        ack.setAckStatus(request.getStatus().name());
-        ack.setErrorMessage(request.getErrorMessage());
-        ack.setAckAt(toAckAt(request.getAckTime()));
-        publishAckRepository.save(ack);
-
-        List<DdcPublishAckEntity> acks = publishAckRepository.findByChangeId(request.getChangeId());
-        int successCount = count(acks, DdcAckStatus.SUCCESS);
-        int failedCount = count(acks, DdcAckStatus.FAILED);
-        int ignoredCount = count(acks, DdcAckStatus.IGNORED);
-        task.setAckCount(successCount);
-        task.setFailedCount(failedCount);
-        task.setIgnoredCount(ignoredCount);
-        task.setUpdatedAt(LocalDateTime.now());
-        PublishMode publishMode = parsePublishMode(task.getPublishMode());
-        PublishDecision decision = policyFactory.get(publishMode)
-                .decide(nullToZero(task.getTargetCount()), successCount, failedCount, nullToZero(task.getTimeoutCount()));
-        if (decision.completed()) {
-            task.setStatus(decision.status().name());
+        if (stateTransitions.isTerminal(task)) {
+            return DdcPublishResultVO.from(task);
         }
-        publishTaskRepository.save(task);
-        return DdcPublishResultVO.from(task);
+        DdcPublishAckEntity target =
+                publishAckRepository.findByChangeIdAndInstanceIdAndLeaseId(
+                                request.getChangeId(),
+                                request.getInstanceId(),
+                                request.getLeaseId()
+                        )
+                        .orElseThrow(() ->
+                                new DdcAdminException(DdcErrorStatus.LEASE_MISMATCH));
+        if (!Objects.equals(task.getTargetVersion(), request.getTargetVersion())
+                || !Objects.equals(task.getContentChecksum(), request.getContentChecksum())
+                || !Objects.equals(target.getTargetVersion(), request.getTargetVersion())
+                || !Objects.equals(target.getContentChecksum(), request.getContentChecksum())) {
+            throw new DdcAdminException("ACK version or content checksum does not match target");
+        }
+        if (target.getAckStatus() != null) {
+            return DdcPublishResultVO.from(task);
+        }
+        target.setCurrentVersion(request.getCurrentVersion());
+        target.setAckStatus(request.getStatus().name());
+        target.setErrorMessage(request.getErrorMessage());
+        target.setAckAt(toAckAt(request.getAckTime()));
+        publishAckRepository.saveAndFlush(target);
+        return DdcPublishResultVO.from(
+                stateTransitions.refreshAfterAck(request.getChangeId())
+        );
     }
 
-    private PublishPrepareResult transactionalPublishPrepare(String changeId, DdcPublishRequest request, String operator) {
-        validatePublishRequest(request);
-        DdcConfigItemEntity config = configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                        request.getAppCode(), request.getEnv(), request.getNamespace(), request.getConfigKey())
-                .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
-                .orElseThrow(() -> new DdcAdminException("config item not found"));
-        if (request.getExpectedVersion() != null && !Objects.equals(request.getExpectedVersion(), config.getCurrentVersion())) {
+    private DdcPublishResultVO awaitIfActive(DdcPublishTaskEntity task) {
+        if (stateTransitions.isTerminal(task)) {
+            return DdcPublishResultVO.from(task);
+        }
+        DdcConfigResourceKey key = resourceKey(task);
+        String owner = resourceRegistry.owner(key).orElse(null);
+        if (owner == null) {
+            if (!resourceRegistry.tryAcquire(key, task.getChangeId())) {
+                throw new DdcAdminException(DdcErrorStatus.PUBLISH_IN_PROGRESS);
+            }
+        } else if (!owner.equals(task.getChangeId())) {
+            throw new DdcAdminException(DdcErrorStatus.PUBLISH_IN_PROGRESS);
+        }
+        return await(
+                task.getChangeId(),
+                waiterRegistry.register(task.getChangeId())
+        );
+    }
+
+    private DdcPublishResultVO await(
+            String changeId,
+            PublishCompletionWaiterRegistry.PublishWaiter waiter) {
+        try {
+            while (true) {
+                DdcPublishTaskEntity task = requiredTask(changeId);
+                if (stateTransitions.isTerminal(task)) {
+                    waiterRegistry.remove(changeId, waiter);
+                    return DdcPublishResultVO.from(task);
+                }
+                Instant deadline = deadline(task);
+                Instant now = clock.instant();
+                if (!deadline.isAfter(now)) {
+                    if (PublishStatus.PENDING.name().equals(task.getStatus())) {
+                        stateTransitions.fail(
+                                changeId,
+                                "DISPATCH_TIMEOUT",
+                                "publish dispatch timed out"
+                        );
+                    } else {
+                        stateTransitions.timeout(
+                                changeId,
+                                "publish acknowledgement timed out"
+                        );
+                    }
+                    continue;
+                }
+                long signalVersion = waiter.signalVersion();
+                task = requiredTask(changeId);
+                if (stateTransitions.isTerminal(task)) {
+                    continue;
+                }
+                waiter.awaitAfter(
+                        signalVersion,
+                        Duration.between(clock.instant(), deadline)
+                );
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new DdcAdminException("publish wait interrupted", exception);
+        }
+    }
+
+    private PublishPrepareResult prepare(DdcPublishRequest request,
+                                         long timeoutMs,
+                                         String operator) {
+        DdcPublishTaskEntity concurrent =
+                publishTaskRepository.findByChangeId(request.getChangeId()).orElse(null);
+        if (concurrent != null) {
+            validateIdempotentRequest(concurrent, request, timeoutMs);
+            return new PublishPrepareResult(
+                    concurrent,
+                    message(concurrent, publishAckRepository.findByChangeId(
+                            concurrent.getChangeId()
+                    )),
+                    false
+            );
+        }
+
+        DdcConfigItemEntity config =
+                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                                request.getAppCode(),
+                                request.getEnv(),
+                                request.getNamespace(),
+                                request.getConfigKey()
+                        )
+                        .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
+                        .orElseThrow(() -> new DdcAdminException("config item not found"));
+        if (!Objects.equals(request.getExpectedVersion(), config.getCurrentVersion())) {
             throw new DdcAdminException("config version changed");
         }
 
         String oldValue = config.getConfigValue();
-        boolean valueChanged = request.getConfigValue() != null && !Objects.equals(request.getConfigValue(), oldValue);
-        if (valueChanged) {
-            config.setConfigValue(request.getConfigValue());
-            config.setCurrentVersion(config.getCurrentVersion() + 1);
-            config.setUpdatedAt(LocalDateTime.now());
-            configItemRepository.save(config);
-            saveVersion(config, oldValue, config.getConfigValue(), operator);
+        config.setConfigValue(request.getConfigValue());
+        config.setCurrentVersion(config.getCurrentVersion() + 1);
+        config.setUpdatedAt(now());
+        configItemRepository.save(config);
+        saveVersion(config, oldValue, request.getConfigValue(), operator);
+
+        List<DdcPublishTarget> targets = leaseService.activeTargets(
+                request.getAppCode(),
+                request.getEnv(),
+                request.getNamespace()
+        ).stream()
+                .sorted(Comparator
+                        .comparing(DdcPublishTarget::instanceId)
+                        .thenComparing(DdcPublishTarget::leaseId))
+                .toList();
+        if (targets.isEmpty()) {
+            throw new DdcAdminException(DdcErrorStatus.NO_LIVE_INSTANCE);
         }
 
-        PublishMode publishMode = request.getPublishMode() == null ? PublishMode.ASYNC : request.getPublishMode();
-        List<DdcInstanceEntity> targets = instanceRepository.findByAppCodeAndEnvAndNamespaceAndStatus(
-                request.getAppCode(), request.getEnv(), request.getNamespace(), InstanceStatus.ONLINE.name());
-        DdcPublishTaskEntity task = newPublishTask(changeId, config, publishMode, targets.size(), request.getTimeoutMs(), operator);
+        String contentChecksum = DdcChecksum.content(request.getConfigValue());
+        DdcPublishTaskEntity task = newTask(
+                request,
+                config,
+                contentChecksum,
+                targets.size(),
+                timeoutMs,
+                operator
+        );
         publishTaskRepository.save(task);
-        targets.forEach(instance -> publishAckRepository.save(
-                newPublishAck(task, instance.getInstanceId(), instance.getLeaseId())
-        ));
-        savePublishOperation(config, changeId, operator);
-        DdcPublishMessage message = buildPublishMessage(changeId, config, publishMode, operator);
-        return new PublishPrepareResult(task, message, publishMode);
+        List<DdcPublishAckEntity> targetRows = targets.stream()
+                .map(target -> newTarget(task, target))
+                .toList();
+        publishAckRepository.saveAll(targetRows);
+        savePublishOperation(config, request.getChangeId(), operator);
+        return new PublishPrepareResult(task, message(task, targetRows), true);
     }
 
-    private void completeAfterMessagePublished(String changeId, PublishDecision decision) {
-        transactionTemplate.executeWithoutResult(status -> publishTaskRepository.findByChangeId(changeId).ifPresent(task -> {
-            task.setStatus(decision.status().name());
-            task.setUpdatedAt(LocalDateTime.now());
-            publishTaskRepository.save(task);
-        }));
+    private void dispatch(DdcPublishMessage message) {
+        redisRepository.writeConfig(
+                message.getAppCode(),
+                message.getEnv(),
+                message.getNamespace(),
+                message.getConfigKey(),
+                message.getConfigValue(),
+                message.getTargetVersion()
+        );
+        redisRepository.publish(message);
+        stateTransitions.markPublishing(message.getChangeId());
     }
 
-    private void validatePublishRequest(DdcPublishRequest request) {
-        requireText(request.getAppCode(), "appCode");
-        requireText(request.getEnv(), "env");
-        requireText(request.getNamespace(), "namespace");
-        requireText(request.getConfigKey(), "configKey");
-    }
-
-    private void requireText(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new DdcAdminException(fieldName + " is required");
-        }
-    }
-
-    private DdcPublishTaskEntity newPublishTask(String changeId, DdcConfigItemEntity config, PublishMode publishMode,
-                                                int targetCount, Long timeoutMs, String operator) {
-        LocalDateTime now = LocalDateTime.now();
+    private DdcPublishTaskEntity newTask(DdcPublishRequest request,
+                                         DdcConfigItemEntity config,
+                                         String contentChecksum,
+                                         int targetCount,
+                                         long timeoutMs,
+                                         String operator) {
+        LocalDateTime now = now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(UuidV7.simpleString());
-        task.setChangeId(changeId);
+        task.setChangeId(request.getChangeId());
         task.setConfigId(config.getId());
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
         task.setNamespace(config.getNamespace());
         task.setConfigKey(config.getConfigKey());
         task.setTargetVersion(config.getCurrentVersion());
-        task.setPublishMode(publishMode.name());
-        task.setStatus(PublishStatus.PUBLISHING.name());
+        task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
+        task.setContentChecksum(contentChecksum);
+        task.setAttemptCount(0);
+        task.setStatus(PublishStatus.PENDING.name());
         task.setTargetCount(targetCount);
         task.setAckCount(0);
         task.setFailedCount(0);
@@ -227,14 +394,13 @@ public class DdcPublishService {
         return task;
     }
 
-    private DdcPublishAckEntity newPublishAck(DdcPublishTaskEntity task,
-                                              String instanceId,
-                                              String leaseId) {
+    private DdcPublishAckEntity newTarget(DdcPublishTaskEntity task,
+                                          DdcPublishTarget target) {
         DdcPublishAckEntity ack = new DdcPublishAckEntity();
         ack.setId(UuidV7.simpleString());
         ack.setChangeId(task.getChangeId());
-        ack.setInstanceId(instanceId);
-        ack.setLeaseId(leaseId);
+        ack.setInstanceId(target.instanceId());
+        ack.setLeaseId(target.leaseId());
         ack.setContentChecksum(task.getContentChecksum());
         ack.setAppCode(task.getAppCode());
         ack.setEnv(task.getEnv());
@@ -244,7 +410,43 @@ public class DdcPublishService {
         return ack;
     }
 
-    private void saveVersion(DdcConfigItemEntity config, String oldValue, String newValue, String operator) {
+    private DdcPublishMessage message(DdcPublishTaskEntity task,
+                                      List<DdcPublishAckEntity> targets) {
+        DdcConfigVersionEntity version =
+                versionRepository.findByConfigIdAndVersion(
+                                task.getConfigId(),
+                                task.getTargetVersion()
+                        )
+                        .orElseThrow(() -> new DdcAdminException(
+                                "published config version not found"
+                        ));
+        DdcPublishMessage message = new DdcPublishMessage();
+        message.setChangeId(task.getChangeId());
+        message.setAppCode(task.getAppCode());
+        message.setEnv(task.getEnv());
+        message.setNamespace(task.getNamespace());
+        message.setConfigKey(task.getConfigKey());
+        message.setConfigValue(version.getNewValue());
+        message.setValueType(version.getValueType());
+        message.setTargetVersion(task.getTargetVersion());
+        message.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
+        message.setOperator(task.getOperator());
+        message.setTimestamp(clock.millis());
+        message.setContentChecksum(task.getContentChecksum());
+        message.setTargets(targets.stream()
+                .map(target -> new DdcPublishTarget(
+                        target.getInstanceId(),
+                        target.getLeaseId()
+                ))
+                .toList());
+        message.setChecksum(DdcChecksum.sha256(message));
+        return message;
+    }
+
+    private void saveVersion(DdcConfigItemEntity config,
+                             String oldValue,
+                             String newValue,
+                             String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
         version.setId(UuidV7.simpleString());
         version.setConfigId(config.getId());
@@ -259,11 +461,13 @@ public class DdcPublishService {
         version.setChangeType(ChangeType.UPDATE.name());
         version.setChangeReason("publish config");
         version.setOperator(operator);
-        version.setCreatedAt(LocalDateTime.now());
+        version.setCreatedAt(now());
         versionRepository.save(version);
     }
 
-    private void savePublishOperation(DdcConfigItemEntity config, String changeId, String operator) {
+    private void savePublishOperation(DdcConfigItemEntity config,
+                                      String changeId,
+                                      String operator) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
         log.setId(UuidV7.simpleString());
         log.setAppCode(config.getAppCode());
@@ -273,51 +477,170 @@ public class DdcPublishService {
         log.setOperationType("PUBLISH");
         log.setOperator(operator);
         log.setOperationContent(changeId);
-        log.setCreatedAt(LocalDateTime.now());
+        log.setCreatedAt(now());
         operationLogRepository.save(log);
     }
 
-    private DdcPublishMessage buildPublishMessage(String changeId, DdcConfigItemEntity config, PublishMode publishMode, String operator) {
-        DdcPublishMessage message = new DdcPublishMessage();
-        message.setChangeId(changeId);
-        message.setAppCode(config.getAppCode());
-        message.setEnv(config.getEnv());
-        message.setNamespace(config.getNamespace());
-        message.setConfigKey(config.getConfigKey());
-        message.setConfigValue(config.getConfigValue());
-        message.setValueType(config.getValueType());
-        message.setTargetVersion(config.getCurrentVersion());
-        message.setPublishMode(publishMode.name());
-        message.setOperator(operator);
-        message.setTimestamp(System.currentTimeMillis());
-        message.setChecksum(DdcChecksum.sha256(message));
-        return message;
-    }
-
-    private int count(List<DdcPublishAckEntity> acks, DdcAckStatus status) {
-        return (int) acks.stream()
-                .filter(ack -> status.name().equals(ack.getAckStatus()))
-                .count();
-    }
-
-    private int nullToZero(Integer value) {
-        return value == null ? 0 : value;
-    }
-
-    private PublishMode parsePublishMode(String publishMode) {
-        if (publishMode == null) {
-            return PublishMode.ASYNC;
+    private void validatePublishRequest(DdcPublishRequest request) {
+        if (request == null) {
+            throw new DdcAdminException("publish request is required");
         }
-        return PublishMode.valueOf(publishMode);
+        requireUuidV7(request.getChangeId());
+        requireText(request.getAppCode(), "appCode");
+        requireText(request.getEnv(), "env");
+        requireText(request.getNamespace(), "namespace");
+        requireText(request.getConfigKey(), "configKey");
+        if (request.getExpectedVersion() == null || request.getExpectedVersion() < 0) {
+            throw new DdcAdminException("expectedVersion is required");
+        }
+    }
+
+    private void validateAckRequest(DdcAckRequest request) {
+        if (request == null
+                || request.getStatus() == null
+                || request.getStatus() == DdcAckStatus.TIMEOUT) {
+            throw new DdcAdminException("valid ACK status is required");
+        }
+        requireText(request.getChangeId(), "changeId");
+        requireText(request.getInstanceId(), "instanceId");
+        requireText(request.getLeaseId(), "leaseId");
+        requireText(request.getContentChecksum(), "contentChecksum");
+        if (request.getTargetVersion() == null) {
+            throw new DdcAdminException("targetVersion is required");
+        }
+    }
+
+    private void validateIdempotentRequest(DdcPublishTaskEntity task,
+                                           DdcPublishRequest request,
+                                           long timeoutMs) {
+        boolean matches = Objects.equals(task.getAppCode(), request.getAppCode())
+                && Objects.equals(task.getEnv(), request.getEnv())
+                && Objects.equals(task.getNamespace(), request.getNamespace())
+                && Objects.equals(task.getConfigKey(), request.getConfigKey())
+                && Objects.equals(task.getContentChecksum(),
+                DdcChecksum.content(request.getConfigValue()))
+                && Objects.equals(task.getTimeoutMs(), timeoutMs)
+                && task.getTargetVersion() != null
+                && task.getTargetVersion() == request.getExpectedVersion() + 1;
+        if (!matches) {
+            throw new DdcAdminException(DdcErrorStatus.CHANGE_ID_CONFLICT);
+        }
+    }
+
+    private long timeout(Long requestedTimeoutMs) {
+        long timeoutMs = requestedTimeoutMs == null
+                ? properties.getPublish().getDefaultTimeoutMs()
+                : requestedTimeoutMs;
+        if (timeoutMs <= 0 || timeoutMs > properties.getPublish().getMaxTimeoutMs()) {
+            throw new DdcAdminException(
+                    "timeoutMs must be between 1 and "
+                            + properties.getPublish().getMaxTimeoutMs()
+            );
+        }
+        return timeoutMs;
+    }
+
+    private Instant deadline(DdcPublishTaskEntity task) {
+        if (PublishStatus.PENDING.name().equals(task.getStatus())) {
+            LocalDateTime createdAt =
+                    task.getCreatedAt() == null ? now() : task.getCreatedAt();
+            return instant(createdAt).plusMillis(
+                    properties.getPublish().getDispatchTimeoutMs()
+            );
+        }
+        LocalDateTime dispatchedAt =
+                task.getDispatchedAt() == null ? task.getUpdatedAt() : task.getDispatchedAt();
+        if (dispatchedAt == null) {
+            dispatchedAt = now();
+        }
+        long timeoutMs = task.getTimeoutMs() == null
+                ? properties.getPublish().getDefaultTimeoutMs()
+                : task.getTimeoutMs();
+        return instant(dispatchedAt).plusMillis(timeoutMs);
+    }
+
+    private void recordPreparationFailure(DdcPublishRequest request,
+                                          RuntimeException exception) {
+        try {
+            failureRecorder.recordFailure(
+                    request.getChangeId(),
+                    request.getAppCode(),
+                    request.getEnv(),
+                    request.getNamespace(),
+                    request.getConfigKey(),
+                    exception.getMessage()
+            );
+        } catch (RuntimeException ignored) {
+            // Preserve the original preparation failure.
+        }
+    }
+
+    private DdcPublishTaskEntity requiredTask(String changeId) {
+        return publishTaskRepository.findByChangeId(changeId)
+                .orElseThrow(() -> new DdcAdminException("publish task not found"));
+    }
+
+    private DdcConfigResourceKey resourceKey(DdcPublishRequest request) {
+        return new DdcConfigResourceKey(
+                request.getAppCode(),
+                request.getEnv(),
+                request.getNamespace(),
+                request.getConfigKey()
+        );
+    }
+
+    private DdcConfigResourceKey resourceKey(DdcPublishTaskEntity task) {
+        return new DdcConfigResourceKey(
+                task.getAppCode(),
+                task.getEnv(),
+                task.getNamespace(),
+                task.getConfigKey()
+        );
+    }
+
+    private void requireUuidV7(String value) {
+        requireText(value, "changeId");
+        try {
+            String canonical = value.length() == 32
+                    ? value.substring(0, 8) + "-"
+                    + value.substring(8, 12) + "-"
+                    + value.substring(12, 16) + "-"
+                    + value.substring(16, 20) + "-"
+                    + value.substring(20)
+                    : value;
+            if (UUID.fromString(canonical).version() != 7) {
+                throw new IllegalArgumentException("not UUIDv7");
+            }
+        } catch (IllegalArgumentException exception) {
+            throw new DdcAdminException("changeId must be UUIDv7");
+        }
+    }
+
+    private void requireText(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new DdcAdminException(fieldName + " is required");
+        }
     }
 
     private LocalDateTime toAckAt(Long ackTime) {
-        if (ackTime == null) {
-            return LocalDateTime.now();
-        }
-        return LocalDateTime.ofInstant(Instant.ofEpochMilli(ackTime), ZoneId.systemDefault());
+        Instant instant = ackTime == null
+                ? clock.instant()
+                : Instant.ofEpochMilli(ackTime);
+        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
     }
 
-    private record PublishPrepareResult(DdcPublishTaskEntity task, DdcPublishMessage message, PublishMode publishMode) {
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneId.systemDefault());
+    }
+
+    private Instant instant(LocalDateTime value) {
+        return value.atZone(ZoneId.systemDefault()).toInstant();
+    }
+
+    private record PublishPrepareResult(
+            DdcPublishTaskEntity task,
+            DdcPublishMessage message,
+            boolean dispatchRequired
+    ) {
     }
 }

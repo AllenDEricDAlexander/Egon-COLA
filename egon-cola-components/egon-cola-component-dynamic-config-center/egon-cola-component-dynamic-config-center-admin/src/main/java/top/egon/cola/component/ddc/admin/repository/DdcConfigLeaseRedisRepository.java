@@ -1,12 +1,14 @@
 package top.egon.cola.component.ddc.admin.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
@@ -17,8 +19,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class DdcConfigLeaseRedisRepository {
 
@@ -124,6 +129,42 @@ public class DdcConfigLeaseRedisRepository {
         return result.intValue() == 1;
     }
 
+    public List<DdcPublishTarget> activeTargets(String appCode,
+                                                String env,
+                                                String namespace,
+                                                Instant now) {
+        Set<String> instanceIds =
+                redissonClient.<String>getSet(DdcKeys.instances(appCode, env, namespace))
+                        .readAll();
+        List<DdcPublishTarget> targets = new ArrayList<>();
+        for (String instanceId : instanceIds) {
+            JsonNode lease = currentLease(env, namespace, instanceId);
+            if (!isActive(lease, appCode, env, namespace, now)) {
+                redissonClient.<String>getSet(DdcKeys.instances(appCode, env, namespace))
+                        .remove(instanceId);
+                continue;
+            }
+            targets.add(new DdcPublishTarget(
+                    lease.path("instanceId").asText(),
+                    lease.path("leaseId").asText()
+            ));
+        }
+        return targets.stream()
+                .sorted(Comparator.comparing(DdcPublishTarget::instanceId)
+                        .thenComparing(DdcPublishTarget::leaseId))
+                .toList();
+    }
+
+    public boolean isActiveTarget(String appCode,
+                                  String env,
+                                  String namespace,
+                                  DdcPublishTarget target,
+                                  Instant now) {
+        JsonNode lease = currentLease(env, namespace, target.instanceId());
+        return isActive(lease, appCode, env, namespace, now)
+                && target.leaseId().equals(lease.path("leaseId").asText());
+    }
+
     private List<Object> keys(String env, String namespace, String appCode, String instanceId) {
         return List.of(
                 DdcKeys.leaseInstance(
@@ -161,6 +202,40 @@ public class DdcConfigLeaseRedisRepository {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("serialize DDC config lease failed", e);
         }
+    }
+
+    private JsonNode currentLease(String env, String namespace, String instanceId) {
+        String value = redissonClient.<String>getBucket(DdcKeys.leaseInstance(
+                env,
+                namespace,
+                DdcLeaseRole.CONFIG_CLIENT,
+                instanceId
+        )).get();
+        if (value == null) {
+            return null;
+        }
+        try {
+            return objectMapper.readTree(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("deserialize DDC config lease failed", exception);
+        }
+    }
+
+    private boolean isActive(JsonNode lease,
+                             String appCode,
+                             String env,
+                             String namespace,
+                             Instant now) {
+        return lease != null
+                && lease.hasNonNull("instanceId")
+                && lease.hasNonNull("leaseId")
+                && DdcLeaseRole.CONFIG_CLIENT.name().equals(lease.path("role").asText())
+                && appCode.equals(lease.path("appCode").asText())
+                && env.equals(lease.path("env").asText())
+                && namespace.equals(lease.path("namespace").asText())
+                && "ONLINE".equals(lease.path("status").asText())
+                && lease.path("leaseExpireAt").canConvertToLong()
+                && lease.path("leaseExpireAt").asLong() > now.toEpochMilli();
     }
 
     private Number number(List<?> result, int index) {

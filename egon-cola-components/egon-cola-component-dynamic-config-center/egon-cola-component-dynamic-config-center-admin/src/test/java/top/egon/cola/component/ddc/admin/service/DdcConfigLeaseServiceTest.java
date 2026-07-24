@@ -5,6 +5,7 @@ import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
@@ -12,6 +13,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -102,6 +104,19 @@ class DdcConfigLeaseServiceTest {
         assertThatThrownBy(() -> service.register(request))
                 .isInstanceOf(DdcAdminException.class);
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void publishTargetsComeOnlyFromCurrentRedisLeases() {
+        DdcConfigLeaseRedisRepository repository = mock(DdcConfigLeaseRedisRepository.class);
+        when(repository.activeTargets("demo", "dev", "default", NOW))
+                .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
+        DdcConfigLeaseService service = service(repository);
+
+        assertThat(service.activeTargets("demo", "dev", "default"))
+                .containsExactly(new DdcPublishTarget("instance-1", "lease-1"));
+
+        verify(repository).activeTargets("demo", "dev", "default", NOW);
     }
 
     private DdcConfigLeaseService service(DdcConfigLeaseRedisRepository repository) {

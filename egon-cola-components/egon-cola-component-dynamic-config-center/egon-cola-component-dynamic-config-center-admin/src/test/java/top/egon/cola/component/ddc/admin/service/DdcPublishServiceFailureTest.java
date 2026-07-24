@@ -3,6 +3,7 @@ package top.egon.cola.component.ddc.admin.service;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -11,11 +12,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
+import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
-import top.egon.cola.component.ddc.admin.service.policy.PublishConsistencyPolicyFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,10 +25,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DataJpaTest
 @Import({
         DdcPublishService.class,
+        DdcPublishStateTransitionService.class,
         PublishFailureRecorder.class,
-        PublishConsistencyPolicyFactory.class,
+        PublishResourceLockRegistry.class,
+        PublishCompletionWaiterRegistry.class,
         DdcPublishServiceFailureTest.RedisTestConfig.class
 })
+@EnableConfigurationProperties(DdcAdminProperties.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:sqlite:file:ddc_publish_failure_test?mode=memory&cache=shared",
@@ -48,7 +53,14 @@ class DdcPublishServiceFailureTest {
     @Test
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void transactionFailureCreatesFailedRecordAndThrows() {
-        DdcPublishRequest request = DdcPublishRequest.invalidForTest("demo", "dev", "default", "switch");
+        DdcPublishRequest request = new DdcPublishRequest();
+        request.setChangeId(UuidV7.simpleString());
+        request.setAppCode("demo");
+        request.setEnv("dev");
+        request.setNamespace("default");
+        request.setConfigKey("switch");
+        request.setConfigValue("true");
+        request.setExpectedVersion(1L);
 
         assertThatThrownBy(() -> publishService.publish(request, "tester"))
                 .isInstanceOf(DdcAdminException.class);
@@ -63,6 +75,11 @@ class DdcPublishServiceFailureTest {
         @Bean
         DdcRedisRepository ddcRedisRepository() {
             return Mockito.mock(DdcRedisRepository.class);
+        }
+
+        @Bean
+        DdcConfigLeaseService ddcConfigLeaseService() {
+            return Mockito.mock(DdcConfigLeaseService.class);
         }
     }
 }
