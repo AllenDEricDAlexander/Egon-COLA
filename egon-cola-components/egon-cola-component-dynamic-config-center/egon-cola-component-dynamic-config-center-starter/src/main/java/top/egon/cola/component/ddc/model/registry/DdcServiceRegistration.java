@@ -1,0 +1,81 @@
+package top.egon.cola.component.ddc.model.registry;
+
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
+
+public record DdcServiceRegistration(
+        String instanceId,
+        DdcServiceKey serviceKey,
+        String host,
+        int port,
+        boolean secure,
+        Map<String, String> metadata,
+        int leaseSeconds,
+        int heartbeatIntervalSeconds
+) {
+
+    public DdcServiceRegistration {
+        instanceId = require(instanceId, "instanceId");
+        if (serviceKey == null) {
+            throw new IllegalArgumentException("serviceKey is required");
+        }
+        host = require(host, "host");
+        if (port <= 0 || port > 65535) {
+            throw new IllegalArgumentException("port must be between 1 and 65535");
+        }
+        metadata = validatedMetadata(metadata);
+        if (leaseSeconds <= 0) {
+            throw new IllegalArgumentException("leaseSeconds must be positive");
+        }
+        if (heartbeatIntervalSeconds <= 0 || heartbeatIntervalSeconds >= leaseSeconds) {
+            throw new IllegalArgumentException(
+                    "heartbeatIntervalSeconds must be positive and less than leaseSeconds"
+            );
+        }
+    }
+
+    static Map<String, String> validatedMetadata(Map<String, String> metadata) {
+        if (metadata == null || metadata.isEmpty()) {
+            return Map.of();
+        }
+        if (metadata.size() > 32) {
+            throw new IllegalArgumentException("metadata must contain at most 32 entries");
+        }
+        TreeMap<String, String> copy = new TreeMap<>();
+        metadata.forEach((key, value) -> {
+            String normalizedKey = require(key, "metadata key");
+            String normalizedValue = value == null ? "" : value;
+            if (normalizedKey.length() > 64) {
+                throw new IllegalArgumentException("metadata key must not exceed 64 characters");
+            }
+            if (normalizedValue.length() > 512) {
+                throw new IllegalArgumentException("metadata value must not exceed 512 characters");
+            }
+            String lowerKey = normalizedKey.toLowerCase(Locale.ROOT);
+            if (lowerKey.startsWith("ddc.")
+                    || lowerKey.startsWith("egon.internal.")
+                    || lowerKey.startsWith("egon.rpc.")) {
+                throw new IllegalArgumentException("metadata key uses a reserved prefix");
+            }
+            if (lowerKey.contains("password")
+                    || lowerKey.contains("secret")
+                    || lowerKey.contains("token")
+                    || lowerKey.contains("privatekey")
+                    || lowerKey.contains("private-key")
+                    || lowerKey.contains("certificate")) {
+                throw new IllegalArgumentException("metadata key may expose sensitive information");
+            }
+            copy.put(normalizedKey, normalizedValue);
+        });
+        return Collections.unmodifiableMap(copy);
+    }
+
+    private static String require(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " is required");
+        }
+        return value;
+    }
+}

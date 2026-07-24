@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.ddc.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -16,18 +17,34 @@ public class DdcLeaseExpiryScanner {
 
     private final DdcConfigLeaseRedisRepository leaseRepository;
 
+    private final DdcServiceRegistryRedisRepository registryRepository;
+
     private final Clock clock;
 
     public DdcLeaseExpiryScanner(DdcInstanceRepository instanceRepository,
                                  DdcConfigLeaseRedisRepository leaseRepository) {
-        this(instanceRepository, leaseRepository, Clock.systemUTC());
+        this(instanceRepository, leaseRepository, null, Clock.systemUTC());
+    }
+
+    public DdcLeaseExpiryScanner(DdcInstanceRepository instanceRepository,
+                                 DdcConfigLeaseRedisRepository leaseRepository,
+                                 DdcServiceRegistryRedisRepository registryRepository) {
+        this(instanceRepository, leaseRepository, registryRepository, Clock.systemUTC());
     }
 
     DdcLeaseExpiryScanner(DdcInstanceRepository instanceRepository,
                           DdcConfigLeaseRedisRepository leaseRepository,
                           Clock clock) {
+        this(instanceRepository, leaseRepository, null, clock);
+    }
+
+    DdcLeaseExpiryScanner(DdcInstanceRepository instanceRepository,
+                          DdcConfigLeaseRedisRepository leaseRepository,
+                          DdcServiceRegistryRedisRepository registryRepository,
+                          Clock clock) {
         this.instanceRepository = instanceRepository;
         this.leaseRepository = leaseRepository;
+        this.registryRepository = registryRepository;
         this.clock = clock;
     }
 
@@ -39,7 +56,7 @@ public class DdcLeaseExpiryScanner {
     public int scanExpired() {
         Instant now = clock.instant();
         LocalDateTime databaseNow = LocalDateTime.ofInstant(now, clock.getZone());
-        return instanceRepository.findByStatusAndLeaseExpireAtLessThanEqual(
+        int configExpired = instanceRepository.findByStatusAndLeaseExpireAtLessThanEqual(
                         InstanceStatus.ONLINE.name(),
                         databaseNow
                 ).stream()
@@ -58,5 +75,7 @@ public class DdcLeaseExpiryScanner {
                         databaseNow
                 ))
                 .sum();
+        int serviceExpired = registryRepository == null ? 0 : registryRepository.expireKnown(now);
+        return configExpired + serviceExpired;
     }
 }

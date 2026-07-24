@@ -7,6 +7,7 @@ import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -69,6 +70,7 @@ public class DdcAutoConfig {
     }
 
     @Bean(name = "ddcRedissonClient", destroyMethod = "shutdown")
+    @ConditionalOnMissingBean(RedissonClient.class)
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcRedissonClient(DdcProperties properties) {
         Config config = new Config();

@@ -19,6 +19,8 @@ public class DdcProperties {
 
     private Instance instance = new Instance();
 
+    private Registry registry = new Registry();
+
     private Consistency consistency = new Consistency();
 
     public boolean isEnabled() {
@@ -75,6 +77,14 @@ public class DdcProperties {
 
     public void setInstance(Instance instance) {
         this.instance = instance;
+    }
+
+    public Registry getRegistry() {
+        return registry;
+    }
+
+    public void setRegistry(Registry registry) {
+        this.registry = registry;
     }
 
     public Consistency getConsistency() {
@@ -230,6 +240,29 @@ public class DdcProperties {
 
         public void setFailFast(boolean failFast) {
             this.failFast = failFast;
+        }
+    }
+
+    public static class Registry {
+
+        private boolean enabled;
+
+        private int reconcileIntervalSeconds = 10;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getReconcileIntervalSeconds() {
+            return reconcileIntervalSeconds;
+        }
+
+        public void setReconcileIntervalSeconds(int reconcileIntervalSeconds) {
+            this.reconcileIntervalSeconds = reconcileIntervalSeconds;
         }
     }
 }

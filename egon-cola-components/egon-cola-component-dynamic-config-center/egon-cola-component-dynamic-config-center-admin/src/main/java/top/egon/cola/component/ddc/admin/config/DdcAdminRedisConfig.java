@@ -15,9 +15,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.ddc.admin.service.DdcConfigLeaseService;
 import top.egon.cola.component.ddc.admin.service.DdcLeaseExpiryScanner;
 import top.egon.cola.component.ddc.admin.service.DdcLeaseValidator;
+import top.egon.cola.component.ddc.admin.service.DdcServiceRegistryService;
 
 @Configuration
 @EnableScheduling
@@ -64,10 +66,36 @@ public class DdcAdminRedisConfig {
     }
 
     @Bean
+    @ConditionalOnBean(name = "ddcAdminRedissonClient")
+    @ConditionalOnMissingBean
+    public DdcServiceRegistryRedisRepository ddcServiceRegistryRedisRepository(
+            @Qualifier("ddcAdminRedissonClient") RedissonClient redissonClient,
+            ObjectMapper objectMapper) {
+        return new DdcServiceRegistryRedisRepository(redissonClient, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnBean(DdcServiceRegistryRedisRepository.class)
+    @ConditionalOnMissingBean
+    public DdcServiceRegistryService ddcServiceRegistryService(
+            DdcServiceRegistryRedisRepository repository,
+            DdcAdminProperties properties) {
+        return new DdcServiceRegistryService(
+                repository,
+                new DdcLeaseValidator(properties)
+        );
+    }
+
+    @Bean
     @ConditionalOnBean(DdcConfigLeaseRedisRepository.class)
     @ConditionalOnMissingBean
     public DdcLeaseExpiryScanner ddcLeaseExpiryScanner(DdcInstanceRepository instanceRepository,
-                                                       DdcConfigLeaseRedisRepository leaseRepository) {
-        return new DdcLeaseExpiryScanner(instanceRepository, leaseRepository);
+                                                       DdcConfigLeaseRedisRepository leaseRepository,
+                                                       DdcServiceRegistryRedisRepository registryRepository) {
+        return new DdcLeaseExpiryScanner(
+                instanceRepository,
+                leaseRepository,
+                registryRepository
+        );
     }
 }
