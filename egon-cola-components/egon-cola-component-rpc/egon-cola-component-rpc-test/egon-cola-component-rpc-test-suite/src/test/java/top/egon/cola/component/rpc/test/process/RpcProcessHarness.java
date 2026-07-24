@@ -88,10 +88,25 @@ final class RpcProcessHarness implements AutoCloseable {
             CheckedBooleanSupplier condition,
             Duration timeout,
             Child related) {
+        awaitCondition(condition, timeout, related.name(), related);
+    }
+
+    void awaitCondition(
+            CheckedBooleanSupplier condition,
+            Duration timeout,
+            String description) {
+        awaitCondition(condition, timeout, description, null);
+    }
+
+    private void awaitCondition(
+            CheckedBooleanSupplier condition,
+            Duration timeout,
+            String description,
+            Child related) {
         long deadline = System.nanoTime() + timeout.toNanos();
         Throwable lastFailure = null;
         while (System.nanoTime() < deadline) {
-            if (!related.process().isAlive()) {
+            if (related != null && !related.process().isAlive()) {
                 fail(
                         related.name() + " exited before readiness:\n"
                                 + output(related)
@@ -106,8 +121,8 @@ final class RpcProcessHarness implements AutoCloseable {
             }
             awaitPollInterval();
         }
-        String message = "timed out waiting for " + related.name()
-                + ":\n" + output(related);
+        String message = "timed out waiting for " + description
+                + (related == null ? "" : ":\n" + output(related));
         if (lastFailure == null) {
             fail(message);
         }

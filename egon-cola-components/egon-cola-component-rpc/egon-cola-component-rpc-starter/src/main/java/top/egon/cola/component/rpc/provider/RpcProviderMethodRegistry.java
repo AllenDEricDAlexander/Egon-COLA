@@ -13,12 +13,25 @@ public class RpcProviderMethodRegistry {
     private final Map<MethodKey, RpcProviderMethodBinding> methods;
 
     public RpcProviderMethodRegistry(Collection<RpcProviderBinding> providers) {
+        Map<String, RpcServiceIdentity> wireServices = new LinkedHashMap<>();
         Map<MethodKey, RpcProviderMethodBinding> collected = new LinkedHashMap<>();
         for (RpcProviderBinding provider : providers) {
+            RpcServiceIdentity service = provider.serviceIdentity();
+            RpcServiceIdentity existing = wireServices.putIfAbsent(
+                    service.serviceName(),
+                    service
+            );
+            if (existing != null && !existing.equals(service)) {
+                throw new EgonRpcException(
+                        EgonRpcErrorCode.RPC_INVALID_CONTRACT,
+                        "multiple RPC identities share one gRPC wire service: "
+                                + service.serviceName()
+                );
+            }
             for (top.egon.cola.component.rpc.contract.RpcMethodDescriptor method
                     : provider.contract().methods()) {
                 MethodKey key = new MethodKey(
-                        provider.serviceIdentity(),
+                        service,
                         method.methodName()
                 );
                 if (collected.putIfAbsent(

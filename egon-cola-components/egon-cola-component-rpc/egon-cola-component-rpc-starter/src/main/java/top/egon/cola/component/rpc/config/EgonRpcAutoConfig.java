@@ -1,6 +1,5 @@
 package top.egon.cola.component.rpc.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -64,7 +63,13 @@ public class EgonRpcAutoConfig {
             DdcServiceRegistryClient registryClient,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
-            @Value("${egon.rpc.runtime-version:unknown}") String runtimeVersion) {
+            Environment environment) {
+        String runtimeVersion = environment.getProperty(
+                "egon.rpc.runtime-version"
+        );
+        if (runtimeVersion == null || runtimeVersion.isBlank()) {
+            runtimeVersion = RpcRuntimeVersion.load();
+        }
         RpcProviderAvailabilityRegistry availability =
                 new RpcProviderAvailabilityRegistry();
         RpcProviderLeaseManager leaseManager = new RpcProviderLeaseManager(

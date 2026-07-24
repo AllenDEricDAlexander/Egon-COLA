@@ -22,6 +22,17 @@ final class RpcProviderTestFixtures {
         StringValue echo(StringValue request);
     }
 
+    @EgonRpcService(
+            grpcClass = UnaryFixtureGrpc.class,
+            group = "test",
+            version = "2.0.0"
+    )
+    interface EchoV2Contract {
+
+        @EgonRpcMethod(name = "Echo")
+        StringValue echo(StringValue request);
+    }
+
     @EgonRpcProvider
     static class EchoProvider implements EchoContract {
 
@@ -36,6 +47,15 @@ final class RpcProviderTestFixtures {
         @Override
         public StringValue echo(StringValue request) {
             return request;
+        }
+    }
+
+    @EgonRpcProvider
+    static class EchoV2Provider implements EchoV2Contract {
+
+        @Override
+        public StringValue echo(StringValue request) {
+            return StringValue.of("provider-v2:" + request.getValue());
         }
     }
 }

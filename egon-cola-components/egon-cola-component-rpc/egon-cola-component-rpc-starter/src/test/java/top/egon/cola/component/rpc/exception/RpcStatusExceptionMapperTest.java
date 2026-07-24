@@ -3,6 +3,7 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,6 +38,19 @@ class RpcStatusExceptionMapperTest {
 
         assertThat(exception.getCode())
                 .isEqualTo(EgonRpcErrorCode.RPC_METHOD_NOT_FOUND);
+    }
+
+    @Test
+    void shouldDistinguishProviderFromGatewayUnavailable() {
+        Metadata trailers = new Metadata();
+        trailers.put(RpcMetadataKeys.FAILURE_STAGE, "provider");
+
+        assertThat(mapper.map(
+                Status.UNAVAILABLE.asRuntimeException(trailers)
+        ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE);
+        assertThat(mapper.map(
+                Status.UNAVAILABLE.asRuntimeException()
+        ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE);
     }
 
     private void assertCode(Status status, EgonRpcErrorCode expected) {

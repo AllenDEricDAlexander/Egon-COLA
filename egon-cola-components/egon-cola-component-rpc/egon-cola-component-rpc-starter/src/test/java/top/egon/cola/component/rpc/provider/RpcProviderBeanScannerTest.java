@@ -58,4 +58,29 @@ class RpcProviderBeanScannerTest {
                     .isInstanceOf(EgonRpcException.class);
         }
     }
+
+    @Test
+    void shouldRejectMultipleIdentitiesForOneGrpcWireService() {
+        try (AnnotationConfigApplicationContext context =
+                     new AnnotationConfigApplicationContext()) {
+            context.registerBean(
+                    "v1Provider",
+                    RpcProviderTestFixtures.EchoProvider.class
+            );
+            context.registerBean(
+                    "v2Provider",
+                    RpcProviderTestFixtures.EchoV2Provider.class
+            );
+            context.refresh();
+
+            RpcProviderBeanScanner scanner = new RpcProviderBeanScanner(
+                    context,
+                    new RpcContractValidator()
+            );
+
+            assertThatThrownBy(scanner::scan)
+                    .isInstanceOf(EgonRpcException.class)
+                    .hasMessageContaining("wire service");
+        }
+    }
 }

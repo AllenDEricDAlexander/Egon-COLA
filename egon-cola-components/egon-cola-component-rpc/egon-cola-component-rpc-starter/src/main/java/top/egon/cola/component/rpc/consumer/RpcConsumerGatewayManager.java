@@ -14,7 +14,11 @@ import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -31,21 +35,16 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
 
     private final DdcServiceKey gatewayServiceKey;
 
-    private final ScheduledExecutorService drainExecutor =
-            Executors.newSingleThreadScheduledExecutor(runnable -> {
-                Thread thread = new Thread(
-                        runnable,
-                        "egon-rpc-consumer-channel-drain"
-                );
-                thread.setDaemon(true);
-                return thread;
-            });
+    private final Set<ManagedChannel> drainingChannels =
+            Collections.newSetFromMap(new IdentityHashMap<>());
 
     private volatile RpcGatewayState state = RpcGatewayState.STOPPED;
 
     private volatile ActiveGateway activeGateway;
 
     private volatile DdcRegistrySubscription subscription;
+
+    private volatile ScheduledExecutorService drainExecutor;
 
     public RpcConsumerGatewayManager(
             DdcServiceRegistryClient registryClient,
@@ -55,6 +54,7 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         this.registryClient = registryClient;
         this.channelFactory = channelFactory;
         this.properties = properties.getConsumer();
+        validateProperties();
         this.gatewayServiceKey = new DdcServiceKey(
                 processIdentity.env(),
                 processIdentity.namespace(),
@@ -72,17 +72,28 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             if (state != RpcGatewayState.STOPPED) {
                 return;
             }
+            validateProperties();
             state = RpcGatewayState.STARTING;
-            subscription = registryClient.subscribe(
-                    gatewayServiceKey,
-                    this::acceptSnapshot
-            );
-            drainExecutor.scheduleWithFixedDelay(
-                    this::expireActiveGateway,
-                    100,
-                    100,
-                    TimeUnit.MILLISECONDS
-            );
+            drainExecutor = newDrainExecutor();
+            try {
+                subscription = registryClient.subscribe(
+                        gatewayServiceKey,
+                        this::acceptSnapshot
+                );
+                drainExecutor.scheduleWithFixedDelay(
+                        this::expireActiveGateway,
+                        100,
+                        100,
+                        TimeUnit.MILLISECONDS
+                );
+            } catch (RuntimeException exception) {
+                cleanupStartup();
+                throw new EgonRpcException(
+                        EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE,
+                        "RPC Gateway discovery failed",
+                        exception
+                );
+            }
             long deadline = System.nanoTime()
                     + TimeUnit.MILLISECONDS.toNanos(
                             properties.getGatewayDiscoveryTimeoutMs()
@@ -113,6 +124,7 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
 
     @Override
     public void stop() {
+        ScheduledExecutorService executor;
         synchronized (monitor) {
             state = RpcGatewayState.STOPPED;
             if (subscription != null) {
@@ -121,9 +133,15 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             }
             closeNow(activeGateway);
             activeGateway = null;
+            // Replaced channels remain owned by this manager until their
+            // graceful drain finishes or stop force-closes them.
+            drainingChannels.forEach(ManagedChannel::shutdownNow);
+            drainingChannels.clear();
+            executor = drainExecutor;
+            drainExecutor = null;
             monitor.notifyAll();
         }
-        drainExecutor.shutdownNow();
+        shutdownExecutor(executor);
     }
 
     @Override
@@ -172,7 +190,8 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             }
             List<RpcGatewayEndpoint> endpoints = snapshot.instances().stream()
                     .filter(this::isUp)
-                    .map(RpcGatewayEndpoint::from)
+                    .map(this::validEndpoint)
+                    .flatMap(Optional::stream)
                     .filter(endpoint -> endpoint.activeAt(Instant.now()))
                     .toList();
             if (endpoints.size() != 1) {
@@ -226,13 +245,34 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                 || "UP".equalsIgnoreCase(instance.status());
     }
 
+    private Optional<RpcGatewayEndpoint> validEndpoint(
+            DdcServiceInstance instance) {
+        try {
+            return Optional.of(RpcGatewayEndpoint.from(instance));
+        } catch (IllegalArgumentException exception) {
+            return Optional.empty();
+        }
+    }
+
     private void drain(ActiveGateway gateway) {
         if (gateway == null) {
             return;
         }
-        gateway.channel().shutdown();
-        drainExecutor.schedule(
-                gateway.channel()::shutdownNow,
+        ManagedChannel channel = gateway.channel();
+        ScheduledExecutorService executor = drainExecutor;
+        if (executor == null) {
+            channel.shutdownNow();
+            return;
+        }
+        drainingChannels.add(channel);
+        channel.shutdown();
+        executor.schedule(
+                () -> {
+                    synchronized (monitor) {
+                        drainingChannels.remove(channel);
+                    }
+                    channel.shutdownNow();
+                },
                 properties.getChannelDrainTimeoutMs(),
                 TimeUnit.MILLISECONDS
         );
@@ -260,15 +300,63 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     }
 
     private void failStartup(EgonRpcErrorCode code) {
+        cleanupStartup();
+        throw new EgonRpcException(code, "RPC Gateway discovery failed");
+    }
+
+    private void cleanupStartup() {
         if (subscription != null) {
             subscription.close();
             subscription = null;
         }
         closeNow(activeGateway);
         activeGateway = null;
+        drainingChannels.forEach(ManagedChannel::shutdownNow);
+        drainingChannels.clear();
         state = RpcGatewayState.STOPPED;
-        drainExecutor.shutdownNow();
-        throw new EgonRpcException(code, "RPC Gateway discovery failed");
+        ScheduledExecutorService executor = drainExecutor;
+        drainExecutor = null;
+        shutdownExecutor(executor);
+    }
+
+    private void validateProperties() {
+        if (properties.getDefaultTimeoutMs() <= 0
+                || properties.getGatewayDiscoveryTimeoutMs() <= 0
+                || properties.getChannelDrainTimeoutMs() <= 0) {
+            throw new EgonRpcException(
+                    EgonRpcErrorCode.RPC_INVALID_CONTRACT,
+                    "RPC Consumer timeout settings must be positive"
+            );
+        }
+        if (blank(properties.getGatewayServiceName())
+                || blank(properties.getGatewayGroup())
+                || blank(properties.getGatewayVersion())) {
+            throw new EgonRpcException(
+                    EgonRpcErrorCode.RPC_INVALID_CONTRACT,
+                    "RPC Gateway service identity is required"
+            );
+        }
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private ScheduledExecutorService newDrainExecutor() {
+        return Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(
+                    runnable,
+                    "egon-rpc-consumer-channel-drain"
+            );
+            thread.setDaemon(true);
+            return thread;
+        });
+    }
+
+    private void shutdownExecutor(ScheduledExecutorService executor) {
+        if (executor != null) {
+            executor.shutdownNow();
+        }
     }
 
     private record ActiveGateway(

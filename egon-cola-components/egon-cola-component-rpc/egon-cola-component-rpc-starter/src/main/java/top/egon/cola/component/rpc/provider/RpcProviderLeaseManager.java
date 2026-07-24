@@ -36,6 +36,8 @@ public class RpcProviderLeaseManager {
     private final Map<RpcServiceIdentity, DdcLeaseSession> leases =
             new ConcurrentHashMap<>();
 
+    private boolean recoveryEnabled;
+
     public RpcProviderLeaseManager(
             DdcServiceRegistryClient registryClient,
             RpcProviderAvailabilityRegistry availability,
@@ -78,7 +80,18 @@ public class RpcProviderLeaseManager {
         }
     }
 
-    public void registerAll() {
+    public synchronized void enableRecovery() {
+        recoveryEnabled = true;
+    }
+
+    public synchronized void disableRecovery() {
+        recoveryEnabled = false;
+    }
+
+    public synchronized void registerAll() {
+        if (!recoveryEnabled) {
+            return;
+        }
         try {
             for (RpcServiceIdentity service : registrations.keySet()) {
                 register(service);
@@ -89,11 +102,14 @@ public class RpcProviderLeaseManager {
         }
     }
 
-    public void heartbeatAndRecover() {
+    public synchronized void heartbeatAndRecover() {
+        if (!recoveryEnabled) {
+            return;
+        }
         registrations.keySet().forEach(this::heartbeatAndRecover);
     }
 
-    public void deregisterAll() {
+    public synchronized void deregisterAll() {
         registrations.keySet().forEach(availability::unavailable);
         leases.forEach((service, session) -> {
             try {
@@ -141,6 +157,9 @@ public class RpcProviderLeaseManager {
     }
 
     private void recover(RpcServiceIdentity service) {
+        if (!recoveryEnabled) {
+            return;
+        }
         try {
             register(service);
         } catch (RuntimeException exception) {
@@ -150,6 +169,9 @@ public class RpcProviderLeaseManager {
     }
 
     private void register(RpcServiceIdentity service) {
+        if (!recoveryEnabled) {
+            return;
+        }
         DdcLeaseSession session = registryClient.register(
                 registrations.get(service)
         );

@@ -22,6 +22,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -93,6 +96,7 @@ class RpcProviderLifecycleTest {
                     "test"
             );
             leases.prepare(methods.providers(), "127.0.0.1", 19090);
+            leases.enableRecovery();
             leases.registerAll();
             String firstLease = leases.currentLeases().values()
                     .iterator()
@@ -110,6 +114,56 @@ class RpcProviderLifecycleTest {
             assertThat(secondLease).isNotEqualTo(firstLease);
             assertThat(registryClient.events)
                     .containsExactly("register", "heartbeat", "register");
+        }
+    }
+
+    @Test
+    void shouldDisableRecoveryBeforeDeregisteringDuringHeartbeat() {
+        RecordingRegistry registryClient = new RecordingRegistry();
+        registryClient.blockHeartbeat = true;
+        try (AnnotationConfigApplicationContext context = providerContext()) {
+            EgonRpcProperties properties = configuredProperties();
+            RpcProviderAvailabilityRegistry availability =
+                    new RpcProviderAvailabilityRegistry();
+            RpcProviderMethodRegistry methods = new RpcProviderBeanScanner(
+                    context,
+                    new RpcContractValidator()
+            ).scan();
+            RpcProviderLeaseManager leases = new RpcProviderLeaseManager(
+                    registryClient,
+                    availability,
+                    properties,
+                    processIdentity(),
+                    "test"
+            );
+            leases.prepare(methods.providers(), "127.0.0.1", 19090);
+            leases.enableRecovery();
+            leases.registerAll();
+            registryClient.nextHeartbeat =
+                    DdcLeaseOperationStatus.LEASE_MISMATCH;
+
+            CompletableFuture<Void> heartbeat = CompletableFuture.runAsync(
+                    leases::heartbeatAndRecover
+            );
+            registryClient.awaitHeartbeat();
+            CompletableFuture<Void> disable = CompletableFuture.runAsync(
+                    leases::disableRecovery
+            );
+
+            assertThat(disable).isNotDone();
+            registryClient.releaseHeartbeat();
+            heartbeat.join();
+            disable.join();
+            leases.deregisterAll();
+            leases.heartbeatAndRecover();
+
+            assertThat(registryClient.events)
+                    .containsExactly(
+                            "register",
+                            "heartbeat",
+                            "register",
+                            "deregister"
+                    );
         }
     }
 
@@ -182,6 +236,12 @@ class RpcProviderLifecycleTest {
         private DdcLeaseOperationStatus nextHeartbeat =
                 DdcLeaseOperationStatus.RENEWED;
 
+        private boolean blockHeartbeat;
+
+        private final CountDownLatch heartbeatStarted = new CountDownLatch(1);
+
+        private final CountDownLatch heartbeatReleased = new CountDownLatch(1);
+
         @Override
         public DdcLeaseSession register(DdcServiceRegistration registration) {
             events.add("register");
@@ -203,9 +263,39 @@ class RpcProviderLifecycleTest {
                 String instanceId,
                 String leaseId) {
             events.add("heartbeat");
+            heartbeatStarted.countDown();
+            if (blockHeartbeat) {
+                try {
+                    if (!heartbeatReleased.await(2, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException(
+                                "heartbeat test barrier timed out"
+                        );
+                    }
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(
+                            "heartbeat test barrier interrupted",
+                            exception
+                    );
+                }
+            }
             DdcLeaseOperationStatus status = nextHeartbeat;
             nextHeartbeat = DdcLeaseOperationStatus.RENEWED;
             return new DdcLeaseOperationResult(status, Instant.now());
+        }
+
+        private void awaitHeartbeat() {
+            try {
+                assertThat(heartbeatStarted.await(2, TimeUnit.SECONDS))
+                        .isTrue();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            }
+        }
+
+        private void releaseHeartbeat() {
+            heartbeatReleased.countDown();
         }
 
         @Override

@@ -29,9 +29,12 @@ public class RpcTestConsumerApplication {
                     .getBean(EchoRpcClient.class)
                     .echo(message);
             System.out.printf(
-                    "RPC_PROCESS_SUCCESS providerId=%s message=%s%n",
+                    "RPC_PROCESS_SUCCESS providerId=%s message=%s "
+                            + "invocationId=%s traceId=%s%n",
                     response.getProviderId(),
-                    response.getMessage()
+                    response.getMessage(),
+                    response.getInvocationId(),
+                    response.getTraceId()
             );
         } finally {
             context.close();

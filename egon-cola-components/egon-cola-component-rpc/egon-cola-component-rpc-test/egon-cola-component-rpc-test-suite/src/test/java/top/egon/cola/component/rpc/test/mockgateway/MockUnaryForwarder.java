@@ -54,8 +54,18 @@ final class MockUnaryForwarder {
                 if (status.isOk()) {
                     responseObserver.onCompleted();
                 } else {
+                    Metadata forwardedTrailers = new Metadata();
+                    if (trailers != null) {
+                        forwardedTrailers.merge(trailers);
+                    }
+                    if (status.getCode() == Status.Code.UNAVAILABLE) {
+                        forwardedTrailers.put(
+                                RpcMetadataKeys.FAILURE_STAGE,
+                                "provider"
+                        );
+                    }
                     responseObserver.onError(
-                            status.asRuntimeException(trailers)
+                            status.asRuntimeException(forwardedTrailers)
                     );
                 }
             }

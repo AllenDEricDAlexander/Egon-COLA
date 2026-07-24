@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 
 public class RpcProviderLifecycle implements SmartLifecycle {
 
+    private static final long HEARTBEAT_STOP_TIMEOUT_SECONDS = 5;
+
     private final RpcProviderBeanScanner scanner;
 
     private final RpcServerServiceDefinitionFactory definitionFactory;
@@ -78,6 +80,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             String advertisedHost = advertisedHost();
             int advertisedPort = advertisedPort(server.getPort());
             leaseManager.prepare(providers, advertisedHost, advertisedPort);
+            leaseManager.enableRecovery();
             try {
                 leaseManager.registerAll();
             } catch (RuntimeException exception) {
@@ -99,6 +102,9 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             return;
         }
         availability.clear();
+        // Recovery is disabled before deregistration so shutdown cannot publish
+        // a replacement lease after the exact active lease was removed.
+        leaseManager.disableRecovery();
         stopHeartbeat();
         leaseManager.deregisterAll();
         Server current = server;
@@ -196,11 +202,22 @@ public class RpcProviderLifecycle implements SmartLifecycle {
         heartbeatExecutor = null;
         if (executor != null) {
             executor.shutdownNow();
+            try {
+                if (!executor.awaitTermination(
+                        HEARTBEAT_STOP_TIMEOUT_SECONDS,
+                        TimeUnit.SECONDS
+                )) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
     private void stopInfrastructure() {
         availability.clear();
+        leaseManager.disableRecovery();
         stopHeartbeat();
         leaseManager.deregisterAll();
         Server current = server;

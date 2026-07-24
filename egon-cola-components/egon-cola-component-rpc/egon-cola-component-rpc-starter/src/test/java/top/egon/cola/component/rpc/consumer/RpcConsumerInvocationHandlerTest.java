@@ -34,6 +34,7 @@ import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtu
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -45,7 +46,8 @@ class RpcConsumerInvocationHandlerTest {
     void shouldCallGatewayWithGeneratedDescriptorAndFrameworkMetadata()
             throws Exception {
         AtomicReference<String> observedService = new AtomicReference<>();
-        Server server = startGateway(observedService);
+        List<String> invocationIds = new CopyOnWriteArrayList<>();
+        Server server = startGateway(observedService, invocationIds);
         RpcConsumerGatewayManager manager = null;
         try {
             EgonRpcProperties properties = new EgonRpcProperties();
@@ -76,11 +78,15 @@ class RpcConsumerInvocationHandlerTest {
             EchoConsumer proxy = proxyFactory.create(EchoConsumer.class, 500);
 
             StringValue response = proxy.echo(StringValue.of("hello"));
+            proxy.echo(StringValue.of("again"));
 
             assertThat(response.getValue()).isEqualTo("gateway:hello");
             assertThat(observedService.get())
                     .isEqualTo("egon.rpc.fixture.v1.UnaryFixtureService");
             assertThat(proxy.toString()).contains(EchoConsumer.class.getName());
+            assertThat(invocationIds)
+                    .hasSize(2)
+                    .doesNotHaveDuplicates();
         } finally {
             if (manager != null) {
                 manager.stop();
@@ -89,7 +95,9 @@ class RpcConsumerInvocationHandlerTest {
         }
     }
 
-    private Server startGateway(AtomicReference<String> observedService)
+    private Server startGateway(
+            AtomicReference<String> observedService,
+            List<String> invocationIds)
             throws Exception {
         @SuppressWarnings("unchecked")
         MethodDescriptor<Message, Message> method =
@@ -118,6 +126,9 @@ class RpcConsumerInvocationHandlerTest {
                     Metadata headers,
                     ServerCallHandler<ReqT, RespT> next) {
                 observedService.set(headers.get(RpcMetadataKeys.SERVICE));
+                invocationIds.add(headers.get(
+                        RpcMetadataKeys.INVOCATION_ID
+                ));
                 return next.startCall(call, headers);
             }
         };

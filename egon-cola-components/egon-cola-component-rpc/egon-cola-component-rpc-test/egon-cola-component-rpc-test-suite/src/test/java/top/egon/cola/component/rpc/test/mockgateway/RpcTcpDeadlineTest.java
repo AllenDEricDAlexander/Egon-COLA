@@ -1,5 +1,6 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
+import io.grpc.Context;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -14,6 +15,8 @@ import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
 import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.test.contract.EchoRpc;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
@@ -22,51 +25,54 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class RpcMultiProviderDirectoryTest {
+class RpcTcpDeadlineTest {
 
     @Test
-    void shouldConvergeEvictAndAcceptReplacementLease() throws Exception {
-        Server providerA = provider("provider-a");
-        Server providerB = provider("provider-b");
+    void shouldPropagateDeadlineThroughGatewayToProvider() throws Exception {
+        CountDownLatch providerEntered = new CountDownLatch(1);
+        CountDownLatch providerCancelled = new CountDownLatch(1);
+        CountDownLatch releaseProvider = new CountDownLatch(1);
+        Server provider = blockingProvider(
+                providerEntered,
+                providerCancelled,
+                releaseProvider
+        );
         InMemoryDdcRegistryBackend backend =
                 new InMemoryDdcRegistryBackend();
-        InMemoryDdcServiceRegistryClient providerRegistryA =
+        InMemoryDdcServiceRegistryClient providerRegistry =
                 new InMemoryDdcServiceRegistryClient(backend);
-        InMemoryDdcServiceRegistryClient providerRegistryB =
-                new InMemoryDdcServiceRegistryClient(backend);
-        DdcServiceRegistration registrationA =
-                registration("provider-a", providerA.getPort());
-        DdcServiceRegistration registrationB =
-                registration("provider-b", providerB.getPort());
-        DdcLeaseSession leaseA = providerRegistryA.register(registrationA);
-        DdcLeaseSession leaseB = providerRegistryB.register(registrationB);
+        DdcLeaseSession providerLease = providerRegistry.register(
+                providerRegistration(provider.getPort())
+        );
         MockRpcGateway gateway = new MockRpcGateway(
                 new InMemoryDdcServiceRegistryClient(backend),
                 "test",
                 "default",
-                "mock-gateway-multi",
+                "mock-gateway-deadline",
                 MockGatewayProperties.defaults(),
                 List.of(EchoServiceGrpc.getEchoMethod().getFullMethodName())
         );
         RpcConsumerGatewayManager consumerGateway = null;
         try {
             gateway.start();
+            EgonRpcProperties properties = new EgonRpcProperties();
+            properties.getConsumer().setGatewayDiscoveryTimeoutMs(2000);
             RpcProcessIdentity identity = new RpcProcessIdentity(
                     "consumer",
                     "test",
                     "default",
                     "127.0.0.1",
                     1,
-                    "consumer-multi"
+                    "consumer-deadline"
             );
-            EgonRpcProperties properties = new EgonRpcProperties();
-            properties.getConsumer().setGatewayDiscoveryTimeoutMs(2000);
             consumerGateway = new RpcConsumerGatewayManager(
                     new InMemoryDdcServiceRegistryClient(backend),
                     new RpcConsumerChannelFactory(),
@@ -74,86 +80,65 @@ class RpcMultiProviderDirectoryTest {
                     identity
             );
             consumerGateway.start();
-            EchoRpc consumer = new RpcConsumerProxyFactory(
+            EchoRpc proxy = new RpcConsumerProxyFactory(
                     new RpcContractValidator(),
                     consumerGateway,
                     identity,
                     new RpcStatusExceptionMapper(),
                     3000
-            ).create(EchoRpc.class, 3000);
+            ).create(EchoRpc.class, 100);
 
-            assertThat(call(consumer)).isEqualTo("provider-a");
-            assertThat(call(consumer)).isEqualTo("provider-b");
-            assertThat(gateway.channelFactory().size()).isEqualTo(2);
-
-            providerRegistryA.deregister(
-                    leaseA.instanceId(),
-                    leaseA.leaseId()
+            assertThatThrownBy(() -> proxy.echo(
+                    EchoRequest.newBuilder()
+                            .setMessage("deadline")
+                            .build()
+            )).isInstanceOfSatisfying(EgonRpcException.class, exception ->
+                    assertThat(exception.getCode()).isEqualTo(
+                            EgonRpcErrorCode.RPC_DEADLINE_EXCEEDED
+                    )
             );
-
-            assertThat(gateway.directory().clusters().getFirst().endpoints())
-                    .extracting(MockProviderEndpoint::instanceId)
-                    .containsExactly("provider-b");
-            assertThat(gateway.channelFactory().size()).isOne();
-            assertThat(call(consumer)).isEqualTo("provider-b");
-            assertThat(call(consumer)).isEqualTo("provider-b");
-
-            DdcLeaseSession replacement =
-                    providerRegistryA.register(registrationA);
-
-            assertThat(replacement.leaseId()).isNotEqualTo(leaseA.leaseId());
-            assertThat(call(consumer)).isEqualTo("provider-a");
-            assertThat(gateway.invocations().getLast().providerLeaseId())
-                    .isEqualTo(replacement.leaseId());
-
-            backend.advance(Duration.ofSeconds(6));
-
-            assertThat(gateway.directory().clusters()).isEmpty();
-            assertThat(gateway.channelFactory().size()).isZero();
+            assertThat(providerEntered.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(providerCancelled.await(2, TimeUnit.SECONDS)).isTrue();
         } finally {
+            releaseProvider.countDown();
             if (consumerGateway != null) {
                 consumerGateway.stop();
             }
             gateway.close();
-            providerRegistryA.deregister(
-                    "provider-a",
-                    backend.allInstances().stream()
-                            .filter(instance -> "provider-a".equals(
-                                    instance.instanceId()
-                            ))
-                            .map(instance -> instance.leaseId())
-                            .findFirst()
-                            .orElse("absent")
+            providerRegistry.deregister(
+                    providerLease.instanceId(),
+                    providerLease.leaseId()
             );
-            providerRegistryB.deregister(
-                    leaseB.instanceId(),
-                    leaseB.leaseId()
-            );
-            providerA.shutdownNow().awaitTermination();
-            providerB.shutdownNow().awaitTermination();
+            provider.shutdownNow().awaitTermination();
         }
-        assertThat(backend.allInstances()).isEmpty();
     }
 
-    private String call(EchoRpc consumer) {
-        return consumer.echo(EchoRequest.newBuilder()
-                        .setMessage("hello")
-                        .build())
-                .getProviderId();
-    }
-
-    private Server provider(String providerId) throws Exception {
+    private Server blockingProvider(
+            CountDownLatch entered,
+            CountDownLatch cancelled,
+            CountDownLatch release) throws Exception {
         EchoServiceGrpc.EchoServiceImplBase service =
                 new EchoServiceGrpc.EchoServiceImplBase() {
                     @Override
                     public void echo(
                             EchoRequest request,
                             StreamObserver<EchoResponse> observer) {
-                        observer.onNext(EchoResponse.newBuilder()
-                                .setProviderId(providerId)
-                                .setMessage(request.getMessage())
-                                .build());
-                        observer.onCompleted();
+                        Context.current().addListener(
+                                ignored -> cancelled.countDown(),
+                                Runnable::run
+                        );
+                        entered.countDown();
+                        try {
+                            release.await(3, TimeUnit.SECONDS);
+                            observer.onNext(EchoResponse.newBuilder()
+                                    .setProviderId("deadline-provider")
+                                    .setMessage(request.getMessage())
+                                    .build());
+                            observer.onCompleted();
+                        } catch (InterruptedException exception) {
+                            Thread.currentThread().interrupt();
+                            observer.onError(exception);
+                        }
                     }
                 };
         return NettyServerBuilder.forPort(0)
@@ -162,11 +147,9 @@ class RpcMultiProviderDirectoryTest {
                 .start();
     }
 
-    private DdcServiceRegistration registration(
-            String instanceId,
-            int port) {
+    private DdcServiceRegistration providerRegistration(int port) {
         return new DdcServiceRegistration(
-                instanceId,
+                "deadline-provider",
                 new DdcServiceKey(
                         "test",
                         "default",
@@ -184,8 +167,8 @@ class RpcMultiProviderDirectoryTest {
                         "egon.rpc.serialization", "protobuf",
                         "egon.rpc.runtime-version", "test"
                 ),
-                5,
-                1
+                30,
+                10
         );
     }
 }

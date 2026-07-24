@@ -4,6 +4,8 @@ import io.grpc.ManagedChannel;
 import io.grpc.MethodDescriptor;
 import io.grpc.Server;
 import io.grpc.ServerServiceDefinition;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.ClientCalls;
@@ -12,12 +14,14 @@ import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MockUnaryForwarderTest {
 
@@ -70,6 +74,64 @@ class MockUnaryForwarderTest {
             assertThat(new String(response.get(2, TimeUnit.SECONDS)))
                     .isEqualTo("provider:hello");
             assertThat(channels.size()).isOne();
+        } finally {
+            channels.close();
+            provider.shutdownNow().awaitTermination();
+        }
+    }
+
+    @Test
+    void shouldMarkDownstreamUnavailableAsProviderFailure() throws Exception {
+        String fullMethodName = "egon.rpc.test.v1.RawService/Echo";
+        MethodDescriptor<byte[], byte[]> method = method(fullMethodName);
+        Server provider = NettyServerBuilder.forPort(0)
+                .addService(ServerServiceDefinition.builder(
+                                "egon.rpc.test.v1.RawService"
+                        )
+                        .addMethod(method, ServerCalls.asyncUnaryCall(
+                                (request, observer) -> observer.onError(
+                                        Status.UNAVAILABLE
+                                                .asRuntimeException()
+                                )
+                        ))
+                        .build())
+                .build()
+                .start();
+        MockProviderChannelFactory channels =
+                new MockProviderChannelFactory();
+        try {
+            CompletableFuture<byte[]> response = new CompletableFuture<>();
+
+            new MockUnaryForwarder(channels).forward(
+                    endpoint(provider.getPort()),
+                    fullMethodName,
+                    "hello".getBytes(),
+                    new StreamObserver<>() {
+                        @Override
+                        public void onNext(byte[] value) {
+                            response.complete(value);
+                        }
+
+                        @Override
+                        public void onError(Throwable throwable) {
+                            response.completeExceptionally(throwable);
+                        }
+
+                        @Override
+                        public void onCompleted() {
+                        }
+                    }
+            );
+
+            assertThatThrownBy(() -> response.get(2, TimeUnit.SECONDS))
+                    .hasCauseInstanceOf(StatusRuntimeException.class)
+                    .satisfies(throwable -> {
+                        StatusRuntimeException status =
+                                (StatusRuntimeException) throwable.getCause();
+                        assertThat(status.getTrailers().get(
+                                RpcMetadataKeys.FAILURE_STAGE
+                        )).isEqualTo("provider");
+                    });
         } finally {
             channels.close();
             provider.shutdownNow().awaitTermination();

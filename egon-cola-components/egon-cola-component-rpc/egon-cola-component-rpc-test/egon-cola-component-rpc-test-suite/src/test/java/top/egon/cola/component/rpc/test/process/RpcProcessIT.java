@@ -6,6 +6,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.registry.DdcOpenApiServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
@@ -15,12 +16,17 @@ import java.sql.DriverManager;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcProcessIT {
 
     private static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(45);
+
+    private static final Duration DEREGISTRATION_TIMEOUT =
+            Duration.ofSeconds(10);
 
     @Test
     void shouldCallProviderThroughMockGatewayInIndependentProcesses()
@@ -104,6 +110,13 @@ class RpcProcessIT {
                         STARTUP_TIMEOUT,
                         provider
                 );
+                DdcServiceInstance providerLease = registry.client()
+                        .getInstances(providerKey)
+                        .instances()
+                        .getFirst();
+                assertThat(providerLease.leaseSeconds()).isEqualTo(60);
+                assertThat(providerLease.heartbeatIntervalSeconds())
+                        .isEqualTo(10);
 
                 java.util.ArrayList<String> gatewayArguments =
                         new java.util.ArrayList<>(List.of(
@@ -138,6 +151,13 @@ class RpcProcessIT {
                         STARTUP_TIMEOUT,
                         gateway
                 );
+                DdcServiceInstance gatewayLease = registry.client()
+                        .getInstances(gatewayKey)
+                        .instances()
+                        .getFirst();
+                assertThat(gatewayLease.leaseSeconds()).isEqualTo(15);
+                assertThat(gatewayLease.heartbeatIntervalSeconds())
+                        .isEqualTo(3);
 
                 RpcProcessHarness.Child consumer = processes.start(
                         "consumer",
@@ -156,32 +176,63 @@ class RpcProcessIT {
                                 )
                         )
                 );
+                assertThat(List.of(
+                        admin.process().pid(),
+                        provider.process().pid(),
+                        gateway.process().pid(),
+                        consumer.process().pid()
+                ).stream().distinct()).hasSize(4);
                 assertThat(processes.awaitExit(
                         consumer,
                         STARTUP_TIMEOUT
                 )).isZero();
-                assertThat(processes.output(consumer))
+                String consumerOutput = processes.output(consumer);
+                String invocationId = value(
+                        consumerOutput,
+                        "invocationId"
+                );
+                String traceId = value(consumerOutput, "traceId");
+                assertThat(consumerOutput)
                         .contains("RPC_PROCESS_SUCCESS")
                         .contains("providerId=process-provider")
                         .contains("message=process-call");
+                assertThat(invocationId).isNotBlank();
+                assertThat(traceId).matches("[0-9a-f]{32}");
                 assertThat(processes.output(gateway))
                         .contains("RPC_MOCK_GATEWAY_FORWARD")
-                        .contains("invocationId=")
-                        .contains("providerId=")
+                        .contains("invocationId=" + invocationId)
+                        .contains("providerId=" + providerLease.instanceId())
                         .doesNotContain("invocationId=missing");
+                assertThat(processes.output(provider))
+                        .contains("RPC_PROCESS_PROVIDER")
+                        .contains("invocationId=" + invocationId)
+                        .contains("providerId=process-provider");
 
                 processes.stop(provider);
                 processes.awaitCondition(
                         () -> registry.client()
                                 .getInstances(providerKey)
                                 .instances()
-                                .isEmpty(),
-                        Duration.ofSeconds(15),
-                        provider
+                                .stream()
+                                .noneMatch(instance ->
+                                        sameLease(instance, providerLease)),
+                        DEREGISTRATION_TIMEOUT,
+                        "exact Provider lease deregistration"
                 );
                 assertThat(registry.client()
                         .getInstances(gatewayKey)
                         .instances()).hasSize(1);
+                processes.stop(gateway);
+                processes.awaitCondition(
+                        () -> registry.client()
+                                .getInstances(gatewayKey)
+                                .instances()
+                                .stream()
+                                .noneMatch(instance ->
+                                        sameLease(instance, gatewayLease)),
+                        DEREGISTRATION_TIMEOUT,
+                        "exact Gateway lease deregistration"
+                );
             }
 
             assertMigrations(database);
@@ -244,8 +295,8 @@ class RpcProcessIT {
                         "--egon.cola.component.ddc.env=" + env,
                         "--egon.cola.component.ddc.namespace=" + namespace,
                         "--egon.cola.component.rpc.enabled=true",
-                        "--egon.cola.component.rpc.provider.lease-seconds=15",
-                        "--egon.cola.component.rpc.provider.heartbeat-interval-seconds=3",
+                        "--egon.cola.component.rpc.provider.lease-seconds=60",
+                        "--egon.cola.component.rpc.provider.heartbeat-interval-seconds=10",
                         "--egon.cola.component.rpc.consumer.gateway-discovery-timeout-ms=15000",
                         "--egon.rpc.runtime-version=process-it"
                 )
@@ -313,6 +364,23 @@ class RpcProcessIT {
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(2);
         }
+    }
+
+    private boolean sameLease(
+            DdcServiceInstance left,
+            DdcServiceInstance right) {
+        return left.instanceId().equals(right.instanceId())
+                && left.leaseId().equals(right.leaseId());
+    }
+
+    private String value(String output, String name) {
+        Matcher matcher = Pattern.compile(
+                "(?:^|\\s)" + Pattern.quote(name) + "=([^\\s]+)"
+        ).matcher(output);
+        assertThat(matcher.find())
+                .as("process output contains %s", name)
+                .isTrue();
+        return matcher.group(1);
     }
 
     private String requiredEnvironment(String name) {

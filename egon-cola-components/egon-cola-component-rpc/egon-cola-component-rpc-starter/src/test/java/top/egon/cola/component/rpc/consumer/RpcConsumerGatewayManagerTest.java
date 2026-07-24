@@ -96,12 +96,67 @@ class RpcConsumerGatewayManagerTest {
                 );
     }
 
+    @Test
+    void shouldCloseDrainingChannelsAndRestartCleanly() {
+        SnapshotRegistry registry = new SnapshotRegistry();
+        StubChannelFactory channels = new StubChannelFactory();
+        RpcConsumerGatewayManager manager = manager(registry, channels);
+        registry.snapshot = snapshot(instance("gateway-1", "lease-1", 19090));
+
+        manager.start();
+        ManagedChannel first = channels.lastChannel;
+        registry.publish(snapshot(instance("gateway-2", "lease-2", 19091)));
+        ManagedChannel second = channels.lastChannel;
+
+        verify(first).shutdown();
+        manager.stop();
+        verify(first).shutdownNow();
+        verify(second).shutdownNow();
+
+        registry.snapshot = snapshot(instance("gateway-3", "lease-3", 19092));
+        manager.start();
+
+        assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
+        assertThat(channels.createCount).isEqualTo(3);
+        manager.stop();
+    }
+
+    @Test
+    void shouldTreatInvalidGatewayEndpointAsUnavailable() {
+        SnapshotRegistry registry = new SnapshotRegistry();
+        RpcConsumerGatewayManager manager =
+                manager(registry, new StubChannelFactory());
+        registry.snapshot = snapshot(new DdcServiceInstance(
+                "gateway-1",
+                "lease-1",
+                gatewayKey(),
+                "0.0.0.0",
+                19090,
+                false,
+                java.util.Map.of(),
+                30,
+                10,
+                Instant.now(),
+                Instant.now(),
+                Instant.now().plusSeconds(30),
+                "UP",
+                1
+        ));
+
+        assertThatThrownBy(manager::start)
+                .isInstanceOfSatisfying(EgonRpcException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo(
+                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                        )
+                );
+    }
+
     private RpcConsumerGatewayManager manager(
             SnapshotRegistry registry,
             StubChannelFactory channels) {
         EgonRpcProperties properties = new EgonRpcProperties();
         properties.getConsumer().setGatewayDiscoveryTimeoutMs(30);
-        properties.getConsumer().setChannelDrainTimeoutMs(10);
+        properties.getConsumer().setChannelDrainTimeoutMs(60000);
         return new RpcConsumerGatewayManager(
                 registry,
                 channels,

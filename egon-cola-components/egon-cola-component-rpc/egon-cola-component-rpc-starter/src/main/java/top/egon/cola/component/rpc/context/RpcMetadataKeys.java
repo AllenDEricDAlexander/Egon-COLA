@@ -31,6 +31,9 @@ public final class RpcMetadataKeys {
     public static final Metadata.Key<String> TRACESTATE =
             ascii("tracestate");
 
+    public static final Metadata.Key<String> FAILURE_STAGE =
+            ascii("x-egon-rpc-failure-stage");
+
     private RpcMetadataKeys() {
     }
 

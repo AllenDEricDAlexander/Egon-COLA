@@ -6,6 +6,8 @@ import io.grpc.ServerServiceDefinition;
 import io.grpc.Status;
 import io.grpc.stub.ServerCalls;
 import io.grpc.stub.StreamObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.rpc.context.RpcInvocationMetadata;
 import top.egon.cola.component.rpc.exception.EgonRpcRejectedException;
@@ -14,6 +16,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 public class RpcServerServiceDefinitionFactory {
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(RpcServerServiceDefinitionFactory.class);
 
     private final RpcProviderAvailabilityRegistry availability;
 
@@ -78,21 +83,33 @@ public class RpcServerServiceDefinitionFactory {
             observer.onNext(message);
             observer.onCompleted();
         } catch (InvocationTargetException exception) {
-            fail(observer, exception.getTargetException());
+            fail(binding, observer, exception.getTargetException());
         } catch (Throwable throwable) {
-            fail(observer, throwable);
+            fail(binding, observer, throwable);
         } finally {
             TraceContext.setTraceId(previousTrace);
         }
     }
 
-    private void fail(StreamObserver<Message> observer, Throwable throwable) {
+    private void fail(
+            RpcProviderMethodBinding binding,
+            StreamObserver<Message> observer,
+            Throwable throwable) {
         if (throwable instanceof EgonRpcRejectedException) {
             observer.onError(Status.PERMISSION_DENIED
                     .withDescription("RPC provider rejected the request")
                     .asRuntimeException());
             return;
         }
+        RpcInvocationMetadata invocation = RpcInvocationMetadata.current();
+        LOGGER.error(
+                "RPC Provider invocation failed service={} method={} "
+                        + "invocationId={}",
+                binding.provider().serviceIdentity(),
+                binding.method().methodName(),
+                invocation == null ? null : invocation.invocationId(),
+                throwable
+        );
         observer.onError(Status.INTERNAL
                 .withDescription("RPC provider invocation failed")
                 .asRuntimeException());
