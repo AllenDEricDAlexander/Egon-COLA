@@ -1567,7 +1567,7 @@ assert migrationFiles*.name.sort() == [
 migrationFiles.each {
     assert it.text.startsWith("-- 变更内容：")
     assert it.text.contains("\n-- 影响范围：")
-    assert it.text.contains("\n-- 约束说明：")
+    assert it.text.contains("\n-- 兼容性说明：")
 }
 assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
 assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql")

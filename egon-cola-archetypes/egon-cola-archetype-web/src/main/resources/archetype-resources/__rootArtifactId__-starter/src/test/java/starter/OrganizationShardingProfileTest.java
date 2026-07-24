@@ -27,7 +27,7 @@ class OrganizationShardingProfileTest {
             assertThat(sql)
                 .startsWith("-- 变更内容：")
                 .contains("\n-- 影响范围：")
-                .contains("\n-- 约束说明：");
+                .contains("\n-- 兼容性说明：");
         }
         assertThat(resources)
             .extracting(path -> path.substring(path.indexOf('V') + 10, path.indexOf("__")))

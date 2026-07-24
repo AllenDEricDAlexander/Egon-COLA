@@ -610,7 +610,7 @@ def shardMigration = assertFile(
 ].each { migration ->
     assert migration.startsWith("-- 变更内容：")
     assert migration.contains("\n-- 影响范围：")
-    assert migration.contains("\n-- 约束说明：")
+    assert migration.contains("\n-- 兼容性说明：")
 }
 assert defaultMigration.contains("CREATE TABLE course_schedule")
 assert defaultMigration.contains("CREATE TABLE exam_paper")

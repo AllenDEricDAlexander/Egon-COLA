@@ -1,6 +1,6 @@
 -- 变更内容：初始化 Evaluation 分片节点中的排课、考试、试卷和成绩物理分表。
 -- 影响范围：每个 shard 库的 course_schedule_0/1、exam_0/1、exam_paper_0/1 和 score_0/1。
--- 约束说明：考试族按 exam_id 同库同表后缀；不建立指向 single 库 course 的跨库外键。
+-- 兼容性说明：仅初始化新建分片节点；考试族按 exam_id 同库同表后缀，且不建立指向 single 库 course 的跨库外键。
 
 CREATE TABLE course_schedule_0 (
     id VARCHAR(36) PRIMARY KEY,

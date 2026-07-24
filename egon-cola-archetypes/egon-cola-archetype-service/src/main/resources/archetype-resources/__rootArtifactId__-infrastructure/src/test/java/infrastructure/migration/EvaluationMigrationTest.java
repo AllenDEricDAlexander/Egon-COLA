@@ -18,12 +18,13 @@ class EvaluationMigrationTest {
     void shouldInitializeCompleteDefaultSchema() throws Exception {
         String url = h2Url("evaluation-default-migration");
 
-        Flyway.configure()
+        Flyway flyway = Flyway.configure()
                 .dataSource(url, "sa", "")
                 .locations("classpath:db/migration/default")
                 .validateMigrationNaming(true)
-                .load()
-                .migrate();
+                .load();
+        flyway.migrate();
+        flyway.validate();
 
         assertEquals(5, countBusinessTables(url));
     }
@@ -41,12 +42,13 @@ class EvaluationMigrationTest {
     }
 
     private static void migrate(String url, String location) {
-        Flyway.configure()
+        Flyway flyway = Flyway.configure()
                 .dataSource(url, "sa", "")
                 .locations(location)
                 .validateMigrationNaming(true)
-                .load()
-                .migrate();
+                .load();
+        flyway.migrate();
+        flyway.validate();
     }
 
     private static int countBusinessTables(String url) throws Exception {

@@ -1,6 +1,6 @@
 -- 变更内容：初始化 Organization 分片节点中的班级和班级成员物理分表。
 -- 影响范围：每个 shard 库的 school_classes_0/1 与 school_class_users_0/1。
--- 约束说明：grade_id 是两张逻辑表的共同分片键；不建立指向 single 库 users 或 grades 的跨库外键。
+-- 兼容性说明：仅初始化新建分片节点；grade_id 是共同分片键，且不建立指向 single 库 users 或 grades 的跨库外键。
 
 CREATE TABLE school_classes_0 (
     id VARCHAR(36) PRIMARY KEY,
