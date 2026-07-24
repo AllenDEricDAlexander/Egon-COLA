@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package egon.rpc.test.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.component.rpc.test.contract.proto";
+
+service EchoService {
+  rpc Echo(EchoRequest) returns (EchoResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string provider_id = 1;
+  string message = 2;
+}
