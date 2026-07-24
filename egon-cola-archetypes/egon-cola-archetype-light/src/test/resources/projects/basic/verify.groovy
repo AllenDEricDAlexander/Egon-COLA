@@ -726,7 +726,10 @@ assert starterText.contains('"it.pkg.adapter.teaching.rpc"')
 assert starterText.contains('"it.pkg.infrastructure.user.repo.jpa"')
 assert starterText.contains('"it.pkg.infrastructure.teaching.repo.jpa"')
 assertFile("src/main/resources/application.yml")
-assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
+assertFile("src/main/resources/application-sharding.yml")
+assertFile("src/main/resources/application-readwrite.yml")
+assertFile("src/main/resources/sharding/shardingsphere-sharding.yml")
+assertFile("src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 [
@@ -831,12 +834,40 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
     assertFile("src/test/java/it/pkg/application/teaching/${testPath}.java")
 }
 
-assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
-assertFile("src/main/resources/db/migration/V2__align_large_monolith_domain.sql")
-def migrationFiles = new File(generatedProjectDir, "src/main/resources/db/migration")
-        .listFiles()
-        .findAll { it.name.endsWith(".sql") }
-assert migrationFiles.size() == 2: "Expected exactly two migration SQL files"
+[
+    "default/V20260724_001__init_light_default_schema.sql",
+    "sharding/single/V20260724_002__init_light_single_schema.sql",
+    "sharding/shard/V20260724_003__init_light_sharding_schema.sql"
+].each { migration ->
+    assertFile("src/main/resources/db/migration/${migration}")
+}
+assertMissing("src/main/resources/db/migration/V1__init_student_management.sql")
+assertMissing("src/main/resources/db/migration/V2__align_large_monolith_domain.sql")
+def migrationFiles = []
+new File(generatedProjectDir, "src/main/resources/db/migration")
+        .traverse(type: FileType.FILES) { file ->
+            if (file.name.endsWith(".sql")) {
+                migrationFiles << file
+            }
+        }
+assert migrationFiles.size() == 3: "Expected exactly three migration SQL files"
+migrationFiles.each { migration ->
+    def text = migration.getText("UTF-8")
+    assert text.startsWith("-- 变更内容：")
+    assert text.contains("\n-- 影响范围：")
+    assert text.contains("\n-- 兼容性说明：")
+}
+[
+    "ShardingNodeMap",
+    "ShardingNodeMapCompatibilityValidator",
+    "UuidV7BucketShardingAlgorithm",
+    "PhysicalDataSourceFlywayMigrator",
+    "ShardingDataSourceBootstrapper",
+    "ShardingSphereDataSourceConfiguration"
+].each { typeName ->
+    assertFile("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
+}
+assertFile("src/test/java/it/pkg/infrastructure/config/datasource/LightShardingProfileTest.java")
 [
     "user/repo/po/UserPO",
     "user/repo/jpa/UserJpaRepository",
@@ -1098,8 +1129,7 @@ assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeContro
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
 assert !new File(generatedProjectDir, "src/test/charge.http").exists()
 
-def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migration")
-assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 2
+assert migrationFiles.size() == 3
 
 assertMissing("src/test/java/it/pkg/ArchitectureDependencyTest.java")
 def architecturePlugin = pomXml.build.plugins.plugin.find {

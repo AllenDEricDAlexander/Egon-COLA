@@ -2,8 +2,6 @@ package ${package}.infrastructure.teaching.repo.po;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -17,11 +15,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ClassCourseSchedulePO {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Column(name = "school_class_id", nullable = false)
+    @Column(length = 36)
+    private String id;
+    @Column(name = "school_class_id", nullable = false, length = 36)
     private String schoolClassId;
-    @Column(name = "course_id", nullable = false)
+    @Column(name = "course_id", nullable = false, length = 36)
     private String courseId;
     @Column(name = "starts_at", nullable = false)
     private LocalDateTime startsAt;
@@ -31,11 +29,13 @@ public class ClassCourseSchedulePO {
     private Instant createdAt;
 
     public ClassCourseSchedulePO(
+            String id,
             String schoolClassId,
             String courseId,
             LocalDateTime startsAt,
             LocalDateTime endsAt,
             Instant createdAt) {
+        this.id = id;
         this.schoolClassId = schoolClassId;
         this.courseId = courseId;
         this.startsAt = startsAt;
@@ -43,7 +43,7 @@ public class ClassCourseSchedulePO {
         this.createdAt = createdAt;
     }
 
-    public Long getId() { return id; }
+    public String getId() { return id; }
     public String getSchoolClassId() { return schoolClassId; }
     public String getCourseId() { return courseId; }
     public LocalDateTime getStartsAt() { return startsAt; }

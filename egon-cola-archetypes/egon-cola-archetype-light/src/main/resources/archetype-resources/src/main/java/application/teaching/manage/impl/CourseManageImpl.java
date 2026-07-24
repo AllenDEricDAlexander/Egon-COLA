@@ -59,7 +59,6 @@ public class CourseManageImpl implements CourseManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public CourseResult get(GetCourseQuery query) {
         return courseCacheService.getCourse(query.courseId())
                 .map(convertor::toResult)

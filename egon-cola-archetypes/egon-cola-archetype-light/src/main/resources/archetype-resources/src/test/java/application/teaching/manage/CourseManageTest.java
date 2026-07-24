@@ -34,6 +34,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CourseManageTest {
+    private static final String COURSE_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab2";
+
     @Mock CourseDomainService courseDomainService;
     @Mock CourseRepository courseRepository;
     @Mock TeachingQueryService teachingQueryService;
@@ -55,7 +57,7 @@ class CourseManageTest {
         CourseResult result = manage.create(command());
 
         assertEquals("math", result.code());
-        verify(courseCacheService).evictCourse("course-math");
+        verify(courseCacheService).evictCourse(COURSE_ID);
         verify(teachingEventPublisher).publish(any());
     }
 
@@ -75,10 +77,10 @@ class CourseManageTest {
     @Test
     void returns_cached_course_without_repository_lookup() {
         CourseSnapshot snapshot = CourseSnapshot.from(course());
-        when(courseCacheService.getCourse("course-math")).thenReturn(Optional.of(snapshot));
+        when(courseCacheService.getCourse(COURSE_ID)).thenReturn(Optional.of(snapshot));
         when(convertor.toResult(snapshot)).thenReturn(result());
 
-        CourseResult result = manage.get(new GetCourseQuery("course-math"));
+        CourseResult result = manage.get(new GetCourseQuery(COURSE_ID));
 
         assertEquals("math", result.code());
         verify(courseRepository, never()).findById(any());
@@ -88,12 +90,12 @@ class CourseManageTest {
     void caches_repository_result_on_query_miss() {
         Course course = course();
         CourseSnapshot snapshot = CourseSnapshot.from(course);
-        when(courseCacheService.getCourse("course-math")).thenReturn(Optional.empty());
-        when(courseRepository.findById("course-math")).thenReturn(Optional.of(course));
+        when(courseCacheService.getCourse(COURSE_ID)).thenReturn(Optional.empty());
+        when(courseRepository.findById(COURSE_ID)).thenReturn(Optional.of(course));
         when(convertor.toSnapshot(course)).thenReturn(snapshot);
         when(convertor.toResult(course)).thenReturn(result());
 
-        manage.get(new GetCourseQuery("course-math"));
+        manage.get(new GetCourseQuery(COURSE_ID));
 
         verify(courseCacheService).putCourse(snapshot);
     }
@@ -103,10 +105,10 @@ class CourseManageTest {
     }
 
     private Course course() {
-        return new Course("course-math", new CourseCode("math"), "Mathematics", CourseStatus.ACTIVE);
+        return new Course(COURSE_ID, new CourseCode("math"), "Mathematics", CourseStatus.ACTIVE);
     }
 
     private CourseResult result() {
-        return new CourseResult("course-math", "math", "Mathematics", "ACTIVE");
+        return new CourseResult(COURSE_ID, "math", "Mathematics", "ACTIVE");
     }
 }

@@ -20,7 +20,7 @@ import java.util.Objects;
 @AllArgsConstructor
 public class UserRolePO {
     @Id
-    @Column(name = "user_id")
+    @Column(name = "user_id", length = 36)
     private String userId;
     @Id
     @Column(name = "role_code")

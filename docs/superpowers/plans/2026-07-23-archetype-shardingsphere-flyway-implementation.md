@@ -102,7 +102,7 @@ Light 生成 POM 直接增加：
 </dependency>
 ```
 
-ShardingSphere 5.5.3 的 `shardingsphere-jdbc` 发布 POM 将分片规则模块标记为 test 依赖，因此必须显式引入同版本 `shardingsphere-sharding-core`；其默认传递的 `shardingsphere-transaction-xa-core` 必须在直接依赖点排除。Web、Service 的生成父 POM 管理这两个制品的 5.5.3 版本；各自 infrastructure POM 引入 ShardingSphere JDBC 与 Sharding Core，各自 common POM 引入 `egon-cola-component-common-id`。这样 Infrastructure 可经 Domain → Common 依赖链注册 `UuidV7Generator`，Application 也可经 Domain → Common 注入 `IdGenerator`，Domain 源码本身不导入主键组件。
+ShardingSphere 5.5.3 的 `shardingsphere-jdbc` 发布 POM 将部分规则和运行时 SPI 模块标记为 test 依赖，因此必须显式引入同版本 `shardingsphere-sharding-core`、`shardingsphere-infra-data-source-pool-hikari`、`shardingsphere-standalone-mode-repository-memory`、`shardingsphere-authority-simple`、SQL92/MySQL/PostgreSQL parser 和 `shardingsphere-readwrite-splitting-core`；其默认传递的 `shardingsphere-transaction-xa-core` 必须在直接依赖点排除。ShardingSphere 使用的 `commons-lang3` 3.18.0 `Strings` API 也要显式锁定，避免被 Spring Boot BOM 管理到较低版本。Web、Service 的生成父 POM 管理这些制品的版本；各自 infrastructure POM 引入运行时依赖，各自 common POM 引入 `egon-cola-component-common-id`。这样 Infrastructure 可经 Domain → Common 依赖链注册 `UuidV7Generator`，Application 也可经 Domain → Common 注入 `IdGenerator`，Domain 源码本身不导入主键组件。
 
 - [ ] **Step 3: 实现不可变节点映射**
 
@@ -969,7 +969,7 @@ private static final Pattern VERSIONED_MIGRATION = Pattern.compile(
 只在同一物理节点可成立的本地外键
 ```
 
-JPA `ddl-auto=validate` 必须分别对 default 和 ShardingSphere 逻辑 DataSource 执行。
+JPA `ddl-auto=validate` 必须分别对 default 和 ShardingSphere 逻辑 DataSource 执行。H2 会被 ShardingSphere 识别为 MySQL 存储类型；分片 profile 的启动测试因此让多个 H2 DataSource 共享一个测试 catalog，并向每个测试 Flyway target 注入 single + shard 两个 location，以模拟真实 PostgreSQL 多库共同暴露 `public` schema 的逻辑元数据。生产 profile 仍保持每个物理库独立迁移。
 
 - [ ] **Step 3: 删除旧数据搬迁语义测试**
 

@@ -249,7 +249,9 @@ shard_1 -> shard_1_primary + shard_1_replica_0
 </dependency>
 ```
 
-5.5.3 的 `shardingsphere-jdbc` 发布 POM 将分片规则模块标记为 test 依赖，因此生成项目必须显式引入同版本 `shardingsphere-sharding-core`，以同时提供 `StandardShardingAlgorithm` API 和 `!SHARDING` 规则实现。同时其默认传递的 `shardingsphere-transaction-xa-core` 必须排除，只保留本地事务所需的 transaction core。
+5.5.3 的 `shardingsphere-jdbc` 发布 POM 将部分规则和运行时 SPI 模块标记为 test 依赖，因此生成项目必须显式引入同版本 `shardingsphere-sharding-core`、Hikari 数据源池适配、内存模式仓库、简单权限、SQL92/MySQL/PostgreSQL parser，以及读写分离 core。这样既提供 `StandardShardingAlgorithm` API 和 `!SHARDING`、`!READWRITE_SPLITTING` 规则实现，也保证 Standalone 模式可通过 SPI 完整启动。同时其默认传递的 `shardingsphere-transaction-xa-core` 必须排除，只保留本地事务所需的 transaction core。
+
+ShardingSphere 5.5.3 运行时使用 `commons-lang3` 3.18.0 新增的 `Strings` API，而 Spring Boot 3.5.16 BOM 管理的是较低版本，因此三个生成项目都显式锁定 `commons-lang3` 3.18.0；这是向上兼容的最小版本对齐，不降级 Spring Boot 或 ShardingSphere。
 
 依赖放置：
 
@@ -578,7 +580,7 @@ rules:
   - !SHARDING
     tables:
       exam:
-        actualDataNodes: shard_$->{0..1}.exam_$->{0..1}
+        actualDataNodes: shard_$->{0..1}.public.exam_$->{0..1}
         databaseStrategy:
           standard:
             shardingColumn: id
@@ -588,7 +590,7 @@ rules:
             shardingColumn: id
             shardingAlgorithmName: uuid_v7_table_bucket
       exam_paper:
-        actualDataNodes: shard_$->{0..1}.exam_paper_$->{0..1}
+        actualDataNodes: shard_$->{0..1}.public.exam_paper_$->{0..1}
         databaseStrategy:
           standard:
             shardingColumn: exam_id
@@ -598,7 +600,7 @@ rules:
             shardingColumn: exam_id
             shardingAlgorithmName: uuid_v7_table_bucket
       score:
-        actualDataNodes: shard_$->{0..1}.score_$->{0..1}
+        actualDataNodes: shard_$->{0..1}.public.score_$->{0..1}
         databaseStrategy:
           standard:
             shardingColumn: exam_id
@@ -631,14 +633,15 @@ rules:
 
   - !SINGLE
     tables:
-      - single.public.course
+      - single.course
     defaultDataSource: single
 
 props:
+  proxy-frontend-database-protocol-type: PostgreSQL
   sql-show: ${SHARDING_SQL_SHOW:false}
 ```
 
-ShardingSphere 行表达式统一写成 `$->{0..1}`。规则 YAML 不含物理凭证，Loader 只负责加载规则资源并解析路由映射、`sql-show` 等非敏感 Spring placeholder。database/table 两个算法都引用同一组 `app.sharding.routing.*`，不能各自维护值。
+ShardingSphere 行表达式统一写成 `$->{0..1}`。分片节点显式带 `public` schema；SINGLE 节点省略 schema，依赖 PostgreSQL 默认 `public`，同时兼容 ShardingSphere 将 H2 识别为 MySQL 存储类型的测试环境。规则 YAML 不含物理凭证，Loader 只负责加载规则资源并解析路由映射、`sql-show` 等非敏感 Spring placeholder。database/table 两个算法都引用同一组 `app.sharding.routing.*`，不能各自维护值。
 
 ## 12. Flyway 与物理拓扑集成
 

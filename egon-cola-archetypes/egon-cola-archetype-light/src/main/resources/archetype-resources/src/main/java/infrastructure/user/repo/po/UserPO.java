@@ -16,6 +16,7 @@ import java.time.Instant;
 @AllArgsConstructor
 public class UserPO {
     @Id
+    @Column(length = 36)
     private String id;
     @Column(name = "external_id", nullable = false, unique = true)
     private String externalId;

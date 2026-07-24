@@ -47,6 +47,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         PermissionPOConverter.class
 })
 class UserRepositoryImplTest {
+    private static final String USER_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab1";
+    private static final String OTHER_USER_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab4";
+
     @Autowired UserRepository userRepository;
     @Autowired RoleRepository roleRepository;
     @Autowired PermissionRepository permissionRepository;
@@ -56,7 +59,7 @@ class UserRepositoryImplTest {
 
     @Test
     void persists_user_role_and_permission_aggregates() {
-        User user = user("u-1", "mario@example.com");
+        User user = user(USER_ID, "mario@example.com");
         Role role = new Role(new RoleCode("teacher"), "Teacher", RoleStatus.ACTIVE);
         Permission permission = new Permission(
                 new PermissionCode("course:read"), "Read courses", PermissionStatus.ACTIVE);
@@ -72,8 +75,8 @@ class UserRepositoryImplTest {
         entityManager.flush();
         entityManager.clear();
 
-        assertEquals("Mario", userRepository.findById(new UserId("u-1")).orElseThrow().name());
-        assertEquals("course:read", permissionRepository.findByUserId(new UserId("u-1"))
+        assertEquals("Mario", userRepository.findById(new UserId(USER_ID)).orElseThrow().name());
+        assertEquals("course:read", permissionRepository.findByUserId(new UserId(USER_ID))
                 .getFirst().code().value());
         assertEquals(1, userRoleJpaRepository.count());
         assertEquals(1, rolePermissionJpaRepository.count());
@@ -81,8 +84,8 @@ class UserRepositoryImplTest {
 
     @Test
     void rejects_duplicate_email() {
-        userRepository.save(user("u-1", "mario@example.com"));
-        userRepository.save(user("u-2", "mario@example.com"));
+        userRepository.save(user(USER_ID, "mario@example.com"));
+        userRepository.save(user(OTHER_USER_ID, "mario@example.com"));
 
         assertThrows(PersistenceException.class, entityManager::flush);
     }

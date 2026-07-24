@@ -15,9 +15,10 @@ spring:
       validation-timeout: ${symbol_dollar}{HIKARI_VALIDATION_TIMEOUT:5000}
   flyway:
     enabled: ${symbol_dollar}{FLYWAY_ENABLED:true}
-    locations: classpath:db/migration
+    locations: classpath:db/migration/default
     baseline-on-migrate: ${symbol_dollar}{FLYWAY_BASELINE_ON_MIGRATE:false}
     validate-on-migrate: true
+    validate-migration-naming: true
     clean-disabled: true
   jpa:
     hibernate:

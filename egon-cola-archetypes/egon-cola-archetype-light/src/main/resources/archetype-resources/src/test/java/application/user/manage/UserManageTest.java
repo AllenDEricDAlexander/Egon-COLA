@@ -34,6 +34,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserManageTest {
+    private static final String USER_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab1";
+
     @Mock UserDomainService userDomainService;
     @Mock UserRepository userRepository;
     @Mock UserQueryService userQueryService;
@@ -52,7 +54,7 @@ class UserManageTest {
                 .thenReturn(activeUser());
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(convertor.toResult(any(User.class)))
-                .thenReturn(new UserResult("u-1", "Mario", "mario@example.com", "ACTIVE"));
+                .thenReturn(new UserResult(USER_ID, "Mario", "mario@example.com", "ACTIVE"));
 
         UserResult result = manage.create(command);
 
@@ -84,12 +86,12 @@ class UserManageTest {
 
     @Test
     void returns_cached_user_without_repository_lookup() {
-        UserSnapshot snapshot = new UserSnapshot("u-1", "Mario", "mario@example.com", UserStatus.ACTIVE);
-        UserResult expected = new UserResult("u-1", "Mario", "mario@example.com", "ACTIVE");
-        when(userCacheService.getUser("u-1")).thenReturn(Optional.of(snapshot));
+        UserSnapshot snapshot = new UserSnapshot(USER_ID, "Mario", "mario@example.com", UserStatus.ACTIVE);
+        UserResult expected = new UserResult(USER_ID, "Mario", "mario@example.com", "ACTIVE");
+        when(userCacheService.getUser(USER_ID)).thenReturn(Optional.of(snapshot));
         when(convertor.toResult(snapshot)).thenReturn(expected);
 
-        UserResult result = manage.get(new GetUserQuery("u-1"));
+        UserResult result = manage.get(new GetUserQuery(USER_ID));
 
         assertEquals(expected, result);
         verify(userRepository, never()).findById(any());
@@ -99,13 +101,13 @@ class UserManageTest {
     void caches_repository_result_on_query_miss() {
         User user = activeUser();
         UserSnapshot snapshot = UserSnapshot.from(user);
-        UserResult expected = new UserResult("u-1", "Mario", "mario@example.com", "ACTIVE");
-        when(userCacheService.getUser("u-1")).thenReturn(Optional.empty());
-        when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(user));
+        UserResult expected = new UserResult(USER_ID, "Mario", "mario@example.com", "ACTIVE");
+        when(userCacheService.getUser(USER_ID)).thenReturn(Optional.empty());
+        when(userRepository.findById(new UserId(USER_ID))).thenReturn(Optional.of(user));
         when(convertor.toSnapshot(user)).thenReturn(snapshot);
         when(convertor.toResult(user)).thenReturn(expected);
 
-        UserResult result = manage.get(new GetUserQuery("u-1"));
+        UserResult result = manage.get(new GetUserQuery(USER_ID));
 
         assertEquals(expected, result);
         verify(userCacheService).putUser(snapshot);
@@ -117,6 +119,6 @@ class UserManageTest {
     }
 
     private User activeUser() {
-        return new User(new UserId("u-1"), "ext-1", "Mario", "mario@example.com", UserStatus.ACTIVE);
+        return new User(new UserId(USER_ID), "ext-1", "Mario", "mario@example.com", UserStatus.ACTIVE);
     }
 }

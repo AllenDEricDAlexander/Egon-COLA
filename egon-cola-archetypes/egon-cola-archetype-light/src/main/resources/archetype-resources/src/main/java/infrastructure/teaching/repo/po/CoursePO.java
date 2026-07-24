@@ -20,6 +20,7 @@ import java.time.Instant;
 @Setter
 public class CoursePO {
     @Id
+    @Column(length = 36)
     private String id;
     @Column(name = "course_code", nullable = false, unique = true)
     private String courseCode;

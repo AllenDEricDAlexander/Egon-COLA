@@ -76,7 +76,6 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public SchoolClassResult get(GetSchoolClassQuery query) {
         SchoolClassAggregate aggregate = schoolClassRepository
                 .findAggregateById(new SchoolClassId(query.schoolClassId()))

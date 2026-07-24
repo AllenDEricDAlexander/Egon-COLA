@@ -1,0 +1,61 @@
+#set( $symbol_dollar = '$' )
+databaseName: student_management
+
+rules:
+  - !SHARDING
+    tables:
+      school_classes:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.school_classes_${symbol_dollar}->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: uuid_v7_table_bucket
+      class_course_schedules:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.class_course_schedules_${symbol_dollar}->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: school_class_id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: school_class_id
+            shardingAlgorithmName: uuid_v7_table_bucket
+    bindingTables:
+      - school_classes,class_course_schedules
+    shardingAlgorithms:
+      uuid_v7_database_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+          target: database
+          mapping-version: ${symbol_dollar}{app.sharding.routing.mapping-version}
+          node-count: ${symbol_dollar}{app.sharding.routing.node-count}
+          node-map: ${symbol_dollar}{app.sharding.routing.node-map}
+      uuid_v7_table_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+          target: table
+          mapping-version: ${symbol_dollar}{app.sharding.routing.mapping-version}
+          node-count: ${symbol_dollar}{app.sharding.routing.node-count}
+          node-map: ${symbol_dollar}{app.sharding.routing.node-map}
+
+  - !SINGLE
+    tables:
+      - single.users
+      - single.roles
+      - single.permissions
+      - single.user_roles
+      - single.role_permissions
+      - single.courses
+    defaultDataSource: single
+
+props:
+  proxy-frontend-database-protocol-type: PostgreSQL
+  sql-show: ${symbol_dollar}{SHARDING_SQL_SHOW:false}

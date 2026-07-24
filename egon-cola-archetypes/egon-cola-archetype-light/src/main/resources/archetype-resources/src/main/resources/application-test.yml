@@ -11,9 +11,10 @@ spring:
       minimum-idle: ${symbol_dollar}{HIKARI_MIN_IDLE:1}
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration/default
     clean-disabled: false
     validate-on-migrate: true
+    validate-migration-naming: true
   jpa:
     hibernate:
       ddl-auto: validate

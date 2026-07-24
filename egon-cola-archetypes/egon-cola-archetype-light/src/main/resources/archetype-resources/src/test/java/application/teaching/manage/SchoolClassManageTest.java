@@ -38,6 +38,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SchoolClassManageTest {
+    private static final String SCHOOL_CLASS_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab3";
+    private static final String COURSE_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab2";
+
     @Mock SchoolClassDomainService schoolClassDomainService;
     @Mock SchoolClassRepository schoolClassRepository;
     @Mock CourseRepository courseRepository;
@@ -51,9 +54,9 @@ class SchoolClassManageTest {
         SchoolClassAggregate aggregate = aggregate();
         Course course = course();
         CourseSchedule schedule = schedule();
-        when(schoolClassRepository.findAggregateById(new SchoolClassId("class-1")))
+        when(schoolClassRepository.findAggregateById(new SchoolClassId(SCHOOL_CLASS_ID)))
                 .thenReturn(Optional.of(aggregate));
-        when(courseRepository.findById("course-math")).thenReturn(Optional.of(course));
+        when(courseRepository.findById(COURSE_ID)).thenReturn(Optional.of(course));
         when(convertor.toSchedule(any(), same(course))).thenReturn(schedule);
         when(schoolClassDomainService.schedule(same(aggregate), same(course), same(schedule)))
                 .thenReturn(aggregate);
@@ -61,7 +64,7 @@ class SchoolClassManageTest {
 
         SchoolClassResult result = manage.schedule(command());
 
-        assertEquals("class-1", result.id());
+        assertEquals(SCHOOL_CLASS_ID, result.id());
         verify(schoolClassDomainService).schedule(same(aggregate), same(course), same(schedule));
         verify(schoolClassRepository).saveAggregate(aggregate);
         verify(teachingEventPublisher).publish(any());
@@ -72,9 +75,9 @@ class SchoolClassManageTest {
         SchoolClassAggregate aggregate = aggregate();
         Course course = course();
         CourseSchedule schedule = schedule();
-        when(schoolClassRepository.findAggregateById(new SchoolClassId("class-1")))
+        when(schoolClassRepository.findAggregateById(new SchoolClassId(SCHOOL_CLASS_ID)))
                 .thenReturn(Optional.of(aggregate));
-        when(courseRepository.findById("course-math")).thenReturn(Optional.of(course));
+        when(courseRepository.findById(COURSE_ID)).thenReturn(Optional.of(course));
         when(convertor.toSchedule(any(), same(course))).thenReturn(schedule);
         when(schoolClassDomainService.schedule(any(), any(), any()))
                 .thenThrow(new TeachingDomainException("SCHEDULE_OVERLAP", "schedule overlaps"));
@@ -89,18 +92,18 @@ class SchoolClassManageTest {
     void queries_school_class_with_schedule_count() {
         SchoolClassAggregate aggregate = aggregate();
         aggregate.schedule(course(), schedule());
-        when(schoolClassRepository.findAggregateById(new SchoolClassId("class-1")))
+        when(schoolClassRepository.findAggregateById(new SchoolClassId(SCHOOL_CLASS_ID)))
                 .thenReturn(Optional.of(aggregate));
         when(convertor.toResult(aggregate)).thenReturn(result());
 
-        SchoolClassResult result = manage.get(new GetSchoolClassQuery("class-1"));
+        SchoolClassResult result = manage.get(new GetSchoolClassQuery(SCHOOL_CLASS_ID));
 
         assertEquals(1, result.scheduleCount());
     }
 
     private ScheduleCourseCommand command() {
         return new ScheduleCourseCommand(
-                "class-1", "course-math",
+                SCHOOL_CLASS_ID, COURSE_ID,
                 LocalDateTime.of(2026, 9, 1, 9, 0),
                 LocalDateTime.of(2026, 9, 1, 10, 0),
                 "operator-1", "request-1");
@@ -108,12 +111,12 @@ class SchoolClassManageTest {
 
     private SchoolClassAggregate aggregate() {
         return new SchoolClassAggregate(new SchoolClass(
-                new SchoolClassId("class-1"), "Class One", new Semester("2026-FALL"),
+                new SchoolClassId(SCHOOL_CLASS_ID), "Class One", new Semester("2026-FALL"),
                 SchoolClassStatus.ACTIVE));
     }
 
     private Course course() {
-        return new Course("course-math", new CourseCode("math"), "Mathematics", CourseStatus.ACTIVE);
+        return new Course(COURSE_ID, new CourseCode("math"), "Mathematics", CourseStatus.ACTIVE);
     }
 
     private CourseSchedule schedule() {
@@ -122,6 +125,6 @@ class SchoolClassManageTest {
     }
 
     private SchoolClassResult result() {
-        return new SchoolClassResult("class-1", "Class One", "2026-FALL", "ACTIVE", 1);
+        return new SchoolClassResult(SCHOOL_CLASS_ID, "Class One", "2026-FALL", "ACTIVE", 1);
     }
 }

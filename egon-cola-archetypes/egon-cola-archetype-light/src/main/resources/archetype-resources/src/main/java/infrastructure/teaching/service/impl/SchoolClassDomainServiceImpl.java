@@ -8,16 +8,22 @@ import ${package}.domain.teaching.service.SchoolClassDomainService;
 import ${package}.domain.teaching.vos.CourseSchedule;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.teaching.vos.Semester;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.UUID;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 @Service("schoolClassDomainService")
+@RequiredArgsConstructor
 public class SchoolClassDomainServiceImpl implements SchoolClassDomainService {
+    private final IdGenerator idGenerator;
+
     @Override
     public SchoolClass createSchoolClass(String name, Semester semester) {
         return new SchoolClass(
-                new SchoolClassId(nextId()), name, semester, SchoolClassStatus.ACTIVE);
+                new SchoolClassId(idGenerator.nextId()),
+                name,
+                semester,
+                SchoolClassStatus.ACTIVE);
     }
 
     @Override
@@ -27,7 +33,4 @@ public class SchoolClassDomainServiceImpl implements SchoolClassDomainService {
         return schoolClass;
     }
 
-    private String nextId() {
-        return UUID.randomUUID().toString().replace("-", "");
-    }
 }

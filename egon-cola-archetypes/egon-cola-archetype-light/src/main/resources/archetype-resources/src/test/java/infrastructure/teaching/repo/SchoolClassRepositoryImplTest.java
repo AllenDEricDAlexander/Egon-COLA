@@ -20,13 +20,14 @@ import ${package}.infrastructure.teaching.repo.impl.CourseRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.impl.SchoolClassRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.po.CoursePO;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
@@ -43,9 +44,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         CourseRepositoryImpl.class,
         SchoolClassPOConverter.class,
         CoursePOConverter.class,
-        CoursePOMapperImpl.class
+        CoursePOMapperImpl.class,
+        UuidV7Generator.class
 })
 class SchoolClassRepositoryImplTest {
+    private static final String SCHOOL_CLASS_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab3";
+    private static final String COURSE_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab2";
+
     @Autowired SchoolClassRepository schoolClassRepository;
     @Autowired CourseRepository courseRepository;
     @Autowired CoursePOMapper coursePOMapper;
@@ -62,7 +67,7 @@ class SchoolClassRepositoryImplTest {
         entityManager.clear();
 
         SchoolClassAggregate restored = schoolClassRepository
-                .findAggregateById(new SchoolClassId("class-1"))
+                .findAggregateById(new SchoolClassId(SCHOOL_CLASS_ID))
                 .orElseThrow();
 
         assertEquals(1, restored.schedules().size());
@@ -76,7 +81,7 @@ class SchoolClassRepositoryImplTest {
         SchoolClassAggregate aggregate = new SchoolClassAggregate(schoolClass);
         aggregate.schedule(course, schedule());
         schoolClassRepository.saveAggregate(aggregate);
-        assertThrows(DataIntegrityViolationException.class, () -> {
+        assertThrows(PersistenceException.class, () -> {
             schoolClassRepository.saveAggregate(aggregate);
             entityManager.flush();
         });
@@ -90,18 +95,18 @@ class SchoolClassRepositoryImplTest {
         CoursePO mapped = coursePOMapper.convert(course(), target);
 
         assertSame(target, mapped);
-        assertEquals("course-math", mapped.getId());
+        assertEquals(COURSE_ID, mapped.getId());
         assertEquals("math", mapped.getCourseCode());
     }
 
     private SchoolClass schoolClass() {
         return new SchoolClass(
-                new SchoolClassId("class-1"), "Class One", new Semester("2026-FALL"),
+                new SchoolClassId(SCHOOL_CLASS_ID), "Class One", new Semester("2026-FALL"),
                 SchoolClassStatus.ACTIVE);
     }
 
     private Course course() {
-        return new Course("course-math", new CourseCode("math"), "Mathematics", CourseStatus.ACTIVE);
+        return new Course(COURSE_ID, new CourseCode("math"), "Mathematics", CourseStatus.ACTIVE);
     }
 
     private CourseSchedule schedule() {
