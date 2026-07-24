@@ -17,6 +17,8 @@ import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 
 import java.util.List;
 
@@ -39,21 +41,18 @@ public class DdcOpenApiController {
     }
 
     @PostMapping("/instances/register")
-    public ResultDto<Void> register(@RequestBody DdcInstanceRegisterRequest request) {
-        instanceAdminService.register(request);
-        return ResultDtos.success();
+    public ResultDto<DdcLeaseSession> register(@RequestBody DdcInstanceRegisterRequest request) {
+        return ResultDtos.success(instanceAdminService.register(request));
     }
 
     @PostMapping("/instances/heartbeat")
-    public ResultDto<Void> heartbeat(@RequestBody DdcHeartbeatRequest request) {
-        instanceAdminService.heartbeat(request);
-        return ResultDtos.success();
+    public ResultDto<DdcLeaseOperationResult> heartbeat(@RequestBody DdcHeartbeatRequest request) {
+        return ResultDtos.success(instanceAdminService.heartbeat(request));
     }
 
     @PostMapping("/instances/offline")
-    public ResultDto<Void> offline(@RequestBody DdcHeartbeatRequest request) {
-        instanceAdminService.offline(request);
-        return ResultDtos.success();
+    public ResultDto<DdcLeaseOperationResult> offline(@RequestBody DdcHeartbeatRequest request) {
+        return ResultDtos.success(instanceAdminService.offline(request));
     }
 
     @GetMapping("/configs/pull")

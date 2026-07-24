@@ -7,6 +7,8 @@ public class DdcAdminProperties {
 
     private Redis redis = new Redis();
 
+    private Lease lease = new Lease();
+
     private Manifest manifest = new Manifest();
 
     public Redis getRedis() {
@@ -15,6 +17,14 @@ public class DdcAdminProperties {
 
     public void setRedis(Redis redis) {
         this.redis = redis;
+    }
+
+    public Lease getLease() {
+        return lease;
+    }
+
+    public void setLease(Lease lease) {
+        this.lease = lease;
     }
 
     public Manifest getManifest() {
@@ -75,6 +85,29 @@ public class DdcAdminProperties {
 
         public void setDatabase(int database) {
             this.database = database;
+        }
+    }
+
+    public static class Lease {
+
+        private int minimumSeconds = 5;
+
+        private int maximumSeconds = 300;
+
+        public int getMinimumSeconds() {
+            return minimumSeconds;
+        }
+
+        public void setMinimumSeconds(int minimumSeconds) {
+            this.minimumSeconds = minimumSeconds;
+        }
+
+        public int getMaximumSeconds() {
+            return maximumSeconds;
+        }
+
+        public void setMaximumSeconds(int maximumSeconds) {
+            this.maximumSeconds = maximumSeconds;
         }
     }
 

@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.common;
 
+import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
+
 public final class DdcKeys {
 
     private static final String PREFIX = "ddc";
@@ -21,6 +23,13 @@ public final class DdcKeys {
 
     public static String instances(String appCode, String env, String namespace) {
         return join("instances", appCode, env, namespace);
+    }
+
+    public static String leaseInstance(String env,
+                                       String namespace,
+                                       DdcLeaseRole role,
+                                       String instanceId) {
+        return join("lease", "instance", env, namespace, role.name(), instanceId);
     }
 
     public static String publish(String changeId) {
