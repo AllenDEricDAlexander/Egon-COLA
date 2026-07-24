@@ -1,0 +1,86 @@
+package top.egon.cola.component.rpc.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
+import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.rpc.context.RpcProcessIdentity;
+import top.egon.cola.component.rpc.context.RpcProcessIdentityFactory;
+import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
+import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.provider.RpcProviderAvailabilityRegistry;
+import top.egon.cola.component.rpc.provider.RpcProviderBeanScanner;
+import top.egon.cola.component.rpc.provider.RpcProviderLeaseManager;
+import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
+import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
+import top.egon.cola.component.rpc.provider.RpcServerServiceDefinitionFactory;
+
+@AutoConfiguration
+@EnableConfigurationProperties({EgonRpcProperties.class, DdcProperties.class})
+@ConditionalOnProperty(
+        prefix = "egon.cola.component.rpc",
+        name = "enabled",
+        havingValue = "true"
+)
+public class EgonRpcAutoConfig {
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RpcContractValidator rpcContractValidator() {
+        return new RpcContractValidator();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RpcProcessIdentity rpcProcessIdentity(
+            Environment environment,
+            DdcProperties ddcProperties) {
+        return new RpcProcessIdentityFactory(
+                environment,
+                ddcProperties
+        ).create();
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.provider",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public RpcProviderLifecycle rpcProviderLifecycle(
+            ApplicationContext applicationContext,
+            RpcContractValidator contractValidator,
+            DdcServiceRegistryClient registryClient,
+            EgonRpcProperties properties,
+            RpcProcessIdentity processIdentity,
+            @Value("${egon.rpc.runtime-version:unknown}") String runtimeVersion) {
+        RpcProviderAvailabilityRegistry availability =
+                new RpcProviderAvailabilityRegistry();
+        RpcProviderLeaseManager leaseManager = new RpcProviderLeaseManager(
+                registryClient,
+                availability,
+                properties,
+                processIdentity,
+                runtimeVersion
+        );
+        return new RpcProviderLifecycle(
+                new RpcProviderBeanScanner(
+                        applicationContext,
+                        contractValidator
+                ),
+                new RpcServerServiceDefinitionFactory(availability),
+                new RpcProviderServerFactory(),
+                leaseManager,
+                availability,
+                new RpcProviderServerInterceptor(),
+                properties,
+                processIdentity
+        );
+    }
+}

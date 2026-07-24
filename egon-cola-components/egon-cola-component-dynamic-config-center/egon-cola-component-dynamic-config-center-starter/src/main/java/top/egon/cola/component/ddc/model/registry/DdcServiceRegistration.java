@@ -56,7 +56,8 @@ public record DdcServiceRegistration(
             String lowerKey = normalizedKey.toLowerCase(Locale.ROOT);
             if (lowerKey.startsWith("ddc.")
                     || lowerKey.startsWith("egon.internal.")
-                    || lowerKey.startsWith("egon.rpc.")) {
+                    || lowerKey.startsWith("egon.rpc.")
+                    && !validRpcFrameworkMetadata(lowerKey, normalizedValue)) {
                 throw new IllegalArgumentException("metadata key uses a reserved prefix");
             }
             if (lowerKey.contains("password")
@@ -70,6 +71,15 @@ public record DdcServiceRegistration(
             copy.put(normalizedKey, normalizedValue);
         });
         return Collections.unmodifiableMap(copy);
+    }
+
+    private static boolean validRpcFrameworkMetadata(String key, String value) {
+        return switch (key) {
+            case "egon.rpc.transport" -> "grpc".equals(value);
+            case "egon.rpc.serialization" -> "protobuf".equals(value);
+            case "egon.rpc.runtime-version" -> !value.isBlank();
+            default -> false;
+        };
     }
 
     private static String require(String value, String fieldName) {
