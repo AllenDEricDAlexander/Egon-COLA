@@ -17,3 +17,9 @@ egon:
             host: 127.0.0.1
             port: 6379
             database: 0
+          openapi:
+            signature-enabled: false
+            access-key:
+            secret-key:
+            allowed-clock-skew-seconds: 300
+            nonce-cache-max-size: 10000

@@ -9,6 +9,8 @@ public class DdcAdminProperties {
 
     private Lease lease = new Lease();
 
+    private Openapi openapi = new Openapi();
+
     private Manifest manifest = new Manifest();
 
     public Redis getRedis() {
@@ -25,6 +27,14 @@ public class DdcAdminProperties {
 
     public void setLease(Lease lease) {
         this.lease = lease;
+    }
+
+    public Openapi getOpenapi() {
+        return openapi;
+    }
+
+    public void setOpenapi(Openapi openapi) {
+        this.openapi = openapi;
     }
 
     public Manifest getManifest() {
@@ -131,6 +141,59 @@ public class DdcAdminProperties {
 
         public void setVersion(String version) {
             this.version = version;
+        }
+    }
+
+    public static class Openapi {
+
+        private boolean signatureEnabled;
+
+        private String accessKey;
+
+        private String secretKey;
+
+        private int allowedClockSkewSeconds = 300;
+
+        private int nonceCacheMaxSize = 10000;
+
+        public boolean isSignatureEnabled() {
+            return signatureEnabled;
+        }
+
+        public void setSignatureEnabled(boolean signatureEnabled) {
+            this.signatureEnabled = signatureEnabled;
+        }
+
+        public String getAccessKey() {
+            return accessKey;
+        }
+
+        public void setAccessKey(String accessKey) {
+            this.accessKey = accessKey;
+        }
+
+        public String getSecretKey() {
+            return secretKey;
+        }
+
+        public void setSecretKey(String secretKey) {
+            this.secretKey = secretKey;
+        }
+
+        public int getAllowedClockSkewSeconds() {
+            return allowedClockSkewSeconds;
+        }
+
+        public void setAllowedClockSkewSeconds(int allowedClockSkewSeconds) {
+            this.allowedClockSkewSeconds = allowedClockSkewSeconds;
+        }
+
+        public int getNonceCacheMaxSize() {
+            return nonceCacheMaxSize;
+        }
+
+        public void setNonceCacheMaxSize(int nonceCacheMaxSize) {
+            this.nonceCacheMaxSize = nonceCacheMaxSize;
         }
     }
 }

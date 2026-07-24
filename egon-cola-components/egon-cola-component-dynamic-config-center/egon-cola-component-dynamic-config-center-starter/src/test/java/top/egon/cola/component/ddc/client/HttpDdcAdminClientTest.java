@@ -3,9 +3,9 @@ package top.egon.cola.component.ddc.client;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.component.common.crypto.hmac.Hmacs;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
@@ -14,6 +14,11 @@ import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.security.DdcRequestSigner;
+
+import java.util.Map;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,15 +29,117 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class HttpDdcAdminClientTest {
 
     @Test
-    void signatureUsesAccessKeyTimestampPathAndSecret() {
+    void signedPostHashesAndSignsTheExactTransmittedJsonBytes() {
         DdcProperties properties = new DdcProperties();
+        properties.getAdmin().setEndpoint("http://ddc.test");
+        properties.getAdmin().setSignatureEnabled(true);
         properties.getAdmin().setAccessKey("ak");
         properties.getAdmin().setSecretKey("sk");
-        HttpDdcAdminClient client = new HttpDdcAdminClient(properties);
+        RestClient.Builder builder = RestClient.builder().baseUrl(properties.getAdmin().getEndpoint());
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        HttpDdcAdminClient client = new HttpDdcAdminClient(properties, builder);
+        DdcRequestSigner signer = new DdcRequestSigner();
+        server.expect(requestTo("http://ddc.test/api/v1/ddc/openapi/instances/register"))
+                .andExpect(request -> {
+                    MockClientHttpRequest mockRequest = (MockClientHttpRequest) request;
+                    byte[] body = mockRequest.getBodyAsBytes();
+                    long timestamp = Long.parseLong(
+                            request.getHeaders().getFirst(DdcRequestSigner.TIMESTAMP_HEADER)
+                    );
+                    String nonce = request.getHeaders().getFirst(DdcRequestSigner.NONCE_HEADER);
+                    DdcCanonicalRequest canonicalRequest = new DdcCanonicalRequest(
+                            "POST",
+                            request.getURI().getPath(),
+                            Map.of(),
+                            timestamp,
+                            nonce,
+                            body
+                    );
+                    assertThat(request.getHeaders().getFirst(DdcRequestSigner.ACCESS_KEY_HEADER))
+                            .isEqualTo("ak");
+                    assertThat(request.getHeaders().getFirst(DdcRequestSigner.CONTENT_SHA256_HEADER))
+                            .isEqualTo(canonicalRequest.contentSha256());
+                    assertThat(request.getHeaders().getFirst(DdcRequestSigner.SIGNATURE_HEADER))
+                            .isEqualTo(signer.sign(canonicalRequest, "sk"));
+                })
+                .andRespond(withSuccess("""
+                        {
+                          "success": true,
+                          "code": 0,
+                          "status": "SUCCESS",
+                          "message": "success",
+                          "data": {
+                            "instanceId": "instance-1",
+                            "leaseId": "lease-1",
+                            "role": "CONFIG_CLIENT",
+                            "leaseSeconds": 30,
+                            "heartbeatIntervalSeconds": 10,
+                            "registeredAt": "2026-07-24T12:00:00Z",
+                            "leaseExpireAt": "2026-07-24T12:00:30Z"
+                          }
+                        }
+                        """, MediaType.APPLICATION_JSON));
 
-        String signature = client.signature("/api/v1/ddc/openapi/publish/ack", 100L);
+        DdcInstanceRegisterRequest registerRequest = new DdcInstanceRegisterRequest();
+        registerRequest.setInstanceId("instance-1");
+        client.register(registerRequest);
 
-        assertThat(signature).isEqualTo(Hmacs.sha256Hex("ak|100|/api/v1/ddc/openapi/publish/ack", "sk"));
+        server.verify();
+    }
+
+    @Test
+    void signedGetUsesTheSameCanonicalEncodedQueryAsTheRequestUri() {
+        DdcProperties properties = new DdcProperties();
+        properties.setAppCode("demo app");
+        properties.setEnv("dev");
+        properties.setNamespace("a/b");
+        properties.getAdmin().setEndpoint("http://ddc.test");
+        properties.getAdmin().setSignatureEnabled(true);
+        properties.getAdmin().setAccessKey("ak");
+        properties.getAdmin().setSecretKey("sk");
+        RestClient.Builder builder = RestClient.builder().baseUrl(properties.getAdmin().getEndpoint());
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        HttpDdcAdminClient client = new HttpDdcAdminClient(properties, builder);
+        DdcRequestSigner signer = new DdcRequestSigner();
+        server.expect(requestTo(
+                        "http://ddc.test/api/v1/ddc/openapi/configs/pull"
+                                + "?appCode=demo%20app&env=dev&namespace=a%2Fb"
+                ))
+                .andExpect(request -> {
+                    long timestamp = Long.parseLong(
+                            request.getHeaders().getFirst(DdcRequestSigner.TIMESTAMP_HEADER)
+                    );
+                    String nonce = request.getHeaders().getFirst(DdcRequestSigner.NONCE_HEADER);
+                    DdcCanonicalRequest canonicalRequest = new DdcCanonicalRequest(
+                            "GET",
+                            request.getURI().getPath(),
+                            Map.of(
+                                    "appCode", List.of("demo app"),
+                                    "env", List.of("dev"),
+                                    "namespace", List.of("a/b")
+                            ),
+                            timestamp,
+                            nonce,
+                            new byte[0]
+                    );
+                    assertThat(request.getURI().getRawQuery())
+                            .isEqualTo(canonicalRequest.canonicalQuery());
+                    assertThat(request.getHeaders().getFirst(DdcRequestSigner.SIGNATURE_HEADER))
+                            .isEqualTo(signer.sign(canonicalRequest, "sk"));
+                })
+                .andRespond(withSuccess("""
+                        {
+                          "success": true,
+                          "code": 0,
+                          "status": "SUCCESS",
+                          "message": "success",
+                          "data": []
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(client.pull()).isEmpty();
+
+        server.verify();
     }
 
     @Test
