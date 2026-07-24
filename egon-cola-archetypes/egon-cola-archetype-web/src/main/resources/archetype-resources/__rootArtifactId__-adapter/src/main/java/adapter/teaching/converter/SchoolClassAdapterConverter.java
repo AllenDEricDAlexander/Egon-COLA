@@ -21,9 +21,14 @@ public interface SchoolClassAdapterConverter {
     CreateSchoolClassCommand toCommand(String requestId, CreateSchoolClassRequest request);
 
     @Mapping(target = "requestId", source = "requestId")
+    @Mapping(target = "gradeId", source = "gradeId")
     @Mapping(target = "schoolClassId", source = "schoolClassId")
     @Mapping(target = "userId", source = "userId")
-    AssignUserToClassCommand toCommand(String requestId, String schoolClassId, String userId);
+    AssignUserToClassCommand toCommand(
+            String requestId,
+            String gradeId,
+            String schoolClassId,
+            String userId);
 
     SchoolClassDetailVO toVO(SchoolClassDetailResult result);
 

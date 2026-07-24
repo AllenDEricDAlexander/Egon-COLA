@@ -23,7 +23,8 @@ public class LocalOrganizationDirectoryStub implements OrganizationDirectoryPort
     }
 
     @Override
-    public OrganizationSchoolClass getSchoolClass(String schoolClassId) {
+    public OrganizationSchoolClass getSchoolClass(String gradeId, String schoolClassId) {
+        rejectMissing(gradeId, "grade");
         rejectMissing(schoolClassId, "school class");
         return new OrganizationSchoolClass(
                 schoolClassId,

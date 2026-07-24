@@ -41,7 +41,8 @@ class SchoolClassRepositoryImplTest {
         schoolClassRepository.save(new SchoolClass(new SchoolClassId("class-1"), "Class A", grade.id(),
             grade.code(), grade.name(), SchoolClassStatus.ACTIVE, List.of()));
 
-        assertThat(schoolClassRepository.findById(new SchoolClassId("class-1"))).isPresent();
+        assertThat(schoolClassRepository.findByGradeIdAndId(
+                "grade-1", new SchoolClassId("class-1"))).isPresent();
         assertThat(schoolClassRepository.existsByGradeIdAndNameIgnoreCase("grade-1", "class a")).isTrue();
     }
 

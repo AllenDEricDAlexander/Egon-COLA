@@ -15,7 +15,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "school_class_users",
-        uniqueConstraints = @UniqueConstraint(name = "uk_school_class_user", columnNames = {"user_id", "school_class_id"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_school_class_user",
+                columnNames = {"grade_id", "school_class_id", "user_id"})
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SchoolClassUserPO {
@@ -26,13 +28,21 @@ public class SchoolClassUserPO {
     @Column(name = "user_id", nullable = false, length = 64)
     private String userId;
 
+    @Column(name = "grade_id", nullable = false, length = 36)
+    private String gradeId;
+
     @Column(name = "school_class_id", nullable = false, length = 64)
     private String schoolClassId;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public SchoolClassUserPO(String userId, String schoolClassId, LocalDateTime createdAt) {
+    public SchoolClassUserPO(
+            String gradeId,
+            String schoolClassId,
+            String userId,
+            LocalDateTime createdAt) {
+        this.gradeId = gradeId;
         this.userId = userId;
         this.schoolClassId = schoolClassId;
         this.createdAt = createdAt;
@@ -44,6 +54,10 @@ public class SchoolClassUserPO {
 
     public String getUserId() {
         return userId;
+    }
+
+    public String getGradeId() {
+        return gradeId;
     }
 
     public String getSchoolClassId() {

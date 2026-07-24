@@ -21,13 +21,13 @@ import java.net.URI;
 import java.util.UUID;
 
 @RestController("schoolClassController")
-@RequestMapping("/api/v1/school-classes")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class SchoolClassController {
     private final SchoolClassManage schoolClassManage;
     private final SchoolClassAdapterConverter converter;
 
-    @PostMapping
+    @PostMapping("/school-classes")
     public ResponseEntity<SchoolClassDetailVO> create(
             @Valid @RequestBody CreateSchoolClassRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
@@ -37,18 +37,23 @@ public class SchoolClassController {
         return ResponseEntity.created(URI.create("/api/v1/school-classes/" + result.id())).body(result);
     }
 
-    @GetMapping("/{schoolClassId}")
-    public SchoolClassDetailVO get(@PathVariable String schoolClassId) {
-        return converter.toVO(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(schoolClassId)));
+    @GetMapping("/grades/{gradeId}/school-classes/{schoolClassId}")
+    public SchoolClassDetailVO get(
+            @PathVariable String gradeId,
+            @PathVariable String schoolClassId) {
+        return converter.toVO(
+                schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(gradeId, schoolClassId)));
     }
 
-    @PostMapping("/{schoolClassId}/users")
+    @PostMapping("/grades/{gradeId}/school-classes/{schoolClassId}/users")
     public ResponseEntity<Void> assignUser(
+            @PathVariable String gradeId,
             @PathVariable String schoolClassId,
             @Valid @RequestBody AssignUserToClassRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
-        schoolClassManage.assignUser(converter.toCommand(requestId, schoolClassId, request.userId()));
+        schoolClassManage.assignUser(
+                converter.toCommand(requestId, gradeId, schoolClassId, request.userId()));
         return ResponseEntity.noContent().build();
     }
 }

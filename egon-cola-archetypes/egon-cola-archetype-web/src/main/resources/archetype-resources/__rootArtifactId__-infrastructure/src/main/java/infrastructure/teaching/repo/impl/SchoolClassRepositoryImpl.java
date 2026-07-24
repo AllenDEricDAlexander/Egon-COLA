@@ -37,26 +37,40 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
         }
     }
 
-    @Override public Optional<SchoolClass> findById(SchoolClassId schoolClassId) {
-        return schoolClassJpaRepository.findById(schoolClassId.value()).map(this::restore);
+    @Override public Optional<SchoolClass> findByGradeIdAndId(
+            String gradeId,
+            SchoolClassId schoolClassId) {
+        return schoolClassJpaRepository
+                .findByGradeIdAndId(gradeId, schoolClassId.value())
+                .map(this::restore);
     }
 
     @Override public boolean existsByGradeIdAndNameIgnoreCase(String gradeId, String name) {
         return schoolClassJpaRepository.existsByGradeIdAndNameIgnoreCase(gradeId, name);
     }
 
-    @Override public void addUser(SchoolClassId schoolClassId, UserId userId) {
+    @Override public void addUser(
+            String gradeId,
+            SchoolClassId schoolClassId,
+            UserId userId) {
         try {
             schoolClassUserJpaRepository.saveAndFlush(
-                new SchoolClassUserPO(userId.value(), schoolClassId.value(), LocalDateTime.now()));
+                new SchoolClassUserPO(
+                        gradeId,
+                        schoolClassId.value(),
+                        userId.value(),
+                        LocalDateTime.now()));
         } catch (DataIntegrityViolationException exception) {
             throw conflict("school class membership conflict", exception);
         }
     }
 
-    @Override public boolean hasUser(SchoolClassId schoolClassId, UserId userId) {
-        return schoolClassUserJpaRepository.existsBySchoolClassIdAndUserId(
-            schoolClassId.value(), userId.value());
+    @Override public boolean hasUser(
+            String gradeId,
+            SchoolClassId schoolClassId,
+            UserId userId) {
+        return schoolClassUserJpaRepository.existsByGradeIdAndSchoolClassIdAndUserId(
+            gradeId, schoolClassId.value(), userId.value());
     }
 
     private SchoolClass restore(SchoolClassPO schoolClassPO) {
@@ -66,7 +80,8 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
             .orElseThrow(() -> new OrganizationPortException(
                 OrganizationDomainErrorCode.DEPENDENCY_UNAVAILABLE, "grade row missing",
                 new IllegalStateException("grade row missing")));
-        List<UserId> userIds = schoolClassUserJpaRepository.findBySchoolClassId(schoolClassPO.getId()).stream()
+        List<UserId> userIds = schoolClassUserJpaRepository
+            .findByGradeIdAndSchoolClassId(schoolClassPO.getGradeId(), schoolClassPO.getId()).stream()
             .map(SchoolClassUserPO::getUserId).map(UserId::new).toList();
         return converter.toEntity(schoolClassPO, gradeCode, userIds);
     }

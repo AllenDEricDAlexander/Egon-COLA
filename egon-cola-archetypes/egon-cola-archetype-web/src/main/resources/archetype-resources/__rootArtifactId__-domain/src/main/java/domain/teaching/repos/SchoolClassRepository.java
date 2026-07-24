@@ -8,12 +8,10 @@ import java.util.Optional;
 
 public interface SchoolClassRepository {
     SchoolClass save(SchoolClass schoolClass);
-    Optional<SchoolClass> findById(SchoolClassId schoolClassId);
+    Optional<SchoolClass> findByGradeIdAndId(
+            String gradeId,
+            SchoolClassId schoolClassId);
     boolean existsByGradeIdAndNameIgnoreCase(String gradeId, String name);
-    void addUser(SchoolClassId schoolClassId, UserId userId);
-    boolean hasUser(SchoolClassId schoolClassId, UserId userId);
-
-    default Optional<SchoolClass> findById(String schoolClassId) {
-        return findById(new SchoolClassId(schoolClassId));
-    }
+    void addUser(String gradeId, SchoolClassId schoolClassId, UserId userId);
+    boolean hasUser(String gradeId, SchoolClassId schoolClassId, UserId userId);
 }

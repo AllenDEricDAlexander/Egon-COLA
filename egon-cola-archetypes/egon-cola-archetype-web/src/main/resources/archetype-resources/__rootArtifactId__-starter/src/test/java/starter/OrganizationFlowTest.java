@@ -75,11 +75,17 @@ class OrganizationFlowTest {
                 .andReturn();
         String schoolClassId = JsonPath.read(createdClass.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(get("/api/v1/school-classes/{id}", schoolClassId))
+        mockMvc.perform(get(
+                        "/api/v1/grades/{gradeId}/school-classes/{schoolClassId}",
+                        gradeId,
+                        schoolClassId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gradeCode").value(gradeCode));
 
-        mockMvc.perform(post("/api/v1/school-classes/{id}/users", schoolClassId)
+        mockMvc.perform(post(
+                        "/api/v1/grades/{gradeId}/school-classes/{schoolClassId}/users",
+                        gradeId,
+                        schoolClassId)
                         .headers(adminHeaders("assign-class-" + suffix))
                         .contentType(APPLICATION_JSON)
                         .content("{\"userId\":\"" + userId + "\"}"))
@@ -95,8 +101,9 @@ class OrganizationFlowTest {
                 "select count(*) from role_permissions rp join roles r on r.id = rp.role_id where r.code = ?",
                 Integer.class, "STUDENT")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from school_class_users where user_id = ? and school_class_id = ?",
-                Integer.class, userId, schoolClassId)).isEqualTo(1);
+                "select count(*) from school_class_users"
+                        + " where grade_id = ? and user_id = ? and school_class_id = ?",
+                Integer.class, gradeId, userId, schoolClassId)).isEqualTo(1);
     }
 
     private static HttpHeaders adminHeaders(String idempotencyKey) {

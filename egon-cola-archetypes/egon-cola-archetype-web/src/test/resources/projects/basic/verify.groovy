@@ -1320,6 +1320,14 @@ assertExactExternalDependencies("application", applicationDependencies, [
 assertExactExternalDependencies("infrastructure", infrastructureDependencies, [
     '${evaluation-facade.artifact-id}', "dubbo-spring-boot-starter",
     "shardingsphere-jdbc", "shardingsphere-sharding-core",
+    "shardingsphere-infra-data-source-pool-hikari",
+    "shardingsphere-standalone-mode-repository-memory",
+    "shardingsphere-authority-simple",
+    "shardingsphere-parser-sql-engine-sql92",
+    "shardingsphere-parser-sql-engine-mysql",
+    "shardingsphere-parser-sql-engine-postgresql",
+    "shardingsphere-readwrite-splitting-core",
+    "commons-lang3",
     "spring-boot-starter-data-jpa", "spring-boot-starter-data-redis", "spring-boot-starter-amqp",
     "spring-boot-starter-aop", "micrometer-core", "flyway-core", "h2", "postgresql",
     "mapstruct-plus-spring-boot-starter", "lombok", "spring-boot-starter-test"
@@ -1539,7 +1547,7 @@ def sha256 = { File file ->
     java.security.MessageDigest.getInstance("SHA-256").digest(file.bytes).encodeHex().toString()
 }
 assert sha256(assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")) ==
-    "c5481736a3ffefc45197a767aec26c1462bb338dfccc1d11751a782ac3de6df1"
+    "7af8ea71389de58693dd2a04af32c793d395d8b9c04a2cf42f8bfb27fbf8d49b"
 assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql")
 assert migrationFiles.findAll { it.name.startsWith("V2__") }.size() == 1
 assertMissing("student-management-organization-infrastructure/src/test/resources/db/migration")

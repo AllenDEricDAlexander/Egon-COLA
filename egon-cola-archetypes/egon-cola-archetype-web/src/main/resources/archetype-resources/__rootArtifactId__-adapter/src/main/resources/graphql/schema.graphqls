@@ -2,7 +2,7 @@ type Query {
   user(id: ID!): User!
   permissionTree(userId: ID!): PermissionTree!
   grade(id: ID!): Grade!
-  schoolClass(id: ID!): SchoolClass!
+  schoolClass(gradeId: ID!, id: ID!): SchoolClass!
 }
 
 type Mutation {
@@ -48,4 +48,4 @@ input AssignRoleInput { userId: ID!, roleCode: String! }
 input GrantPermissionInput { roleCode: String!, permissionCode: String! }
 input CreateGradeInput { code: String!, name: String! }
 input CreateSchoolClassInput { name: String!, gradeCode: String! }
-input AssignUserToSchoolClassInput { userId: ID!, schoolClassId: ID! }
+input AssignUserToSchoolClassInput { gradeId: ID!, userId: ID!, schoolClassId: ID! }

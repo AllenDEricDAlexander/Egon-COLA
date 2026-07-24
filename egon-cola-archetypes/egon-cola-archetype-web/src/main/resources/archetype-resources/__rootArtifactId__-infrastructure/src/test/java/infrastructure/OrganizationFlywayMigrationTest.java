@@ -25,11 +25,11 @@ class OrganizationFlywayMigrationTest {
             connection.createStatement().executeUpdate(
                 "INSERT INTO school_classes VALUES ('c-2','Class A','Grade One',CURRENT_TIMESTAMP)");
             connection.createStatement().executeUpdate(
-                "INSERT INTO school_class_users(user_id,school_class_id,created_at) "
-                    + "VALUES ('u-1','c-1',CURRENT_TIMESTAMP)");
+                "INSERT INTO school_class_users(grade_id,user_id,school_class_id,created_at) "
+                    + "VALUES ('legacy:Grade One','u-1','c-1',CURRENT_TIMESTAMP)");
             connection.createStatement().executeUpdate(
-                "INSERT INTO school_class_users(user_id,school_class_id,created_at) "
-                    + "VALUES ('missing-user','missing-class',CURRENT_TIMESTAMP)");
+                "INSERT INTO school_class_users(grade_id,user_id,school_class_id,created_at) "
+                    + "VALUES ('missing-grade','missing-user','missing-class',CURRENT_TIMESTAMP)");
         }
 
         Flyway flyway = Flyway.configure().dataSource(dataSource).load();

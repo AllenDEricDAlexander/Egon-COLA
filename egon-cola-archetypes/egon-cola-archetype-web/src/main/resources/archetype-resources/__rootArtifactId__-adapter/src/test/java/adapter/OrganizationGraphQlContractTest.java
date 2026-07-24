@@ -9,7 +9,9 @@ import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.manage.RoleManage;
 import ${package}.application.user.manage.UserManage;
 import ${package}.application.user.query.UserDetailQuery;
+import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.GradeDetailResult;
+import ${package}.application.teaching.result.SchoolClassDetailResult;
 import ${package}.application.user.result.UserDetailResult;
 import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.exceptions.OrganizationFailureType;
@@ -62,6 +64,9 @@ class OrganizationGraphQlContractTest {
                 .thenReturn(new GradeDetailResult("g-1", "GRADE_ONE", "Grade One", "ACTIVE"));
         when(userManage.getUser(new UserDetailQuery("u-1")))
                 .thenReturn(new UserDetailResult("u-1", "Mario", "mario@example.com", "ACTIVE", List.of()));
+        when(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery("g-1", "c-1")))
+                .thenReturn(new SchoolClassDetailResult(
+                        "c-1", "Class One", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
 
         graphQlTester.document("mutation { createGrade(input:{code:\"GRADE_ONE\",name:\"Grade One\"})"
                         + " { code name status } }")
@@ -71,6 +76,11 @@ class OrganizationGraphQlContractTest {
         graphQlTester.document("query { user(id:\"u-1\") { id email status roleCodes } }")
                 .execute()
                 .path("user.id").entity(String.class).isEqualTo("u-1");
+
+        graphQlTester.document(
+                        "query { schoolClass(gradeId:\"g-1\",id:\"c-1\") { id gradeCode status } }")
+                .execute()
+                .path("schoolClass.id").entity(String.class).isEqualTo("c-1");
     }
 
     @Test

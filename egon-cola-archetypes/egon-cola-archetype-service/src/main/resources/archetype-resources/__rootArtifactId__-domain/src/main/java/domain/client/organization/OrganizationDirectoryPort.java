@@ -7,5 +7,5 @@ public interface OrganizationDirectoryPort {
 
     OrganizationUser getUser(String userId);
 
-    OrganizationSchoolClass getSchoolClass(String schoolClassId);
+    OrganizationSchoolClass getSchoolClass(String gradeId, String schoolClassId);
 }
