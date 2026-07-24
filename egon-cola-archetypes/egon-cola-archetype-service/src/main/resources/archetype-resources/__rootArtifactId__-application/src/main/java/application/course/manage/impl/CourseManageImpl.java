@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 @Service("courseManage")
 @Validated
@@ -44,6 +45,8 @@ public class CourseManageImpl implements CourseManage {
 
     private final CourseApplicationValidator validator;
 
+    private final IdGenerator idGenerator;
+
     @Override
     @Transactional
     public CourseResult create(CreateCourseCommand command) {
@@ -54,7 +57,7 @@ public class CourseManageImpl implements CourseManage {
                     ApplicationErrorCode.COURSE_CODE_DUPLICATED, "course code already exists");
         }
         Course course = courseDomainService.createCourse(
-                CourseId.newId().value(), code, command.name(), command.credit());
+                idGenerator.nextId(), code, command.name(), command.credit());
         return converter.toResult(courseRepository.save(course));
     }
 
@@ -67,7 +70,7 @@ public class CourseManageImpl implements CourseManage {
                 .orElseThrow(() -> new ApplicationException(
                         ApplicationErrorCode.COURSE_NOT_FOUND, "course not found"));
         CourseSchedule schedule = courseDomainService.scheduleCourse(
-                java.util.UUID.randomUUID().toString(), course, command.classId(),
+                idGenerator.nextId(), course, command.classId(),
                 command.startsAt(), command.endsAt(), courseScheduleRepository.findOverlapping(
                         courseId, command.classId(), command.startsAt(), command.endsAt()));
         CourseSchedule saved = courseScheduleRepository.save(schedule);
@@ -76,7 +79,6 @@ public class CourseManageImpl implements CourseManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public CourseResult get(GetCourseQuery query) {
         validator.require(query != null, "get course query is required");
         return courseRepository.findById(new CourseId(query.courseId()))
@@ -86,7 +88,6 @@ public class CourseManageImpl implements CourseManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public PageResult<CourseResult> page(PageCourseQuery query) {
         validator.require(
                 query != null && query.currentPage() > 0 && query.pageSize() > 0,

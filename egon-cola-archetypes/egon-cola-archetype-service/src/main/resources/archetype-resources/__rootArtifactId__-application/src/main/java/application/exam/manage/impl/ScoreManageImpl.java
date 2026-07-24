@@ -23,10 +23,10 @@ import ${package}.domain.exam.repos.ExamRepository;
 import ${package}.domain.exam.repos.ScoreRepository;
 import ${package}.domain.exam.service.ScoreDomainService;
 import ${package}.domain.exam.vos.ExamId;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 @Service("scoreManage")
 @RequiredArgsConstructor
@@ -39,6 +39,7 @@ public class ScoreManageImpl implements ScoreManage {
     private final ScoreDomainService scoreDomainService;
     private final ExamApplicationConverter converter;
     private final ExamApplicationValidator validator;
+    private final IdGenerator idGenerator;
 
     @Override
     @Transactional
@@ -54,7 +55,7 @@ public class ScoreManageImpl implements ScoreManage {
         boolean duplicate = scoreRepository.existsByExamIdAndStudentId(
                 examId, command.studentId());
         Score score = scoreDomainService.recordScore(
-                UUID.randomUUID().toString(), exam, paper,
+                idGenerator.nextId(), exam, paper,
                 command.studentId(), command.points(), duplicate);
         Score saved = scoreRepository.save(score);
         examEventPublisher.scoreRecorded(saved);
@@ -62,7 +63,6 @@ public class ScoreManageImpl implements ScoreManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ScoreResult get(GetScoreQuery query) {
         validator.notBlank(query.examId(), "examId");
         validator.notBlank(query.scoreId(), "scoreId");
@@ -72,7 +72,6 @@ public class ScoreManageImpl implements ScoreManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public PageResult<ScoreResult> page(PageScoreQuery query) {
         validator.notBlank(query.examId(), "examId");
         Page<Score> page = scoreRepository.findPageByExamId(

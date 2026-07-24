@@ -14,7 +14,8 @@ spring:
       enabled: false
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration/default
+    validate-migration-naming: true
     clean-disabled: false
     validate-on-migrate: true
   jpa:

@@ -1,6 +1,5 @@
 import groovy.io.FileType
 import groovy.xml.XmlSlurper
-import java.security.MessageDigest
 
 def projectDir = [
     new File(basedir, "project/student-management-evaluation"),
@@ -319,6 +318,8 @@ def serviceApplication = assertFile(
         "student-management-evaluation-starter/src/main/java/it/pkg/starter/EvaluationServiceApplication.java").text
 assert serviceApplication.contains('"it.pkg.adapter.course.facade.impl"')
 assert serviceApplication.contains('"it.pkg.adapter.exam.facade.impl"')
+assert serviceApplication.contains("enableDefaultTransactions = false")
+assert serviceApplication.contains("UuidV7Generator")
 assert !serviceApplication.contains('"it.pkg.adapter.facade"')
 
 
@@ -435,7 +436,8 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClientTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStubTest.java",
-    "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java"
+    "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
+    "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationShardingProfileTest.java"
 ].each { assertFile(it) }
 
 assertMissing("student-management-evaluation-starter/src/test/java/it/pkg/starter/ServiceArchitectureDependencyTest.java")
@@ -582,14 +584,45 @@ assert javaKeepFiles.isEmpty(): "Unexpected Java .gitkeep files"
 
 def migrationDir = new File(projectDir,
         "student-management-evaluation-infrastructure/src/main/resources/db/migration")
-def migrations = migrationDir.listFiles().findAll { it.name.endsWith(".sql") }*.name.sort()
-assert migrations == [
-    "V1__init_student_management_evaluation.sql",
-    "V2__align_evaluation_course_exam_domain.sql"
+def migrations = []
+migrationDir.eachFileRecurse(FileType.FILES) { file ->
+    if (file.name.endsWith(".sql")) {
+        migrations << migrationDir.toPath().relativize(file.toPath()).toString()
+                .replace(File.separator, "/")
+    }
+}
+assert migrations.sort() == [
+    "default/V20260724_001__init_evaluation_default_schema.sql",
+    "sharding/shard/V20260724_003__init_evaluation_sharding_schema.sql",
+    "sharding/single/V20260724_002__init_evaluation_single_schema.sql"
 ]
-def v1 = assertFile("student-management-evaluation-infrastructure/src/main/resources/db/migration/V1__init_student_management_evaluation.sql")
-def digest = MessageDigest.getInstance("SHA-256").digest(v1.bytes).encodeHex().toString()
-assert digest == "ed5d26a47aef8337b204ab3e77b8d4583fcfc22c3f30cb46fc2055a4429b5df0"
+assertMissing("student-management-evaluation-common/src/main/java/it/pkg/common/utils/EvaluationIdUtils.java")
+def defaultMigration = assertFile(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_evaluation_default_schema.sql").text
+def singleMigration = assertFile(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/single/V20260724_002__init_evaluation_single_schema.sql").text
+def shardMigration = assertFile(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/shard/V20260724_003__init_evaluation_sharding_schema.sql").text
+[
+    defaultMigration,
+    singleMigration,
+    shardMigration
+].each { migration ->
+    assert migration.startsWith("-- 变更内容：")
+    assert migration.contains("\n-- 影响范围：")
+    assert migration.contains("\n-- 约束说明：")
+}
+assert defaultMigration.contains("CREATE TABLE course_schedule")
+assert defaultMigration.contains("CREATE TABLE exam_paper")
+assert defaultMigration.contains("CREATE TABLE score")
+assert singleMigration.contains("CREATE TABLE course")
+assert !singleMigration.contains("CREATE TABLE exam")
+assert shardMigration.contains("CREATE TABLE course_schedule_0")
+assert shardMigration.contains("CREATE TABLE exam_0")
+assert shardMigration.contains("CREATE TABLE exam_paper_0")
+assert shardMigration.contains("CREATE TABLE score_0")
+assert shardMigration.contains("REFERENCES exam_0(id)")
+assert shardMigration.contains("UNIQUE (exam_id, student_id)")
 
 def applicationYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application.yml").text
@@ -624,7 +657,10 @@ assert tripleTest.contains("examReference.get().createExam")
 
 [
     "bootstrap.yml", "bootstrap-dev.yml", "bootstrap-test.yml", "bootstrap-prod.yml",
-    "application.yml", "application-dev.yml", "application-test.yml", "application-prod.yml"
+    "application.yml", "application-dev.yml", "application-test.yml", "application-prod.yml",
+    "application-sharding.yml", "application-readwrite.yml",
+    "sharding/shardingsphere-sharding.yml",
+    "sharding/shardingsphere-sharding-readwrite.yml"
 ].each { name ->
     assertFile("student-management-evaluation-starter/src/main/resources/${name}")
 }

@@ -20,7 +20,9 @@ public class ExamPaperRepositoryImpl implements ExamPaperRepository {
     private final ExamPaperConverter converter;
     private final EvaluationPersistenceValidator validator;
     public ExamPaper save(ExamPaper paper) {
-        Instant createdAt = repository.findById(paper.getId()).map(it -> it.getCreatedAt()).orElseGet(Instant::now);
+        Instant createdAt = repository.findByExamIdAndId(
+                paper.getExamId().value(), paper.getId())
+                .map(it -> it.getCreatedAt()).orElseGet(Instant::now);
         try { return converter.toDomain(repository.saveAndFlush(converter.toPo(paper, createdAt))); }
         catch (DataIntegrityViolationException failure) { throw validator.translate("save exam paper", failure); }
     }

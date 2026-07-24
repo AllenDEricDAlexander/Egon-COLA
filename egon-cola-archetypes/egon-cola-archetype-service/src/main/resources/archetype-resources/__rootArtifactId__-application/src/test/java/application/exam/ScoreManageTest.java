@@ -48,10 +48,12 @@ class ScoreManageTest {
         ScoreManageImpl manage = new ScoreManageImpl(
                 examRepository, paperRepository, scoreRepository, eventPublisher,
                 new ScoreDomainServiceImpl(),
-                new ExamApplicationConverter(), new ExamApplicationValidator());
+                new ExamApplicationConverter(), new ExamApplicationValidator(),
+                () -> "01901234-5678-7abc-8def-0123456789af");
 
         var result = manage.record(new RecordScoreCommand("exam-1", "student-1", 90));
 
+        assertEquals("01901234-5678-7abc-8def-0123456789af", result.id());
         assertEquals(90, result.points());
         verify(scoreRepository).save(any(Score.class));
         verify(eventPublisher).scoreRecorded(any(Score.class));
@@ -71,7 +73,8 @@ class ScoreManageTest {
         ScoreManageImpl manage = new ScoreManageImpl(
             examRepository, paperRepository, scoreRepository, eventPublisher,
             new ScoreDomainServiceImpl(),
-            new ExamApplicationConverter(), new ExamApplicationValidator());
+            new ExamApplicationConverter(), new ExamApplicationValidator(),
+            () -> "01901234-5678-7abc-8def-0123456789af");
 
         var result = manage.get(new GetScoreQuery("exam-1", "score-1"));
 
