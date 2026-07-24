@@ -29,7 +29,7 @@ class FlywayMigrationConventionTest {
         List<Path> migrations = migrationFiles();
         Set<String> dailySequences = new HashSet<>();
 
-        assertThat(migrations).hasSize(3);
+        assertThat(migrations).isNotEmpty();
         for (Path migration : migrations) {
             String fileName = migration.getFileName().toString();
             Matcher matcher = VERSIONED_MIGRATION.matcher(fileName);

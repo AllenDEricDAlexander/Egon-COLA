@@ -76,7 +76,7 @@ class LogicalSchemaParityTest {
     }
 
     private static String logicalTableName(String physicalTable) {
-        return physicalTable.replaceFirst("_[01]$", "");
+        return physicalTable.replaceFirst("_[0-9]+$", "");
     }
 
     private static void mergeSchema(

@@ -63,7 +63,8 @@ public final class ShardingDataSourceBootstrapper {
             throw new IllegalStateException(
                     "Unable to create the ShardingSphere logical data source ("
                             + failure.getClass().getSimpleName()
-                            + ")");
+                            + ")",
+                    failure);
         }
     }
 

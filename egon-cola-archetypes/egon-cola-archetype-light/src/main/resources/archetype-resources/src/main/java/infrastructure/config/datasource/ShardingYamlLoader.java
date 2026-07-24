@@ -36,7 +36,7 @@ public final class ShardingYamlLoader {
                     .getBytes(StandardCharsets.UTF_8);
         } catch (IOException failure) {
             throw new IllegalArgumentException(
-                    "Unable to read ShardingSphere rule resource: " + location);
+                    "Unable to read ShardingSphere rule resource: " + location, failure);
         }
     }
 
