@@ -4,6 +4,7 @@ import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class RpcConsumerChannelFactory {
@@ -28,8 +29,11 @@ public class RpcConsumerChannelFactory {
         while (state != ConnectivityState.READY
                 && state != ConnectivityState.SHUTDOWN
                 && System.nanoTime() < deadline) {
+            CountDownLatch changed = new CountDownLatch(1);
+            channel.notifyWhenStateChanged(state, changed::countDown);
             try {
-                Thread.sleep(10);
+                long remaining = Math.max(1, deadline - System.nanoTime());
+                changed.await(remaining, TimeUnit.NANOSECONDS);
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 return false;
