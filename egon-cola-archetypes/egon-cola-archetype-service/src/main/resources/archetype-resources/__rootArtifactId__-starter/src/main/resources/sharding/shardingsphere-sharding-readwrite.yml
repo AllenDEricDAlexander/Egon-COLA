@@ -92,7 +92,7 @@ rules:
 
   - !SINGLE
     tables:
-      - single.course
+      - single.public.course
     defaultDataSource: single
 
 props:

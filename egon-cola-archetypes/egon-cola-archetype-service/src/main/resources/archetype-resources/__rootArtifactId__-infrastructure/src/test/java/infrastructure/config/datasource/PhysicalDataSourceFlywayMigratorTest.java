@@ -15,22 +15,29 @@ import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 class PhysicalDataSourceFlywayMigratorTest {
 
     @Test
-    void shouldMigrateTargetsSeriallyInNameOrder() {
+    void shouldMigrateOnlyPrimaryTargetsSeriallyInNameOrder() {
         List<String> migrated = new ArrayList<>();
         PhysicalDataSourceFlywayMigrator migrator =
                 new PhysicalDataSourceFlywayMigrator((dataSource, target, properties) ->
                         migrated.add(target.dataSourceName()));
         Map<String, DataSource> dataSources = new LinkedHashMap<>();
-        dataSources.put("shard_1", mock(DataSource.class));
-        dataSources.put("single", mock(DataSource.class));
-        dataSources.put("shard_0", mock(DataSource.class));
+        dataSources.put("shard_1_replica_0", mock(DataSource.class));
+        dataSources.put("shard_1_primary", mock(DataSource.class));
+        dataSources.put("single_replica_0", mock(DataSource.class));
+        dataSources.put("single_primary", mock(DataSource.class));
+        dataSources.put("shard_0_replica_0", mock(DataSource.class));
+        dataSources.put("shard_0_primary", mock(DataSource.class));
 
         migrator.migrate(
                 dataSources,
-                List.of(target("single"), target("shard_1"), target("shard_0")),
+                List.of(
+                        target("single_primary"),
+                        target("shard_1_primary"),
+                        target("shard_0_primary")),
                 new FlywayProperties());
 
-        assertThat(migrated).containsExactly("shard_0", "shard_1", "single");
+        assertThat(migrated).containsExactly(
+                "shard_0_primary", "shard_1_primary", "single_primary");
     }
 
     @Test

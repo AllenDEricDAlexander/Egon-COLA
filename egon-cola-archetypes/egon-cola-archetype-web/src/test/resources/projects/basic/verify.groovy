@@ -1583,7 +1583,7 @@ def shardingRule = assertFile(
     "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
 assert shardingRule.contains("shardingColumn: grade_id")
 assert shardingRule.contains("school_classes,school_class_users")
-assert shardingRule.contains("single.grades")
+assert shardingRule.contains("single.public.grades")
 assert shardingRule.count("node-map:") == 2
 def readwriteRule = assertFile(
     "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text

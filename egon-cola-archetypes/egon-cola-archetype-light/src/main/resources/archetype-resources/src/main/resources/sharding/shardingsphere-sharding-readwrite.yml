@@ -72,12 +72,12 @@ rules:
 
   - !SINGLE
     tables:
-      - single.users
-      - single.roles
-      - single.permissions
-      - single.user_roles
-      - single.role_permissions
-      - single.courses
+      - single.public.users
+      - single.public.roles
+      - single.public.permissions
+      - single.public.user_roles
+      - single.public.role_permissions
+      - single.public.courses
     defaultDataSource: single
 
 props:
