@@ -18,6 +18,7 @@ import ${package}.infrastructure.user.service.impl.RoleDomainServiceImpl;
 import ${package}.infrastructure.user.service.impl.UserDomainServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,7 +35,8 @@ class LocalAdapterConfigurationTest {
                     RoleDomainServiceImpl.class,
                     PermissionDomainServiceImpl.class,
                     SchoolClassDomainServiceImpl.class,
-                    CourseDomainServiceImpl.class);
+                    CourseDomainServiceImpl.class,
+                    UuidV7Generator.class);
 
     @Test
     void assembles_one_local_implementation_for_every_domain_port() {

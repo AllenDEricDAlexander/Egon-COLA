@@ -72,6 +72,70 @@ JPA is the only persistence implementation. Flyway owns the H2/PostgreSQL schema
 
 `prod` is reserved for runtime builds and deployments from `main`. Configure `dev` and `prod` through environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `NACOS_CONFIG_ENABLED=true`, `NACOS_DISCOVERY_ENABLED=true`, and `DUBBO_REGISTRY_ADDRESS=nacos://host:8848`.
 
+${symbol_pound}${symbol_pound} Sharding, Read/Write Splitting, And Flyway
+
+The generated application supports three database modes:
+
+```bash
+SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev,sharding ./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev,sharding,readwrite ./mvnw spring-boot:run
+```
+
+The default mode keeps Spring Boot's single `DataSource` and Flyway lifecycle. The
+`sharding` profile creates the physical primary data sources, migrates them, and
+then exposes one ShardingSphere JDBC logical `DataSource`. `readwrite` is an
+add-on profile and must always be enabled together with `sharding`; it routes
+ordinary reads to replicas, writes to primaries, and transaction-bound reads to
+primaries.
+
+The table topology is:
+
+- SINGLE tables on `single`: `users`, `roles`, `permissions`, `user_roles`,
+  `role_permissions`, and `courses`.
+- SHARDING tables: `school_classes`, sharded by `id`, and
+  `class_course_schedules`, sharded by `school_class_id`. They are binding tables;
+  a class and its schedules use the same root key and are colocated in one
+  database and table suffix.
+
+For primary-only sharding, configure `LIGHT_SHARDING_SINGLE_URL`,
+`LIGHT_SHARDING_SHARD_0_URL`, `LIGHT_SHARDING_SHARD_1_URL`,
+`LIGHT_SHARDING_USERNAME`, `LIGHT_SHARDING_PASSWORD`, and optionally
+`LIGHT_SHARDING_DRIVER_CLASS_NAME`. Read/write splitting uses URL, username, and
+password triples for `LIGHT_SINGLE_PRIMARY`, `LIGHT_SINGLE_REPLICA_0`,
+`LIGHT_SHARD_0_PRIMARY`, `LIGHT_SHARD_0_REPLICA_0`,
+`LIGHT_SHARD_1_PRIMARY`, and `LIGHT_SHARD_1_REPLICA_0`; for example,
+`LIGHT_SHARD_0_PRIMARY_URL`, `LIGHT_SHARD_0_PRIMARY_USERNAME`, and
+`LIGHT_SHARD_0_PRIMARY_PASSWORD`.
+
+Flyway has three locations: `db/migration/default`,
+`db/migration/sharding/single`, and `db/migration/sharding/shard`. In
+ShardingSphere modes it runs serially against configured primary targets before
+the logical data source is created. Replicas must be database-level copies of
+their primaries and are never Flyway targets.
+
+Application-generated surrogate keys use UUIDv7 serialized as 36-character RFC
+strings. Migration names must follow `VyyyyMMdd_NNN__description.sql`, where the
+date is the creation date and `NNN` is a three-digit daily sequence. Every SQL
+file starts with these three comments: `变更内容`, `影响范围`, and `兼容性说明`.
+
+Database count, table count per database, and total physical-node count must all
+be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`, with
+`mapping-version: 1` and an append-only `node-map`. One expansion may only move
+from `N` to `2N`; if both database and per-database table counts must double, use
+two consecutive expansions. Preserve every old slot mapping, add the new
+primaries and run Flyway, append slots `N..2N-1`, move and reconcile only records
+whose new slot is `oldSlot + N`, then atomically publish the incremented mapping
+version. The stable-slot contract limits remapping to approximately half the
+keys, but this scaffold does not provide online dual writes, CDC, or automatic
+data movement.
+
+Transactions are local to one physical database only. Keep every aggregate
+operation on the same sharding root key. Cross-shard workflows must use business
+idempotency, explicit state transitions, events, reconciliation, and
+compensation; no XA, BASE, Seata, or other distributed transaction coordinator
+is included.
+
 ${symbol_pound}${symbol_pound} Commands
 
 Run all tests and architecture checks:

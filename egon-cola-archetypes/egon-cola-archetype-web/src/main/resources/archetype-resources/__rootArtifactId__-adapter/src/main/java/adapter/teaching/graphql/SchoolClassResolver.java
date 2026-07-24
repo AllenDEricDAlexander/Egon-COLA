@@ -31,8 +31,8 @@ public class SchoolClassResolver {
     }
 
     @QueryMapping
-    public SchoolClassDetailResult schoolClass(@Argument String id) {
-        return schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(id));
+    public SchoolClassDetailResult schoolClass(@Argument String gradeId, @Argument String id) {
+        return schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(gradeId, id));
     }
 
     @MutationMapping
@@ -55,7 +55,8 @@ public class SchoolClassResolver {
             @Argument AssignUserToSchoolClassInput input,
             @ContextValue(name = "idempotencyKey", required = false) String key) {
         schoolClassManage.assignUser(
-                new AssignUserToClassCommand(requestId(key), input.userId(), input.schoolClassId()));
+                new AssignUserToClassCommand(
+                        requestId(key), input.gradeId(), input.schoolClassId(), input.userId()));
         return true;
     }
 
@@ -65,5 +66,5 @@ public class SchoolClassResolver {
 
     public record CreateGradeInput(String code, String name) {}
     public record CreateSchoolClassInput(String name, String gradeCode) {}
-    public record AssignUserToSchoolClassInput(String userId, String schoolClassId) {}
+    public record AssignUserToSchoolClassInput(String gradeId, String userId, String schoolClassId) {}
 }

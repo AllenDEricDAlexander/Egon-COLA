@@ -16,6 +16,7 @@ import java.time.Instant;
 @AllArgsConstructor
 public class SchoolClassPO {
     @Id
+    @Column(length = 36)
     private String id;
     @Column(nullable = false)
     private String name;

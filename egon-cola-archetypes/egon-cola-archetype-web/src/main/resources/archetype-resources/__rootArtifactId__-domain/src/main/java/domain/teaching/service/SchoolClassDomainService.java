@@ -23,13 +23,6 @@ public class SchoolClassDomainService {
             grade.id(), grade.code(), grade.name(), SchoolClassStatus.ACTIVE, List.of());
     }
 
-    public SchoolClass create(String schoolClassId, String name, String gradeName) {
-        String normalizedGradeName = TeachingDomainValidator.normalizeName(gradeName, "grade name");
-        Grade grade = new Grade("legacy:" + normalizedGradeName,
-            GradeCode.restoreLegacy(normalizedGradeName), normalizedGradeName, GradeStatus.ACTIVE);
-        return create(new SchoolClassId(schoolClassId), name, grade);
-    }
-
     public SchoolClass assignUser(SchoolClass schoolClass, String userId) {
         UserId id = new UserId(userId);
         if (schoolClass.hasUser(id)) {

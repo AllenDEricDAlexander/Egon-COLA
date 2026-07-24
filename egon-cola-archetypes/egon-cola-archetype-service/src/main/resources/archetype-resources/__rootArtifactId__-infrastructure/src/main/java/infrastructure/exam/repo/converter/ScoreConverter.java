@@ -16,6 +16,11 @@ public class ScoreConverter {
         return new ScorePo(score.getId(), score.getExamId().value(), score.getCourseId().value(),
                 score.getStudentId(), score.getPoints().value(), score.getStatus().name(), createdAt, Instant.now());
     }
+    public ScorePo updatePo(Score score, ScorePo po) {
+        po.update(score.getCourseId().value(), score.getStudentId(), score.getPoints().value(),
+                score.getStatus().name(), Instant.now());
+        return po;
+    }
     public Score toDomain(ScorePo po) {
         return new Score(po.getId(), new ExamId(po.getExamId()), new CourseId(po.getCourseId()),
                 po.getStudentId(), new ScoreValue(po.getPoints()), ScoreStatus.valueOf(po.getStatus()));

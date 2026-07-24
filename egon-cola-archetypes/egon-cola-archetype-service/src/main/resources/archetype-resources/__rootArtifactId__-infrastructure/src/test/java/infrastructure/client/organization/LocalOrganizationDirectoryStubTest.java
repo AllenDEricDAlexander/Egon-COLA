@@ -17,7 +17,8 @@ class LocalOrganizationDirectoryStubTest {
     @Test
     void returnsDeterministicLocalData() {
         assertThat(stub.getUser("user-1").name()).isEqualTo("Local User user-1");
-        assertThat(stub.getSchoolClass("class-1").userIds()).containsExactly("local-user");
+        assertThat(stub.getSchoolClass("grade-1", "class-1").userIds())
+                .containsExactly("local-user");
     }
 
     @Test

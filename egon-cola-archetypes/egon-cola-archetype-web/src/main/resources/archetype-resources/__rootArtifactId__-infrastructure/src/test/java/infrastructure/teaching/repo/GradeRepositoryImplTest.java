@@ -18,12 +18,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"})
+@DataJpaTest(properties = {
+    "spring.flyway.enabled=true",
+    "spring.flyway.locations=classpath:db/migration/default",
+    "spring.jpa.hibernate.ddl-auto=validate"
+})
 @Import({GradeRepositoryImpl.class, GradePOConverter.class, GradePOMapperImpl.class})
 @ContextConfiguration(classes = GradeRepositoryImplTest.TestConfiguration.class)
 class GradeRepositoryImplTest {
@@ -32,15 +37,13 @@ class GradeRepositoryImplTest {
     @Autowired GradePOMapper gradePOMapper;
 
     @Test
-    void savesNewGradesAndRestoresLegacyCodes() {
+    void savesAndRestoresNormalizedGrades() {
+        String gradeId = new UuidV7Generator().nextId();
         Grade saved = repository.save(new Grade(
-            "grade-1", GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
-        jpaRepository.save(new GradePO(
-            "legacy:Legacy Grade", "Legacy Grade", "Legacy Grade", "ACTIVE", LocalDateTime.now()));
+            gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
 
         assertThat(repository.findByCode(new GradeCode("GRADE_ONE"))).contains(saved);
-        assertThat(repository.findById("legacy:Legacy Grade")).get()
-            .extracting(grade -> grade.code().value()).isEqualTo("Legacy Grade");
+        assertThat(repository.findById(gradeId)).contains(saved);
     }
 
     @Test
@@ -48,11 +51,12 @@ class GradeRepositoryImplTest {
         GradePO target = new GradePO(
             "old", "OLD", "Old", "INACTIVE", LocalDateTime.MIN);
 
+        String gradeId = new UuidV7Generator().nextId();
         GradePO mapped = gradePOMapper.convert(new Grade(
-            "grade-1", GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE), target);
+            gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE), target);
 
         assertThat(mapped).isSameAs(target);
-        assertThat(mapped.getId()).isEqualTo("grade-1");
+        assertThat(mapped.getId()).isEqualTo(gradeId);
         assertThat(mapped.getCode()).isEqualTo("GRADE_ONE");
     }
 

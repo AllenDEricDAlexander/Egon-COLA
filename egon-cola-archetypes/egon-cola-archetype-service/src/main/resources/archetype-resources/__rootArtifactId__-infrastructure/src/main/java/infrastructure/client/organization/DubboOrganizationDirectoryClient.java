@@ -59,9 +59,9 @@ public class DubboOrganizationDirectoryClient implements OrganizationDirectoryPo
     }
 
     @Override
-    public OrganizationSchoolClass getSchoolClass(String schoolClassId) {
+    public OrganizationSchoolClass getSchoolClass(String gradeId, String schoolClassId) {
         try {
-            SchoolClassDetailDTO response = schoolClassFacade.getSchoolClass(schoolClassId);
+            SchoolClassDetailDTO response = schoolClassFacade.getSchoolClass(gradeId, schoolClassId);
             if (response == null) {
                 throw OrganizationClientFailureMapper.incompatible("getSchoolClass");
             }

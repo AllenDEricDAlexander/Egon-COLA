@@ -1,0 +1,76 @@
+#set( $symbol_dollar = '$' )
+databaseName: evaluation
+
+rules:
+  - !SHARDING
+    tables:
+      course_schedule:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.course_schedule_${symbol_dollar}->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: course_id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: course_id
+            shardingAlgorithmName: uuid_v7_table_bucket
+      exam:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.exam_${symbol_dollar}->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: uuid_v7_table_bucket
+      exam_paper:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.exam_paper_${symbol_dollar}->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_table_bucket
+      score:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.score_${symbol_dollar}->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: exam_id
+            shardingAlgorithmName: uuid_v7_table_bucket
+    bindingTables:
+      - exam,exam_paper,score
+    shardingAlgorithms:
+      uuid_v7_database_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+          target: database
+          mapping-version: ${symbol_dollar}{app.sharding.routing.mapping-version}
+          node-count: ${symbol_dollar}{app.sharding.routing.node-count}
+          node-map: ${symbol_dollar}{app.sharding.routing.node-map}
+      uuid_v7_table_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+          target: table
+          mapping-version: ${symbol_dollar}{app.sharding.routing.mapping-version}
+          node-count: ${symbol_dollar}{app.sharding.routing.node-count}
+          node-map: ${symbol_dollar}{app.sharding.routing.node-map}
+
+  - !SINGLE
+    tables:
+      - single.public.course
+    defaultDataSource: single
+
+props:
+  proxy-frontend-database-protocol-type: PostgreSQL
+  sql-show: ${symbol_dollar}{SHARDING_SQL_SHOW:false}

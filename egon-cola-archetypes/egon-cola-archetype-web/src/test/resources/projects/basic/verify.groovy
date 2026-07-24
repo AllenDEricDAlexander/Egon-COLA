@@ -274,7 +274,6 @@ def requiredFiles = [
     "student-management-organization-common/src/main/java/it/pkg/common/exceptions/BizException.java",
     "student-management-organization-common/src/main/java/it/pkg/common/exceptions/NotFoundException.java",
     "student-management-organization-common/src/main/java/it/pkg/common/exceptions/package-info.java",
-    "student-management-organization-common/src/main/java/it/pkg/common/utils/IdGenerator.java",
     "student-management-organization-common/src/main/java/it/pkg/common/utils/package-info.java",
     "student-management-organization-common/src/main/resources/.gitkeep",
     "student-management-organization-common/src/test/java/it/pkg/.gitkeep",
@@ -419,8 +418,9 @@ def requiredFiles = [
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserPO.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserRolePO.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/package-info.java",
-    "student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql",
-    "student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql",
+    "student-management-organization-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_organization_default_schema.sql",
+    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/single/V20260724_002__init_organization_single_schema.sql",
+    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/shard/V20260724_003__init_organization_sharding_schema.sql",
     "student-management-organization-infrastructure/src/test/java/it/pkg/.gitkeep",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/OrganizationCacheTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/OrganizationFlywayMigrationTest.java",
@@ -454,6 +454,8 @@ def requiredFiles = [
     "student-management-organization-starter/src/main/resources/META-INF/spring.factories",
     "student-management-organization-starter/src/main/resources/application-dev.yml",
     "student-management-organization-starter/src/main/resources/application-prod.yml",
+    "student-management-organization-starter/src/main/resources/application-readwrite.yml",
+    "student-management-organization-starter/src/main/resources/application-sharding.yml",
     "student-management-organization-starter/src/main/resources/application-test.yml",
     "student-management-organization-starter/src/main/resources/application.yml",
     "student-management-organization-starter/src/main/resources/bootstrap-dev.yml",
@@ -461,10 +463,13 @@ def requiredFiles = [
     "student-management-organization-starter/src/main/resources/bootstrap-test.yml",
     "student-management-organization-starter/src/main/resources/bootstrap.yml",
     "student-management-organization-starter/src/main/resources/logback-spring.xml",
+    "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml",
+    "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding.yml",
     "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationApplicationTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationFlowTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationOpenApiTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationRollbackTest.java",
+    "student-management-organization-starter/src/test/java/it/pkg/starter/OrganizationShardingProfileTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/AesGcmConfigDecryptorTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java",
     "student-management-organization-starter/src/test/java/it/pkg/starter/config/encryption/package-info.java",
@@ -1059,6 +1064,11 @@ assert rootPom.parent.groupId.text() == "org.springframework.boot"
 assert rootPom.parent.artifactId.text() == "spring-boot-starter-parent"
 assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent version"
 assert rootPom.properties.'java.version'.text() == "21"
+assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
+assert rootPomText.contains("<artifactId>shardingsphere-jdbc</artifactId>")
+assert rootPomText.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
+assert assertFile("student-management-organization-common/pom.xml").text
+        .contains("<artifactId>egon-cola-component-common-id</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
@@ -1310,7 +1320,7 @@ assertModuleDependencies(starterDependencies, [
 ])
 
 assertExactExternalDependencies("common", dependencies(commonPom), [
-    "egon-cola-component-common-core", "junit-jupiter"
+    "egon-cola-component-common-core", "egon-cola-component-common-id", "junit-jupiter"
 ])
 assertExactExternalDependencies("domain", domainDependencies, ["junit-jupiter"])
 assertExactExternalDependencies("application", applicationDependencies, [
@@ -1319,6 +1329,15 @@ assertExactExternalDependencies("application", applicationDependencies, [
 ])
 assertExactExternalDependencies("infrastructure", infrastructureDependencies, [
     '${evaluation-facade.artifact-id}', "dubbo-spring-boot-starter",
+    "shardingsphere-jdbc", "shardingsphere-sharding-core",
+    "shardingsphere-infra-data-source-pool-hikari",
+    "shardingsphere-standalone-mode-repository-memory",
+    "shardingsphere-authority-simple",
+    "shardingsphere-parser-sql-engine-sql92",
+    "shardingsphere-parser-sql-engine-mysql",
+    "shardingsphere-parser-sql-engine-postgresql",
+    "shardingsphere-readwrite-splitting-core",
+    "commons-lang3",
     "spring-boot-starter-data-jpa", "spring-boot-starter-data-redis", "spring-boot-starter-amqp",
     "spring-boot-starter-aop", "micrometer-core", "flyway-core", "h2", "postgresql",
     "mapstruct-plus-spring-boot-starter", "lombok", "spring-boot-starter-test"
@@ -1408,7 +1427,7 @@ assertFile("student-management-organization-application/src/main/java/it/pkg/app
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/GradeManage.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java")
-assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
+assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_organization_default_schema.sql")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/UserController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/RoleController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/PermissionController.java")
@@ -1449,6 +1468,8 @@ assert generatedPomTexts.every { !it.contains("archunit-junit5") && !it.contains
 
 def organizationApplicationText = assertFile("student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
 assert organizationApplicationText.contains("@EnableDubbo")
+assert organizationApplicationText.contains("enableDefaultTransactions = false")
+assert organizationApplicationText.contains("UuidV7Generator")
 assert organizationApplicationText.contains('"it.pkg.adapter.user.rpc"')
 assert organizationApplicationText.contains('"it.pkg.adapter.teaching.rpc"')
 assert !organizationApplicationText.contains('"it.pkg.adapter.facade"')
@@ -1469,6 +1490,9 @@ assert !schoolClassManageText.contains("SchoolClassView")
 
 def userManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/user/manage/impl/UserManageImpl.java").text
 assert userManageImplText.contains("UserRepository userRepository")
+assert userManageImplText.contains("IdGenerator idGenerator")
+assert userManageImplText.contains("new UserId(idGenerator.nextId())")
+assert !userManageImplText.contains('"user-"')
 assert userManageImplText.contains("userRepository.existsByEmail(normalizedEmail)")
 assert userManageImplText.contains("UserDetailResult createUser")
 assert !userManageImplText.contains("UserClient")
@@ -1476,6 +1500,9 @@ assert !userManageImplText.contains("UserClient")
 def schoolClassManageImplText = assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/impl/SchoolClassManageImpl.java").text
 assert schoolClassManageImplText.contains("SchoolClassRepository schoolClassRepository")
 assert schoolClassManageImplText.contains("GradeRepository gradeRepository")
+assert schoolClassManageImplText.contains("IdGenerator idGenerator")
+assert schoolClassManageImplText.contains("new SchoolClassId(idGenerator.nextId())")
+assert !schoolClassManageImplText.contains('"class-"')
 assert schoolClassManageImplText.contains("existsByGradeIdAndNameIgnoreCase")
 assert !schoolClassManageImplText.contains("SchoolClassClient")
 
@@ -1532,16 +1559,59 @@ assert applicationJava.every { !it.text.contains("facade.dto") }
 assert applicationJava.every { !it.text.contains("common.response") }
 
 def migrationDir = new File(projectDir, "student-management-organization-infrastructure/src/main/resources/db/migration")
-def migrationFiles = migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter)
-assert migrationFiles.size() == 2
-def sha256 = { File file ->
-    java.security.MessageDigest.getInstance("SHA-256").digest(file.bytes).encodeHex().toString()
+def migrationFiles = []
+migrationDir.traverse(type: FileType.FILES) { file ->
+    if (file.name.endsWith(".sql")) migrationFiles << file
 }
-assert sha256(assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")) ==
-    "c5481736a3ffefc45197a767aec26c1462bb338dfccc1d11751a782ac3de6df1"
-assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql")
-assert migrationFiles.findAll { it.name.startsWith("V2__") }.size() == 1
+assert migrationFiles.size() == 3
+assert migrationFiles*.name.sort() == [
+    "V20260724_001__init_organization_default_schema.sql",
+    "V20260724_002__init_organization_single_schema.sql",
+    "V20260724_003__init_organization_sharding_schema.sql"
+]
+migrationFiles.each {
+    assert it.text.startsWith("-- 变更内容：")
+    assert it.text.contains("\n-- 影响范围：")
+    assert it.text.contains("\n-- 兼容性说明：")
+}
+assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
+assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql")
 assertMissing("student-management-organization-infrastructure/src/test/resources/db/migration")
+
+def shardingApplication = assertFile(
+    "student-management-organization-starter/src/main/resources/application-sharding.yml").text
+assert shardingApplication.contains(
+        'mapping-version: ${ORGANIZATION_SHARDING_MAPPING_VERSION:1}')
+assert shardingApplication.contains('node-count: ${ORGANIZATION_SHARDING_NODE_COUNT:4}')
+assert shardingApplication.contains(
+        'node-map: ${ORGANIZATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
+assert shardingApplication.contains("classpath:db/migration/sharding/single")
+assert shardingApplication.contains("classpath:db/migration/sharding/shard")
+def shardingRule = assertFile(
+    "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
+assert shardingRule.contains("shardingColumn: grade_id")
+assert shardingRule.contains("school_classes,school_class_users")
+assert shardingRule.contains("single.public.grades")
+assert shardingRule.count("node-map:") == 2
+def readwriteRule = assertFile(
+    "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
+assert readwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
+assert readwriteRule.contains("school_classes,school_class_users")
+assertMissing("student-management-organization-common/src/main/java/it/pkg/common/utils/IdGenerator.java")
+assertNoJavaText("student-management-organization-application/src/main/java", "@Transactional(readOnly = true)")
+[
+    "student-management-organization-application/src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigrator.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceBootstrapper.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMap.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidator.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithm.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
+].each { assertFile(it) }
 
 def readme = assertFile("README.md").text
 assert readme.contains("Student Management Organization")
@@ -1559,6 +1629,29 @@ assert readme.contains("Evaluation Facade")
     "infrastructure/user/repo",
     "adapter/teaching/controller"
 ].each { assert readme.contains(it) }
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "SPRING_PROFILES_ACTIVE=dev,sharding,readwrite",
+    "school_class_users",
+    "grade_id",
+    "primary targets",
+    "36-character RFC",
+    "VyyyyMMdd_NNN__description.sql",
+    "mapping-version: 1",
+    "N` to `2N",
+    "local transactions within one physical database",
+    "online dual writes, CDC, or automatic data movement"
+].each { assert readme.contains(it) }
+def webReadmeZh = assertFile("README.zh-CN.md").text
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "grade_id",
+    "36 位 RFC 字符串",
+    "VyyyyMMdd_NNN__description.sql",
+    "单次只允许从 `N` 扩成",
+    "一个物理库内的本地事务",
+    "不包含在线双写、CDC 或自动搬数"
+].each { assert webReadmeZh.contains(it) }
 assert !readme.contains("adapter/controller/user")
 assert !readme.contains("application/manage/teaching")
 

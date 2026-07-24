@@ -33,4 +33,13 @@ public class CourseSchedulePo {
     public Instant getStartsAt() { return startsAt; }
     public Instant getEndsAt() { return endsAt; }
     public String getStatus() { return status; }
+
+    public void update(
+            String classId, Instant startsAt, Instant endsAt, String status, Instant updatedAt) {
+        this.classId = classId;
+        this.startsAt = startsAt;
+        this.endsAt = endsAt;
+        this.status = status;
+        this.updatedAt = updatedAt;
+    }
 }

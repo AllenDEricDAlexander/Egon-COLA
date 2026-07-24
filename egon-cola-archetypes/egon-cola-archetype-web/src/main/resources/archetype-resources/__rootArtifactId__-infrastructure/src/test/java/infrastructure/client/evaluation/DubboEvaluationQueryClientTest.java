@@ -65,10 +65,10 @@ class DubboEvaluationQueryClientTest {
 
     @Test
     void mapsScoreToConsumerProjection() {
-        when(scoreFacade.getScore(new GetScoreRequest("score-1"))).thenReturn(SingleResponse.of(
+        when(scoreFacade.getScore(new GetScoreRequest("exam-1", "score-1"))).thenReturn(SingleResponse.of(
                 new ScoreResponse("score-1", "exam-1", "course-1", "student-1", 95, "RECORDED")));
 
-        assertThat(client.getScore("score-1")).isEqualTo(new EvaluationScore(
+        assertThat(client.getScore("exam-1", "score-1")).isEqualTo(new EvaluationScore(
                 "score-1", "exam-1", "course-1", "student-1", 95, "RECORDED"));
     }
 

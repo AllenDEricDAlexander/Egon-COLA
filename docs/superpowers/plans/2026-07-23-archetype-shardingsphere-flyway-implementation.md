@@ -84,6 +84,17 @@ Light 生成 POM 直接增加：
     <groupId>org.apache.shardingsphere</groupId>
     <artifactId>shardingsphere-jdbc</artifactId>
     <version>${shardingsphere.version}</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-transaction-xa-core</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-sharding-core</artifactId>
+    <version>${shardingsphere.version}</version>
 </dependency>
 <dependency>
     <groupId>top.egon</groupId>
@@ -91,7 +102,7 @@ Light 生成 POM 直接增加：
 </dependency>
 ```
 
-Web、Service 的生成父 POM 只管理 `shardingsphere-jdbc:5.5.3`；各自 infrastructure POM 引入 ShardingSphere JDBC，各自 common POM 引入 `egon-cola-component-common-id`。这样 Infrastructure 可经 Domain → Common 依赖链注册 `UuidV7Generator`，Application 也可经 Domain → Common 注入 `IdGenerator`，Domain 源码本身不导入主键组件。
+ShardingSphere 5.5.3 的 `shardingsphere-jdbc` 发布 POM 将部分规则和运行时 SPI 模块标记为 test 依赖，因此必须显式引入同版本 `shardingsphere-sharding-core`、`shardingsphere-infra-data-source-pool-hikari`、`shardingsphere-standalone-mode-repository-memory`、`shardingsphere-authority-simple`、SQL92/MySQL/PostgreSQL parser 和 `shardingsphere-readwrite-splitting-core`；其默认传递的 `shardingsphere-transaction-xa-core` 必须在直接依赖点排除。ShardingSphere 使用的 `commons-lang3` 3.18.0 `Strings` API 也要显式锁定，避免被 Spring Boot BOM 管理到较低版本。Web、Service 的生成父 POM 管理这些制品的版本；各自 infrastructure POM 引入运行时依赖，各自 common POM 引入 `egon-cola-component-common-id`。这样 Infrastructure 可经 Domain → Common 依赖链注册 `UuidV7Generator`，Application 也可经 Domain → Common 注入 `IdGenerator`，Domain 源码本身不导入主键组件。
 
 - [ ] **Step 3: 实现不可变节点映射**
 
@@ -362,9 +373,9 @@ git commit -m "feat(archetype): 编排物理节点flyway启动"
 
 - Delete: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/V1__init_student_management.sql`
 - Delete: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/V2__align_large_monolith_domain.sql`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/default/V20260723_001__init_light_default_schema.sql`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/single/V20260723_002__init_light_single_schema.sql`
-- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/shard/V20260723_003__init_light_sharding_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/default/V20260724_001__init_light_default_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/single/V20260724_002__init_light_single_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/shard/V20260724_003__init_light_sharding_schema.sql`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/application-sharding.yml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/application-readwrite.yml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/sharding/shardingsphere-sharding.yml`
@@ -647,9 +658,9 @@ git commit -m "refactor(archetype): 补全web班级分片键"
 - Modify: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/java/infrastructure/user/repo/impl/RoleRepositoryImpl.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/java/infrastructure/teaching/repo/impl/SchoolClassRepositoryImpl.java`
 - Delete the two existing Web migration files under `__rootArtifactId__-infrastructure/src/main/resources/db/migration`.
-- Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/default/V20260723_001__init_organization_default_schema.sql`
-- Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/single/V20260723_002__init_organization_single_schema.sql`
-- Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260723_003__init_organization_sharding_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_organization_default_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/single/V20260724_002__init_organization_single_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260724_003__init_organization_sharding_schema.sql`
 - Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/application-sharding.yml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/application-readwrite.yml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/sharding/shardingsphere-sharding.yml`
@@ -819,9 +830,9 @@ git commit -m "refactor(archetype): 补全成绩分片键"
 - Modify: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-application/src/main/java/application/exam/manage/impl/ExamManageImpl.java`
 - Modify: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-application/src/main/java/application/exam/manage/impl/ScoreManageImpl.java`
 - Delete the two existing Service migration files under `__rootArtifactId__-infrastructure/src/main/resources/db/migration`.
-- Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/default/V20260723_001__init_evaluation_default_schema.sql`
-- Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/single/V20260723_002__init_evaluation_single_schema.sql`
-- Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260723_003__init_evaluation_sharding_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_evaluation_default_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/single/V20260724_002__init_evaluation_single_schema.sql`
+- Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260724_003__init_evaluation_sharding_schema.sql`
 - Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/application-sharding.yml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/application-readwrite.yml`
 - Create: `egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/resources/sharding/shardingsphere-sharding.yml`
@@ -958,7 +969,7 @@ private static final Pattern VERSIONED_MIGRATION = Pattern.compile(
 只在同一物理节点可成立的本地外键
 ```
 
-JPA `ddl-auto=validate` 必须分别对 default 和 ShardingSphere 逻辑 DataSource 执行。
+JPA `ddl-auto=validate` 必须分别对 default 和 ShardingSphere 逻辑 DataSource 执行。H2 会被 ShardingSphere 识别为 MySQL 存储类型；分片 profile 的启动测试因此让多个 H2 DataSource 共享一个测试 catalog，并向每个测试 Flyway target 注入 single + shard 两个 location，以模拟真实 PostgreSQL 多库共同暴露 `public` schema 的逻辑元数据。生产 profile 仍保持每个物理库独立迁移。
 
 - [ ] **Step 3: 删除旧数据搬迁语义测试**
 
@@ -1060,7 +1071,7 @@ git commit -m "test(archetype): 验证读写与本地事务路由"
 
 每个 verifier 必须断言生成项目包含：
 
-1. `shardingsphere-jdbc` 版本 `5.5.3`；
+1. `shardingsphere-jdbc` 与 `shardingsphere-sharding-core` 版本均为 `5.5.3`；
 2. `egon-cola-component-common-id`；
 3. `application-sharding.yml`、`application-readwrite.yml`；
 4. 两份 ShardingSphere 规则 YAML；
@@ -1122,7 +1133,7 @@ Run:
 Expected:
 
 ```text
-ShardingSphere JDBC only resolves to 5.5.3
+ShardingSphere JDBC and Sharding Core only resolve to 5.5.3
 No distributed transaction implementation is present
 common-id is present only in the intended generated modules
 ```

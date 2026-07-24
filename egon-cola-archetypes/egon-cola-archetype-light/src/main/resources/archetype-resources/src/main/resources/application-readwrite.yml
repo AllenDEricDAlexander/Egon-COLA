@@ -1,0 +1,58 @@
+#set( $symbol_dollar = '$' )
+app:
+  sharding:
+    config: classpath:sharding/shardingsphere-sharding-readwrite.yml
+    physical-data-sources:
+      - name: single_primary
+        logical-name: single
+        role: PRIMARY
+        driver-class-name: ${symbol_dollar}{LIGHT_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{LIGHT_SINGLE_PRIMARY_URL}
+        username: ${symbol_dollar}{LIGHT_SINGLE_PRIMARY_USERNAME}
+        password: "${symbol_dollar}{LIGHT_SINGLE_PRIMARY_PASSWORD:}"
+      - name: single_replica_0
+        logical-name: single
+        role: REPLICA
+        driver-class-name: ${symbol_dollar}{LIGHT_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{LIGHT_SINGLE_REPLICA_0_URL}
+        username: ${symbol_dollar}{LIGHT_SINGLE_REPLICA_0_USERNAME}
+        password: "${symbol_dollar}{LIGHT_SINGLE_REPLICA_0_PASSWORD:}"
+      - name: shard_0_primary
+        logical-name: shard_0
+        role: PRIMARY
+        driver-class-name: ${symbol_dollar}{LIGHT_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{LIGHT_SHARD_0_PRIMARY_URL}
+        username: ${symbol_dollar}{LIGHT_SHARD_0_PRIMARY_USERNAME}
+        password: "${symbol_dollar}{LIGHT_SHARD_0_PRIMARY_PASSWORD:}"
+      - name: shard_0_replica_0
+        logical-name: shard_0
+        role: REPLICA
+        driver-class-name: ${symbol_dollar}{LIGHT_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{LIGHT_SHARD_0_REPLICA_0_URL}
+        username: ${symbol_dollar}{LIGHT_SHARD_0_REPLICA_0_USERNAME}
+        password: "${symbol_dollar}{LIGHT_SHARD_0_REPLICA_0_PASSWORD:}"
+      - name: shard_1_primary
+        logical-name: shard_1
+        role: PRIMARY
+        driver-class-name: ${symbol_dollar}{LIGHT_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{LIGHT_SHARD_1_PRIMARY_URL}
+        username: ${symbol_dollar}{LIGHT_SHARD_1_PRIMARY_USERNAME}
+        password: "${symbol_dollar}{LIGHT_SHARD_1_PRIMARY_PASSWORD:}"
+      - name: shard_1_replica_0
+        logical-name: shard_1
+        role: REPLICA
+        driver-class-name: ${symbol_dollar}{LIGHT_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{LIGHT_SHARD_1_REPLICA_0_URL}
+        username: ${symbol_dollar}{LIGHT_SHARD_1_REPLICA_0_USERNAME}
+        password: "${symbol_dollar}{LIGHT_SHARD_1_REPLICA_0_PASSWORD:}"
+    flyway:
+      targets:
+        - data-source-name: single_primary
+          locations:
+            - classpath:db/migration/sharding/single
+        - data-source-name: shard_0_primary
+          locations:
+            - classpath:db/migration/sharding/shard
+        - data-source-name: shard_1_primary
+          locations:
+            - classpath:db/migration/sharding/shard

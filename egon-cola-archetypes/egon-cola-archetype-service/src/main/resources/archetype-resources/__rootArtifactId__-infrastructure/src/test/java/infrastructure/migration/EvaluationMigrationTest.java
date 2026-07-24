@@ -3,65 +3,71 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.migration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.FlywayException;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class EvaluationMigrationTest {
 
     @Test
-    void shouldMigrateValidV1ResultsWithoutChangingLegacyRows() throws Exception {
-        String url = "jdbc:h2:mem:migration-valid;MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
-        migrateToV1(url);
-        insertLegacyData(url, 90);
+    void shouldInitializeCompleteDefaultSchema() throws Exception {
+        String url = h2Url("evaluation-default-migration");
 
-        Flyway.configure().dataSource(url, "sa", "").load().migrate();
+        Flyway flyway = Flyway.configure()
+                .dataSource(url, "sa", "")
+                .locations("classpath:db/migration/default")
+                .validateMigrationNaming(true)
+                .load();
+        flyway.migrate();
+        flyway.validate();
 
-        assertEquals(1, count(url, "select count(*) from exam_result where id='result-1'"));
-        assertEquals(1, count(url, "select count(*) from score where id='result-1'"));
-        assertEquals(1, count(url, "select count(*) from exam where id='legacy-exam-result-1'"));
-        assertEquals(1, count(url, "select count(*) from course where code='LEGACY-course-1'"));
+        assertEquals(5, countBusinessTables(url));
     }
 
     @Test
-    void shouldRejectInvalidLegacyScoreWithoutDeletingV1Row() throws Exception {
-        String url = "jdbc:h2:mem:migration-invalid;MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
-        migrateToV1(url);
-        insertLegacyData(url, 101);
+    void shouldInitializeSingleAndShardSchemasIndependently() throws Exception {
+        String singleUrl = h2Url("evaluation-single-migration");
+        String shardUrl = h2Url("evaluation-shard-migration");
 
-        assertThrows(FlywayException.class,
-                () -> Flyway.configure().dataSource(url, "sa", "").load().migrate());
-        assertEquals(1, count(url, "select count(*) from exam_result where id='result-1'"));
+        migrate(singleUrl, "classpath:db/migration/sharding/single");
+        migrate(shardUrl, "classpath:db/migration/sharding/shard");
+
+        assertEquals(1, countBusinessTables(singleUrl));
+        assertEquals(8, countBusinessTables(shardUrl));
     }
 
-    private static void migrateToV1(String url) {
-        Flyway.configure().dataSource(url, "sa", "").target("1").load().migrate();
+    private static void migrate(String url, String location) {
+        Flyway flyway = Flyway.configure()
+                .dataSource(url, "sa", "")
+                .locations(location)
+                .validateMigrationNaming(true)
+                .load();
+        flyway.migrate();
+        flyway.validate();
     }
 
-    private static void insertLegacyData(String url, int score) throws Exception {
-        try (Connection connection = DriverManager.getConnection(url, "sa", "");
-             Statement statement = connection.createStatement()) {
-            statement.executeUpdate("insert into course values "
-                    + "('course-1','Math',3,'ACTIVE',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
-            statement.executeUpdate("insert into exam_result values "
-                    + "('result-1','course-1','student-1'," + score
-                    + ",'RECORDED',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
-        }
-    }
-
-    private static int count(String url, String sql) throws Exception {
+    private static int countBusinessTables(String url) throws Exception {
+        String sql = """
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name NOT IN ('flyway_schema_history')
+                """;
         try (Connection connection = DriverManager.getConnection(url, "sa", "");
              Statement statement = connection.createStatement();
              ResultSet result = statement.executeQuery(sql)) {
             result.next();
             return result.getInt(1);
         }
+    }
+
+    private static String h2Url(String database) {
+        return "jdbc:h2:mem:" + database
+                + ";MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
     }
 }

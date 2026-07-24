@@ -25,13 +25,17 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
                 new CreateSchoolClassCommand(
                     OrganizationFacadeSupport.requestId(), request.name(), request.gradeCode()))));
     }
-    @Override public SchoolClassDetailDTO getSchoolClass(String schoolClassId) {
+    @Override public SchoolClassDetailDTO getSchoolClass(String gradeId, String schoolClassId) {
         return OrganizationFacadeSupport.invoke(
-                () -> toDTO(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(schoolClassId))));
+                () -> toDTO(schoolClassManage.getSchoolClass(
+                        new SchoolClassDetailQuery(gradeId, schoolClassId))));
     }
     @Override public void assignUser(AssignUserToClassDTO request) {
         OrganizationFacadeSupport.invoke(() -> schoolClassManage.assignUser(new AssignUserToClassCommand(
-            OrganizationFacadeSupport.requestId(), request.userId(), request.schoolClassId())));
+            OrganizationFacadeSupport.requestId(),
+            request.gradeId(),
+            request.schoolClassId(),
+            request.userId())));
     }
     private static SchoolClassDetailDTO toDTO(SchoolClassDetailResult result) {
         return new SchoolClassDetailDTO(result.id(), result.name(), result.gradeCode(),

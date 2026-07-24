@@ -12,11 +12,14 @@ import ${package}.infrastructure.teaching.repo.jpa.ClassCourseScheduleJpaReposit
 import ${package}.infrastructure.teaching.repo.jpa.CourseJpaRepository;
 import ${package}.infrastructure.teaching.repo.jpa.SchoolClassJpaRepository;
 import ${package}.infrastructure.teaching.repo.po.ClassCourseSchedulePO;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 @Repository("schoolClassRepository")
 @RequiredArgsConstructor
@@ -26,6 +29,8 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     private final ClassCourseScheduleJpaRepository scheduleJpaRepository;
     private final SchoolClassPOConverter schoolClassConverter;
     private final CoursePOConverter courseConverter;
+    private final IdGenerator idGenerator;
+    private final EntityManager entityManager;
 
     @Override
     public SchoolClass save(SchoolClass schoolClass) {
@@ -45,16 +50,22 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     }
 
     @Override
+    @Transactional
     public void saveAggregate(SchoolClassAggregate aggregate) {
         save(aggregate.schoolClass());
         aggregate.schedules().forEach(schedule -> {
             Course course = courseJpaRepository.findByCourseCode(schedule.courseCode().value())
                     .map(courseConverter::toDomain)
                     .orElseThrow(() -> new IllegalStateException("scheduled course not found"));
-            scheduleJpaRepository.save(new ClassCourseSchedulePO(
-                    aggregate.schoolClass().id().value(), course.id(), schedule.startsAt(),
-                    schedule.endsAt(), Instant.now()));
+            entityManager.persist(new ClassCourseSchedulePO(
+                    idGenerator.nextId(),
+                    aggregate.schoolClass().id().value(),
+                    course.id(),
+                    schedule.startsAt(),
+                    schedule.endsAt(),
+                    Instant.now()));
         });
+        entityManager.flush();
     }
 
     private void restoreSchedule(

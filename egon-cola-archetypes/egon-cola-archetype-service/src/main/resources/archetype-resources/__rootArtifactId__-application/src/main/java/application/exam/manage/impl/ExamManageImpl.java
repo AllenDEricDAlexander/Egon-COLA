@@ -24,10 +24,10 @@ import ${package}.domain.exam.repos.ExamRepository;
 import ${package}.domain.exam.service.ExamDomainService;
 import ${package}.domain.course.vos.CourseId;
 import ${package}.domain.exam.vos.ExamId;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 @Service("evaluationExamManage")
 @RequiredArgsConstructor
@@ -40,6 +40,7 @@ public class ExamManageImpl implements ExamManage {
     private final ExamDomainService examDomainService;
     private final ExamApplicationConverter converter;
     private final ExamApplicationValidator validator;
+    private final IdGenerator idGenerator;
 
     @Override
     @Transactional
@@ -49,7 +50,7 @@ public class ExamManageImpl implements ExamManage {
         Course course = courseRepository.findById(new CourseId(command.courseId()))
                 .orElseThrow(() -> failure(ApplicationErrorCode.COURSE_NOT_FOUND, "course not found"));
         Exam exam = examDomainService.createExam(
-                UUID.randomUUID().toString(), course, command.title(),
+                idGenerator.nextId(), course, command.title(),
                 command.startsAt(), command.endsAt());
         return converter.toResult(examRepository.save(exam));
     }
@@ -59,7 +60,7 @@ public class ExamManageImpl implements ExamManage {
     public ExamPaperResult attachPaper(AttachExamPaperCommand command) {
         Exam exam = requireExam(command.examId());
         ExamPaper paper = examDomainService.attachPaper(
-                UUID.randomUUID().toString(), exam, command.title(), command.totalPoints());
+                idGenerator.nextId(), exam, command.title(), command.totalPoints());
         return converter.toResult(examPaperRepository.save(paper));
     }
 
@@ -78,7 +79,6 @@ public class ExamManageImpl implements ExamManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public ExamDetailResult get(GetExamQuery query) {
         return converter.toResult(requireExam(query.examId()));
     }

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,32 +53,36 @@ class AssignUserToClassUseCaseTest {
     void assignsActiveUserToActiveSchoolClassInOneTransaction() {
         setContext();
         when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(activeUser("u-1")));
-        when(schoolClassRepository.findById(new SchoolClassId("c-1"))).thenReturn(Optional.of(activeClass("c-1")));
+        when(schoolClassRepository.findByGradeIdAndId("grade-1", new SchoolClassId("c-1")))
+                .thenReturn(Optional.of(activeClass("c-1")));
         when(idempotency.claim("assign-user-to-school-class", "req-1")).thenReturn(true);
         SchoolClassManageImpl manage = manage();
 
-        manage.assignUser(new AssignUserToClassCommand("req-1", "u-1", "c-1"));
+        manage.assignUser(new AssignUserToClassCommand("req-1", "grade-1", "c-1", "u-1"));
 
-        verify(schoolClassRepository).addUser(new SchoolClassId("c-1"), new UserId("u-1"));
+        verify(schoolClassRepository)
+                .addUser("grade-1", new SchoolClassId("c-1"), new UserId("u-1"));
     }
 
     @Test
     void rejectsDuplicateMembershipWithoutWriting() {
         setContext();
         when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(activeUser("u-1")));
-        when(schoolClassRepository.findById(new SchoolClassId("c-1"))).thenReturn(Optional.of(activeClass("c-1")));
-        when(schoolClassRepository.hasUser(new SchoolClassId("c-1"), new UserId("u-1"))).thenReturn(true);
+        when(schoolClassRepository.findByGradeIdAndId("grade-1", new SchoolClassId("c-1")))
+                .thenReturn(Optional.of(activeClass("c-1")));
+        when(schoolClassRepository.hasUser(
+                "grade-1", new SchoolClassId("c-1"), new UserId("u-1"))).thenReturn(true);
         when(idempotency.claim("assign-user-to-school-class", "req-2")).thenReturn(true);
 
         assertThrows(OrganizationApplicationException.class, () -> manage().assignUser(
-            new AssignUserToClassCommand("req-2", "u-1", "c-1")));
-        verify(schoolClassRepository, never()).addUser(any(), any());
+            new AssignUserToClassCommand("req-2", "grade-1", "c-1", "u-1")));
+        verify(schoolClassRepository, never()).addUser(anyString(), any(), any());
     }
 
     private SchoolClassManageImpl manage() {
         return new SchoolClassManageImpl(schoolClassRepository, gradeRepository, userRepository,
             new SchoolClassDomainService(), new TeachingApplicationValidator(), schoolClassCache, idempotency,
-            eventPublisher);
+            eventPublisher, new UuidV7Generator());
     }
 
     private static User activeUser(String id) {

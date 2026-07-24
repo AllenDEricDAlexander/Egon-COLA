@@ -21,6 +21,7 @@ import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.util.UUID;
 import java.time.Instant;
@@ -36,6 +37,7 @@ public class UserManageImpl implements UserManage {
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
+    private final IdGenerator idGenerator;
 
     @Override
     @Transactional
@@ -48,7 +50,7 @@ public class UserManageImpl implements UserManage {
                     OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "user email already exists");
             }
             User user = userRepository.save(userDomainService.create(
-                new UserId("user-" + UUID.randomUUID().toString().toLowerCase()), command.name(), normalizedEmail));
+                new UserId(idGenerator.nextId()), command.name(), normalizedEmail));
             OrganizationTransactionHooks.afterCommit(() -> {
                 userCache.evict(user.id());
                 eventPublisher.publish(new UserChangedEvent(
@@ -59,7 +61,6 @@ public class UserManageImpl implements UserManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public UserDetailResult getUser(UserDetailQuery query) {
         UserId userId = new UserId(query.userId());
         User user = userCache.findById(userId).orElseGet(() -> {

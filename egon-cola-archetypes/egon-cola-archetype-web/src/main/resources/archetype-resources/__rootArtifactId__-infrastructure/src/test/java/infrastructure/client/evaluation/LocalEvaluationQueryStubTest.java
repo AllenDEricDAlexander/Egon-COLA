@@ -18,7 +18,7 @@ class LocalEvaluationQueryStubTest {
     void returnsDeterministicLocalData() {
         assertThat(stub.getCourse("course-1").name()).isEqualTo("Local Course course-1");
         assertThat(stub.getExam("exam-1").courseId()).isEqualTo("local-course");
-        assertThat(stub.getScore("score-1").studentId()).isEqualTo("local-student");
+        assertThat(stub.getScore("exam-1", "score-1").studentId()).isEqualTo("local-student");
     }
 
     @Test

@@ -13,6 +13,7 @@
       <includes>
         <include>pom.xml</include>
         <include>README.md</include>
+        <include>README.zh-CN.md</include>
         <include>lombok.config</include>
         <include>.dockerignore</include>
       </includes>

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.util.Set;
 
@@ -40,7 +41,7 @@ class GradeManageImplTest {
         when(idempotency.claim("create-grade", "req-1")).thenReturn(true);
         GradeManageImpl manage = new GradeManageImpl(
             gradeRepository, new GradeDomainServiceImpl(), new TeachingApplicationValidator(),
-            gradeCache, idempotency, eventPublisher);
+            gradeCache, idempotency, eventPublisher, new UuidV7Generator());
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createGrade(
             new CreateGradeCommand("req-1", "grade_one", "Grade One")));

@@ -63,7 +63,6 @@ public class PermissionManageImpl implements PermissionManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<PermissionDetailResult> getByUser(GetUserPermissionsQuery query) {
         return permissionRepository.findByUserId(new UserId(query.userId())).stream()
                 .map(permission -> new PermissionDetailResult(

@@ -18,9 +18,7 @@ public final class GradePOConverter {
     }
 
     public Grade toEntity(GradePO gradePO) {
-        GradeCode code = gradePO.getId().startsWith("legacy:")
-            ? GradeCode.restoreLegacy(gradePO.getCode())
-            : GradeCode.create(gradePO.getCode());
-        return new Grade(gradePO.getId(), code, gradePO.getName(), GradeStatus.valueOf(gradePO.getStatus()));
+        return new Grade(gradePO.getId(), GradeCode.create(gradePO.getCode()),
+            gradePO.getName(), GradeStatus.valueOf(gradePO.getStatus()));
     }
 }

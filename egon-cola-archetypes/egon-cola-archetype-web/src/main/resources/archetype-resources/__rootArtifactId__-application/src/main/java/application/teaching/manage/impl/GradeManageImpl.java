@@ -21,6 +21,7 @@ import ${package}.domain.teaching.vos.GradeCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.util.UUID;
 import java.time.Instant;
@@ -34,6 +35,7 @@ public class GradeManageImpl implements GradeManage {
     private final GradeCachePort gradeCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
+    private final IdGenerator idGenerator;
     private final GradeAssembler assembler = new GradeAssembler();
 
     @Override
@@ -46,7 +48,7 @@ public class GradeManageImpl implements GradeManage {
                 throw conflict("grade code already exists");
             }
             Grade grade = gradeRepository.save(gradeDomainService.create(
-                "grade-" + UUID.randomUUID().toString().toLowerCase(), code.value(), command.name()));
+                idGenerator.nextId(), code.value(), command.name()));
             OrganizationTransactionHooks.afterCommit(() -> {
                 gradeCache.evict(grade.id());
                 eventPublisher.publish(new GradeChangedEvent(UUID.randomUUID().toString(),
@@ -57,7 +59,6 @@ public class GradeManageImpl implements GradeManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public GradeDetailResult getGrade(GradeDetailQuery query) {
         Grade grade = gradeCache.findById(query.gradeId()).orElseGet(() -> {
             Grade loaded = gradeRepository.findById(query.gradeId())

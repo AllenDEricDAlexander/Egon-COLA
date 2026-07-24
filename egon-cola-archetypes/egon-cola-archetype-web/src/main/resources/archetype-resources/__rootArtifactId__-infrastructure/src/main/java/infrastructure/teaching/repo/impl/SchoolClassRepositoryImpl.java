@@ -13,9 +13,13 @@ import ${package}.infrastructure.teaching.repo.jpa.SchoolClassJpaRepository;
 import ${package}.infrastructure.teaching.repo.jpa.SchoolClassUserJpaRepository;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassPO;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassUserPO;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,45 +32,69 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     private final GradeJpaRepository gradeJpaRepository;
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
     private final SchoolClassPOConverter converter;
+    private final IdGenerator idGenerator;
+    private final EntityManager entityManager;
 
-    @Override public SchoolClass save(SchoolClass schoolClass) {
+    @Override
+    @Transactional
+    public SchoolClass save(SchoolClass schoolClass) {
         try {
-            return restore(schoolClassJpaRepository.save(converter.toPO(schoolClass)));
-        } catch (DataIntegrityViolationException exception) {
+            SchoolClassPO schoolClassPO = converter.toPO(schoolClass);
+            entityManager.persist(schoolClassPO);
+            entityManager.flush();
+            return restore(schoolClassPO);
+        } catch (DataIntegrityViolationException | PersistenceException exception) {
             throw conflict("school class persistence conflict", exception);
         }
     }
 
-    @Override public Optional<SchoolClass> findById(SchoolClassId schoolClassId) {
-        return schoolClassJpaRepository.findById(schoolClassId.value()).map(this::restore);
+    @Override public Optional<SchoolClass> findByGradeIdAndId(
+            String gradeId,
+            SchoolClassId schoolClassId) {
+        return schoolClassJpaRepository
+                .findByGradeIdAndId(gradeId, schoolClassId.value())
+                .map(this::restore);
     }
 
     @Override public boolean existsByGradeIdAndNameIgnoreCase(String gradeId, String name) {
         return schoolClassJpaRepository.existsByGradeIdAndNameIgnoreCase(gradeId, name);
     }
 
-    @Override public void addUser(SchoolClassId schoolClassId, UserId userId) {
+    @Override
+    @Transactional
+    public void addUser(
+            String gradeId,
+            SchoolClassId schoolClassId,
+            UserId userId) {
         try {
-            schoolClassUserJpaRepository.saveAndFlush(
-                new SchoolClassUserPO(userId.value(), schoolClassId.value(), LocalDateTime.now()));
-        } catch (DataIntegrityViolationException exception) {
+            entityManager.persist(new SchoolClassUserPO(
+                    idGenerator.nextId(),
+                    gradeId,
+                    schoolClassId.value(),
+                    userId.value(),
+                    LocalDateTime.now()));
+            entityManager.flush();
+        } catch (DataIntegrityViolationException | PersistenceException exception) {
             throw conflict("school class membership conflict", exception);
         }
     }
 
-    @Override public boolean hasUser(SchoolClassId schoolClassId, UserId userId) {
-        return schoolClassUserJpaRepository.existsBySchoolClassIdAndUserId(
-            schoolClassId.value(), userId.value());
+    @Override public boolean hasUser(
+            String gradeId,
+            SchoolClassId schoolClassId,
+            UserId userId) {
+        return schoolClassUserJpaRepository.existsByGradeIdAndSchoolClassIdAndUserId(
+            gradeId, schoolClassId.value(), userId.value());
     }
 
     private SchoolClass restore(SchoolClassPO schoolClassPO) {
         GradeCode gradeCode = gradeJpaRepository.findById(schoolClassPO.getGradeId())
-            .map(grade -> grade.getId().startsWith("legacy:")
-                ? GradeCode.restoreLegacy(grade.getCode()) : GradeCode.create(grade.getCode()))
+            .map(grade -> GradeCode.create(grade.getCode()))
             .orElseThrow(() -> new OrganizationPortException(
                 OrganizationDomainErrorCode.DEPENDENCY_UNAVAILABLE, "grade row missing",
                 new IllegalStateException("grade row missing")));
-        List<UserId> userIds = schoolClassUserJpaRepository.findBySchoolClassId(schoolClassPO.getId()).stream()
+        List<UserId> userIds = schoolClassUserJpaRepository
+            .findByGradeIdAndSchoolClassId(schoolClassPO.getGradeId(), schoolClassPO.getId()).stream()
             .map(SchoolClassUserPO::getUserId).map(UserId::new).toList();
         return converter.toEntity(schoolClassPO, gradeCode, userIds);
     }

@@ -28,4 +28,10 @@ public class ExamPaperPo {
     public String getId() { return id; } public String getExamId() { return examId; }
     public String getTitle() { return title; } public int getTotalPoints() { return totalPoints; }
     public String getStatus() { return status; } public Instant getCreatedAt() { return createdAt; }
+    public void update(String title, int totalPoints, String status, Instant updatedAt) {
+        this.title = title;
+        this.totalPoints = totalPoints;
+        this.status = status;
+        this.updatedAt = updatedAt;
+    }
 }

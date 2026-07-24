@@ -13,6 +13,8 @@ import ${package}.infrastructure.teaching.repo.converter.GradePOMapperImpl;
 import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
 import ${package}.infrastructure.teaching.repo.impl.GradeRepositoryImpl;
 import ${package}.infrastructure.teaching.repo.impl.SchoolClassRepositoryImpl;
+import ${package}.infrastructure.teaching.repo.jpa.SchoolClassUserJpaRepository;
+import ${package}.domain.user.vos.UserId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -21,28 +23,68 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"})
+@DataJpaTest(properties = {
+    "spring.flyway.enabled=true",
+    "spring.flyway.locations=classpath:db/migration/default",
+    "spring.jpa.hibernate.ddl-auto=validate",
+    "spring.jpa.properties.hibernate.session_factory.statement_inspector="
+        + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector"
+})
 @Import({GradeRepositoryImpl.class, SchoolClassRepositoryImpl.class,
-    GradePOConverter.class, GradePOMapperImpl.class, SchoolClassPOConverter.class})
+    GradePOConverter.class, GradePOMapperImpl.class, SchoolClassPOConverter.class,
+    UuidV7Generator.class})
 @ContextConfiguration(classes = SchoolClassRepositoryImplTest.TestConfiguration.class)
 class SchoolClassRepositoryImplTest {
     @Autowired GradeRepository gradeRepository;
     @Autowired SchoolClassRepository schoolClassRepository;
+    @Autowired SchoolClassUserJpaRepository schoolClassUserJpaRepository;
+    @Autowired ${package}.infrastructure.user.repo.jpa.UserJpaRepository userJpaRepository;
 
     @Test
     void savesClassAndChecksNameWithinGradeIgnoringCase() {
+        UuidV7Generator idGenerator = new UuidV7Generator();
+        String gradeId = idGenerator.nextId();
+        String schoolClassId = idGenerator.nextId();
+        String userId = idGenerator.nextId();
         Grade grade = gradeRepository.save(new Grade(
-            "grade-1", GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
-        schoolClassRepository.save(new SchoolClass(new SchoolClassId("class-1"), "Class A", grade.id(),
+            gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
+        userJpaRepository.save(new ${package}.infrastructure.user.repo.po.UserPO(
+            userId, "Mario", "mario@example.com", "ACTIVE", java.time.LocalDateTime.now()));
+        SqlCaptureStatementInspector.clear();
+        schoolClassRepository.save(new SchoolClass(new SchoolClassId(schoolClassId), "Class A", grade.id(),
             grade.code(), grade.name(), SchoolClassStatus.ACTIVE, List.of()));
 
-        assertThat(schoolClassRepository.findById(new SchoolClassId("class-1"))).isPresent();
-        assertThat(schoolClassRepository.existsByGradeIdAndNameIgnoreCase("grade-1", "class a")).isTrue();
+        assertThat(SqlCaptureStatementInspector.statements())
+            .noneMatch(sql -> isIdOnlyLookup(sql, "school_classes"));
+        assertThat(schoolClassRepository.findByGradeIdAndId(
+                gradeId, new SchoolClassId(schoolClassId))).isPresent();
+        assertThat(schoolClassRepository.existsByGradeIdAndNameIgnoreCase(gradeId, "class a")).isTrue();
+        SqlCaptureStatementInspector.clear();
+        schoolClassRepository.addUser(
+                gradeId, new SchoolClassId(schoolClassId), new UserId(userId));
+        assertThat(SqlCaptureStatementInspector.statements())
+            .noneMatch(sql -> isIdOnlyLookup(sql, "school_class_users"));
+        String relationId = schoolClassUserJpaRepository
+                .findByGradeIdAndSchoolClassId(gradeId, schoolClassId)
+                .getFirst()
+                .getId();
+        assertThat(relationId).hasSize(36);
+        assertThat(UUID.fromString(relationId).version()).isEqualTo(7);
+    }
+
+    private static boolean isIdOnlyLookup(String sql, String table) {
+        String normalized = sql.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains(" from " + table + " ")
+            && normalized.contains(" where ")
+            && normalized.matches(".*where [a-z0-9_]+\\.id=\\?.*")
+            && !normalized.contains("grade_id=?");
     }
 
     @Configuration(proxyBeanMethods = false)

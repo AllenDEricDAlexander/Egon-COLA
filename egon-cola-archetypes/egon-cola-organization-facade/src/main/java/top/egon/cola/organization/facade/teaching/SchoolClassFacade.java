@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotNull;
 
 public interface SchoolClassFacade {
     SchoolClassDetailDTO createSchoolClass(@Valid @NotNull CreateSchoolClassDTO request);
-    SchoolClassDetailDTO getSchoolClass(@NotBlank String schoolClassId);
+    SchoolClassDetailDTO getSchoolClass(
+            @NotBlank String gradeId,
+            @NotBlank String schoolClassId);
     void assignUser(@Valid @NotNull AssignUserToClassDTO request);
 }

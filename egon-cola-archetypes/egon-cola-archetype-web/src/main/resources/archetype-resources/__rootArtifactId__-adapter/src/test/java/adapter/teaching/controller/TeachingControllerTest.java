@@ -6,6 +6,7 @@ import ${package}.adapter.teaching.converter.GradeAdapterConverter;
 import ${package}.adapter.teaching.converter.SchoolClassAdapterConverter;
 import ${package}.application.teaching.manage.GradeManage;
 import ${package}.application.teaching.manage.SchoolClassManage;
+import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.GradeDetailResult;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -53,6 +56,18 @@ class TeachingControllerTest {
         mockMvc.perform(post("/api/v1/school-classes").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Class A\",\"gradeCode\":\"GRADE_ONE\"}"))
             .andExpect(status().isCreated()).andExpect(jsonPath("$.gradeCode").value("GRADE_ONE"));
-        mockMvc.perform(get("/api/v1/school-classes/class-1")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/grades/grade-1/school-classes/class-1"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/grades/grade-1/school-classes/class-1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"userId\":\"user-1\"}"))
+                .andExpect(status().isNoContent());
+
+        verify(schoolClassManage)
+                .getSchoolClass(new SchoolClassDetailQuery("grade-1", "class-1"));
+        verify(schoolClassManage).assignUser(argThat(command ->
+                "grade-1".equals(command.gradeId())
+                        && "class-1".equals(command.schoolClassId())
+                        && "user-1".equals(command.userId())));
     }
 }

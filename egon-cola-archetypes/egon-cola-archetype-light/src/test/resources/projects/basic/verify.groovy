@@ -451,6 +451,10 @@ assert pomXml.parent.groupId.text() == "org.springframework.boot"
 assert pomXml.parent.artifactId.text() == "spring-boot-starter-parent"
 assert pomXml.parent.version.text().trim(): "Expected a Spring Boot parent version"
 assert pomXml.properties.'java.version'.text() == "21"
+assert pomXml.properties.'shardingsphere.version'.text() == "5.5.3"
+assert pom.contains("<artifactId>shardingsphere-jdbc</artifactId>")
+assert pom.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
+assert pom.contains("<artifactId>egon-cola-component-common-id</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
@@ -726,7 +730,27 @@ assert starterText.contains('"it.pkg.adapter.teaching.rpc"')
 assert starterText.contains('"it.pkg.infrastructure.user.repo.jpa"')
 assert starterText.contains('"it.pkg.infrastructure.teaching.repo.jpa"')
 assertFile("src/main/resources/application.yml")
-assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
+assertFile("src/main/resources/application-sharding.yml")
+assertFile("src/main/resources/application-readwrite.yml")
+assertFile("src/main/resources/sharding/shardingsphere-sharding.yml")
+assertFile("src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
+def lightShardingApplication = assertFile("src/main/resources/application-sharding.yml").text
+assert lightShardingApplication.contains('mapping-version: ${LIGHT_SHARDING_MAPPING_VERSION:1}')
+assert lightShardingApplication.contains('node-count: ${LIGHT_SHARDING_NODE_COUNT:4}')
+assert lightShardingApplication.contains(
+        'node-map: ${LIGHT_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
+[
+    "classpath:db/migration/sharding/single",
+    "classpath:db/migration/sharding/shard"
+].each { assert lightShardingApplication.contains(it) }
+def lightShardingRule = assertFile(
+        "src/main/resources/sharding/shardingsphere-sharding.yml").text
+assert lightShardingRule.contains("shardingColumn: id")
+assert lightShardingRule.contains("shardingColumn: school_class_id")
+assert lightShardingRule.contains("school_classes,class_course_schedules")
+def lightReadwriteRule = assertFile(
+        "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
+assert lightReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 [
@@ -831,12 +855,48 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
     assertFile("src/test/java/it/pkg/application/teaching/${testPath}.java")
 }
 
-assertFile("src/main/resources/db/migration/V1__init_student_management.sql")
-assertFile("src/main/resources/db/migration/V2__align_large_monolith_domain.sql")
-def migrationFiles = new File(generatedProjectDir, "src/main/resources/db/migration")
-        .listFiles()
-        .findAll { it.name.endsWith(".sql") }
-assert migrationFiles.size() == 2: "Expected exactly two migration SQL files"
+[
+    "default/V20260724_001__init_light_default_schema.sql",
+    "sharding/single/V20260724_002__init_light_single_schema.sql",
+    "sharding/shard/V20260724_003__init_light_sharding_schema.sql"
+].each { migration ->
+    assertFile("src/main/resources/db/migration/${migration}")
+}
+assertMissing("src/main/resources/db/migration/V1__init_student_management.sql")
+assertMissing("src/main/resources/db/migration/V2__align_large_monolith_domain.sql")
+def migrationFiles = []
+new File(generatedProjectDir, "src/main/resources/db/migration")
+        .traverse(type: FileType.FILES) { file ->
+            if (file.name.endsWith(".sql")) {
+                migrationFiles << file
+            }
+        }
+assert migrationFiles.size() == 3: "Expected exactly three migration SQL files"
+migrationFiles.each { migration ->
+    def text = migration.getText("UTF-8")
+    assert text.startsWith("-- 变更内容：")
+    assert text.contains("\n-- 影响范围：")
+    assert text.contains("\n-- 兼容性说明：")
+}
+[
+    "ShardingNodeMap",
+    "ShardingNodeMapCompatibilityValidator",
+    "UuidV7BucketShardingAlgorithm",
+    "PhysicalDataSourceFlywayMigrator",
+    "ShardingDataSourceBootstrapper",
+    "ShardingSphereDataSourceConfiguration"
+].each { typeName ->
+    assertFile("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
+}
+[
+    "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/LightShardingProfileTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
+    "src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
+].each { assertFile(it) }
 [
     "user/repo/po/UserPO",
     "user/repo/jpa/UserJpaRepository",
@@ -1098,8 +1158,7 @@ assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeContro
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
 assert !new File(generatedProjectDir, "src/test/charge.http").exists()
 
-def migrationDir = new File(generatedProjectDir, "src/main/resources/db/migration")
-assert migrationDir.listFiles({ dir, name -> name.endsWith(".sql") } as FilenameFilter).size() == 2
+assert migrationFiles.size() == 3
 
 assertMissing("src/test/java/it/pkg/ArchitectureDependencyTest.java")
 def architecturePlugin = pomXml.build.plugins.plugin.find {
@@ -1124,6 +1183,31 @@ assert readme.contains("Domain-First Structure")
 assert readme.contains("Primary Workflows")
 assert readme.contains("RABBITMQ_ENABLED=true")
 assert readme.contains("ConfigCipherCli")
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "SPRING_PROFILES_ACTIVE=dev,sharding,readwrite",
+    "school_classes",
+    "school_class_id",
+    "Flyway",
+    "primary targets",
+    "36-character RFC",
+    "VyyyyMMdd_NNN__description.sql",
+    "mapping-version: 1",
+    "N` to `2N",
+    "local to one physical database",
+    "online dual writes, CDC",
+    "data movement"
+].each { assert readme.contains(it) }
+def lightReadmeZh = assertFile("README.zh-CN.md").text
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "school_class_id",
+    "36 位 RFC 字符串",
+    "VyyyyMMdd_NNN__description.sql",
+    "单次扩容只能从 `N` 到 `2N`",
+    "事务只允许覆盖一个物理库",
+    "不内置在线双写、CDC 或自动搬数"
+].each { assert lightReadmeZh.contains(it) }
 assert !readme.contains("计费")
 assert !readme.contains("Charge")
 

@@ -5,12 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassUserPO, Long> {
-    List<SchoolClassUserPO> findByUserId(String userId);
+public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassUserPO, String> {
+    List<SchoolClassUserPO> findByGradeIdAndSchoolClassId(
+            String gradeId,
+            String schoolClassId);
 
-    List<SchoolClassUserPO> findBySchoolClassId(String schoolClassId);
-
-    boolean existsByUserIdAndSchoolClassId(String userId, String schoolClassId);
-
-    boolean existsBySchoolClassIdAndUserId(String schoolClassId, String userId);
+    boolean existsByGradeIdAndSchoolClassIdAndUserId(
+            String gradeId,
+            String schoolClassId,
+            String userId);
 }

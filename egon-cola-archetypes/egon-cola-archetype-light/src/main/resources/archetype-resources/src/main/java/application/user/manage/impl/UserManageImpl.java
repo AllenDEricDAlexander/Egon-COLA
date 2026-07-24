@@ -59,7 +59,6 @@ public class UserManageImpl implements UserManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public UserResult get(GetUserQuery query) {
         return userCacheService.getUser(query.userId())
                 .map(convertor::toResult)

@@ -19,6 +19,13 @@ public class CourseScheduleConverter {
                 schedule.getStartsAt(), schedule.getEndsAt(), schedule.getStatus().name(), now, now);
     }
 
+    public CourseSchedulePo updatePo(CourseSchedule schedule, CourseSchedulePo po) {
+        po.update(
+                schedule.getClassId(), schedule.getStartsAt(), schedule.getEndsAt(),
+                schedule.getStatus().name(), Instant.now());
+        return po;
+    }
+
     public CourseSchedule toDomain(CourseSchedulePo po) {
         return new CourseSchedule(
                 po.getId(), new CourseId(po.getCourseId()), po.getClassId(),

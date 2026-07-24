@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface ScoreRepository {
     Score save(Score score);
-    Optional<Score> findById(String scoreId);
+    Optional<Score> findByExamIdAndId(ExamId examId, String scoreId);
     boolean existsByExamIdAndStudentId(ExamId examId, String studentId);
     Page<Score> findPageByExamId(ExamId examId, int currentPage, int pageSize);
 }

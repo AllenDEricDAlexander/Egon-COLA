@@ -46,10 +46,10 @@ class DubboOrganizationDirectoryClientTest {
 
     @Test
     void mapsOrganizationSchoolClassToConsumerProjection() {
-        when(schoolClassFacade.getSchoolClass("class-1")).thenReturn(new SchoolClassDetailDTO(
+        when(schoolClassFacade.getSchoolClass("grade-1", "class-1")).thenReturn(new SchoolClassDetailDTO(
                 "class-1", "Class One", "G1", "Grade One", "ACTIVE", List.of("user-1")));
 
-        assertThat(client.getSchoolClass("class-1")).isEqualTo(new OrganizationSchoolClass(
+        assertThat(client.getSchoolClass("grade-1", "class-1")).isEqualTo(new OrganizationSchoolClass(
                 "class-1", "Class One", "G1", "ACTIVE", List.of("user-1")));
     }
 
