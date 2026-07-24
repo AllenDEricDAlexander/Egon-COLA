@@ -1,2097 +1,3161 @@
-# 2026-07-24 Egon-COLA Gateway Component V1 设计 Spec
+# 2026-07-24 Egon-COLA Gateway Platform 设计 Spec
 
-状态：草案，等待用户审核。本文档只定义需求、功能边界和技术方案，尚未授权进入实现阶段。
+状态：修订草案，等待用户审核。
+文档性质：需求、功能点、技术方案和验收边界。
+当前阶段：只写 Spec，尚未授权创建模块或实施代码。
 
-## 1. 文档目的与审核方式
+## 1. 修订结论
 
-本文档把现有网关教程中的有效主干、美团 Shepherd 的成熟设计原则和 Egon-COLA 当前组件工程约束，收敛为一个可落地的轻量级网关组件 V1。
+### 1.1 本次纠偏
 
-本轮已经一次性确认以下总体方向：
+上一版把 Gateway 错误地收敛成了一个轻量级、仅支持本地配置和 Dubbo 泛化调用的 starter，这与用户要求不符。本次修订作废上一版的以下结论：
 
-1. 这是 `egon-cola-components` 下的 component 项目。
-2. 采用分层架构，不建设完整网关平台。
-3. V1 聚焦数据面：接收 HTTP 请求，匹配本地路由，完成参数绑定，通过 Dubbo 泛化调用访问上游，再返回 HTTP 响应。
-4. 采用 `core + starter + engine + test` 四模块结构。
-5. 使用原生 Netty 提供 HTTP/1.1 服务。
-6. V1 上游只实现 Dubbo 泛化调用，注册中心以 Nacos 为验收基线。
-7. V1 路由来自本地 YAML 和程序化 Bean，不实现控制台、数据库、SDK 上报和在线动态配置中心。
-8. 鉴权采用标准 Bearer JWT、公钥或 JWK 验签，不沿用 Shiro、自定义 token header 或共享 HMAC 密钥方案。
-9. 采用有界线程、有界请求、超时、并发保护、优雅停机、指标和健康检查；V1 不自动重试。
-10. TLS、外部负载均衡、实例摘流和容器编排由 Nginx、Kubernetes 或其他基础设施负责，网关组件不修改外部代理配置。
+1. 作废“只建设数据面”的范围。
+2. 作废“只使用本地 YAML 路由”的范围。
+3. 作废“不建设控制台、注册中心和动态配置”的范围。
+4. 作废“不管理 Nginx 动态负载”的范围。
+5. 作废“只有 `core + starter + engine + test` 四个模块”的结构。
+6. 作废“使用自研原生 Netty 替代 Spring Cloud Gateway”的路线。
+7. 作废 JWT、Shiro 或其他网关鉴权设计。
 
-建议按以下顺序审核：
+修订后的项目是一套完整的网关平台，虽然归属于 `component` 工程，但必须按独立大型子系统设计，不能被其他轻量组件的目录或 starter 模式限制。
 
-1. 第 2～5 节：需求来源、目标、范围和总体决策。
-2. 第 6～9 节：架构、模块、领域模型和路由契约。
-3. 第 10～15 节：请求流程、HTTP、参数、Dubbo、JWT 和过滤器契约。
-4. 第 16～20 节：错误、稳定性、生命周期、可观测性和安全。
-5. 第 21～25 节：配置、测试、验收、风险和后续边界。
+### 1.2 已确认的范围
 
-审核通过前：
+| 决策 ID | 已确认内容 |
+|---|---|
+| DEC-001 | 原始 `gateway.md` 29 个章节的能力均进入需求追踪范围 |
+| DEC-002 | 第 7、8 章的鉴权能力是唯一允许不实现的部分 |
+| DEC-003 | 网关数据面基于 Spring Cloud Gateway WebFlux 扩展，不再自研完整 HTTP Server |
+| DEC-004 | 必须支持一组或多组 Gateway，每组包含多个可独立伸缩的 Gateway Engine 节点 |
+| DEC-005 | 必须建设独立的 `gateway-admin` 管理与控制面模块 |
+| DEC-006 | 必须建设 `gateway-starter`，由下游 Provider 采集并上报接口定义 |
+| DEC-007 | 必须建设 `gateway-test`，覆盖单元、集成、集群和端到端验证 |
+| DEC-008 | 必须建设独立可执行的 Gateway Engine，并打包容器镜像 |
+| DEC-009 | 必须完成数据库、配置聚合、配置拉取、Redis 通知、动态刷新、节点管理和 Nginx 动态负载闭环 |
+| DEC-010 | 采用分层架构；Admin、Engine、Starter 各自按职责分层，禁止跨运行时共享内部实现 |
+| DEC-011 | HTTP 和 Dubbo 都是首期正式上游类型；后续协议通过 Adapter SPI 扩展 |
+| DEC-012 | Admin 是配置事实源；Redis Pub/Sub 只负责变更通知，不能成为唯一事实源 |
+| DEC-013 | 同一 Gateway Group 的每个入口 Revision 必须显式选择一个已发布版本，目标节点均须已 PREPARED，禁止节点自行漂移 |
+| DEC-014 | 审核通过前不创建模块、不改 POM、不引入依赖、不启动服务 |
+| DEC-015 | Admin 是网关管理平台；Engine 是实际处理请求的网关，二者不得合并职责 |
+| DEC-016 | Starter 只采集并上报下游 Provider 的接口定义，不采集、不上报任何接口调用 |
+| DEC-017 | 接口调用事件由 Engine 在请求结束后异步发送到 Kafka 集群 |
+| DEC-018 | 路由新版本先在 Engine 预备，再由 Nginx 内部版本头切流，避免同一 Group 在刷新窗口随机命中新旧路由 |
 
-- 不创建 gateway 模块；
-- 不修改 Maven POM、BOM 或现有代码；
-- 不引入依赖；
-- 不启动服务；
-- 不提前编写实施代码。
+### 1.3 “全部实现”的定义
 
-## 2. 需求来源与现状分析
+“覆盖原文能力”不是照搬原文每一行教学代码，而是：
 
-### 2.1 原始网关文档的能力分布
+1. 原文每个章节表达的业务能力都有明确需求 ID。
+2. 每项能力都有所属模块、数据模型、接口、状态和异常处理方案。
+3. 每项能力都有至少一条可执行的验收场景。
+4. 原文中存在可靠性或安全问题的实现方式可以替换，但能力不能删除。
+5. 除经确认豁免的鉴权外，不得以“后续版本”名义移除原文能力。
+6. 原文没有闭环的地方，本方案必须补足版本、幂等、回滚、重试、ACK、Last-Known-Good 和故障恢复。
 
-原始文档：
+## 2. 文档依据
+
+### 2.1 原始需求文档
 
 ```text
 /Users/mario/SelfProject/blog/source/_posts/archtect/gateway.md
 ```
 
-该文档是一个由 29 个章节逐步演进的教学项目，不是可以直接作为生产契约使用的统一设计。它的内容可以归为四组：
+该文档共 29 章，描述了从 HTTP/RPC 协议转换逐步发展到注册中心、服务上报、管理后台、动态路由、Gateway 集群和 Nginx 动态负载的完整过程。
 
-| 章节 | 主要内容 | V1 处理 |
+### 2.2 参考设计
+
+- [用户提供的 PDai 网关设计文章](https://pdai.tech/md/arch/gateway/arch-gateway-mt-shepherd.html)
+- [Spring Cloud Gateway 项目](https://spring.io/projects/spring-cloud-gateway)
+- [Spring Cloud Gateway WebFlux Starter](https://docs.spring.io/spring-cloud-gateway/reference/4.3/spring-cloud-gateway-server-webflux/starter.html)
+- [Spring Cloud Gateway Global Filters](https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway-server-webflux/global-filters.html)
+- [Spring Cloud Gateway CORS](https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway-server-webflux/cors-configuration.html)
+- [Apache Dubbo 泛化调用](https://dubbo.apache.org/en/overview/mannual/java-sdk/tasks/framework/more/generic-call/)
+
+参考方案只用于技术选型和可靠性补强，不用于缩减原始 29 章的项目范围。
+
+### 2.3 当前仓库技术基线
+
+| 项目 | 当前基线 | 本项目处理 |
 |---|---|---|
-| 1～8 | Netty HTTP、URI 映射、参数解析、Dubbo 泛化调用、响应、Shiro/JWT 鉴权 | 保留主干，重做契约和安全模型 |
-| 9～15 | 网关注册中心、数据库表、节点、应用/接口/方法配置、配置拉取 | 不进入 V1 |
-| 16～22 | engine/assist/sdk 生命周期、接口上报、Redis Pub/Sub 路由刷新 | 只保留 engine 生命周期；动态配置延期 |
-| 23～24 | Vue 管理后台和跨域 | 管理后台不做；仅保留可选安全 CORS |
-| 25～29 | Nginx 配置生成、Docker Socket、动态负载、工程合并 | 外置给部署平台，不由 Java 组件控制 |
+| Java | 21 | 保持 Java 21 |
+| Spring Boot | 3.5.16 | Admin、Engine 和 Starter 基于此版本 |
+| Spring Cloud | 2025.0.3 | 与 Spring Boot 3.5.x 对齐 |
+| Spring Cloud Gateway | 4.3.5 | Engine 使用 WebFlux Server |
+| Dubbo | 3.3.6 | Dubbo 上游适配器基线 |
+| Micrometer | 1.15.x | 指标与 Observation |
+| Redis | 由部署环境提供 | 路由快照缓存、通知、节点租约、限流 |
+| Kafka | 由部署环境提供 | Engine 异步上报接口调用事件 |
+| PostgreSQL | 推荐 16+ | Admin 持久化事实源 |
+| Nginx | 推荐 1.26+ | 组级入口与节点负载均衡 |
 
-原始方案对理解“HTTP 到 RPC”的主链路有价值，但存在以下问题：
+注意：Spring Cloud 2025.0.x 与当前 Spring Boot 3.5.x 兼容，但该发布线已进入生命周期尾部。本项目先保持仓库 Boot 3.5 基线，不在 Gateway 子项目中单独升级到 Boot 4；后续全仓升级时再迁移 Spring Cloud Gateway 5.x。
 
-1. GET、POST、PUT、DELETE 的声明与实际实现不一致。
-2. 参数模型从单参数逐步变为字符串拆分，没有稳定、显式、可验证的多参数契约。
-3. 数据源抽象声称支持 HTTP/RPC 等多种连接，但只有 Dubbo 流程真正闭环。
-4. Shiro、自定义 `uId/token` 请求头和共享 HMAC key 不适合作为当前网关安全基线。
-5. 同步 RPC 调用存在阻塞 Netty EventLoop 的风险。
-6. 路由以 URI 字符串为主，缺少 method、host、path 规范化、冲突检测和 404/405 语义。
-7. Redis Pub/Sub 只有通知，没有版本、校验和、重放、原子切换、Last-Known-Good 和回滚契约。
-8. 节点注册缺少可靠心跳、租约、摘流和优雅下线语义。
-9. Java 进程挂载 Docker Socket、修改 Nginx 文件并执行 reload，职责耦合且扩大安全面。
-10. 缺少请求体、请求头、并发、队列、响应体、超时和下游故障边界。
-11. 缺少稳定错误码、健康检查、指标、脱敏日志和完整优雅停机契约。
+## 3. 原文 29 章能力清单
 
-### 2.2 Shepherd 方案中采用的原则
+| 章节 | 原始能力 | 修订后的实现归属 | 处理结论 |
+|---|---|---|---|
+| 1 | HTTP 请求会话协议处理 | Gateway Engine / Spring Cloud Gateway WebFlux | 完整实现 |
+| 2 | 代理 RPC 泛化调用 | Gateway Core Dubbo Adapter | 完整实现 |
+| 3 | 分治处理会话流程 | GlobalFilter、GatewayFilter、Invoker 分层处理链 | 完整实现 |
+| 4 | 将 RPC、HTTP、其他连接抽象为数据源 | `UpstreamAdapter` SPI，首期 HTTP + Dubbo | 完整实现 |
+| 5 | HTTP 请求参数解析 | 参数绑定模型和编译器 | 完整实现 |
+| 6 | 执行器封装服务调用 | `GatewayExecutor` + `UpstreamInvoker` | 完整实现 |
+| 7 | Shiro + JWT 权限认证 | 无 | 经用户确认不实现 |
+| 8 | 网关会话鉴权处理 | 无 | 经用户确认不实现 |
+| 9 | 网关注册中心服务创建 | Gateway Admin 控制面 | 完整实现 |
+| 10 | 网关注册中心库表结构 | Admin PostgreSQL + Flyway | 完整实现并增强 |
+| 11 | 注册 Gateway 算力节点 | 节点注册、租约、心跳、状态机 | 完整实现并增强 |
+| 12 | 注册应用、接口、方法 | Admin 元数据注册 API | 完整实现并增强 |
+| 13 | 服务发现和注册网关连接 | Engine 控制面客户端 | 完整实现并增强 |
+| 14 | 网关映射聚合查询 | Group Route Snapshot 聚合服务 | 完整实现并增强 |
+| 15 | 配置拉取和组件验证 | 拉取、校验、编译、原子生效、ACK | 完整实现并增强 |
+| 16 | 网络通信配置提取 | Engine、Admin、Starter 类型化配置 | 完整实现 |
+| 17 | 管理通信组件和映射 | Engine 生命周期与版本化路由仓库 | 完整实现并增强 |
+| 18 | 容器关闭监听和异常管理 | Readiness、Drain、优雅停机、错误模型 | 完整实现并增强 |
+| 19 | Engine 打包镜像部署 | Engine 可执行 JAR、OCI 镜像和 Compose | 完整实现 |
+| 20 | Starter 采集下游接口定义 | 注解、Bean 扫描、元数据编译 | 完整实现并增强 |
+| 21 | 下游接口定义注册到中心 | Starter 原子接口定义批次上报 | 完整实现并增强 |
+| 22 | Redis 消息驱动映射刷新 | 版本事件、全量拉取、周期对账 | 完整实现并增强 |
+| 23 | 网关运营管理后台 | Admin 后端 + Vue 3 管理界面 | 完整实现并增强 |
+| 24 | 前后端分离 CORS | Admin 和 Engine 分别配置 CORS | 完整实现 |
+| 25 | Nginx 负载模型 | Group Upstream 和路径前缀模型 | 完整实现 |
+| 26 | 动态刷新 Nginx 配置 | 版本化生成、校验、原子切换、重载、回滚 | 完整实现并增强 |
+| 27 | Gateway 节点动态负载 | 节点注册/下线触发 Nginx 对账 | 完整实现并增强 |
+| 28 | 工程模块合并 | Gateway 大型 component 多模块工程 | 完整实现 |
+| 29 | 算力关联、接口定义上报、调用反馈 | Group/Node/System 关联、Starter 开关、反馈头、Engine Kafka 调用事件 | 完整实现并增强 |
 
-参考资料：
+因此，本项目验收口径是“27 章能力完整实现 + 2 章鉴权能力明确豁免”，而不是只实现前 6 章。
 
-- [美团 Shepherd API 网关设计原文](https://tech.meituan.com/2021/05/20/Shepherd-API-Gateway.html)
-- [用户提供的 PDai 整理版本](https://pdai.tech/md/arch/gateway/arch-gateway-mt-shepherd.html)
+## 4. 产品定义
 
-本设计吸收以下原则：
+### 4.1 产品定位
 
-1. 清晰区分控制面、配置分发和数据面。
-2. 路由是显式、类型化、启动前可校验的配置，不是散落字符串。
-3. 请求处理采用有顺序、可短路、可扩展的功能组件链。
-4. 上游调用通过统一 Invoker 抽象隔离。
-5. 参数映射必须显式表达来源、类型和顺序。
-6. 数据面必须异步化，并把可能阻塞的工作与网络 EventLoop 隔离。
-7. 超时、流量保护、监控、健康检查和安全是网关基础能力，而不是后补功能。
-8. 精确路由和变量路由应采用不同匹配结构。
+Gateway Platform 是 Egon-COLA 内可独立部署、可水平扩缩、可集中管理的 API 网关平台，负责：
 
-本设计不复制 Shepherd 的完整平台能力：
+1. 接收外部 HTTP 请求。
+2. 根据已发布路由匹配目标服务。
+3. 完成请求参数解析和类型绑定。
+4. 通过 HTTP 或 Dubbo 泛化调用访问上游。
+5. 应用超时、限流、熔断、日志、指标等网关治理能力。
+6. 由 Admin 集中维护服务元数据、Gateway Group、节点、路由和发布版本。
+7. 由 Starter 自动采集下游 Provider 的接口定义并上报 Admin。
+8. 由 Redis 通知 Engine 拉取新版本并原子刷新。
+9. 由 Admin 根据节点状态动态生成和发布 Nginx 负载配置。
+10. 由 Engine 在每次已匹配路由的接口调用结束后异步发送调用事件到 Kafka 集群。
+11. 由 Test 模块验证整套控制面、数据面、接口定义上报和调用事件上报闭环。
 
-- 不建设控制台；
-- 不建设 API 配置中心；
-- 不实现脚本 DSL；
-- 不动态加载 JAR；
-- 不实现服务编排；
-- 不实现灰度发布；
-- 不实现函数计算或 Serverless；
-- 不实现组件市场。
+### 4.2 核心角色
 
-### 2.3 当前仓库基线
-
-当前 `egon-cola-components` 基线：
-
-| 项目 | 当前值 |
+| 角色 | 主要职责 |
 |---|---|
-| Java | 21 |
-| Spring Boot | 3.5.16 |
-| Egon-COLA component version | 5.2.3 |
-| Micrometer | 1.15.12 |
-| Archetype 中的 Dubbo | 3.3.6 |
-| 自动配置发现 | `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` |
-| 外部结果契约 | `ResultDto<T>` + `ResultDtos` |
-| Trace 契约 | `TraceContext` |
-| BOM 发布习惯 | 对业务组件通常只暴露 starter |
+| API 调用方 | 通过 `/groupId/**` 入口调用网关 |
+| Gateway 管理员 | 管理 Group、节点、系统、接口、路由、发布和回滚 |
+| 服务开发者 | 通过 Starter 注解声明并上报下游 Provider 接口定义 |
+| Gateway Engine | 执行路由匹配、参数绑定、治理和上游调用 |
+| Gateway Admin | 保存事实数据，生成版本化快照并管理节点/Nginx |
+| Nginx | 将组级入口请求转发到同组已就绪 Engine 节点 |
+| Kafka | 接收 Engine 产生的接口调用事件，供独立消费方处理 |
+| 运维人员 | 部署、扩缩容、观察健康、处理发布失败和回滚 |
 
-Gateway 必须服从当前组件仓库的 Maven 聚合、命名、自动配置、测试和 BOM 习惯，不另建一套工程标准。
+### 4.3 核心术语
 
-## 3. 问题定义
-
-### 3.1 要解决的问题
-
-业务服务已经通过 Dubbo 暴露接口，但外部调用方只使用 HTTP。当前每个业务系统都需要重复创建 Controller/BFF 代码，完成：
-
-1. HTTP 协议解析；
-2. 路由选择；
-3. 参数转换；
-4. JWT 验证；
-5. Dubbo Consumer 配置；
-6. 调用超时和错误映射；
-7. 日志、指标和健康检查；
-8. 启停和资源释放。
-
-Gateway Component 的目标是把这一组重复能力沉淀为统一组件，使使用方只声明路由和参数映射，不依赖服务提供方 API JAR，也不重复实现协议转换代码。
-
-### 3.2 目标用户
-
-| 用户 | 诉求 |
+| 术语 | 定义 |
 |---|---|
-| 组件接入方 | 在现有 Spring Boot 应用中引入 starter，声明路由并启动独立 Netty 端口 |
-| 独立部署方 | 使用 engine 模块打包的可执行 JAR 运行网关数据面 |
-| API 调用方 | 通过标准 HTTP/JSON 和 Bearer JWT 调用 Dubbo 服务 |
-| 运维人员 | 获取稳定健康状态、指标、脱敏访问日志和优雅摘流能力 |
-| 扩展开发者 | 通过稳定 SPI 增加过滤器、路由来源或新的上游 Invoker |
+| Gateway Group | 网关路由、容量和发布的最小隔离单元 |
+| Gateway Node | 一个 Gateway Engine 进程实例 |
+| Application System | 一个被网关代理的业务系统 |
+| Interface | 业务系统中的服务接口 |
+| Method Route | 一个可被 HTTP 入口匹配并调用的上游方法 |
+| Route Draft | 尚未对数据面生效的可编辑路由定义 |
+| Route Snapshot | 某 Group 在某个递增版本下的完整不可变路由集合 |
+| Desired Version | Admin 已发布、要求 Engine 预备但尚未切流的目标版本 |
+| Active Version | Nginx 当前通过内部版本头选择的 Group 路由版本 |
+| Prepared Version | 某个 Gateway Node 已校验、编译并可随时服务的版本 |
+| Effective Version | 已在要求的 Nginx 实例完成切流并达到发布成功条件的版本 |
+| LKG | Engine 本地保存的 Last-Known-Good 路由快照 |
+| Node Lease | Engine 持续心跳维持的节点存活租约 |
+| Nginx Revision | 一次完整、可校验、可回滚的 Nginx 配置版本 |
+| Interface Definition Report | Starter 将 Provider 的系统、接口、方法、参数和路由定义上报 Admin |
+| Invocation Event | Engine 对一次已匹配路由调用产生的结果事件，通过 Kafka 异步发送 |
 
-### 3.3 成功定义
+术语说明：本文遵从用户的业务称谓，把被 Engine 调用的 Provider 称为“下游 Provider”。Spring Cloud Gateway/Dubbo 的技术扩展类仍可采用业内常见的 `UpstreamAdapter` 命名，两者指向同一调用目标，不代表职责变化。
 
-V1 成功不是“具备完整网关平台”，而是同时满足：
+## 5. 目标、非目标与约束
 
-1. 一条配置正确的 HTTP 路由可以稳定调用一个不引入 API JAR 的 Dubbo 服务。
-2. 多参数、复杂 JSON 对象和鉴权信息映射行为明确且可测试。
-3. 无任何下游调用、JWK 网络访问或其他阻塞操作运行在 Netty EventLoop 上。
-4. 请求、线程、队列、并发、超时和响应均有上限。
-5. 错误对外稳定、对内可追踪，不泄漏敏感异常。
-6. 组件可以嵌入应用，也可以独立运行。
-7. 后续增加动态路由或其他上游协议时，不需要推翻请求主链路。
+### 5.1 业务目标
 
-## 4. 需求
-
-### 4.1 业务需求
-
-| ID | 需求 |
+| ID | 目标 |
 |---|---|
-| BR-001 | 将 HTTP/JSON 请求转换为 Dubbo 泛化调用 |
-| BR-002 | 网关不依赖任何业务 Provider 的 API、DTO 或 Facade JAR |
-| BR-003 | 路由和参数映射通过配置或程序化 API 声明 |
-| BR-004 | 路由可选择公开访问或要求标准 Bearer JWT |
-| BR-005 | 网关产生的错误采用 Egon-COLA `ResultDto` 外部契约 |
-| BR-006 | RPC 正常返回值保持业务语义，不由网关重新解释 |
-| BR-007 | 独立 engine 和嵌入式 starter 使用同一套核心能力 |
-| BR-008 | Nacos 作为 Dubbo 服务发现的 V1 验收基线 |
+| BR-001 | 将外部 HTTP 请求统一代理到 HTTP 或 Dubbo 上游 |
+| BR-002 | 用 Gateway Group 对路由和算力进行隔离 |
+| BR-003 | 支持每个 Group 部署多个 Engine 节点并动态扩缩 |
+| BR-004 | 下游 Provider 接口定义可由 Starter 自动发现上报，也可由 Admin 手工维护 |
+| BR-005 | 路由配置通过审核、发布、ACK 和回滚形成可追踪闭环 |
+| BR-006 | 变更消息丢失、Admin 短暂不可用或节点重启时仍可恢复 |
+| BR-007 | Nginx 只向已就绪并 PREPARED 本次入口目标版本的节点转发 |
+| BR-008 | 所有关键动作具备日志、指标、状态和审计记录 |
+| BR-009 | Engine 可独立打包镜像并水平扩展 |
+| BR-010 | 原始教程 29 章除鉴权外的能力都有测试和验收映射 |
+| BR-011 | 每次已匹配路由的接口调用由 Engine 形成标准事件并异步发送到 Kafka |
 
-### 4.2 功能需求
+### 5.2 明确不做
 
-| ID | 需求 |
-|---|---|
-| FR-001 | 组件必须显式启用，单纯引入依赖不得自动开放端口 |
-| FR-002 | 支持本地 YAML 路由和程序化 `GatewayRouteContributor` |
-| FR-003 | 启动前完成全量路由解析、规范化、冲突检查和编译 |
-| FR-004 | V1 支持 HTTP/1.1、GET、POST、JSON 和 query/header 参数 |
-| FR-005 | V1 使用 method + 可选精确 host + 精确 path 匹配 |
-| FR-006 | 参数列表顺序必须与 Dubbo 方法参数顺序一一对应 |
-| FR-007 | 参数来源支持 QUERY、HEADER、BODY、CONSTANT、CONTEXT、JWT_CLAIM |
-| FR-008 | 通过 `GenericService` 调用配置的 interface/method/group/version |
-| FR-009 | 支持命名 Nacos Registry，并允许路由选择 Registry |
-| FR-010 | 支持按路由启用或跳过 JWT 鉴权 |
-| FR-011 | 支持有序 Filter Chain、短路响应和异步后置处理 |
-| FR-012 | 支持全局和路由级超时、并发上限与容量拒绝 |
-| FR-013 | 支持 traceId、脱敏访问日志和 Micrometer 指标 |
-| FR-014 | 提供 liveness、readiness 和优雅停机 |
-| FR-015 | 提供 `UpstreamInvoker`、`GatewayFilterFactory`、`RouteProvider` 扩展契约 |
-| FR-016 | 提供原子路由快照管理能力，但 V1 不提供在线动态 RouteProvider |
-| FR-017 | 提供可执行 engine JAR，但不负责外部代理或编排平台配置 |
+以下能力不是原文要求，也不进入本次首期范围：
 
-### 4.3 非功能需求
+1. JWT、Shiro、OAuth2、OIDC、API Key、用户登录和路由权限认证。
+2. Admin 账号、角色、菜单权限和租户隔离。
+3. 工作流审批系统；发布动作只有 Draft、Validate、Publish、Rollback 状态。
+4. GraphQL 聚合、服务编排、BFF 脚本、动态 Groovy/Lua。
+5. 上传第三方 JAR 并在运行期执行。
+6. WebSocket、SSE 代理和通用 TCP/UDP 代理。
+7. 文件分片上传、Multipart 大文件代理。
+8. 商业 Nginx Plus 的专有能力；可以预留 Adapter。
+9. 跨地域多活控制面和跨数据库双写。
+10. Kubernetes Ingress Controller；首期入口明确为 Nginx。
 
-| ID | 类别 | 需求 |
-|---|---|---|
-| NFR-001 | 性能 | Netty EventLoop 不得执行阻塞 I/O、等待锁、同步 RPC 或同步 JWK 拉取 |
-| NFR-002 | 容量 | 请求头、请求体、响应体、并发数、线程数和队列长度必须有界 |
-| NFR-003 | 稳定性 | 单个路由或单个下游故障不得破坏其他路由处理 |
-| NFR-004 | 超时 | 每个请求只有一个绝对 deadline，排队和调用时间都计入 |
-| NFR-005 | 安全 | 不信任外部提供的 interface、method、javaType 或 attachment 名称 |
-| NFR-006 | 安全 | 未知异常 message、token、cookie、密码和完整请求体不得写入响应或普通日志 |
-| NFR-007 | 可维护性 | core 不依赖 Spring、Netty、Dubbo、Nacos、JWT 或 Micrometer |
-| NFR-008 | 可测试性 | 路由、过滤器、参数绑定、错误映射和生命周期可以脱离真实网络做单测 |
-| NFR-009 | 兼容性 | 遵循当前 Java 21、Spring Boot 3.5.16 和 component 5.2.3 基线 |
-| NFR-010 | 可操作性 | 所有业务指标标签必须有界，不使用原始 path、userId 或异常 message 作为 tag |
-| NFR-011 | 发布 | 对组件消费者只在 BOM 中公开 starter |
-| NFR-012 | 数据 | V1 不需要数据库，不新增 Flyway migration |
+“不做鉴权”不代表 Admin 可以暴露到公网。Admin、节点管理接口和 Nginx 重载接口必须部署在受信任的管理网络。
 
-## 5. V1 功能点与范围
+### 5.3 关键约束
 
-### 5.1 功能点清单
+1. Engine 使用 WebFlux/Reactor Netty，禁止引入 Servlet Server。
+2. 任何 Dubbo 阻塞调用、数据库访问或文件 IO 都不得运行在 Netty EventLoop。
+3. 路由发布必须是 Group 级全量快照，不允许逐条路由在节点上半生效。
+4. 同一 Nginx Revision 必须为 Group 请求写入同一个 Active Version，Engine 必须按该版本完整选路。
+5. Redis Pub/Sub 消息可以丢失，Engine 必须通过版本拉取和周期对账自愈。
+6. Nginx 配置修改必须先验证再原子切换，不能直接覆盖生效文件。
+7. Admin 数据库是事实源；Redis、Engine 本地文件和 Nginx 文件都是派生状态。
+8. Starter 上报只更新元数据草稿，不得绕过发布流程直接修改线上路由。
+9. Starter 只处理接口定义，不得依赖 Engine 调用链、Kafka Producer 或调用结果模型。
+10. Kafka 调用事件发送不得阻塞请求响应，不得因 Kafka 故障放大为网关不可用。
 
-| ID | 功能点 | V1 行为 |
-|---|---|---|
-| FP-001 | 组件启用 | starter 默认关闭；只有显式 `enabled=true` 才创建端口、线程和 Dubbo runtime |
-| FP-002 | 独立引擎 | engine 提供可执行 JAR，复用 starter 全部能力，不复制请求逻辑 |
-| FP-003 | 路由声明 | 支持严格 YAML 和程序化 Contributor，两者进入同一个 Route Compiler |
-| FP-004 | 路由匹配 | 按 method + 精确/wildcard host + 精确 path 匹配，区分 404 与 405 |
-| FP-005 | HTTP 接入 | 原生 Netty HTTP/1.1，支持 GET、POST、keep-alive 和 JSON |
-| FP-006 | 参数绑定 | 显式绑定 query/header/body/constant/context/JWT claim，顺序对应 Dubbo 参数 |
-| FP-007 | Dubbo 调用 | 缓存 GenericService Reference，以异步 CompletionStage 返回调用结果 |
-| FP-008 | Nacos 发现 | 支持命名 Nacos Registry，Provider 上下线无需重启 Gateway |
-| FP-009 | JWT 认证 | 路由级 REQUIRED/PUBLIC，使用 Bearer JWT + RSA 公钥/JWK |
-| FP-010 | Filter Chain | 内置固定安全过滤器，支持路由级自定义 Filter Factory |
-| FP-011 | 稳定性保护 | 请求/响应大小、全局/路由并发、业务队列和 deadline 全部有界 |
-| FP-012 | 响应与错误 | 正常 RPC 结果保持 JSON 业务语义；Gateway error 使用 `ResultDto` |
-| FP-013 | 可观测性 | traceId、脱敏完成日志和低基数 Micrometer 指标 |
-| FP-014 | 健康检查 | 独立原生 Netty 管理端口提供 liveness/readiness |
-| FP-015 | 优雅停机 | 先关闭 readiness 和新流量，再等待在途请求并释放全部资源 |
-| FP-016 | 扩展能力 | 暴露 RouteProvider、GatewayFilterFactory、UpstreamInvoker 稳定 SPI |
-| FP-017 | 路由快照 | 启动期编译不可变快照，提供版本、checksum、原子发布和 LKG 语义 |
-| FP-018 | CORS | 默认关闭；开启时使用安全 allowlist 并短路 preflight |
+## 6. 总体架构
 
-### 5.2 纳入 V1
-
-1. 原生 Netty HTTP/1.1 数据端口。
-2. GET 和 POST。
-3. 精确 host/path/method 路由。
-4. query、header、JSON body、constant、context、JWT claim 参数绑定。
-5. Dubbo GenericService 调用。
-6. Nacos 服务发现。
-7. YAML 路由。
-8. 程序化路由贡献者。
-9. 启动期路由编译和不可变快照。
-10. 标准 Bearer JWT 验证。
-11. 固定安全过滤器和自定义过滤器扩展。
-12. 全局/路由并发保护。
-13. 请求 deadline 和下游 timeout。
-14. 网关错误 `ResultDto`。
-15. traceId、访问日志、Micrometer。
-16. 原生 Netty 管理端口上的 liveness/readiness。
-17. 优雅启动和停机。
-18. 可执行 engine JAR。
-19. 单元测试、网络集成测试、Dubbo 测试和可选 Nacos 真实集成测试。
-
-### 5.3 明确延期
-
-| 能力 | 原因 | 预留点 |
-|---|---|---|
-| 动态配置中心 | 需要版本、权限、审计、分发和回滚闭环 | `RouteProvider` + 原子快照 |
-| 路径变量和前缀路由 | 精确路由已满足初级网关，变量路由需独立歧义规则 | 独立 `RouteMatcher` |
-| HTTP/gRPC/Triple 上游 | V1 先闭环一个 Invoker | `UpstreamInvoker` |
-| 限流 | 需要明确算法、维度和分布式语义 | Filter Chain |
-| 熔断和降级 | 需要失败分类、窗口和恢复策略 | Filter Chain / Invoker |
-| 灰度和标签路由 | 依赖服务治理和控制面 | route metadata / attachment |
-| API SDK 自动上报 | 依赖可信注册、版本与审批 | future control plane |
-| 管理后台 | 超出数据面 component 范围 | future control plane |
-| 服务编排 | 会显著扩大 DSL、安全和事务边界 | 不在当前主链路 |
-| Prometheus HTTP scrape endpoint | Micrometer 已提供指标抽象，具体 exporter 由宿主选择 | `MeterRegistry` |
-
-### 5.4 明确不采用
-
-1. Shiro 网关鉴权。
-2. 自定义 `uId/token` 鉴权请求头。
-3. 网关签发 token、用户登录、账号管理或 RBAC。
-4. 共享 HMAC secret 验证外部 JWT。
-5. CGLIB 动态构造 RPC 接口。
-6. ORM 风格 SessionFactory/MapperProxy 模型。
-7. 允许调用方直接提交 interface、method 或 javaType 的“万能 RPC 测试接口”。
-8. SpEL、Groovy、JavaScript 或任意脚本表达式。
-9. 动态下载和加载 JAR。
-10. 裸 Redis Pub/Sub 作为路由事实来源。
-11. Java 进程写 Nginx 配置、调用 Nginx reload 或挂载 Docker Socket。
-12. 网关内置 TLS 证书生命周期管理。
-13. 自动重试非幂等或未知语义 RPC。
-14. 文件上传、multipart、WebSocket、SSE 和流式转发。
-
-## 6. 总体技术方案与决策
-
-| 决策 ID | 决策 |
-|---|---|
-| D-001 | Gateway 是轻量数据面组件，不是完整控制面平台 |
-| D-002 | 模块为 `core + starter + engine + test` |
-| D-003 | 模块内部采用 domain/application/adapter/infrastructure 分层 |
-| D-004 | 入站网络使用原生 Netty HTTP/1.1 |
-| D-005 | 所有业务请求进入有界业务执行器，EventLoop 只处理有限网络工作 |
-| D-006 | V1 上游仅为 Dubbo GenericService |
-| D-007 | V1 Dubbo 兼容基线是传统 `dubbo` 协议，不支持 Triple-only Provider |
-| D-008 | Nacos 只承担 Dubbo Registry，不承担 V1 路由配置中心 |
-| D-009 | 路由启动时编译为不可变快照，运行时按请求捕获快照 |
-| D-010 | 精确路由使用哈希索引，不为 V1 引入路径 Trie |
-| D-011 | 过滤器使用 Chain of Responsibility，Invoker 使用 Strategy/Adapter |
-| D-012 | 网关错误使用 `ResultDto`；正常 RPC 结果按 JSON 语义透明返回 |
-| D-013 | JWT 只做认证，使用非对称公钥/JWK，不做登录、发证和 RBAC |
-| D-014 | 过载返回 503；未来真正的请求速率限制才使用 429 |
-| D-015 | 不自动重试；调用方或未来策略必须显式定义幂等后才可增加 |
-| D-016 | 健康检查由独立原生 Netty 管理端口提供，不引入第二套 Servlet Server |
-| D-017 | BOM 只暴露 starter，core 由 starter 同版本传递 |
-
-## 7. 总体架构
-
-### 7.1 系统边界
+### 6.1 运行时拓扑
 
 ```mermaid
 flowchart LR
-    Client["HTTP Client"] --> LB["External TLS / Load Balancer"]
-    LB --> Netty["Gateway Netty HTTP Adapter"]
-    Netty --> Pipeline["Gateway Application Pipeline"]
-    Pipeline --> Snapshot["Immutable Route Snapshot"]
-    Pipeline --> Filters["Gateway Filter Chain"]
-    Pipeline --> Binder["Parameter Binder"]
-    Pipeline --> Invoker["UpstreamInvoker"]
-    Invoker --> Dubbo["Dubbo Generic Invoker"]
-    Dubbo --> Nacos["Nacos Registry"]
-    Dubbo --> Provider["Dubbo Provider"]
-    Local["Local YAML"] --> Compiler["Route Compiler"]
-    Beans["Programmatic Route Contributors"] --> Compiler
-    Compiler --> Snapshot
-    Pipeline --> Obs["Trace / Logs / Micrometer"]
-    Management["Native Management Port"] --> Health["Liveness / Readiness"]
-```
+    Client["HTTP Client"] --> Nginx["Nginx Group Entry"]
 
-边界说明：
-
-1. 外部 TLS 和负载均衡不属于组件。
-2. Nacos 只向 Dubbo 提供服务发现。
-3. 本地 YAML 和 Bean 是 V1 唯一路由事实来源。
-4. 请求不能覆盖路由配置中的 interface、method、registry 或 javaType。
-5. 管理端口不进入业务 RouteTable，不可被业务路由覆盖。
-
-### 7.2 分层架构
-
-```text
-top.egon.cola.component.gateway
-├── domain
-│   ├── route
-│   ├── request
-│   ├── response
-│   ├── invocation
-│   └── error
-├── application
-│   ├── dispatch
-│   ├── filter
-│   ├── binding
-│   ├── routing
-│   ├── lifecycle
-│   └── port
-├── adapter
-│   ├── inbound.netty
-│   └── outbound.dubbo
-├── infrastructure
-│   ├── configuration
-│   ├── security
-│   ├── observability
-│   ├── execution
-│   └── health
-└── autoconfigure
-```
-
-依赖方向：
-
-```text
-domain
-  ↑
-application
-  ↑
-adapter / infrastructure
-  ↑
-autoconfigure / engine
-```
-
-规则：
-
-1. domain 不依赖 application、adapter 或 infrastructure。
-2. application 只依赖 domain 和稳定 port/SPI。
-3. adapter 实现 application port。
-4. infrastructure 提供配置、线程、JWT、指标和生命周期实现。
-5. autoconfigure 只负责装配，不承载业务逻辑。
-6. engine 只负责启动和默认运行配置。
-
-### 7.3 请求主链路
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant N as Netty EventLoop
-    participant E as Bounded Business Executor
-    participant R as Route Snapshot
-    participant F as Filter Chain
-    participant B as Parameter Binder
-    participant D as Dubbo Generic Invoker
-
-    C->>N: HTTP/1.1 Request
-    N->>N: 协议校验、头/体上限、构造不可变请求
-    N->>E: 非阻塞提交
-    alt 执行器或全局容量已满
-        N-->>C: 503 ResultDto
-    else 已接收
-        E->>R: 精确匹配 route
-        E->>F: 执行认证、并发、deadline、自定义过滤器
-        F->>B: 编译后的参数绑定计划
-        B->>D: method + type[] + args[] + attachments
-        D-->>F: CompletionStage result/error
-        F-->>N: GatewayResponse
-        N-->>C: HTTP Response
+    subgraph DataPlane["Data Plane"]
+        E1["Gateway Engine A"]
+        E2["Gateway Engine B"]
+        EN["Gateway Engine N"]
     end
+
+    Nginx --> E1
+    Nginx --> E2
+    Nginx --> EN
+
+    E1 --> HttpUpstream["HTTP Services"]
+    E2 --> HttpUpstream
+    EN --> HttpUpstream
+    E1 --> DubboUpstream["Dubbo Services"]
+    E2 --> DubboUpstream
+    EN --> DubboUpstream
+
+    Kafka[("Kafka Cluster")]
+    Consumer["Invocation Event Consumers"]
+    E1 -. "invocation event" .-> Kafka
+    E2 -. "invocation event" .-> Kafka
+    EN -. "invocation event" .-> Kafka
+    Kafka --> Consumer
+
+    subgraph ControlPlane["Control Plane"]
+        Admin["Gateway Admin"]
+        PostgreSQL[("PostgreSQL")]
+        Redis[("Redis")]
+        UI["Admin UI"]
+        Publisher["Snapshot and Nginx Publisher"]
+    end
+
+    UI --> Admin
+    Admin --> PostgreSQL
+    Admin --> Redis
+    Admin --> Publisher
+    Publisher --> Nginx
+
+    E1 <-->|"register / pull / ACK"| Admin
+    E2 <-->|"register / pull / ACK"| Admin
+    EN <-->|"register / pull / ACK"| Admin
+    Redis -. "version event" .-> E1
+    Redis -. "version event" .-> E2
+    Redis -. "version event" .-> EN
+
+    Provider["Downstream Provider + Gateway Starter"] -->|"atomic interface definition report"| Admin
 ```
 
-## 8. Maven 模块与发布边界
+### 6.2 控制面与数据面职责
 
-### 8.1 目标目录
+| 能力 | Admin 控制面 | Engine 数据面 |
+|---|---|---|
+| 系统/接口/方法元数据 | 保存与管理 | 只消费编译结果 |
+| 路由编辑 | 保存 Draft | 不允许本地编辑线上路由 |
+| 路由校验 | 业务校验、冲突校验、快照生成 | 再次做运行时兼容校验 |
+| 版本发布 | 生成版本并通知 | 拉取、编译、原子替换、ACK |
+| 节点注册 | 维护节点和租约 | 主动注册与心跳 |
+| Nginx | 生成、校验、发布、回滚 | 不直接修改 Nginx |
+| 请求处理 | 不参与 | 匹配、过滤、绑定、调用、响应 |
+| 上游连接 | 不持有 | 持有 HTTP Pool 和 Dubbo Reference |
+| 接口定义上报 | 接收并形成 Draft | 不参与 |
+| 接口调用事件 | 不通过 HTTP 接收逐次调用上报 | 请求结束后异步发送 Kafka |
+| 本地容灾 | 不适用 | 保存并加载 LKG |
+
+### 6.3 Gateway Group 模型
+
+1. 一个 Group 对应一个对外路径前缀，例如 `/10001/**`。
+2. 一个 Group 可以关联多个 Application System。
+3. 一个 System 首期只能在同一环境中关联到一个 Group，避免同一路由多组写入产生歧义；后续如需多组灰度必须显式增加发布目标模型。
+4. 一个 Group 可以包含多个 Gateway Node。
+5. Group 的路由版本单调递增。
+6. Group 下进入目标 Nginx Revision 的所有 `READY` Node 必须 ACK PREPARED 该版本。
+7. 未 PREPARED 目标版本的新 Node 不进入对应 Nginx upstream。
+8. 节点不是独立的路由分片；`group -> node -> system` 关联是 Group 分配关系在节点上的物化和审计。
+
+### 6.4 关键架构选择
+
+#### 6.4.1 为什么采用 Spring Cloud Gateway
+
+Spring Cloud Gateway 已提供：
+
+1. Reactor Netty HTTP Server。
+2. Path、Method、Host 等路由 Predicate。
+3. GlobalFilter 和 GatewayFilter 有序处理链。
+4. HTTP 上游 Netty Client、连接池和流式转发。
+5. CORS、请求体限制、限流、熔断、重试和指标扩展点。
+6. `RouteDefinitionLocator`、路由刷新事件和 Actuator 观察能力。
+
+本项目的价值放在平台控制面、版本化配置、Dubbo Adapter、参数绑定、集群发布和动态负载，不重复实现成熟的 HTTP Server。
+
+#### 6.4.2 为什么保留 Gateway Core
+
+Spring Cloud Gateway 只解决 HTTP 网关运行时，不解决：
+
+1. Admin 路由模型到 SCG RouteDefinition 的编译。
+2. Dubbo 泛化调用。
+3. 多来源参数绑定。
+4. Group Snapshot 版本校验。
+5. 统一错误和调用反馈。
+6. HTTP、Dubbo 及未来协议的统一 Adapter。
+
+因此需要独立 Core，但 Core 是本项目内部核心库，不做成通用框架市场。
+
+### 6.5 设计模式选择
+
+| 模式 | 使用位置 | 解决的问题 |
+|---|---|---|
+| Adapter | `HttpUpstreamAdapter`、`DubboUpstreamAdapter` | 隔离不同上游协议 |
+| Strategy | 参数转换、限流键、Nginx 发布驱动 | 已知变化点可配置替换 |
+| Chain of Responsibility | GlobalFilter/GatewayFilter | 前置、调用、后置和短路处理 |
+| Factory | 上游 Client/Reference 创建 | 按路由稳定创建并缓存连接资源 |
+| Facade | `GatewayExecutor`、Admin Publish Service | 隐藏跨组件编排细节 |
+| Repository | Admin 持久化、Engine Route Snapshot | 隔离存储和运行时模型 |
+| State | Node、Snapshot、Publish Task、Nginx Revision | 约束合法状态迁移 |
+| Transactional Outbox | 路由发布任务 | 避免数据库提交成功但 Redis 通知丢失 |
+| Specification | 路由冲突和发布校验 | 组合可测试的发布规则 |
+
+不采用以下模式：
+
+1. 不使用抽象工厂层层创建简单 DTO。
+2. 不使用模板方法建立深继承树；处理链优先组合。
+3. 不使用动态代理隐藏路由业务流程。
+4. 不把每个简单校验拆成独立类，只有可复用或可组合规则才使用 Specification。
+
+## 7. 工程与模块设计
+
+### 7.1 工程目录
+
+建议在 `egon-cola-components` 下建立独立聚合工程：
 
 ```text
 egon-cola-components/
 └── egon-cola-component-gateway/
     ├── pom.xml
+    ├── README.md
+    ├── egon-cola-component-gateway-contract/
     ├── egon-cola-component-gateway-core/
-    │   └── pom.xml
-    ├── egon-cola-component-gateway-starter/
-    │   └── pom.xml
     ├── egon-cola-component-gateway-engine/
-    │   └── pom.xml
+    ├── egon-cola-component-gateway-admin/
+    │   └── src/main/frontend/
+    ├── egon-cola-component-gateway-starter/
     └── egon-cola-component-gateway-test/
-        └── pom.xml
 ```
 
-### 8.2 模块职责
+这是一个大型 component 家族，不按其他轻量 component 的单 starter 结构压缩。
 
-| 模块 | 职责 | 允许的主要依赖 | 发布边界 |
-|---|---|---|---|
-| `gateway-core` | 路由模型、上下文、Filter/Invoker SPI、编译后路由、调度契约、错误模型 | JDK、`common-core` | starter 的内部同版本依赖 |
-| `gateway-starter` | Netty、Dubbo/Nacos、JWT/JWK、Jackson、Micrometer、配置绑定、自动装配 | core、common result/trace、Spring Boot、Netty、Dubbo | BOM 唯一公开入口 |
-| `gateway-engine` | 独立 Spring Boot 启动类、可执行 JAR、默认日志和运行配置 | starter | 可部署产物，不加入 BOM |
-| `gateway-test` | 示例配置、测试 Provider、网络/鉴权/生命周期/兼容性验证 | starter/engine + test dependencies | 不加入 BOM |
+运行时模块边界：
 
-### 8.3 依赖图
+1. `gateway-admin` 是管理平台，同时承接原文 `gateway-center` 的注册中心和配置中心能力，不再额外部署一个职责重叠的 Center 进程。
+2. `gateway-engine` 就是实际网关进程；一个 Group 通过部署多个 Engine 实例形成 Gateway 集群。
+3. `gateway-starter` 只部署在下游 Provider，用于接口定义上报。
+4. `gateway-core` 和 `gateway-contract` 是内部库，不是独立运行服务。
+5. `gateway-test` 是验证工程，不进入生产运行拓扑。
 
-```text
-gateway-engine
-    └── gateway-starter
-            ├── gateway-core
-            │       └── common-core
-            ├── common-result
-            ├── common-trace
-            ├── Spring Boot autoconfigure
-            ├── Netty HTTP
-            ├── Dubbo 3.3.6 + Nacos Registry adapter
-            ├── Jackson
-            ├── Spring Security JOSE/JWT
-            └── Micrometer
+原文章节 28 的模块能力映射：
 
-gateway-test
-    └── gateway-starter / gateway-engine
-```
-
-### 8.4 依赖约束
-
-1. components parent 增加 `dubbo.version=3.3.6` 并导入对应 Dubbo BOM。
-2. Netty、Jackson、Spring Security 和 Micrometer 优先使用 Spring Boot BOM 管理版本。
-3. Nacos client 版本必须由 Dubbo 兼容依赖链统一管理，不与 Spring Cloud Alibaba 重复引入。
-4. Gateway 不依赖 `spring-cloud-starter-alibaba-nacos-discovery` 或 Nacos Config starter。
-5. Gateway 不强制依赖现有 dynamic-thread-pool 或 dynamic-config-center component。
-6. V1 使用标准有界 `ThreadPoolExecutor`；宿主可以通过 Bean 覆盖执行器，但覆盖实现仍必须满足有界契约。
-7. engine 使用 Spring Boot Maven Plugin 打包可执行 JAR。
-8. engine 使用 `WebApplicationType.NONE`，不会额外启动 Tomcat、Jetty 或 WebFlux Server。
-9. test 和 engine 不加入 `egon-cola-components-bom`。
-10. BOM 只新增 `top.egon:egon-cola-component-gateway-starter:${project.version}`。
-
-### 8.5 Starter 自动配置
-
-starter 提供单一入口 `GatewayAutoConfiguration`，并通过 AutoConfiguration imports 注册。
-
-启用条件：
-
-```text
-egon.cola.component.gateway.enabled=true
-```
-
-装配顺序：
-
-1. `GatewayProperties` 严格绑定和校验；
-2. 默认 `GatewayJsonCodec`；
-3. 路由来源和 Route Compiler；
-4. 有界业务执行器和 deadline scheduler；
-5. JWT verifier/key source；
-6. Gateway-owned Dubbo runtime 和 Invoker registry；
-7. Filter factories、dispatcher 和 route snapshot；
-8. Micrometer binder；
-9. Netty data/management server；
-10. `SmartLifecycle` 协调器。
-
-覆盖规则：
-
-1. `GatewayRouteContributor`、`GatewayFilterFactory`、`UpstreamInvoker` 等扩展类型允许多 Bean 聚合。
-2. `GatewayJsonCodec`、执行器和时间源等单一策略使用明确 qualifier，并允许 `@ConditionalOnMissingBean` 覆盖。
-3. 不覆盖宿主应用的全局 `ObjectMapper`、`Executor`、`MeterRegistry` 或 Dubbo 配置。
-4. 默认 JSON codec 使用 Gateway 专用、安全约束的 ObjectMapper，禁止 default typing；使用方需要特殊序列化时覆盖 `GatewayJsonCodec`，而不是修改全局 mapper。
-5. 宿主存在 `MeterRegistry` 时直接使用；不存在时创建内部 `SimpleMeterRegistry` 以保证 meter 契约和测试可用，并记录一次“未配置 exporter”的提示。
-6. Gateway Bean 全部使用明确名称/qualifier，避免与业务 Netty、Dubbo 或安全 Bean 按类型误注入。
-7. 自动配置类不执行 package component scan。
-8. 任一必要 Bean、路由或端口校验失败时，启动失败并执行已创建资源的逆序清理。
-
-## 9. 核心领域模型
-
-### 9.1 GatewayRouteDefinition
-
-路由是不可变、类型化定义。逻辑字段如下：
-
-```text
-GatewayRouteDefinition
-├── id: String
-├── enabled: boolean
-├── hosts: Set<String>
-├── method: GatewayHttpMethod
-├── path: String
-├── request: RouteRequestDefinition
-├── security: RouteSecurityDefinition
-├── protection: RouteProtectionDefinition
-├── filters: List<RouteFilterReference>
-└── upstream: UpstreamDefinition
-```
-
-字段约束：
-
-| 字段 | 规则 |
-|---|---|
-| `id` | 必填；全局唯一；格式 `[a-z][a-z0-9._-]{2,127}`；作为日志和指标 tag |
-| `enabled` | 默认 `true`；禁用路由不进入快照 |
-| `hosts` | 默认 `*`；支持 `*` 或精确主机名；不支持正则和 `*.example.com` |
-| `method` | V1 仅 `GET`、`POST` |
-| `path` | 必须以 `/` 开始；精确路径；不能进入管理端口空间 |
-| `request` | 内容类型、参数绑定和路由级 body 上限 |
-| `security` | `REQUIRED` 或 `PUBLIC`，默认 `REQUIRED` |
-| `protection` | timeout、route max-concurrent |
-| `filters` | 自定义 filter 名称和只读配置 |
-| `upstream` | V1 必须为 `DUBBO` |
-
-### 9.2 RouteRequestDefinition
-
-```text
-RouteRequestDefinition
-├── contentType: application/json
-├── maxBodyBytes: DataSize?
-└── parameters: List<GatewayParameterBinding>
-```
-
-规则：
-
-1. GET 不允许携带 body。
-2. POST 有 body 时只接受 `application/json` 和 UTF-8。
-3. 路由级 `maxBodyBytes` 只能小于或等于全局上限。
-4. `parameters` 的列表顺序就是 Dubbo `$invoke` 的参数顺序。
-5. 零参数方法使用空列表，不使用 `null`。
-
-### 9.3 GatewayParameterBinding
-
-```text
-GatewayParameterBinding
-├── name: String
-├── javaType: String
-├── source: ParameterSource
-├── key: String?
-├── jsonPointer: String?
-├── required: boolean
-├── defaultValue: String?
-└── multiValue: FIRST | LIST
-```
-
-参数来源：
-
-| Source | 数据来源 | 约束 |
+| 原模块 | 新模块 | 说明 |
 |---|---|---|
-| `QUERY` | query 参数 | GET/POST 均可；重复值必须指定 FIRST 或 LIST |
-| `HEADER` | 请求头 | 名称大小写不敏感；禁止读取 `Authorization` 为普通业务参数 |
-| `BODY` | JSON body | 使用 RFC 6901 JSON Pointer；未配置或空字符串表示完整对象 |
-| `CONSTANT` | 路由常量 | 值来自可信路由配置 |
-| `CONTEXT` | 网关上下文 | 仅允许 `traceId`、`requestId`、`remoteAddress` |
-| `JWT_CLAIM` | 已验证 JWT claim | 只能用于 `REQUIRED` 路由；claim 名需显式声明 |
+| center | admin | 注册中心、配置中心并入管理平台后端 |
+| admin | admin | 管理 API 和 Vue UI |
+| core | core | 参数绑定、执行器、协议 Adapter |
+| assist | engine | 节点注册、配置拉取、生命周期成为 Engine 内部应用层 |
+| engine | engine | 可执行网关 |
+| sdk | starter | 下游接口定义扫描和上报 |
+| test | test | Provider、Client、Kafka Consumer 和 E2E |
 
-规则：
+### 7.2 模块职责
 
-1. `javaType` 必须由路由配置提供，外部请求不能覆盖。
-2. 标量支持 Java primitive、wrapper、String、BigInteger、BigDecimal、UUID 和有限时间类型。
-3. 数组和 List 必须显式声明，不能根据重复 query 自动猜测。
-4. 复杂 POJO 输入在网关内表示为 `Map<String, Object>`，调用时使用配置的全限定类型名称。
-5. 对 POJO map，Dubbo 适配器按泛化调用要求补充或校验 `class` 元信息，外部请求中的同名 `class` 不能覆盖可信配置。
-6. 网关不使用 `Class.forName` 加载业务 DTO。
-7. 类型字符串只作为 Dubbo 泛化协议元数据，经长度和语法校验后发送。
-8. 缺少 required 参数返回 400。
-9. 转换失败返回 400，不能把底层 Jackson/Dubbo 异常暴露给调用方。
-10. `defaultValue` 只在参数缺失时使用；参数存在但格式错误时不能回退默认值。
-11. `jsonPointer` 只适用于 BODY；未配置或空字符串表示 JSON 根，非空值必须是合法 RFC 6901 Pointer。
+#### 7.2.1 `gateway-contract`
 
-### 9.4 DubboUpstreamDefinition
+只放跨运行时稳定契约：
 
-```text
-DubboUpstreamDefinition
-├── type: DUBBO
-├── registry: String
-├── interfaceName: String
-├── methodName: String
-├── group: String?
-├── version: String?
-└── protocol: dubbo
+1. Group、Node、System、Interface、Method、Route Snapshot DTO。
+2. 注册、心跳、拉取、ACK、批次上报请求与响应。
+3. 路由类型、HTTP Method、参数来源、节点状态等枚举。
+4. Starter 注解可以放在 contract 的独立 annotation 包，避免 Starter 扫描实现泄漏给 Provider 编译期。
+5. 版本化 `GatewayInvocationEvent` 及其 JSON Schema。
+6. JSON Schema/校验约束。
+
+禁止放：
+
+1. Admin Entity、Repository。
+2. Engine Filter 或 Dubbo Client。
+3. Spring MVC/WebFlux Controller。
+4. 数据库或 Redis 实现。
+
+#### 7.2.2 `gateway-core`
+
+负责数据面协议无关的核心能力：
+
+1. Route Snapshot 校验和编译。
+2. 参数提取、转换和绑定。
+3. `GatewayExecutor`。
+4. `UpstreamAdapter`、`UpstreamRequest`、`UpstreamResponse` SPI。
+5. Dubbo 泛化调用 Adapter。
+6. HTTP 上游扩展元数据模型。
+7. 错误码、异常映射和反馈头生成。
+8. 调用结果到 `GatewayInvocationEvent` 的纯模型映射。
+9. Client/Reference 生命周期管理。
+
+#### 7.2.3 `gateway-engine`
+
+独立可执行数据面：
+
+1. Spring Cloud Gateway WebFlux Server。
+2. Admin Client、节点注册、心跳、路由拉取、ACK。
+3. Redis 版本事件订阅。
+4. `VersionedRouteDefinitionLocator`。
+5. GlobalFilter/GatewayFilter。
+6. HTTP 转发和 Dubbo Routing Filter。
+7. 本地 LKG。
+8. Readiness、Drain、优雅停机。
+9. Actuator、Micrometer 和访问日志。
+10. 调用结束事件采集、有界缓冲和 Kafka 异步 Producer。
+11. 可执行 JAR 和 Engine 镜像。
+
+部署多个 Engine 实例即形成“一组 Gateway”；不需要复制工程模块。
+
+#### 7.2.4 `gateway-admin`
+
+独立可执行控制面：
+
+1. Group、节点、系统、接口、方法、路由管理。
+2. Starter 下游接口定义批次上报。
+3. 路由校验、预览、发布、回滚和审计。
+4. Engine 节点注册、租约、快照拉取和 ACK。
+5. PostgreSQL 持久化与 Flyway。
+6. Redis 快照缓存、Pub/Sub、租约和发布任务。
+7. Nginx 配置生成、发布、回滚和状态。
+8. Vue 3 管理界面。
+9. Admin 镜像。
+
+Admin 不依赖 Engine 实现；双方只通过 contract 约定的 HTTP/JSON 与 Redis 事件通信。
+
+Admin 不接收 Engine 逐次调用上报。接口调用事件直接进入 Kafka，避免高吞吐调用流量穿过管理 API 或写入配置数据库。
+
+#### 7.2.5 `gateway-starter`
+
+Provider 侧轻量 SDK：
+
+1. 启用配置和自动配置。
+2. 扫描下游 Provider 中带网关注解的 Spring Bean。
+3. 编译下游系统、接口、方法、参数和入口路由定义。
+4. 启动后向 Admin 原子批次上报接口定义。
+5. 本地元数据校验、幂等重报和退避重试。
+6. 暴露上报健康和最后结果。
+
+Starter 不启动 Gateway Server，不持有路由，不订阅路由版本，不观察业务调用，不发送调用结果，也不依赖 Kafka。
+
+#### 7.2.6 `gateway-test`
+
+测试专用，不发布到 BOM：
+
+1. HTTP Provider Fixture。
+2. Dubbo Provider Fixture。
+3. Starter 接口定义上报 Fixture。
+4. Gateway Client Fixture。
+5. Kafka Invocation Event Consumer Fixture。
+6. Admin、Redis、Kafka、PostgreSQL、Nacos、ZooKeeper、Nginx 和双 Engine 的 Testcontainers/Compose 环境。
+7. 端到端、故障注入、动态发布和回滚测试。
+8. 原文 29 章追踪验收测试。
+
+### 7.3 依赖方向
+
+```mermaid
+flowchart TD
+    Contract["gateway-contract"]
+    Core["gateway-core"]
+    Engine["gateway-engine"]
+    Admin["gateway-admin"]
+    Starter["gateway-starter"]
+    Test["gateway-test"]
+
+    Core --> Contract
+    Engine --> Core
+    Engine --> Contract
+    Admin --> Contract
+    Starter --> Contract
+    Test --> Engine
+    Test --> Admin
+    Test --> Starter
+    Test --> Core
 ```
 
 约束：
 
-1. `registry` 引用全局命名 Registry。
-2. `interfaceName` 必须为合法 Java 全限定名称。
-3. `methodName` 必须为合法 Java 方法名。
-4. `protocol` V1 固定为 `dubbo`。
-5. timeout 不在 upstream 重复配置，由 `RouteProtectionDefinition` 统一控制。
-6. retries 固定为 `0`。
-7. 路由不能配置 Provider 直连地址作为生产默认方式；测试可以使用专用 direct invoker 配置。
+1. `contract` 不依赖其他 Gateway 模块。
+2. `core` 不依赖 Admin、Engine 或 Starter。
+3. `admin` 不依赖 Core/Engine。
+4. `starter` 不依赖 Core/Engine/Admin 实现。
+5. `test` 是唯一可以聚合所有模块的模块。
 
-### 9.5 RouteProtectionDefinition
+### 7.4 分层架构
 
-```text
-RouteProtectionDefinition
-├── timeout: Duration
-└── maxConcurrent: int
-```
-
-规则：
-
-1. timeout 默认 3 秒，必须大于 0，最大不超过全局允许值。
-2. timeout 从网关接受请求时开始计时，包含业务执行器排队、鉴权、绑定和 RPC 调用。
-3. `maxConcurrent` 默认继承全局值。
-4. 获取并发许可使用 `tryAcquire`，不能等待。
-5. 超限返回 503，不进入 Dubbo 调用。
-
-### 9.6 GatewayRequestContext
-
-每个请求创建独立上下文：
+Admin：
 
 ```text
-GatewayRequestContext
-├── requestId
-├── traceId
-├── acceptedAt
-├── deadline
-├── remoteAddress
-├── method
-├── host
-├── normalizedPath
-├── headers
-├── queryParameters
-├── body
-├── route
-├── principal
-├── claims
-├── invocationArguments
-└── attributes
+interfaces       REST Controller / UI API / DTO mapping
+application      use case / transaction / publish orchestration
+domain           aggregate / state / policy / repository port
+infrastructure   JDBC / Redis / Nginx / HTTP / Flyway
+bootstrap        Spring Boot configuration
 ```
 
-规则：
-
-1. request/route 本身不可变。
-2. attributes 是受控扩展区，不允许 Filter 修改路由标识或上游身份。
-3. 上下文不跨请求复用。
-4. 上下文在线程切换时显式传播 trace，而不是依赖不安全的 ThreadLocal 继承。
-5. 请求完成后必须释放 body、并发许可和快照引用。
-
-### 9.7 编译后路由
-
-配置对象不会直接进入热路径。启动时将每条路由编译为：
+Engine：
 
 ```text
-CompiledRoute
-├── normalized match key
-├── immutable route metadata
-├── compiled parameter binding plan
-├── resolved filter chain
-├── resolved invoker handle
-├── concurrency guard
-└── timeout policy
+transport        SCG routes / filters / HTTP exchange
+application      register / pull / apply / ACK / reconcile
+domain           snapshot / compiled route / node lifecycle
+infrastructure   Admin client / Redis / disk LKG / Dubbo / HTTP
+bootstrap        Spring Boot configuration
 ```
 
-这样运行时不重复执行：
+Engine 的 Kafka 调用事件上报属于 infrastructure，但采集点位于 transport 请求完成回调；应用层只接收不可变调用结果，不依赖 Kafka API。
 
-- 字符串类型解析；
-- Filter Bean 查找；
-- JSON Pointer 编译；
-- Registry 查找；
-- GenericService Reference 创建；
-- 配置合法性校验。
+Starter：
 
-## 10. 路由来源、编译与快照
-
-### 10.1 V1 路由来源
-
-V1 支持两个来源：
-
-1. `GatewayProperties.routes`：本地 YAML/Properties。
-2. `GatewayRouteContributor` Bean：程序化声明。
-
-合并规则：
-
-1. 两个来源同等可信。
-2. 不存在“Bean 自动覆盖 YAML”或“后加载覆盖前加载”。
-3. route id 重复直接失败。
-4. match key 冲突直接失败。
-5. 所有来源必须先合并，再做一次全量编译。
-
-程序化 API 采用 Contributor + Builder：
-
-```java
-@Bean
-GatewayRouteContributor orderRoutes() {
-    return routes -> routes.route("order.query")
-            .get("/api/orders/query")
-            .authenticationRequired()
-            .queryParameter("orderId", "java.lang.Long", true)
-            .dubbo("default", "com.example.OrderFacade", "query")
-            .timeout(Duration.ofSeconds(2))
-            .register();
-}
+```text
+annotation       provider-facing annotations
+scanner          Bean and method metadata collection
+application      validate interface definitions / batch / report / retry
+infrastructure   Admin HTTP client / actuator contributor
+autoconfigure    conditional configuration
 ```
 
-以上是目标 API 形态，不代表已实现类签名。最终实施必须保持 YAML 与 Builder 生成同一个 `GatewayRouteDefinition`，不能形成两套规则。
+## 8. 功能需求
 
-### 10.2 编译流程
+### 8.1 Gateway 数据面
+
+| ID | 功能需求 |
+|---|---|
+| FR-DP-001 | Engine 必须使用 Spring Cloud Gateway WebFlux 接收 HTTP/1.1 请求 |
+| FR-DP-002 | 必须支持 GET、POST、PUT、PATCH、DELETE、HEAD、OPTIONS 路由 |
+| FR-DP-003 | 必须同时使用 Path 和 HTTP Method 匹配路由 |
+| FR-DP-004 | 必须支持可选 Host Predicate |
+| FR-DP-005 | 必须支持 HTTP/HTTPS 上游 |
+| FR-DP-006 | 必须支持 Dubbo 3 泛化调用上游 |
+| FR-DP-007 | 必须支持 Path、Query、Header、Cookie、Body、Body Field、常量和网关上下文参数来源 |
+| FR-DP-008 | 必须支持零参数、单参数、多参数、简单类型、集合和复杂对象 |
+| FR-DP-009 | 参数缺失、格式错误、类型转换失败必须返回稳定错误 |
+| FR-DP-010 | 一次请求只能匹配一个已发布路由；冲突配置不得发布 |
+| FR-DP-011 | 必须支持前置、调用、后置过滤处理 |
+| FR-DP-012 | 必须支持请求大小、超时、并发、限流、熔断和响应大小保护 |
+| FR-DP-013 | 必须产生 Trace ID、访问日志和 Micrometer 指标 |
+| FR-DP-014 | 必须返回可配置的节点、Group、Route 和配置版本反馈头 |
+| FR-DP-015 | 必须在不重启 Engine 的情况下原子切换路由版本 |
+| FR-DP-016 | 不得在 EventLoop 上执行阻塞 RPC、磁盘或控制面 HTTP 操作 |
+| FR-DP-017 | 每次已匹配路由的调用结束后，Engine 必须构造并异步提交调用事件 |
+
+### 8.2 Admin 控制面
+
+| ID | 功能需求 |
+|---|---|
+| FR-AD-001 | 管理 Gateway Group |
+| FR-AD-002 | 查询、禁用、Drain 和下线 Gateway Node |
+| FR-AD-003 | 管理 Application System、Interface 和 Method |
+| FR-AD-004 | 接收 Starter 的下游接口定义原子批次上报 |
+| FR-AD-005 | 支持手工创建和编辑服务元数据，不强制依赖 Starter |
+| FR-AD-006 | 管理 Group 与 System 分配关系 |
+| FR-AD-007 | 根据分配关系聚合 Group 完整路由 |
+| FR-AD-008 | 校验路径、方法、参数、上游、引用和冲突 |
+| FR-AD-009 | 预览标准化路由快照和与当前版本的差异 |
+| FR-AD-010 | 发布不可变、单调递增的 Group Snapshot |
+| FR-AD-011 | 展示节点 Prepared/Serving Version 和 ACK 状态 |
+| FR-AD-012 | 支持回滚到任意仍被保留的历史有效快照 |
+| FR-AD-013 | 生成、预览、验证、发布和回滚 Nginx 配置 |
+| FR-AD-014 | 记录元数据、分配、发布、回滚、节点和 Nginx 审计 |
+| FR-AD-015 | 提供 Vue 管理页面和跨域配置 |
+
+### 8.3 Gateway 节点与集群
+
+| ID | 功能需求 |
+|---|---|
+| FR-CL-001 | Engine 启动时向 Admin 注册唯一 Node |
+| FR-CL-002 | Node 必须归属一个 Group |
+| FR-CL-003 | Node 必须按租约周期发送心跳 |
+| FR-CL-004 | Admin 必须识别 REGISTERING、SYNCING、READY、DRAINING、OFFLINE、FAILED 状态 |
+| FR-CL-005 | 新 Node 必须先预备 Group Active Version，再进入 READY |
+| FR-CL-006 | 只有 READY 且已预备 Active Version 的节点可进入对应 Nginx upstream |
+| FR-CL-007 | Node 下线、租约过期或版本落后必须触发负载配置对账 |
+| FR-CL-008 | 同一 Group 的节点不得各自选择不同路由子集 |
+| FR-CL-009 | Group 扩缩容不得要求重新发布路由 |
+| FR-CL-010 | Engine 优雅关闭必须先 Drain、等待在途请求，再注销节点 |
+
+### 8.4 路由分发
+
+| ID | 功能需求 |
+|---|---|
+| FR-CFG-001 | Admin 数据库是路由事实源 |
+| FR-CFG-002 | 每次发布生成 Group 全量快照 |
+| FR-CFG-003 | 快照必须包含 version、checksum、schemaVersion 和 generatedAt |
+| FR-CFG-004 | 发布任务必须持久化，进程崩溃后可继续 |
+| FR-CFG-005 | Redis 必须缓存各版本快照、维护 Desired Version 指针并发布轻量版本事件 |
+| FR-CFG-006 | Engine 收到事件后必须通过 Admin 或 Redis 拉取完整快照 |
+| FR-CFG-007 | Engine 必须校验 schema、Group、version、checksum、引用和运行时支持 |
+| FR-CFG-008 | 全部路由编译成功后才能把新版本加入节点的 Prepared Snapshot 集合 |
+| FR-CFG-009 | 任一路由预备失败或 Nginx 切流失败时旧 Active Version 必须继续服务 |
+| FR-CFG-010 | Engine 必须对 Admin ACK PREPARED/REJECTED/ACTIVATED 及原因 |
+| FR-CFG-011 | Engine 必须周期查询版本，修复 Pub/Sub 消息丢失 |
+| FR-CFG-012 | Engine 必须持久化 LKG 并支持 Admin 不可用时启动 |
+| FR-CFG-013 | 回滚必须生成新的发布版本并引用历史快照内容，版本号不得倒退 |
+
+### 8.5 Starter
+
+| ID | 功能需求 |
+|---|---|
+| FR-ST-001 | Starter 通过显式 `enabled` 开关启用，默认关闭 |
+| FR-ST-002 | 采集下游 Provider 的应用系统、接口、方法、HTTP 路径、HTTP Method 和参数映射定义 |
+| FR-ST-003 | 必须支持同一 Bean 多接口场景，通过注解显式指定接口 |
+| FR-ST-004 | 本地存在重复路由、缺失类型或不支持参数时启动阶段报告明确错误 |
+| FR-ST-005 | 一次启动采集到的全部接口定义必须作为一个原子 Interface Definition Report Batch 上报 |
+| FR-ST-006 | 重复上报同一指纹必须幂等 |
+| FR-ST-007 | 上报失败按有界指数退避重试，不阻止 Provider 提供业务服务 |
+| FR-ST-008 | 新上报只更新 Draft，不自动发布 |
+| FR-ST-009 | 必须暴露最后上报时间、批次 ID、指纹和状态 |
+| FR-ST-010 | Starter 不得采集调用次数、调用结果、耗时或错误，也不得连接 Kafka |
+
+### 8.6 Nginx 动态负载
+
+| ID | 功能需求 |
+|---|---|
+| FR-LB-001 | 外部入口使用 `/{groupId}/**` |
+| FR-LB-002 | Nginx 按 Group 维护独立 upstream |
+| FR-LB-003 | 转发前去掉第一段 Group 前缀 |
+| FR-LB-004 | upstream 只包含 READY 且版本一致的 Node |
+| FR-LB-005 | 节点注册、就绪、Drain、离线和地址/权重变化触发防抖对账 |
+| FR-LB-006 | Admin 必须生成完整、确定性、版本化的 Nginx 配置 |
+| FR-LB-007 | 新配置必须经过 `nginx -t` 或等价验证 |
+| FR-LB-008 | 验证成功后才能原子切换并 reload |
+| FR-LB-009 | reload 失败必须保留旧配置并记录失败 |
+| FR-LB-010 | 必须支持回滚到上一个成功 Nginx Revision |
+| FR-LB-011 | 禁止把 Docker Socket 暴露给 Admin |
+| FR-LB-012 | Nginx 必须覆盖写入内部 Route Version Header，Engine 依据该版本选择已预备快照 |
+
+### 8.7 Engine 调用事件上报
+
+| ID | 功能需求 |
+|---|---|
+| FR-EVT-001 | 调用事件必须由处理请求的 Engine 生成，Starter 和 Admin API 不参与逐次上报 |
+| FR-EVT-002 | 每个已匹配 Route 的成功、上游失败、超时、熔断、限流和客户端取消都必须形成事件 |
+| FR-EVT-003 | 事件必须发送到配置的 Kafka Cluster 和版本化 Topic |
+| FR-EVT-004 | Kafka 发送必须与 HTTP 响应解耦，不得等待 Broker ACK 后再返回调用方 |
+| FR-EVT-005 | 事件必须包含唯一 eventId、traceId、Group、Route、Node、Snapshot Version、下游接口标识、结果和耗时 |
+| FR-EVT-006 | 事件不得包含请求/响应 Body、Authorization、Cookie、Registry 凭据和未脱敏敏感 Header |
+| FR-EVT-007 | Producer 必须启用 `acks=all`、幂等 Producer、有界缓冲、重试和发送结果指标 |
+| FR-EVT-008 | Kafka 故障不得导致接口调用失败；缓冲溢出必须按明确策略处理并告警 |
+| FR-EVT-009 | 已进入本地 spool 的事件按 at-least-once 交付，消费方必须按 eventId 幂等；强杀窗口和容量溢出风险必须显式可观测 |
+| FR-EVT-010 | Kafka Topic 不由 Engine 在生产环境自动创建，部署前必须完成分区、副本和保留策略配置 |
+
+### 8.8 生命周期与部署
+
+| ID | 功能需求 |
+|---|---|
+| FR-OPS-001 | Engine 和 Admin 均提供可执行 JAR |
+| FR-OPS-002 | Engine 和 Admin 均提供 OCI 镜像 |
+| FR-OPS-003 | Test 提供包含双 Engine 的完整 Compose 环境 |
+| FR-OPS-004 | Engine 启动失败必须区分配置失败、控制面失败、Redis 失败和上游初始化失败 |
+| FR-OPS-005 | Engine 必须支持仅凭 LKG 降级启动 |
+| FR-OPS-006 | Engine 关闭必须停止接流、等待请求、停止心跳、注销节点、释放连接 |
+| FR-OPS-007 | Admin 关闭必须停止领取新发布任务并完成或安全释放已领取任务 |
+| FR-OPS-008 | 各进程必须提供 liveness、readiness 和 startup 健康状态 |
+| FR-OPS-009 | Engine 关闭时必须在限定时间内刷新 Kafka 调用事件缓冲并关闭 Producer |
+
+## 9. 非功能需求
+
+### 9.1 性能
+
+| ID | 指标 |
+|---|---|
+| NFR-PERF-001 | HTTP 纯转发时网关自身 P99 增量目标小于 20ms，测试环境需记录硬件和并发条件 |
+| NFR-PERF-002 | Route Snapshot 包含 10,000 条路由时，校验与编译目标小于 10 秒 |
+| NFR-PERF-003 | 路由切换不停止接收请求，不产生半版本窗口 |
+| NFR-PERF-004 | Engine EventLoop 阻塞检测不得发现控制面、磁盘、Kafka Client 或同步 Dubbo 调用 |
+| NFR-PERF-005 | HTTP 请求和响应默认上限 10 MiB，可按 Route 收紧 |
+
+性能指标是验收目标，不是脱离测试环境的绝对承诺。实施阶段必须提供基准脚本和报告格式。
+
+### 9.2 可用性
+
+1. Admin 或 Redis 暂时不可用时，已运行 Engine 继续使用当前版本处理请求。
+2. Engine 重启时，若 Admin 不可用但 LKG 合法，可进入 `DEGRADED_READY`。
+3. 单个 Engine Prepare 失败不影响其他节点；失败节点可继续服务旧 Active Version，但不得进入新版本 upstream。
+4. 发布任务可重试且幂等。
+5. Nginx reload 失败不覆盖上一个成功版本。
+6. Pub/Sub 消息丢失通过周期对账恢复。
+7. Kafka 不可用时请求链继续服务，调用事件进入有界缓冲/spool 并产生健康降级。
+
+### 9.3 一致性
+
+1. 管理元数据允许最终一致。
+2. 单次数据库元数据写入必须事务一致。
+3. Group Active Snapshot 是不可变对象。
+4. Engine Prepare、默认版本 Activate 和版本 Retire 都是节点内原子状态变更。
+5. Group 内接流量节点必须版本一致。
+6. Nginx upstream 与 Node READY/Applied 状态最终一致，默认 10 秒内完成对账。
+
+### 9.4 可维护性
+
+1. 所有外部协议 DTO 在 contract 中版本化。
+2. 快照包含 `schemaVersion`，不兼容时 Engine 拒绝应用。
+3. Route 编译规则必须有独立单元测试。
+4. Admin UI 不直接拼接数据库字段，全部调用稳定 Admin API。
+5. 任何新增上游协议通过 Adapter 扩展，不在 Executor 内增加大段 `if/else`。
+
+## 10. 领域模型与不变量
+
+### 10.1 Group
+
+字段：
+
+| 字段 | 含义 |
+|---|---|
+| `groupId` | 稳定业务标识，例如 `10001` |
+| `groupName` | 管理显示名称 |
+| `environment` | `dev/test/staging/prod` |
+| `entryPrefix` | 默认等于 `/{groupId}` |
+| `status` | `ENABLED/DISABLED` |
+| `desiredVersion` | 已发布并要求 Engine 预备的版本 |
+| `activeVersion` | 当前 Nginx 版本头选择的版本 |
+| `effectiveVersion` | 所有要求入口完成切流确认的版本 |
+| `minReadyNodes` | 最少就绪节点数 |
+
+不变量：
+
+1. 同一 environment 内 `groupId` 唯一。
+2. `desiredVersion` 单调增加；回滚也创建新版本。
+3. Disabled Group 不生成对外 Nginx location。
+4. Group 至少有 `minReadyNodes` 个 Node ACK PREPARED 后才能发起 Nginx 切流。
+5. `activeVersion` 只在目标 Nginx Revision 通过验证并开始切流时更新。
+6. `effectiveVersion` 只在要求的 Nginx 实例全部 ACK 后更新。
+
+### 10.2 Node
+
+节点状态机：
 
 ```mermaid
-flowchart LR
-    Sources["YAML + Contributors"] --> Bind["Bind typed definitions"]
-    Bind --> Normalize["Normalize host/path/method"]
-    Normalize --> Validate["Cross-route validation"]
-    Validate --> Filters["Resolve and compile filters"]
-    Filters --> Params["Compile parameter plans"]
-    Params --> Upstream["Prepare invoker handles"]
-    Upstream --> Hash["Canonicalize + SHA-256 checksum"]
-    Hash --> Snapshot["Immutable RouteTableSnapshot"]
-    Snapshot --> Swap["Atomic publish"]
+stateDiagram-v2
+    [*] --> REGISTERING
+    REGISTERING --> SYNCING: registration accepted
+    SYNCING --> READY: active snapshot prepared and ACKed
+    SYNCING --> FAILED: apply failed
+    READY --> DRAINING: shutdown or admin drain
+    DRAINING --> OFFLINE: inflight drained
+    READY --> OFFLINE: lease expired
+    FAILED --> SYNCING: retry or new snapshot
+    OFFLINE --> REGISTERING: process restarts
 ```
 
-任何一步失败：
-
-- 初次启动：启动失败，数据端口不绑定；
-- 未来动态更新：保留当前 Last-Known-Good 快照，拒绝新候选配置；
-- 不能发布“部分成功”的路由表。
-
-### 10.3 RouteTableSnapshot
+新 Desired Version 的预备不改变健康 Node 的生命周期状态。Node 继续以 READY 服务旧 Active Version，同时配置同步状态独立变化：
 
 ```text
-RouteTableSnapshot
-├── version
-├── checksum
-├── createdAt
-├── exactHostRoutes
-├── wildcardHostRoutes
-└── compiledRoutesById
+IN_SYNC -> PREPARING -> PREPARED
+                   \-> REJECTED
+PREPARED -> IN_SYNC after Nginx activation
 ```
 
-规则：
+不变量：
 
-1. 使用 `AtomicReference<RouteTableSnapshot>` 发布。
-2. 单次请求开始时读取一次快照，整个请求使用同一版本。
-3. 快照及其路由集合不可变。
-4. version 使用数值 Gauge，version/checksum 同时进入结构化日志；checksum 不作为指标 tag。
-5. 未来动态 RouteProvider 必须提供单调版本或可比较 revision。
-6. checksum 使用规范化配置的 SHA-256。
-7. 未来更新不得直接用裸 Pub/Sub 消息替换状态；通知只能触发带版本的完整拉取。
-8. 被替换快照关联的资源要等待在途请求释放后销毁。
+1. `nodeId` 是配置或启动生成后持久化的稳定 UUID，不能只使用 IP。
+2. `advertisedHost:advertisedPort` 必须可被 Nginx 访问。
+3. `groupId` 在一次进程生命周期内不可变化。
+4. 只有 `READY` 且持有 Nginx 目标版本 Prepared Snapshot 的节点进入 upstream。
+5. 心跳不能把 `FAILED` 节点直接提升为 `READY`。
+6. 新版本预备失败时，只要旧 Active Version 仍可用，Node 保持 READY 但配置同步状态为 REJECTED，不参与新版本切流。
 
-### 10.4 精确路由索引
+### 10.3 System、Interface、Method Route
 
-V1 路由 key：
+关系：
 
 ```text
-(HTTP method, normalized host or *, normalized exact path)
+ApplicationSystem 1 --- N ApplicationInterface
+ApplicationInterface 1 --- N MethodRoute
+GatewayGroup N --- N ApplicationSystem
 ```
 
-查找顺序：
+System 类型：
 
-1. 精确 host + method + path；
-2. `*` host + method + path；
-3. host/path 存在但 method 不支持：405；
-4. 不存在：404。
+- `HTTP`
+- `DUBBO`
 
-不使用配置 `order` 解决冲突。V1 所有有效匹配必须是唯一的。
+Method Route 包含两部分：
 
-## 11. HTTP 入站契约
+1. Inbound：Path、HTTP Method、Host、参数来源、过滤策略。
+2. Upstream：HTTP URI/方法或 Dubbo registry/interface/method/version/group/protocol。
 
-### 11.1 协议范围
+### 10.4 Snapshot
+
+快照状态：
+
+```text
+DRAFT -> VALIDATING -> PUBLISHING -> PUBLISHED -> PREPARED -> ACTIVATING -> EFFECTIVE
+                     \-> FAILED        \-> PARTIAL       \-> FAILED
+EFFECTIVE -> SUPERSEDED
+历史内容 --rollback--> 新版本 PUBLISHING
+```
+
+不变量：
+
+1. 一旦进入 `PUBLISHING`，快照内容不可修改。
+2. 每个 Group 同时只有一个 Active Version，但可以额外保留一个 Desired Prepared Version 和历史过渡版本。
+3. 回滚不会重新激活旧版本号，而是复制旧内容生成新版本。
+4. 校验和基于规范化 JSON 的 SHA-256。
+
+## 11. 数据模型
+
+### 11.1 存储选择
+
+推荐 PostgreSQL 16+ 作为 Admin 事实源，原因：
+
+1. 事务和唯一约束稳定。
+2. JSONB 适合保存参数映射、Filter 配置和不可变快照。
+3. `FOR UPDATE SKIP LOCKED` 可用于可靠领取发布任务。
+4. Flyway 与当前 Spring Boot 体系成熟。
+
+首期只保证 PostgreSQL，不承诺 MySQL 双方言。原文 MySQL 表表达的领域能力全部保留，但按当前平台可靠性要求重新建模。
+
+### 11.2 表清单
+
+#### 11.2.1 `gateway_group`
+
+| 列 | 类型 | 约束 |
+|---|---|---|
+| `id` | bigint | PK |
+| `group_id` | varchar(64) | not null |
+| `group_name` | varchar(128) | not null |
+| `environment` | varchar(32) | not null |
+| `entry_prefix` | varchar(256) | not null |
+| `status` | varchar(32) | not null |
+| `desired_version` | bigint | not null default 0 |
+| `active_version` | bigint | not null default 0 |
+| `effective_version` | bigint | not null default 0 |
+| `min_ready_nodes` | integer | not null default 1 |
+| `revision` | bigint | optimistic lock |
+| `created_at/updated_at` | timestamptz | not null |
+
+唯一键：`(environment, group_id)`、`(environment, entry_prefix)`。
+
+#### 11.2.2 `gateway_node`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `id` | bigint | PK |
+| `node_id` | uuid | 稳定节点标识 |
+| `group_id` | bigint | FK `gateway_group.id` |
+| `advertised_host` | varchar(255) | Nginx 可访问地址 |
+| `advertised_port` | integer | Engine 端口 |
+| `management_host/port` | varchar/int | 可选管理地址 |
+| `status` | varchar(32) | Node 状态 |
+| `prepared_version` | bigint | 最新已预备版本 |
+| `serving_version` | bigint | 直接访问时的默认服务版本 |
+| `desired_version` | bigint | 应预备版本 |
+| `weight` | integer | Nginx 权重，默认 1 |
+| `started_at` | timestamptz | 启动时间 |
+| `last_heartbeat_at` | timestamptz | DB 投影时间 |
+| `lease_expires_at` | timestamptz | 租约过期时间 |
+| `metadata` | jsonb | zone、image、commit 等 |
+| `failure_reason` | text | 最近失败原因 |
+
+唯一键：`node_id`；地址索引：`(group_id, advertised_host, advertised_port)`。
+
+#### 11.2.3 `gateway_application_system`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `id` | bigint | PK |
+| `system_id` | varchar(128) | 业务稳定 ID |
+| `system_name` | varchar(128) | 名称 |
+| `environment` | varchar(32) | 环境 |
+| `upstream_type` | varchar(32) | HTTP/DUBBO |
+| `base_uri` | varchar(1024) | HTTP 可用 |
+| `registry_address` | varchar(1024) | Dubbo 可用 |
+| `registry_type` | varchar(32) | nacos/zookeeper |
+| `status` | varchar(32) | DRAFT/ACTIVE/DISABLED |
+| `source` | varchar(32) | MANUAL/STARTER |
+| `metadata` | jsonb | 扩展配置 |
+| `revision` | bigint | optimistic lock |
+
+唯一键：`(environment, system_id)`。
+
+#### 11.2.4 `gateway_application_interface`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `id` | bigint | PK |
+| `system_id` | bigint | FK |
+| `interface_id` | varchar(256) | 稳定逻辑 ID |
+| `interface_name` | varchar(512) | Java FQCN 或 HTTP resource 名 |
+| `version` | varchar(64) | Dubbo 版本 |
+| `group_name` | varchar(64) | Dubbo group |
+| `status` | varchar(32) | 状态 |
+| `metadata` | jsonb | 扩展 |
+
+唯一键：`(system_id, interface_id)`。
+
+#### 11.2.5 `gateway_method_route`
+
+主要列：
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `id` | bigint | PK |
+| `interface_id` | bigint | FK |
+| `route_id` | varchar(256) | 全环境稳定路由 ID |
+| `method_name` | varchar(256) | 上游方法名 |
+| `inbound_path` | varchar(1024) | 标准化入口 Path |
+| `inbound_method` | varchar(16) | HTTP Method |
+| `inbound_host` | varchar(255) | 可空 |
+| `upstream_definition` | jsonb | HTTP/Dubbo 目标 |
+| `parameter_bindings` | jsonb | 有序参数绑定 |
+| `filter_definition` | jsonb | 超时、限流、熔断、Rewrite 等 |
+| `response_definition` | jsonb | 响应和反馈配置 |
+| `status` | varchar(32) | DRAFT/ACTIVE/DISABLED |
+| `source` | varchar(32) | MANUAL/STARTER |
+| `source_fingerprint` | varchar(64) | Starter 幂等 |
+| `revision` | bigint | optimistic lock |
+
+唯一键：`route_id`。
+发布时另校验 `(group, host, method, normalizedPath)` 冲突。
+
+#### 11.2.6 `gateway_group_system`
+
+保存原文“算力组关联应用系统”能力：
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `group_id` | bigint | FK |
+| `system_id` | bigint | FK |
+| `status` | varchar(32) | ACTIVE/DISABLED |
+| `assigned_at` | timestamptz | 分配时间 |
+
+联合主键：`(group_id, system_id)`。
+
+#### 11.2.7 `gateway_node_system`
+
+保存原文 `groupId -> gatewayId -> systemId` 的物化关联：
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `node_id` | bigint | FK |
+| `system_id` | bigint | FK |
+| `group_id` | bigint | 冗余校验 |
+| `source_assignment_revision` | bigint | 来源版本 |
+| `status` | varchar(32) | ACTIVE/STALE |
+
+联合主键：`(node_id, system_id)`。
+
+该表由 Group 分配关系自动同步，不允许运营人员把同一 Group 内节点任意分片，否则 Nginx 轮询会产生同路径随机 404。
+
+#### 11.2.8 `gateway_route_snapshot`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `id` | bigint | PK |
+| `group_id` | bigint | FK |
+| `version` | bigint | Group 内递增 |
+| `schema_version` | integer | 快照 Schema |
+| `checksum` | char(64) | SHA-256 |
+| `content` | jsonb | 完整规范化快照 |
+| `status` | varchar(32) | Snapshot 状态 |
+| `source_version` | bigint | 回滚时记录来源 |
+| `created_by` | varchar(128) | 操作来源 |
+| `created_at/published_at` | timestamptz | 时间 |
+
+唯一键：`(group_id, version)`、`(group_id, checksum)` 可按需求允许历史同内容重发；推荐后者只建普通索引。
+
+#### 11.2.9 `gateway_publish_task`
+
+同时承担 Durable Outbox：
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `id` | bigint | PK |
+| `task_id` | uuid | 外部任务 ID |
+| `group_id/version` | bigint | 发布目标 |
+| `task_type` | varchar(32) | ROUTE_PUBLISH/NODE_RECONCILE/NGINX_PUBLISH |
+| `status` | varchar(32) | PENDING/RUNNING/SUCCEEDED/PARTIAL/FAILED |
+| `attempts` | integer | 次数 |
+| `next_attempt_at` | timestamptz | 重试时间 |
+| `locked_by/locked_at` | varchar/timestamptz | Worker 租约 |
+| `last_error` | text | 脱敏错误 |
+| `payload` | jsonb | 任务数据 |
+
+#### 11.2.10 `gateway_node_config_ack`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `node_id` | bigint | FK |
+| `group_id` | bigint | FK |
+| `version` | bigint | 版本 |
+| `status` | varchar(32) | PREPARED/REJECTED/ACTIVATED/RETIRED |
+| `checksum` | char(64) | 节点确认值 |
+| `acknowledged_at` | timestamptz | ACK 时间 |
+| `duration_ms` | bigint | 应用耗时 |
+| `reason_code/reason_detail` | varchar/text | 失败信息 |
+
+唯一键：`(node_id, version)`。
+
+#### 11.2.11 `gateway_registration_batch`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `batch_id` | uuid | PK |
+| `system_id` | varchar(128) | 上报系统 |
+| `environment` | varchar(32) | 环境 |
+| `instance_id` | varchar(128) | Provider 实例 |
+| `fingerprint` | char(64) | 规范化内容指纹 |
+| `content` | jsonb | 原始批次 |
+| `status` | varchar(32) | RECEIVED/APPLIED/REJECTED |
+| `failure_reason` | text | 原因 |
+| `reported_at/applied_at` | timestamptz | 时间 |
+
+唯一键：`(system_id, environment, fingerprint)`。
+
+#### 11.2.12 `gateway_nginx_revision`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `revision` | bigint | PK |
+| `environment` | varchar(32) | 环境 |
+| `route_version` | bigint | 该配置选择的 Group 路由版本；多 Group 文件时为 jsonb 映射 |
+| `checksum` | char(64) | 配置校验和 |
+| `content` | text | 生成配置 |
+| `status` | varchar(32) | GENERATED/VALIDATED/ACTIVE/FAILED/ROLLED_BACK |
+| `trigger_type` | varchar(32) | NODE/ADMIN/RECONCILE |
+| `validation_output` | text | 脱敏后的 `nginx -t` 输出 |
+| `previous_revision` | bigint | 前版本 |
+| `created_at/activated_at` | timestamptz | 时间 |
+
+#### 11.2.13 `gateway_nginx_instance_ack`
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `revision` | bigint | FK |
+| `instance_id` | varchar(128) | Nginx/reloader 稳定实例 ID |
+| `status` | varchar(32) | VALIDATED/ACTIVE/FAILED |
+| `checksum` | char(64) | 实例实际加载校验和 |
+| `validated_at/activated_at` | timestamptz | 时间 |
+| `failure_reason` | text | 脱敏错误 |
+
+唯一键：`(revision, instance_id)`。
+
+#### 11.2.14 `gateway_audit_log`
+
+保存：
+
+1. 资源类型与 ID。
+2. 操作类型。
+3. 请求 ID。
+4. 操作来源：UI、STARTER、ENGINE、SYSTEM。
+5. 变更前后摘要。
+6. 结果与失败原因。
+7. 时间和调用方网络信息。
+
+本期没有用户鉴权，所以 `actor` 是显式请求头/系统实例提供的审计标签，不代表可信身份。生产环境只能通过受控管理网络访问。
+
+#### 11.2.15 调用事件不进入 Admin 配置库
+
+逐次接口调用不新增 PostgreSQL 明细表：
+
+1. 调用事件由 Engine 直接发送 Kafka。
+2. Admin 内部 API 不提供 `/invocations/report` 一类入口。
+3. Starter Registration Batch 与 Invocation Event 是两个完全独立的契约。
+4. PostgreSQL 只保存配置、发布、节点、注册批次、Nginx 和管理审计数据。
+5. Kafka 消费、长期明细和调用聚合需要独立分析存储时再按数据量设计。
+
+### 11.3 Flyway 规则
+
+1. Gateway Admin 是全新数据库域，实现时新增一个初始 Gateway 平台迁移文件。
+2. 不修改仓库任何已有 Flyway migration。
+3. 后续每次 Schema 变化只追加新版本。
+4. 初始迁移必须包含表、唯一约束、外键、检查约束和必要索引。
+5. Test 必须验证空库迁移、重复启动和 migration validate。
+
+## 12. Admin 控制面技术方案
+
+### 12.1 技术栈
+
+| 层 | 推荐 |
+|---|---|
+| Backend | Spring Boot 3.5.x + Spring MVC |
+| Persistence | Spring JDBC 或 Spring Data JDBC |
+| Migration | Flyway |
+| Database | PostgreSQL |
+| Redis | Spring Data Redis / Lettuce |
+| Validation | Jakarta Validation + Domain Specification |
+| Frontend | Vue 3 + TypeScript + Vite |
+| UI library | Element Plus |
+| API schema | OpenAPI 3 |
+| Metrics | Actuator + Micrometer |
+
+Admin 使用 MVC 是因为它主要执行数据库、发布和管理请求，不与 Engine 的 WebFlux 数据面共享线程模型。禁止为了“统一技术栈”把 Admin 与 Engine 合并进一个进程。
+
+### 12.2 Admin 用例
+
+#### 12.2.1 Group 管理
 
 支持：
 
-- HTTP/1.1；
-- keep-alive；
-- GET；
-- POST；
-- query string；
-- `application/json; charset=UTF-8`；
-- 标准 `Authorization: Bearer <JWT>`；
-- 可选 CORS preflight。
+1. 新建 Group。
+2. 修改名称、入口前缀、最少就绪节点数。
+3. 启用/禁用 Group。
+4. 查询 Active/Effective Version。
+5. 查询节点和系统分配。
+6. 触发对账。
 
-不支持：
+不支持直接修改版本号。
 
-- HTTP/2；
-- WebSocket；
-- SSE；
-- multipart；
-- 文件上传；
-- 流式 body；
-- 业务 chunk streaming；
-- CONNECT；
-- TRACE；
-- PUT、PATCH、DELETE、HEAD。
+#### 12.2.2 系统和接口管理
 
-Netty 可以接收 chunked HTTP body，但必须先在有界 aggregator 内聚合，业务层看不到无界流。
+支持：
 
-### 11.2 默认网络限制
+1. 手工创建 HTTP 或 Dubbo System。
+2. Starter 下游接口定义批次上报创建或更新 Draft。
+3. 查看本次上报与上次上报差异。
+4. 启用、禁用 Interface/Method。
+5. 删除 Draft；已进入历史快照的记录只能逻辑禁用。
+6. 配置参数绑定和治理策略。
 
-| 配置 | 默认值 | 规则 |
-|---|---:|---|
-| initial request line | 8 KiB | 超限返回 414 或关闭非法连接 |
-| total request headers | 16 KiB | 超限返回 431 |
-| header count | 100 | 超限返回 431 |
-| query parameter count | 100 | 超限返回 400 |
-| single query/header value | 4 KiB | 超限返回 400 |
-| global request body | 1 MiB | 超限返回 413 |
-| global response body | 4 MiB | 超限返回 502 |
-| JSON nesting depth | 64 | 超限返回 400 |
-| global in-flight | 1024 | 超限返回 503 |
+#### 12.2.3 算力关联
 
-所有值都可配置，但必须有硬上限校验，防止误配为无界。
+运营人员执行的是“System 分配到 Group”，Admin 在事务中：
 
-### 11.3 URI 和 path 规范化
+1. 写 `gateway_group_system`。
+2. 为该 Group 当前 Node 物化 `gateway_node_system`。
+3. 标记 Group Draft 已变更。
+4. 不自动发布。
 
-1. query 不参与 path 匹配。
-2. path 必须以 `/` 开始。
-3. `/a` 与 `/a/` 是两个不同路径。
-4. 不自动合并重复 `/`。
-5. 百分号编码只规范化一次。
-6. 非法 percent encoding 直接返回 400。
-7. 拒绝 NUL、控制字符、反斜杠、原始或解码后的 `.`/`..` path segment。
-8. 拒绝编码后的 `/` 和 `\`，避免代理与网关解释差异。
-9. Host 转为小写并移除合法端口部分后匹配。
-10. HTTP/1.1 缺少 Host 返回 400。
-11. 不信任 `X-Forwarded-Host` 参与路由。
+新 Node 注册时，Admin 自动为其补齐该 Group 全部 System 物化关系。
 
-### 11.4 请求走私防护
+#### 12.2.4 发布
 
-1. 同时出现冲突的 `Content-Length` 与 `Transfer-Encoding` 时拒绝请求。
-2. 多个不一致 `Content-Length` 时拒绝请求。
-3. 非法 header name/value 时关闭连接并记录安全日志。
-4. Netty decoder 必须使用严格校验。
-5. hop-by-hop header 不进入业务参数或下游 attachment。
+发布前必须：
 
-### 11.5 CORS
+1. 加载 Group 全部 Active System/Interface/Method Draft。
+2. 规范化路径、Method、Host 和上游定义。
+3. 检测路由冲突。
+4. 校验每个参数来源和目标类型。
+5. 校验 HTTP URI 或 Dubbo registry/interface/method。
+6. 校验 Filter 配置和上下限。
+7. 生成完整快照、diff、checksum。
+8. 要求操作者显式确认发布 API。
 
-1. 默认关闭。
-2. 开启后必须配置精确 origin allowlist。
-3. `allowCredentials=true` 时禁止 origin `*`。
-4. 只允许实际已启用的方法和配置的 header。
-5. preflight 在进入业务执行器前短路，不调用 Dubbo。
-6. 管理端口不启用 CORS。
+#### 12.2.5 回滚
 
-## 12. 参数绑定方案
+1. 选择历史 Effective Snapshot。
+2. 重新执行当前 Schema 校验。
+3. 复制内容生成新版本。
+4. 走完整发布、通知、Prepare、Nginx Activate 和 ACK 流程。
+5. 不直接把 `activeVersion` 改小。
 
-### 12.1 绑定目标
+### 12.3 Admin API
 
-绑定结果固定为：
+统一前缀：
 
 ```text
-methodName: String
-parameterTypes: String[]
-arguments: Object[]
-attachments: Map<String, String>
+/api/gateway-admin/v1
 ```
 
-满足 Dubbo：
+#### 12.3.1 管理 API
+
+| Method | Path | 用途 |
+|---|---|---|
+| POST | `/groups` | 创建 Group |
+| GET | `/groups` | 分页查询 Group |
+| GET | `/groups/{groupId}` | Group 详情 |
+| PUT | `/groups/{groupId}` | 修改 Group |
+| POST | `/groups/{groupId}/enable` | 启用 |
+| POST | `/groups/{groupId}/disable` | 禁用 |
+| GET | `/groups/{groupId}/nodes` | 查询 Node |
+| GET | `/groups/{groupId}/systems` | 查询分配 |
+| PUT | `/groups/{groupId}/systems/{systemId}` | 分配 System |
+| DELETE | `/groups/{groupId}/systems/{systemId}` | 解除分配 |
+| POST | `/groups/{groupId}/validate` | 校验 Draft |
+| GET | `/groups/{groupId}/preview` | 预览标准化快照 |
+| POST | `/groups/{groupId}/publish` | 发布 |
+| GET | `/groups/{groupId}/publishes` | 发布历史 |
+| GET | `/groups/{groupId}/publishes/{version}` | 版本详情和 ACK |
+| POST | `/groups/{groupId}/rollback` | 回滚历史内容为新版本 |
+| POST | `/groups/{groupId}/reconcile` | 路由/节点/Nginx 对账 |
+
+系统元数据：
+
+| Method | Path | 用途 |
+|---|---|---|
+| POST | `/systems` | 手工创建 System |
+| GET | `/systems` | 查询 |
+| GET | `/systems/{systemId}` | 详情 |
+| PUT | `/systems/{systemId}` | 修改 |
+| POST | `/systems/{systemId}/interfaces` | 创建 Interface |
+| POST | `/interfaces/{interfaceId}/methods` | 创建 Method Route |
+| PUT | `/methods/{routeId}` | 修改 Method Route |
+| POST | `/methods/{routeId}/enable` | 启用 Draft |
+| POST | `/methods/{routeId}/disable` | 禁用 Draft |
+| GET | `/registration-batches` | 查询 Starter 上报 |
+| GET | `/registration-batches/{batchId}/diff` | 查询上报差异 |
+
+节点与 Nginx：
+
+| Method | Path | 用途 |
+|---|---|---|
+| POST | `/nodes/{nodeId}/drain` | 摘流 |
+| POST | `/nodes/{nodeId}/resume` | 重新同步并接流 |
+| POST | `/nodes/{nodeId}/offline` | 管理下线 |
+| GET | `/nginx/revisions` | 配置历史 |
+| GET | `/nginx/preview` | 预览当前应生成配置 |
+| POST | `/nginx/publish` | 手工触发发布 |
+| POST | `/nginx/revisions/{revision}/rollback` | 回滚 |
+
+#### 12.3.2 内部 API
+
+内部前缀：
+
+```text
+/internal/gateway/v1
+```
+
+| Method | Path | 调用方 |
+|---|---|---|
+| POST | `/nodes/register` | Engine |
+| POST | `/nodes/{nodeId}/heartbeat` | Engine |
+| POST | `/nodes/{nodeId}/drain` | Engine |
+| POST | `/nodes/{nodeId}/offline` | Engine |
+| GET | `/groups/{groupId}/versions/status` | Engine |
+| GET | `/groups/{groupId}/snapshots/{version}` | Engine |
+| POST | `/groups/{groupId}/snapshots/{version}/acks` | Engine |
+| POST | `/registrations/batches` | Starter |
+| GET | `/registrations/batches/{batchId}` | Starter |
+| POST | `/nginx/instances/{instanceId}/revisions/{revision}/acks` | Nginx Reloader |
+
+内部 API 本期不做应用层身份认证，但必须：
+
+1. 默认绑定管理网卡。
+2. 与公网 Engine 端口分离。
+3. 通过防火墙、安全组或 Kubernetes NetworkPolicy 限制来源。
+4. 请求体和速率有硬限制。
+5. 全量审计。
+
+### 12.4 Admin UI
+
+Admin UI 至少包含：
+
+1. Dashboard：Group、Node 状态、版本、发布失败、Nginx 状态。
+2. Gateway Group 列表和详情。
+3. Node 列表、状态、版本、心跳、Kafka Producer 健康/积压、Drain/Resume。
+4. Application System 列表。
+5. Interface 和 Method Route 编辑器。
+6. 参数绑定编辑器。
+7. Group-System 分配页面。
+8. Route 校验结果和冲突展示。
+9. 发布预览、Diff、确认、进度和 Node ACK。
+10. 历史版本和回滚。
+11. Starter Registration Batch 与 Diff。
+12. Nginx 配置预览、校验、发布和历史。
+13. 审计日志。
+
+UI 不实现账号登录和 RBAC。部署时必须限制网络入口。
+
+Admin UI 首期不展示逐次调用明细或调用统计；这些数据由 Kafka 消费方负责。Admin 只展示 Engine 调用事件 Producer 的运行状态。
+
+### 12.5 CORS
+
+1. Admin CORS 只允许配置的 UI Origin。
+2. 不允许 `allowedOrigins=*` 与 credentials 同时使用。
+3. 默认只允许 GET、POST、PUT、DELETE、OPTIONS。
+4. Engine 路由可配置独立 CORS Policy。
+5. SCG 的 simple URL handler CORS 必须开启，保证 OPTIONS 未匹配业务 Predicate 时仍可响应。
+
+## 13. Starter 技术方案
+
+Starter 安装在被网关调用的下游 Provider 应用中。它只负责把“可以被网关暴露的接口定义”报告给 Admin，运行时业务请求不会经过 Starter，Starter 也不观察调用成功、失败或耗时。
+
+### 13.1 Provider 注解
+
+建议契约：
 
 ```java
-genericService.$invoke(methodName, parameterTypes, arguments);
+@GatewayApplication(
+        systemId = "activity",
+        systemName = "Activity Service",
+        upstreamType = UpstreamType.DUBBO
+)
+public class ActivityGatewayConfiguration {
+}
 ```
-
-### 12.2 顺序规则
-
-路由参数声明：
-
-```yaml
-parameters:
-  - name: userId
-    java-type: java.lang.Long
-    source: QUERY
-    key: userId
-    required: true
-  - name: command
-    java-type: com.example.order.UpdateOrderCommand
-    source: BODY
-    required: true
-```
-
-编译结果：
-
-```text
-parameterTypes[0] = "java.lang.Long"
-arguments[0]      = converted query userId
-
-parameterTypes[1] = "com.example.order.UpdateOrderCommand"
-arguments[1]      = body Map with trusted class metadata
-```
-
-不允许：
-
-- 根据 JSON 字段顺序猜方法参数顺序；
-- 使用逗号分隔字符串描述多个参数；
-- 请求方传入 `types` 数组；
-- 通过反射扫描 Provider 方法；
-- 依赖 Provider API JAR。
-
-### 12.3 JSON 绑定
-
-1. body 只解析一次。
-2. 使用 Jackson `JsonNode` 作为中间表示。
-3. 使用 JSON Pointer，不引入 JsonPath 脚本表达式。
-4. 未配置或空字符串表示完整根对象；`/` 按 RFC 6901 表示名称为空的根属性，不能拿来代替根对象。
-5. 指针不存在且 required=true：400。
-6. JSON `null` 与字段缺失是不同状态。
-7. 复杂对象转换为普通 Map/List/标量树。
-8. 外部 JSON 中的 `class`、`@type`、`@class` 等类型元信息不能控制反序列化类型。
-9. 禁止启用 Jackson default typing。
-10. 不把业务 DTO 加载到 gateway classpath。
-
-### 12.4 标量转换
-
-允许的 V1 标量：
-
-- `boolean` / `java.lang.Boolean`
-- `byte` / `java.lang.Byte`
-- `short` / `java.lang.Short`
-- `int` / `java.lang.Integer`
-- `long` / `java.lang.Long`
-- `float` / `java.lang.Float`
-- `double` / `java.lang.Double`
-- `char` / `java.lang.Character`
-- `java.lang.String`
-- `java.math.BigInteger`
-- `java.math.BigDecimal`
-- `java.util.UUID`
-- `java.time.LocalDate`
-- `java.time.LocalDateTime`
-- `java.time.Instant`
-
-规则：
-
-1. 数字转换必须检查溢出。
-2. Boolean 只接受明确约定值，不把任意非空字符串当 true。
-3. 时间使用 ISO-8601，不使用服务器默认时区猜测。
-4. 空字符串不自动等于 null。
-5. unsupported javaType 在路由编译时失败。
-
-### 12.5 Attachment
-
-默认只传播：
-
-```text
-traceId
-requestId
-gateway.routeId
-gateway.subject
-```
-
-路由可以声明经过验证的 claim 映射：
-
-```yaml
-claim-attachments:
-  tenant_id: gateway.tenantId
-```
-
-限制：
-
-1. attachment key 必须符合 allowlist/命名规则。
-2. attachment value 有长度上限。
-3. 不传播 Authorization、JWT、Cookie、Set-Cookie、密码或完整 headers。
-4. 请求方不能直接提交 attachment map。
-5. 目标 key 冲突在路由编译时失败。
-
-## 13. Dubbo 与 Nacos 技术方案
-
-### 13.1 Provider 兼容契约
-
-Apache Dubbo 当前官方文档明确提示：Java Dubbo 3.3 及以后如果使用 Triple，推荐直接使用 Triple 的 HTTP/application-json 能力，而传统 GenericService 泛化调用主要面向旧 Dubbo 通信协议。因此 V1 明确限定：
-
-1. Provider 必须暴露传统 `dubbo` 协议。
-2. Provider 必须在 Nacos 中提供可用于 interface-level discovery 的服务元数据。
-3. Provider 可以同时暴露 Triple，但不能是 Triple-only。
-4. Gateway 使用 Dubbo 3.3.6 GenericService。
-5. Triple-only Provider 属于 V1 不兼容项，未来通过独立 `TripleUpstreamInvoker` 解决。
-
-该限制必须在 README 和验收环境中醒目标明，不能把 Triple-only 失败包装成普通配置问题。
-
-参考：[Apache Dubbo 泛化调用官方文档](https://cn.dubbo.apache.org/zh-cn/overview/mannual/java-sdk/tasks/framework/generic/)。
-
-### 13.2 Registry 配置
-
-全局支持命名 Registry：
-
-```text
-registries
-├── default
-│   ├── address
-│   ├── namespace
-│   ├── group
-│   ├── username
-│   └── password
-└── secondary
-    └── ...
-```
-
-规则：
-
-1. address 使用 `nacos://host:8848`。
-2. Nacos Server 必须为 Dubbo 3 支持的 2.x 或更高兼容版本。
-3. username/password 通过环境变量或外部 secret 注入。
-4. Registry 地址不得暴露在公共网络。
-5. V1 默认显式关闭 `use-as-config-center` 和 `use-as-metadata-report`，避免把 Nacos 隐式扩大为 Gateway 路由控制面。
-6. V1 Provider 必须满足不依赖 Gateway 自建 metadata center 的泛化调用契约。
-7. Nacos 连接状态进入 readiness 和指标。
-
-参考：[Apache Dubbo Registry 官方说明](https://dubbo.apache.org/en/overview/mannual/java-sdk/reference-manual/registry/overview/)。
-
-### 13.3 GenericService Reference 管理
-
-Reference cache key：
-
-```text
-(registry, interfaceName, group, version, protocol)
-```
-
-规则：
-
-1. 同 key 复用同一个 GenericService Reference。
-2. Reference 是重资源，不能按请求创建。
-3. Reference 创建在路由编译/预热阶段完成。
-4. Reference 管理由 `GatewayDubboRuntime` 统一持有。
-5. 禁止使用无生命周期约束的静态全局 Map。
-6. 宿主应用已有 Dubbo Runtime 时，Gateway 默认仍使用隔离的 consumer runtime，不隐式修改宿主的 `dubbo.*` 配置。
-7. 如果 Dubbo 3.3.6 公共 API 无法提供稳定隔离模型，实施阶段必须先做兼容性 PoC；不能退化为静态 default model 而不记录风险。
-8. 快照替换后，无路由引用且无在途请求的 Reference 才可销毁。
-9. 应用停机时统一销毁 Reference 和 Dubbo runtime。
-
-### 13.4 异步调用
-
-目标路径：
-
-1. `ReferenceConfig` 启用 consumer async。
-2. 发起 `$invoke` 后通过 Dubbo `RpcContext` 取得 `CompletableFuture`。
-3. 立即返回 `CompletionStage` 给 Gateway Filter Chain。
-4. 不在调用线程执行 `get()`、`join()` 或 `await()`。
-
-若实际 Dubbo GenericService API 或特定兼容路径无法可靠提供异步 Future：
-
-1. 同步 `$invoke` 只能运行在 Gateway 有界业务执行器；
-2. 仍不能运行在 Netty EventLoop；
-3. timeout 到期后忽略迟到结果，并尝试取消；
-4. 该降级必须有独立测试和指标；
-5. 不得创建无界 cached thread pool。
-
-参考：[Apache Dubbo consumer async 官方说明](https://dubbo.apache.org/en/overview/mannual/java-sdk/tasks/framework/async/)。
-
-### 13.5 调用行为
-
-1. retries 固定为 0。
-2. Dubbo timeout 设置为当前请求剩余 deadline，而不是重新开始一段完整 timeout。
-3. 没有 Provider 返回 503。
-4. Registry/连接暂不可用返回 503。
-5. RPC timeout 返回 504。
-6. 协议、序列化、GenericException 或无效上游结果返回 502。
-7. Provider 正常返回的 ResultDto 或业务错误对象仍是正常 RPC result，HTTP 状态为 200。
-8. Provider 抛出的业务异常不直接反序列化为网关业务异常，统一按 upstream failure 处理。
-9. 上游异常 message 只进入受控内部日志，不进入外部响应。
-
-## 14. JWT 认证方案
-
-### 14.1 边界
-
-Gateway 只验证调用方身份，不负责：
-
-- 用户登录；
-- token 签发；
-- refresh token；
-- session；
-- 用户库；
-- RBAC；
-- scope 决策；
-- token 撤销中心；
-- OAuth2 Authorization Server。
-
-### 14.2 路由策略
-
-```text
-RouteAuthentication
-├── REQUIRED
-└── PUBLIC
-```
-
-规则：
-
-1. 默认 `REQUIRED`，公开路由必须显式标记 `PUBLIC`。
-2. JWT 全局未配置但存在 REQUIRED 路由时，启动失败。
-3. PUBLIC 路由即使收到非法 Bearer token，也不建立 principal；默认忽略 token，不让可选 token 产生歧义。
-4. 健康检查走管理端口，不参与业务 JWT。
-
-### 14.3 验签来源
-
-二选一：
-
-1. `public-key-location`：本地 PEM 公钥；
-2. `jwk-set-uri`：远程 JWK Set。
-
-二者同时配置或都未配置且存在 REQUIRED 路由时失败。
-
-### 14.4 验证规则
-
-1. 只读取标准 `Authorization: Bearer <token>`。
-2. 只允许配置的非对称算法，V1 默认 RS256。
-3. 拒绝 `none` 和所有 HS*。
-4. issuer 必填且精确匹配。
-5. audience 至少一个且必须命中。
-6. `exp` 必须存在且未过期。
-7. `nbf` 存在时必须验证。
-8. clock skew 默认 60 秒且有最大上限。
-9. token、header、claim 数量和单 claim 大小均有上限。
-10. 缺少 token、格式错误、签名失败、issuer/audience/expiry 失败返回 401。
-11. 401 响应带安全的 `WWW-Authenticate: Bearer`，不包含底层失败细节。
-
-### 14.5 JWK 行为
-
-1. JWK 预取和刷新不运行在 Netty EventLoop。
-2. key 缓存在内存中，并有 refresh/expiry 策略。
-3. 遇到未知 kid 时最多触发一次受控刷新，不能形成请求风暴。
-4. 有仍然有效的缓存 key 时，短暂 JWK 服务故障不影响已知 key。
-5. 无可用 key 且 JWK 服务不可达属于认证基础设施不可用，返回 503，不伪装成无效 token。
-6. JWK connect/read timeout 必须小于请求最大 deadline。
-7. 生产环境默认要求 HTTPS JWK URI；允许 HTTP 只能通过显式开发配置。
-
-### 14.6 Principal 与 claim
-
-验证成功后上下文保存：
-
-```text
-subject
-issuer
-audiences
-issuedAt
-expiresAt
-selectedClaims
-```
-
-只保留路由绑定或 attachment 映射实际需要的 claim，不把完整 token payload 长期保存在上下文或日志中。
-
-## 15. Filter Chain 与扩展设计
-
-### 15.1 Filter 契约
-
-核心异步契约：
 
 ```java
-CompletionStage<GatewayResponse> filter(
-        GatewayRequestContext context,
-        GatewayFilterChain chain
+@GatewayApi(
+        interfaceClass = ActivityService.class,
+        interfaceId = "activity-service",
+        version = "1.0.0",
+        group = "default"
+)
+public class ActivityServiceImpl implements ActivityService {
+
+    @GatewayRoute(
+            routeId = "activity-say-hi",
+            path = "/wg/activity/sayHi",
+            method = HttpMethod.GET,
+            upstreamMethod = "sayHi"
+    )
+    public String sayHi(
+            @GatewayParam(source = ParamSource.QUERY, name = "name")
+            String name
+    ) {
+        // Provider implementation
+    }
+}
+```
+
+注解不包含 `auth` 字段，因为本期不实现第 7、8 章。
+
+### 13.2 扫描规则
+
+1. 只扫描 Spring 容器中显式带 `@GatewayApi` 的 Bean。
+2. 扫描在单例 Bean 初始化完成后执行。
+3. AOP Proxy 必须解析到目标类。
+4. 多接口实现必须通过 `interfaceClass` 指定。
+5. 重载方法必须使用参数类型列表区分。
+6. Bridge、synthetic、private 方法不采集。
+7. 路由 Path 必须以 `/` 开头并规范化。
+8. 参数顺序取真实方法签名顺序，不依赖反射参数名是否保留。
+9. 未标注的复杂参数默认绑定规则禁止猜测，必须显式声明。
+
+### 13.3 接口定义批次上报
+
+Starter 生成一个完整的 Interface Definition Report Batch：
+
+```json
+{
+  "batchId": "4da25e1e-f17b-4acd-9d12-278e4e319f45",
+  "schemaVersion": 1,
+  "environment": "dev",
+  "system": {
+    "systemId": "activity",
+    "systemName": "Activity Service",
+    "upstreamType": "DUBBO",
+    "registryType": "NACOS",
+    "registryAddress": "nacos://nacos:8848"
+  },
+  "provider": {
+    "instanceId": "activity-1",
+    "applicationName": "activity-service",
+    "applicationVersion": "1.2.0"
+  },
+  "interfaces": [],
+  "fingerprint": "sha256..."
+}
+```
+
+Admin 处理规则：
+
+1. 验证 Schema 和大小。
+2. 以 `(systemId, environment, fingerprint)` 幂等。
+3. 整批校验成功后在一个事务内 upsert。
+4. 任一 Method 非法则整批 REJECTED。
+5. 不删除其他 Provider 实例上报但本批未包含的 Route。
+6. System 的规范定义由最新成功批次更新，冲突时标记并等待人工处理。
+7. 上报完成只形成 Draft，不触发 Route Publish。
+
+### 13.4 Starter 配置
+
+```yaml
+egon:
+  gateway:
+    starter:
+      enabled: false
+      admin-base-url: http://gateway-admin:8080
+      environment: dev
+      system-id: activity
+      instance-id: ${spring.application.name}-${INSTANCE_ID}
+      report:
+        connect-timeout: 2s
+        read-timeout: 5s
+        max-attempts: 8
+        initial-backoff: 1s
+        max-backoff: 60s
+```
+
+默认关闭的原因是避免业务应用仅引入依赖便向控制面发送数据；这不影响原文第 29 章要求的 `enabled` 能力。
+
+### 13.5 失败语义
+
+1. 本地注解和元数据编译错误：Starter 健康状态为 DOWN，可按 `fail-fast` 决定是否阻止 Provider 启动。
+2. Admin 暂不可用：Provider 正常启动，Starter 后台有界重试，健康为 DEGRADED。
+3. Admin 返回永久校验错误：停止自动重试，记录批次和错误。
+4. 相同指纹已经成功：视为成功。
+5. 新指纹上报后可查询 Admin 状态。
+
+## 14. 路由快照与发布方案
+
+### 14.1 快照结构
+
+```json
+{
+  "schemaVersion": 1,
+  "groupId": "10001",
+  "environment": "prod",
+  "version": 42,
+  "generatedAt": "2026-07-24T10:00:00Z",
+  "checksum": "sha256...",
+  "routes": [
+    {
+      "routeId": "activity-say-hi",
+      "order": 100,
+      "predicates": {
+        "path": "/wg/activity/sayHi",
+        "methods": ["GET"],
+        "host": null
+      },
+      "upstream": {
+        "type": "DUBBO",
+        "registryType": "NACOS",
+        "registryAddress": "nacos://nacos:8848",
+        "interfaceName": "com.example.ActivityService",
+        "methodName": "sayHi",
+        "version": "1.0.0",
+        "group": "default",
+        "parameterTypes": ["java.lang.String"]
+      },
+      "parameters": [
+        {
+          "index": 0,
+          "name": "name",
+          "source": "QUERY",
+          "sourceName": "name",
+          "targetType": "java.lang.String",
+          "required": true
+        }
+      ],
+      "policies": {
+        "requestTimeoutMs": 3000,
+        "requestBodyBytes": 1048576,
+        "responseBodyBytes": 10485760,
+        "rateLimit": null,
+        "circuitBreaker": null
+      },
+      "feedback": {
+        "mode": "NODE_ID",
+        "includeRouteId": true,
+        "includeVersion": true
+      }
+    }
+  ]
+}
+```
+
+### 14.2 规范化
+
+生成 checksum 前必须：
+
+1. 路由按 `routeId` 排序。
+2. Map key 使用确定性顺序。
+3. Path 移除重复 `/` 和末尾无意义 `/`，根路径除外。
+4. HTTP Method 大写。
+5. Duration 转换为毫秒整数。
+6. 缺省值写入完整值，不依赖 Engine 本地默认。
+7. 不把 `generatedAt` 计入内容 checksum，避免相同内容产生不同校验和。
+8. 不包含数据库自增 ID。
+
+### 14.3 发布事务
+
+Admin 在一个数据库事务中：
+
+1. 锁定 `gateway_group`。
+2. 读取并校验 Draft。
+3. 计算 `nextVersion = max(desiredVersion, activeVersion) + 1`。
+4. 插入不可变 `gateway_route_snapshot`。
+5. 插入 `gateway_publish_task`。
+6. 更新 Group `desiredVersion`，不修改仍在接流的 `activeVersion`。
+7. 提交。
+
+事务提交后 Publisher Worker：
+
+1. 领取 Pending Task。
+2. 将快照写入 Redis version key。
+3. 原子更新 desired pointer。
+4. 发布 `ROUTE_VERSION_PREPARE` 轻量事件。
+5. 标记 Snapshot 为 PUBLISHED。
+6. 等待或异步观察 Node PREPARED/REJECTED ACK。
+7. 达到 `minReadyNodes` 且满足 Group 发布策略后，生成只包含已 PREPARED Node 的 Nginx Revision。
+8. Nginx Revision 覆盖内部 Route Version Header 为 Desired Version。
+9. 验证并激活 Nginx Revision。
+10. 更新 Group `activeVersion`，发布 `ROUTE_VERSION_ACTIVATED` 事件。
+11. 要求 Engine 把直接访问默认版本切换到 Active Version，并 ACK ACTIVATED。
+12. 所有要求的 Nginx 实例 ACK 后更新 `effectiveVersion`，Snapshot 标记 EFFECTIVE。
+13. 经过旧版本保留窗口后发布 RETIRE 事件并回收不再被入口使用的历史 Snapshot 资源。
+
+任一步失败时旧 Nginx Revision 和旧 Active Version继续服务；仅仅创建了 Desired Version 不能让现网流量提前切换。
+
+### 14.4 Redis 设计
+
+Key：
+
+```text
+gateway:route:{environment}:{groupId}:version:{version}
+gateway:route:{environment}:{groupId}:desired
+gateway:node:{environment}:{nodeId}:lease
+gateway:publish:{taskId}:lock
+```
+
+Channel：
+
+```text
+gateway:route-event:{environment}:{groupId}
+gateway:node-event:{environment}
+```
+
+路由事件：
+
+```json
+{
+  "eventId": "uuid",
+  "eventType": "ROUTE_VERSION_PREPARE",
+  "environment": "prod",
+  "groupId": "10001",
+  "version": 42,
+  "checksum": "sha256...",
+  "occurredAt": "2026-07-24T10:00:00Z"
+}
+```
+
+事件不携带完整路由，原因：
+
+1. Pub/Sub 不保证重放。
+2. 大消息会增加 Redis 和订阅者压力。
+3. Engine 必须以版本和 checksum 判断是否需要拉取。
+
+路由事件类型：
+
+| Event Type | Engine 行为 |
+|---|---|
+| `ROUTE_VERSION_PREPARE` | 拉取、校验、编译并保留为 Prepared Snapshot，旧 Active 继续服务 |
+| `ROUTE_VERSION_ACTIVATED` | 更新直接访问的默认版本并 ACK ACTIVATED |
+| `ROUTE_VERSION_RETIRE` | 等待该版本在途请求归零后释放路由和连接引用 |
+
+### 14.5 Engine Prepare、Activate 与 Retire
+
+Engine 收到 `ROUTE_VERSION_PREPARE`：
+
+1. 若该 version 已在 Prepared Snapshot 集合中，幂等返回 PREPARED。
+2. 从 Admin 获取快照；Admin 不可用时可从 Redis version key 读取。
+3. 校验 Group、environment、schemaVersion、version 和 checksum。
+4. 解析所有 Route。
+5. 编译 Predicate、Filter、参数绑定和 Upstream Handle。
+6. 为每条 SCG Route 增加内部 Route Version Header Predicate，内部 route ID 使用 `v{version}:{logicalRouteId}`。
+7. 预创建或复用 HTTP/Dubbo Client 资源。
+8. 任一 Route 失败则释放本次新资源并拒绝整版；旧 Active Version 继续服务。
+9. 把整版加入 `VersionedCompiledRouteRepository`，与旧 Active Version 并存。
+10. 触发 SCG Route Refresh。
+11. 验证新版本全部 Route 已进入只读路由缓存，但不改变当前入口流量。
+12. 原子写入本地 Prepared/LKG 文件。
+13. 向 Admin ACK PREPARED。
+14. 初次启动时若该版本就是 Group Active Version，设置默认版本并从 SYNCING 进入 READY；在线更新时 Node 保持 READY。
+
+Engine 收到 `ROUTE_VERSION_ACTIVATED`：
+
+1. 确认目标版本已经 PREPARED。
+2. 原子更新“非受信任 Nginx 直连请求”的默认服务版本。
+3. 向 Admin ACK ACTIVATED。
+4. 不立即删除旧版本，因为部分 Nginx 实例和在途请求可能仍携带旧版本头。
+
+Engine 收到 `ROUTE_VERSION_RETIRE`：
+
+1. 拒绝新直连请求选择待回收版本。
+2. 等待该版本在途计数归零或达到回收超时。
+3. 从 Versioned Repository 移除该版本并刷新 SCG Route。
+4. 释放只被该版本引用的 Client/Reference。
+5. 删除超出保留策略的本地历史文件。
+6. ACK RETIRED。
+
+不能逐条调用“添加路由”后再逐条删除旧路由，也不能在所有节点准备完成前用新版本替换旧 Active Version。
+
+### 14.6 ACK 与发布结果
+
+发布状态区分：
+
+| 状态 | 含义 |
+|---|---|
+| PUBLISHED | DB/Redis 已生成并可被节点拉取 |
+| PREPARED | 达到 Group 的 Node PREPARED 门槛，允许生成切流配置 |
+| ACTIVATING | Nginx Revision 正在切换内部版本头 |
+| EFFECTIVE | 所有要求入口已 ACK 新 Nginx Revision |
+| PARTIAL | 部分 Node 或 Nginx 实例成功，部分失败或超时 |
+| FAILED | 无足够 Node 可预备、Nginx 无法切流或发布基础设施失败 |
+
+默认门槛：
+
+1. 至少 `minReadyNodes` 个节点 ACK PREPARED。
+2. 新 Nginx upstream 的所有节点必须已 ACK PREPARED。
+3. 未 PREPARED 节点不进入新版本 upstream，但可以继续承接旧 Active Version，直到旧入口完成切流。
+4. Admin UI 明确显示 Partial，不能伪装为全成功。
+
+### 14.7 周期对账
+
+Engine 默认每 30 秒：
+
+1. 查询 Group desired/active/effective version。
+2. Desired Version 未 PREPARED 时拉取并预备。
+3. 默认服务版本落后 Active Version 时，在确认 Prepared 后激活。
+4. 发现 Admin 回报版本倒退时不自动降级，记录控制面异常。
+
+Admin 默认每 10 秒：
+
+1. 扫描节点租约。
+2. 校正 Node 状态。
+3. 比较 Node PREPARED/ACTIVATED ACK 和 Desired/Active Version。
+4. 比较期望 Nginx 配置和 Active Revision。
+5. 产生防抖后的修复任务。
+
+### 14.8 LKG
+
+目录：
+
+```text
+${egon.gateway.engine.data-dir}/routes/{environment}/{groupId}/
+├── serving.json
+├── serving.meta
+├── prepared/
+│   └── {version}.json
+└── history/
+```
+
+规则：
+
+1. 仅成功 PREPARED 的快照能写入 `prepared/`，仅 ACTIVATED 版本能更新 `serving.json`。
+2. 使用临时文件、fsync 和原子 rename。
+3. 启动时先校验 checksum。
+4. Admin 不可用且配置 `allow-lkg-startup=true` 时加载。
+5. LKG 启动节点状态为 `DEGRADED_READY`；只有 Admin 恢复并确认版本后转 READY。
+6. 是否把 DEGRADED_READY 加入 Nginx 由 Group 策略决定，生产默认不加入，新部署环境可显式允许。
+
+## 15. Gateway Engine 技术方案
+
+### 15.1 Spring Cloud Gateway 集成
+
+依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
+</dependency>
+```
+
+核心扩展：
+
+1. `VersionedRouteDefinitionLocator`：同时输出仍可能接流的 Active、Desired 和过渡 RouteDefinition。
+2. `GatewayRouteVersionWebFilter`：在路由匹配前覆盖或校验内部版本头，选择已预备 Snapshot。
+3. `GatewaySnapshotManager`：验证、编译、Prepare、Activate 和 Retire 版本。
+4. `GatewayNodeLifecycle`：注册、心跳、同步、Drain 和注销。
+5. `DubboRoutingGlobalFilter`：处理 `dubbo://` 逻辑目标并标记 exchange 已路由。
+6. `GatewayFeedbackGlobalFilter`：在响应中添加节点反馈。
+7. `GatewayAccessLogGlobalFilter`：记录结构化访问日志。
+8. `GatewayErrorWebExceptionHandler`：统一错误映射。
+
+SCG 默认 HTTP `NettyRoutingFilter` 继续处理 `http://` 和 `https://` 路由，不重复造 HTTP Client。
+
+内部版本头：
+
+```text
+X-Egon-Gateway-Route-Version
+```
+
+处理规则：
+
+1. Nginx 对所有外部请求覆盖写入该 Header。
+2. Engine 数据端口只允许受信任 Nginx 网段携带版本头。
+3. 其他来源的同名 Header 一律删除，并由 `GatewayRouteVersionWebFilter` 写入节点默认 Active Version。
+4. 每条编译后的 SCG Route 都附加该版本的 Header Predicate。
+5. 逻辑 Route ID 与内部带版本 Route ID 分离，日志、指标和 Kafka Event 使用逻辑 Route ID。
+
+### 15.2 请求处理链
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant N as Nginx
+    participant G as Gateway Engine
+    participant R as Route Snapshot
+    participant F as Filter Chain
+    participant U as Upstream
+    participant K as Kafka
+
+    C->>N: /10001/wg/activity/sayHi
+    N->>G: /wg/activity/sayHi
+    G->>R: Path + Method + Host match
+    R-->>G: Compiled Route
+    G->>F: trace, size, cors, rate, timeout
+    F->>F: parameter bind
+    F->>U: HTTP or Dubbo invoke
+    U-->>F: response or error
+    F->>F: error map, feedback, metrics
+    F-->>N: HTTP response
+    N-->>C: HTTP response
+    F-->>K: async invocation event
+```
+
+过滤顺序：
+
+| Order | Filter | 说明 |
+|---|---|---|
+| -1000 | Trace | 提取或生成 Trace ID |
+| -950 | Access Log/Metrics | 外层包裹所有已匹配 Route 的结果 |
+| -900 | Route Metadata | 固定逻辑 Route/Group/实际选中 Version 到 exchange |
+| -850 | Invocation Event Capture | 在所有短路治理之前创建上下文，在终止信号后非阻塞入队 |
+| -800 | Request Limit | Header/body/URI 大小 |
+| -750 | CORS | Route CORS；预检请求不产生接口调用事件 |
+| -700 | Rate Limit | Route + Client IP 等维度 |
+| -600 | Concurrency Guard | 有界并发 |
+| -500 | Request Mapping | Path/Header/Body rewrite |
+| -400 | Parameter Binding | Dubbo 或显式 HTTP 参数 |
+| -300 | Timeout/Circuit Breaker | 调用治理 |
+| 0 | Routing | HTTP Netty 或 Dubbo Adapter |
+| 100 | Response Mapping | 响应头/状态/Body 映射 |
+| 200 | Feedback | Node/Route/Version |
+
+实际 order 必须集中定义并通过测试禁止重复。
+
+### 15.3 Route 匹配
+
+1. 先按内部 Route Version Header 选择 Snapshot。
+2. 精确 Path 优先于模板 Path。
+3. 更长静态前缀优先。
+4. 同 Path 下 Method 必须唯一。
+5. Host Predicate 若存在，先按 Host 分区。
+6. Catch-all `/**` 只能设置低优先级且显式确认。
+7. 发布校验使用与运行时相同的规范化和冲突算法。
+8. Path 匹配基于已解码还是原始路径必须固定；推荐使用 SCG 标准 Path Predicate，并拒绝非法双重编码。
+
+### 15.4 HTTP 上游
+
+支持：
+
+1. 固定 `http://host:port` 和 `https://host:port`。
+2. 可选 `lb://serviceId`，仅在显式启用 Spring Cloud LoadBalancer 时使用。
+3. 保留或重写 HTTP Method。
+4. Path 前缀增加、删除和模板变量替换。
+5. Query 增删改。
+6. Header allowlist/denylist。
+7. Request/Response Body 仅在显式配置时缓存和转换。
+8. 连接、响应和总请求超时。
+9. HTTP 连接池按 upstream authority 复用。
+
+默认移除 Hop-by-Hop Headers，禁止任意转发 `Connection`、`Keep-Alive`、`Transfer-Encoding` 等。
+
+`X-Egon-Gateway-Route-Version` 只用于 Engine 内部选路，进入 HTTP 下游前必须移除，不得泄漏给 Provider。
+
+### 15.5 Dubbo 上游
+
+Dubbo Route 必填：
+
+1. Registry Type 和 Address。
+2. Interface FQCN。
+3. Method Name。
+4. 有序 Parameter Type Names。
+5. Version/Group 可选。
+6. Timeout。
+
+执行：
+
+```java
+genericService.$invoke(
+        methodName,
+        parameterTypeNames,
+        arguments
 );
 ```
 
-Filter 可以：
+资源管理：
 
-1. 调用 `chain.next(context)` 继续；
-2. 返回自己的 response 短路；
-3. 在 CompletionStage 完成后做受控后置处理；
-4. 抛出/返回分类后的 GatewayException。
+1. 以 registry + interface + version + group + protocol 为 Reference Key。
+2. 使用并发安全缓存。
+3. Snapshot 预热时创建新 Reference。
+4. Route 删除后延迟引用计数回收。
+5. 初始化失败导致整版 Prepare 失败。
+6. 同步调用必须调度到专用有界 Scheduler。
+7. 若 Dubbo 返回 `CompletionStage`，优先使用异步桥接。
 
-Filter 不可以：
+协议边界：
 
-1. 阻塞等待；
-2. 修改不可变 route/request；
-3. 改写 interface/method/registry/javaType；
-4. 把 token 或 body 写入普通日志；
-5. 创建无界线程；
-6. 吞掉 timeout/cancellation 而不完成 stage。
+1. 传统 Dubbo 协议使用 `GenericService`。
+2. Triple HTTP/JSON 服务优先按 HTTP 上游代理。
+3. 不承诺对任意仅 Triple IDL 服务使用无 API JAR 的传统泛化调用。
+4. Nacos 是强制验收基线，ZooKeeper 做兼容集成测试。
 
-### 15.2 固定处理顺序
+### 15.6 参数绑定
 
-| 顺序区间 | 组件 | 是否可禁用 |
-|---:|---|---|
-| transport | Netty 协议、header/body、全局 admission | 否 |
-| -10000 | TraceFilter | 否 |
-| -9500 | MetricsFilter | 否 |
-| -9000 | AccessLogFilter | 可关闭日志输出，但生命周期仍保留 |
-| -8000 | AuthenticationFilter | PUBLIC 路由为 no-op |
-| -7000 | RouteConcurrencyFilter | 否 |
-| -6000 | DeadlineFilter | 否 |
-| -5000 | ParameterBindingFilter | 否 |
-| -1000～1000 | Route custom filters | 路由可选 |
-| terminal | UpstreamDispatch + ResponseMapping | 否 |
+参数来源：
 
-安全过滤器使用保留顺序，用户 Filter 不能占用。
+| Source | 示例 |
+|---|---|
+| PATH | `/users/{id}` 的 `id` |
+| QUERY | `?page=1` |
+| HEADER | `X-Tenant-Id` |
+| COOKIE | Cookie 值 |
+| BODY | 完整 JSON Body |
+| BODY_FIELD | JSON Pointer，例如 `/user/name` |
+| FORM | `application/x-www-form-urlencoded` |
+| CONSTANT | 路由配置常量 |
+| CONTEXT | traceId、clientIp、requestMethod、requestPath |
 
-### 15.3 GatewayFilterFactory
+不提供 `AUTH_CONTEXT`，因为鉴权不在范围内。
 
-路由级可配置 Filter 使用：
-
-```text
-GatewayFilterFactory
-├── name()
-├── validate(config)
-└── create(route, immutableConfig)
-```
-
-规则：
-
-1. Factory 由 Spring Bean 提供。
-2. Filter 名称全局唯一。
-3. 路由引用不存在的 Factory 时启动失败。
-4. config 在路由编译期校验并转为不可变对象。
-5. 每请求不能重新解析 Filter 配置。
-6. V1 不支持动态 JAR 或反射类名创建 Filter。
-
-### 15.4 设计模式选择
-
-| 问题 | 采用模式 | 原因 |
-|---|---|---|
-| 多个可短路、可后置的请求功能 | Chain of Responsibility | 认证、指标、超时和扩展 Filter 需要确定顺序和统一异步契约 |
-| 多种上游协议 | Strategy + Adapter | core 只依赖 `UpstreamInvoker`，Dubbo 是 V1 adapter |
-| 多种路由来源 | Strategy/Port | YAML、Bean 和未来动态 provider 使用同一编译入口 |
-| 复杂程序化路由声明 | Builder | 避免嵌套 record 构造器降低接入可读性 |
-| 路由一致性发布 | Immutable Snapshot + Atomic Swap | 单请求只能观察一个完整版本 |
-| 路由级 Filter 配置 | Factory Method | 配置需要启动期验证和实例化 |
-
-明确拒绝：
-
-1. 不使用 CGLIB 生成 RPC 接口，因为 GenericService 已提供统一调用契约。
-2. 不使用 Template Method 深继承树，因为 transport、binding、invoker 的变化点更适合组合。
-3. 不为简单 DTO 创建 Abstract Factory。
-4. 不用 ORM Session/Mapper 类比包装请求，会增加没有实际价值的层级。
-
-## 16. 响应与错误契约
-
-### 16.1 正常上游结果
-
-1. Dubbo 正常完成时 HTTP status 为 200。
-2. 返回对象使用 Gateway ObjectMapper 转为 JSON。
-3. Map/List/标量保持 JSON 语义。
-4. String 序列化为 JSON string，不把字符串内容当作可信原始 JSON 注入。
-5. `null` 返回 JSON `null`。
-6. byte[]、文件和流不是 V1 支持的业务响应。
-7. 如果 Provider 返回自己的 `ResultDto`，Gateway 不再包装一层。
-8. Gateway 不读取上游 `success/code/status` 来改写 HTTP status。
-9. 响应固定带 `Content-Type: application/json; charset=UTF-8` 和 `X-Trace-Id`。
-10. 序列化超过 response 上限返回 502 Gateway error。
-
-“透明返回”指不改变业务对象语义，不表示转发 Dubbo 的原始二进制字节。
-
-### 16.2 Gateway 错误
-
-Gateway 自身产生的错误统一使用现有：
+每个绑定包含：
 
 ```text
-top.egon.cola.component.common.result.dto.ResultDto
-top.egon.cola.component.common.result.factory.ResultDtos
+index
+targetName
+targetType
+source
+sourceName/jsonPointer
+required
+defaultValue
+collectionFormat
+converter
+validation
 ```
 
-示例：
+转换规则：
+
+1. String -> primitive/wrapper/BigDecimal/UUID/enum/time。
+2. 重复 Query -> List/Array。
+3. JSON object -> Map/List/泛化 DTO 表示。
+4. null 只允许目标可空。
+5. 不启用 Jackson Default Typing。
+6. 不接受客户端传入任意 Java class 名。
+7. Dubbo DTO 的类型名只能来自已发布参数定义。
+8. 多参数按 index 排序，不能依赖 JSON 字段顺序。
+
+### 15.7 执行器
+
+```text
+GatewayExecutor
+  -> CompiledRoute
+  -> ParameterBinder
+  -> UpstreamAdapter
+  -> UpstreamInvoker
+  -> ResponseMapper
+```
+
+`GatewayExecutor` 是请求编排 Facade：
+
+1. 不负责路由查找。
+2. 不创建连接。
+3. 不包含协议类型大分支；Adapter Registry 负责选择。
+4. 不吞掉异常。
+5. 记录统一调用计时和 outcome。
+
+### 15.8 响应契约
+
+代理成功时：
+
+1. HTTP 上游默认保留状态码和 Body。
+2. Dubbo 上游默认返回 JSON 序列化结果，HTTP 200。
+3. 业务返回 `ResultDto` 时不再套第二层。
+4. 可配置响应字段映射，但首期不提供脚本。
+
+网关错误：
 
 ```json
 {
   "success": false,
-  "code": 404100,
-  "status": "GATEWAY_ROUTE_NOT_FOUND",
-  "message": "gateway route not found",
-  "data": null,
-  "traceId": "019f...",
-  "timestamp": 1784860800000
+  "code": "GATEWAY_UPSTREAM_TIMEOUT",
+  "message": "Upstream request timed out",
+  "traceId": "..."
 }
 ```
 
-Gateway 在 core 中定义 `GatewayStatus implements ErrorStatus`，starter 使用 `ResultDtos.failure(...)` 生成外部 DTO。
+错误码：
 
-### 16.3 HTTP 与 GatewayStatus 映射
+| HTTP | Code | 场景 |
+|---|---|---|
+| 400 | `GATEWAY_BAD_REQUEST` | 请求格式非法 |
+| 400 | `GATEWAY_PARAMETER_MISSING` | 必填参数缺失 |
+| 400 | `GATEWAY_PARAMETER_CONVERSION_FAILED` | 类型转换失败 |
+| 404 | `GATEWAY_ROUTE_NOT_FOUND` | 无匹配 Path |
+| 405 | `GATEWAY_METHOD_NOT_ALLOWED` | Path 存在但 Method 不匹配 |
+| 413 | `GATEWAY_REQUEST_TOO_LARGE` | 请求超限 |
+| 429 | `GATEWAY_RATE_LIMITED` | 限流 |
+| 429 | `GATEWAY_CONCURRENCY_LIMITED` | 并发保护 |
+| 502 | `GATEWAY_UPSTREAM_BAD_RESPONSE` | 上游协议/响应异常 |
+| 503 | `GATEWAY_UPSTREAM_UNAVAILABLE` | 上游不可用/熔断 |
+| 504 | `GATEWAY_UPSTREAM_TIMEOUT` | 超时 |
+| 500 | `GATEWAY_INTERNAL_ERROR` | 未分类内部错误 |
 
-| HTTP | code | status | 场景 |
-|---:|---:|---|---|
-| 400 | 400100 | `GATEWAY_INVALID_REQUEST` | 非法 URI、GET body、非法 query |
-| 400 | 400101 | `GATEWAY_PARAMETER_BINDING_FAILED` | 缺参数、类型转换、JSON Pointer 失败 |
-| 401 | 401100 | `GATEWAY_AUTHENTICATION_REQUIRED` | 缺少 Bearer token |
-| 401 | 401101 | `GATEWAY_INVALID_TOKEN` | token 格式、签名、issuer、audience、expiry 失败 |
-| 404 | 404100 | `GATEWAY_ROUTE_NOT_FOUND` | 无 host/path 路由 |
-| 405 | 405100 | `GATEWAY_METHOD_NOT_ALLOWED` | path 存在但 method 不支持 |
-| 413 | 413100 | `GATEWAY_PAYLOAD_TOO_LARGE` | 请求体超限 |
-| 414 | 414100 | `GATEWAY_URI_TOO_LONG` | initial line/URI 超限 |
-| 415 | 415100 | `GATEWAY_UNSUPPORTED_MEDIA_TYPE` | POST body 不是 JSON |
-| 431 | 431100 | `GATEWAY_HEADERS_TOO_LARGE` | header 数量或大小超限 |
-| 500 | 500100 | `GATEWAY_INTERNAL_ERROR` | 未分类内部错误 |
-| 502 | 502100 | `GATEWAY_UPSTREAM_BAD_RESPONSE` | Dubbo 协议、序列化、GenericException |
-| 502 | 502101 | `GATEWAY_UPSTREAM_RESPONSE_TOO_LARGE` | 上游结果序列化超限 |
-| 503 | 503100 | `GATEWAY_OVERLOADED` | 全局/路由并发或业务执行器容量耗尽 |
-| 503 | 503101 | `GATEWAY_UPSTREAM_UNAVAILABLE` | 无 Provider、Registry/连接不可用 |
-| 503 | 503102 | `GATEWAY_AUTH_KEY_UNAVAILABLE` | JWK 基础设施不可用且无有效缓存 |
-| 504 | 504100 | `GATEWAY_UPSTREAM_TIMEOUT` | 请求 deadline 到期 |
+禁止向调用方返回 Registry 地址、Java 堆栈、SQL、Nginx 路径或内部异常类名。
 
-规则：
+### 15.9 客户端节点反馈
 
-1. 对外 message 使用固定安全文本。
-2. 未知 Throwable 映射 500100。
-3. 不返回堆栈、类名、Registry 地址、interface、method、Nacos/JWK 细节。
-4. 405 响应带 `Allow` header。
-5. 401 响应带 `WWW-Authenticate`。
-6. 错误响应也必须有 traceId。
-7. 客户端断开不再写 response，但仍完成资源释放和内部指标。
+实现原文第 29 章“由哪台网关算力处理请求”的客户端反馈能力：
 
-## 17. 线程、容量与超时
-
-### 17.1 线程模型
-
-Netty EventLoop 只允许：
-
-1. socket accept/read/write；
-2. HTTP codec；
-3. 严格 header/body 聚合上限；
-4. 创建轻量不可变 request；
-5. 非阻塞全局 admission；
-6. 向业务执行器提交任务；
-7. 在 channel EventLoop 写回已完成 response。
-
-业务执行器负责：
-
-1. 路由匹配；
-2. JWT 验证；
-3. 参数绑定；
-4. Filter Chain；
-5. 发起 Dubbo 调用；
-6. 同步兼容调用；
-7. JSON 响应序列化。
-
-### 17.2 默认业务执行器
-
-建议默认：
-
-| 配置 | 默认值 |
-|---|---:|
-| core threads | `max(4, availableProcessors)` |
-| max threads | `max(16, availableProcessors * 4)` |
-| queue capacity | 512 |
-| keep alive | 60s |
-| rejection | 立即拒绝 |
-
-规则：
-
-1. 不使用 `Executors.newCachedThreadPool()`。
-2. 不使用无界 `LinkedBlockingQueue`。
-3. 执行器满时在 EventLoop 快速返回 503。
-4. 覆盖 Bean 必须通过启动校验确认 queue 有界。
-5. 线程名固定前缀，便于测试 EventLoop 隔离。
-6. 所有 accepted/rejected/active/queue 指标进入 Micrometer。
-
-### 17.3 并发许可
-
-请求需要两个许可：
-
-1. global in-flight；
-2. route in-flight。
-
-获取顺序固定，释放顺序反向。任何异常、timeout、cancel、客户端断开都必须 exactly-once 释放。
-
-许可只限制在途数量，不是速率限制。V1 因此使用 503，不使用 429。
-
-### 17.4 Deadline
-
-1. 请求进入 Gateway 时计算绝对 deadline。
-2. 业务队列等待计入 deadline。
-3. 每一步读取剩余时间。
-4. 到达 Dubbo 时把剩余时间转为 consumer timeout。
-5. deadline 到期完成 504，并忽略迟到结果。
-6. 如果底层支持 cancellation，尝试取消；不能假定取消一定终止远程执行。
-7. V1 不因 timeout 自动重试。
-
-## 18. 生命周期与健康检查
-
-### 18.1 生命周期状态
-
-```text
-NEW -> STARTING -> READY -> DRAINING -> STOPPED
-                  \-> DEGRADED
-STARTING/READY/DEGRADED -> FAILED
-```
-
-状态含义：
-
-| 状态 | 含义 |
+| Header | 内容 |
 |---|---|
-| NEW | 尚未初始化 |
-| STARTING | 配置、路由、执行器、Dubbo 和 Netty 初始化中 |
-| READY | 可接收业务流量 |
-| DEGRADED | 进程存活，但 Registry/JWK/全局依赖暂不可用 |
-| DRAINING | readiness 已关闭，停止接收新业务请求，等待在途完成 |
-| STOPPED | 资源已释放 |
-| FAILED | 不可恢复的生命周期错误 |
+| `X-Gateway-Node` | `NODE_ID` 或显式配置的 `host:port` |
+| `X-Gateway-Group` | Group ID |
+| `X-Gateway-Route` | Route ID |
+| `X-Gateway-Config-Version` | 本次请求实际选择的 Route Version |
+| `X-Trace-Id` | Trace ID |
 
-### 18.2 启动顺序
-
-1. 绑定并严格校验 Gateway properties。
-2. 收集 YAML 和 Contributor routes。
-3. 编译完整 RouteTableSnapshot。
-4. 初始化执行器、JWT key source 和 Dubbo runtime。
-5. 准备 GenericService References。
-6. 发布初始快照。
-7. 绑定管理端口。
-8. 绑定数据端口。
-9. 评估 Registry/JWK 可用性。
-10. 满足 readiness 条件后进入 READY。
-
-无有效路由、路由冲突或静态配置非法时直接启动失败，数据端口不得先开放。
-
-Nacos/JWK 是瞬时外部依赖：
-
-- 静态定义合法但外部依赖暂不可用时，进程和管理端口可以启动；
-- readiness 为 false；
-- 数据请求快速返回对应 503；
-- 依赖恢复后自动进入 READY；
-- 不需要重启进程。
-
-### 18.3 Readiness
-
-独立管理端口：
+配置：
 
 ```text
-GET /live
-GET /ready
+OFF
+NODE_ID
+HOST_PORT
 ```
 
-响应只包含固定的 `status`、`state` 和当前时间，不暴露 route、Registry、JWK 或异常细节。`/live` 只返回 200 或连接不可用；`/ready` 在可接流量时返回 200，否则返回 503。
+Test Profile 必须使用 `HOST_PORT` 验证 Nginx 确实把请求分发到多个 Node。生产推荐 `NODE_ID`，避免暴露内部地址，但 `HOST_PORT` 能力必须保留。
 
-`/live` 返回 200 条件：
+### 15.10 Engine Kafka 调用事件
 
-- Netty 管理服务和核心生命周期线程正常；
-- 未进入 FAILED/STOPPED。
+#### 15.10.1 职责边界
 
-`/ready` 返回 200 条件：
+调用事件链路固定为：
 
-- 数据端口已绑定；
-- 有有效路由快照；
-- 不在 DRAINING；
-- 业务执行器可接受任务；
-- JWT required 路由存在时有可用验证 key；
-- Registry runtime 已初始化；
-- 至少一个启用路由当前具备可用调用路径。
+```text
+Client -> Nginx -> Gateway Engine -> Kafka Cluster -> Independent Consumers
+```
 
-单个 Provider 不可用不必让整个实例 unready；该路由返回 503。只有所有业务路由都不可调用或全局依赖不可用超过 grace period 时，readiness 才失败。
+明确禁止：
 
-### 18.4 停机顺序
+1. Starter 监听或代理 Provider 的业务调用。
+2. Starter 发送调用结果。
+3. Engine 把逐次调用结果通过 HTTP 发送给 Admin。
+4. Admin 配置数据库保存逐次原始调用事件。
+5. Kafka Broker ACK 阻塞 HTTP 响应。
 
-1. 状态切换为 DRAINING。
-2. `/ready` 立即返回 503。
-3. 关闭数据 server accept channel，不再接收新连接。
-4. 对已建立连接拒绝新请求。
-5. 等待在途请求，默认最多 30 秒。
-6. deadline 内完成的请求正常返回。
-7. 到期请求完成 cancellation/资源释放。
-8. 关闭业务执行器。
-9. 释放 GenericService References 和 Dubbo runtime。
-10. 关闭 Netty worker/boss event loops。
-11. 最后关闭管理端口并进入 STOPPED。
+Starter 的“上报”始终只表示下游接口定义上报；Engine 的“调用事件”才表示实际接口调用结果上报。
 
-任何路径都必须保证并发许可、ByteBuf 和快照引用不泄漏。
+#### 15.10.2 Topic
+
+默认 Topic：
+
+```text
+egon.gateway.invocation.v1
+```
+
+生产约束：
+
+1. Topic 必须由部署流程预创建。
+2. 生产副本因子推荐至少 3。
+3. `min.insync.replicas` 推荐至少 2。
+4. 分区数量按调用吞吐评估，不能由每个 Engine 启动时随意创建。
+5. Retention 由消费用途决定，默认建议 7 天。
+6. 调用事件不要求严格顺序；默认消息 key 为 `environment|groupId|routeId|shard`，其中 `shard = hash(eventId) % partitionKeyShards`，避免单个热点 Route 压到一个分区。
+7. `partitionKeyShards` 默认 16，必须小于或等于 Topic 分区数，并作为全 Engine 一致配置。
+8. Value 使用版本化 JSON；首期不强制引入 Schema Registry，但 contract 必须提供 JSON Schema。
+
+Kafka Header：
+
+| Header | 值 |
+|---|---|
+| `eventType` | `GATEWAY_INVOCATION_COMPLETED` |
+| `schemaVersion` | `1` |
+| `contentType` | `application/json` |
+| `traceId` | 与消息体一致 |
+
+#### 15.10.3 事件契约
+
+```json
+{
+  "eventId": "019f...",
+  "eventType": "GATEWAY_INVOCATION_COMPLETED",
+  "schemaVersion": 1,
+  "occurredAt": "2026-07-24T10:00:00.123Z",
+  "environment": "prod",
+  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "requestId": "01J...",
+  "groupId": "10001",
+  "routeId": "activity-say-hi",
+  "snapshotVersion": 42,
+  "node": {
+    "nodeId": "7fc...",
+    "zone": "az-a"
+  },
+  "inbound": {
+    "method": "GET",
+    "pathTemplate": "/wg/activity/sayHi",
+    "protocol": "HTTP/1.1"
+  },
+  "target": {
+    "systemId": "activity",
+    "interfaceId": "activity-service",
+    "methodName": "sayHi",
+    "upstreamType": "DUBBO"
+  },
+  "result": {
+    "outcome": "SUCCESS",
+    "httpStatus": 200,
+    "gatewayErrorCode": null,
+    "upstreamStatus": "SUCCESS",
+    "clientCancelled": false
+  },
+  "timing": {
+    "startedAtEpochMs": 1784887200000,
+    "completedAtEpochMs": 1784887200123,
+    "durationMs": 123,
+    "upstreamDurationMs": 87
+  },
+  "traffic": {
+    "requestBytes": 128,
+    "responseBytes": 512
+  },
+  "governance": {
+    "rateLimited": false,
+    "circuitBreakerOpen": false,
+    "retryCount": 0
+  }
+}
+```
+
+必填字段：
+
+1. `eventId`：Engine 在请求内生成的全局唯一 ID。
+2. `schemaVersion`。
+3. `environment/groupId/routeId/snapshotVersion`。
+4. `nodeId`。
+5. `systemId/interfaceId/methodName/upstreamType`。
+6. `outcome/httpStatus`。
+7. 开始、结束和耗时。
+
+事件不得包含：
+
+1. 请求或响应 Body。
+2. 原始 Query String。
+3. Authorization、Cookie 或用户凭据。
+4. 未脱敏 Header。
+5. Dubbo Registry 地址和凭据。
+6. Java 异常堆栈。
+7. 原始客户端 IP；如消费确需来源维度，只允许发送不可逆、带轮换盐的分组哈希，并需另行审核。
+
+#### 15.10.4 产生时机
+
+1. Route 成功匹配后创建 Invocation Context。
+2. 请求结束、失败或取消时只完成一次 Context。
+3. 成功、参数失败、限流、并发拒绝、熔断、上游超时、上游异常、响应写失败和客户端取消都产生事件。
+4. `GATEWAY_ROUTE_NOT_FOUND` 没有接口目标，不产生 Invocation Event，只记录访问日志和指标。
+5. Event 构造失败不能修改已经确定的 HTTP 响应。
+6. Reactor `doFinally` 只负责创建不可变事件并非阻塞入队，不能执行 Kafka 网络调用。
+
+#### 15.10.5 Producer
+
+Engine 使用独立 `KafkaInvocationEventReporter`：
+
+```text
+InvocationEventCaptureFilter
+  -> non-blocking bounded queue
+  -> dedicated reporter worker
+  -> optional local spool
+  -> Kafka Producer
+```
+
+Producer 基线：
+
+```text
+acks=all
+enable.idempotence=true
+retries=maximum bounded by delivery.timeout.ms
+compression.type=lz4
+max.in.flight.requests.per.connection=5
+delivery.timeout.ms=30000
+request.timeout.ms=10000
+```
+
+约束：
+
+1. Kafka Client 不在 Netty EventLoop 初始化、等待 metadata 或 flush。
+2. 应用队列和 Kafka `buffer.memory` 都有明确上限。
+3. Reporter Worker 数量固定且可配置。
+4. Kafka send callback 记录成功、失败、重试和延迟。
+5. 事件 `eventId` 在重试中保持不变。
+6. Broker 返回永久错误时进入失败处理，不无限占用内存。
+
+#### 15.10.6 可靠性语义
+
+调用事件是管理和观测事件，不参与业务调用事务，数据面可用性优先：
+
+1. HTTP 响应不等待 Kafka ACK。
+2. Kafka 暂不可用时，先进入有界内存队列。
+3. 推荐默认启用 Engine 本地有界 spool，将待发送事件写入 `${dataDir}/invocation-events` 后后台重发。
+4. 已成功写入 spool 的事件按 at-least-once 发送，可能重复，消费方按 `eventId` 幂等。
+5. 事件从 Reactor 回调进入队列、但尚未写入 spool 时若进程被强杀，存在极小丢失窗口。
+6. 队列和 spool 都满时默认丢弃最旧事件，继续服务请求，并产生高优先级日志、指标和健康降级。
+7. 不声称 exactly-once，也不把该事件流用于未经专项设计的计费或财务结算。
+8. 若未来要求“接口调用与事件绝对不丢”，必须另行评审同步持久化对请求延迟和可用性的影响。
+
+Overflow Policy：
+
+```text
+DROP_OLDEST   默认；保护网关可用性
+DROP_NEWEST   保留已有积压
+```
+
+不提供“阻塞请求直到有空间”的模式。
+
+#### 15.10.7 消费边界
+
+1. 本项目交付标准 Topic 和 Event Schema。
+2. 独立消费者可以用于调用分析、告警、审计或数据仓库。
+3. Gateway Admin 首期不消费和持久化逐次原始事件，避免配置管理平台承担高吞吐日志平台职责。
+4. Admin 通过 Node Heartbeat 展示 Producer 健康、积压量和最近成功发送时间。
+5. 若后续要求 Admin 展示调用报表，应新增聚合消费方案和专用分析存储，不能把原始事件直接写入当前 PostgreSQL 配置库。
+
+## 16. Node 注册、心跳和生命周期
+
+### 16.1 注册请求
+
+```json
+{
+  "nodeId": "7fc...",
+  "groupId": "10001",
+  "environment": "prod",
+  "advertisedHost": "10.0.1.15",
+  "advertisedPort": 9001,
+  "managementHost": "10.0.1.15",
+  "managementPort": 9101,
+  "engineVersion": "5.2.3",
+  "snapshotSchemaVersions": [1],
+  "metadata": {
+    "zone": "az-a",
+    "image": "gateway-engine:5.2.3"
+  }
+}
+```
+
+Admin 响应：
+
+```json
+{
+  "accepted": true,
+  "activeVersion": 41,
+  "desiredVersion": 42,
+  "heartbeatIntervalSeconds": 5,
+  "leaseSeconds": 20
+}
+```
+
+### 16.2 启动顺序
+
+1. 校验本地配置和数据目录。
+2. 启动 SCG Server，但 readiness 为 false。
+3. 向 Admin 注册。
+4. Admin 创建/更新 Node，并物化 Group-System 关系。
+5. Node 进入 SYNCING。
+6. 拉取并 PREPARE Active Snapshot。
+7. 设置默认服务版本并 ACK PREPARED/ACTIVATED。
+8. Node 进入 READY。
+9. 若 Desired Version 高于 Active Version，在后台继续 PREPARE Desired，但不阻塞旧版 READY。
+10. Admin 触发 Nginx 对账。
+11. Nginx 发布成功后开始接收外部请求。
+
+### 16.3 心跳
+
+心跳包含：
+
+1. Node 状态。
+2. Prepared Version 集合、默认 Serving Version 和 checksum。
+3. Inflight 数。
+4. 最近 Prepare/Activate 结果。
+5. Kafka Producer 状态、内存队列深度、spool 字节数和最近发送成功时间。
+6. JVM/进程摘要。
+
+Admin 将高频 Lease 写 Redis TTL，数据库只按间隔或状态变化投影，避免每 5 秒更新一行造成写放大。
+
+Redis Lease 故障保护：
+
+1. Redis 不可用时，Admin 将心跳按节流间隔写入 PostgreSQL 作为临时后备。
+2. Reconciler 不得因为 Redis Key 集体消失而一次性把所有 Node 判定 OFFLINE。
+3. 只有 Redis 恢复、后备心跳也超时并超过额外故障宽限期后才摘流。
+4. 故障期间保留上一个成功 Nginx Revision并标记控制面 DEGRADED。
+
+### 16.4 租约过期
+
+1. Redis Lease 到期。
+2. Admin Reconciler 将 Node 标记 OFFLINE。
+3. 创建 Nginx Reconcile Task。
+4. 从 upstream 移除。
+5. 保留 Node 历史和 ACK，不物理删除。
+
+### 16.5 优雅关闭
+
+Engine 收到停止信号：
+
+1. Readiness 立即 false。
+2. 向 Admin 请求 DRAINING。
+3. Admin 将 Node 从 Nginx 期望集合移除。
+4. 等待 Nginx Revision ACTIVE 或达到安全超时。
+5. 等待 Engine Inflight 归零或达到 drain timeout。
+6. 停止心跳。
+7. 发送 OFFLINE。
+8. 在 `invocation-reporting.shutdown-flush-timeout` 内刷新 Kafka 内存队列和本地 spool；未发完事件留待下次启动重放。
+9. 关闭 Kafka Producer、HTTP Client、Dubbo Reference、Redis Subscription 和 Scheduler。
+10. 退出。
+
+若 Admin 不可用：
+
+1. Engine 仍先 readiness false。
+2. 等待最大 Drain 时间。
+3. 记录无法确认 Nginx 摘流的告警后退出。
+
+## 17. Nginx 动态负载方案
+
+### 17.1 入口模型
+
+外部请求：
+
+```text
+https://api.example.com/10001/wg/activity/sayHi
+```
+
+Nginx：
+
+1. 通过第一段 `10001` 选择 Group upstream。
+2. 删除 `/10001`。
+3. 将 `/wg/activity/sayHi` 转给 Engine。
+4. 转发 Trace、Client IP 和必要 Header。
+
+示意：
+
+```nginx
+upstream gateway_group_10001 {
+    least_conn;
+    server 10.0.1.15:9001 weight=1 max_fails=3 fail_timeout=10s;
+    server 10.0.1.16:9001 weight=1 max_fails=3 fail_timeout=10s;
+    keepalive 128;
+}
+
+location /10001/ {
+    rewrite ^/10001/(.*)$ /$1 break;
+    proxy_set_header X-Egon-Gateway-Route-Version 42;
+    proxy_pass http://gateway_group_10001;
+}
+```
+
+实际生成器必须正确处理 URI、尾部斜线、转义和空 Group，不直接拼接未校验输入。版本头由 Nginx 覆盖，不能透传客户端同名值。
+
+### 17.2 期望节点集合
+
+节点必须同时满足：
+
+1. Group ENABLED。
+2. Node READY。
+3. Lease 有效。
+4. Node 已 PREPARED 本次 Nginx Revision 要切换的目标版本。
+5. Node 未被人工 Drain。
+6. 地址合法且无重复。
+
+旧 Nginx Revision 可以在切流完成前继续把旧版本头发送给同一批 Node；Engine 同时保留旧 Active 和新 Prepared Snapshot，因此不会因节点先预备新版本而出现随机 404。
+
+### 17.3 发布驱动
+
+定义：
+
+```text
+NginxConfigRenderer
+NginxConfigValidator
+NginxConfigPublisher
+NginxReloadDriver
+```
+
+首期必须实现两种 Driver：
+
+1. `LOCAL_PROCESS`：Admin 与 Nginx 在同一受控主机，使用固定命令模板执行验证和 reload。
+2. `RELOADER_API`：容器部署时，Admin 将配置写入共享卷并调用内网 reloader sidecar；sidecar 只允许验证和 reload 固定路径。
+
+不使用 Docker Socket，不允许 Admin 执行任意 shell 字符串。
+
+### 17.4 发布流程
+
+```mermaid
+sequenceDiagram
+    participant A as Admin Reconciler
+    participant D as Database
+    participant F as Config Files
+    participant R as Nginx Reloader
+    participant N as Nginx
+
+    A->>D: load expected READY nodes
+    A->>A: render deterministic config
+    A->>D: save GENERATED revision
+    A->>F: write revision temp file
+    A->>R: validate revision
+    R->>N: nginx -t
+    N-->>R: validation result
+    alt valid
+        A->>F: atomic switch active include
+        A->>R: reload
+        R->>N: reload
+        N-->>R: success
+        A->>D: mark ACTIVE
+    else invalid or reload failed
+        A->>F: retain previous active file
+        A->>D: mark FAILED and record output
+    end
+```
+
+路由版本切流补充规则：
+
+1. Nginx Revision 同时固化 Node 列表和 `X-Egon-Gateway-Route-Version`。
+2. 单个 Nginx 实例 reload 成功后 ACK 该 Revision。
+3. Admin 在开始切流时把 Group `activeVersion` 更新为目标版本。
+4. 所有要求的 Nginx 实例 ACK 后才更新 `effectiveVersion`。
+5. 任一仍在服务的旧 Nginx 实例可继续发送旧版本头，Engine 在保留窗口内继续服务旧 Snapshot。
+6. 旧版本只有在所有 Nginx 实例 ACK 或超过明确的故障处置/保留策略后才允许 Retire。
+
+### 17.5 防抖与对账
+
+1. 普通心跳不触发 reload。
+2. Node 状态或期望集合变化触发 2 秒防抖窗口。
+3. 同一环境同时只允许一个 Nginx Publish Task。
+4. 生成内容 checksum 与 Active 相同则跳过 reload。
+5. 每 30 秒做一次完整对账。
+6. 连续失败产生告警，但不删除旧配置。
+
+### 17.6 空 Group
+
+当 Group 无就绪 Node：
+
+1. 保留 location。
+2. 指向无 server 的保护 upstream 或直接返回 503。
+3. 不把请求随机转给其他 Group。
+4. Admin Dashboard 标记 Group unavailable。
+
+### 17.7 回滚
+
+1. 选择上一个 ACTIVE Revision。
+2. 重新验证。
+3. 原子切换 include。
+4. reload。
+5. 新增一条 ROLLBACK 审计，不改写历史。
+
+## 18. 稳定性与流量治理
+
+### 18.1 超时
+
+每条 Route：
+
+1. Connect Timeout。
+2. Response Timeout。
+3. Total Request Timeout。
+4. Dubbo Timeout。
+
+优先级：
+
+```text
+Route explicit > Group default > Engine global hard default
+```
+
+所有值有上下限，禁止配置无限超时。
+
+### 18.2 限流
+
+使用 SCG Redis Request Rate Limiter 或等价 Lua Token Bucket：
+
+1. Route ID + Client IP。
+2. Route ID + Header。
+3. Group + Route。
+
+由于没有鉴权，本期不支持按 User ID 限流。Client IP 必须只信任配置的代理跳数/网段，不能直接相信任意 `X-Forwarded-For`。
+
+### 18.3 并发保护
+
+1. 全局最大 Inflight。
+2. Route 最大 Inflight。
+3. Dubbo Adapter 独立 Semaphore。
+4. 超限立即 429，不进入无界队列。
+5. 阻塞 Scheduler 队列有界。
+
+### 18.4 熔断
+
+使用 Resilience4j：
+
+1. 每 Route 独立 Circuit Breaker。
+2. 配置滑动窗口、最小请求数、失败率和恢复等待。
+3. 熔断时返回稳定 503。
+4. 不提供脚本 fallback。
+5. HTTP 5xx、连接失败、超时是否计入失败由 Route Policy 决定。
+
+### 18.5 重试
+
+默认关闭。
+
+只有同时满足以下条件才允许显式开启：
+
+1. GET/HEAD 或路由明确声明幂等。
+2. Request Body 可安全重放且在上限内。
+3. 总超时覆盖所有尝试。
+4. 配置最大尝试次数和退避。
+
+Dubbo 写操作默认禁止自动重试，避免业务重复。
+
+### 18.6 请求与响应大小
+
+1. Header 总大小上限。
+2. URI 长度上限。
+3. Body 上限。
+4. 需要解析 Body 的 Route 才缓存 Body。
+5. HTTP 纯转发尽量保持流式。
+6. 超限立即释放 DataBuffer，防止内存泄漏。
 
 ## 19. 可观测性
 
-### 19.1 Trace
+### 19.1 日志
 
-1. 首选读取 `X-Trace-Id`。
-2. 外部 traceId 只接受 `[A-Za-z0-9._-]{1,64}`。
-3. 缺失或非法时由 Gateway 生成。
-4. traceId 写入 `TraceContext`/MDC、响应头、Gateway error 和 Dubbo attachment。
-5. 异步线程切换时显式安装和清理 MDC。
-6. 不引入完整分布式追踪 SDK 作为 V1 强依赖。
-
-### 19.2 访问日志
-
-每个请求只写一条完成日志，字段：
+结构化访问日志字段：
 
 ```text
-requestId
+timestamp
 traceId
+groupId
 routeId
 snapshotVersion
+nodeId
+clientIp
 method
-normalizedPathTemplate
-remoteAddress
-authenticated
-statusCode
-gatewayStatus
+normalizedPath
+upstreamType
+upstreamTargetHash
+status
+outcome
 durationMs
-queueMs
-upstreamMs
 requestBytes
 responseBytes
-outcome
+errorCode
 ```
 
-不得记录：
+禁止默认记录：
 
-- Authorization；
-- Cookie/Set-Cookie；
-- JWT；
-- 密码；
-- JWK/Nacos credential；
-- 完整 query；
-- 完整 body；
-- 任意 claim 全量；
-- Provider 异常堆栈到 access log。
+1. Authorization、Cookie。
+2. 完整 Query。
+3. 完整请求/响应 Body。
+4. Registry 凭据。
+5. 数据库连接信息。
 
-调试日志仍必须经过 header/field allowlist 和长度截断。
+### 19.2 指标
 
-### 19.3 Micrometer 指标
+Engine：
 
-建议 meter 名：
+1. `gateway.requests`：Group/Route/Method/Status/Outcome。
+2. `gateway.request.duration`。
+3. `gateway.upstream.duration`。
+4. `gateway.inflight`。
+5. `gateway.rate_limited`。
+6. `gateway.circuit_breaker.state`。
+7. `gateway.snapshot.prepared.version` 和 `gateway.snapshot.serving.version`。
+8. `gateway.snapshot.apply.duration`。
+9. `gateway.snapshot.apply.failures`。
+10. `gateway.node.heartbeat.failures`。
+11. `gateway.invocation.events.enqueued`。
+12. `gateway.invocation.events.sent`。
+13. `gateway.invocation.events.failed`。
+14. `gateway.invocation.events.dropped`。
+15. `gateway.invocation.events.queue.depth`。
+16. `gateway.invocation.events.spool.bytes`。
+17. `gateway.invocation.events.send.duration`。
 
-| Meter | 类型 | 主要 tags |
-|---|---|---|
-| `egon.gateway.requests` | Counter | routeId, method, outcome, status |
-| `egon.gateway.request.duration` | Timer | routeId, outcome |
-| `egon.gateway.queue.duration` | Timer | routeId |
-| `egon.gateway.upstream.duration` | Timer | routeId, invoker, outcome |
-| `egon.gateway.inflight` | Gauge | scope, routeId |
-| `egon.gateway.rejected` | Counter | reason, routeId |
-| `egon.gateway.timeouts` | Counter | routeId, phase |
-| `egon.gateway.auth` | Counter | routeId, outcome |
-| `egon.gateway.routes` | Gauge | state |
-| `egon.gateway.snapshot.version` | Gauge | 无动态 tag |
-| `egon.gateway.registry.connected` | Gauge | registry |
-| `egon.gateway.executor.active` | Gauge | executor |
-| `egon.gateway.executor.queued` | Gauge | executor |
+Admin：
 
-标签限制：
+1. 注册批次成功/失败。
+2. 发布任务状态和耗时。
+3. Node 数量和状态。
+4. 版本落后节点数。
+5. Nginx Revision 成功/失败。
+6. Redis 和 PostgreSQL Client 指标。
 
-1. routeId 来自受控配置。
-2. 不使用 raw path。
-3. 不使用 interface/method 全名作为默认高基数 tag。
-4. 不使用 subject、tenantId、traceId、requestId 或异常 message。
-5. HTTP status 使用有限集合。
+Route ID 可能较多，必须评估标签基数；禁止把原始 Path、Node IP、Exception Message 直接作为指标标签。
 
-### 19.4 管理端口
+### 19.3 Trace
 
-默认：
+1. 接受标准 W3C `traceparent`。
+2. 缺失时生成。
+3. 转发到 HTTP 上游。
+4. Dubbo Attachment 传递 Trace ID。
+5. 响应返回 `X-Trace-Id`。
 
-```text
-data port:       7397
-management port: 7398
-```
+### 19.4 健康
 
-管理端口只提供 live/ready，不提供路由表、配置、token、线程 dump 或管理写操作。
+Engine：
 
-Prometheus scrape、Actuator 和具体监控后端由宿主应用选择；Gateway 只注册 Micrometer meter。
-
-## 20. 安全设计
-
-### 20.1 信任边界
-
-| 输入 | 信任级别 |
+| Probe | 条件 |
 |---|---|
-| HTTP 请求 | 不可信 |
-| JWT claims | 验签且校验 issuer/audience 后有限可信 |
-| 本地路由 YAML | 运维可信，但仍严格校验 |
-| 程序化 RouteContributor | 应用代码可信 |
-| Nacos provider metadata | 内网中间件可信，仍按 Dubbo 契约限制 |
-| Dubbo 返回值 | 不可信数据，只做有界 JSON 序列化 |
+| startup | 本地配置加载且 HTTP Server 已启动 |
+| liveness | EventLoop、关键线程和进程正常 |
+| readiness | Node READY 且有可用 Snapshot |
 
-### 20.2 Generic Invocation 安全
+Kafka 不可用时 Invocation Reporting 健康状态为 `DEGRADED`，但不直接把 Engine readiness 置为 false；只有队列/spool 持续溢出时触发高优先级告警。接口调用数据链和请求服务链明确解耦。
 
-1. interface、method、javaType 只能来自启动期可信路由。
-2. 外部请求不能提交或覆盖这些字段。
-3. Gateway 不暴露任意 GenericService 调试端点。
-4. 不启用 Java 原生序列化。
-5. 使用 Dubbo 当前安全默认和 class allowlist。
-6. 不反序列化远程异常为任意业务类。
-7. 不根据请求中的 `class/@type` 动态加载类型。
-8. 路由数量、参数数量、类型名称长度和嵌套 JSON 深度均受限。
-9. Nacos 启用认证并部署在可信内网。
+Admin：
 
-### 20.3 网络与代理
+| Probe | 条件 |
+|---|---|
+| startup | Flyway 完成且应用启动 |
+| liveness | 进程和任务调度器正常 |
+| readiness | PostgreSQL 可用；Redis 故障可按策略 DEGRADED |
 
-1. 生产 TLS 在外部代理终止。
-2. Gateway 与 Nacos、JWK、Provider 使用受控内网。
-3. 默认 remoteAddress 使用 socket peer。
-4. 只有配置了 trusted proxy CIDR 时才读取 `X-Forwarded-For`。
-5. trusted proxy 配置为空时忽略所有 forwarded client IP header。
-6. Host 路由不依赖 X-Forwarded-Host。
-7. 管理端口通过网络策略限制访问。
+## 20. 安全边界
 
-### 20.4 Secret
+本期不做业务鉴权，但仍必须实现基础安全：
 
-1. Nacos password、JWK client credential 等不得写在示例明文配置。
-2. 使用环境变量、Kubernetes Secret 或宿主外部配置注入。
-3. properties `toString()` 和启动日志必须脱敏。
-4. 配置错误不得把 secret 打到异常中。
-5. Gateway 不持久化 token 或 secret。
+1. Admin 和内部 API 只监听管理地址或独立端口。
+2. Actuator 只暴露必要的 health、info、prometheus。
+3. 禁止开放 SCG Actuator 路由写接口。
+4. CORS 使用 allowlist。
+5. 所有配置输入校验长度和字符集。
+6. Nginx upstream host、port、groupId 禁止注入换行或指令。
+7. Nginx 重载不使用 Docker Socket，不执行任意命令。
+8. 快照 checksum 防止传输损坏，但不等同身份认证。
+9. Registry、数据库、Redis 凭据来自外部 Secret，不写入快照和日志。
+10. HTTP 上游 URI 必须符合 Admin 配置的协议和网络策略，防止任意 SSRF。
+11. Header 转发使用 allowlist/denylist。
+12. Jackson 不启用不受控多态反序列化。
+13. `X-Egon-Gateway-Route-Version` 是内部控制头，Nginx 必须覆盖，Engine 必须按可信代理网段校验，外部客户端不能自行选版本。
 
-## 21. 配置契约
+风险声明：因为 Admin 没有账号/RBAC，若管理网络边界失效，攻击者可能修改路由或触发发布。因此“Admin 不可公网访问”是本期上线硬前置条件，不是建议项。
 
-### 21.1 属性前缀
+## 21. 配置设计
 
-```text
-egon.cola.component.gateway
-```
-
-单纯引入 starter 时：
-
-```text
-enabled=false
-```
-
-只有显式开启才创建 Netty/Dubbo runtime。
-
-Gateway 配置绑定必须严格：
-
-- unknown field 失败；
-- invalid field 失败；
-- route 枚举拼写错误失败；
-- duration/data-size 单位缺失按明确规则处理；
-- 不使用 `ignoreInvalidFields=true` 掩盖错误。
-
-### 21.2 完整示例
+### 21.1 Engine
 
 ```yaml
+server:
+  port: 9001
+
+management:
+  server:
+    port: 9101
+
 egon:
-  cola:
-    component:
-      gateway:
+  gateway:
+    engine:
+      node-id-file: /var/lib/egon-gateway/node-id
+      group-id: "10001"
+      environment: prod
+      advertised-host: 10.0.1.15
+      advertised-port: 9001
+      data-dir: /var/lib/egon-gateway
+      admin:
+        base-url: http://gateway-admin:8080
+        connect-timeout: 2s
+        read-timeout: 5s
+      heartbeat:
+        interval: 5s
+        lease: 20s
+      reconcile:
+        interval: 30s
+      route-versions:
+        trusted-proxy-cidrs:
+          - 10.0.0.0/8
+        retained-versions: 3
+        retire-grace-period: 2m
+      startup:
+        allow-lkg: true
+      limits:
+        max-request-body: 10MiB
+        max-response-body: 10MiB
+        global-inflight: 10000
+      feedback:
+        mode: NODE_ID
+      invocation-reporting:
         enabled: true
-
-        server:
-          bind-address: 0.0.0.0
-          port: 7397
-          boss-threads: 1
-          worker-threads: 0
-          max-initial-line-size: 8KB
-          max-header-size: 16KB
-          max-header-count: 100
-          max-query-parameters: 100
-          max-body-size: 1MB
-          max-response-size: 4MB
-          idle-timeout: 60s
-          drain-timeout: 30s
-
-        management:
+        topic: egon.gateway.invocation.v1
+        partition-key-shards: 16
+        queue-capacity: 10000
+        overflow-policy: DROP_OLDEST
+        spool:
           enabled: true
-          bind-address: 0.0.0.0
-          port: 7398
-
-        execution:
-          global-max-concurrent: 1024
-          core-threads: 8
-          max-threads: 32
-          queue-capacity: 512
-          keep-alive: 60s
-
-        cors:
-          enabled: false
-          allowed-origins: []
-          allowed-headers:
-            - Authorization
-            - Content-Type
-            - X-Trace-Id
-          allow-credentials: false
-          max-age: 30m
-
-        jwt:
-          issuer: https://identity.example.com
-          audiences:
-            - egon-api
-          allowed-algorithms:
-            - RS256
-          jwk-set-uri: https://identity.example.com/.well-known/jwks.json
-          public-key-location:
-          clock-skew: 60s
-          connect-timeout: 1s
-          read-timeout: 1s
-          cache-ttl: 10m
-
-        dubbo:
-          application-name: egon-gateway
-          registries:
-            default:
-              address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:8848}
-              namespace: ${NACOS_NAMESPACE:dev}
-              group: ${NACOS_REGISTRY_GROUP:DEFAULT_GROUP}
-              username: ${NACOS_USERNAME:}
-              password: ${NACOS_PASSWORD:}
-              use-as-config-center: false
-              use-as-metadata-report: false
-
-        routes:
-          - id: order.query
-            enabled: true
-            hosts:
-              - api.example.com
-            method: GET
-            path: /api/orders/query
-            request:
-              parameters:
-                - name: orderId
-                  java-type: java.lang.Long
-                  source: QUERY
-                  key: orderId
-                  required: true
-            security:
-              authentication: REQUIRED
-              claim-attachments:
-                tenant_id: gateway.tenantId
-            protection:
-              timeout: 2s
-              max-concurrent: 200
-            filters: []
-            upstream:
-              type: DUBBO
-              registry: default
-              interface-name: com.example.order.OrderFacade
-              method-name: query
-              group:
-              version: 1.0.0
-              protocol: dubbo
-
-          - id: order.create
-            enabled: true
-            hosts:
-              - "*"
-            method: POST
-            path: /api/orders
-            request:
-              content-type: application/json
-              max-body-size: 256KB
-              parameters:
-                - name: command
-                  java-type: com.example.order.CreateOrderCommand
-                  source: BODY
-                  required: true
-                - name: traceId
-                  java-type: java.lang.String
-                  source: CONTEXT
-                  key: traceId
-                  required: true
-            security:
-              authentication: REQUIRED
-              claim-attachments: {}
-            protection:
-              timeout: 3s
-              max-concurrent: 100
-            filters:
-              - name: tenant-header
-                config:
-                  required: "true"
-            upstream:
-              type: DUBBO
-              registry: default
-              interface-name: com.example.order.OrderFacade
-              method-name: create
-              group:
-              version: 1.0.0
-              protocol: dubbo
+          directory: /var/lib/egon-gateway/invocation-events
+          max-size: 2GiB
+        kafka:
+          bootstrap-servers:
+            - kafka-1:9092
+            - kafka-2:9092
+            - kafka-3:9092
+          client-id-prefix: gateway-engine
+          delivery-timeout: 30s
 ```
 
-### 21.3 启动校验清单
+### 21.2 Admin
 
-必须检查：
+```yaml
+server:
+  port: 8080
 
-1. data/management port 不冲突。
-2. thread、queue、size、timeout、concurrency 均在合法范围。
-3. 至少一条 enabled route。
-4. route id 唯一。
-5. match key 唯一。
-6. host/path/method 合法。
-7. 管理端口路径不被业务占用。
-8. POST/GET 与 body binding 兼容。
-9. 参数名、来源、key/pointer/type 合法。
-10. required/default 组合不矛盾。
-11. JWT required 路由与全局 JWT 配置一致。
-12. issuer、audience、algorithm 和 key source 完整。
-13. Registry 引用存在。
-14. upstream type/protocol/interface/method 合法。
-15. timeout 和 route maxConcurrent 合法。
-16. Filter Factory 存在且配置通过验证。
-17. claim attachment 不冲突、不含禁用 header/token 名称。
-18. route body 上限不大于 global 上限。
-19. CORS origin/credential 组合安全。
+egon:
+  gateway:
+    admin:
+      environment: prod
+      node:
+        default-heartbeat-interval: 5s
+        default-lease: 20s
+      publish:
+        worker-count: 2
+        ack-timeout: 30s
+        max-attempts: 10
+      nginx:
+        enabled: true
+        driver: RELOADER_API
+        config-directory: /var/lib/egon-gateway/nginx
+        debounce: 2s
+        reconcile-interval: 30s
+```
 
-## 22. 测试与验证策略
+### 21.3 配置原则
 
-### 22.1 Core 单元测试
+1. 使用 `@ConfigurationProperties` 和启动校验。
+2. 地址、端口、Duration、DataSize 有明确范围。
+3. 不把 Secret 放入普通配置示例。
+4. Group 路由策略由 Snapshot 下发，Engine 本地配置只放运行时和硬上限。
+5. 本地配置不能覆盖 Admin Active Route，避免节点漂移。
+6. Invocation Reporting 属于 Engine 全局运行能力，不由 Starter 配置。
+7. 生产启用 Invocation Reporting 时 Topic 必须已存在；Topic 缺失使 Producer 健康状态降级，但不阻止已发布路由处理请求。
 
-| 范围 | 必测内容 |
+## 22. 打包与部署
+
+### 22.1 Engine 镜像
+
+1. 多阶段构建。
+2. JRE 21 精简运行层。
+3. 非 root 用户。
+4. `/var/lib/egon-gateway` 持久卷保存 node ID 和 LKG。
+5. 暴露 data port 和 management port。
+6. 使用 JVM 容器感知参数。
+7. SIGTERM 进入优雅关闭。
+
+### 22.2 Admin 镜像
+
+1. Maven 构建 Backend。
+2. Node 构建 Vue 静态资源。
+3. 静态资源打包进入 Admin JAR，或由同一发布产物独立提供；首期推荐随 JAR 打包，减少版本错配。
+4. 非 root 用户。
+5. 不内置 PostgreSQL、Redis 或 Nginx。
+6. Nginx 生成目录使用受控共享卷。
+
+### 22.3 测试 Compose
+
+至少包含：
+
+```text
+postgres
+redis
+kafka
+nacos
+zookeeper
+gateway-admin
+gateway-engine-1
+gateway-engine-2
+http-provider
+dubbo-provider
+nginx
+nginx-reloader
+```
+
+ZooKeeper 用于兼容测试，Nacos 是默认 Dubbo 注册中心。
+
+### 22.4 生产部署最小拓扑
+
+1. PostgreSQL 高可用由基础设施负责。
+2. Redis 采用受支持的高可用模式。
+3. Kafka Cluster 的分区、副本、ISR 和磁盘保留由部署平台保障。
+4. Admin 至少两实例时，发布 Worker 通过数据库任务锁协调。
+5. 每个生产 Group 至少两个 Engine。
+6. Nginx 至少两个实例时，每个实例分别 ACK Nginx Revision，Admin 展示部分发布。
+7. 本期不设计跨区域一致性；一个 environment 对应一个控制面。
+
+## 23. Gateway Test 设计
+
+### 23.1 测试目录
+
+```text
+egon-cola-component-gateway-test/
+├── src/test/java/.../unit/
+├── src/test/java/.../integration/
+├── src/test/java/.../e2e/
+├── src/test/resources/fixtures/
+├── compose/
+├── providers/http-provider/
+├── providers/dubbo-provider/
+├── clients/gateway-test-client/
+└── consumers/kafka-invocation-consumer/
+```
+
+### 23.2 单元测试
+
+Core：
+
+1. Path 规范化。
+2. Route 冲突。
+3. 参数来源和转换。
+4. 多参数顺序。
+5. JSON Body/Field。
+6. HTTP Upstream 编译。
+7. Dubbo Reference Key。
+8. 错误映射。
+9. Snapshot checksum。
+10. Nginx 配置渲染和转义。
+11. Invocation Event 字段、脱敏和 JSON Schema。
+12. 内部 Route Version Header 可信代理校验和版本选择。
+
+Admin：
+
+1. Group/Node 状态迁移。
+2. 批次幂等。
+3. Group-System 物化。
+4. 发布版本单调性。
+5. 回滚产生新版本。
+6. Durable Task 重试。
+7. ACK 门槛。
+
+Starter：
+
+1. AOP Proxy 和接口解析。
+2. 多接口显式选择。
+3. 重载方法。
+4. 指纹稳定。
+5. enabled 开关。
+6. Starter 依赖树和运行行为中不存在 Kafka Producer 或调用拦截器。
+
+### 23.3 集成测试
+
+1. PostgreSQL migration。
+2. Admin Repository 约束。
+3. Redis desired pointer + Pub/Sub。
+4. Engine 拉取与 ACK。
+5. 本地 LKG 原子写入和损坏检测。
+6. SCG Versioned Route Repository 同时保留旧 Active 和新 Prepared Route。
+7. Nginx 内部版本头选择对应 HTTP 转发 Route。
+8. Dubbo + Nacos 泛化调用。
+9. Dubbo + ZooKeeper 兼容。
+10. Resilience4j 熔断。
+11. Redis 限流。
+12. Nginx Renderer + `nginx -t`。
+13. Kafka Producer 的 key、header、序列化、回调和重试。
+14. Kafka spool 重放、eventId 稳定和溢出策略。
+
+### 23.4 端到端测试
+
+#### E2E-001 Starter 接口定义到调用
+
+1. 启动 Dubbo Provider + Starter。
+2. Starter 只上报下游接口定义。
+3. Admin UI/API 可见 Draft。
+4. 分配 System 到 Group。
+5. 发布。
+6. 双 Engine PREPARED/ACTIVATED ACK。
+7. Nginx 更新。
+8. 经 `/10001/...` 调用成功。
+
+#### E2E-002 HTTP 上游
+
+1. 手工创建 HTTP System。
+2. 发布 GET/POST/PUT/DELETE Route。
+3. 验证 Path、Query、Header、Body 和状态码。
+
+#### E2E-003 动态刷新
+
+1. 版本 1 路由返回 A。
+2. 修改 Draft 并发布版本 2。
+3. Engine 不重启，先 PREPARE 版本 2，同时 Nginx 仍携带版本 1 Header，返回继续为 A。
+4. 节点满足 PREPARED 门槛后，Nginx Revision 切换版本头到 2。
+5. 两节点都返回 B。
+6. 在任何采样窗口内不允许出现“Route 不存在”的半状态；多 Nginx 切流期间每个请求必须按其显式版本完整处理。
+
+#### E2E-004 Pub/Sub 消息丢失
+
+1. 暂停一个 Engine 的 Redis 订阅。
+2. 发布新版本。
+3. 恢复订阅但不重放旧消息。
+4. Engine 通过周期对账发现并应用新版本。
+
+#### E2E-005 Prepare 失败
+
+1. 发布一个当前 Engine 不支持的故障 Fixture。
+2. Engine REJECTED。
+3. 旧版本继续服务。
+4. REJECTED 节点可继续服务旧 Active Version，但不能进入新版本 upstream。
+5. 如果其他节点达到门槛并切流，失败节点从新 Nginx Revision 移除。
+6. Admin 展示 PARTIAL/FAILED 和原因。
+
+#### E2E-006 回滚
+
+1. 发布版本 1、2。
+2. 选择版本 1 内容回滚。
+3. Admin 生成版本 3。
+4. Engine 预备版本 3，Nginx 切流后激活。
+5. 行为等同版本 1，版本号不倒退。
+
+#### E2E-007 动态扩容
+
+1. Group 已有一个 READY Node。
+2. 启动第二 Node。
+3. 第二 Node 注册、拉取、ACK。
+4. Nginx Revision 更新。
+5. `X-Gateway-Node=HOST_PORT` 显示请求分发到两个节点。
+
+#### E2E-008 动态下线
+
+1. 对一个 Node 执行 Drain。
+2. Nginx 移除该 Node。
+3. 在途请求完成。
+4. 后续请求只到剩余 Node。
+
+#### E2E-009 租约过期
+
+1. 强制终止 Engine，不发送注销。
+2. Lease 到期。
+3. Admin 标记 OFFLINE。
+4. Nginx 自动移除。
+
+#### E2E-010 Nginx 发布失败
+
+1. 注入非法目标配置或 reloader 故障。
+2. 新 Revision FAILED。
+3. 旧配置继续 ACTIVE。
+4. 恢复后对账成功。
+
+#### E2E-011 Admin/Redis 故障
+
+1. Engine 已 READY。
+2. 停止 Admin 和 Redis。
+3. 已发布 Route 继续服务。
+4. 重启一个 Engine，验证 LKG 降级启动策略。
+
+#### E2E-012 优雅关闭
+
+1. 发送长请求。
+2. SIGTERM Engine。
+3. Node 先从 Nginx 移除。
+4. 在途请求完成。
+5. Kafka 队列在限定时间内刷新，未发送 spool 保留。
+6. 资源释放，进程退出。
+
+#### E2E-013 Engine 调用事件
+
+1. 通过 Nginx 分别触发 HTTP 成功、Dubbo 成功、参数失败、超时、限流和熔断。
+2. Kafka Consumer Fixture 收到对应 Invocation Event。
+3. 事件由处理请求的具体 Engine Node 产生。
+4. `groupId/routeId/snapshotVersion/systemId/interfaceId/methodName/outcome/duration` 正确。
+5. Kafka key 为 `environment|groupId|routeId|shard`，shard 算法和范围正确。
+6. 消息不包含 Body、Authorization、Cookie、原始 Query 或异常堆栈。
+
+#### E2E-014 Kafka 故障与恢复
+
+1. Engine 正常处理请求。
+2. 停止 Kafka。
+3. 接口调用仍按正常上游结果响应，不因事件发送失败返回 5xx。
+4. 事件进入有界队列/spool，Producer 健康变为 DEGRADED。
+5. 恢复 Kafka。
+6. spool 事件按原 eventId 重发。
+7. 验证重复消费可按 eventId 幂等。
+
+#### E2E-015 Starter 职责隔离
+
+1. Provider 引入并启用 Starter。
+2. Admin 收到 Interface Definition Report Batch。
+3. Provider 多次处理本地和网关业务调用。
+4. Starter 不产生 Invocation Event、不连接 Kafka、不发送调用结果到 Admin。
+5. Invocation Event 仅由 Gateway Engine 产生。
+
+### 23.5 前端测试
+
+1. TypeScript typecheck。
+2. ESLint。
+3. Route 编辑器校验。
+4. 发布 Diff 页面。
+5. ACK 状态展示。
+6. Nginx 预览。
+7. CORS 集成。
+8. Production build。
+
+### 23.6 测试隔离
+
+1. 所有容器使用随机或隔离端口。
+2. 测试完成后自动停止。
+3. 不修改开发者本机 Nginx。
+4. 不依赖本机已有 Nacos、ZooKeeper、PostgreSQL、Redis 或 Kafka。
+5. 不在完成任务后自动启动项目；运行验证由测试命令生命周期控制。
+
+## 24. 验收标准
+
+### 24.1 功能验收
+
+| ID | 验收标准 |
 |---|---|
-| route validation | id、host、path、method、duplicate、reserved path |
-| route matcher | exact host、wildcard host、404、405、trailing slash |
-| snapshot | immutable、atomic swap、单请求固定版本、LKG 拒绝 |
-| filter chain | 顺序、短路、异常、异步后置、exactly-once completion |
-| binding | 各 source、多参数顺序、required/default、溢出、JSON Pointer |
-| protection | global/route semaphore、timeout、cancel、exactly-once release |
-| error mapping | 所有 GatewayStatus、未知异常、安全 message |
+| AC-001 | 一个 Group 可运行至少两个 Engine Node |
+| AC-002 | Admin 可管理 Group、Node、System、Interface、Method Route |
+| AC-003 | Starter 能原子上报下游接口定义，重复上报幂等 |
+| AC-004 | Admin 可手工维护不使用 Starter 的 HTTP/Dubbo Route |
+| AC-005 | HTTP GET/POST/PUT/DELETE 均能通过网关调用 |
+| AC-006 | Dubbo Nacos 泛化调用成功，ZooKeeper 兼容测试成功 |
+| AC-007 | 多参数和复杂 Body 映射顺序、类型正确 |
+| AC-008 | Group-System 分配能同步所有 Group Node |
+| AC-009 | Route 发布形成 version/checksum、Redis PREPARE/ACTIVATE 事件、Engine PREPARED/ACTIVATED ACK 闭环 |
+| AC-010 | Pub/Sub 消息丢失可通过对账恢复 |
+| AC-011 | 路由整版预备并通过 Nginx 内部版本头切流，失败时保留旧 Active Version |
+| AC-012 | 历史内容回滚生成新版本 |
+| AC-013 | 新 Node ACK 后自动加入 Nginx |
+| AC-014 | Drain/Lease 过期后自动移出 Nginx |
+| AC-015 | Nginx 配置先 validate 后 reload，失败保留旧版 |
+| AC-016 | `X-Gateway-Node` 能证明多节点负载 |
+| AC-017 | Engine 可用 LKG 降级启动 |
+| AC-018 | Engine 和 Admin 可构建可执行 JAR 与镜像 |
+| AC-019 | Admin UI 可完成核心配置、发布、回滚和状态查看 |
+| AC-020 | Admin 与 Engine CORS 行为符合 allowlist |
+| AC-021 | 鉴权相关测试不存在，文档明确说明无鉴权 |
+| AC-022 | 每个已匹配路由的调用事件只由 Engine 生成并发送到 Kafka |
+| AC-023 | Starter 不包含调用上报、调用拦截或 Kafka Producer |
+| AC-024 | Kafka 故障不改变接口响应，恢复后可重放已进入 spool 的事件 |
+| AC-025 | Invocation Event 符合 v1 Schema 且不携带请求/响应 Body 和敏感字段 |
 
-### 22.2 Starter 单元/切片测试
+### 24.2 质量验收
 
-| 范围 | 必测内容 |
+1. 全模块 Maven 构建通过。
+2. Java 单元和集成测试通过。
+3. 前端 typecheck、lint、unit、build 通过。
+4. Flyway validate 通过。
+5. 端到端测试通过。
+6. Docker/Compose 配置校验通过。
+7. `nginx -t` Fixture 通过。
+8. 依赖树中 Engine 不包含 Servlet Web Server。
+9. BlockHound 或等价测试不发现核心链路 EventLoop 阻塞。
+10. 没有明文 Secret、Docker Socket 或开放的路由写 Actuator。
+11. Kafka Topic Fixture、Invocation Event JSON Schema 和 Consumer Contract 测试通过。
+
+### 24.3 可靠性验收
+
+1. Admin 和 Redis 同时中断时，现有 Engine 继续服务。
+2. 一个 Engine Prepare 失败时，健康节点继续服务，旧 Active Version 不受影响。
+3. Nginx reload 失败时，旧流量配置继续服务。
+4. 发布 Worker 中断后可恢复未完成任务。
+5. Engine 强制终止后，Lease 过期自动摘流。
+6. 优雅关闭不接收新流量并等待在途请求。
+7. Kafka 中断时 Engine 请求链继续服务，队列/spool 有界且溢出可观测。
+8. Kafka 恢复后已持久化待发事件继续发送，重复事件可用 eventId 去重。
+
+## 25. 29 章需求追踪矩阵
+
+| 章 | 需求 ID | 关键实现 | 主要验收 |
+|---|---|---|---|
+| 1 | FR-DP-001～004 | SCG WebFlux、Predicate | HTTP E2E |
+| 2 | FR-DP-006、FR-DP-008 | Dubbo Adapter、GenericService | E2E-001 |
+| 3 | FR-DP-011 | Filter Chain、Executor | Filter 顺序测试 |
+| 4 | FR-DP-005～006 | Upstream Adapter SPI | HTTP/Dubbo 集成 |
+| 5 | FR-DP-007～009 | Parameter Binder | 多来源参数测试 |
+| 6 | FR-DP-011 | GatewayExecutor Facade | Core 单测 |
+| 7 | 无 | 经确认豁免鉴权 | AC-021 |
+| 8 | 无 | 经确认豁免会话鉴权 | AC-021 |
+| 9 | FR-AD-001～015 | Admin 控制面 | Admin API/UI |
+| 10 | FR-CFG-001 | PostgreSQL/Flyway 14 表 | Migration 测试 |
+| 11 | FR-CL-001～007 | Node 注册、租约、状态机 | E2E-007/009 |
+| 12 | FR-AD-003～005 | System/Interface/Method API | 上报/手工 CRUD |
+| 13 | FR-CL-001、FR-CFG-006 | Engine Admin Client | 启动注册测试 |
+| 14 | FR-AD-007～009 | Snapshot Aggregator | Preview/Diff |
+| 15 | FR-CFG-006～010 | Pull/Compile/Prepare/Activate/ACK | E2E-003/005 |
+| 16 | FR-OPS-004 | 类型化配置 | Configuration 测试 |
+| 17 | FR-DP-015、FR-CFG-008 | Versioned Route Repository + Header 选版 | 原子刷新测试 |
+| 18 | FR-OPS-004～008 | Lifecycle/Error/Drain | E2E-012 |
+| 19 | FR-OPS-001～003 | JAR/Image/Compose | 构建验收 |
+| 20 | FR-ST-001～005、FR-ST-010 | 下游接口定义注解和 Scanner | Starter 单测 |
+| 21 | FR-ST-005～009 | Atomic Interface Definition Report Batch | E2E-001 |
+| 22 | FR-CFG-004～012 | Redis Event + Reconcile + LKG | E2E-004/011 |
+| 23 | FR-AD-015 | Vue 3 Admin UI | 前端测试 |
+| 24 | FR-AD-015、FR-DP-011 | SCG/Admin CORS | CORS 集成 |
+| 25 | FR-LB-001～004、FR-LB-012 | Group upstream/path strip/route version header | Nginx Fixture |
+| 26 | FR-LB-005～010 | Revision/validate/reload/rollback | E2E-010 |
+| 27 | FR-CL-005～010、FR-LB-005 | Node 事件驱动对账 | E2E-007～009 |
+| 28 | DEC-005～008 | 六模块聚合工程 | Reactor 构建 |
+| 29 | FR-AD-006、FR-ST-001、FR-DP-014、FR-EVT-001～010 | 算力关联、接口定义上报开关、节点反馈头、Engine Kafka 调用事件 | E2E-007/013～015 |
+
+任何后续实施计划都必须以该矩阵为完成清单，不能只以“主链路能调用”为完成标准。
+
+## 26. 实施分段建议
+
+本节只定义实现依赖顺序，不代表已授权开始实现。
+
+### 阶段 1：工程骨架与 Contract
+
+1. Parent 和六模块。
+2. Spring Cloud BOM。
+3. Contract DTO、枚举、Schema。
+4. 基础构建和依赖约束。
+
+完成条件：全 Reactor 空骨架构建、依赖边界测试通过。
+
+### 阶段 2：Admin 数据和基础管理
+
+1. Flyway 初始迁移。
+2. Group/Node/System/Interface/Method Repository。
+3. Admin CRUD API。
+4. 基础 Vue 页面。
+
+完成条件：手工维护完整 Draft。
+
+### 阶段 3：Starter 下游接口定义上报
+
+1. 注解和 Scanner。
+2. 批次指纹。
+3. Admin 原子 upsert。
+4. Batch Diff UI。
+
+完成条件：Provider 接口定义上报 Draft 闭环，且 Starter 不包含调用上报能力。
+
+### 阶段 4：Engine HTTP 数据面
+
+1. SCG Engine。
+2. Snapshot 编译。
+3. HTTP 上游。
+4. 参数、Filter、错误、指标。
+
+完成条件：本地测试快照可 HTTP 转发。
+
+### 阶段 5：Dubbo 数据面
+
+1. Dubbo Adapter。
+2. GenericService 参数。
+3. Nacos/ZooKeeper。
+4. Reference 生命周期。
+
+完成条件：Dubbo E2E。
+
+### 阶段 6：Engine Kafka 调用事件
+
+1. Invocation Event Contract 和 JSON Schema。
+2. 请求完成采集 Filter。
+3. 有界队列、spool 和 Kafka Producer。
+4. Kafka Consumer Fixture。
+5. Broker 故障、恢复、重放和脱敏测试。
+
+完成条件：E2E-013～015 通过，Kafka 故障不影响接口响应。
+
+### 阶段 7：版本发布与动态刷新
+
+1. Snapshot、Publish Task。
+2. Redis desired pointer/event。
+3. Engine Prepare/Activate/Retire、ACK 和 Reconcile。
+4. Versioned Route Repository、内部版本头、LKG 和回滚。
+
+完成条件：动态发布和故障恢复 E2E。
+
+### 阶段 8：集群与 Nginx
+
+1. Node Lease/状态机。
+2. Group-System 物化。
+3. Nginx Renderer/Validator/Publisher。
+4. 扩缩、Drain、下线。
+
+完成条件：双 Engine 动态负载 E2E。
+
+### 阶段 9：治理、UI 和完整验收
+
+1. 限流、并发、熔断、超时。
+2. 完整 Admin UI。
+3. 镜像和 Compose。
+4. 29 章追踪测试。
+5. 性能和故障注入。
+
+完成条件：第 24、25 节全部验收通过。
+
+## 27. 技术风险与控制
+
+| 风险 | 影响 | 控制方案 |
+|---|---|---|
+| Spring Cloud 2025.0.x 生命周期尾部 | 后续安全维护压力 | 当前保持 Boot 3.5 对齐；全仓 Boot 4 时专项升级 SCG 5 |
+| Dubbo 泛化复杂 DTO | 类型转换不兼容 | 发布前类型校验、Fixture、禁止客户端指定任意 class |
+| 阻塞 Dubbo 调用 | EventLoop 卡死 | 异步 API 优先，阻塞调用专用有界 Scheduler |
+| Pub/Sub 丢消息 | 节点版本落后 | desired pointer + 周期对账 |
+| Group 节点版本不一致 | 随机行为 | 新版本先 PREPARED，Nginx 固化版本头和目标节点，旧版本延迟 Retire |
+| Nginx reload 失败 | 流量中断 | validate、原子文件、旧版保留、回滚 |
+| Admin 无鉴权 | 控制面被篡改 | 受信任管理网络是硬前置，禁止公网 |
+| Starter 接口定义上报覆盖人工配置 | 配置漂移 | Source 标记、Draft、Diff、冲突等待人工处理 |
+| Kafka Broker 中断 | 调用事件积压或丢弃 | 请求链解耦、有界队列、spool、恢复重放和告警 |
+| 调用事件重复 | 消费统计重复 | 稳定 eventId、at-least-once 契约、消费方幂等 |
+| 调用事件携带敏感数据 | 数据泄漏 | 固定 Schema、禁止 Body/凭据、Contract 脱敏测试 |
+| 路由量大时刷新抖动 | 延迟/内存尖峰 | 全量离线编译、资源复用、原子引用、性能基准 |
+| Engine/SCG 内部扩展 API 变化 | 升级困难 | 封装在 engine adapter 包、契约测试 |
+| 指标标签高基数 | 监控系统压力 | Route ID 受控，禁止原始 Path/IP/异常文本标签 |
+| Nginx 命令执行扩大权限 | 主机风险 | 固定路径/命令、reloader sidecar、无 Docker Socket |
+
+## 28. 审核重点与最终边界
+
+本次建议按以下顺序审核：
+
+1. 第 1～5 节：范围是否已正确恢复为完整平台，鉴权是否是唯一豁免。
+2. 第 6～7 节：控制面、数据面、Group 集群和六模块结构。
+3. 第 8～11 节：功能需求、领域不变量和数据库模型。
+4. 第 12～14 节：Admin、Starter 接口定义上报、版本发布和 Redis 通知闭环。
+5. 第 15～17 节：Spring Cloud Gateway、HTTP/Dubbo、Engine Kafka 调用事件、节点与 Nginx。
+6. 第 18～23 节：治理、观测、部署和测试。
+7. 第 24～25 节：验收标准和 29 章逐项追踪。
+
+本 Spec 当前采用的推荐默认值：
+
+| 项目 | 推荐结论 |
 |---|---|
-| properties | strict binding、unknown field、默认值、边界值 |
-| auto-configuration | disabled no-op、enabled beans、用户 Bean 覆盖 |
-| JWT | missing、invalid、expired、issuer、audience、RS256、unknown kid |
-| JWK | cache、刷新、服务不可用、并发 single-flight |
-| ResultDto | JSON 字段、traceId、固定错误 message |
-| Micrometer | meter 名和低基数 tags |
-| MDC | 异步传播和请求后清理 |
+| 数据面 | Spring Cloud Gateway WebFlux |
+| 控制面数据库 | PostgreSQL |
+| 动态通知 | Redis Pub/Sub + 版本拉取 + 周期对账 |
+| HTTP 上游 | SCG Netty Routing |
+| RPC 上游 | Dubbo 3 GenericService |
+| Dubbo 注册中心 | Nacos 强制验收，ZooKeeper 兼容 |
+| 管理前端 | Vue 3 + TypeScript + Vite + Element Plus |
+| 对外负载 | Nginx Group upstream |
+| Nginx 动态发布 | LOCAL_PROCESS + RELOADER_API，不使用 Docker Socket |
+| 路由发布粒度 | Group 全量不可变 Snapshot，先 Prepare 再由 Nginx 版本头 Activate |
+| 节点接流条件 | READY + Lease 有效 + PREPARED Nginx 目标版本 |
+| Starter 默认 | disabled，显式开启 |
+| Starter 职责 | 只上报下游接口定义，不上报调用 |
+| 调用事件 | Engine 异步发送 `egon.gateway.invocation.v1` Kafka Topic |
+| 调用事件可靠性 | 请求链解耦、有界队列、默认本地 spool；写入 spool 后按 at-least-once 发送 |
+| 鉴权 | 本期完全不实现 |
 
-### 22.3 Netty 集成测试
+审核通过前，仍然保持：
 
-使用随机端口、测试结束后完全关闭：
+- 不创建 Gateway 模块；
+- 不修改任何 Maven POM、BOM 或生产代码；
+- 不新增 Flyway 文件；
+- 不引入 Spring Cloud、Dubbo、Redis、Kafka、PostgreSQL 或前端依赖；
+- 不构建或启动 Gateway 服务；
+- 不进入实施计划和编码。
 
-1. GET/query 正常。
-2. POST/JSON 正常。
-3. keep-alive。
-4. 请求体、请求头、URI、query 数量超限。
-5. GET body 拒绝。
-6. unsupported content type。
-7. request smuggling header 组合拒绝。
-8. path 规范化和编码攻击。
-9. 404/405。
-10. executor 满和 global concurrency 满。
-11. client disconnect。
-12. response size 超限。
-13. data/management 端口隔离。
-
-### 22.4 Dubbo 集成测试
-
-普通测试使用进程内或测试专用 Provider，至少覆盖：
-
-1. 零参数。
-2. 单标量。
-3. 多标量。
-4. 复杂 POJO Map。
-5. List/数组。
-6. group/version。
-7. attachments。
-8. 正常 ResultDto。
-9. null result。
-10. GenericException。
-11. 无 Provider。
-12. timeout。
-13. async Future。
-14. Reference cache。
-15. shutdown destroy。
-
-### 22.5 Nacos 真实验收
-
-增加独立 Maven profile：
-
-```text
-gateway-nacos-it
-```
-
-验收要求：
-
-1. 使用一次性 Nacos 2.x 测试环境或 Testcontainers。
-2. 启动传统 `dubbo` 协议 Provider。
-3. Provider 注册到 Nacos。
-4. Gateway 通过 Registry 发现并泛化调用。
-5. Provider 下线后路由返回 503。
-6. Provider 恢复后无需重启 Gateway 即可恢复。
-7. Gateway 关闭后 consumer runtime 和连接释放。
-8. 验证 Nacos 不被用作 Gateway RouteProvider。
-
-该 profile 属于完整交付验证。若执行环境没有 Docker/Nacos，必须明确报告未验证边界，不能用普通单元测试冒充。
-
-### 22.6 Triple 兼容性负向测试
-
-增加 Triple-only Provider，验证：
-
-1. 路由配置 `protocol=tri` 在编译期失败；
-2. README 明确解释 V1 不支持；
-3. 不静默回退到不可预测 GenericService 行为。
-
-### 22.7 非阻塞与容量测试
-
-1. 测试 UpstreamInvoker 记录当前线程，断言不以 Netty EventLoop 前缀运行。
-2. JWK remote fetch 同样不能运行在 EventLoop。
-3. 人工阻塞 Provider 时，EventLoop 仍能处理健康请求和容量拒绝。
-4. executor queue 不超过配置值。
-5. global/route inflight 不超过配置值。
-6. timeout 后迟到 Future 不写第二次响应。
-7. ByteBuf leak detector 在测试中使用严格级别。
-
-### 22.8 Benchmark
-
-V1 不设未经测量的硬 QPS 指标，但必须提供可复现报告：
-
-1. 在 `gateway-test` 增加 opt-in `gateway-benchmark` profile。
-2. 固定 JDK、CPU、内存、payload、并发、warmup、measurement 和 Provider 延迟。
-3. 分别测：
-   - route matcher；
-   - filter chain；
-   - JSON binding；
-   - HTTP -> in-memory invoker；
-   - HTTP -> local Dubbo Provider。
-4. 输出 throughput、p50、p95、p99、error rate、GC 和线程/queue 峰值。
-5. 初次结果作为基线，不因没有预设 QPS 而阻塞功能验收。
-6. 后续版本相同环境下出现超过 10% 的显著回退时必须分析。
-
-### 22.9 目标验证命令
-
-实现完成后的最小命令形态：
-
-```bash
-./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-gateway \
-  -am clean test
-```
-
-完整 component reactor：
-
-```bash
-./mvnw -B -ntp -f egon-cola-components/pom.xml clean test
-```
-
-Nacos 集成：
-
-```bash
-./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test \
-  -am verify -Pgateway-nacos-it
-```
-
-静态检查：
-
-```bash
-git diff --check
-```
-
-验证过程可以在测试生命周期内启动/关闭随机端口服务，但不得在任务结束后留下运行中的 Gateway、Nacos 或 Provider 进程。
-
-## 23. 验收标准
-
-### 23.1 工程与发布
-
-- AC-001：Gateway 父模块加入 components reactor。
-- AC-002：存在 core、starter、engine、test 四个模块。
-- AC-003：BOM 只新增 gateway starter。
-- AC-004：starter 使用 AutoConfiguration imports，不依赖 component scan。
-- AC-005：只引入 starter 且 `enabled=false` 时不创建端口、线程或 Dubbo runtime。
-- AC-006：engine 可打包为可执行 JAR，但验证后不保持运行。
-
-### 23.2 路由和 HTTP
-
-- AC-007：YAML 和 Contributor 使用同一 RouteDefinition/Compiler。
-- AC-008：重复 id 或 match key 使启动失败。
-- AC-009：精确 host 优先于 wildcard host。
-- AC-010：path 存在而 method 不支持返回 405 和 Allow。
-- AC-011：不存在路由返回 404 ResultDto。
-- AC-012：GET/POST/query/JSON 按本文契约工作。
-- AC-013：非法 URI、走私 header 和超限请求在调用上游前被拒绝。
-
-### 23.3 参数与 Dubbo
-
-- AC-014：零、一、多参数严格按配置顺序调用。
-- AC-015：复杂 body 不需要 Provider DTO JAR。
-- AC-016：外部请求不能覆盖 interface/method/javaType/class metadata。
-- AC-017：GenericService Reference 按 key 复用。
-- AC-018：Nacos 2.x 环境可发现传统 dubbo Provider。
-- AC-019：Provider 下线/恢复不需要重启 Gateway。
-- AC-020：Triple-only 被明确拒绝，不声称支持。
-- AC-021：retries 恒为 0。
-
-### 23.4 安全
-
-- AC-022：REQUIRED 路由缺 token 返回 401。
-- AC-023：RS256 签名、issuer、audience、exp 全部验证。
-- AC-024：HS* 和 none 被拒绝。
-- AC-025：token、cookie、secret、完整 body 不进入普通日志。
-- AC-026：未知异常对外只返回固定 500 错误。
-- AC-027：只传播 allowlist attachment，不传播 Authorization。
-
-### 23.5 稳定性
-
-- AC-028：EventLoop 不执行同步 Dubbo、JWK 拉取或阻塞等待。
-- AC-029：线程、队列、请求体、响应体和并发均有界。
-- AC-030：全局/路由容量超限返回 503。
-- AC-031：deadline 包含排队时间，超时返回 504。
-- AC-032：timeout/cancel/error 均 exactly-once 释放许可。
-- AC-033：Gateway 不自动重试。
-
-### 23.6 可观测性与生命周期
-
-- AC-034：每个响应和 Gateway error 包含 traceId。
-- AC-035：访问日志字段完整且脱敏。
-- AC-036：核心 Micrometer meter 存在且 tags 有界。
-- AC-037：管理端口 live/ready 与数据端口隔离。
-- AC-038：Nacos/JWK 暂不可用时 readiness 正确降级。
-- AC-039：停机先取消 readiness，再摘流和等待在途请求。
-- AC-040：停机后无 Gateway 线程、Netty event loop、Dubbo reference 或测试进程泄漏。
-
-### 23.7 需求追踪矩阵
-
-| 功能需求 | 主要设计章节 | 主要验收 |
-|---|---|---|
-| FR-001 组件显式启用 | 8.5、21.1 | AC-005 |
-| FR-002 YAML + Bean 路由 | 10.1 | AC-007 |
-| FR-003 全量校验与原子快照 | 10.2、10.3、21.3 | AC-008 |
-| FR-004 HTTP/1.1 GET/POST/JSON | 11、12 | AC-012、AC-013 |
-| FR-005 精确路由 | 10.4、11.3 | AC-009～AC-011 |
-| FR-006 有序多参数 | 9.3、12.2 | AC-014 |
-| FR-007 参数来源 | 9.3、12 | AC-014～AC-016 |
-| FR-008 GenericService | 9.4、13 | AC-017、AC-020、AC-021 |
-| FR-009 Nacos Registry | 13.2、13.3 | AC-018、AC-019 |
-| FR-010 JWT | 14 | AC-022～AC-025 |
-| FR-011 Filter Chain | 15 | AC-028、Core Filter tests |
-| FR-012 超时/并发/容量 | 17 | AC-029～AC-033 |
-| FR-013 trace/log/metrics | 19 | AC-034～AC-036 |
-| FR-014 健康与停机 | 18 | AC-037～AC-040 |
-| FR-015 SPI | 10.1、13、15 | 编译契约与扩展测试 |
-| FR-016 原子快照 | 10.2、10.3 | AC-007、AC-008 |
-| FR-017 engine | 8、18 | AC-006、AC-040 |
-
-## 24. 预期变更范围
-
-Spec 审核通过并进入实施后，预期只修改：
-
-```text
-egon-cola-components/pom.xml
-egon-cola-components/egon-cola-components-bom/pom.xml
-egon-cola-components/egon-cola-component-gateway/**
-docs/superpowers/plans/<future implementation plan>.md
-```
-
-可选文档：
-
-```text
-egon-cola-components/egon-cola-component-gateway/README.md
-egon-cola-components/egon-cola-component-gateway/README.zh-CN.md
-```
-
-不应修改：
-
-- 现有 Flyway migration；
-- 现有业务 component 行为；
-- archetype 的业务 API；
-- Nginx 配置；
-- Kubernetes 集群；
-- blog 原文；
-- 任何业务 Provider 源码，测试 fixture 除外。
-
-## 25. 风险、限制与处置
-
-| 风险 | 影响 | 处置 |
-|---|---|---|
-| 当前 Egon archetype 常用 `tri`，而 V1 GenericService 基线是传统 `dubbo` | Triple-only 服务不能接入 | Spec 明确限制；Provider 双协议或未来新增 Triple Invoker |
-| Dubbo 隔离 consumer runtime 的公共 API 可能存在版本细节 | 嵌入宿主时可能污染全局模型 | 实施计划第一阶段做 3.3.6 PoC；不接受静态全局状态的隐式退化 |
-| POJO 泛化 Map 与序列化细节受 Provider 契约影响 | 某些复杂 DTO 调用失败 | 用真实复杂对象/集合/record 做兼容测试，限制 V1 类型集合 |
-| JWK 服务故障 | REQUIRED 路由不可认证 | 内存缓存、single-flight 刷新、readiness 和 503 分类 |
-| 无自动重试会暴露短暂下游失败 | 调用方收到 503/504 | 避免错误重试副作用；未来仅对显式幂等路由增加策略 |
-| 静态路由需要重启才能变更 | 运维灵活性有限 | V1 接受；保留带版本原子快照和 RouteProvider SPI |
-| 单 JVM 同时承担网络、JWT、JSON、Dubbo | 资源争用 | 有界执行器、并发许可、指标和 benchmark |
-| 管理端口暴露 | 健康信息被外部访问 | 独立端口、只读最小端点、网络策略 |
-| `ResultDto` error code 是新公共契约 | 后续变更成本高 | 在 V1 固定枚举和 JSON contract tests |
-
-### 25.1 当前没有遗留的需求确认问题
-
-本文已按已确认的推荐方案给出完整 V1 选择，没有用占位符回避关键决策。
-
-用户审核时最需要明确接受的限制是：
-
-1. V1 只支持传统 `dubbo` 协议的 GenericService，Triple-only 不支持。
-2. V1 没有在线动态路由、控制台和 SDK 上报。
-3. V1 不自动重试。
-4. V1 只支持 GET/POST、精确路由、JSON 和非流式响应。
-5. 默认认证是 REQUIRED；公开路由必须显式声明。
-6. 外部 TLS/负载均衡/摘流由部署平台负责。
-
-## 26. 审核通过后的下一步
-
-用户批准本 Spec 后，再单独编写实施计划。实施计划必须：
-
-1. 先验证 Dubbo 3.3.6 隔离 runtime、GenericService async、Nacos 2.x 和复杂 Map 的最小 PoC；
-2. 按 core、starter、engine/test 和文档拆分可独立验证的任务；
-3. 明确每个文件、测试先行顺序、命令和提交边界；
-4. 不在 Spec 未批准时开始编码。
+用户审核并明确批准本 Spec 后，再基于第 26 节拆分逐任务实施计划。
