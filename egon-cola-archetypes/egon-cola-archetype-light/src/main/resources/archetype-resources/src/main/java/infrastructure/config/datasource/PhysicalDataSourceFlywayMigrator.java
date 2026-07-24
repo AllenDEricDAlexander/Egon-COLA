@@ -52,7 +52,8 @@ public class PhysicalDataSourceFlywayMigrator {
         try {
             targetMigrator.migrate(dataSource, target, springFlywayProperties);
         } catch (RuntimeException failure) {
-            throw migrationFailure(target, failure.getClass().getSimpleName());
+            throw migrationFailure(
+                    target, failure.getClass().getSimpleName(), failure);
         }
     }
 
@@ -77,6 +78,13 @@ public class PhysicalDataSourceFlywayMigrator {
     private static IllegalStateException migrationFailure(
             ShardingDataSourceProperties.FlywayTargetProperties target,
             String reason) {
+        return migrationFailure(target, reason, null);
+    }
+
+    private static IllegalStateException migrationFailure(
+            ShardingDataSourceProperties.FlywayTargetProperties target,
+            String reason,
+            Throwable cause) {
         return new IllegalStateException(
                 "Flyway migration failed for target "
                         + target.dataSourceName()
@@ -84,7 +92,8 @@ public class PhysicalDataSourceFlywayMigrator {
                         + target.locations()
                         + " ("
                         + reason
-                        + ")");
+                        + ")",
+                cause);
     }
 
     @FunctionalInterface

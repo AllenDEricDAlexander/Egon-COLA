@@ -43,11 +43,12 @@ class PhysicalDataSourceFlywayMigratorTest {
     @Test
     void shouldStopAtFailingTargetAndIncludeSafeContext() {
         List<String> migrated = new ArrayList<>();
+        IllegalStateException rootCause = new IllegalStateException("migration failure");
         PhysicalDataSourceFlywayMigrator migrator =
                 new PhysicalDataSourceFlywayMigrator((dataSource, target, properties) -> {
                     migrated.add(target.dataSourceName());
                     if (target.dataSourceName().equals("shard_1")) {
-                        throw new IllegalStateException("migration failure");
+                        throw rootCause;
                     }
                 });
         Map<String, DataSource> dataSources = Map.of(
@@ -62,7 +63,8 @@ class PhysicalDataSourceFlywayMigratorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("shard_1")
                 .hasMessageContaining("classpath:db/shard_1")
-                .hasMessageNotContaining("password");
+                .hasMessageNotContaining("password")
+                .satisfies(failure -> assertThat(failure.getCause()).isSameAs(rootCause));
         assertThat(migrated).containsExactly("shard_0", "shard_1");
     }
 

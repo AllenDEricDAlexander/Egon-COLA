@@ -87,6 +87,59 @@ class ShardingTopologyValidatorTest {
                 .hasMessageContaining("actualDataNodes");
     }
 
+    @Test
+    void shouldRejectActualDataNodesWhosePhysicalTableDoesNotMatchLogicalTable() {
+        byte[] invalid = new String(validYaml(), StandardCharsets.UTF_8)
+                .replace("sample_$->{0..1}", "another_table_$->{0..1}")
+                .getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> new ShardingTopologyValidator()
+                        .validate(validProperties(), invalid))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("physical table");
+    }
+
+    @Test
+    void shouldRejectSingleTableOutsideSingleLogicalDataSource() {
+        byte[] invalid = new String(validYaml(), StandardCharsets.UTF_8)
+                .replace("single.public.users", "shard_0.public.users")
+                .getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> new ShardingTopologyValidator()
+                        .validate(validProperties(), invalid))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("SINGLE table");
+    }
+
+    @Test
+    void shouldRejectRoutingScalarWhoseValueOnlySharesExpectedPrefix() {
+        byte[] invalid = new String(validYaml(), StandardCharsets.UTF_8)
+                .replace("mapping-version: 1", "mapping-version: 10")
+                .getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> new ShardingTopologyValidator()
+                        .validate(validProperties(), invalid))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("routing property");
+    }
+
+    @Test
+    void shouldRejectMissingSingleRule() {
+        byte[] invalid = new String(validYaml(), StandardCharsets.UTF_8)
+                .replace("""
+                          - !SINGLE
+                            tables:
+                              - single.public.users
+                            defaultDataSource: single
+                        """, "")
+                .getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> new ShardingTopologyValidator()
+                        .validate(validProperties(), invalid))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("!SINGLE");
+    }
+
     static ShardingDataSourceProperties validProperties() {
         List<ShardingDataSourceProperties.PhysicalDataSourceProperties> sources = List.of(
                 physical("single", "single"),
@@ -122,6 +175,8 @@ class ShardingTopologyValidatorTest {
                       node-count: 4
                       node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
                   - !SINGLE
+                    tables:
+                      - single.public.users
                     defaultDataSource: single
                 """.getBytes(StandardCharsets.UTF_8);
     }
@@ -184,6 +239,8 @@ class ShardingTopologyValidatorTest {
                       node-count: 4
                       node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
                   - !SINGLE
+                    tables:
+                      - single.public.users
                     defaultDataSource: single
                 """).formatted(singleWriter).getBytes(StandardCharsets.UTF_8);
     }

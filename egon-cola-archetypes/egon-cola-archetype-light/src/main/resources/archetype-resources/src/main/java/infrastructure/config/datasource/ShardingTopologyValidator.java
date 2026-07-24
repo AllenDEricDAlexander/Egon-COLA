@@ -152,18 +152,42 @@ public final class ShardingTopologyValidator {
             throw new IllegalArgumentException("ShardingSphere rule content must not be empty");
         }
         String content = new String(yaml, StandardCharsets.UTF_8);
-        if (!content.contains("- !SHARDING")) {
-            throw new IllegalArgumentException("ShardingSphere rule must contain !SHARDING");
-        }
-        requireTwice(content, "mapping-version: " + routing.mappingVersion());
-        requireTwice(content, "node-count: " + routing.nodeCount());
-        requireTwice(content, "node-map: " + routing.nodeMap());
+        String shardingRule = uniqueRuleSection(content, "!SHARDING");
+        String singleRule = uniqueRuleSection(content, "!SINGLE");
+        requireTwice(shardingRule, "mapping-version", routing.mappingVersion());
+        requireTwice(shardingRule, "node-count", routing.nodeCount());
+        requireTwice(shardingRule, "node-map", routing.nodeMap());
         validateDataSourceRules(content, sourcesByLogicalName);
-        validateActualDataNodes(content, nodeMap);
-        if (!"single".equals(uniqueScalar(content, "defaultDataSource"))) {
-            throw new IllegalArgumentException(
-                    "SINGLE defaultDataSource must reference logical group single");
+        validateActualDataNodes(shardingRule, nodeMap);
+        validateSingleRule(singleRule);
+    }
+
+    private static String uniqueRuleSection(String content, String ruleName) {
+        List<String> lines = content.lines().toList();
+        List<Integer> starts = new java.util.ArrayList<>();
+        for (int index = 0; index < lines.size(); index++) {
+            if (lines.get(index).strip().equals("- " + ruleName)) {
+                starts.add(index);
+            }
         }
+        if (starts.size() != 1) {
+            throw new IllegalArgumentException(
+                    "ShardingSphere rule must contain exactly one " + ruleName);
+        }
+        int start = starts.getFirst();
+        int markerIndent = indentation(lines.get(start));
+        int end = lines.size();
+        for (int index = start + 1; index < lines.size(); index++) {
+            String line = lines.get(index);
+            String value = line.strip();
+            if (!value.isEmpty()
+                    && indentation(line) <= markerIndent
+                    && (value.startsWith("- !") || !line.startsWith(" "))) {
+                end = index;
+                break;
+            }
+        }
+        return String.join("\n", lines.subList(start, end));
     }
 
     private static void validateDataSourceRules(
@@ -277,23 +301,15 @@ public final class ShardingTopologyValidator {
         return value;
     }
 
-    private static void validateActualDataNodes(String content, ShardingNodeMap nodeMap) {
+    private static void validateActualDataNodes(String shardingRule, ShardingNodeMap nodeMap) {
         Set<String> expectedDatabases = nodeMap.nodes().values().stream()
                 .map(ShardingNodeMap.PhysicalNode::database)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<Integer> expectedTableSuffixes = nodeMap.nodes().values().stream()
                 .map(ShardingNodeMap.PhysicalNode::tableSuffix)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        List<String> expressions = content.lines()
-                .map(String::strip)
-                .filter(line -> line.startsWith("actualDataNodes:"))
-                .map(ShardingTopologyValidator::scalar)
-                .toList();
-        if (expressions.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "SHARDING rules must define actualDataNodes");
-        }
-        for (String expression : expressions) {
+        Map<String, String> tableRules = parseShardingTableRules(shardingRule);
+        tableRules.forEach((logicalTable, expression) -> {
             String[] segments = expression.split("\\.public\\.", 2);
             if (segments.length != 2
                     || !expectedDatabases.equals(expandNames(segments[0]))
@@ -301,6 +317,111 @@ public final class ShardingTopologyValidator {
                 throw new IllegalArgumentException(
                         "actualDataNodes do not match stable node map: " + expression);
             }
+            if (!logicalTable.equals(physicalTableBaseName(segments[1]))) {
+                throw new IllegalArgumentException(
+                        "actualDataNodes physical table must match logical table: "
+                                + logicalTable);
+            }
+        });
+    }
+
+    private static Map<String, String> parseShardingTableRules(String shardingRule) {
+        Map<String, String> result = new LinkedHashMap<>();
+        Set<String> declaredTables = new LinkedHashSet<>();
+        String currentTable = null;
+        boolean insideTables = false;
+        for (String line : shardingRule.lines().toList()) {
+            String value = line.strip();
+            int indentation = indentation(line);
+            if (indentation == 4 && value.equals("tables:")) {
+                insideTables = true;
+                continue;
+            }
+            if (insideTables && indentation <= 4 && !value.isEmpty()) {
+                break;
+            }
+            if (insideTables && indentation == 6 && value.endsWith(":")) {
+                if (currentTable != null && !result.containsKey(currentTable)) {
+                    throw new IllegalArgumentException(
+                            "SHARDING logical table must define actualDataNodes: "
+                                    + currentTable);
+                }
+                currentTable = value.substring(0, value.length() - 1);
+                if (!currentTable.matches("[a-zA-Z0-9_]+")
+                        || !declaredTables.add(currentTable)) {
+                    throw new IllegalArgumentException(
+                            "invalid or duplicate SHARDING logical table: " + currentTable);
+                }
+            } else if (insideTables
+                    && currentTable != null
+                    && indentation == 8
+                    && value.startsWith("actualDataNodes:")) {
+                result.put(currentTable, scalar(value));
+            }
+        }
+        if (currentTable != null && !result.containsKey(currentTable)) {
+            throw new IllegalArgumentException(
+                    "SHARDING logical table must define actualDataNodes: " + currentTable);
+        }
+        if (result.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "SHARDING rules must define actualDataNodes by logical table");
+        }
+        return result;
+    }
+
+    private static String physicalTableBaseName(String expression) {
+        Matcher matcher = INLINE_RANGE.matcher(expression);
+        if (matcher.matches()) {
+            String prefix = matcher.group(1);
+            if (!prefix.endsWith("_")) {
+                throw new IllegalArgumentException(
+                        "actualDataNodes physical table range must use a numeric suffix: "
+                                + expression);
+            }
+            return prefix.substring(0, prefix.length() - 1);
+        }
+        int separator = expression.lastIndexOf('_');
+        if (separator < 1
+                || separator == expression.length() - 1
+                || !expression.substring(separator + 1).matches("\\d+")) {
+            throw new IllegalArgumentException(
+                    "actualDataNodes table must end with a numeric suffix: " + expression);
+        }
+        return expression.substring(0, separator);
+    }
+
+    private static void validateSingleRule(String singleRule) {
+        if (!"single".equals(uniqueScalar(singleRule, "defaultDataSource"))) {
+            throw new IllegalArgumentException(
+                    "SINGLE defaultDataSource must reference logical group single");
+        }
+        Set<String> tables = new LinkedHashSet<>();
+        boolean insideTables = false;
+        for (String line : singleRule.lines().toList()) {
+            String value = line.strip();
+            int indentation = indentation(line);
+            if (indentation == 4 && value.equals("tables:")) {
+                insideTables = true;
+                continue;
+            }
+            if (insideTables && indentation <= 4 && !value.isEmpty()) {
+                break;
+            }
+            if (insideTables && indentation == 6 && value.startsWith("- ")) {
+                String table = value.substring(2).trim();
+                if (!table.matches("single\\.public\\.[a-zA-Z0-9_]+")) {
+                    throw new IllegalArgumentException(
+                            "SINGLE table must reference the single logical data source: "
+                                    + table);
+                }
+                if (!tables.add(table)) {
+                    throw new IllegalArgumentException("duplicate SINGLE table: " + table);
+                }
+            }
+        }
+        if (tables.isEmpty()) {
+            throw new IllegalArgumentException("SINGLE rule must define tables");
         }
     }
 
@@ -367,17 +488,20 @@ public final class ShardingTopologyValidator {
         return values.getFirst();
     }
 
-    private static void requireTwice(String content, String expected) {
-        int occurrences = 0;
-        int offset = 0;
-        while ((offset = content.indexOf(expected, offset)) >= 0) {
-            occurrences++;
-            offset += expected.length();
-        }
+    private static void requireTwice(String content, String name, Object expectedValue) {
+        String expected = name + ": " + expectedValue;
+        long occurrences = content.lines()
+                .map(String::strip)
+                .filter(expected::equals)
+                .count();
         if (occurrences != 2) {
             throw new IllegalArgumentException(
                     "database and table algorithms must share routing property: " + expected);
         }
+    }
+
+    private static int indentation(String line) {
+        return line.length() - line.stripLeading().length();
     }
 
     private record ReadwriteGroup(
