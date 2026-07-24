@@ -147,6 +147,8 @@ class LightShardingProfileTest {
                 ? new String[] {"single_primary", "shard_0_primary", "shard_1_primary"}
                 : new String[] {"single", "shard_0", "shard_1"};
         return new String[] {
+            "--spring.profiles.active="
+                    + (readwrite ? "test,sharding,readwrite" : "test,sharding"),
             "--app.sharding.flyway.targets[0].data-source-name=" + targetNames[0],
             "--app.sharding.flyway.targets[0].locations[0]=" + single,
             "--app.sharding.flyway.targets[0].locations[1]=" + shard,
