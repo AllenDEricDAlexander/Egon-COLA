@@ -74,14 +74,15 @@ Starter 支持默认、分片、分片加读写分离三种启动方式：
 
 ```bash
 SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
-SPRING_PROFILES_ACTIVE=dev,sharding bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
-SPRING_PROFILES_ACTIVE=dev,sharding,readwrite bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
+SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
+SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
 ```
 
-默认模式使用 Spring Boot 单 `DataSource` 和 Flyway 生命周期。`sharding`
-先迁移全部物理 primary，再创建 ShardingSphere JDBC 逻辑 `DataSource`。
-`readwrite` 必须与 `sharding` 组合启用：普通查询走 replica，写操作走 primary，
-事务内查询固定走 primary。
+环境 profile 只使用 `dev`、`test`、`prod`。`APP_DATASOURCE_MODE` 可取
+`SINGLE`（默认）、`SHARDING`、`SHARDING_READWRITE`。默认模式使用 Spring Boot
+单 `DataSource` 和 Flyway 生命周期；两个 ShardingSphere 模式先迁移全部物理
+primary，再创建逻辑 `DataSource`。读写分离模式下，普通查询走 replica，
+写操作走 primary，事务内查询固定走 primary。
 
 表拓扑如下：
 
@@ -105,7 +106,8 @@ URL、用户名和密码；例如 `ORGANIZATION_SINGLE_REPLICA_0_URL`、
 Flyway 负责 `db/migration/default`、`db/migration/sharding/single` 和
 `db/migration/sharding/shard`。ShardingSphere 模式下，它在逻辑数据源启动前
 按名称串行迁移已配置的 primary。replica 必须是 primary 的数据库级复制节点，
-永远不能配置为 migration target。
+永远不能配置为 migration target。ShardingSphere 模式下 Spring Boot 不对逻辑
+数据源重复执行 migration；`FLYWAY_ENABLED=false` 时物理 migration 也会跳过。
 
 代理主键由应用生成 UUIDv7，并持久化为 36 位 RFC 字符串。迁移文件必须使用
 `VyyyyMMdd_NNN__description.sql`，其中日期是文件创建日期，`NNN` 是当日三位
@@ -165,6 +167,11 @@ nerdctl build --build-arg CONTAINER_ENGINE=nerdctl -f deploy/container/Dockerfil
 ```bash
 docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
 ```
+
+模板自带的 Compose 栈只创建一个 PostgreSQL 实例，因此固定使用
+`APP_DATASOURCE_MODE=SINGLE`。如需启用任一 ShardingSphere 模式，必须先部署文档
+约定的物理 primary/replica 拓扑，并通过目标部署平台完整传入拓扑变量，不能只覆盖
+Compose 中的 mode。
 
 Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`。生产环境使用匹配的 `.prod.yaml` 文件和由运维方持有的 `.env.prod`。关于 rootless 前置条件、持久化、生产边界和数据删除警告，请参见 `deploy/container/README.md`。
 

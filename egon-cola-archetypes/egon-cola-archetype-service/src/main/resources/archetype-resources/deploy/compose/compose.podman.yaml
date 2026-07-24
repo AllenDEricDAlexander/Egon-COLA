@@ -12,6 +12,7 @@ services:
     environment:
       APPLICATION_PORT: ${APPLICATION_PORT:-8081}
       SPRING_PROFILES_ACTIVE: dev
+      APP_DATASOURCE_MODE: "SINGLE"
       MANAGEMENT_SERVER_PORT: ${APPLICATION_PORT:-8081}
       DUBBO_PORT: ${DUBBO_PORT:-50051}
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}

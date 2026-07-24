@@ -4,7 +4,7 @@
 
 **Goal:** 让 Light、Web、Service 三个 archetype 生成的项目同时支持默认单数据源、数据分片、读写分离、物理节点 Flyway 初始化和应用侧 UUIDv7 主键，并以 2N（2n 法）稳定槽位契约支持后续 `N → 2N` 平滑迁移。
 
-**Architecture:** 默认 profile 继续由 Spring Boot 管理单数据源和 Flyway；启用 `sharding` 后，由 Infrastructure 内的 Facade 按“创建物理 Hikari 数据源 → 校验拓扑 → 逐个 primary 执行 Flyway → 用公开 YAML Factory 创建 ShardingSphere 逻辑数据源”的顺序启动。分片路由使用 `CLASS_BASED` Strategy，将 UUIDv7 稳定散列到追加式 `nodeMap`；读写分离使用独立规则 YAML，事务内读取固定走 primary，非事务查询走 replica。
+**Architecture:** `dev/test/prod` 只管理环境差异，`app.datasource.mode=SINGLE|SHARDING|SHARDING_READWRITE` 独立选择数据源能力。`SINGLE` 继续由 Spring Boot 管理 Hikari 与 Flyway；两个 ShardingSphere mode 由 Infrastructure 内的 Facade 按“只绑定选中拓扑 → 创建物理 Hikari 数据源 → 校验拓扑 → 逐个 primary 执行 Flyway → 用公开 YAML Factory 创建 ShardingSphere 逻辑数据源”的顺序启动，并以条件化 no-op `FlywayMigrationStrategy` 阻止 Spring Boot 对逻辑数据源重复迁移。分片路由使用 `CLASS_BASED` Strategy，将 UUIDv7 稳定散列到追加式 `nodeMap`；读写分离使用独立规则 YAML，事务内读取固定走 primary，非事务查询走 replica。
 
 **Tech Stack:** Java 21、Spring Boot 3.5.16、Spring Data JPA、Apache ShardingSphere JDBC 5.5.3、Flyway、HikariCP、PostgreSQL、H2、JUnit 5、AssertJ、Mockito、Maven Invoker。
 
@@ -12,7 +12,7 @@
 
 1. 设计基线为 `docs/superpowers/specs/2026-07-23-archetype-shardingsphere-flyway-design.md`，实现不得自行更换分片键、表分类、事务策略或 migration 命名规则。
 2. 只修改 `src/main/resources/archetype-resources`、共享 facade 源码及三个 `verify.groovy`；不直接修改或提交任何 `target/` 生成产物。
-3. 三个模板都必须保留默认单数据源模式；`sharding`、`readwrite` 是叠加 profile，`readwrite` 单独启用必须失败。
+3. 三个模板只允许 `dev/test/prod` 环境 Profile；必须保留默认 `SINGLE`，并用 `app.datasource.mode` 选择 `SHARDING` 或 `SHARDING_READWRITE`。旧 `sharding/readwrite` 能力 Profile 和对应 `application-*.yml` 必须删除。
 4. 不引入 XA、BASE、Seata、Saga 框架或 ShardingSphere 分布式事务模块。
 5. 不引入 ShardingSphere 内部 YAML 类型，也不新增 SnakeYAML 直接依赖；逻辑数据源只通过公开 API `YamlShardingSphereDataSourceFactory.createDataSource(Map<String, DataSource>, byte[])` 创建。
 6. ShardingSphere JDBC 固定为 `5.5.3`；业务主键生成复用现有 `top.egon:egon-cola-component-common-id`、`IdGenerator` 和 `UuidV7Generator`。
@@ -23,6 +23,75 @@
 11. 本仓库中的六个原始 `V1/V2` 属于未执行的 archetype 模板；按已确认需求直接替换为最终初始化 schema，不保留旧模型和搬数 SQL。
 12. 每个任务只提交一次；提交前先执行该任务列出的最小验证。全量验证只在最后一个任务执行。
 13. archetype YAML 中的运行时 Spring placeholder 必须遵循现有 Velocity 写法：文件首部声明 `#set( $symbol_dollar = '$' )`，正文写 `${symbol_dollar}{ENV_NAME:default}`；不能把 `${ENV_NAME}` 直接写入模板源码。
+14. 2026-07-24 的 mode 修正任务优先级高于下文 Task 2–11 中残留的旧 Profile 描述；已完成的分片键、UUIDv7、2N、SQL 与事务设计不重做。
+
+---
+
+### Task 12: 将数据源能力从叠加 Profile 改为独立 mode
+
+本任务是对已完成 Task 1–11 的定向修正，按以下顺序执行。
+
+**Files:**
+
+- Modify in each archetype datasource package: `ShardingSphereDataSourceConfiguration.java`
+- Create in each archetype datasource package: `DataSourceModeProperties.java`
+- Create in each archetype datasource package: `ShardingDataSourceModeCondition.java`
+- Create in each archetype datasource package: `ShardingDataSourcePropertiesLoader.java`
+- Modify in each archetype datasource package: `ShardingDataSourceProperties.java`
+- Modify in each archetype datasource package: `PhysicalDataSourceFlywayMigrator.java`
+- Delete in each archetype datasource package: `ReadwriteProfileGuard.java`
+- Delete corresponding `ReadwriteProfileGuardTest.java`
+- Modify each Light/Web/Service application class so `UuidV7Generator` is not controlled by a sharding Profile
+- Move each `application-sharding.yml` to `datasource/sharding.yml` under `app.sharding`
+- Move each `application-readwrite.yml` to `datasource/sharding-readwrite.yml` under `app.sharding-readwrite`
+- Modify each `application.yml` to import both topology resources, define `app.datasource.mode` and retain one common 2N routing map
+- Modify three sharding startup tests, three `verify.groovy` files, six README files and Compose/deployment examples
+- Modify the design Spec and this Plan
+
+- [x] **Step 1: 先写失败测试**
+
+1. 将三个启动测试改为只激活 `test`。
+2. 分别设置 `app.datasource.mode=SHARDING` 与 `SHARDING_READWRITE`，断言逻辑数据源是 ShardingSphere。
+3. 增加 `SINGLE` 默认值、合法/非法 mode 绑定、拓扑选择、逻辑 Flyway no-op 和 `spring.flyway.enabled=false` 物理迁移跳过测试。
+4. 运行三个 archetype 的聚焦测试，确认旧 `@Profile("sharding")` 实现无法满足新测试。
+
+- [x] **Step 2: 实现条件装配与选择性配置绑定**
+
+1. `DataSourceModeProperties` 使用枚举约束合法 mode，默认 `SINGLE`。
+2. `ShardingDataSourceModeCondition` 只在两个 ShardingSphere mode 下装配逻辑数据源。
+3. `ShardingDataSourcePropertiesLoader` 只绑定当前 mode 对应的 `app.sharding` 或 `app.sharding-readwrite`，并将唯一的 `app.sharding.routing` 合入选中拓扑，避免解析未选中拓扑的必填凭证。
+4. 移除 `ReadwriteProfileGuard` 和 UUIDv7 的 Profile 分支。
+5. 不新增 Strategy/Factory 层级：mode 枚举承担有限状态选择，现有 Bootstrapper Facade 继续承担启动编排。
+
+- [x] **Step 3: 收口 Flyway 与 ShardingSphere 启动顺序**
+
+1. `SINGLE` 保持 Spring Boot 默认 Flyway 行为。
+2. 两个 ShardingSphere mode 注册 no-op `FlywayMigrationStrategy`，只阻止逻辑数据源 migration。
+3. 物理迁移器先检查 `FlywayProperties#isEnabled`；启用时只迁移显式 primary targets，禁用时全部跳过。
+4. 保持“物理 primary migrate + validate 全部成功 → 创建逻辑 DataSource → JPA validate”的依赖顺序。
+
+- [x] **Step 4: 同步生成契约与文档**
+
+1. 删除所有 `application-sharding.yml`、`application-readwrite.yml` 断言和启动命令。
+2. 新命令仅使用 `SPRING_PROFILES_ACTIVE=dev|test|prod`，并以 `APP_DATASOURCE_MODE` 选择能力。
+3. `verify.groovy` 断言两份非 Profile 拓扑资源、mode 类、Flyway 策略和旧 Profile 文件缺失。
+4. README 明确 replica 永不执行 Flyway，且两个 ShardingSphere mode 不会对逻辑数据源重复刷表。
+5. 自带 Compose 仅部署单 PostgreSQL，固定 `APP_DATASOURCE_MODE=SINGLE`；README 明确 ShardingSphere mode 需要外部完整拓扑，不能只覆盖 mode。
+
+- [x] **Step 5: 验证并提交**
+
+```bash
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
+git diff --check
+git status --short
+```
+
+额外检查生成项目的三种 mode 都只激活一个环境 Profile，并确认 `target/` 未进入提交。任务完成后提交一次：
+
+```bash
+git add docs/superpowers egon-cola-archetypes
+git commit -m "fix(archetype): decouple datasource mode from profiles"
+```
 
 ---
 
@@ -1148,14 +1217,14 @@ Run:
 
 Expected: `BUILD SUCCESS`，三个 archetype 都完成生成、构建、测试和 verifier 校验。
 
-- [ ] **Step 3: 在三个生成项目中验证 profile**
+- [ ] **Step 3: 在三个生成项目中验证 datasource mode**
 
 从 Maven Invoker 实际生成目录中定位每个项目，分别执行：
 
 ```bash
 ./mvnw -B -ntp clean verify
-./mvnw -B -ntp -Dspring.profiles.active=test,sharding clean verify
-./mvnw -B -ntp -Dspring.profiles.active=test,sharding,readwrite clean verify
+./mvnw -B -ntp -Dspring.profiles.active=test -Dapp.datasource.mode=SHARDING clean verify
+./mvnw -B -ntp -Dspring.profiles.active=test -Dapp.datasource.mode=SHARDING_READWRITE clean verify
 ```
 
 Expected: 三个命令在三个生成项目中均为 `BUILD SUCCESS`。只运行生成目录中的命令，不修改生成文件。
@@ -1213,5 +1282,8 @@ git commit -m "fix(archetype): 收口分片模板验证"
 - [ ] 每个现有写事务只触达一个物理主库。
 - [ ] 不存在分布式事务依赖、配置或伪装成单事务的跨分片写。
 - [ ] 三个 `verify.groovy`、README.md 和 README.zh-CN.md 同步完成。
-- [ ] `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test` 通过。
-- [ ] 三个生成项目的 default、sharding、sharding+readwrite 验证全部通过。
+- [x] 环境 Profile 仅为 `dev/test/prod`，数据源能力只由 `app.datasource.mode` 选择。
+- [x] `application-sharding.yml`、`application-readwrite.yml` 和 `ReadwriteProfileGuard` 已移除。
+- [x] ShardingSphere mode 只绑定选中拓扑，先迁移物理 primary，再由 no-op 策略阻止逻辑数据源重复迁移。
+- [x] `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test` 通过。
+- [x] 三个生成项目在 `SINGLE`、`SHARDING`、`SHARDING_READWRITE` mode 下验证全部通过。

@@ -250,6 +250,8 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("context: ../..")
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
+    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
     assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
     assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
@@ -283,6 +285,8 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
+    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
     assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
@@ -730,11 +734,15 @@ assert starterText.contains('"it.pkg.adapter.teaching.rpc"')
 assert starterText.contains('"it.pkg.infrastructure.user.repo.jpa"')
 assert starterText.contains('"it.pkg.infrastructure.teaching.repo.jpa"')
 assertFile("src/main/resources/application.yml")
-assertFile("src/main/resources/application-sharding.yml")
-assertFile("src/main/resources/application-readwrite.yml")
+assertFile("src/main/resources/datasource/sharding.yml")
+assertFile("src/main/resources/datasource/sharding-readwrite.yml")
+assertMissing("src/main/resources/application-sharding.yml")
+assertMissing("src/main/resources/application-readwrite.yml")
 assertFile("src/main/resources/sharding/shardingsphere-sharding.yml")
 assertFile("src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
-def lightShardingApplication = assertFile("src/main/resources/application-sharding.yml").text
+def lightApplication = assertFile("src/main/resources/application.yml").text
+assert lightApplication.contains('mode: ${APP_DATASOURCE_MODE:SINGLE}')
+def lightShardingApplication = assertFile("src/main/resources/datasource/sharding.yml").text
 assert lightShardingApplication.contains('mapping-version: ${LIGHT_SHARDING_MAPPING_VERSION:1}')
 assert lightShardingApplication.contains('node-count: ${LIGHT_SHARDING_NODE_COUNT:4}')
 assert lightShardingApplication.contains(
@@ -879,20 +887,27 @@ migrationFiles.each { migration ->
     assert text.contains("\n-- 兼容性说明：")
 }
 [
+    "DataSourceModeProperties",
+    "LogicalDataSourceFlywayMigrationStrategy",
     "ShardingNodeMap",
     "ShardingNodeMapCompatibilityValidator",
     "UuidV7BucketShardingAlgorithm",
     "PhysicalDataSourceFlywayMigrator",
     "ShardingDataSourceBootstrapper",
+    "ShardingDataSourceModeCondition",
+    "ShardingDataSourcePropertiesLoader",
     "ShardingSphereDataSourceConfiguration"
 ].each { typeName ->
     assertFile("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
 }
 [
     "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/LightShardingProfileTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/LightDataSourceModeTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategyTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
     "src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
@@ -1184,8 +1199,8 @@ assert readme.contains("Primary Workflows")
 assert readme.contains("RABBITMQ_ENABLED=true")
 assert readme.contains("ConfigCipherCli")
 [
-    "SPRING_PROFILES_ACTIVE=dev,sharding",
-    "SPRING_PROFILES_ACTIVE=dev,sharding,readwrite",
+    "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
+    "APP_DATASOURCE_MODE=SHARDING_READWRITE",
     "school_classes",
     "school_class_id",
     "Flyway",
@@ -1200,7 +1215,7 @@ assert readme.contains("ConfigCipherCli")
 ].each { assert readme.contains(it) }
 def lightReadmeZh = assertFile("README.zh-CN.md").text
 [
-    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
     "school_class_id",
     "36 位 RFC 字符串",
     "VyyyyMMdd_NNN__description.sql",

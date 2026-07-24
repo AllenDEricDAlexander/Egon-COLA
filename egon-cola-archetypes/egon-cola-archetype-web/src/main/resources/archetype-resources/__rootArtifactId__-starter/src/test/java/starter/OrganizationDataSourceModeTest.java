@@ -2,17 +2,21 @@ package ${package}.starter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.zaxxer.hikari.HikariDataSource;
+import ${package}.infrastructure.config.datasource.LogicalDataSourceFlywayMigrationStrategy;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
-class OrganizationShardingProfileTest {
+class OrganizationDataSourceModeTest {
 
     @Test
     void shouldProvideFinalMigrationsWithGlobalDailySequenceAndHeaders() throws Exception {
@@ -35,23 +39,43 @@ class OrganizationShardingProfileTest {
     }
 
     @Test
-    void shouldStartPrimaryOnlyAndReadwriteShardingProfilesWithJpaValidation() {
+    void shouldStartBothShardingModesWithOnlyTheTestProfile() {
         assertShardingContextStarts(false);
         assertShardingContextStarts(true);
     }
 
-    private static void assertShardingContextStarts(boolean readwrite) {
-        String[] profiles = readwrite
-            ? new String[] {"test", "sharding", "readwrite"}
-            : new String[] {"test", "sharding"};
+    @Test
+    void shouldKeepSingleModeOnBootDataSourceAndFlyway() {
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(
                 OrganizationApplication.class)
                 .web(WebApplicationType.NONE)
-                .profiles(profiles)
+                .profiles("test")
+                .properties("spring.main.banner-mode=off")
+                .run()) {
+            assertThat(context.getEnvironment().getActiveProfiles())
+                .containsExactly("test");
+            assertThat(context.getBean(DataSource.class))
+                .isInstanceOf(HikariDataSource.class);
+            assertThat(context.getBeansOfType(FlywayMigrationStrategy.class))
+                .isEmpty();
+            assertThat(context.getBean(Flyway.class).info().applied())
+                .isNotEmpty();
+        }
+    }
+
+    private static void assertShardingContextStarts(boolean readwrite) {
+        try (ConfigurableApplicationContext context = new SpringApplicationBuilder(
+                OrganizationApplication.class)
+                .web(WebApplicationType.NONE)
+                .profiles("test")
                 .properties(testProperties(readwrite))
                 .run(sharedH2FlywayTargets(readwrite))) {
+            assertThat(context.getEnvironment().getActiveProfiles())
+                .containsExactly("test");
             assertThat(context.getBean(DataSource.class).getClass().getName())
                 .contains("ShardingSphereDataSource");
+            assertThat(context.getBean(FlywayMigrationStrategy.class))
+                    .isInstanceOf(LogicalDataSourceFlywayMigrationStrategy.class);
             assertThat(context.getBean(jakarta.persistence.EntityManagerFactory.class))
                 .isNotNull();
         }
@@ -95,18 +119,22 @@ class OrganizationShardingProfileTest {
         String[] targetNames = readwrite
             ? new String[] {"single_primary", "shard_0_primary", "shard_1_primary"}
             : new String[] {"single", "shard_0", "shard_1"};
+        String topologyPrefix = readwrite
+            ? "app.sharding-readwrite"
+            : "app.sharding";
         return new String[] {
-            "--spring.profiles.active="
-                + (readwrite ? "test,sharding,readwrite" : "test,sharding"),
-            "--app.sharding.flyway.targets[0].data-source-name=" + targetNames[0],
-            "--app.sharding.flyway.targets[0].locations[0]=" + single,
-            "--app.sharding.flyway.targets[0].locations[1]=" + shard,
-            "--app.sharding.flyway.targets[1].data-source-name=" + targetNames[1],
-            "--app.sharding.flyway.targets[1].locations[0]=" + single,
-            "--app.sharding.flyway.targets[1].locations[1]=" + shard,
-            "--app.sharding.flyway.targets[2].data-source-name=" + targetNames[2],
-            "--app.sharding.flyway.targets[2].locations[0]=" + single,
-            "--app.sharding.flyway.targets[2].locations[1]=" + shard
+            "--spring.profiles.active=test",
+            "--app.datasource.mode="
+                + (readwrite ? "SHARDING_READWRITE" : "SHARDING"),
+            "--" + topologyPrefix + ".flyway.targets[0].data-source-name=" + targetNames[0],
+            "--" + topologyPrefix + ".flyway.targets[0].locations[0]=" + single,
+            "--" + topologyPrefix + ".flyway.targets[0].locations[1]=" + shard,
+            "--" + topologyPrefix + ".flyway.targets[1].data-source-name=" + targetNames[1],
+            "--" + topologyPrefix + ".flyway.targets[1].locations[0]=" + single,
+            "--" + topologyPrefix + ".flyway.targets[1].locations[1]=" + shard,
+            "--" + topologyPrefix + ".flyway.targets[2].data-source-name=" + targetNames[2],
+            "--" + topologyPrefix + ".flyway.targets[2].locations[0]=" + single,
+            "--" + topologyPrefix + ".flyway.targets[2].locations[1]=" + shard
         };
     }
 

@@ -78,14 +78,15 @@ ${symbol_pound}${symbol_pound} 分片、读写分离与 Flyway
 
 ```bash
 SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
-SPRING_PROFILES_ACTIVE=dev,sharding ./mvnw spring-boot:run
-SPRING_PROFILES_ACTIVE=dev,sharding,readwrite ./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING ./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE ./mvnw spring-boot:run
 ```
 
-默认模式沿用 Spring Boot 的单 `DataSource` 与 Flyway 生命周期。`sharding`
-profile 先创建物理 primary 数据源并逐个迁移，再暴露一个 ShardingSphere JDBC
-逻辑 `DataSource`。`readwrite` 是附加 profile，必须与 `sharding` 一起启用：
-普通查询走 replica，写操作走 primary，事务内查询固定走 primary。
+环境 profile 只使用 `dev`、`test`、`prod`。`APP_DATASOURCE_MODE` 可取
+`SINGLE`（默认）、`SHARDING`、`SHARDING_READWRITE`。默认模式沿用 Spring Boot
+的单 `DataSource` 与 Flyway 生命周期；两个 ShardingSphere 模式先逐个迁移物理
+primary，再创建逻辑 `DataSource`。读写分离模式下，普通查询走 replica，写操作
+走 primary，事务内查询固定走 primary。
 
 表拓扑如下：
 
@@ -107,7 +108,9 @@ profile 先创建物理 primary 数据源并逐个迁移，再暴露一个 Shard
 Flyway 使用 `db/migration/default`、`db/migration/sharding/single` 和
 `db/migration/sharding/shard` 三个 location。ShardingSphere 模式下，Flyway
 在逻辑数据源创建前按名称串行迁移已配置的 primary。replica 必须是 primary
-的数据库级复制节点，永远不能配置为 Flyway target。
+的数据库级复制节点，永远不能配置为 Flyway target。Spring Boot 的逻辑数据源
+Flyway 策略在 ShardingSphere 模式下不执行 migration，避免重复刷表；设置
+`FLYWAY_ENABLED=false` 时物理 migration 也会一并跳过。
 
 应用生成的代理主键统一使用 UUIDv7，并序列化为 36 位 RFC 字符串。迁移文件名
 必须符合 `VyyyyMMdd_NNN__description.sql`：日期使用文件创建日期，`NNN` 是当日
@@ -161,6 +164,11 @@ nerdctl build --build-arg CONTAINER_ENGINE=nerdctl -f deploy/container/Dockerfil
 ```bash
 docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
 ```
+
+模板自带的 Compose 栈只创建一个 PostgreSQL 实例，因此固定使用
+`APP_DATASOURCE_MODE=SINGLE`。如需启用任一 ShardingSphere 模式，必须先部署文档
+约定的物理 primary/replica 拓扑，并通过目标部署平台完整传入拓扑变量，不能只覆盖
+Compose 中的 mode。
 
 Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`。生产环境使用匹配的 `.prod.yaml` 文件和由运维方持有的 `.env.prod`。关于 rootless 前置条件、持久化、生产边界和数据删除警告，请参见 `deploy/container/README.md`。
 

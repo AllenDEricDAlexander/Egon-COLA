@@ -1,6 +1,6 @@
 #set( $symbol_dollar = '$' )
 app:
-  sharding:
+  sharding-readwrite:
     config: classpath:sharding/shardingsphere-sharding-readwrite.yml
     physical-data-sources:
       - name: single_primary
