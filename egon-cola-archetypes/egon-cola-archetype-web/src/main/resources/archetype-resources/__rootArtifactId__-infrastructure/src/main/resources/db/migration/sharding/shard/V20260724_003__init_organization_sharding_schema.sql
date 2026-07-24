@@ -9,7 +9,8 @@ CREATE TABLE school_classes_0 (
     grade_id VARCHAR(36) NOT NULL,
     status VARCHAR(32) NOT NULL,
     created_at TIMESTAMP NOT NULL,
-    CONSTRAINT uk_school_classes_0_grade_name UNIQUE (grade_id, name)
+    CONSTRAINT uk_school_classes_0_grade_name UNIQUE (grade_id, name),
+    CONSTRAINT uk_school_classes_0_grade_id UNIQUE (grade_id, id)
 );
 
 CREATE TABLE school_classes_1 (
@@ -19,7 +20,8 @@ CREATE TABLE school_classes_1 (
     grade_id VARCHAR(36) NOT NULL,
     status VARCHAR(32) NOT NULL,
     created_at TIMESTAMP NOT NULL,
-    CONSTRAINT uk_school_classes_1_grade_name UNIQUE (grade_id, name)
+    CONSTRAINT uk_school_classes_1_grade_name UNIQUE (grade_id, name),
+    CONSTRAINT uk_school_classes_1_grade_id UNIQUE (grade_id, id)
 );
 
 CREATE TABLE school_class_users_0 (
@@ -30,7 +32,8 @@ CREATE TABLE school_class_users_0 (
     created_at TIMESTAMP NOT NULL,
     CONSTRAINT uk_school_class_users_0 UNIQUE (grade_id, school_class_id, user_id),
     CONSTRAINT fk_school_class_users_0_class
-        FOREIGN KEY (school_class_id) REFERENCES school_classes_0(id)
+        FOREIGN KEY (grade_id, school_class_id)
+        REFERENCES school_classes_0(grade_id, id)
 );
 
 CREATE TABLE school_class_users_1 (
@@ -41,7 +44,8 @@ CREATE TABLE school_class_users_1 (
     created_at TIMESTAMP NOT NULL,
     CONSTRAINT uk_school_class_users_1 UNIQUE (grade_id, school_class_id, user_id),
     CONSTRAINT fk_school_class_users_1_class
-        FOREIGN KEY (school_class_id) REFERENCES school_classes_1(id)
+        FOREIGN KEY (grade_id, school_class_id)
+        REFERENCES school_classes_1(grade_id, id)
 );
 
 CREATE INDEX idx_school_classes_0_grade_id ON school_classes_0(grade_id);

@@ -63,6 +63,7 @@ CREATE TABLE school_classes (
     status VARCHAR(32) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     CONSTRAINT uk_school_class_grade_name UNIQUE (grade_id, name),
+    CONSTRAINT uk_school_class_grade_id UNIQUE (grade_id, id),
     CONSTRAINT fk_school_classes_grade FOREIGN KEY (grade_id) REFERENCES grades(id)
 );
 
@@ -75,7 +76,9 @@ CREATE TABLE school_class_users (
     CONSTRAINT uk_school_class_user UNIQUE (grade_id, school_class_id, user_id),
     CONSTRAINT fk_school_class_users_grade FOREIGN KEY (grade_id) REFERENCES grades(id),
     CONSTRAINT fk_school_class_users_user FOREIGN KEY (user_id) REFERENCES users(id),
-    CONSTRAINT fk_school_class_users_class FOREIGN KEY (school_class_id) REFERENCES school_classes(id)
+    CONSTRAINT fk_school_class_users_class
+        FOREIGN KEY (grade_id, school_class_id)
+        REFERENCES school_classes(grade_id, id)
 );
 
 CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);

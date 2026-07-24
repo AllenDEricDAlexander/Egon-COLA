@@ -1,6 +1,7 @@
 package ${package}.infrastructure.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -33,9 +34,45 @@ class LogicalSchemaParityTest {
         assertThat(shardingSchema).isEqualTo(defaultSchema);
     }
 
+    @Test
+    void shouldRejectMembershipWhoseGradeDoesNotMatchItsSchoolClass() throws Exception {
+        String url = h2Url("organization-membership-foreign-key");
+        migrate(url, "classpath:db/migration/sharding/shard");
+        try (Connection connection = DriverManager.getConnection(url, "sa", "")) {
+            connection.createStatement().executeUpdate("""
+                    INSERT INTO school_classes_0(
+                        id, name, grade_name, grade_id, status, created_at)
+                    VALUES (
+                        '019ba346-0000-7000-8000-000000000101',
+                        'Class A',
+                        'Grade A',
+                        '019ba346-0000-7000-8000-000000000102',
+                        'ACTIVE',
+                        CURRENT_TIMESTAMP)
+                    """);
+
+            assertThatThrownBy(() -> connection.createStatement().executeUpdate("""
+                    INSERT INTO school_class_users_0(
+                        id, grade_id, user_id, school_class_id, created_at)
+                    VALUES (
+                        '019ba346-0000-7000-8000-000000000103',
+                        '019ba346-0000-7000-8000-000000000104',
+                        '019ba346-0000-7000-8000-000000000105',
+                        '019ba346-0000-7000-8000-000000000101',
+                        CURRENT_TIMESTAMP)
+                    """))
+                    .isInstanceOf(SQLException.class);
+        }
+    }
+
     private static Map<String, List<String>> migrateAndRead(
             String database, String location) throws Exception {
         String url = h2Url(database);
+        migrate(url, location);
+        return logicalSchema(url);
+    }
+
+    private static void migrate(String url, String location) {
         Flyway flyway = Flyway.configure()
                 .dataSource(url, "sa", "")
                 .locations(location)
@@ -43,7 +80,6 @@ class LogicalSchemaParityTest {
                 .load();
         flyway.migrate();
         flyway.validate();
-        return logicalSchema(url);
     }
 
     private static Map<String, List<String>> logicalSchema(String url) throws SQLException {
