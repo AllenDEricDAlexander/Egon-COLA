@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: rpc-test-consumer
+
+egon:
+  cola:
+    component:
+      ddc:
+        enabled: false
+        registry:
+          enabled: false
+      rpc:
+        enabled: false
+        consumer:
+          enabled: false

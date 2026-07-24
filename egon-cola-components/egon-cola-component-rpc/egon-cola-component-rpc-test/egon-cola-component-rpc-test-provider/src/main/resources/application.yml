@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: rpc-test-provider
+
+egon:
+  cola:
+    component:
+      ddc:
+        enabled: false
+        registry:
+          enabled: false
+      rpc:
+        enabled: false
+        provider:
+          enabled: false
+
+rpc:
+  test:
+    provider-id: provider-default
