@@ -26,7 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-final class MockRpcGateway implements AutoCloseable {
+public final class MockRpcGateway implements AutoCloseable {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(MockRpcGateway.class);
@@ -64,7 +64,7 @@ final class MockRpcGateway implements AutoCloseable {
 
     private ScheduledExecutorService heartbeat;
 
-    MockRpcGateway(
+    public MockRpcGateway(
             DdcServiceRegistryClient registryClient,
             String env,
             String namespace,
@@ -88,7 +88,7 @@ final class MockRpcGateway implements AutoCloseable {
         ));
     }
 
-    void start() throws Exception {
+    public void start() throws Exception {
         directory.start();
         server = NettyServerBuilder.forAddress(new InetSocketAddress(
                         properties.bindHost(),
@@ -128,7 +128,7 @@ final class MockRpcGateway implements AutoCloseable {
         );
     }
 
-    int port() {
+    public int port() {
         return server == null ? -1 : server.getPort();
     }
 
@@ -213,16 +213,22 @@ final class MockRpcGateway implements AutoCloseable {
                     .asRuntimeException(trailers));
             return;
         }
+        String invocationId = value(
+                metadata,
+                RpcMetadataKeys.INVOCATION_ID,
+                "missing"
+        );
         invocations.add(new MockGatewayInvocation(
-                value(
-                        metadata,
-                        RpcMetadataKeys.INVOCATION_ID,
-                        "missing"
-                ),
+                invocationId,
                 fullMethodName,
                 endpoint.instanceId(),
                 endpoint.leaseId()
         ));
+        LOGGER.info(
+                "RPC_MOCK_GATEWAY_FORWARD invocationId={} providerId={}",
+                invocationId,
+                endpoint.instanceId()
+        );
         forwarder.forward(endpoint, fullMethodName, payload, observer);
     }
 

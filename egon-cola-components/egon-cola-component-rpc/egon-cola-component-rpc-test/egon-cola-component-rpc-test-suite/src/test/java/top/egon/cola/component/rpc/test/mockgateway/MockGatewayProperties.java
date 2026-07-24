@@ -1,6 +1,6 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
-record MockGatewayProperties(
+public record MockGatewayProperties(
         String serviceName,
         String group,
         String version,
@@ -11,7 +11,7 @@ record MockGatewayProperties(
         int heartbeatIntervalSeconds
 ) {
 
-    static MockGatewayProperties defaults() {
+    public static MockGatewayProperties defaults() {
         return new MockGatewayProperties(
                 "egon-internal-rpc-gateway",
                 "default",
