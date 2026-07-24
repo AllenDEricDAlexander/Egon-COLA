@@ -14,6 +14,10 @@ public class ExamPaperConverter {
         return new ExamPaperPo(paper.getId(), paper.getExamId().value(), paper.getTitle(),
                 paper.getTotalPoints(), paper.getStatus().name(), createdAt, Instant.now());
     }
+    public ExamPaperPo updatePo(ExamPaper paper, ExamPaperPo po) {
+        po.update(paper.getTitle(), paper.getTotalPoints(), paper.getStatus().name(), Instant.now());
+        return po;
+    }
     public ExamPaper toDomain(ExamPaperPo po) {
         return new ExamPaper(po.getId(), new ExamId(po.getExamId()), po.getTitle(),
                 po.getTotalPoints(), ExamPaperStatus.valueOf(po.getStatus()));

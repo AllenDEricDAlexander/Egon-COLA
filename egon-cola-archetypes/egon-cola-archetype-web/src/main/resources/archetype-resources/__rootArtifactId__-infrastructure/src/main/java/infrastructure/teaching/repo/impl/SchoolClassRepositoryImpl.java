@@ -13,9 +13,12 @@ import ${package}.infrastructure.teaching.repo.jpa.SchoolClassJpaRepository;
 import ${package}.infrastructure.teaching.repo.jpa.SchoolClassUserJpaRepository;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassPO;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassUserPO;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.time.LocalDateTime;
@@ -30,11 +33,17 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
     private final SchoolClassPOConverter converter;
     private final IdGenerator idGenerator;
+    private final EntityManager entityManager;
 
-    @Override public SchoolClass save(SchoolClass schoolClass) {
+    @Override
+    @Transactional
+    public SchoolClass save(SchoolClass schoolClass) {
         try {
-            return restore(schoolClassJpaRepository.save(converter.toPO(schoolClass)));
-        } catch (DataIntegrityViolationException exception) {
+            SchoolClassPO schoolClassPO = converter.toPO(schoolClass);
+            entityManager.persist(schoolClassPO);
+            entityManager.flush();
+            return restore(schoolClassPO);
+        } catch (DataIntegrityViolationException | PersistenceException exception) {
             throw conflict("school class persistence conflict", exception);
         }
     }
@@ -51,19 +60,21 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
         return schoolClassJpaRepository.existsByGradeIdAndNameIgnoreCase(gradeId, name);
     }
 
-    @Override public void addUser(
+    @Override
+    @Transactional
+    public void addUser(
             String gradeId,
             SchoolClassId schoolClassId,
             UserId userId) {
         try {
-            schoolClassUserJpaRepository.saveAndFlush(
-                new SchoolClassUserPO(
-                        idGenerator.nextId(),
-                        gradeId,
-                        schoolClassId.value(),
-                        userId.value(),
-                        LocalDateTime.now()));
-        } catch (DataIntegrityViolationException exception) {
+            entityManager.persist(new SchoolClassUserPO(
+                    idGenerator.nextId(),
+                    gradeId,
+                    schoolClassId.value(),
+                    userId.value(),
+                    LocalDateTime.now()));
+            entityManager.flush();
+        } catch (DataIntegrityViolationException | PersistenceException exception) {
             throw conflict("school class membership conflict", exception);
         }
     }

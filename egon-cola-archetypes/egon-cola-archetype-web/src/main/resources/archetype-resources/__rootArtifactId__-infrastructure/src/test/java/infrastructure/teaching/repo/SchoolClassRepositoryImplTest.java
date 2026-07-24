@@ -33,7 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest(properties = {
     "spring.flyway.enabled=true",
     "spring.flyway.locations=classpath:db/migration/default",
-    "spring.jpa.hibernate.ddl-auto=validate"
+    "spring.jpa.hibernate.ddl-auto=validate",
+    "spring.jpa.properties.hibernate.session_factory.statement_inspector="
+        + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector"
 })
 @Import({GradeRepositoryImpl.class, SchoolClassRepositoryImpl.class,
     GradePOConverter.class, GradePOMapperImpl.class, SchoolClassPOConverter.class,
@@ -55,20 +57,34 @@ class SchoolClassRepositoryImplTest {
             gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
         userJpaRepository.save(new ${package}.infrastructure.user.repo.po.UserPO(
             userId, "Mario", "mario@example.com", "ACTIVE", java.time.LocalDateTime.now()));
+        SqlCaptureStatementInspector.clear();
         schoolClassRepository.save(new SchoolClass(new SchoolClassId(schoolClassId), "Class A", grade.id(),
             grade.code(), grade.name(), SchoolClassStatus.ACTIVE, List.of()));
 
+        assertThat(SqlCaptureStatementInspector.statements())
+            .noneMatch(sql -> isIdOnlyLookup(sql, "school_classes"));
         assertThat(schoolClassRepository.findByGradeIdAndId(
                 gradeId, new SchoolClassId(schoolClassId))).isPresent();
         assertThat(schoolClassRepository.existsByGradeIdAndNameIgnoreCase(gradeId, "class a")).isTrue();
+        SqlCaptureStatementInspector.clear();
         schoolClassRepository.addUser(
                 gradeId, new SchoolClassId(schoolClassId), new UserId(userId));
+        assertThat(SqlCaptureStatementInspector.statements())
+            .noneMatch(sql -> isIdOnlyLookup(sql, "school_class_users"));
         String relationId = schoolClassUserJpaRepository
                 .findByGradeIdAndSchoolClassId(gradeId, schoolClassId)
                 .getFirst()
                 .getId();
         assertThat(relationId).hasSize(36);
         assertThat(UUID.fromString(relationId).version()).isEqualTo(7);
+    }
+
+    private static boolean isIdOnlyLookup(String sql, String table) {
+        String normalized = sql.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains(" from " + table + " ")
+            && normalized.contains(" where ")
+            && normalized.matches(".*where [a-z0-9_]+\\.id=\\?.*")
+            && !normalized.contains("grade_id=?");
     }
 
     @Configuration(proxyBeanMethods = false)

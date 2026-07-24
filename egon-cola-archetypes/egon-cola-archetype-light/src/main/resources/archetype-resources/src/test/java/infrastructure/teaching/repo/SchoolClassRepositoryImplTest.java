@@ -31,12 +31,16 @@ import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
+import java.util.Locale;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@DataJpaTest
+@DataJpaTest(properties =
+        "spring.jpa.properties.hibernate.session_factory.statement_inspector="
+                + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector")
 @ActiveProfiles({"test", "jpa-test"})
 @ContextConfiguration(classes = JpaTestApplication.class)
 @Import({
@@ -62,7 +66,10 @@ class SchoolClassRepositoryImplTest {
         SchoolClass schoolClass = schoolClassRepository.save(schoolClass());
         SchoolClassAggregate aggregate = new SchoolClassAggregate(schoolClass);
         aggregate.schedule(course, schedule());
+        SqlCaptureStatementInspector.clear();
         schoolClassRepository.saveAggregate(aggregate);
+        assertThat(SqlCaptureStatementInspector.statements())
+                .noneMatch(sql -> isIdOnlyLookup(sql, "class_course_schedules"));
         entityManager.flush();
         entityManager.clear();
 
@@ -114,5 +121,13 @@ class SchoolClassRepositoryImplTest {
                 new CourseCode("math"),
                 LocalDateTime.of(2026, 9, 1, 9, 0),
                 LocalDateTime.of(2026, 9, 1, 10, 0));
+    }
+
+    private static boolean isIdOnlyLookup(String sql, String table) {
+        String normalized = sql.toLowerCase(Locale.ROOT);
+        return normalized.contains(" from " + table + " ")
+                && normalized.contains(" where ")
+                && normalized.matches(".*where [a-z0-9_]+\\.id=\\?.*")
+                && !normalized.contains("school_class_id=?");
     }
 }

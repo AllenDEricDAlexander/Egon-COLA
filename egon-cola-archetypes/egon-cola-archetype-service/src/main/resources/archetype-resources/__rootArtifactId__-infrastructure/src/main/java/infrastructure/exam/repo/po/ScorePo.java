@@ -30,4 +30,12 @@ public class ScorePo {
     public String getCourseId() { return courseId; } public String getStudentId() { return studentId; }
     public int getPoints() { return points; } public String getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
+    public void update(
+            String courseId, String studentId, int points, String status, Instant updatedAt) {
+        this.courseId = courseId;
+        this.studentId = studentId;
+        this.points = points;
+        this.status = status;
+        this.updatedAt = updatedAt;
+    }
 }
