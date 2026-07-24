@@ -9,8 +9,12 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import top.egon.cola.component.outbox.store.NewOutboxRecord;
+import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
 
 import java.sql.Connection;
+import java.time.Instant;
 import java.util.UUID;
 
 abstract class PostgresqlOutboxTestSupport {
@@ -51,6 +55,41 @@ abstract class PostgresqlOutboxTestSupport {
     @BeforeEach
     void cleanOutboxTable() {
         jdbcTemplate.execute("truncate table egon_cola_outbox_message restart identity");
+    }
+
+    static PostgresqlJdbcOutboxStore outboxStore() {
+        return new PostgresqlJdbcOutboxStore(
+                jdbcTemplate,
+                new NamedParameterJdbcTemplate(dataSource),
+                objectMapper,
+                transactionManager
+        );
+    }
+
+    static NewOutboxRecord newRecord(String messageId) {
+        return newRecord(messageId, "key-" + messageId, "a".repeat(64), 10);
+    }
+
+    static NewOutboxRecord newRecord(
+            String messageId,
+            String idempotencyKey,
+            String fingerprint,
+            int maxAttempts
+    ) {
+        return new NewOutboxRecord(
+                messageId,
+                idempotencyKey,
+                fingerprint,
+                "test",
+                "orders",
+                "{}",
+                "application/json",
+                "1",
+                "{}",
+                "trace-1",
+                Instant.now().minusSeconds(1),
+                maxAttempts
+        );
     }
 
     private static PGSimpleDataSource localDataSource() {
