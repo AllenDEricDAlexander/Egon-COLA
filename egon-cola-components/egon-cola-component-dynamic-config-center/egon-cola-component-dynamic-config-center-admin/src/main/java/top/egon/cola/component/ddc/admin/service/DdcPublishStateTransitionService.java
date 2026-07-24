@@ -146,6 +146,25 @@ public class DdcPublishStateTransitionService {
         return requiredTask(changeId);
     }
 
+    @Transactional
+    public DdcPublishTaskEntity markTargetLeaseExpired(
+            String changeId,
+            List<String> retryableStatuses) {
+        DdcPublishTaskEntity task = requiredTask(changeId);
+        int changed = taskRepository.markRetryLeaseExpired(
+                changeId,
+                PublishStatus.FAILED.name(),
+                now(),
+                "TARGET_VALIDATION",
+                "DDC_TARGET_LEASE_EXPIRED",
+                retryableStatuses
+        );
+        if (changed == 1) {
+            notifyTerminalAfterCommit(task);
+        }
+        return requiredTask(changeId);
+    }
+
     public boolean isTerminal(DdcPublishTaskEntity task) {
         return task != null && TERMINAL_STATUSES.contains(task.getStatus());
     }

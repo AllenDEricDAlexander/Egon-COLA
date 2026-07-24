@@ -23,3 +23,8 @@ egon:
             secret-key:
             allowed-clock-skew-seconds: 300
             nonce-cache-max-size: 10000
+          publish:
+            dispatch-timeout-ms: 5000
+            default-timeout-ms: 30000
+            max-timeout-ms: 60000
+            scan-interval-ms: 1000

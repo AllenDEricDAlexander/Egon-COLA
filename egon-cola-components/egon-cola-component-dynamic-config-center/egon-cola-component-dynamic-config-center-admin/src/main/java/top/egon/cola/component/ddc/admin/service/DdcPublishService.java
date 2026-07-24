@@ -45,6 +45,12 @@ import java.util.UUID;
 @Service
 public class DdcPublishService {
 
+    private static final List<String> RETRYABLE_STATUSES = List.of(
+            PublishStatus.FAILED.name(),
+            PublishStatus.TIMEOUT.name(),
+            PublishStatus.UNKNOWN.name()
+    );
+
     private final DdcConfigItemRepository configItemRepository;
 
     private final DdcConfigVersionRepository versionRepository;
@@ -183,6 +189,48 @@ public class DdcPublishService {
             }
         }
         return await(request.getChangeId(), waiter);
+    }
+
+    public DdcPublishResultVO retry(String changeId) {
+        requireText(changeId, "changeId");
+        DdcPublishTaskEntity task = requiredTask(changeId);
+        requireRetryable(task);
+        DdcConfigResourceKey resourceKey = resourceKey(task);
+        if (!resourceRegistry.tryAcquire(resourceKey, changeId)) {
+            throw new DdcAdminException(DdcErrorStatus.PUBLISH_IN_PROGRESS);
+        }
+
+        RetryPrepareResult prepared;
+        try {
+            prepared = transactionTemplate.execute(status -> prepareRetry(changeId));
+            if (prepared == null) {
+                throw new DdcAdminException("publish retry prepare failed");
+            }
+        } catch (RuntimeException exception) {
+            resourceRegistry.release(resourceKey, changeId);
+            throw exception;
+        }
+        if (prepared.targetLeaseExpired()) {
+            resourceRegistry.release(resourceKey, changeId);
+            throw new DdcAdminException(DdcErrorStatus.TARGET_LEASE_EXPIRED);
+        }
+
+        PublishCompletionWaiterRegistry.PublishWaiter waiter =
+                waiterRegistry.register(changeId);
+        try {
+            dispatch(prepared.message());
+        } catch (RuntimeException exception) {
+            DdcPublishTaskEntity terminal = stateTransitions.fail(
+                    changeId,
+                    "REDIS_DISPATCH",
+                    exception.getMessage()
+            );
+            if (!PublishStatus.SUCCESS.name().equals(terminal.getStatus())) {
+                waiterRegistry.remove(changeId, waiter);
+                throw new DdcAdminException("publish dispatch failed", exception);
+            }
+        }
+        return await(changeId, waiter);
     }
 
     @Transactional
@@ -347,6 +395,47 @@ public class DdcPublishService {
         publishAckRepository.saveAll(targetRows);
         savePublishOperation(config, request.getChangeId(), operator);
         return new PublishPrepareResult(task, message(task, targetRows), true);
+    }
+
+    private RetryPrepareResult prepareRetry(String changeId) {
+        DdcPublishTaskEntity task = requiredTask(changeId);
+        requireRetryable(task);
+        List<DdcPublishAckEntity> targetRows =
+                publishAckRepository.findByChangeId(changeId).stream()
+                        .sorted(Comparator
+                                .comparing(DdcPublishAckEntity::getInstanceId)
+                                .thenComparing(DdcPublishAckEntity::getLeaseId))
+                        .toList();
+        if (targetRows.isEmpty()) {
+            throw new DdcAdminException("publish targets not found");
+        }
+        List<DdcPublishTarget> targets = targetRows.stream()
+                .map(target -> new DdcPublishTarget(
+                        target.getInstanceId(),
+                        target.getLeaseId()
+                ))
+                .toList();
+        if (!leaseService.areActiveTargets(
+                task.getAppCode(),
+                task.getEnv(),
+                task.getNamespace(),
+                targets
+        )) {
+            stateTransitions.markTargetLeaseExpired(changeId, RETRYABLE_STATUSES);
+            return RetryPrepareResult.expired();
+        }
+        int reset = publishTaskRepository.resetForRetry(
+                changeId,
+                PublishStatus.PENDING.name(),
+                now(),
+                RETRYABLE_STATUSES
+        );
+        if (reset != 1) {
+            throw new DdcAdminException("publish task is not retryable");
+        }
+        publishAckRepository.resetTargets(changeId);
+        DdcPublishTaskEntity pending = requiredTask(changeId);
+        return RetryPrepareResult.ready(message(pending, targetRows));
     }
 
     private void dispatch(DdcPublishMessage message) {
@@ -527,6 +616,12 @@ public class DdcPublishService {
         }
     }
 
+    private void requireRetryable(DdcPublishTaskEntity task) {
+        if (task == null || !RETRYABLE_STATUSES.contains(task.getStatus())) {
+            throw new DdcAdminException("publish task is not retryable");
+        }
+    }
+
     private long timeout(Long requestedTimeoutMs) {
         long timeoutMs = requestedTimeoutMs == null
                 ? properties.getPublish().getDefaultTimeoutMs()
@@ -642,5 +737,19 @@ public class DdcPublishService {
             DdcPublishMessage message,
             boolean dispatchRequired
     ) {
+    }
+
+    private record RetryPrepareResult(
+            DdcPublishMessage message,
+            boolean targetLeaseExpired
+    ) {
+
+        private static RetryPrepareResult ready(DdcPublishMessage message) {
+            return new RetryPrepareResult(message, false);
+        }
+
+        private static RetryPrepareResult expired() {
+            return new RetryPrepareResult(null, true);
+        }
     }
 }

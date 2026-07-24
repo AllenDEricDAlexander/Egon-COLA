@@ -65,4 +65,44 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
                              @Param("failureStage") String failureStage,
                              @Param("errorMessage") String errorMessage,
                              @Param("activeStatuses") Collection<String> activeStatuses);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update DdcPublishTaskEntity task
+               set task.status = :pendingStatus,
+                   task.attemptCount = coalesce(task.attemptCount, 0) + 1,
+                   task.dispatchedAt = null,
+                   task.completedAt = null,
+                   task.failureStage = null,
+                   task.errorMessage = null,
+                   task.ackCount = 0,
+                   task.failedCount = 0,
+                   task.ignoredCount = 0,
+                   task.timeoutCount = 0,
+                   task.updatedAt = :updatedAt
+             where task.changeId = :changeId
+               and task.status in :retryableStatuses
+            """)
+    int resetForRetry(@Param("changeId") String changeId,
+                      @Param("pendingStatus") String pendingStatus,
+                      @Param("updatedAt") LocalDateTime updatedAt,
+                      @Param("retryableStatuses") Collection<String> retryableStatuses);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update DdcPublishTaskEntity task
+               set task.status = :failedStatus,
+                   task.completedAt = :completedAt,
+                   task.failureStage = :failureStage,
+                   task.errorMessage = :errorMessage,
+                   task.updatedAt = :completedAt
+             where task.changeId = :changeId
+               and task.status in :retryableStatuses
+            """)
+    int markRetryLeaseExpired(@Param("changeId") String changeId,
+                              @Param("failedStatus") String failedStatus,
+                              @Param("completedAt") LocalDateTime completedAt,
+                              @Param("failureStage") String failureStage,
+                              @Param("errorMessage") String errorMessage,
+                              @Param("retryableStatuses") Collection<String> retryableStatuses);
 }

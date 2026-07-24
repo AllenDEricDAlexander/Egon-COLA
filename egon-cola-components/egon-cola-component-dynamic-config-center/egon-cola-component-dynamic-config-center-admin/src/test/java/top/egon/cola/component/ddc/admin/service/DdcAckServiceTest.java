@@ -61,6 +61,9 @@ class DdcAckServiceTest {
     @Autowired
     private DdcPublishAckRepository ackRepository;
 
+    @Autowired
+    private DdcPublishStateTransitionService stateTransitions;
+
     @Test
     void exactDuplicateAckIsIdempotentAndCompletesTask() {
         DdcPublishTaskEntity task = savePublishingTask("ack-success");
@@ -129,6 +132,41 @@ class DdcAckServiceTest {
                 .singleElement()
                 .extracting(DdcPublishAckEntity::getAckStatus)
                 .isEqualTo(DdcAckStatus.FAILED.name());
+    }
+
+    @Test
+    void ackAndTimeoutEachPreserveTheFirstTerminalWinner() {
+        DdcPublishTaskEntity ackWinner = savePublishingTask("ack-wins");
+        saveTarget(ackWinner, "instance-1", "lease-1");
+        publishService.ack(ackRequest(
+                ackWinner.getChangeId(),
+                "instance-1",
+                "lease-1",
+                CHECKSUM
+        ));
+        stateTransitions.timeout(ackWinner.getChangeId(), "late timeout");
+        assertThat(taskRepository.findByChangeId(ackWinner.getChangeId()))
+                .get()
+                .extracting(DdcPublishTaskEntity::getStatus)
+                .isEqualTo(PublishStatus.SUCCESS.name());
+
+        DdcPublishTaskEntity timeoutWinner = savePublishingTask("timeout-wins");
+        saveTarget(timeoutWinner, "instance-1", "lease-1");
+        stateTransitions.timeout(timeoutWinner.getChangeId(), "timeout");
+        publishService.ack(ackRequest(
+                timeoutWinner.getChangeId(),
+                "instance-1",
+                "lease-1",
+                CHECKSUM
+        ));
+        assertThat(taskRepository.findByChangeId(timeoutWinner.getChangeId()))
+                .get()
+                .extracting(DdcPublishTaskEntity::getStatus)
+                .isEqualTo(PublishStatus.TIMEOUT.name());
+        assertThat(ackRepository.findByChangeId(timeoutWinner.getChangeId()))
+                .singleElement()
+                .extracting(DdcPublishAckEntity::getAckStatus)
+                .isEqualTo(DdcAckStatus.TIMEOUT.name());
     }
 
     private DdcPublishTaskEntity savePublishingTask(String configKey) {
