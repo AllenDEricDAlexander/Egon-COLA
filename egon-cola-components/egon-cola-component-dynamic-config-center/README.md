@@ -1,145 +1,195 @@
-# Egon COLA Dynamic Config Center Component
+# Egon COLA Dynamic Config Center
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-## Overview
+## Scope
 
-`egon-cola-component-dynamic-config-center` is the Egon COLA dynamic configuration center component. It provides a starter SDK for business applications and a standalone admin backend. Business applications bind configuration fields through `@DdcValue`; the starter handles default-value injection, configuration pulls, Redis change listening, runtime refresh, instance registration, heartbeats, and ACK reporting. The admin handles configuration item management, version management, publish tasks, instance status, Redis caching, and consistency strategies.
+`egon-cola-component-dynamic-config-center` provides a dynamic-configuration SDK,
+a standalone Admin application, and a Redis-backed service registry for RPC
+Providers and internal Gateways.
 
-The component provides an end-to-end backend capability. It does not include a UI, account login, RBAC/permission management, or compatibility targets for MySQL, Spring Boot 2.7, or JDK 17.
+V1 supports one Admin process and one Redis single-server connection only.
+It does not implement multi-Admin coordination, Raft, leader election, Redis
+Sentinel, Redis Cluster, or any distributed lock. PostgreSQL is the production
+database; SQLite is retained for tests. Service registry entries are temporary
+lease state in Redis and never create JPA or database tables.
 
-## Module Layout
+## Deployment Topology
 
-| Module | Description |
+```text
+Configuration Clients ──HTTP/HMAC──┐
+RPC Providers ──────────HTTP/HMAC──┼──> one DDC Admin ──> PostgreSQL
+Internal Gateway ───────HTTP/HMAC──┘          │
+                                              └──> one Redis
+Configuration Clients <──── Redis Pub/Sub ────────┘
+Registry Subscribers  <──── Redis Pub/Sub ────────┘
+```
+
+The Admin is the only management and lease API endpoint. Redis contains
+configuration cache, publish notifications, live configuration-client leases,
+and service-registry leases. PostgreSQL stores configuration, version, publish,
+ACK, operation, and configuration-client projection data.
+
+## Modules
+
+| Module | Responsibility |
 |---|---|
-| `egon-cola-component-dynamic-config-center-starter` | Business application SDK that provides `@DdcValue`, field binding, configuration refresh, Redis subscription, the Admin OpenAPI client, registration, heartbeat, and ACK support |
-| `egon-cola-component-dynamic-config-center-admin` | Standalone management backend that provides REST APIs, JPA persistence, Flyway initialization scripts, Redis caching, publish tasks, and instance management |
-| `egon-cola-component-dynamic-config-center-test` | Starter sample application and refresh-flow verification |
+| `egon-cola-component-dynamic-config-center-starter` | `@DdcValue`, startup synchronization, refresh, ACK, configuration-client lease lifecycle, HMAC client, and service-registry client |
+| `egon-cola-component-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
+| `egon-cola-component-dynamic-config-center-test` | Cross-module lifecycle, registry, refresh, and synchronous-publish verification |
 
-## Features
+## Configuration Client Lifecycle
 
-### Starter SDK
+`DdcRuntimeCoordinator` starts only after the Redis subscription is active and
+executes this order:
 
-After a business application includes the starter, `DdcAutoConfig` auto-configures the following:
+1. register the configuration client and receive a new `leaseId`;
+2. report annotation defaults;
+3. pull and apply the complete configuration snapshot;
+4. enter `READY`;
+5. heartbeat on the configured interval;
+6. actively take the current lease offline during shutdown.
 
-| Bean / Capability | Description |
-|---|---|
-| `DdcValueConverter` | Converts string configurations into `String`, `Integer`, `Long`, `Boolean`, `Double`, `BigDecimal`, `Enum`, `List<String>`, or JSON objects |
-| `DdcLocalConfigRepository` | Stores local configuration values, versions, and field bindings |
-| `DdcFieldBindingService` | Scans `@DdcValue` fields, injects defaults, and updates fields reflectively during refresh |
-| `DdcAdminClient` | Calls the admin OpenAPI over HTTP |
-| `DdcRefreshService` | Receives publish messages, compares local versions, updates fields, and reports SUCCESS / FAILED / IGNORED ACKs |
-| `DdcRedisChangeListener` | Subscribes to the Redis Topic and receives configuration change messages published by the admin |
-| `DdcInstanceService` | Registers instances, sends heartbeats, and takes instances offline |
-
-`@DdcValue` supports two forms:
+Each registration replaces the old lease. Heartbeat and offline operations
+atomically match `instanceId + leaseId`; a stale lease cannot renew or delete
+the replacement lease. When a current lease is missing or mismatched, the SDK
+registers again and repeats initial synchronization.
 
 ```java
 @DdcValue("rateLimit:100")
 private volatile Integer rateLimit;
 
-@DdcValue(value = "", key = "downgradeSwitch", defaultValue = "false", type = Boolean.class)
+@DdcValue(value = "", key = "downgradeSwitch",
+        defaultValue = "false", type = Boolean.class)
 private volatile Boolean downgradeSwitch;
 ```
 
-### Admin Backend
+## Lease Protocol
 
-The Admin API base path is `/api/v1/ddc`:
+All roles use the same register, heartbeat, and deregister semantics, while
+their callers use role-specific timing:
 
-| API | Description |
-|---|---|
-| `GET /api/v1/ddc/manifest` | Manifest for management UI discovery |
-| `GET /api/v1/ddc/apps` / `POST /api/v1/ddc/apps` | Query and create applications |
-| `GET /api/v1/ddc/namespaces` / `POST /api/v1/ddc/namespaces` | Query and create namespaces |
-| `GET /api/v1/ddc/configs` | Query configuration items |
-| `POST /api/v1/ddc/configs` | Create a configuration item |
-| `PUT /api/v1/ddc/configs/{id}` | Update a configuration item |
-| `DELETE /api/v1/ddc/configs/{id}` | Soft-delete a configuration item |
-| `POST /api/v1/ddc/configs/{id}/publish` | Publish a configuration |
-| `GET /api/v1/ddc/configs/{id}/versions` | Query configuration versions |
-| `POST /api/v1/ddc/configs/{id}/rollback` | Roll back a configuration version |
-| `GET /api/v1/ddc/publish-tasks` | Query publish tasks |
-| `GET /api/v1/ddc/publish-tasks/{changeId}` | Query a single publish task |
-| `GET /api/v1/ddc/instances` | Query instances |
-| `POST /api/v1/ddc/cache/rebuild` | Rebuild the Redis cache |
-| `GET /api/v1/ddc/cache/check` | Check database/cache consistency |
+| Role | Default lease | Default heartbeat | Storage |
+|---|---:|---:|---|
+| `CONFIG_CLIENT` | 30 seconds | 10 seconds | Redis lease plus `ddc_instance` management projection |
+| `RPC_PROVIDER` | 30 seconds | 10 seconds | Redis only |
+| `INTERNAL_GATEWAY` | 15 seconds | 5 seconds | Redis only |
 
-The SDK OpenAPI is under `/api/v1/ddc/openapi` and is called by the starter:
+The Admin accepts leases from 5 to 300 seconds, and the heartbeat interval must
+be shorter than the lease. Every register request creates a new `leaseId`.
+Redis bucket TTL is authoritative; heartbeat never recreates a missing lease.
 
-| API | Description |
-|---|---|
-| `POST /instances/register` | Register an instance |
-| `POST /instances/heartbeat` | Send an instance heartbeat |
-| `POST /instances/offline` | Take an instance offline |
-| `GET /configs/pull` | Pull all configurations |
-| `GET /configs/{key}` | Pull a single configuration |
-| `POST /publish/ack` | Report a publish ACK |
-| `POST /defaults/report` | Report annotation defaults |
+## Service Registry
 
-### Publish Consistency
+The service identity is:
 
-The admin supports three publish modes:
-
-| PublishMode | Behavior |
-|---|---|
-| `ASYNC` | Completes immediately after the message is written to and published through Redis |
-| `STRONG_ALL_ACK` | Succeeds only after every target instance returns a successful ACK; fails when all targets finish and any failure or timeout exists |
-| `STRONG_QUORUM_ACK` | Succeeds after a majority of instances return successful ACKs; fails when the number of failures/timeouts makes a majority impossible |
-
-### Redis Keys
-
-The starter and admin share `DdcKeys`:
-
-| Key / Topic | Description |
-|---|---|
-| `ddc:config:{appCode}:{env}:{namespace}:{key}` | Configuration value |
-| `ddc:version:{appCode}:{env}:{namespace}:{key}` | Configuration version |
-| `ddc:instance:{appCode}:{env}:{namespace}:{instanceId}` | Instance details |
-| `ddc:instances:{appCode}:{env}:{namespace}` | Instance set |
-| `ddc:publish:{changeId}` | Publish task |
-| `ddc:publish:ack:{changeId}` | Publish ACK |
-| `ddc:topic:{appCode}:{env}:{namespace}` | Configuration publish Topic |
-
-## Dependency Setup
-
-Include the starter in a business application:
-
-```xml
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-components-bom</artifactId>
-            <version>${egon-cola.version}</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
-
-<dependencies>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
-    </dependency>
-</dependencies>
+```text
+env + namespace + serviceKind + serviceName + group + version + protocol
 ```
 
-Build and deploy the Admin service as a standalone application within the component:
+Supported `serviceKind` values are `RPC_PROVIDER` and `INTERNAL_GATEWAY`.
+The registration carries `instanceId`, host, port, secure flag, metadata,
+lease seconds, and heartbeat interval. Metadata is bounded and rejects reserved
+or sensitive keys.
+
+OpenAPI endpoints:
+
+| Method and path | Purpose |
+|---|---|
+| `POST /api/v1/ddc/openapi/registry/instances/register` | Register and receive a new lease |
+| `POST /api/v1/ddc/openapi/registry/instances/heartbeat` | Renew only the matching current lease |
+| `POST /api/v1/ddc/openapi/registry/instances/deregister` | Remove only the matching current lease |
+| `GET /api/v1/ddc/openapi/registry/instances` | Read a stable live-instance snapshot for one service key |
+| `GET /api/v1/ddc/openapi/registry/services` | Read the live service catalog |
+
+`DdcServiceRegistryClient` also exposes instance and catalog subscriptions.
+Redis revisions and Pub/Sub notifications trigger reconciliation; expired
+entries are removed from snapshots. Redis restart loses registry state by
+design, after which clients register again with new leases.
+
+## Synchronous Publish
+
+V1 has one publish mode: `SYNC_ALL_ACK`.
+
+The caller supplies a UUIDv7 `changeId`. The preparation transaction updates the
+configuration version and freezes the current Redis lease targets as exact
+`instanceId + leaseId` pairs. A resource key
+`appCode + env + namespace + configKey` permits only one active publish in the
+single Admin. Waiters are keyed by `changeId`, so ACK handling does not wait on
+the resource lock.
+
+An ACK is accepted only when all of these match:
+
+- `changeId`;
+- target `instanceId + leaseId`;
+- target configuration version;
+- content SHA-256 checksum.
+
+The publish call returns only after every target reports `SUCCESS`, or after a
+terminal failure:
+
+| Status | Meaning |
+|---|---|
+| `SUCCESS` | Every frozen target acknowledged successfully |
+| `FAILED` | Preparation, dispatch, target validation, or target ACK failed |
+| `TIMEOUT` | Not every target acknowledged before the deadline |
+| `UNKNOWN` | Admin restarted while the task was active |
+
+`POST /api/v1/ddc/publish-tasks/{changeId}/retry` retries `FAILED`, `TIMEOUT`,
+or `UNKNOWN` tasks idempotently. Retry keeps the original targets and never
+resnapshots currently live instances. If any original target lease has expired,
+retry remains failed with a target-lease error.
+
+Publish request:
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin -am package -DskipTests
+curl -X POST \
+  'http://localhost:18080/api/v1/ddc/configs/{configId}/publish?operator=admin' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "changeId": "019c9f0d-7b9b-7e00-8000-000000000001",
+    "configValue": "200",
+    "expectedVersion": 1,
+    "timeoutMs": 30000
+  }'
 ```
+
+The call is intentionally synchronous. Query the same `changeId` through
+`GET /api/v1/ddc/publish-tasks/{changeId}` when a caller loses the response.
+
+## OpenAPI HMAC
+
+HMAC protects every path under `/api/v1/ddc/openapi/` when
+`signature-enabled` is true. Required headers are:
+
+| Header | Value |
+|---|---|
+| `X-DDC-Access-Key` | configured access key |
+| `X-DDC-Timestamp` | Unix epoch milliseconds |
+| `X-DDC-Nonce` | unique request nonce |
+| `X-DDC-Content-SHA256` | lowercase SHA-256 hex of the exact request body |
+| `X-DDC-Signature` | HMAC-SHA256 hex of the canonical request |
+
+The canonical value is six newline-separated fields:
+
+```text
+UPPERCASE_HTTP_METHOD
+request-path
+canonical-query
+timestamp
+nonce
+content-sha256
+```
+
+The canonical query percent-encodes UTF-8 with RFC 3986 unreserved characters,
+sorts by encoded key and value, and preserves repeated parameters. The Admin
+checks clock skew, access key, body digest, signature, and nonce replay.
 
 ## Configuration
 
-The business application configuration prefix is `egon.cola.component.ddc`:
+Business application:
 
 ```yaml
-spring:
-  application:
-    name: order-service
-
 egon:
   cola:
     component:
@@ -150,32 +200,35 @@ egon:
         namespace: default
         admin:
           endpoint: http://localhost:18080
-          access-key:
-          secret-key:
-          signature-enabled: false
+          signature-enabled: true
+          access-key: ${DDC_ACCESS_KEY}
+          secret-key: ${DDC_SECRET_KEY}
         redis:
           enabled: true
           host: 127.0.0.1
           port: 6379
-          password:
           database: 0
         instance:
+          lease-seconds: 30
           heartbeat-interval-seconds: 10
-          heartbeat-timeout-seconds: 30
+        registry:
+          enabled: true
+          reconcile-interval-seconds: 10
         consistency:
-          ack-enabled: true
           fail-fast: true
 ```
 
-Default Admin port and Flyway configuration:
+Production Admin:
 
 ```yaml
 server:
   port: 18080
 
 spring:
-  application:
-    name: egon-cola-ddc-admin
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/egon_ddc
+    username: ${DDC_DB_USERNAME}
+    password: ${DDC_DB_PASSWORD}
   flyway:
     locations: classpath:db/postgresql
 
@@ -186,141 +239,44 @@ egon:
         enabled: false
         admin:
           redis:
+            enabled: true
             host: 127.0.0.1
             port: 6379
             database: 0
+          lease:
+            minimum-seconds: 5
+            maximum-seconds: 300
+          openapi:
+            signature-enabled: true
+            access-key: ${DDC_ACCESS_KEY}
+            secret-key: ${DDC_SECRET_KEY}
+          publish:
+            dispatch-timeout-ms: 5000
+            default-timeout-ms: 30000
+            max-timeout-ms: 60000
+            scan-interval-ms: 1000
 ```
 
-Flyway script locations:
+The `test` profile uses SQLite with `create-drop` and disables Flyway and the
+Admin Redis connection. It is not the production storage topology.
 
-```text
-classpath:db/postgresql/V1__create_ddc_schema.sql
-classpath:db/sqlite/V1__create_ddc_schema.sql
-```
-
-## Complete Usage Example
-
-### 1. Bind Dynamic Configuration in a Business Application
-
-Use `volatile` for configuration fields so that other threads can observe refreshed values promptly.
-
-```java
-package demo.order;
-
-import org.springframework.stereotype.Service;
-import top.egon.cola.component.ddc.annotation.DdcValue;
-
-@Service
-public class OrderSwitchService {
-
-    @DdcValue("downgradeSwitch:false")
-    private volatile Boolean downgradeSwitch;
-
-    @DdcValue(value = "rateLimit:100", type = Integer.class)
-    private volatile Integer rateLimit;
-
-    public boolean shouldDowngrade() {
-        return Boolean.TRUE.equals(downgradeSwitch);
-    }
-
-    public int rateLimit() {
-        return rateLimit == null ? 100 : rateLimit;
-    }
-}
-```
-
-### 2. Create a Configuration Item
+## Build and Validation
 
 ```bash
-curl -X POST 'http://localhost:18080/api/v1/ddc/configs?operator=admin' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "appCode": "order-service",
-    "env": "dev",
-    "namespace": "default",
-    "configKey": "rateLimit",
-    "configValue": "100",
-    "defaultValue": "100",
-    "valueType": "INTEGER",
-    "description": "Order API rate-limit threshold"
-  }'
+./mvnw -B -ntp \
+  -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test \
+  -am clean test
+
+./mvnw -B -ntp \
+  -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter \
+  -am package -DskipTests
 ```
 
-### 3. Publish a Configuration
+## Explicit Boundaries
 
-```bash
-curl -X POST 'http://localhost:18080/api/v1/ddc/configs/{configId}/publish?operator=admin' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "configValue": "200",
-    "publishMode": "STRONG_QUORUM_ACK",
-    "expectedVersion": 1,
-    "timeoutMs": 30000
-  }'
-```
-
-After publication, the admin updates the database version, writes the configuration value to Redis, and publishes a `DdcPublishMessage`. When the business application receives the message, `DdcRefreshService` updates the local field and reports an ACK.
-
-### 4. Query Publish Tasks and Instances
-
-```bash
-curl 'http://localhost:18080/api/v1/ddc/publish-tasks'
-curl 'http://localhost:18080/api/v1/ddc/publish-tasks/{changeId}'
-curl 'http://localhost:18080/api/v1/ddc/instances?appCode=order-service&env=dev&namespace=default'
-```
-
-### 5. Use Annotation Defaults Without a Local Admin
-
-If the admin is not running during local development, disable Redis and fail-fast. Fields will retain the defaults declared in `@DdcValue`:
-
-```yaml
-egon:
-  cola:
-    component:
-      ddc:
-        enabled: true
-        app-code: demo-app
-        env: dev
-        namespace: default
-        redis:
-          enabled: false
-        consistency:
-          fail-fast: false
-```
-
-## Design Principles and Implementation Details
-
-### Design Principles
-
-1. Separate the starter from the admin. Business applications depend only on the lightweight SDK, while the management backend is deployed independently.
-2. Address configurations with `appCode + env + namespace + configKey` to prevent contamination across applications, environments, and namespaces.
-3. Declare defaults alongside business code so local startup can continue when the admin is unavailable.
-4. In the publish flow, write the database and version first, then update Redis and publish the message. The business side uses the version to decide whether a refresh is needed.
-5. Encapsulate consistency strategies independently so asynchronous, all-ACK, and quorum-ACK modes share the same publish task and ACK models.
-
-### Implementation Details
-
-- `DdcBeanPostProcessor` scans Spring Bean fields annotated with `@DdcValue` and delegates binding to `DdcFieldBindingService`.
-- `DdcValueParser` supports the `key:defaultValue` expression and explicit `key`, `defaultValue`, and `type` annotation attributes.
-- `DdcValueConverter` converts string configurations into target field types; complex objects use Jackson JSON deserialization.
-- `DdcLocalConfigRepository` stores configuration versions and reports an `IGNORED` ACK when it receives an older version.
-- `DdcPublishService.publish` uses `TransactionTemplate` to prepare the publish task, target ACK records, and version record, then writes to Redis and publishes the message.
-- `PublishFailureRecorder` records failed tasks when publication raises an exception so failed publish paths remain traceable.
-- `DdcTraceIdFilter` and the global exception handler provide unified tracing and error responses on the admin side.
-- Admin PostgreSQL and SQLite scripts are located under `classpath:db/postgresql` and `classpath:db/sqlite`. Every new database change must use a new Flyway version file; existing scripts must not be modified.
-
-## Boundaries and Operational Notes
-
-- The component does not include a UI, accounts, login, roles, permissions, or RBAC.
-- The current scripts cover PostgreSQL and SQLite, not MySQL.
-- `@DdcValue` fields are updated through reflection and must not be `final`.
-- Defaults come from code annotations; runtime published values come from the admin/Redis.
-- With strong-consistency publication enabled, business instances must be able to report ACKs. Otherwise, the publish task remains running or eventually fails.
-
-## Validation Commands
-
-```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter -am test
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin -am test
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test -am -Dsurefire.failIfNoSpecifiedTests=false test
-```
+- no multi-Admin deployment or write coordination;
+- no Raft, leader election, consensus log, or membership protocol;
+- no Redis Sentinel, Redis Cluster, or distributed lock;
+- no embedded Redis and no database-backed service registry;
+- no UI, account system, RBAC, or MySQL compatibility target;
+- no asynchronous, quorum, or partial-success publish mode in V1.
