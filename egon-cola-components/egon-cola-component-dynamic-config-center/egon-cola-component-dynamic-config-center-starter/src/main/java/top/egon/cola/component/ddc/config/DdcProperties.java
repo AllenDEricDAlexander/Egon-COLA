@@ -185,7 +185,7 @@ public class DdcProperties {
 
         private int heartbeatIntervalSeconds = 10;
 
-        private int heartbeatTimeoutSeconds = 30;
+        private int leaseSeconds = 30;
 
         public int getHeartbeatIntervalSeconds() {
             return heartbeatIntervalSeconds;
@@ -195,28 +195,34 @@ public class DdcProperties {
             this.heartbeatIntervalSeconds = heartbeatIntervalSeconds;
         }
 
-        public int getHeartbeatTimeoutSeconds() {
-            return heartbeatTimeoutSeconds;
+        public int getLeaseSeconds() {
+            return leaseSeconds;
         }
 
+        public void setLeaseSeconds(int leaseSeconds) {
+            this.leaseSeconds = leaseSeconds;
+        }
+
+        /**
+         * @deprecated use {@link #setLeaseSeconds(int)}.
+         */
+        @Deprecated(forRemoval = true)
         public void setHeartbeatTimeoutSeconds(int heartbeatTimeoutSeconds) {
-            this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
+            this.leaseSeconds = heartbeatTimeoutSeconds;
+        }
+
+        /**
+         * @deprecated use {@link #getLeaseSeconds()}.
+         */
+        @Deprecated(forRemoval = true)
+        public int getHeartbeatTimeoutSeconds() {
+            return leaseSeconds;
         }
     }
 
     public static class Consistency {
 
-        private boolean ackEnabled = true;
-
         private boolean failFast = true;
-
-        public boolean isAckEnabled() {
-            return ackEnabled;
-        }
-
-        public void setAckEnabled(boolean ackEnabled) {
-            this.ackEnabled = ackEnabled;
-        }
 
         public boolean isFailFast() {
             return failFast;

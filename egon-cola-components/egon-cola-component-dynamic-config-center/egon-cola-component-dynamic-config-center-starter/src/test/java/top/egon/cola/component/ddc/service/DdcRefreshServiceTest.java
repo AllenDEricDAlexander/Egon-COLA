@@ -2,12 +2,14 @@ package top.egon.cola.component.ddc.service;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
+import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
+import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
@@ -20,28 +22,105 @@ import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DdcRefreshServiceTest {
 
     @Test
-    void ignoresLowerVersionAndReportsIgnoredAck() {
+    void snapshotAppliesWithoutAckAndOlderSnapshotCannotOverwriteTopicValue() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        AtomicReference<String> value = new AtomicReference<>();
+        DdcRefreshService service = service(repository, (key, next, version) -> {
+            value.set(next);
+            repository.updateVersion(key, version);
+        }, client);
+
+        service.refresh(message("switch", "new", 2L));
+        service.applySnapshot(config("switch", "old", 1L));
+
+        assertThat(value).hasValue("new");
+        assertThat(client.ackCount).isEqualTo(1);
+    }
+
+    @Test
+    void targetMessageSendsLeaseAwareSuccessAndNonTargetDoesNothing() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        DdcRefreshService service = service(repository, (key, value, version) ->
+                repository.updateVersion(key, version), client);
+
+        service.refresh(message("switch", "on", 2L));
+
+        assertThat(client.lastAck()).satisfies(ack -> {
+            assertThat(ack.getStatus()).isEqualTo(DdcAckStatus.SUCCESS);
+            assertThat(ack.getInstanceId()).isEqualTo("instance-1");
+            assertThat(ack.getLeaseId()).isEqualTo("lease-1");
+            assertThat(ack.getContentChecksum()).isNotBlank();
+        });
+
+        DdcPublishMessage nonTarget = message("switch", "off", 3L);
+        nonTarget.setTargets(List.of(new DdcPublishTarget("other", "other-lease")));
+        service.refresh(nonTarget);
+        assertThat(client.ackCount).isEqualTo(1);
+    }
+
+    @Test
+    void sameVersionAndChecksumReportsSuccessWithoutApplyingAgain() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        AtomicInteger applyCount = new AtomicInteger();
+        DdcRefreshService service = service(repository, (key, value, version) -> {
+            applyCount.incrementAndGet();
+            repository.updateVersion(key, version);
+        }, client);
+        DdcPublishMessage message = message("switch", "on", 2L);
+
+        service.refresh(message);
+        service.refresh(message);
+
+        assertThat(applyCount).hasValue(1);
+        assertThat(client.lastAck().getStatus()).isEqualTo(DdcAckStatus.SUCCESS);
+    }
+
+    @Test
+    void olderTopicMessageReportsIgnoredWithoutApplying() {
         RecordingAdminClient client = new RecordingAdminClient();
         DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
         repository.updateVersion("switch", 3L);
-        DdcRefreshService service = new DdcRefreshService(repository, (key, value, version) -> {
-        }, client);
+        AtomicInteger applyCount = new AtomicInteger();
+        DdcRefreshService service = service(repository, (key, value, version) ->
+                applyCount.incrementAndGet(), client);
 
-        service.refresh(message("switch", "1", 2L));
+        service.refresh(message("switch", "old", 2L));
 
+        assertThat(applyCount).hasValue(0);
         assertThat(client.lastAck().getStatus()).isEqualTo(DdcAckStatus.IGNORED);
+        assertThat(client.lastAck().getCurrentVersion()).isEqualTo(3L);
+    }
+
+    @Test
+    void malformedTargetMessageDoesNotApplyOrAck() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        AtomicInteger applyCount = new AtomicInteger();
+        DdcRefreshService service = service(new DdcLocalConfigRepository(),
+                (key, value, version) -> applyCount.incrementAndGet(), client);
+        DdcPublishMessage message = message("switch", "on", 2L);
+        message.setContentChecksum(null);
+
+        service.refresh(message);
+
+        assertThat(applyCount).hasValue(0);
+        assertThat(client.ackCount).isZero();
     }
 
     @Test
     void reportsFailedAckWhenApplyFails() {
         RecordingAdminClient client = new RecordingAdminClient();
-        DdcRefreshService service = new DdcRefreshService(new DdcLocalConfigRepository(), (key, value, version) -> {
+        DdcRefreshService service = service(new DdcLocalConfigRepository(), (key, value, version) -> {
             throw new DdcException("convert config value failed");
         }, client);
 
@@ -49,6 +128,40 @@ class DdcRefreshServiceTest {
 
         assertThat(client.lastAck().getStatus()).isEqualTo(DdcAckStatus.FAILED);
         assertThat(client.lastAck().getErrorMessage()).contains("convert config value failed");
+    }
+
+    @Test
+    void ackTransportFailureDoesNotRollbackAppliedValueOrVersion() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        client.failAck = true;
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        AtomicReference<String> value = new AtomicReference<>();
+        DdcRefreshService service = service(repository, (key, next, version) -> {
+            value.set(next);
+            repository.updateVersion(key, version);
+        }, client);
+
+        service.refresh(message("switch", "on", 2L));
+
+        assertThat(value).hasValue("on");
+        assertThat(repository.version("switch")).isEqualTo(2L);
+    }
+
+    private DdcRefreshService service(DdcLocalConfigRepository repository,
+                                      DdcConfigApplier applier,
+                                      RecordingAdminClient client) {
+        DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
+        Instant registeredAt = Instant.parse("2026-07-24T12:00:00Z");
+        holder.replace(new DdcLeaseSession(
+                "instance-1",
+                "lease-1",
+                DdcLeaseRole.CONFIG_CLIENT,
+                30,
+                10,
+                registeredAt,
+                registeredAt.plusSeconds(30)
+        ));
+        return new DdcRefreshService(repository, applier, client, holder);
     }
 
     private DdcPublishMessage message(String key, String value, long version) {
@@ -60,12 +173,26 @@ class DdcRefreshServiceTest {
         message.setConfigKey(key);
         message.setConfigValue(value);
         message.setTargetVersion(version);
+        message.setContentChecksum(DdcChecksum.content(value));
+        message.setTargets(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         return message;
+    }
+
+    private DdcConfigValue config(String key, String value, long version) {
+        DdcConfigValue config = new DdcConfigValue();
+        config.setConfigKey(key);
+        config.setConfigValue(value);
+        config.setVersion(version);
+        return config;
     }
 
     static class RecordingAdminClient implements DdcAdminClient {
 
         private DdcAckRequest lastAck;
+
+        private int ackCount;
+
+        private boolean failAck;
 
         @Override
         public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
@@ -106,6 +233,10 @@ class DdcRefreshServiceTest {
         @Override
         public void ack(DdcAckRequest request) {
             this.lastAck = request;
+            ackCount++;
+            if (failAck) {
+                throw new IllegalStateException("ack unavailable");
+            }
         }
 
         DdcAckRequest lastAck() {
