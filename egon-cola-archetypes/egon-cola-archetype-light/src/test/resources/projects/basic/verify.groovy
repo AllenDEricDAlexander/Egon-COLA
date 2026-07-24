@@ -451,6 +451,10 @@ assert pomXml.parent.groupId.text() == "org.springframework.boot"
 assert pomXml.parent.artifactId.text() == "spring-boot-starter-parent"
 assert pomXml.parent.version.text().trim(): "Expected a Spring Boot parent version"
 assert pomXml.properties.'java.version'.text() == "21"
+assert pomXml.properties.'shardingsphere.version'.text() == "5.5.3"
+assert pom.contains("<artifactId>shardingsphere-jdbc</artifactId>")
+assert pom.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
+assert pom.contains("<artifactId>egon-cola-component-common-id</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
@@ -730,6 +734,23 @@ assertFile("src/main/resources/application-sharding.yml")
 assertFile("src/main/resources/application-readwrite.yml")
 assertFile("src/main/resources/sharding/shardingsphere-sharding.yml")
 assertFile("src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
+def lightShardingApplication = assertFile("src/main/resources/application-sharding.yml").text
+assert lightShardingApplication.contains('mapping-version: ${LIGHT_SHARDING_MAPPING_VERSION:1}')
+assert lightShardingApplication.contains('node-count: ${LIGHT_SHARDING_NODE_COUNT:4}')
+assert lightShardingApplication.contains(
+        'node-map: ${LIGHT_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
+[
+    "classpath:db/migration/sharding/single",
+    "classpath:db/migration/sharding/shard"
+].each { assert lightShardingApplication.contains(it) }
+def lightShardingRule = assertFile(
+        "src/main/resources/sharding/shardingsphere-sharding.yml").text
+assert lightShardingRule.contains("shardingColumn: id")
+assert lightShardingRule.contains("shardingColumn: school_class_id")
+assert lightShardingRule.contains("school_classes,class_course_schedules")
+def lightReadwriteRule = assertFile(
+        "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
+assert lightReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 [
@@ -867,7 +888,15 @@ migrationFiles.each { migration ->
 ].each { typeName ->
     assertFile("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
 }
-assertFile("src/test/java/it/pkg/infrastructure/config/datasource/LightShardingProfileTest.java")
+[
+    "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/LightShardingProfileTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
+    "src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
+].each { assertFile(it) }
 [
     "user/repo/po/UserPO",
     "user/repo/jpa/UserJpaRepository",
@@ -1154,6 +1183,31 @@ assert readme.contains("Domain-First Structure")
 assert readme.contains("Primary Workflows")
 assert readme.contains("RABBITMQ_ENABLED=true")
 assert readme.contains("ConfigCipherCli")
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "SPRING_PROFILES_ACTIVE=dev,sharding,readwrite",
+    "school_classes",
+    "school_class_id",
+    "Flyway",
+    "primary targets",
+    "36-character RFC",
+    "VyyyyMMdd_NNN__description.sql",
+    "mapping-version: 1",
+    "N` to `2N",
+    "local to one physical database",
+    "online dual writes, CDC",
+    "data movement"
+].each { assert readme.contains(it) }
+def lightReadmeZh = assertFile("README.zh-CN.md").text
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "school_class_id",
+    "36 位 RFC 字符串",
+    "VyyyyMMdd_NNN__description.sql",
+    "单次扩容只能从 `N` 到 `2N`",
+    "事务只允许覆盖一个物理库",
+    "不内置在线双写、CDC 或自动搬数"
+].each { assert lightReadmeZh.contains(it) }
 assert !readme.contains("计费")
 assert !readme.contains("Charge")
 

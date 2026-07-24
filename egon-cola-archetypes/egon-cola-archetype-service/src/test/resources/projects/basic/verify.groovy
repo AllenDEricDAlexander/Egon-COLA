@@ -181,6 +181,11 @@ assert rootPom.parent.groupId.text() == "org.springframework.boot"
 assert rootPom.parent.artifactId.text() == "spring-boot-starter-parent"
 assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent version"
 assert rootPom.properties.'java.version'.text() == "21"
+assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
+assert rootPomText.contains("<artifactId>shardingsphere-jdbc</artifactId>")
+assert rootPomText.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
+assert assertFile("student-management-evaluation-common/pom.xml").text
+        .contains("<artifactId>egon-cola-component-common-id</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
@@ -596,6 +601,10 @@ assert migrations.sort() == [
     "sharding/shard/V20260724_003__init_evaluation_sharding_schema.sql",
     "sharding/single/V20260724_002__init_evaluation_single_schema.sql"
 ]
+assertMissing(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/V1__init_student_management_evaluation.sql")
+assertMissing(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/V2__align_evaluation_course_exam_domain.sql")
 assertMissing("student-management-evaluation-common/src/main/java/it/pkg/common/utils/EvaluationIdUtils.java")
 def defaultMigration = assertFile(
         "student-management-evaluation-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_evaluation_default_schema.sql").text
@@ -664,6 +673,37 @@ assert tripleTest.contains("examReference.get().createExam")
 ].each { name ->
     assertFile("student-management-evaluation-starter/src/main/resources/${name}")
 }
+def serviceShardingApplication = assertFile(
+        "student-management-evaluation-starter/src/main/resources/application-sharding.yml").text
+assert serviceShardingApplication.contains(
+        'mapping-version: ${EVALUATION_SHARDING_MAPPING_VERSION:1}')
+assert serviceShardingApplication.contains('node-count: ${EVALUATION_SHARDING_NODE_COUNT:4}')
+assert serviceShardingApplication.contains(
+        'node-map: ${EVALUATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
+assert serviceShardingApplication.contains("classpath:db/migration/sharding/single")
+assert serviceShardingApplication.contains("classpath:db/migration/sharding/shard")
+def serviceShardingRule = assertFile(
+        "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
+assert serviceShardingRule.contains("shardingColumn: course_id")
+assert serviceShardingRule.contains("shardingColumn: exam_id")
+assert serviceShardingRule.contains("exam,exam_paper,score")
+def serviceReadwriteRule = assertFile(
+        "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
+assert serviceReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
+assert serviceReadwriteRule.contains("exam,exam_paper,score")
+[
+    "student-management-evaluation-application/src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigrator.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceBootstrapper.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMap.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidator.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithm.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
+].each { assertFile(it) }
 assertMissing("student-management-evaluation-starter/src/main/resources/bootstrap-local.yml")
 assertMissing("student-management-evaluation-starter/src/main/resources/application-local.yml")
 assert assertFile("pom.xml").text.contains("<spring.profiles.active>test</spring.profiles.active>")
@@ -682,7 +722,6 @@ assert readme.contains("`dev` is the default profile")
 assert readme.contains("`feature/*`")
 assert readme.contains("`dev`, `release/*`, and `hotfix/*`")
 assert readme.contains("`main`")
-assert readme.contains("V1__init_student_management_evaluation.sql` is immutable")
 assert readme.contains("RabbitMQ support is intentionally basic transport")
 assert readme.contains("Organization Facade client is an unused infrastructure foundation")
 [
@@ -693,6 +732,29 @@ assert readme.contains("Organization Facade client is an unused infrastructure f
     "infrastructure/exam/repo",
     "adapter/exam/mq"
 ].each { assert readme.contains(it) }
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "SPRING_PROFILES_ACTIVE=dev,sharding,readwrite",
+    "course_schedule",
+    "exam_id",
+    "primary targets",
+    "36-character RFC",
+    "VyyyyMMdd_NNN__description.sql",
+    "mapping-version: 1",
+    "N` to `2N",
+    "local transactions within one physical database",
+    "online dual writes, CDC, or automatic data movement"
+].each { assert readme.contains(it) }
+def serviceReadmeZh = assertFile("README.zh-CN.md").text
+[
+    "SPRING_PROFILES_ACTIVE=dev,sharding",
+    "exam_id",
+    "36 位 RFC 字符串",
+    "VyyyyMMdd_NNN__description.sql",
+    "单次只允许从 `N` 扩成",
+    "一个物理库内的本地事务",
+    "不包含在线双写、CDC 或自动搬数"
+].each { assert serviceReadmeZh.contains(it) }
 assert readme.contains("service-only")
 assert !readme.contains("facade/api")
 assert !readme.contains("application/manage/course")

@@ -19,6 +19,7 @@
                 <include>__gitignore__</include>
                 <include>.gitattributes</include>
                 <include>README.md</include>
+                <include>README.zh-CN.md</include>
                 <include>lombok.config</include>
                 <include>.dockerignore</include>
             </includes>
