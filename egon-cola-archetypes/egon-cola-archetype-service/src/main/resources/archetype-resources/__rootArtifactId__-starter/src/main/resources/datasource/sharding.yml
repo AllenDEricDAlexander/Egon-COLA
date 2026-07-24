@@ -1,8 +1,4 @@
 #set( $symbol_dollar = '$' )
-spring:
-  flyway:
-    enabled: false
-
 app:
   sharding:
     config: classpath:sharding/shardingsphere-sharding.yml

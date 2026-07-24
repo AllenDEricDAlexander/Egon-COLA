@@ -32,6 +32,9 @@ public class PhysicalDataSourceFlywayMigrator {
                 || springFlywayProperties == null) {
             throw new IllegalArgumentException("Flyway migration arguments must not be null");
         }
+        if (!springFlywayProperties.isEnabled()) {
+            return;
+        }
         targets.stream()
                 .sorted(Comparator.comparing(
                         ShardingDataSourceProperties.FlywayTargetProperties::dataSourceName))

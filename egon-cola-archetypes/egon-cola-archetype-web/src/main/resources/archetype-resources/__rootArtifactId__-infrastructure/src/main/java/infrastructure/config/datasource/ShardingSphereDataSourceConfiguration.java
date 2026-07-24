@@ -2,29 +2,42 @@ package ${package}.infrastructure.config.datasource;
 
 import javax.sql.DataSource;
 import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
+import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 /**
- * Activates the ShardingSphere logical data source for the sharding profile.
+ * Activates the ShardingSphere logical data source for sharding modes.
  */
 @Configuration(proxyBeanMethods = false)
-@Profile("sharding")
+@Conditional(ShardingDataSourceModeCondition.class)
 @EnableConfigurationProperties({
-    ShardingDataSourceProperties.class,
+    DataSourceModeProperties.class,
     FlywayProperties.class
 })
 public class ShardingSphereDataSourceConfiguration {
 
     @Bean
-    UuidV7Generator uuidV7Generator() {
-        return new UuidV7Generator();
+    ShardingDataSourcePropertiesLoader shardingDataSourcePropertiesLoader(
+            Environment environment) {
+        return new ShardingDataSourcePropertiesLoader(environment);
+    }
+
+    @Bean
+    ShardingDataSourceProperties shardingDataSourceProperties(
+            ShardingDataSourcePropertiesLoader loader,
+            DataSourceModeProperties modeProperties) {
+        return loader.load(modeProperties);
+    }
+
+    @Bean
+    FlywayMigrationStrategy flywayMigrationStrategy() {
+        return new LogicalDataSourceFlywayMigrationStrategy();
     }
 
     @Bean

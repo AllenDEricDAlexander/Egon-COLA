@@ -4,6 +4,8 @@ spring:
     default: dev
   config:
     import:
+      - classpath:datasource/sharding.yml
+      - classpath:datasource/sharding-readwrite.yml
       - optional:file:./config/application-secrets.yml
       - optional:configtree:/run/secrets/
   threads:
@@ -78,6 +80,8 @@ logging:
       clean-history-on-start: ${symbol_dollar}{LOG_CLEAN_HISTORY_ON_START:false}
 
 app:
+  datasource:
+    mode: ${symbol_dollar}{APP_DATASOURCE_MODE:SINGLE}
   logging:
     instance-name: ${symbol_dollar}{INSTANCE_ID:${symbol_dollar}{HOSTNAME:local}}
     error-total-size-cap: ${symbol_dollar}{LOG_ERROR_TOTAL_SIZE_CAP:2GB}

@@ -1,12 +1,10 @@
 package ${package}.infrastructure.config.datasource;
 
 import java.util.List;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Physical topology, stable routing and Flyway targets for sharding mode.
  */
-@ConfigurationProperties("app.sharding")
 public record ShardingDataSourceProperties(
         String config,
         ShardingRoutingProperties routing,

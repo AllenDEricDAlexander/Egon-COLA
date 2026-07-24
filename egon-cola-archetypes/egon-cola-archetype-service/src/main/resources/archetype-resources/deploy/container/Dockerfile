@@ -26,6 +26,7 @@ LABEL org.opencontainers.image.build.engine="${symbol_dollar}{CONTAINER_ENGINE}"
 
 ENV TZ=Asia/Shanghai \
     SPRING_PROFILES_ACTIVE=prod \
+    APP_DATASOURCE_MODE=SINGLE \
     JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
 
 RUN case "${symbol_dollar}{CONTAINER_ENGINE}" in \

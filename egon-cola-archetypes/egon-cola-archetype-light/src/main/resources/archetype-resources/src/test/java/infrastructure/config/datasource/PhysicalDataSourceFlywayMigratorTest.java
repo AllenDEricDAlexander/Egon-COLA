@@ -68,6 +68,23 @@ class PhysicalDataSourceFlywayMigratorTest {
         assertThat(migrated).containsExactly("shard_0", "shard_1");
     }
 
+    @Test
+    void shouldSkipEveryPhysicalTargetWhenFlywayIsDisabled() {
+        List<String> migrated = new ArrayList<>();
+        PhysicalDataSourceFlywayMigrator migrator =
+                new PhysicalDataSourceFlywayMigrator((dataSource, target, properties) ->
+                        migrated.add(target.dataSourceName()));
+        FlywayProperties properties = new FlywayProperties();
+        properties.setEnabled(false);
+
+        migrator.migrate(
+                Map.of("single", mock(DataSource.class)),
+                List.of(target("single")),
+                properties);
+
+        assertThat(migrated).isEmpty();
+    }
+
     private static ShardingDataSourceProperties.FlywayTargetProperties target(String name) {
         return new ShardingDataSourceProperties.FlywayTargetProperties(
                 name,

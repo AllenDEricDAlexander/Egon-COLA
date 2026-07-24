@@ -62,6 +62,11 @@ nerdctl compose --env-file deploy/env/.env.example \
   --file deploy/compose/compose.nerdctl.yaml up -d --build
 ```
 
+The bundled Compose files intentionally set `APP_DATASOURCE_MODE=SINGLE` because
+they provision one PostgreSQL instance. Sharding modes require an external
+primary/replica topology and all variables declared by the selected
+`datasource/*.yml`; overriding only the mode is unsupported.
+
 The example credentials are development-only.
 
 ## Production Compose

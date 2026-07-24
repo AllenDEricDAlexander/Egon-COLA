@@ -2,11 +2,12 @@
 
 ## 1. 文档状态
 
-- 状态：已审核，待实施
-- 日期：2026-07-23
+- 状态：已审核，实施中；2026-07-24 修正数据源模式装配契约
+- 日期：2026-07-23，修订于 2026-07-24
 - 目标版本：Egon-COLA 5.2.3 archetype 模板
 - 适用范围：`egon-cola-archetype-light`、`egon-cola-archetype-web`、`egon-cola-archetype-service`
 - 术语说明：本文使用当前产品名“Apache ShardingSphere JDBC”；需求中的 ShardingJDBC 指同一能力，不引入旧版 `sharding-jdbc-spring-boot-starter`。
+- 修订说明：`dev`、`test`、`prod` 是唯一允许激活的 Spring Profile。数据源能力改由 `app.datasource.mode` 选择；本文后续若出现旧的 `sharding`、`readwrite` 叠加 Profile 描述，均以第 6、11、12、15、17、19 节的修订后契约为准。
 
 ## 2. 背景与现状
 
@@ -35,7 +36,7 @@ ShardingSphere 模式下存在两个需要同时解决的问题：
 3. 同时支持不分库分表的业务表。
 4. 分布式主键统一使用 UUIDv7。
 5. Flyway 必须与 ShardingSphere 物理拓扑协同，先迁移写节点，再创建逻辑数据源。
-6. 新生成项目默认仍可按现有单数据源模式运行；通过叠加 profile 启用 ShardingSphere。
+6. 新生成项目默认仍可按现有单数据源模式运行；在 `dev`、`test` 或 `prod` 环境内通过 `app.datasource.mode` 启用 ShardingSphere。
 7. 同一聚合内、使用同一分片根键的表必须落在同一物理库和同一物理表后缀中。
 8. 业务代码继续只依赖一个逻辑 `DataSource`，不直接选择物理数据源。
 9. 数据库数、每库物理表数和总物理节点数必须是 `2` 的幂；扩容采用 `N → 2N` 的 2N 平滑迁移法（即本需求约定的“2n 法”）。
@@ -149,7 +150,7 @@ V20260724_001__add_class_schedule_index.sql
 
 #### 方案 B：应用内迁移物理写节点，再创建逻辑数据源
 
-在 `sharding` profile 下关闭 Spring Boot 默认 Flyway 执行，按显式 target 列表迁移物理主库；全部成功后再创建 ShardingSphere 逻辑 `DataSource`。
+在 `SHARDING` 或 `SHARDING_READWRITE` 模式下，通过条件装配的 `FlywayMigrationStrategy` 阻止 Spring Boot 对逻辑数据源执行默认 migration；自定义编排按显式 target 列表迁移物理主库，全部成功后再创建 ShardingSphere 逻辑 `DataSource`。
 
 结论：采用。该方式保留脚手架开箱即用能力，并能严格控制启动顺序和失败边界。
 
@@ -181,22 +182,23 @@ V20260724_001__add_class_schedule_index.sql
 
 ## 6. 总体运行模式
 
-### 6.1 profile 契约
+### 6.1 环境 Profile 与数据源模式契约
 
-| 激活 profile | 数据源模式 | 数据分片 | 读写分离 | Flyway |
+| 激活 Profile | `app.datasource.mode` | 数据分片 | 读写分离 | Flyway |
 | --- | --- | --- | --- | --- |
-| `dev` / `test` / `prod` | 单数据源 | 否 | 否 | Spring Boot 迁移 `db/migration/default` |
-| `dev,sharding` / `test,sharding` / `prod,sharding` | ShardingSphere | 是 | 否 | 自定义编排迁移单表主库和分片主库 |
-| `dev,sharding,readwrite` / `prod,sharding,readwrite` | ShardingSphere | 是 | 是 | 仅迁移各组 primary，replica 通过数据库复制获得 DDL |
-| `test,sharding,readwrite` | ShardingSphere 测试拓扑 | 是 | 是 | primary 与 replica 可指向同一 H2 测试库别名 |
+| `dev` / `test` / `prod` | `SINGLE`（默认） | 否 | 否 | Spring Boot 迁移 `db/migration/default` |
+| `dev` / `test` / `prod` | `SHARDING` | 是 | 否 | 自定义编排迁移单表 primary 和分片 primary |
+| `dev` / `test` / `prod` | `SHARDING_READWRITE` | 是 | 是 | 仅迁移各逻辑组 primary，replica 通过数据库复制获得 DDL |
 
 约束：
 
-1. `sharding` 和 `readwrite` 都是叠加 profile。
-2. `readwrite` 不能单独启用；缺少 `sharding` 时启动失败并给出明确错误。
-3. 默认 profile 仍为 `dev`。
-4. `sharding` 与 `sharding,readwrite` 使用相同逻辑数据源名和分片规则，仅物理拓扑不同。
-5. 默认模式与分片模式必须在新建数据库时二选一；不支持把已有默认数据库直接切换成分片拓扑，后者属于独立数据迁移项目。
+1. 只允许 `dev`、`test`、`prod` 三个环境 Profile；不得再生成或激活 `sharding`、`readwrite` Profile。
+2. `app.datasource.mode` 是唯一数据源能力开关，默认值为 `SINGLE`，环境变量为 `APP_DATASOURCE_MODE`。
+3. mode 只能取 `SINGLE`、`SHARDING`、`SHARDING_READWRITE`；未知值必须在配置绑定阶段启动失败，不能静默回退到单数据源。
+4. `SHARDING` 与 `SHARDING_READWRITE` 使用相同逻辑数据源名、分片键和 2N 路由规则，仅物理拓扑和读写分离规则不同。
+5. `SINGLE` 继续由 Spring Boot 自动配置 Hikari 数据源与 Flyway；两个 ShardingSphere 模式由条件装配的 Infrastructure 配置接管逻辑 `DataSource`。
+6. 默认模式与分片模式是脚手架新建部署时的拓扑选项；本模板没有历史数据，不设计旧库原地迁移流程。
+7. 模板自带的 Compose 栈只部署一个 PostgreSQL，固定运行 `SINGLE`；两个 ShardingSphere mode 必须由目标平台部署完整物理拓扑并传入所选 `datasource/*.yml` 声明的全部变量，不能把单库 Compose 当作 mode 切换器。
 
 ### 6.2 逻辑与物理拓扑
 
@@ -486,7 +488,7 @@ loadBalancerName: round_robin
 1. insert、update、delete 始终路由 primary。
 2. 事务中的 select 始终路由 primary，保证事务内读己之写。
 3. 非事务 select 在 replica 间轮询。
-4. 没有配置 `readwrite` profile 时，所有请求使用 primary-only 拓扑。
+4. `app.datasource.mode=SHARDING` 时，所有请求使用 primary-only 拓扑。
 
 ### 10.2 Spring/JPA 事务配合
 
@@ -515,8 +517,13 @@ Spring Data JPA 默认会给查询 Repository 增加只读事务；在 `PRIMARY`
 
 ```text
 src/main/resources/
-├── application-sharding.yml
-├── application-readwrite.yml
+├── application.yml
+├── application-dev.yml
+├── application-test.yml
+├── application-prod.yml
+├── datasource/
+│   ├── sharding.yml
+│   └── sharding-readwrite.yml
 └── sharding/
     ├── shardingsphere-sharding.yml
     └── shardingsphere-sharding-readwrite.yml
@@ -524,30 +531,30 @@ src/main/resources/
 
 职责：
 
-- `application-sharding.yml`
-  - 关闭 Spring Boot 默认 Flyway。
-  - 用列表定义 primary-only 物理数据源及角色。
-  - 只定义一份 `routing.mapping-version`、`routing.node-count` 和 `routing.node-map`。
-  - 指定 primary-only ShardingSphere 规则 YAML。
-  - 显式列出 Flyway target 与 location。
-- `application-readwrite.yml`
-  - 用完整列表替换 primary-only 物理数据源，定义 primary 与 replica。
-  - 将规则资源切换为 read/write YAML。
-  - 将 Flyway target 切换为各组 primary。
-  - 校验必须同时启用 `sharding`。
+- `application.yml`
+  - 默认 Profile 仍为 `dev`，并固定导入两份 `datasource/*.yml` 拓扑资源。
+  - 定义 `app.datasource.mode=${APP_DATASOURCE_MODE:SINGLE}`。
+- `application-dev.yml`、`application-test.yml`、`application-prod.yml`
+  - 只表达环境差异；不再承担 ShardingSphere 能力开关。
+  - `SINGLE` 模式继续提供 `spring.datasource` 与 `spring.flyway` 默认配置。
+- `datasource/sharding.yml`
+  - 在 `app.sharding` 下定义 primary-only 物理数据源、规则资源和 Flyway targets。
+  - 只定义一份 `routing.mapping-version`、`routing.node-count` 和 `routing.node-map`，供两个 ShardingSphere mode 共用。
+- `datasource/sharding-readwrite.yml`
+  - 在 `app.sharding-readwrite` 下定义 primary、replica、read/write 规则资源和仅包含 primary 的 Flyway targets。
 - `shardingsphere-sharding.yml`
   - 只定义 `!SHARDING`、`!SINGLE` 和 ShardingSphere 属性。
 - `shardingsphere-sharding-readwrite.yml`
   - 定义逻辑组 `single`、`shard_0`、`shard_1`。
   - 在相同的 `!SHARDING`、`!SINGLE` 规则前增加 `!READWRITE_SPLITTING`。
 
-物理连接和 2N 路由映射只存在于 Spring profile。Bootstrapper 从物理连接列表创建一个 `Map<String, DataSource>`，同一批实例先交给 Flyway，再通过 ShardingSphere 5.5.3 的公开重载 `YamlShardingSphereDataSourceFactory.createDataSource(dataSourceMap, yamlBytes)` 创建逻辑数据源。规则 YAML 不重复保存 JDBC URL、用户名、密码或 nodeMap，也不依赖 ShardingSphere 内部 YAML 类。
+物理连接位于非 Profile 的拓扑资源，2N 路由映射只在 `app.sharding.routing` 定义一份。配置加载器只绑定当前 mode 对应的 `app.sharding` 或 `app.sharding-readwrite`，未选择拓扑中的必填连接变量不会被解析；读写分离拓扑复用公共 routing 后组成最终配置。Bootstrapper 从选中拓扑创建一个 `Map<String, DataSource>`，同一批实例先交给 Flyway，再通过 ShardingSphere 5.5.3 的公开重载 `YamlShardingSphereDataSourceFactory.createDataSource(dataSourceMap, yamlBytes)` 创建逻辑数据源。规则 YAML 不重复保存 JDBC URL、用户名、密码或 nodeMap，也不依赖 ShardingSphere 内部 YAML 类。
 
 两份 ShardingSphere 规则 YAML 存在受控重复。文件必须把 `!READWRITE_SPLITTING` 放在最前面，并保证从 `- !SHARDING` 到文件末尾逐字一致；测试截取该后缀做 UTF-8 文本比较。这样不需要解析 ShardingSphere YAML，也能保证两份文件的 `!SHARDING`、`!SINGLE` 和 props 一致。
 
 ### 11.2 代表性规则
 
-以下为 Service 的 read/write 规则骨架；物理 `DataSource` 由 Spring profile 创建后通过 Factory 参数注入：
+以下为 Service 的 read/write 规则骨架；物理 `DataSource` 由当前 mode 选中的拓扑创建后通过 Factory 参数注入：
 
 ```yaml
 databaseName: evaluation
@@ -669,16 +676,17 @@ src/main/resources/db/migration/
 
 ### 12.2 显式迁移 target
 
-不根据名称后缀猜测 primary。`application-sharding.yml` 与 `application-readwrite.yml` 使用列表显式声明物理连接角色和 Flyway target；profile 合并时由 read/write 列表整体替换 primary-only 列表：
+不根据名称后缀猜测 primary。`datasource/sharding.yml` 与 `datasource/sharding-readwrite.yml` 在互斥的配置根下显式声明物理连接角色和 Flyway target；配置加载器根据 mode 只绑定其中一棵：
 
 ```yaml
 app:
   sharding:
-    config: classpath:sharding/shardingsphere-sharding-readwrite.yml
     routing:
       mapping-version: ${EVALUATION_SHARDING_MAPPING_VERSION:1}
       node-count: ${EVALUATION_SHARDING_NODE_COUNT:4}
       node-map: ${EVALUATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}
+  sharding-readwrite:
+    config: classpath:sharding/shardingsphere-sharding-readwrite.yml
     physical-data-sources:
       - name: single_primary
         logical-name: single
@@ -751,15 +759,18 @@ app:
 
 ```mermaid
 flowchart TD
-    A["加载基础 profile、sharding 与可选 readwrite"] --> B["解析 YAML 占位符"]
-    B --> C["校验物理拓扑和 Flyway targets"]
-    C --> D["按 target 名称稳定排序"]
-    D --> E["逐个 primary 执行 Flyway migrate + validate"]
-    E --> F{"全部成功？"}
-    F -- "否" --> G["关闭临时连接并终止启动"]
-    F -- "是" --> H["创建 ShardingSphere 逻辑 DataSource"]
-    H --> I["注册事务管理器、JdbcTemplate 与 JPA"]
-    I --> J["Hibernate ddl-auto=validate"]
+    A["加载 dev/test/prod 与 app.datasource.mode"] --> B{"mode"}
+    B -- "SINGLE" --> C["Spring Boot 创建 Hikari DataSource"]
+    C --> D["Spring Boot Flyway 迁移 default"]
+    B -- "SHARDING / SHARDING_READWRITE" --> E["只绑定选中的物理拓扑"]
+    E --> F["创建物理连接并校验 topology/targets"]
+    F --> G["逐个 primary 执行 Flyway migrate + validate"]
+    G --> H{"全部成功？"}
+    H -- "否" --> I["关闭物理连接并终止启动"]
+    H -- "是" --> J["创建 ShardingSphere 逻辑 DataSource"]
+    J --> K["Spring Boot FlywayMigrationStrategy 对逻辑库 no-op"]
+    D --> L["Hibernate ddl-auto=validate"]
+    K --> L
 ```
 
 约束：
@@ -769,6 +780,8 @@ flowchart TD
 3. Flyway 只连接物理 JDBC URL，不连接 ShardingSphere 逻辑 JDBC URL。
 4. 任一节点 migration 或 validate 失败，主 `DataSource` 不得创建。
 5. 异常包含 target 名称和 migration location，不包含密码。
+6. ShardingSphere mode 下仍保留 Spring Boot 的 `FlywayMigrationInitializer` 依赖顺序，但条件装配的 `FlywayMigrationStrategy` 必须是 no-op；它不得对逻辑数据源执行 `migrate`。
+7. `spring.flyway.enabled=false` 时，自定义物理迁移同样跳过，不能出现“自动 Flyway 关闭但物理 Flyway 仍执行”的双重语义。
 
 ### 12.4 配置继承
 
@@ -876,7 +889,7 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
    - `routing` 引用的 logical name 与物理数据源组一致；
    - database/table 算法必须只引用同一组 `app.sharding.routing.*`。
 5. `PhysicalDataSourceFactoryTest`
-   - 从 profile 列表创建按名称索引的 Hikari DataSource；
+   - 从当前 mode 选中的拓扑列表创建按名称索引的 Hikari DataSource；
    - 名称重复、连接属性缺失时失败；
    - 创建中途失败时关闭已经创建的连接池；
    - 异常和日志不泄漏密码。
@@ -885,6 +898,7 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
    - 第二个节点失败时整体失败；
    - target 按名称稳定排序；
    - replica 从不建立 Flyway 连接。
+   - `spring.flyway.enabled=false` 时不迁移任何物理节点。
 7. `ShardingDataSourceBootstrapperTest`
    - 全部 migration 完成后才创建逻辑数据源；
    - migration 失败时不返回逻辑数据源；
@@ -904,6 +918,15 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
    - 默认模式与 ShardingSphere 逻辑模式暴露相同的逻辑表、列和 JPA 映射；
    - 允许的差异仅限物理表后缀、物理库名和分片局部约束；
    - 任一模式的 schema 漂移都使生成项目测试失败。
+10. `DataSourceModePropertiesTest`
+   - 未配置时默认为 `SINGLE`；
+   - 三个合法枚举值可绑定；
+   - 未知值启动失败；
+   - mode 只选择对应的一个拓扑子树。
+11. `LogicalDataSourceFlywayMigrationStrategyTest`
+   - 在两个 ShardingSphere mode 下存在；
+   - 调用策略不会触发逻辑 `Flyway#migrate`；
+   - `SINGLE` 模式下不存在，继续使用 Spring Boot 默认策略。
 
 ### 15.2 Repository 与事务契约测试
 
@@ -923,13 +946,13 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
    - Flyway 执行 `db/migration/default`；
    - JPA validate 通过；
    - 原有用例通过。
-2. `test,sharding`：
+2. `test` + `app.datasource.mode=SHARDING`：
    - 三个物理 primary 按各自 location 完成 migration；
    - `SINGLE` 与 `SHARDING` 表可正常 CRUD；
    - 初始四个稳定槽位至少各写入一条数据；
    - 绑定表共置；
    - JPA validate 通过。
-3. `test,sharding,readwrite`：
+3. `test` + `app.datasource.mode=SHARDING_READWRITE`：
    - 写入路由 primary；
    - 非事务读取路由 replica；
    - 事务内读取路由 primary；
@@ -942,9 +965,9 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
 
 1. POM 包含 ShardingSphere JDBC 5.5.3 和 `egon-cola-component-common-id`。
 2. Web、Service 的基础设施依赖不泄漏到 Domain/Application。
-3. 两份 application profile 和两份 ShardingSphere YAML 已生成。
+3. 两份非 Profile 的 datasource 拓扑资源和两份 ShardingSphere YAML 已生成，旧 `application-sharding.yml`、`application-readwrite.yml` 不存在。
 4. 默认 profile 仍为 `dev`。
-5. ShardingSphere 模式关闭 Spring Boot 默认 Flyway。
+5. ShardingSphere 模式通过条件化 `FlywayMigrationStrategy` 阻止逻辑数据源 migration，物理 Flyway 仍遵循 `spring.flyway.enabled`。
 6. Flyway target、migration locations 与 SQL 文件完整。
 7. 原 `V1/V2` 文件和旧中间表 migration 不存在。
 8. UUIDv7 与 2N 稳定槽位算法类位于正确模块。
@@ -964,8 +987,8 @@ Light 放在 `infrastructure.config.datasource`；Web、Service 放在各自 `in
 
 ```bash
 ./mvnw -B -ntp clean verify
-./mvnw -B -ntp -Dspring.profiles.active=test,sharding clean verify
-./mvnw -B -ntp -Dspring.profiles.active=test,sharding,readwrite clean verify
+APP_DATASOURCE_MODE=SHARDING ./mvnw -B -ntp -Dspring.profiles.active=test clean verify
+APP_DATASOURCE_MODE=SHARDING_READWRITE ./mvnw -B -ntp -Dspring.profiles.active=test clean verify
 ```
 
 最后执行：
@@ -982,7 +1005,7 @@ git status --short
 每个 archetype 的 README 与 README.zh-CN 同步更新：
 
 1. 默认、分片、分片加读写分离三种模式。
-2. profile 启用命令和所需环境变量。
+2. 只使用 `dev/test/prod` Profile，并用 `APP_DATASOURCE_MODE` 选择数据源模式的命令和所需环境变量。
 3. 每张表属于 `SINGLE`、`SHARDING` 或未来 `BROADCAST` 的原因。
 4. 分片键必须进入 API、Query、Command 和 Repository 签名。
 5. UUIDv7 的 36 位 RFC 字符串格式及应用侧生成规则。
@@ -998,7 +1021,7 @@ git status --short
 以下条件全部满足才视为实现完成：
 
 1. 三个 archetype 都能生成默认单数据源、分片、分片加读写分离三种可验证模式。
-2. 不启用 `sharding` 时，现有业务行为保持一致。
+2. `app.datasource.mode=SINGLE` 或未配置时，现有业务行为保持一致。
 3. Light、Web、Service 按本文表分类和分片键完成物理分片。
 4. 同一聚合根键的绑定表落在同一物理库和表后缀。
 5. 全部业务代理主键使用应用侧 UUIDv7，不再依赖数据库自增。
@@ -1009,12 +1032,14 @@ git status --short
 10. 分片写事务只触达一个物理主库；跨分片流程不伪装成本地事务。
 11. 原 `V1/V2` migration 已删除并重写为带日期序列号、完整注释的最终 schema。
 12. migration 规范由自动化测试强制执行。
-13. 三个 archetype 的 `clean integration-test` 与三个生成项目的三种 profile 验证通过。
+13. 三个 archetype 的 `clean integration-test` 与三个生成项目在同一环境 Profile 下的三种 datasource mode 验证通过。
 14. README 中英文内容一致。
 15. 无 `target/` 生成产物被提交。
 16. 数据库数、每库表数和总节点数均为 `2` 的幂。
 17. `4 → 8` 路由测试证明旧槽位映射不变，任意键只保留原槽位或迁往 `oldSlot + 4`。
 18. database/table 算法映射版本不一致或节点映射缺槽时启动失败；CI 的新旧映射兼容性测试拒绝旧槽位覆盖、非翻倍扩容和版本倒退。
+19. 任一模式下激活的 Spring Profile 只包含 `dev`、`test` 或 `prod`，不存在 `sharding`、`readwrite` 能力 Profile。
+20. `SHARDING` 与 `SHARDING_READWRITE` 都先完成全部物理 primary migration，再创建逻辑数据源；Spring Boot 不对逻辑数据源重复刷表。
 
 ## 18. 风险与控制
 
@@ -1050,18 +1075,18 @@ git status --short
 
 控制：不引入分布式事务模块；文档列出禁止场景；对当前写用例增加物理写节点路由断言。后续新增批量或跨聚合命令时，必须先设计业务一致性流程，不能默认复用本地事务。
 
-### 18.9 在已有默认数据库上直接切换分片 profile
+### 18.9 在已有默认数据库上直接切换分片 mode
 
 控制：三种模式是新建项目的部署拓扑选项，不是原地数据迁移开关。已有默认库迁移到分片拓扑需要独立的数据搬迁、校验和切流方案，不在本次脚手架范围内。
 
 ### 18.10 默认与分片初始化 SQL 重复导致逻辑 schema 漂移
 
-控制：不同拓扑必须使用不同 DDL，但由 `LogicalSchemaParityTest` 比较逻辑表、列和 JPA 映射；三种 profile 都执行 `ddl-auto=validate`，防止只更新其中一个 location。
+控制：不同拓扑必须使用不同 DDL，但由 `LogicalSchemaParityTest` 比较逻辑表、列和 JPA 映射；三种 datasource mode 都执行 `ddl-auto=validate`，防止只更新其中一个 location。
 
 ## 19. 已确认决策
 
 1. 三个 archetype 全部纳入。
-2. 默认模式保持单数据源；`sharding` 和 `readwrite` 作为叠加 profile。
+2. 默认模式保持单数据源；环境 Profile 只允许 `dev/test/prod`，数据源能力统一由 `app.datasource.mode=SINGLE|SHARDING|SHARDING_READWRITE` 选择。
 3. Light 按 `school_class_id` 共置班级和排课。
 4. Web 按 `grade_id` 共置班级和成员，所有班级访问都携带 `gradeId`。
 5. Service 按 `exam_id` 共置考试、试卷和成绩；排课按 `course_id` 分片。
@@ -1072,6 +1097,7 @@ git status --short
 10. Flyway 只迁移 primary，并按 `default/single/shard` 使用不同 locations。
 11. 原 `V1/V2` 可以删除、合并和重写，不考虑历史数据。
 12. 不使用分布式事务；跨分片一致性由业务幂等、状态、事件和补偿解决。
+13. 两份物理拓扑配置作为固定导入的非 Profile 资源存在，运行时只绑定当前 mode 的拓扑；ShardingSphere mode 用 no-op `FlywayMigrationStrategy` 阻止逻辑库重复 migration。
 
 ## 20. 参考资料
 

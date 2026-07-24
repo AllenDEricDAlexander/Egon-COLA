@@ -78,16 +78,16 @@ The generated application supports three database modes:
 
 ```bash
 SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
-SPRING_PROFILES_ACTIVE=dev,sharding ./mvnw spring-boot:run
-SPRING_PROFILES_ACTIVE=dev,sharding,readwrite ./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING ./mvnw spring-boot:run
+SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE ./mvnw spring-boot:run
 ```
 
-The default mode keeps Spring Boot's single `DataSource` and Flyway lifecycle. The
-`sharding` profile creates the physical primary data sources, migrates them, and
-then exposes one ShardingSphere JDBC logical `DataSource`. `readwrite` is an
-add-on profile and must always be enabled together with `sharding`; it routes
-ordinary reads to replicas, writes to primaries, and transaction-bound reads to
-primaries.
+Environment profiles are limited to `dev`, `test`, and `prod`.
+`APP_DATASOURCE_MODE` accepts `SINGLE` (the default), `SHARDING`, or
+`SHARDING_READWRITE`. Single mode keeps Spring Boot's `DataSource` and Flyway
+lifecycle. Both ShardingSphere modes migrate every physical primary before the
+logical `DataSource` is created. Read/write mode routes ordinary reads to
+replicas, writes to primaries, and transaction-bound reads to primaries.
 
 The table topology is:
 
@@ -112,7 +112,9 @@ Flyway has three locations: `db/migration/default`,
 `db/migration/sharding/single`, and `db/migration/sharding/shard`. In
 ShardingSphere modes it runs serially against configured primary targets before
 the logical data source is created. Replicas must be database-level copies of
-their primaries and are never Flyway targets.
+their primaries and are never Flyway targets. Spring Boot's logical-data-source
+Flyway strategy is a no-op in ShardingSphere modes, preventing duplicate
+migrations. `FLYWAY_ENABLED=false` also skips all physical migrations.
 
 Application-generated surrogate keys use UUIDv7 serialized as 36-character RFC
 strings. Migration names must follow `VyyyyMMdd_NNN__description.sql`, where the
@@ -171,6 +173,11 @@ Start the complete Docker development stack with:
 ```bash
 docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
 ```
+
+The bundled Compose stack provisions one PostgreSQL instance and therefore fixes
+`APP_DATASOURCE_MODE=SINGLE`. To run either ShardingSphere mode, deploy the
+documented physical primary/replica topology and pass every required topology
+variable through the target platform instead of overriding only the Compose mode.
 
 Podman and nerdctl use `compose.podman.yaml` and `compose.nerdctl.yaml`. Production
 uses the matching `.prod.yaml` file and an operator-owned `.env.prod`. See
