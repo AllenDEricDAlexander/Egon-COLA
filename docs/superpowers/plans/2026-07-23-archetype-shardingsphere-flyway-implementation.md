@@ -84,6 +84,17 @@ Light 生成 POM 直接增加：
     <groupId>org.apache.shardingsphere</groupId>
     <artifactId>shardingsphere-jdbc</artifactId>
     <version>${shardingsphere.version}</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-transaction-xa-core</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-sharding-core</artifactId>
+    <version>${shardingsphere.version}</version>
 </dependency>
 <dependency>
     <groupId>top.egon</groupId>
@@ -91,7 +102,7 @@ Light 生成 POM 直接增加：
 </dependency>
 ```
 
-Web、Service 的生成父 POM 只管理 `shardingsphere-jdbc:5.5.3`；各自 infrastructure POM 引入 ShardingSphere JDBC，各自 common POM 引入 `egon-cola-component-common-id`。这样 Infrastructure 可经 Domain → Common 依赖链注册 `UuidV7Generator`，Application 也可经 Domain → Common 注入 `IdGenerator`，Domain 源码本身不导入主键组件。
+ShardingSphere 5.5.3 的 `shardingsphere-jdbc` 发布 POM 将分片规则模块标记为 test 依赖，因此必须显式引入同版本 `shardingsphere-sharding-core`；其默认传递的 `shardingsphere-transaction-xa-core` 必须在直接依赖点排除。Web、Service 的生成父 POM 管理这两个制品的 5.5.3 版本；各自 infrastructure POM 引入 ShardingSphere JDBC 与 Sharding Core，各自 common POM 引入 `egon-cola-component-common-id`。这样 Infrastructure 可经 Domain → Common 依赖链注册 `UuidV7Generator`，Application 也可经 Domain → Common 注入 `IdGenerator`，Domain 源码本身不导入主键组件。
 
 - [ ] **Step 3: 实现不可变节点映射**
 
@@ -1060,7 +1071,7 @@ git commit -m "test(archetype): 验证读写与本地事务路由"
 
 每个 verifier 必须断言生成项目包含：
 
-1. `shardingsphere-jdbc` 版本 `5.5.3`；
+1. `shardingsphere-jdbc` 与 `shardingsphere-sharding-core` 版本均为 `5.5.3`；
 2. `egon-cola-component-common-id`；
 3. `application-sharding.yml`、`application-readwrite.yml`；
 4. 两份 ShardingSphere 规则 YAML；
@@ -1122,7 +1133,7 @@ Run:
 Expected:
 
 ```text
-ShardingSphere JDBC only resolves to 5.5.3
+ShardingSphere JDBC and Sharding Core only resolve to 5.5.3
 No distributed transaction implementation is present
 common-id is present only in the intended generated modules
 ```

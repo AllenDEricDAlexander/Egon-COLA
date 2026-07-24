@@ -235,14 +235,27 @@ shard_1 -> shard_1_primary + shard_1_replica_0
     <groupId>org.apache.shardingsphere</groupId>
     <artifactId>shardingsphere-jdbc</artifactId>
     <version>${shardingsphere.version}</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-transaction-xa-core</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>shardingsphere-sharding-core</artifactId>
+    <version>${shardingsphere.version}</version>
 </dependency>
 ```
 
+5.5.3 的 `shardingsphere-jdbc` 发布 POM 将分片规则模块标记为 test 依赖，因此生成项目必须显式引入同版本 `shardingsphere-sharding-core`，以同时提供 `StandardShardingAlgorithm` API 和 `!SHARDING` 规则实现。同时其默认传递的 `shardingsphere-transaction-xa-core` 必须排除，只保留本地事务所需的 transaction core。
+
 依赖放置：
 
-1. Light 在生成项目根 POM 引入 ShardingSphere JDBC 和 `egon-cola-component-common-id`。
+1. Light 在生成项目根 POM 引入 ShardingSphere JDBC、Sharding Core 和 `egon-cola-component-common-id`。
 2. Web、Service 在生成父 POM 管理版本：
-   - ShardingSphere JDBC 只由 `infrastructure` 引入；
+   - ShardingSphere JDBC 与 Sharding Core 只由 `infrastructure` 引入；
    - `egon-cola-component-common-id` 由生成项目的 `common` 模块引入；
    - Domain 不直接依赖 ShardingSphere、Flyway 或 JDBC。
 3. 不引入旧版 ShardingSphere Spring Boot Starter。

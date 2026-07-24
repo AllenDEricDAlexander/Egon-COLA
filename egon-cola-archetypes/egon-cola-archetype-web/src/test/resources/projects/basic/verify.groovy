@@ -1310,7 +1310,7 @@ assertModuleDependencies(starterDependencies, [
 ])
 
 assertExactExternalDependencies("common", dependencies(commonPom), [
-    "egon-cola-component-common-core", "junit-jupiter"
+    "egon-cola-component-common-core", "egon-cola-component-common-id", "junit-jupiter"
 ])
 assertExactExternalDependencies("domain", domainDependencies, ["junit-jupiter"])
 assertExactExternalDependencies("application", applicationDependencies, [
@@ -1319,6 +1319,7 @@ assertExactExternalDependencies("application", applicationDependencies, [
 ])
 assertExactExternalDependencies("infrastructure", infrastructureDependencies, [
     '${evaluation-facade.artifact-id}', "dubbo-spring-boot-starter",
+    "shardingsphere-jdbc", "shardingsphere-sharding-core",
     "spring-boot-starter-data-jpa", "spring-boot-starter-data-redis", "spring-boot-starter-amqp",
     "spring-boot-starter-aop", "micrometer-core", "flyway-core", "h2", "postgresql",
     "mapstruct-plus-spring-boot-starter", "lombok", "spring-boot-starter-test"

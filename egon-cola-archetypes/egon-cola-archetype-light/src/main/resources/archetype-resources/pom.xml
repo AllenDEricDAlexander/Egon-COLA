@@ -30,6 +30,7 @@
         <spring-cloud.version>2025.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
         <springdoc.version>2.8.17</springdoc.version>
+        <shardingsphere.version>5.5.3</shardingsphere.version>
     </properties>
 
     <dependencyManagement>
@@ -67,8 +68,28 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-jdbc</artifactId>
+            <version>${shardingsphere.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.shardingsphere</groupId>
+                    <artifactId>shardingsphere-transaction-xa-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-sharding-core</artifactId>
+            <version>${shardingsphere.version}</version>
+        </dependency>
+        <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-id</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
