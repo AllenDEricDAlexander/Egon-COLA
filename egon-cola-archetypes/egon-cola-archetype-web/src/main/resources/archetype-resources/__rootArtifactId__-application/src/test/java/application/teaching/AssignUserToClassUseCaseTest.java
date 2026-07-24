@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +82,7 @@ class AssignUserToClassUseCaseTest {
     private SchoolClassManageImpl manage() {
         return new SchoolClassManageImpl(schoolClassRepository, gradeRepository, userRepository,
             new SchoolClassDomainService(), new TeachingApplicationValidator(), schoolClassCache, idempotency,
-            eventPublisher);
+            eventPublisher, new UuidV7Generator());
     }
 
     private static User activeUser(String id) {

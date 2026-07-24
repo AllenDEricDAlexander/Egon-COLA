@@ -1,0 +1,45 @@
+#set( $symbol_dollar = '$' )
+spring:
+  flyway:
+    enabled: false
+
+app:
+  sharding:
+    config: classpath:sharding/shardingsphere-sharding.yml
+    routing:
+      mapping-version: ${symbol_dollar}{ORGANIZATION_SHARDING_MAPPING_VERSION:1}
+      node-count: ${symbol_dollar}{ORGANIZATION_SHARDING_NODE_COUNT:4}
+      node-map: ${symbol_dollar}{ORGANIZATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}
+    physical-data-sources:
+      - name: single
+        logical-name: single
+        role: PRIMARY
+        driver-class-name: ${symbol_dollar}{ORGANIZATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{ORGANIZATION_SHARDING_SINGLE_URL}
+        username: ${symbol_dollar}{ORGANIZATION_SHARDING_USERNAME}
+        password: "${symbol_dollar}{ORGANIZATION_SHARDING_PASSWORD:}"
+      - name: shard_0
+        logical-name: shard_0
+        role: PRIMARY
+        driver-class-name: ${symbol_dollar}{ORGANIZATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{ORGANIZATION_SHARDING_SHARD_0_URL}
+        username: ${symbol_dollar}{ORGANIZATION_SHARDING_USERNAME}
+        password: "${symbol_dollar}{ORGANIZATION_SHARDING_PASSWORD:}"
+      - name: shard_1
+        logical-name: shard_1
+        role: PRIMARY
+        driver-class-name: ${symbol_dollar}{ORGANIZATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+        jdbc-url: ${symbol_dollar}{ORGANIZATION_SHARDING_SHARD_1_URL}
+        username: ${symbol_dollar}{ORGANIZATION_SHARDING_USERNAME}
+        password: "${symbol_dollar}{ORGANIZATION_SHARDING_PASSWORD:}"
+    flyway:
+      targets:
+        - data-source-name: single
+          locations:
+            - classpath:db/migration/sharding/single
+        - data-source-name: shard_0
+          locations:
+            - classpath:db/migration/sharding/shard
+        - data-source-name: shard_1
+          locations:
+            - classpath:db/migration/sharding/shard

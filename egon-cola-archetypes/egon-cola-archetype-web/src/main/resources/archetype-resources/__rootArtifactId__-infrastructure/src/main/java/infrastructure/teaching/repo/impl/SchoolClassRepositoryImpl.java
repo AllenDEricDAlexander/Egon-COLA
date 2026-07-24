@@ -16,6 +16,7 @@ import ${package}.infrastructure.teaching.repo.po.SchoolClassUserPO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,6 +29,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     private final GradeJpaRepository gradeJpaRepository;
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
     private final SchoolClassPOConverter converter;
+    private final IdGenerator idGenerator;
 
     @Override public SchoolClass save(SchoolClass schoolClass) {
         try {
@@ -56,6 +58,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
         try {
             schoolClassUserJpaRepository.saveAndFlush(
                 new SchoolClassUserPO(
+                        idGenerator.nextId(),
                         gradeId,
                         schoolClassId.value(),
                         userId.value(),
@@ -75,8 +78,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
 
     private SchoolClass restore(SchoolClassPO schoolClassPO) {
         GradeCode gradeCode = gradeJpaRepository.findById(schoolClassPO.getGradeId())
-            .map(grade -> grade.getId().startsWith("legacy:")
-                ? GradeCode.restoreLegacy(grade.getCode()) : GradeCode.create(grade.getCode()))
+            .map(grade -> GradeCode.create(grade.getCode()))
             .orElseThrow(() -> new OrganizationPortException(
                 OrganizationDomainErrorCode.DEPENDENCY_UNAVAILABLE, "grade row missing",
                 new IllegalStateException("grade row missing")));

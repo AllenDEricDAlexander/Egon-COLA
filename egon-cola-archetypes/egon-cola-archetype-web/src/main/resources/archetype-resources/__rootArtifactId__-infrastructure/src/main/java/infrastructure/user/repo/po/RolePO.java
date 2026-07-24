@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class RolePO {
-    @Id @Column(length = 64) private String id;
+    @Id @Column(length = 36) private String id;
     @Column(nullable = false, unique = true, length = 64) private String code;
     @Column(nullable = false, length = 120) private String name;
     @Column(nullable = false, length = 32) private String status;

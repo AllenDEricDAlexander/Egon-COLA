@@ -56,7 +56,6 @@ public class PermissionManageImpl implements PermissionManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public PermissionTreeResult getPermissionTree(PermissionTreeQuery query) {
         UserId userId = new UserId(query.userId());
         return new PermissionTreeResult(userId.value(), permissionRepository.findByUserId(userId).stream()

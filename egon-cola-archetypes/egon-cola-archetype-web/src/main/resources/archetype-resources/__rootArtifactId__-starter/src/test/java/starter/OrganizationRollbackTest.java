@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -36,6 +37,7 @@ class OrganizationRollbackTest {
     @Autowired private LocalOrganizationEventPublisher localPublisher;
     @Autowired private InMemorySchoolClassCache schoolClassCache;
     @Autowired private InMemoryCommandIdempotencyAdapter idempotency;
+    @Autowired private IdGenerator idGenerator;
 
     @AfterEach
     void clearContext() {
@@ -52,7 +54,7 @@ class OrganizationRollbackTest {
                 new CreateGradeCommand("grade-" + suffix, gradeCode, "Rollback Grade"));
         var schoolClass = schoolClassManage.createSchoolClass(
                 new CreateSchoolClassCommand("class-" + suffix, "Rollback Class", gradeCode));
-        String disabledUserId = "disabled-" + UUID.randomUUID();
+        String disabledUserId = idGenerator.nextId();
         jdbcTemplate.update(
                 "insert into users(id, name, email, status, created_at) values (?, ?, ?, ?, ?)",
                 disabledUserId, "Disabled User", disabledUserId + "@example.com", "DISABLED",

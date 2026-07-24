@@ -14,5 +14,4 @@ public record GradeCode(String value) {
     }
 
     public static GradeCode create(String raw) { return new GradeCode(OrganizationCodeValidator.normalize(raw)); }
-    public static GradeCode restoreLegacy(String raw) { return new GradeCode(raw); }
 }

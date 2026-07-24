@@ -27,8 +27,7 @@ public class RedisSchoolClassCache implements SchoolClassCachePort {
                 OrganizationCacheKey.schoolClass(gradeId, id.value()));
         if (!(value instanceof SchoolClassCacheValue cached)) return Optional.empty();
         return Optional.of(new SchoolClass(id, cached.name(), cached.gradeId(),
-            cached.gradeId().startsWith("legacy:") ? GradeCode.restoreLegacy(cached.gradeCode())
-                : GradeCode.create(cached.gradeCode()), cached.gradeName(),
+            GradeCode.create(cached.gradeCode()), cached.gradeName(),
             SchoolClassStatus.valueOf(cached.status()), cached.userIds().stream().map(UserId::new).toList()));
     }
     @Override public void put(SchoolClass value) {

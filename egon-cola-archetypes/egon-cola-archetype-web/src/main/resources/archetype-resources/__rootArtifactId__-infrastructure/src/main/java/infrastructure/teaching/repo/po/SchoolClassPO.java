@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SchoolClassPO {
     @Id
-    @Column(length = 64)
+    @Column(length = 36)
     private String id;
 
     @Column(nullable = false, length = 120)
@@ -25,7 +25,7 @@ public class SchoolClassPO {
     @Column(name = "grade_name", nullable = false, length = 120)
     private String gradeName;
 
-    @Column(name = "grade_id", nullable = false, length = 160)
+    @Column(name = "grade_id", nullable = false, length = 36)
     private String gradeId;
 
     @Column(nullable = false, length = 32)

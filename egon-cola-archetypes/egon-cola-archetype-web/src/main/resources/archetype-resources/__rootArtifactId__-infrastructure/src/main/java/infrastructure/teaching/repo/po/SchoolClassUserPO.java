@@ -2,8 +2,6 @@ package ${package}.infrastructure.teaching.repo.po;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -22,33 +20,35 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SchoolClassUserPO {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(length = 36)
+    private String id;
 
-    @Column(name = "user_id", nullable = false, length = 64)
+    @Column(name = "user_id", nullable = false, length = 36)
     private String userId;
 
     @Column(name = "grade_id", nullable = false, length = 36)
     private String gradeId;
 
-    @Column(name = "school_class_id", nullable = false, length = 64)
+    @Column(name = "school_class_id", nullable = false, length = 36)
     private String schoolClassId;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     public SchoolClassUserPO(
+            String id,
             String gradeId,
             String schoolClassId,
             String userId,
             LocalDateTime createdAt) {
+        this.id = id;
         this.gradeId = gradeId;
         this.userId = userId;
         this.schoolClassId = schoolClassId;
         this.createdAt = createdAt;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 

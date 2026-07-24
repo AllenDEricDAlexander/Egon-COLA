@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassUserPO, Long> {
+public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassUserPO, String> {
     List<SchoolClassUserPO> findByGradeIdAndSchoolClassId(
             String gradeId,
             String schoolClassId);

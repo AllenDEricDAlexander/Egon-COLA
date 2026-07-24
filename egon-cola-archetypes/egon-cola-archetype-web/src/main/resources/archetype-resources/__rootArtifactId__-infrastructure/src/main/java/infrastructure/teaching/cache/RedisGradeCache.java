@@ -22,9 +22,8 @@ public class RedisGradeCache implements GradeCachePort {
     @Override public Optional<Grade> findById(String id) {
         Object value = redisTemplate.opsForValue().get(OrganizationCacheKey.grade(id));
         if (!(value instanceof GradeCacheValue cached)) return Optional.empty();
-        GradeCode code = cached.id().startsWith("legacy:")
-            ? GradeCode.restoreLegacy(cached.code()) : GradeCode.create(cached.code());
-        return Optional.of(new Grade(cached.id(), code, cached.name(), GradeStatus.valueOf(cached.status())));
+        return Optional.of(new Grade(cached.id(), GradeCode.create(cached.code()),
+            cached.name(), GradeStatus.valueOf(cached.status())));
     }
     @Override public void put(Grade grade) {
         redisTemplate.opsForValue().set(OrganizationCacheKey.grade(grade.id()),

@@ -18,6 +18,7 @@ import ${package}.infrastructure.user.repo.converter.UserPOConverter;
 import ${package}.infrastructure.user.repo.impl.PermissionRepositoryImpl;
 import ${package}.infrastructure.user.repo.impl.RoleRepositoryImpl;
 import ${package}.infrastructure.user.repo.impl.UserRepositoryImpl;
+import ${package}.infrastructure.user.repo.jpa.RolePermissionJpaRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -26,29 +27,35 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
+import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
     "spring.datasource.url=jdbc:h2:mem:role-permission-repository;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
     "spring.flyway.enabled=true",
+    "spring.flyway.locations=classpath:db/migration/default",
     "spring.jpa.hibernate.ddl-auto=validate"
 })
 @Import({UserRepositoryImpl.class, RoleRepositoryImpl.class, PermissionRepositoryImpl.class,
-    UserPOConverter.class, RolePOConverter.class, PermissionPOConverter.class})
+    UserPOConverter.class, RolePOConverter.class, PermissionPOConverter.class,
+    UuidV7Generator.class})
 @ContextConfiguration(classes = RolePermissionRepositoryImplTest.TestConfiguration.class)
 class RolePermissionRepositoryImplTest {
 
     @Autowired UserRepository userRepository;
     @Autowired RoleRepository roleRepository;
     @Autowired PermissionRepository permissionRepository;
+    @Autowired RolePermissionJpaRepository rolePermissionJpaRepository;
 
     @Test
     void persistsRoleAssignmentAndPermissionGrantRelations() {
+        String userId = new UuidV7Generator().nextId();
         User user = userRepository.save(new User(
-            new UserId("user-role-1"), "Mario", "role@example.com", UserStatus.ACTIVE, List.of()));
+            new UserId(userId), "Mario", "role@example.com", UserStatus.ACTIVE, List.of()));
         Role role = roleRepository.findByCode(new RoleCode("STUDENT")).orElseThrow();
         Permission permission = permissionRepository.findByCode(new PermissionCode("CLASS_READ")).orElseThrow();
 
@@ -63,6 +70,13 @@ class RolePermissionRepositoryImplTest {
             .extracting(User::roleCodes).isEqualTo(List.of(new RoleCode("STUDENT")));
         assertThat(permissionRepository.findByUserId(user.id()))
             .extracting(Permission::code).containsExactly(new PermissionCode("CLASS_READ"));
+        String relationId = rolePermissionJpaRepository
+                .findByRoleId(roleRepository.findByCode(new RoleCode("STUDENT")).orElseThrow()
+                        .id())
+                .getFirst()
+                .getId();
+        assertThat(relationId).hasSize(36);
+        assertThat(UUID.fromString(relationId).version()).isEqualTo(7);
     }
 
     @Configuration(proxyBeanMethods = false)

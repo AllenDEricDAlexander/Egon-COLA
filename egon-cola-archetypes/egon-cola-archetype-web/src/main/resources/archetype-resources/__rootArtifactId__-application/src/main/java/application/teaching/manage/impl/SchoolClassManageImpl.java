@@ -30,6 +30,7 @@ import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.util.UUID;
 import java.time.Instant;
@@ -45,6 +46,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     private final SchoolClassCachePort schoolClassCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
+    private final IdGenerator idGenerator;
     private final SchoolClassAssembler assembler = new SchoolClassAssembler();
 
     @Override
@@ -58,7 +60,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
                 throw conflict("school class name already exists in grade");
             }
             SchoolClass schoolClass = schoolClassRepository.save(schoolClassDomainService.create(
-                new SchoolClassId("class-" + UUID.randomUUID().toString().toLowerCase()), command.name(), grade));
+                new SchoolClassId(idGenerator.nextId()), command.name(), grade));
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(schoolClass.gradeId(), schoolClass.id());
                 eventPublisher.publish(new SchoolClassChangedEvent(UUID.randomUUID().toString(),
@@ -69,7 +71,6 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public SchoolClassDetailResult getSchoolClass(SchoolClassDetailQuery query) {
         SchoolClassId id = new SchoolClassId(query.schoolClassId());
         SchoolClass schoolClass = schoolClassCache.findById(query.gradeId(), id).orElseGet(() -> {

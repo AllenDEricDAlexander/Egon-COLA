@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class UserPO {
 
     @Id
-    @Column(length = 64)
+    @Column(length = 36)
     private String id;
 
     @Column(nullable = false, length = 120)
