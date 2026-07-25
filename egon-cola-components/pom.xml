@@ -63,6 +63,7 @@
         <module>egon-cola-component-method-extension</module>
         <module>egon-cola-component-transactional-outbox</module>
         <module>egon-cola-component-bytecode</module>
+        <module>egon-cola-component-gateway</module>
     </modules>
 
     <properties>

@@ -140,6 +140,16 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-gateway-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-gateway-provider-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-bytecode-api</artifactId>
                 <version>${project.version}</version>
             </dependency>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-gateway</artifactId>
+        <version>5.2.3</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>egon-cola-component-gateway-test</artifactId>
+    <packaging>pom</packaging>
+    <name>egon-cola-component-gateway-test</name>
+    <description>Real applications and end-to-end tests for Egon COLA Gateway.</description>
+
+    <modules>
+        <module>egon-cola-component-gateway-test-http-provider</module>
+        <module>egon-cola-component-gateway-test-rpc-contract</module>
+        <module>egon-cola-component-gateway-test-rpc-provider</module>
+        <module>egon-cola-component-gateway-test-rpc-consumer</module>
+        <module>egon-cola-component-gateway-test-suite</module>
+    </modules>
+</project>
