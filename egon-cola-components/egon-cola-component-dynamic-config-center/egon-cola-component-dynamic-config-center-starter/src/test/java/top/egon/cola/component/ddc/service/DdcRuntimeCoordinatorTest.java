@@ -23,11 +23,22 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcRuntimeCoordinatorTest {
+
+    @Test
+    void consistencyReconciliationDefaultsToEnabledEveryThirtySeconds() {
+        DdcProperties properties = new DdcProperties();
+
+        assertThat(properties.getConsistency().isReconcileEnabled()).isTrue();
+        assertThat(properties.getConsistency().getReconcileIntervalSeconds()).isEqualTo(30);
+    }
 
     @Test
     void startsInContractOrderAndStopsInReverseInfrastructureOrder() {
@@ -138,6 +149,92 @@ class DdcRuntimeCoordinatorTest {
         }
     }
 
+    @Test
+    void disabledReconciliationDoesNotPullAnotherSnapshot() {
+        RecordingAdminClient adminClient = new RecordingAdminClient(new ArrayList<>());
+        DdcProperties properties = properties(true);
+        properties.getConsistency().setReconcileEnabled(false);
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                mock(DdcRefreshService.class),
+                subscription(new ArrayList<>()),
+                properties
+        );
+        coordinator.start();
+
+        coordinator.reconcileOnce();
+
+        assertThat(adminClient.pullCount).isEqualTo(1);
+        coordinator.stop();
+    }
+
+    @Test
+    void reconciliationPullsAndDelegatesCurrentSnapshots() {
+        RecordingAdminClient adminClient = new RecordingAdminClient(new ArrayList<>());
+        DdcRefreshService refreshService = mock(DdcRefreshService.class);
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                refreshService,
+                subscription(new ArrayList<>()),
+                true
+        );
+        coordinator.start();
+        clearInvocations(refreshService);
+        adminClient.snapshot.setVersion(2L);
+
+        coordinator.reconcileOnce();
+
+        assertThat(adminClient.pullCount).isEqualTo(2);
+        verify(refreshService).applySnapshot(adminClient.snapshot);
+        coordinator.stop();
+    }
+
+    @Test
+    void reconciliationFailureKeepsReadyStateAndLocalMetadata() {
+        RecordingAdminClient adminClient = new RecordingAdminClient(new ArrayList<>());
+        DdcRefreshService refreshService = mock(DdcRefreshService.class);
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        repository.updateVersion("switch", 1L);
+        repository.updateChecksum("switch", "last-known-good");
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                refreshService,
+                subscription(new ArrayList<>()),
+                properties(true),
+                repository
+        );
+        coordinator.start();
+        clearInvocations(refreshService);
+        adminClient.pullFailures = 1;
+
+        coordinator.reconcileOnce();
+
+        assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.READY);
+        assertThat(repository.version("switch")).isEqualTo(1L);
+        assertThat(repository.checksum("switch")).isEqualTo("last-known-good");
+        verify(refreshService, never()).applySnapshot(adminClient.snapshot);
+        coordinator.stop();
+    }
+
+    @Test
+    void invalidReconciliationIntervalFailsBeforeStartup() {
+        RecordingAdminClient adminClient = new RecordingAdminClient(new ArrayList<>());
+        DdcProperties properties = properties(true);
+        properties.getConsistency().setReconcileIntervalSeconds(0);
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                mock(DdcRefreshService.class),
+                subscription(new ArrayList<>()),
+                properties
+        );
+
+        assertThatThrownBy(coordinator::start)
+                .isInstanceOf(DdcException.class)
+                .hasMessageContaining("reconcileIntervalSeconds");
+        assertThat(coordinator.isRunning()).isFalse();
+        assertThat(adminClient.registerCount).isZero();
+    }
+
     private DdcRuntimeCoordinator coordinator(RecordingAdminClient adminClient,
                                               DdcRefreshService refreshService,
                                               DdcRedisChangeSubscription subscription,
@@ -160,6 +257,20 @@ class DdcRuntimeCoordinatorTest {
                                               DdcRefreshService refreshService,
                                               DdcRedisChangeSubscription subscription,
                                               DdcProperties properties) {
+        return coordinator(
+                adminClient,
+                refreshService,
+                subscription,
+                properties,
+                new DdcLocalConfigRepository()
+        );
+    }
+
+    private DdcRuntimeCoordinator coordinator(RecordingAdminClient adminClient,
+                                              DdcRefreshService refreshService,
+                                              DdcRedisChangeSubscription subscription,
+                                              DdcProperties properties,
+                                              DdcLocalConfigRepository repository) {
         DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
         DdcInstanceIdentity identity = new DdcInstanceIdentity(
                 "instance-1",
@@ -177,7 +288,7 @@ class DdcRuntimeCoordinatorTest {
                 properties,
                 instanceService,
                 adminClient,
-                new DdcLocalConfigRepository(),
+                repository,
                 refreshService,
                 subscription,
                 holder
@@ -203,6 +314,10 @@ class DdcRuntimeCoordinatorTest {
         private int registrationFailures;
 
         private int registerCount;
+
+        private int pullCount;
+
+        private int pullFailures;
 
         private DdcLeaseOperationStatus heartbeatStatus = DdcLeaseOperationStatus.RENEWED;
 
@@ -247,6 +362,10 @@ class DdcRuntimeCoordinatorTest {
         @Override
         public List<DdcConfigValue> pull() {
             events.add("pull");
+            pullCount++;
+            if (pullFailures-- > 0) {
+                throw new IllegalStateException("pull failed");
+            }
             return List.of(snapshot);
         }
 

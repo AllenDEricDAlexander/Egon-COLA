@@ -234,12 +234,32 @@ public class DdcProperties {
 
         private boolean failFast = true;
 
+        private boolean reconcileEnabled = true;
+
+        private int reconcileIntervalSeconds = 30;
+
         public boolean isFailFast() {
             return failFast;
         }
 
         public void setFailFast(boolean failFast) {
             this.failFast = failFast;
+        }
+
+        public boolean isReconcileEnabled() {
+            return reconcileEnabled;
+        }
+
+        public void setReconcileEnabled(boolean reconcileEnabled) {
+            this.reconcileEnabled = reconcileEnabled;
+        }
+
+        public int getReconcileIntervalSeconds() {
+            return reconcileIntervalSeconds;
+        }
+
+        public void setReconcileIntervalSeconds(int reconcileIntervalSeconds) {
+            this.reconcileIntervalSeconds = reconcileIntervalSeconds;
         }
     }
 
