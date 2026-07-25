@@ -10,6 +10,8 @@ import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
+import top.egon.cola.component.gateway.engine.traffic.GatewayRequestResourceGuard;
+import top.egon.cola.component.gateway.engine.traffic.GatewayResourceLimits;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;
@@ -40,6 +42,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private final Duration upstreamTimeout;
 
+    private final GatewayRequestResourceGuard resourceGuard;
+
     public DefaultGatewayHttpDataPlaneHandler(
             HttpRequestNormalizer normalizer,
             Supplier<CompiledHttpRouteIndex> routeIndex,
@@ -62,6 +66,15 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 upstreamTimeout,
                 "upstreamTimeout"
         );
+        resourceGuard = new GatewayRequestResourceGuard(
+                new GatewayResourceLimits(
+                        128,
+                        64,
+                        64 * 1024,
+                        maxBodyBytes,
+                        4 * 1024 * 1024
+                )
+        );
     }
 
     @Override
@@ -75,6 +88,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     request.uri(),
                     request.headers()
             );
+            resourceGuard.validate(normalized);
             HttpRouteMatch match = routeIndex.get().match(
                     normalized.host(),
                     normalized.method(),

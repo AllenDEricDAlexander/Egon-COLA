@@ -14,6 +14,7 @@ import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndex;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndexCompiler;
 import top.egon.cola.component.gateway.engine.rpc.RuntimeRpcRoute;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -30,6 +31,9 @@ public final class EngineGatewayRuleCompiler {
 
     private final RpcMethodIndexCompiler rpcCompiler =
             new RpcMethodIndexCompiler();
+
+    private final GatewayTrafficPolicyCompiler trafficPolicyCompiler =
+            new GatewayTrafficPolicyCompiler();
 
     public CompiledGatewayRules compile(GatewayRuleSnapshot snapshot) {
         GatewayRuleContent content = snapshot.content();
@@ -86,7 +90,7 @@ public final class EngineGatewayRuleCompiler {
                 httpCompiler.compile(httpRoutes),
                 rpcCompiler.compile(rpcRoutes),
                 services,
-                policyIndex(content)
+                trafficPolicyCompiler.compile(content.trafficPolicies())
         );
     }
 
@@ -131,26 +135,4 @@ public final class EngineGatewayRuleCompiler {
         );
     }
 
-    private Map<String, Map<String, Object>> policyIndex(
-            GatewayRuleContent content) {
-        List<GatewayRuntimePolicy> policies = new ArrayList<>();
-        policies.addAll(content.providerPolicies());
-        policies.addAll(content.trafficPolicies());
-        policies.addAll(content.securityPolicies());
-        policies.addAll(content.corsPolicies());
-        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
-        policies.forEach(policy -> {
-            Map<String, Object> value = new LinkedHashMap<>();
-            value.put("type", policy.type());
-            value.put("scope", policy.scope());
-            value.put("configuration", policy.configuration());
-            if (result.putIfAbsent(policy.policyId(), Map.copyOf(value))
-                    != null) {
-                throw new IllegalArgumentException(
-                        "GATEWAY_RULE_COMPILE_FAILED: duplicate policy"
-                );
-            }
-        });
-        return Map.copyOf(result);
-    }
 }
