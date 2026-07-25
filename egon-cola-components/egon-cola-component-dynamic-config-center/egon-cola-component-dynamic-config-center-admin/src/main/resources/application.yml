@@ -13,6 +13,7 @@ egon:
       ddc:
         enabled: false
         admin:
+          max-value-bytes: 1048576
           redis:
             host: 127.0.0.1
             port: 6379

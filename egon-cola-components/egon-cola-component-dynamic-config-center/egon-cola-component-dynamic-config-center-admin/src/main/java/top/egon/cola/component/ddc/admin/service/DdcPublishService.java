@@ -75,6 +75,8 @@ public class DdcPublishService {
 
     private final DdcAdminProperties properties;
 
+    private final DdcConfigValueGuard valueGuard;
+
     private final TransactionTemplate transactionTemplate;
 
     private final Clock clock;
@@ -139,6 +141,7 @@ public class DdcPublishService {
         this.stateTransitions = stateTransitions;
         this.failureRecorder = failureRecorder;
         this.properties = properties;
+        this.valueGuard = new DdcConfigValueGuard(properties.getMaxValueBytes());
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -579,6 +582,7 @@ public class DdcPublishService {
         requireText(request.getEnv(), "env");
         requireText(request.getNamespace(), "namespace");
         requireText(request.getConfigKey(), "configKey");
+        valueGuard.check(request.getConfigValue());
         if (request.getExpectedVersion() == null || request.getExpectedVersion() < 0) {
             throw new DdcAdminException("expectedVersion is required");
         }

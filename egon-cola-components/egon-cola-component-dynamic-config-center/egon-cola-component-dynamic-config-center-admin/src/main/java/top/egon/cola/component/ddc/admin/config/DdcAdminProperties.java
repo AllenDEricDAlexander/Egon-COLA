@@ -5,6 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "egon.cola.component.ddc.admin", ignoreInvalidFields = true)
 public class DdcAdminProperties {
 
+    private long maxValueBytes = 1024L * 1024L;
+
     private Redis redis = new Redis();
 
     private Lease lease = new Lease();
@@ -14,6 +16,14 @@ public class DdcAdminProperties {
     private Publish publish = new Publish();
 
     private Manifest manifest = new Manifest();
+
+    public long getMaxValueBytes() {
+        return maxValueBytes;
+    }
+
+    public void setMaxValueBytes(long maxValueBytes) {
+        this.maxValueBytes = maxValueBytes;
+    }
 
     public Redis getRedis() {
         return redis;

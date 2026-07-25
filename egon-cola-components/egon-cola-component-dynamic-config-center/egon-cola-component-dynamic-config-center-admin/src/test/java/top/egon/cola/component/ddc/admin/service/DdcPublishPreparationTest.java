@@ -42,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,6 +65,7 @@ import static org.mockito.Mockito.when;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=1",
         "spring.flyway.enabled=false",
+        "egon.cola.component.ddc.admin.max-value-bytes=5",
         "egon.cola.component.ddc.admin.publish.default-timeout-ms=2000",
         "egon.cola.component.ddc.admin.publish.max-timeout-ms=5000"
 })
@@ -242,6 +244,30 @@ class DdcPublishPreparationTest {
         assertThat(resourceRegistry.owner(new DdcConfigResourceKey(
                 "demo", "dev", "default", "dispatch-failure"
         ))).isEmpty();
+    }
+
+    @Test
+    void oversizedUtf8ValueIsRejectedBeforeDatabaseOrRedisMutation() {
+        saveConfig("oversized");
+        DdcPublishRequest request = request("oversized", "你好");
+
+        assertThatThrownBy(() -> publishService.publish(request, "tester"))
+                .isInstanceOf(DdcAdminException.class)
+                .hasMessageContaining("5")
+                .hasMessageNotContaining("你好");
+
+        assertThat(taskRepository.findByChangeId(request.getChangeId())).isEmpty();
+        assertThat(configItemRepository
+                .findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                        "demo",
+                        "dev",
+                        "default",
+                        "oversized"
+                ))
+                .get()
+                .extracting(DdcConfigItemEntity::getConfigValue)
+                .isEqualTo("false");
+        verify(redisRepository, never()).publish(any());
     }
 
     private void saveConfig(String configKey) {
