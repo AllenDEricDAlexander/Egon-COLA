@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -141,6 +142,75 @@ class RpcGatewayServerTest {
         first.close();
         second.close();
         assertEquals(0, channels.size());
+    }
+
+    @Test
+    void mapsSecurityDenialBeforeProviderSelection() throws Exception {
+        AtomicBoolean providerSelected = new AtomicBoolean();
+        RpcProviderChannelCache channels = new RpcProviderChannelCache(
+                Duration.ofSeconds(1)
+        );
+        RpcGatewayForwarder forwarder = new RpcGatewayForwarder(
+                ignored -> {
+                    providerSelected.set(true);
+                    throw new AssertionError(
+                            "provider must not be selected"
+                    );
+                },
+                channels,
+                Duration.ofSeconds(5),
+                1024,
+                (route, metadata, traceId, deadline) ->
+                        reactor.core.publisher.Mono.error(
+                                top.egon.cola.component.gateway.engine.security
+                                        .GatewaySecurityException
+                                        .authorizationDenied()
+                        )
+        );
+        RpcGatewayHandlerRegistry registry =
+                new RpcGatewayHandlerRegistry(forwarder);
+        registry.activate(new RpcMethodIndexCompiler().compile(
+                List.of(route())
+        ));
+        RpcGatewayServer gateway = new RpcGatewayServer(0, 1024, registry);
+        ManagedChannel consumer = null;
+        try {
+            gateway.start();
+            consumer = ManagedChannelBuilder.forAddress(
+                            "127.0.0.1",
+                            gateway.port()
+                    )
+                    .usePlaintext()
+                    .build();
+            ManagedChannel activeConsumer = consumer;
+
+            StatusRuntimeException failure = assertThrows(
+                    StatusRuntimeException.class,
+                    () -> ClientCalls.blockingUnaryCall(
+                            activeConsumer,
+                            RawByteMarshaller.INSTANCE.descriptor(
+                                    "test.Echo/Call"
+                            ),
+                            io.grpc.CallOptions.DEFAULT,
+                            new byte[]{1}
+                    )
+            );
+
+            assertEquals(
+                    Status.Code.PERMISSION_DENIED,
+                    failure.getStatus().getCode()
+            );
+            assertEquals(false, providerSelected.get());
+        } finally {
+            if (consumer != null) {
+                consumer.shutdownNow().awaitTermination(
+                        1,
+                        TimeUnit.SECONDS
+                );
+            }
+            gateway.close();
+            channels.close();
+        }
     }
 
     private RuntimeRpcRoute route() {
