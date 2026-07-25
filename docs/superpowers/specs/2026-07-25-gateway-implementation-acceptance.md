@@ -491,6 +491,15 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 | Important | Starter Definition Identity 未进入 Provider 租约 | 增加契约适配 Bean，HTTP/RPC Provider 移除 `pending-report` |
 | Important | Engine 新 lease/新节点被历史 Target 误判 ACK 缺失 | 发布产物确定期望值，当前租约元数据确定运行一致性 |
 
+上述修复完成后又执行了第二轮独立只读复核，继续发现并关闭 2 个重要边界和 1 个验证
+证据一致性问题：
+
+| 严重度 | 二次复核问题 | 修复结果 |
+|---|---|---|
+| Important | 响应已构造、尚未交给调用方时取消可能跳过 Attempt 清理 | 使用 `MonoSink` 原子裁决取消与响应所有权交接；取消先赢时终止上游并释放 Attempt，交接后由 Body 终态释放 |
+| Important | RPC Definition Identity 只由测试应用贡献，真实下游接入 Starter 时缺失 | Gateway Starter 自动贡献三项 RPC 注册元数据，测试应用仅保留 zone/weight |
+| Evidence | 测试报告统计混入定向运行残留，不能对应单次门禁 | 重新执行完整 32 模块 `clean verify`，只统计该 Reactor 模块本次生成的报告 |
+
 ## 9. 自动化验证层级
 
 | 层级 | 覆盖 |
@@ -530,9 +539,9 @@ Testcontainers Live Profile、不启动 Vite/Playwright 浏览器。
 | 验证项 | 结果 |
 |---|---|
 | 32 模块 Maven `clean verify` | `BUILD SUCCESS` |
-| Surefire/Failsafe 报告 | 170 份，375 个测试，0 Failure，0 Error，0 Skip |
+| Surefire/Failsafe 报告 | 176 份，397 个测试，0 Failure，0 Error，0 Skip |
 | DDC 隐式明文安全回归 | 首次暴露 3 个失败；测试显式声明开发明文后 4/4 通过 |
-| Gateway Engine | 75 个测试通过 |
+| Gateway Engine | 76 个测试通过 |
 | Gateway Admin | 40 个测试通过 |
 | Gateway Starter | 12 个测试通过 |
 | DDC Starter/Admin | 60 + 67 个测试通过 |
@@ -551,7 +560,7 @@ Testcontainers Live Profile、不启动 Vite/Playwright 浏览器。
 
 `GatewayLiveTopologyIT` 的 HTTP、RPC 两个真实拓扑入口已通过 Maven
 `testCompile`。它们受 `gateway-live-test` Profile 和
-`gateway.live.test=true` 双重门禁保护，本轮未启用，因此不包含在上述 375 个已执行
+`gateway.live.test=true` 双重门禁保护，本轮未启用，因此不包含在上述 397 个已执行
 测试中；Playwright、k6 和故障注入同样没有实际运行。
 
 验证过程还发现并修复了一处仅在干净 Reactor 中暴露的测试边界问题：Engine
@@ -570,6 +579,10 @@ Contract/Engine 契约构造 Fixture，Engine POM 不再测试依赖 Admin。修
 独立代码审查又验证并推动了 5 个边界修正：TLS reload 默认关闭、流式 Attempt 生命周期、
 空 Provider 集合定义退役、Starter/Provider Definition Identity 贯通、Engine 新租约
 运行一致性。对应定向测试和本节完整门禁均已通过。
+
+第二轮独立代码复核又关闭了响应交接取消竞态和通用 RPC Definition Identity 贡献两个
+边界；最终完整门禁在这两项修复提交后重新从 `clean` 执行，表中 176 份报告、397 个
+测试均只来自该次 32 模块 Reactor。
 
 非阻断提示：
 
