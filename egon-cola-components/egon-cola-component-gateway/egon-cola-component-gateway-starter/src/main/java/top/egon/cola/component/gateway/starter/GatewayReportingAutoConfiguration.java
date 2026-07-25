@@ -22,9 +22,11 @@ import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordin
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingStateStore;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
+import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 @AutoConfiguration
 @EnableConfigurationProperties(GatewayReportingProperties.class)
@@ -160,6 +162,23 @@ public class GatewayReportingAutoConfiguration {
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(RpcContractCatalog.class)
     static class RpcContributorConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean(
+                name = "gatewayDefinitionIdentityRpcMetadataContributor"
+        )
+        RpcProviderMetadataContributor
+                gatewayDefinitionIdentityRpcMetadataContributor(
+                        GatewayDefinitionIdentity identity) {
+            return ignored -> Map.of(
+                    "gateway.definition-set-id",
+                    identity.definitionSetId(),
+                    "gateway.artifact-version",
+                    identity.artifactVersion(),
+                    "gateway.build-id",
+                    identity.buildId()
+            );
+        }
 
         @Bean
         @ConditionalOnBean(RpcContractCatalog.class)

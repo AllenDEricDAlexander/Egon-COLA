@@ -5,6 +5,11 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
+import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
+import top.egon.cola.component.rpc.provider.RpcProviderMetadataMerger;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,7 +24,8 @@ class GatewayReportingAutoConfigurationTest {
     @Test
     void remainsDisabledByDefault() {
         runner.run(context -> assertThat(context)
-                .doesNotHaveBean(GatewayDefinitionIdentity.class));
+                .doesNotHaveBean(GatewayDefinitionIdentity.class)
+                .doesNotHaveBean(RpcProviderMetadataContributor.class));
     }
 
     @Test
@@ -62,6 +68,32 @@ class GatewayReportingAutoConfigurationTest {
                     ).definitionSetId()).isEqualTo(context.getBean(
                             GatewayDefinitionIdentity.class
                     ).definitionSetId());
+                    Map<String, String> rpcMetadata =
+                            new RpcProviderMetadataMerger(
+                                    context.getBeansOfType(
+                                            RpcProviderMetadataContributor.class
+                                    ).values()
+                            ).merge(
+                                    new RpcServiceIdentity(
+                                            "inventory",
+                                            "default",
+                                            "1.0.0"
+                                    ),
+                                    Map.of()
+                            );
+                    GatewayDefinitionIdentity identity = context.getBean(
+                            GatewayDefinitionIdentity.class
+                    );
+                    assertThat(rpcMetadata).containsEntry(
+                            "gateway.definition-set-id",
+                            identity.definitionSetId()
+                    ).containsEntry(
+                            "gateway.artifact-version",
+                            "1.0.0"
+                    ).containsEntry(
+                            "gateway.build-id",
+                            "build-1"
+                    );
                 });
     }
 
