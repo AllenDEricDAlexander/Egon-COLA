@@ -45,6 +45,7 @@ public final class GatewayRuleCompiler {
             "BULKHEAD",
             "REQUEST_SIZE",
             "RESPONSE_SIZE",
+            "SECURITY",
             "AUTHENTICATION",
             "HEADER_TOKEN",
             "SIGNATURE",

@@ -111,9 +111,14 @@ public final class EngineGatewayRuleCompiler {
                                 ignored -> new LinkedHashSet<>()
                         ).add(operation.protocol())
                 ));
+        List<GatewayRuntimePolicy> runtimePolicies = new ArrayList<>();
+        runtimePolicies.addAll(content.providerPolicies());
+        runtimePolicies.addAll(content.trafficPolicies());
+        runtimePolicies.addAll(content.securityPolicies());
+        runtimePolicies.addAll(content.corsPolicies());
         Map<String, GatewaySecurityPolicy> securityPolicies =
                 securityPolicyCompiler.compile(
-                        content.trafficPolicies(),
+                        runtimePolicies,
                         policyProtocols
                 );
         content.operations().stream()
@@ -136,7 +141,7 @@ public final class EngineGatewayRuleCompiler {
                 httpCompiler.compile(httpRoutes),
                 rpcCompiler.compile(rpcRoutes),
                 services,
-                trafficPolicyCompiler.compile(content.trafficPolicies()),
+                trafficPolicyCompiler.compile(runtimePolicies),
                 securityPolicies
         );
     }
