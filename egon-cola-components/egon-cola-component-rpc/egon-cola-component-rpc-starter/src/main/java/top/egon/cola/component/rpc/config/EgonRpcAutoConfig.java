@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
@@ -24,6 +25,8 @@ import top.egon.cola.component.rpc.provider.RpcProviderAvailabilityRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderBeanScanner;
 import top.egon.cola.component.rpc.provider.RpcProviderLeaseManager;
 import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
+import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
+import top.egon.cola.component.rpc.provider.RpcProviderMetadataMerger;
 import top.egon.cola.component.rpc.provider.RpcProviderMethodRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
 import top.egon.cola.component.rpc.provider.RpcServerServiceDefinitionFactory;
@@ -88,8 +91,23 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
+    @ConditionalOnMissingBean
+    public RpcProviderMetadataMerger rpcProviderMetadataMerger(
+            ObjectProvider<RpcProviderMetadataContributor> contributors) {
+        return new RpcProviderMetadataMerger(
+                contributors.orderedStream().toList()
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.provider",
+            name = "enabled",
+            havingValue = "true"
+    )
     public RpcProviderLifecycle rpcProviderLifecycle(
             RpcProviderMethodRegistry methodRegistry,
+            RpcProviderMetadataMerger metadataMerger,
             DdcServiceRegistryClient registryClient,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
@@ -107,7 +125,8 @@ public class EgonRpcAutoConfig {
                 availability,
                 properties,
                 processIdentity,
-                runtimeVersion
+                runtimeVersion,
+                metadataMerger
         );
         return new RpcProviderLifecycle(
                 methodRegistry,
