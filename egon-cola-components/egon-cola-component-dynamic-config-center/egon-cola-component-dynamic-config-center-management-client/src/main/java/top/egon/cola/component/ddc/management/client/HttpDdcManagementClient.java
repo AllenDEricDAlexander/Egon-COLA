@@ -1,10 +1,8 @@
 package top.egon.cola.component.ddc.management.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -25,10 +23,7 @@ import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
-import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
 
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -42,17 +37,9 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
 
     private static final String MANAGEMENT_PATH = "/api/v1/ddc/openapi/management";
 
-    private final DdcManagementClientProperties properties;
-
     private final RestClient restClient;
 
-    private final ObjectMapper objectMapper;
-
-    private final Clock clock;
-
-    private final Supplier<String> nonceSupplier;
-
-    private final DdcRequestSigner signer = new DdcRequestSigner();
+    private final DdcManagementRequestFactory requestFactory;
 
     public HttpDdcManagementClient(DdcManagementClientProperties properties) {
         this(
@@ -69,10 +56,14 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
             Clock clock,
             Supplier<String> nonceSupplier
     ) {
-        this.properties = require(properties, "properties");
-        this.clock = require(clock, "clock");
-        this.nonceSupplier = require(nonceSupplier, "nonceSupplier");
-        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        require(properties, "properties");
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        this.requestFactory = new DdcManagementRequestFactory(
+                properties,
+                objectMapper,
+                require(clock, "clock"),
+                require(nonceSupplier, "nonceSupplier")
+        );
         this.restClient = require(restClientBuilder, "restClientBuilder")
                 .baseUrl(properties.endpoint())
                 .messageConverters(converters -> {
@@ -217,24 +208,14 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
             ParameterizedTypeReference<ResultDto<T>> responseType,
             boolean required
     ) {
-        byte[] body = request == null ? new byte[0] : serialize(request);
-        DdcCanonicalRequest canonicalRequest = new DdcCanonicalRequest(
-                method.name(),
-                path,
-                query,
-                clock.millis(),
-                requireText(nonceSupplier.get(), "nonce"),
-                body
-        );
-        String requestTarget = canonicalRequest.canonicalQuery().isEmpty()
-                ? path
-                : path + "?" + canonicalRequest.canonicalQuery();
+        DdcManagementRequestFactory.SignedRequest signedRequest =
+                requestFactory.create(method, path, query, request);
         try {
             RestClient.RequestBodySpec spec = restClient.method(method)
-                    .uri(URI.create(requestTarget))
-                    .headers(headers -> sign(headers, canonicalRequest));
-            if (request != null) {
-                spec.contentType(MediaType.APPLICATION_JSON).body(body);
+                    .uri(signedRequest.target())
+                    .headers(headers -> headers.addAll(signedRequest.headers()));
+            if (signedRequest.hasBody()) {
+                spec.contentType(MediaType.APPLICATION_JSON).body(signedRequest.body());
             }
             ResultDto<T> result = spec.retrieve().body(responseType);
             return data(result, required);
@@ -272,29 +253,6 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
             );
         }
         return result.data();
-    }
-
-    private byte[] serialize(Object request) {
-        try {
-            return objectMapper.writeValueAsBytes(request);
-        } catch (JsonProcessingException exception) {
-            throw new DdcManagementClientException(
-                    "DDC_MANAGEMENT_SERIALIZATION_ERROR",
-                    "DDC management request serialization failed",
-                    exception
-            );
-        }
-    }
-
-    private void sign(HttpHeaders headers, DdcCanonicalRequest request) {
-        headers.set(DdcRequestSigner.ACCESS_KEY_HEADER, properties.accessKey());
-        headers.set(DdcRequestSigner.TIMESTAMP_HEADER, Long.toString(request.timestamp()));
-        headers.set(DdcRequestSigner.NONCE_HEADER, request.nonce());
-        headers.set(DdcRequestSigner.CONTENT_SHA256_HEADER, request.contentSha256());
-        headers.set(
-                DdcRequestSigner.SIGNATURE_HEADER,
-                signer.sign(request, properties.secretKey())
-        );
     }
 
     private String configPath(
