@@ -157,6 +157,8 @@ public class EgonRpcProperties {
 
         private long channelDrainTimeoutMs = 5000;
 
+        private int gatewayMaxAttempts = 2;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -211,6 +213,14 @@ public class EgonRpcProperties {
 
         public void setChannelDrainTimeoutMs(long channelDrainTimeoutMs) {
             this.channelDrainTimeoutMs = channelDrainTimeoutMs;
+        }
+
+        public int getGatewayMaxAttempts() {
+            return gatewayMaxAttempts;
+        }
+
+        public void setGatewayMaxAttempts(int gatewayMaxAttempts) {
+            this.gatewayMaxAttempts = gatewayMaxAttempts;
         }
     }
 }

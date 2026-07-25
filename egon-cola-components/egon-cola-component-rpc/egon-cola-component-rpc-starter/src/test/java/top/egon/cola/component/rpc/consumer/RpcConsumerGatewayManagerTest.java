@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 class RpcConsumerGatewayManagerTest {
 
     @Test
-    void shouldBecomeReadyForExactlyOneGatewayAndCloseOnAmbiguity() {
+    void shouldRoundRobinAcrossMultipleGatewaysAndRemoveFailures() {
         SnapshotRegistry registry = new SnapshotRegistry();
         StubChannelFactory channels = new StubChannelFactory();
         RpcConsumerGatewayManager manager = manager(registry, channels);
@@ -49,15 +49,18 @@ class RpcConsumerGatewayManagerTest {
                 instance("gateway-2", "lease-2", 19091)
         ));
 
-        assertThat(manager.state()).isEqualTo(RpcGatewayState.AMBIGUOUS);
-        assertThatThrownBy(manager::currentChannel)
-                .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode())
-                                .isEqualTo(
-                                        EgonRpcErrorCode.RPC_GATEWAY_AMBIGUOUS
-                                )
-                );
-        verify(channels.lastChannel).shutdownNow();
+        assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
+        assertThat(manager.endpoints())
+                .extracting(RpcGatewayEndpoint::instanceId)
+                .containsExactly("gateway-1", "gateway-2");
+        ManagedChannel first = manager.currentChannel();
+        ManagedChannel second = manager.currentChannel();
+        assertThat(first).isNotSameAs(second);
+
+        manager.recordFailure(first);
+
+        assertThat(manager.currentChannel()).isSameAs(second);
+        verify(first).shutdown();
         manager.stop();
     }
 
@@ -78,7 +81,7 @@ class RpcConsumerGatewayManagerTest {
     }
 
     @Test
-    void shouldFailStartupImmediatelyForMultipleGateways() {
+    void shouldStartWithMultipleGateways() {
         SnapshotRegistry registry = new SnapshotRegistry();
         registry.snapshot = snapshot(
                 instance("gateway-1", "lease-1", 19090),
@@ -87,13 +90,11 @@ class RpcConsumerGatewayManagerTest {
         RpcConsumerGatewayManager manager =
                 manager(registry, new StubChannelFactory());
 
-        assertThatThrownBy(manager::start)
-                .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode())
-                                .isEqualTo(
-                                        EgonRpcErrorCode.RPC_GATEWAY_AMBIGUOUS
-                                )
-                );
+        manager.start();
+
+        assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
+        assertThat(manager.endpoints()).hasSize(2);
+        manager.stop();
     }
 
     @Test

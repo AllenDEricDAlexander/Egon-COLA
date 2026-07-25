@@ -14,14 +14,19 @@ import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RpcConsumerGatewayManager implements SmartLifecycle {
 
@@ -38,9 +43,11 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     private final Set<ManagedChannel> drainingChannels =
             Collections.newSetFromMap(new IdentityHashMap<>());
 
+    private final AtomicLong roundRobinSequence = new AtomicLong();
+
     private volatile RpcGatewayState state = RpcGatewayState.STOPPED;
 
-    private volatile ActiveGateway activeGateway;
+    private volatile List<ActiveGateway> activeGateways = List.of();
 
     private volatile DdcRegistrySubscription subscription;
 
@@ -81,7 +88,7 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                         this::acceptSnapshot
                 );
                 drainExecutor.scheduleWithFixedDelay(
-                        this::expireActiveGateway,
+                        this::expireGateways,
                         100,
                         100,
                         TimeUnit.MILLISECONDS
@@ -110,14 +117,11 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                     monitor.wait(remainingMs);
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
-                    failStartup(EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE);
+                    failStartup();
                 }
             }
             if (state != RpcGatewayState.READY) {
-                EgonRpcErrorCode code = state == RpcGatewayState.AMBIGUOUS
-                        ? EgonRpcErrorCode.RPC_GATEWAY_AMBIGUOUS
-                        : EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE;
-                failStartup(code);
+                failStartup();
             }
         }
     }
@@ -131,10 +135,8 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                 subscription.close();
                 subscription = null;
             }
-            closeNow(activeGateway);
-            activeGateway = null;
-            // Replaced channels remain owned by this manager until their
-            // graceful drain finishes or stop force-closes them.
+            activeGateways.forEach(this::closeNow);
+            activeGateways = List.of();
             drainingChannels.forEach(ManagedChannel::shutdownNow);
             drainingChannels.clear();
             executor = drainExecutor;
@@ -155,23 +157,51 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     }
 
     public ManagedChannel currentChannel() {
-        expireActiveGateway();
-        ActiveGateway current = activeGateway;
-        if (state == RpcGatewayState.READY
-                && current != null
-                && current.endpoint().activeAt(Instant.now())) {
-            return current.channel();
-        }
-        if (state == RpcGatewayState.AMBIGUOUS) {
+        return currentChannel(Set.of());
+    }
+
+    public ManagedChannel currentChannel(Set<ManagedChannel> excluded) {
+        expireGateways();
+        List<ActiveGateway> candidates = activeGateways.stream()
+                .filter(gateway -> !excluded.contains(gateway.channel()))
+                .filter(gateway -> !gateway.channel().isShutdown())
+                .toList();
+        if (state != RpcGatewayState.READY || candidates.isEmpty()) {
             throw new EgonRpcException(
-                    EgonRpcErrorCode.RPC_GATEWAY_AMBIGUOUS,
-                    "multiple active RPC Gateways were discovered"
+                    EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE,
+                    "the RPC Gateway is unavailable"
             );
         }
-        throw new EgonRpcException(
-                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE,
-                "the RPC Gateway is unavailable"
+        int index = Math.floorMod(
+                roundRobinSequence.getAndIncrement(),
+                candidates.size()
         );
+        return candidates.get(index).channel();
+    }
+
+    public void recordFailure(ManagedChannel failed) {
+        if (failed == null) {
+            return;
+        }
+        synchronized (monitor) {
+            List<ActiveGateway> remaining = new ArrayList<>();
+            for (ActiveGateway gateway : activeGateways) {
+                if (gateway.channel() == failed) {
+                    drain(gateway);
+                } else {
+                    remaining.add(gateway);
+                }
+            }
+            activeGateways = List.copyOf(remaining);
+            if (activeGateways.isEmpty()
+                    && state != RpcGatewayState.STOPPED) {
+                state = RpcGatewayState.UNAVAILABLE;
+            }
+        }
+    }
+
+    public int maxAttempts() {
+        return properties.getGatewayMaxAttempts();
     }
 
     public RpcGatewayState state() {
@@ -179,8 +209,14 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     }
 
     public RpcGatewayEndpoint endpoint() {
-        ActiveGateway current = activeGateway;
-        return current == null ? null : current.endpoint();
+        List<ActiveGateway> current = activeGateways;
+        return current.isEmpty() ? null : current.getFirst().endpoint();
+    }
+
+    public List<RpcGatewayEndpoint> endpoints() {
+        return activeGateways.stream()
+                .map(ActiveGateway::endpoint)
+                .toList();
     }
 
     private void acceptSnapshot(DdcServiceSnapshot snapshot) {
@@ -188,56 +224,59 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             if (state == RpcGatewayState.STOPPED) {
                 return;
             }
-            List<RpcGatewayEndpoint> endpoints = snapshot.instances().stream()
+            List<RpcGatewayEndpoint> desired = snapshot.instances().stream()
                     .filter(this::isUp)
                     .map(this::validEndpoint)
                     .flatMap(Optional::stream)
                     .filter(endpoint -> endpoint.activeAt(Instant.now()))
+                    .sorted(Comparator
+                            .comparing(RpcGatewayEndpoint::instanceId)
+                            .thenComparing(RpcGatewayEndpoint::leaseId))
                     .toList();
-            if (endpoints.size() != 1) {
-                if (endpoints.isEmpty()
-                        && state == RpcGatewayState.STARTING) {
-                    monitor.notifyAll();
-                    return;
-                }
-                closeNow(activeGateway);
-                activeGateway = null;
-                state = endpoints.isEmpty()
-                        ? RpcGatewayState.UNAVAILABLE
-                        : RpcGatewayState.AMBIGUOUS;
-                monitor.notifyAll();
-                return;
+            reconcile(desired);
+            if (!activeGateways.isEmpty()) {
+                state = RpcGatewayState.READY;
+            } else if (state != RpcGatewayState.STARTING) {
+                state = RpcGatewayState.UNAVAILABLE;
             }
-            replace(endpoints.getFirst());
             monitor.notifyAll();
         }
     }
 
-    private void replace(RpcGatewayEndpoint endpoint) {
-        ActiveGateway current = activeGateway;
-        if (current != null && current.endpoint().equals(endpoint)) {
-            state = RpcGatewayState.READY;
-            return;
+    private void reconcile(List<RpcGatewayEndpoint> desired) {
+        Map<GatewayIdentity, ActiveGateway> existing =
+                new LinkedHashMap<>();
+        activeGateways.forEach(gateway -> existing.put(
+                GatewayIdentity.from(gateway.endpoint()),
+                gateway
+        ));
+        List<ActiveGateway> next = new ArrayList<>();
+        for (RpcGatewayEndpoint endpoint : desired) {
+            GatewayIdentity identity = GatewayIdentity.from(endpoint);
+            ActiveGateway retained = existing.remove(identity);
+            if (retained != null && !retained.channel().isShutdown()) {
+                next.add(new ActiveGateway(endpoint, retained.channel()));
+                continue;
+            }
+            ActiveGateway connected = connect(endpoint);
+            if (connected != null) {
+                next.add(connected);
+            }
         }
-        ManagedChannel replacement = channelFactory.create(endpoint);
+        existing.values().forEach(this::drain);
+        activeGateways = List.copyOf(next);
+    }
+
+    private ActiveGateway connect(RpcGatewayEndpoint endpoint) {
+        ManagedChannel channel = channelFactory.create(endpoint);
         if (!channelFactory.awaitReady(
-                replacement,
+                channel,
                 properties.getGatewayDiscoveryTimeoutMs()
         )) {
-            replacement.shutdownNow();
-            if (current != null
-                    && current.endpoint().activeAt(Instant.now())) {
-                state = RpcGatewayState.READY;
-            } else {
-                closeNow(current);
-                activeGateway = null;
-                state = RpcGatewayState.UNAVAILABLE;
-            }
-            return;
+            channel.shutdownNow();
+            return null;
         }
-        activeGateway = new ActiveGateway(endpoint, replacement);
-        state = RpcGatewayState.READY;
-        drain(current);
+        return new ActiveGateway(endpoint, channel);
     }
 
     private boolean isUp(DdcServiceInstance instance) {
@@ -284,14 +323,22 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         }
     }
 
-    private void expireActiveGateway() {
+    private void expireGateways() {
         synchronized (monitor) {
-            ActiveGateway current = activeGateway;
-            if (current != null
-                    && !current.endpoint().activeAt(Instant.now())) {
-                closeNow(current);
-                activeGateway = null;
-                if (state != RpcGatewayState.STOPPED) {
+            Instant now = Instant.now();
+            List<ActiveGateway> retained = new ArrayList<>();
+            for (ActiveGateway gateway : activeGateways) {
+                if (gateway.endpoint().activeAt(now)
+                        && !gateway.channel().isShutdown()) {
+                    retained.add(gateway);
+                } else {
+                    drain(gateway);
+                }
+            }
+            if (retained.size() != activeGateways.size()) {
+                activeGateways = List.copyOf(retained);
+                if (retained.isEmpty()
+                        && state != RpcGatewayState.STOPPED) {
                     state = RpcGatewayState.UNAVAILABLE;
                 }
                 monitor.notifyAll();
@@ -299,9 +346,12 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         }
     }
 
-    private void failStartup(EgonRpcErrorCode code) {
+    private void failStartup() {
         cleanupStartup();
-        throw new EgonRpcException(code, "RPC Gateway discovery failed");
+        throw new EgonRpcException(
+                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE,
+                "RPC Gateway discovery failed"
+        );
     }
 
     private void cleanupStartup() {
@@ -309,8 +359,8 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             subscription.close();
             subscription = null;
         }
-        closeNow(activeGateway);
-        activeGateway = null;
+        activeGateways.forEach(this::closeNow);
+        activeGateways = List.of();
         drainingChannels.forEach(ManagedChannel::shutdownNow);
         drainingChannels.clear();
         state = RpcGatewayState.STOPPED;
@@ -322,10 +372,11 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     private void validateProperties() {
         if (properties.getDefaultTimeoutMs() <= 0
                 || properties.getGatewayDiscoveryTimeoutMs() <= 0
-                || properties.getChannelDrainTimeoutMs() <= 0) {
+                || properties.getChannelDrainTimeoutMs() <= 0
+                || properties.getGatewayMaxAttempts() <= 0) {
             throw new EgonRpcException(
                     EgonRpcErrorCode.RPC_INVALID_CONTRACT,
-                    "RPC Consumer timeout settings must be positive"
+                    "RPC Consumer timeout and attempt settings must be positive"
             );
         }
         if (blank(properties.getGatewayServiceName())
@@ -363,5 +414,24 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             RpcGatewayEndpoint endpoint,
             ManagedChannel channel
     ) {
+    }
+
+    private record GatewayIdentity(
+            String instanceId,
+            String leaseId,
+            String host,
+            int port,
+            boolean secure
+    ) {
+
+        private static GatewayIdentity from(RpcGatewayEndpoint endpoint) {
+            return new GatewayIdentity(
+                    endpoint.instanceId(),
+                    endpoint.leaseId(),
+                    endpoint.host(),
+                    endpoint.port(),
+                    endpoint.secure()
+            );
+        }
     }
 }

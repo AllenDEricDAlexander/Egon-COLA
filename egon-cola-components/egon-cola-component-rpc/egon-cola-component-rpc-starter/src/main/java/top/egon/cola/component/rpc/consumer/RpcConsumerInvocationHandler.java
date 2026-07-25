@@ -4,10 +4,14 @@ import com.google.protobuf.Message;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientInterceptors;
+import io.grpc.ManagedChannel;
+import io.grpc.Metadata;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
 import top.egon.cola.component.rpc.context.RpcConsumerClientInterceptor;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
+import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.RpcMethodDescriptor;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
@@ -16,6 +20,9 @@ import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class RpcConsumerInvocationHandler implements InvocationHandler {
@@ -55,24 +62,66 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
             );
         }
         RpcMethodDescriptor rpcMethod = contract.method(method);
-        Channel gatewayChannel = ClientInterceptors.intercept(
-                gatewayManager.currentChannel(),
-                new RpcConsumerClientInterceptor(contract, processIdentity)
+        var interceptor =
+                new RpcConsumerClientInterceptor(contract, processIdentity);
+        Set<ManagedChannel> attempted = Collections.newSetFromMap(
+                new IdentityHashMap<>()
         );
-        CallOptions callOptions = CallOptions.DEFAULT.withDeadlineAfter(
-                timeoutMs,
-                TimeUnit.MILLISECONDS
-        );
-        try {
-            return ClientCalls.blockingUnaryCall(
-                    gatewayChannel,
-                    rpcMethod.grpcMethod(),
-                    callOptions,
-                    (Message) args[0]
+        long deadline = System.nanoTime()
+                + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+        StatusRuntimeException lastFailure = null;
+        for (int attempt = 0;
+             attempt < gatewayManager.maxAttempts();
+             attempt++) {
+            ManagedChannel managedChannel =
+                    gatewayManager.currentChannel(attempted);
+            attempted.add(managedChannel);
+            Channel gatewayChannel = ClientInterceptors.intercept(
+                    managedChannel,
+                    interceptor
             );
-        } catch (StatusRuntimeException exception) {
-            throw statusMapper.map(exception);
+            long remainingNanos = deadline - System.nanoTime();
+            if (remainingNanos <= 0) {
+                break;
+            }
+            CallOptions callOptions = CallOptions.DEFAULT.withDeadlineAfter(
+                    remainingNanos,
+                    TimeUnit.NANOSECONDS
+            );
+            try {
+                return ClientCalls.blockingUnaryCall(
+                        gatewayChannel,
+                        rpcMethod.grpcMethod(),
+                        callOptions,
+                        (Message) args[0]
+                );
+            } catch (StatusRuntimeException exception) {
+                lastFailure = exception;
+                if (!retryableGatewayFailure(exception)
+                        || attempt + 1 >= gatewayManager.maxAttempts()) {
+                    throw statusMapper.map(exception);
+                }
+                gatewayManager.recordFailure(managedChannel);
+            }
         }
+        throw lastFailure == null
+                ? new EgonRpcException(
+                EgonRpcErrorCode.RPC_DEADLINE_EXCEEDED,
+                "RPC deadline exceeded"
+        )
+                : statusMapper.map(lastFailure);
+    }
+
+    private boolean retryableGatewayFailure(
+            StatusRuntimeException exception) {
+        if (exception.getStatus().getCode() != Status.Code.UNAVAILABLE) {
+            return false;
+        }
+        Metadata trailers = exception.getTrailers();
+        String stage = trailers == null
+                ? null
+                : trailers.get(RpcMetadataKeys.FAILURE_STAGE);
+        return !"provider".equalsIgnoreCase(stage);
     }
 
     private Object objectMethod(Object proxy, Method method, Object[] args) {
