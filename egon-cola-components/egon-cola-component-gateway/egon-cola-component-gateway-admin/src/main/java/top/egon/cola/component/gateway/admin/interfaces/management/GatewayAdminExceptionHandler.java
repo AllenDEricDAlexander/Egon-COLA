@@ -2,10 +2,13 @@ package top.egon.cola.component.gateway.admin.interfaces.management;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
+import top.egon.cola.component.gateway.admin.application.GatewayAdminIdempotencyConflictException;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
 
 import java.time.Instant;
@@ -22,6 +25,48 @@ public class GatewayAdminExceptionHandler {
                         "GATEWAY_ADMIN_REVISION_CONFLICT",
                         "draft or resource revision is stale",
                         error.currentRevision(),
+                        List.of(),
+                        Instant.now()
+                )
+        );
+    }
+
+    @ExceptionHandler(GatewayAdminIdempotencyConflictException.class)
+    public ResponseEntity<ErrorResponse> idempotency(
+            GatewayAdminIdempotencyConflictException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                new ErrorResponse(
+                        "GATEWAY_ADMIN_IDEMPOTENCY_CONFLICT",
+                        error.getMessage(),
+                        null,
+                        List.of(),
+                        Instant.now()
+                )
+        );
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> optimisticLock(
+            ObjectOptimisticLockingFailureException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                new ErrorResponse(
+                        "GATEWAY_ADMIN_REVISION_CONFLICT",
+                        "resource was modified concurrently",
+                        null,
+                        List.of(),
+                        Instant.now()
+                )
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> uniqueConflict(
+            DataIntegrityViolationException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                new ErrorResponse(
+                        "GATEWAY_ADMIN_RESOURCE_CONFLICT",
+                        "resource violates a uniqueness or reference constraint",
+                        null,
                         List.of(),
                         Instant.now()
                 )
@@ -60,6 +105,24 @@ public class GatewayAdminExceptionHandler {
                         "request validation failed",
                         null,
                         fields,
+                        Instant.now()
+                )
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> invalid(
+            IllegalArgumentException error) {
+        return ResponseEntity.unprocessableEntity().body(
+                new ErrorResponse(
+                        "GATEWAY_ADMIN_VALIDATION_FAILED",
+                        error.getMessage(),
+                        null,
+                        List.of(new FieldError(
+                                "$",
+                                "INVALID",
+                                error.getMessage()
+                        )),
                         Instant.now()
                 )
         );
