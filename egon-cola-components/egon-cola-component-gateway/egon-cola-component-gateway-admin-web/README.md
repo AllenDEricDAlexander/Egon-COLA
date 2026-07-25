@@ -1,8 +1,14 @@
 # Gateway Admin Web
 
-This directory is reserved for the independently built React, TypeScript, Vite,
-Ant Design, and Ant Design Charts management application defined by GWS-11.
+Independent React management console for Egon COLA Gateway.
 
-It is intentionally not part of the Maven reactor. GWS-01 establishes only the
-product boundary; frontend source and build configuration are added with the
-approved Admin Web implementation plan.
+```bash
+npm ci
+npm test -- --run
+npm run build
+```
+
+The browser calls only Gateway Admin. Configure a different API origin with
+`VITE_GATEWAY_ADMIN_API_BASE_URL`; an empty value uses the current origin.
+The placeholder management actor is set with
+`VITE_GATEWAY_ADMIN_ACTOR_ID` until the host platform supplies IAM.
