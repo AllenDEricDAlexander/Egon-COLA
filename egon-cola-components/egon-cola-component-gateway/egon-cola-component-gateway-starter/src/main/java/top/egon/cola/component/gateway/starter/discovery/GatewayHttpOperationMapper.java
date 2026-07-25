@@ -127,6 +127,10 @@ final class GatewayHttpOperationMapper {
         attributes.put("produces", mapping.produces());
         attributes.put("responseMode", "TRANSPARENT");
         attributes.put("streaming", streaming);
+        attributes.put(
+                "idempotent",
+                GatewayOperationSemantics.idempotent(annotation)
+        );
         return new GatewayInterfaceDefinitionReport.Operation(
                 operationKey,
                 "HTTP",
@@ -137,9 +141,7 @@ final class GatewayHttpOperationMapper {
                 annotation == null ? "" : annotation.summary(),
                 annotation == null ? "" : annotation.description(),
                 annotation == null ? "" : annotation.owner(),
-                annotation == null
-                        ? List.of()
-                        : List.of(annotation.tags()),
+                GatewayOperationSemantics.tags(annotation),
                 annotation != null && annotation.externalAccessible(),
                 streaming ? "UNSUPPORTED" : "SUPPORTED",
                 new GatewayInterfaceDefinitionReport.ProviderService(

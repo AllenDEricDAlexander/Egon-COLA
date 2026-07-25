@@ -131,9 +131,7 @@ public final class RpcGatewayDefinitionContributor
                 annotation == null ? "" : annotation.summary(),
                 annotation == null ? "" : annotation.description(),
                 annotation == null ? "" : annotation.owner(),
-                annotation == null
-                        ? List.of()
-                        : List.of(annotation.tags()),
+                GatewayOperationSemantics.tags(annotation),
                 annotation != null && annotation.externalAccessible(),
                 "SUPPORTED",
                 new GatewayInterfaceDefinitionReport.ProviderService(
@@ -160,7 +158,9 @@ public final class RpcGatewayDefinitionContributor
                         "rpcType", method.rpcType().name(),
                         "descriptorSha256",
                         snapshot.descriptorSha256(),
-                        "responseMode", "TRANSPARENT"
+                        "responseMode", "TRANSPARENT",
+                        "idempotent",
+                        GatewayOperationSemantics.idempotent(annotation)
                 ),
                 descriptor.javaMethod().isAnnotationPresent(
                         Deprecated.class
