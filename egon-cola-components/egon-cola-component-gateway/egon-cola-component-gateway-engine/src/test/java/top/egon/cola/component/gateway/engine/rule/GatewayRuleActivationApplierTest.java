@@ -2,14 +2,14 @@ package top.egon.cola.component.gateway.engine.rule;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
-import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
-import top.egon.cola.component.gateway.admin.rule.GatewayRuleCompiler;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuleChunkRef;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 import top.egon.cola.component.gateway.core.provider.ProviderCatalogSnapshot;
@@ -20,10 +20,14 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceSnapshot;
 import top.egon.cola.component.gateway.core.provider.ProviderSubscription;
 import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,12 +39,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayRuleActivationApplierTest {
 
+    private static final int INLINE_LIMIT_BYTES = 512 * 1024;
+
+    private static final int CHUNK_LIMIT_BYTES = 256 * 1024;
+
     @TempDir
     Path dataDirectory;
 
     @Test
     void inlineApplyPersistsBeforeActivationAndInvalidNextRuleKeepsOld() {
-        CompiledGatewayRelease release = release("release-1", "{}");
+        TestRelease release = release("release-1", "{}");
         GatewayRuleActivationApplier applier = applier();
 
         applier.apply(
@@ -84,9 +92,9 @@ class GatewayRuleActivationApplierTest {
 
     @Test
     void chunkedApplySupportsOutOfOrderStagingAndLkgRecovery() {
-        CompiledGatewayRelease release = release(
+        TestRelease release = release(
                 "release-large",
-                "x".repeat(GatewayRuleCompiler.INLINE_LIMIT_BYTES + 10)
+                "x".repeat(INLINE_LIMIT_BYTES + 10)
         );
         GatewayRuleChunkStore chunks = new GatewayRuleChunkStore();
         GatewayRuleActivationApplier applier = applier(chunks);
@@ -135,7 +143,7 @@ class GatewayRuleActivationApplierTest {
         );
     }
 
-    private CompiledGatewayRelease release(String releaseId, String schema) {
+    private TestRelease release(String releaseId, String schema) {
         GatewayProviderServiceRef service = new GatewayProviderServiceRef(
                 "local",
                 "default",
@@ -182,12 +190,95 @@ class GatewayRuleActivationApplierTest {
                 List.of(),
                 List.of()
         );
-        return new GatewayRuleCompiler(new GatewayRuleCanonicalizer())
-                .compile(
-                        releaseId,
-                        Instant.parse("2026-07-25T00:00:00Z"),
-                        content
+        GatewayRuleJsonCodec codec = new GatewayRuleJsonCodec();
+        Instant generatedAt = Instant.parse("2026-07-25T00:00:00Z");
+        String contentSha = GatewayRuleJsonCodec.sha256(
+                codec.write(content)
+        );
+        String artifactSha = GatewayRuleJsonCodec.sha256(codec.write(Map.of(
+                "content", content,
+                "generatedAt", generatedAt,
+                "releaseId", releaseId,
+                "ruleContentSha256", contentSha,
+                "ruleSchemaVersion", "v1"
+        )));
+        GatewayRuleSnapshot snapshot = new GatewayRuleSnapshot(
+                "v1",
+                releaseId,
+                generatedAt,
+                contentSha,
+                artifactSha,
+                content
+        );
+        byte[] snapshotBytes = codec.write(snapshot);
+        Map<String, String> chunks = new LinkedHashMap<>();
+        List<GatewayRuleChunkRef> references = new ArrayList<>();
+        GatewayRuleActivationMode mode;
+        String inlineSnapshot;
+        if (snapshotBytes.length <= INLINE_LIMIT_BYTES) {
+            mode = GatewayRuleActivationMode.INLINE;
+            inlineSnapshot = new String(
+                    snapshotBytes,
+                    StandardCharsets.UTF_8
+            );
+        } else {
+            mode = GatewayRuleActivationMode.CHUNKED;
+            inlineSnapshot = null;
+            for (int offset = 0, index = 0;
+                 offset < snapshotBytes.length;
+                 offset += CHUNK_LIMIT_BYTES, index++) {
+                int length = Math.min(
+                        CHUNK_LIMIT_BYTES,
+                        snapshotBytes.length - offset
                 );
+                byte[] chunk = java.util.Arrays.copyOfRange(
+                        snapshotBytes,
+                        offset,
+                        offset + length
+                );
+                String configKey = "gateway.rules.chunk."
+                        + releaseId
+                        + "."
+                        + index;
+                chunks.put(
+                        configKey,
+                        Base64.getEncoder().encodeToString(chunk)
+                );
+                references.add(new GatewayRuleChunkRef(
+                        configKey,
+                        index,
+                        length,
+                        GatewayRuleJsonCodec.sha256(chunk)
+                ));
+            }
+        }
+        GatewayRuleActivation activation = new GatewayRuleActivation(
+                "v1",
+                releaseId,
+                mode,
+                "v1",
+                snapshotBytes.length,
+                contentSha,
+                artifactSha,
+                inlineSnapshot,
+                references
+        );
+        return new TestRelease(
+                activation,
+                new String(codec.write(activation), StandardCharsets.UTF_8),
+                chunks
+        );
+    }
+
+    private record TestRelease(
+            GatewayRuleActivation activation,
+            String activationJson,
+            Map<String, String> chunkValues
+    ) {
+
+        private TestRelease {
+            chunkValues = Map.copyOf(chunkValues);
+        }
     }
 
     private static final class EmptyRegistry

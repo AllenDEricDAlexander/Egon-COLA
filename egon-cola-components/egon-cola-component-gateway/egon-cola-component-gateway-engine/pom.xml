@@ -89,11 +89,6 @@
             <artifactId>resilience4j-retry</artifactId>
         </dependency>
         <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-gateway-admin</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
