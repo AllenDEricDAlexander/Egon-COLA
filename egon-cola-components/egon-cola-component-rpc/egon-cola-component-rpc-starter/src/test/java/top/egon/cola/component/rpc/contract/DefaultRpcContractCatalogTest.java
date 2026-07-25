@@ -1,8 +1,13 @@
 package top.egon.cola.component.rpc.contract;
 
 import org.junit.jupiter.api.Test;
+import com.google.protobuf.StringValue;
+import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
+import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.provider.RpcProviderBinding;
 import top.egon.cola.component.rpc.provider.RpcProviderMethodRegistry;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
 import java.util.List;
 
@@ -36,9 +41,26 @@ class DefaultRpcContractCatalogTest {
                         org.assertj.core.groups.Tuple.tuple(
                                 "zeta.Service", "b", "2")
                 );
-        assertThat(catalog.find("alpha.Service", "a", "2"))
+        assertThat(catalog.find(
+                new RpcServiceIdentity("alpha.Service", "a", "2")))
                 .containsSame(alphaV2);
-        assertThat(catalog.find("missing.Service", "a", "1")).isEmpty();
+        assertThat(catalog.find(
+                new RpcServiceIdentity("missing.Service", "a", "1"))).isEmpty();
+        assertThat(catalog.snapshots())
+                .extracting(RpcContractSnapshot::serviceName,
+                        RpcContractSnapshot::group,
+                        RpcContractSnapshot::version)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(
+                                "alpha.Service", "a", "1"),
+                        org.assertj.core.groups.Tuple.tuple(
+                                "alpha.Service", "a", "2"),
+                        org.assertj.core.groups.Tuple.tuple(
+                                "zeta.Service", "b", "2")
+                );
+        assertThat(catalog.findSnapshot(
+                new RpcServiceIdentity("zeta.Service", "b", "2")))
+                .isPresent();
     }
 
     @Test
@@ -49,6 +71,8 @@ class DefaultRpcContractCatalogTest {
 
         assertThatThrownBy(() -> catalog.contracts().clear())
                 .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> catalog.snapshots().clear())
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 
     private RpcContractDescriptor contract(
@@ -56,12 +80,14 @@ class DefaultRpcContractCatalogTest {
             String group,
             String version
     ) {
+        RpcContractDescriptor template =
+                new RpcContractValidator().validate(CatalogContract.class);
         return new RpcContractDescriptor(
                 Runnable.class,
                 serviceName,
                 group,
                 version,
-                List.of()
+                template.methods()
         );
     }
 
@@ -76,5 +102,12 @@ class DefaultRpcContractCatalogTest {
                 return List.copyOf(bindings);
             }
         };
+    }
+
+    @EgonRpcService(grpcClass = UnaryFixtureGrpc.class)
+    interface CatalogContract {
+
+        @EgonRpcMethod(name = "Echo")
+        StringValue echo(StringValue request);
     }
 }

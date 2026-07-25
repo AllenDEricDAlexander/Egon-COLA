@@ -2,10 +2,10 @@ package top.egon.cola.component.rpc.contract;
 
 import top.egon.cola.component.rpc.provider.RpcProviderBinding;
 import top.egon.cola.component.rpc.provider.RpcProviderMethodRegistry;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public final class DefaultRpcContractCatalog implements RpcContractCatalog {
@@ -17,11 +17,18 @@ public final class DefaultRpcContractCatalog implements RpcContractCatalog {
 
     private final List<RpcContractDescriptor> contracts;
 
+    private final List<RpcContractSnapshot> snapshots;
+
     public DefaultRpcContractCatalog(RpcProviderMethodRegistry registry) {
         this.contracts = registry.providers().stream()
                 .map(RpcProviderBinding::contract)
                 .distinct()
                 .sorted(CONTRACT_ORDER)
+                .toList();
+        RpcContractSnapshotBuilder snapshotBuilder =
+                new RpcContractSnapshotBuilder();
+        this.snapshots = contracts.stream()
+                .map(snapshotBuilder::build)
                 .toList();
     }
 
@@ -32,15 +39,30 @@ public final class DefaultRpcContractCatalog implements RpcContractCatalog {
 
     @Override
     public Optional<RpcContractDescriptor> find(
-            String serviceName,
-            String group,
-            String version
+            RpcServiceIdentity serviceIdentity
     ) {
         return contracts.stream()
                 .filter(contract ->
-                        Objects.equals(contract.serviceName(), serviceName)
-                                && Objects.equals(contract.group(), group)
-                                && Objects.equals(contract.version(), version))
+                        RpcServiceIdentity.from(contract)
+                                .equals(serviceIdentity))
+                .findFirst();
+    }
+
+    @Override
+    public List<RpcContractSnapshot> snapshots() {
+        return snapshots;
+    }
+
+    @Override
+    public Optional<RpcContractSnapshot> findSnapshot(
+            RpcServiceIdentity serviceIdentity
+    ) {
+        return snapshots.stream()
+                .filter(snapshot -> new RpcServiceIdentity(
+                        snapshot.serviceName(),
+                        snapshot.group(),
+                        snapshot.version()
+                ).equals(serviceIdentity))
                 .findFirst();
     }
 }
