@@ -11,4 +11,10 @@ public interface GatewayApplicationRepository
     List<GatewayApplicationEntity> findAllByDeletedFalseOrderByCreatedAtDesc();
 
     Optional<GatewayApplicationEntity> findByIdAndDeletedFalse(String id);
+
+    Optional<GatewayApplicationEntity>
+    findByApplicationCodeAndEnvAndNamespaceAndDeletedFalse(
+            String applicationCode,
+            String env,
+            String namespace);
 }

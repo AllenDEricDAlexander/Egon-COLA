@@ -9,6 +9,8 @@ public interface GatewayCredentialStore {
 
     Optional<CredentialRecord> find(String applicationId, String keyId);
 
+    Optional<CredentialRecord> findByAccessKey(String accessKey);
+
     void overlap(String id, Instant validUntil, Instant now);
 
     void revoke(String id, Instant now);

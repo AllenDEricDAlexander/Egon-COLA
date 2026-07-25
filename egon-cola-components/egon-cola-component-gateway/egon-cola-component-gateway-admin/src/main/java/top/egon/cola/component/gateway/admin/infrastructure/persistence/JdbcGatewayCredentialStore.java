@@ -42,14 +42,31 @@ public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
     public Optional<CredentialRecord> find(
             String applicationId,
             String keyId) {
-        return jdbc.query("""
+        return query("""
                 SELECT id, application_id, access_key, secret_ciphertext,
                        key_version, status, valid_from, valid_until,
                        created_at, updated_at
                   FROM gateway_application_credential
                  WHERE application_id = ?
                    AND (id = ? OR access_key = ?)
-                """, (result, row) -> new CredentialRecord(
+                """, applicationId, keyId, keyId);
+    }
+
+    @Override
+    public Optional<CredentialRecord> findByAccessKey(String accessKey) {
+        return query("""
+                SELECT id, application_id, access_key, secret_ciphertext,
+                       key_version, status, valid_from, valid_until,
+                       created_at, updated_at
+                  FROM gateway_application_credential
+                 WHERE access_key = ?
+                """, accessKey);
+    }
+
+    private Optional<CredentialRecord> query(
+            String sql,
+            Object... arguments) {
+        return jdbc.query(sql, (result, row) -> new CredentialRecord(
                 result.getString("id"),
                 result.getString("application_id"),
                 result.getString("access_key"),
@@ -62,7 +79,7 @@ public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
                         : result.getTimestamp("valid_until").toInstant(),
                 result.getTimestamp("created_at").toInstant(),
                 result.getTimestamp("updated_at").toInstant()
-        ), applicationId, keyId, keyId).stream().findFirst();
+        ), arguments).stream().findFirst();
     }
 
     @Override
