@@ -14,6 +14,8 @@ import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndex;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndexCompiler;
 import top.egon.cola.component.gateway.engine.rpc.RuntimeRpcRoute;
+import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
+import top.egon.cola.component.gateway.engine.security.GatewaySecurityPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
 
 import java.time.Duration;
@@ -34,6 +36,19 @@ public final class EngineGatewayRuleCompiler {
 
     private final GatewayTrafficPolicyCompiler trafficPolicyCompiler =
             new GatewayTrafficPolicyCompiler();
+
+    private final GatewaySecurityPolicyCompiler securityPolicyCompiler;
+
+    public EngineGatewayRuleCompiler() {
+        this(GatewaySecurityCapabilityRegistry.empty());
+    }
+
+    public EngineGatewayRuleCompiler(
+            GatewaySecurityCapabilityRegistry capabilities) {
+        securityPolicyCompiler = new GatewaySecurityPolicyCompiler(
+                capabilities
+        );
+    }
 
     public CompiledGatewayRules compile(GatewayRuleSnapshot snapshot) {
         GatewayRuleContent content = snapshot.content();
@@ -85,12 +100,26 @@ public final class EngineGatewayRuleCompiler {
                 .map(GatewayRuntimeOperation::providerService)
                 .map(this::serviceKey)
                 .forEach(services::add);
+        Map<String, Set<GatewayProtocol>> policyProtocols =
+                new LinkedHashMap<>();
+        content.operations().stream()
+                .filter(operation -> !operation.deprecated())
+                .forEach(operation -> operation.policyRefs().forEach(
+                        policyId -> policyProtocols.computeIfAbsent(
+                                policyId,
+                                ignored -> new LinkedHashSet<>()
+                        ).add(operation.protocol())
+                ));
         return new CompiledGatewayRules(
                 snapshot,
                 httpCompiler.compile(httpRoutes),
                 rpcCompiler.compile(rpcRoutes),
                 services,
-                trafficPolicyCompiler.compile(content.trafficPolicies())
+                trafficPolicyCompiler.compile(content.trafficPolicies()),
+                securityPolicyCompiler.compile(
+                        content.trafficPolicies(),
+                        policyProtocols
+                )
         );
     }
 

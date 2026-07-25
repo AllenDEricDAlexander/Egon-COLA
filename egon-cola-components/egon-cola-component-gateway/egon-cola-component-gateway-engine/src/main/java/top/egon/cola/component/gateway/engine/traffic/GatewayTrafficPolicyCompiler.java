@@ -14,7 +14,9 @@ public final class GatewayTrafficPolicyCompiler {
     public Map<String, RuntimeTrafficPolicy> compile(
             List<GatewayRuntimePolicy> policies) {
         Map<String, RuntimeTrafficPolicy> result = new LinkedHashMap<>();
-        for (GatewayRuntimePolicy source : policies) {
+        for (GatewayRuntimePolicy source : policies.stream()
+                .filter(this::trafficPolicy)
+                .toList()) {
             Map<String, Object> config = source.configuration();
             TrafficPolicyType type = TrafficPolicyType.valueOf(source.type());
             String keyExpression = string(config, "keyExpression", null);
@@ -44,6 +46,15 @@ public final class GatewayTrafficPolicyCompiler {
             }
         }
         return Map.copyOf(result);
+    }
+
+    private boolean trafficPolicy(GatewayRuntimePolicy policy) {
+        try {
+            TrafficPolicyType.valueOf(policy.type());
+            return true;
+        } catch (IllegalArgumentException unsupported) {
+            return false;
+        }
     }
 
     private String string(
