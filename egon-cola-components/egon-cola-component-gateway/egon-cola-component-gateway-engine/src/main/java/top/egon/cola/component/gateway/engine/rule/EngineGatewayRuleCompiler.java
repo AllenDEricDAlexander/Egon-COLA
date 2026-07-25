@@ -90,7 +90,7 @@ public final class EngineGatewayRuleCompiler {
                                     operation.responseMode()
                             ),
                             routeMetadata(
-                                    operation.attributes(),
+                                    operation,
                                     snapshot.releaseId()
                             )
                     );
@@ -201,10 +201,20 @@ public final class EngineGatewayRuleCompiler {
     }
 
     private Map<String, String> routeMetadata(
-            Map<String, String> attributes,
+            GatewayRuntimeOperation operation,
             String releaseId) {
-        Map<String, String> metadata = new LinkedHashMap<>(attributes);
+        Map<String, String> metadata = new LinkedHashMap<>(
+                operation.attributes()
+        );
         metadata.put("releaseId", releaseId);
+        metadata.put("protocol", operation.protocol().name());
+        metadata.put("methodIdentity", operation.methodIdentity());
+        if (operation.requestSchema() != null) {
+            metadata.put("requestSchema", operation.requestSchema());
+        }
+        if (operation.responseSchema() != null) {
+            metadata.put("responseSchema", operation.responseSchema());
+        }
         return Map.copyOf(metadata);
     }
 

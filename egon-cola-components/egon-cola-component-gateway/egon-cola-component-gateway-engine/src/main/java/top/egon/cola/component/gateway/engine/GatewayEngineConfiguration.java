@@ -36,6 +36,7 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallEventSeri
 import top.egon.cola.component.gateway.engine.observability.GatewayCallMetricsListener;
 import top.egon.cola.component.gateway.engine.observability.KafkaGatewayCallEventSink;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayForwarder;
+import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayHandlerRegistry;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewaySlotProperties;
@@ -255,7 +256,8 @@ public class GatewayEngineConfiguration {
             ReactorNettyHttpUpstreamAdapter upstream,
             GatewaySecurityCapabilityRegistry capabilities,
             GatewayCallCompletionListener completionListener,
-            GatewayTrafficGovernance trafficGovernance) {
+            GatewayTrafficGovernance trafficGovernance,
+            HttpRpcUpstreamAdapter httpRpcUpstream) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         GatewayHttpEngineProperties engineProperties =
                 new GatewayHttpEngineProperties(
@@ -301,7 +303,8 @@ public class GatewayEngineConfiguration {
                 security,
                 completionListener,
                 properties.getNodeId(),
-                trafficGovernance
+                trafficGovernance,
+                httpRpcUpstream
         );
         return new GatewayHttpServer(engineProperties, handler);
     }
@@ -311,6 +314,18 @@ public class GatewayEngineConfiguration {
             GatewayEngineRuntimeProperties properties) {
         return new RpcProviderChannelCache(
                 properties.getRpc().getChannelDrainTimeout()
+        );
+    }
+
+    @Bean
+    public HttpRpcUpstreamAdapter gatewayHttpRpcUpstreamAdapter(
+            GatewayRuleActivationApplier activation,
+            RpcProviderChannelCache channels,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new HttpRpcUpstreamAdapter(
+                activation::active,
+                channels,
+                objectMapper
         );
     }
 

@@ -7,6 +7,7 @@ import top.egon.cola.component.gateway.core.http.GatewayRequestRejectedException
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
 import top.egon.cola.component.gateway.core.http.NormalizedHttpRequest;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
+import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
@@ -14,6 +15,7 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletio
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
+import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.traffic.GatewayRequestResourceGuard;
 import top.egon.cola.component.gateway.engine.traffic.GatewayResourceLimits;
 import top.egon.cola.component.gateway.engine.traffic.GatewayAttemptExecutor;
@@ -56,6 +58,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private final GatewayCallCompletionListener completionListener;
 
     private final GatewayTrafficGovernance trafficGovernance;
+
+    private final HttpRpcUpstreamAdapter httpRpcUpstream;
 
     private final GatewayAttemptExecutor attemptExecutor =
             new GatewayAttemptExecutor();
@@ -131,7 +135,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 securityProcessor,
                 completionListener,
                 engineNodeId,
-                GatewayTrafficGovernance.noop()
+                GatewayTrafficGovernance.noop(),
+                null
         );
     }
 
@@ -146,6 +151,33 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayCallCompletionListener completionListener,
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                null
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            HttpRpcUpstreamAdapter httpRpcUpstream) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -177,6 +209,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 trafficGovernance,
                 "trafficGovernance"
         );
+        this.httpRpcUpstream = httpRpcUpstream;
         resourceGuard = new GatewayRequestResourceGuard(
                 new GatewayResourceLimits(
                         128,
@@ -465,22 +498,51 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 "group",
                 provider.serviceKey().group()
         ));
-        return upstreamAdapter.invoke(new HttpUpstreamRequest(
-                        provider,
-                        normalized.method(),
-                        normalized.normalizedPath()
-                                + (normalized.rawQuery().isEmpty()
-                                ? ""
-                                : "?" + normalized.rawQuery()),
-                        forwardedHeaders(
-                                normalized.headers(),
-                                trace,
-                                attemptSpanId,
-                                security
-                        ),
-                        reactor.core.publisher.Flux.just(body),
-                        requestPermit.timeout()
-                ))
+        Map<String, List<String>> headers = forwardedHeaders(
+                normalized.headers(),
+                trace,
+                attemptSpanId,
+                security
+        );
+        Mono<GatewayOutboundHttpResponse> invocation;
+        if (provider.serviceKey().protocolType()
+                == ProviderProtocolType.RPC) {
+            if (httpRpcUpstream == null) {
+                invocation = Mono.error(new IllegalStateException(
+                        "GATEWAY_HTTP_RPC_BRIDGE_UNAVAILABLE"
+                ));
+            } else {
+                invocation = httpRpcUpstream.invoke(
+                                match,
+                                provider,
+                                normalized,
+                                body,
+                                headers,
+                                requestPermit.timeout()
+                        )
+                        .onErrorResume(
+                                HttpRpcUpstreamAdapter
+                                        .HttpRpcUpstreamException.class,
+                                failure -> Mono.just(rpcError(
+                                        failure,
+                                        trace.traceId()
+                                ))
+                        );
+            }
+        } else {
+            invocation = upstreamAdapter.invoke(new HttpUpstreamRequest(
+                    provider,
+                    normalized.method(),
+                    normalized.normalizedPath()
+                            + (normalized.rawQuery().isEmpty()
+                            ? ""
+                            : "?" + normalized.rawQuery()),
+                    headers,
+                    reactor.core.publisher.Flux.just(body),
+                    requestPermit.timeout()
+            ));
+        }
+        return invocation
                 .doOnSuccess(response -> {
                     ProviderCallClassification classification =
                             classification(response.status());
@@ -604,6 +666,28 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 response.status(),
                 headers,
                 response.body()
+        );
+    }
+
+    private GatewayOutboundHttpResponse rpcError(
+            HttpRpcUpstreamAdapter.HttpRpcUpstreamException failure,
+            String traceId) {
+        int status = switch (failure.status().getCode()) {
+            case INVALID_ARGUMENT, FAILED_PRECONDITION -> 400;
+            case UNAUTHENTICATED -> 401;
+            case PERMISSION_DENIED -> 403;
+            case NOT_FOUND -> 404;
+            case ALREADY_EXISTS, ABORTED -> 409;
+            case RESOURCE_EXHAUSTED -> 429;
+            case DEADLINE_EXCEEDED -> 504;
+            case UNAVAILABLE -> 503;
+            default -> 502;
+        };
+        return error(
+                status,
+                "GATEWAY_RPC_UPSTREAM_"
+                        + failure.status().getCode().name(),
+                traceId
         );
     }
 
