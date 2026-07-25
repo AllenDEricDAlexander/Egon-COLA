@@ -153,8 +153,10 @@ docker compose --env-file .env \
 Spring SSL Bundle 设置 `reload-on-update=true`，DDC Admin 与 Gateway Admin 会监听 PEM
 文件更新；Actuator 暴露 `ssl.chain.expiry` 指标和 SSL 健康信息。Engine 暴露
 `gateway.tls.certificate.expiry.epoch.seconds`，证书原子替换后可由受保护的
-`POST /actuator/gatewayTls` 入口执行有界 Drain 并重建 HTTP/RPC Listener。该写操作必须
-由部署平台限制在管理网络内。
+`POST /actuator/gatewayTls` 入口执行有界 Drain 并重建 HTTP/RPC Listener。该入口默认
+不创建、也不暴露；`operations` Profile 才会显式启用它，并把 Spring Management
+Server 绑定到容器内 `127.0.0.1`。`compose.mtls.yml` 已启用该 Profile，部署平台必须
+通过容器内受控执行通道调用，不能把它转发到外部网络。
 
 ## OpenTelemetry
 

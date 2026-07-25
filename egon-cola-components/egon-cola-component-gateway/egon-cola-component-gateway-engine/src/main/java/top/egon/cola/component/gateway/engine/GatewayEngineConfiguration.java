@@ -66,7 +66,6 @@ import top.egon.cola.component.gateway.engine.rule.GatewayRuleRuntimeStatus;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityChain;
 import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
-import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurityEndpoint;
 import top.egon.cola.component.gateway.engine.security.TrustedClientAddressResolver;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
@@ -480,13 +479,6 @@ public class GatewayEngineConfiguration {
                 registry,
                 transportSecurity(properties.getRpc().getTls())
         );
-    }
-
-    @Bean
-    public GatewayTransportSecurityEndpoint gatewayTransportSecurityEndpoint(
-            GatewayHttpServer httpServer,
-            RpcGatewayServer rpcServer) {
-        return new GatewayTransportSecurityEndpoint(httpServer, rpcServer);
     }
 
     @Bean

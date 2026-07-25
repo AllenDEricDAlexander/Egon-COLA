@@ -35,6 +35,7 @@ services:
 
   gateway-engine:
     environment:
+      SPRING_PROFILES_ACTIVE: operations
       EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: https://ddc-admin:18080
       EGON_COLA_COMPONENT_DDC_ADMIN_TLS_ENABLED: "true"
       EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT: "false"
@@ -62,6 +63,7 @@ services:
 
   gateway-engine-2:
     environment:
+      SPRING_PROFILES_ACTIVE: operations
       EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: https://ddc-admin:18080
       EGON_COLA_COMPONENT_DDC_ADMIN_TLS_ENABLED: "true"
       EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT: "false"
