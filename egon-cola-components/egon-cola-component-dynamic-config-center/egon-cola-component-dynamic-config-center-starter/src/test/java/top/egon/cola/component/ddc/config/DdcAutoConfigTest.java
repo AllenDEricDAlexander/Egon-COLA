@@ -28,7 +28,9 @@ class DdcAutoConfigTest {
                         "egon.cola.component.ddc.redis.enabled=false",
                         "egon.cola.component.ddc.app-code=demo",
                         "egon.cola.component.ddc.env=dev",
-                        "egon.cola.component.ddc.namespace=default")
+                        "egon.cola.component.ddc.namespace=default",
+                        "egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcProperties.class);
                     assertThat(context).hasSingleBean(DdcFieldBindingService.class);
