@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: egon-cola-gateway-engine
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  address: 0.0.0.0
+  port: 18083
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+egon:
+  cola:
+    component:
+      ddc:
+        app-code: egon-cola-gateway-engine
+        registry:
+          enabled: true
+      gateway:
+        engine:
+          kafka:
+            enabled: false

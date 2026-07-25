@@ -11,6 +11,10 @@ public final class RpcMethodIndex {
         this.routes = Map.copyOf(routes);
     }
 
+    public static RpcMethodIndex empty() {
+        return new RpcMethodIndex(Map.of());
+    }
+
     public Optional<RuntimeRpcRoute> find(String fullMethodName) {
         return Optional.ofNullable(routes.get(fullMethodName));
     }

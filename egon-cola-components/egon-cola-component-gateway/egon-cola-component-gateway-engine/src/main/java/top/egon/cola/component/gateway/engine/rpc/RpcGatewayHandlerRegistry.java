@@ -7,16 +7,26 @@ import io.grpc.ServerMethodDefinition;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public final class RpcGatewayHandlerRegistry extends HandlerRegistry {
 
     private final AtomicReference<RpcMethodIndex> active =
-            new AtomicReference<>(new RpcMethodIndex(java.util.Map.of()));
+            new AtomicReference<>(RpcMethodIndex.empty());
 
     private final RpcGatewayForwarder forwarder;
 
+    private final Supplier<RpcMethodIndex> indexSupplier;
+
     public RpcGatewayHandlerRegistry(RpcGatewayForwarder forwarder) {
+        this(forwarder, null);
+    }
+
+    public RpcGatewayHandlerRegistry(
+            RpcGatewayForwarder forwarder,
+            Supplier<RpcMethodIndex> indexSupplier) {
         this.forwarder = Objects.requireNonNull(forwarder, "forwarder");
+        this.indexSupplier = indexSupplier;
     }
 
     public void activate(RpcMethodIndex index) {
@@ -24,14 +34,14 @@ public final class RpcGatewayHandlerRegistry extends HandlerRegistry {
     }
 
     public RpcMethodIndex activeIndex() {
-        return active.get();
+        return current();
     }
 
     @Override
     public ServerMethodDefinition<?, ?> lookupMethod(
             String methodName,
             String authority) {
-        RuntimeRpcRoute route = active.get().find(methodName).orElse(null);
+        RuntimeRpcRoute route = current().find(methodName).orElse(null);
         if (route == null) {
             return null;
         }
@@ -46,5 +56,13 @@ public final class RpcGatewayHandlerRegistry extends HandlerRegistry {
     @Override
     public List<io.grpc.ServerServiceDefinition> getServices() {
         return List.of();
+    }
+
+    private RpcMethodIndex current() {
+        if (indexSupplier == null) {
+            return active.get();
+        }
+        RpcMethodIndex supplied = indexSupplier.get();
+        return supplied == null ? active.get() : supplied;
     }
 }
