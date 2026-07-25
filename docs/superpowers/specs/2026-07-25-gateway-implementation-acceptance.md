@@ -4,8 +4,8 @@
 
 基线：`2026-07-24-gateway-component-design.md`
 
-范围：GWS-01～GWS-13、对应 15 份实施 Plan、Gateway Component 代码、RPC/DDC
-必要扩展、Admin Web、真实测试应用与部署资产。
+范围：GWS-01～GWS-13、17 项缺口修复、对应实施 Plan、Gateway Component 代码、
+RPC/DDC 必要扩展、Admin Web、真实测试应用与部署资产。
 
 ## 1. 文档目的
 
@@ -59,8 +59,9 @@ GWS-02B、GWS-02C 三份 Plan；其余子 Spec 各有一份 Plan。
 |---|---|
 | DDC | `HTTP_PROVIDER`、组合式 Config Applier、版本/checksum 约束、周期校准 |
 | DDC | 独立 Management Client、HMAC 机器接口、配置容量保护、Registry 投影 |
+| DDC | 多 Admin 发布协调、Redis Single/Sentinel/Cluster 拓扑、TLS/mTLS 客户端 |
 | RPC | 共享已校验 Provider Registry、只读 Contract Catalog、Descriptor Snapshot |
-| RPC | 可控 `gateway.*` Provider Metadata、`INTERNAL_GATEWAY` 单 Slot 发现契约 |
+| RPC | 可控 `gateway.*` Provider Metadata、`INTERNAL_GATEWAY` 多实例发现与 mTLS |
 
 没有引入 Nacos、Dubbo 或 Spring Cloud Gateway；Engine 的 Provider 地址只能来自 DDC
 Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
@@ -108,6 +109,11 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - Rule 引用缺失能力时拒绝激活，运行时异常、超时和拒绝全部 Fail Closed；
 - 本项目不实现业务系统自身的用户、角色、权限数据源；
 - 入站保留身份 Header 先清洗，只允许受信 Provider 重新映射；
+- Admin 管理接口从已校验 JWT/Capability 解析 Actor，不信任客户端 Actor Header；
+- PUBLIC HTTP 支持 TLS；INTERNAL HTTP、RPC、DDC Management 和 Admin 管理 API
+  支持强制 mTLS，隐式明文启动失败；
+- TLS 热加载 Actuator 默认不创建、不暴露；只有显式启用 operations Profile 时才绑定
+  容器内 `127.0.0.1` 管理地址；
 - Trace 优先采用调用方生成的合法值，缺失或非法时由 Engine 生成。
 
 ## 4. GWS 实现追踪
@@ -198,6 +204,7 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - Metadata/Zone/Tag/协议/健康/过期候选过滤；
 - Round Robin、Smooth Weighted Round Robin、Random、Least Inflight；
 - 主动与被动健康维度分离；
+- Starter 生成的稳定 Definition Identity 会适配到 HTTP/RPC Provider 注册元数据；
 - Engine Readiness 等待活动规则所需 Provider 可用。
 
 主要证据：
@@ -239,6 +246,8 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - Operation/Provider Instance Bulkhead；
 - Circuit Breaker Open/Half-Open/Close；
 - 幂等 Retry，非幂等默认禁止，重试受剩余 Deadline 约束；
+- Provider Attempt 的 Bulkhead、Circuit、选择句柄和结果观测持续到响应体终止；
+- 重试 5xx 前先排空上一跳响应体，流异常和客户端取消分别记录失败与取消；
 - Rule State Epoch/Policy Version 隔离动态状态。
 
 主要证据：
@@ -280,7 +289,8 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - Release、Target、Rollback、Retry 和恢复编排；
 - 审计日志和受限管理 API；
 - DDC Engine Node/Provider 投影及 stale 标记；
-- PostgreSQL Flyway V1、V2；
+- 当前 Engine 租约按成功发布产物与运行元数据判定一致性，不依赖历史租约身份；
+- PostgreSQL Flyway V1、V2、V3；
 - Credential 使用 AES-GCM，主密钥由运行配置提供。
 
 主要证据：
@@ -302,6 +312,7 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - `externalAccessible=false` 默认值；
 - `idempotent` 标签规范化为稳定属性；
 - Canonical Definition Set、Fingerprint、批量 HMAC 上报；
+- 同一 Definition Identity 同时供 Provider Runtime 写入 DDC 租约元数据；
 - 启动时只上报定义，不注册 Provider、不拦截调用、不发 Kafka。
 
 主要证据：
@@ -442,7 +453,45 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 没有为简单 DTO 或直接映射额外引入 Factory/继承层；模式只用于已经存在的变化点和
 一致性边界。
 
-## 8. 自动化验证层级
+## 8. 17 项缺口修复追踪
+
+| GAP | 修复结果 | 本轮证据边界 |
+|---:|---|---|
+| 1 | Admin 使用 JWT/Capability 中的认证主体，拒绝伪造 Actor Header | 安全集成与边界测试通过 |
+| 2 | HTTP 上游响应改为流式透传，连接池与 Pending Acquire 有界 | Engine 单元/组件测试通过 |
+| 3 | CORS Policy 进入 Rule 编译和 HTTP 执行链 | 预检、实际请求与拒绝测试通过 |
+| 4 | 全局及 Route Body 上限在流式接收阶段强制执行 | 超限、分块与取消测试通过 |
+| 5 | HTTP/RPC 主动探活、抖动、阈值和并发上限已接入 | 确定性监控测试通过 |
+| 6 | HTTP/RPC Filter/Security/Governance 链接入真实数据面 | Pipeline 和安全链测试通过 |
+| 7 | Admin 运行投影按 Release/Version/Checksum 判定一致性 | 投影和查询测试通过 |
+| 8 | 延迟 P50/P95/P99 从真实样本计算，不再由均值伪造 | Store/Query 测试通过 |
+| 9 | 定义生命周期加入成员快照、下线和周期校准 | 新 V3 迁移与 Reconciler 测试通过 |
+| 10 | Request、Provider Attempt、DDC Apply、Kafka Send 接入 OTel | Observation 测试通过 |
+| 11 | Starter 使用持久状态和周期重试收敛最终上报状态 | Coordinator/State Store 测试通过 |
+| 12 | Kafka Consumer 监督重启、有限重试、坏消息隔离和指标 | Consumer 故障测试通过 |
+| 13 | Admin Web 补齐认证、目录、规则、发布、审计和观测工作流 | 静态检查、15 个 Vitest 通过 |
+| 14 | Playwright 覆盖核心管理场景并纳入 CI 门禁 | 用例与配置已静态校验，浏览器未运行 |
+| 15 | 双 Engine、HTTP/RPC Provider、Admin/DDC/Kafka Live 拓扑入口 | 测试已编译，容器/JVM 拓扑未运行 |
+| 16 | k6 容量/长稳及 Redis/Kafka/PostgreSQL/Provider 故障脚本 | Shell/JS 语法通过，未实际压测或注入 |
+| 17 | DDC 多 Admin、RPC Gateway 多活、TLS/mTLS、HA Compose | 单元/配置校验通过，真实 HA/TLS 未联调 |
+
+上述“修复结果”表示生产代码、自动化用例或显式验收入口已提交。需要外部基础设施、
+浏览器或持续运行环境的 GAP-14～17 不以静态入口代替真实运行结论。
+
+### 8.1 独立代码审查闭环
+
+17 项修复完成后又执行了一轮独立只读代码审查，发现的 1 个严重问题和 4 个重要问题
+均已修复：
+
+| 严重度 | 审查问题 | 修复结果 |
+|---|---|---|
+| Critical | TLS reload Actuator 默认可创建并暴露 | 改为显式开关 + operations Profile + `127.0.0.1` 管理绑定 |
+| Important | 流式响应在响应头到达时提前释放 Attempt | 生命周期延长到 Body complete/error/cancel，重试前排空 5xx Body |
+| Important | 最后一个 Provider 消失时定义不退役 | 空活动集合仍执行校准，并扫描全部 ACTIVE 定义完成退役/下线 |
+| Important | Starter Definition Identity 未进入 Provider 租约 | 增加契约适配 Bean，HTTP/RPC Provider 移除 `pending-report` |
+| Important | Engine 新 lease/新节点被历史 Target 误判 ACK 缺失 | 发布产物确定期望值，当前租约元数据确定运行一致性 |
+
+## 9. 自动化验证层级
 
 | 层级 | 覆盖 |
 |---|---|
@@ -457,8 +506,10 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-gateway/\
-egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -pl :egon-cola-component-gateway-test-suite,\
+:egon-cola-component-rpc-test-suite,\
+:egon-cola-component-gateway-starter,\
+:egon-cola-component-gateway-provider-runtime \
   -am clean verify
 
 cd egon-cola-components/egon-cola-component-gateway/\
@@ -472,37 +523,53 @@ npm run build
 真实运行命令已经写入 GWS-13 和部署 README，但本次按约束不启动产品进程、不启动
 Testcontainers Live Profile、不启动 Vite/Playwright 浏览器。
 
-## 9. 本轮验证结果
+## 10. 本轮验证结果
 
 本轮在新 Worktree 中完成以下验证，均未启动产品进程、容器或浏览器：
 
 | 验证项 | 结果 |
 |---|---|
-| 27 模块 Maven `clean verify` | `BUILD SUCCESS` |
-| Surefire 报告 | 140 份，329 个测试，0 Failure，0 Error，0 Skip |
-| Engine→Admin 测试边界修复定向测试 | 2/2 通过 |
-| HTTP Listener 排空定向测试 | 3/3 通过 |
+| 32 模块 Maven `clean verify` | `BUILD SUCCESS` |
+| Surefire/Failsafe 报告 | 170 份，375 个测试，0 Failure，0 Error，0 Skip |
+| DDC 隐式明文安全回归 | 首次暴露 3 个失败；测试显式声明开发明文后 4/4 通过 |
+| Gateway Engine | 75 个测试通过 |
+| Gateway Admin | 40 个测试通过 |
+| Gateway Starter | 12 个测试通过 |
+| DDC Starter/Admin | 60 + 67 个测试通过 |
+| RPC Starter/Test Suite | 39 + 10 个测试通过 |
 | Admin Web TypeScript | 通过 |
-| Admin Web Vitest | 5 个文件、10 个测试全部通过 |
+| Admin Web Vitest | 7 个文件、15 个测试全部通过 |
 | Admin Web ESLint | 通过 |
 | Admin Web Vite 生产构建 | 通过 |
 | `static-server.mjs` 语法检查 | 通过 |
-| Compose `config --quiet` | 通过 |
+| Compose `config --quiet` | 基础、HA、mTLS、HA+mTLS 四种组合通过 |
+| Workflow/YAML、k6 JS、Shell 语法 | 通过 |
 | Engine/Admin/三个 Test App 可执行 Jar 结构 | 通过 |
-| Flyway 变更检查 | 仅新增 Gateway Admin V1、V2，未修改既有迁移 |
+| Flyway 变更检查 | 新增 Gateway Admin V3 和 DDC PostgreSQL/SQLite V3，未修改既有迁移 |
 | 禁用技术扫描 | 生产代码/POM 无 Spring Cloud Gateway、Nacos、Dubbo |
 | 占位实现扫描 | 生产代码无 TODO、FIXME、`UnsupportedOperationException` |
 
 `GatewayLiveTopologyIT` 的 HTTP、RPC 两个真实拓扑入口已通过 Maven
 `testCompile`。它们受 `gateway-live-test` Profile 和
-`gateway.live.test=true` 双重门禁保护，本轮未启用，因此不包含在上述 329 个已执行
-测试中。
+`gateway.live.test=true` 双重门禁保护，本轮未启用，因此不包含在上述 375 个已执行
+测试中；Playwright、k6 和故障注入同样没有实际运行。
 
 验证过程还发现并修复了一处仅在干净 Reactor 中暴露的测试边界问题：Engine
 `GatewayRuleActivationApplierTest` 原先借用了 Admin 内部编译器，导致 Admin 被
 Spring Boot Repackage 后 Engine `testCompile` 无法读取其内部类。测试现在只使用
-Contract/Engine 契约构造 Fixture，Engine POM 不再测试依赖 Admin。修复后完整 27
+Contract/Engine 契约构造 Fixture，Engine POM 不再测试依赖 Admin。修复后完整 32
 模块干净构建通过。
+
+本轮最终验证还发现两处只在完整门禁中暴露的问题：
+
+1. DDC 自动配置测试未显式声明开发明文，与新的 Fail Closed 传输约束冲突；测试配置
+   已补齐，生产默认未放宽；
+2. Admin Web Token Store 的订阅清理函数错误返回 `Set.delete` 的布尔值，TypeScript
+   拒绝把它作为 React Effect Destructor；现已改为显式 `void` 清理并通过完整前端门禁。
+
+独立代码审查又验证并推动了 5 个边界修正：TLS reload 默认关闭、流式 Attempt 生命周期、
+空 Provider 集合定义退役、Starter/Provider Definition Identity 贯通、Engine 新租约
+运行一致性。对应定向测试和本节完整门禁均已通过。
 
 非阻断提示：
 
@@ -512,20 +579,22 @@ Contract/Engine 契约构造 Fixture，Engine POM 不再测试依赖 Admin。修
 3. DDC 既有测试使用的 Mockito 动态 Agent 和 `@MockBean` 有未来版本弃用提示，不是
    Gateway 本轮构建失败。
 
-## 10. 明确未执行或未声称的事项
+## 11. 明确未执行或未声称的事项
 
 以下不影响代码交付状态，但必须在生产验收前另行执行：
 
 1. `gateway-live-test` 真实容器/JVM 拓扑本次未运行；
 2. Playwright 浏览器 E2E 本次未运行；
-3. 生产 PostgreSQL、Redis、Kafka、网络和 TLS 未联调；
+3. 生产 PostgreSQL、Redis、Kafka、网络、TLS/mTLS 和证书轮换未联调；
 4. 性能、容量、长稳、故障注入数据尚未测量；
-5. DDC V1 仍是单 Admin + 单 Redis 证据边界，不声称 HA；
-6. RPC Gateway V1 仍要求每个 Slot 恰好一个 `INTERNAL_GATEWAY`，不声称多活；
+5. DDC 已支持多 Admin 协调和 Redis Sentinel/Cluster 配置，但本轮未执行真实故障转移；
+   PostgreSQL、Redis、Kafka 自身的生产 HA 仍由部署平台负责，DDC 不引入 Raft；
+6. RPC Consumer 已支持多 `INTERNAL_GATEWAY`、Round Robin 和失败摘除，但本轮未执行
+   双 Engine 进程级切换；
 7. RPC Streaming、Nacos、Dubbo、Nginx 管理均不在当前范围；
 8. 下游业务权限系统需要业务方提供安全 SPI 实现。
 
-## 11. 用户验收建议
+## 12. 用户验收建议
 
 建议按以下顺序审核：
 
