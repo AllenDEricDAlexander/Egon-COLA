@@ -15,6 +15,9 @@ egon:
         admin:
           max-value-bytes: 1048576
           redis:
+            mode: SINGLE
+            nodes: []
+            master-name:
             host: 127.0.0.1
             port: 6379
             database: 0
@@ -29,3 +32,5 @@ egon:
             default-timeout-ms: 30000
             max-timeout-ms: 60000
             scan-interval-ms: 1000
+            completion-poll-interval-ms: 100
+            recovery-stale-ms: 120000

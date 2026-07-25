@@ -3,7 +3,6 @@ package top.egon.cola.component.ddc.admin.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
-import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -20,6 +19,7 @@ import top.egon.cola.component.ddc.admin.service.DdcConfigLeaseService;
 import top.egon.cola.component.ddc.admin.service.DdcLeaseExpiryScanner;
 import top.egon.cola.component.ddc.admin.service.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.DdcServiceRegistryService;
+import top.egon.cola.component.ddc.config.DdcRedisTopology;
 
 @Configuration
 @EnableScheduling
@@ -31,14 +31,15 @@ public class DdcAdminRedisConfig {
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.admin.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcAdminRedissonClient(DdcAdminProperties properties) {
         DdcAdminProperties.Redis redis = properties.getRedis();
-        Config config = new Config();
-        config.useSingleServer()
-                .setAddress("redis://" + redis.getHost() + ":" + redis.getPort())
-                .setDatabase(redis.getDatabase());
-        if (redis.getPassword() != null && !redis.getPassword().isBlank()) {
-            config.useSingleServer().setPassword(redis.getPassword());
-        }
-        return Redisson.create(config);
+        return Redisson.create(DdcRedisTopology.create(
+                redis.getMode(),
+                redis.getNodes(),
+                redis.getMasterName(),
+                redis.getHost(),
+                redis.getPort(),
+                redis.getPassword(),
+                redis.getDatabase()
+        ));
     }
 
     @Bean

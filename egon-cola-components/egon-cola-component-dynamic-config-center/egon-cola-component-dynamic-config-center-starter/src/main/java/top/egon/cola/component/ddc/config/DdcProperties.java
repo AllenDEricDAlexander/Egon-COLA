@@ -2,6 +2,9 @@ package top.egon.cola.component.ddc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @ConfigurationProperties(prefix = "egon.cola.component.ddc", ignoreInvalidFields = true)
 public class DdcProperties {
 
@@ -142,6 +145,12 @@ public class DdcProperties {
 
         private boolean enabled = true;
 
+        private String mode = "SINGLE";
+
+        private List<String> nodes = new ArrayList<>();
+
+        private String masterName;
+
         private String host = "127.0.0.1";
 
         private int port = 6379;
@@ -156,6 +165,30 @@ public class DdcProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+
+        public List<String> getNodes() {
+            return nodes;
+        }
+
+        public void setNodes(List<String> nodes) {
+            this.nodes = nodes;
+        }
+
+        public String getMasterName() {
+            return masterName;
+        }
+
+        public void setMasterName(String masterName) {
+            this.masterName = masterName;
         }
 
         public String getHost() {

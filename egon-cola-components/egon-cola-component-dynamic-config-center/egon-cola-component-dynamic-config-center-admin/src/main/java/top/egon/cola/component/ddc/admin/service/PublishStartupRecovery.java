@@ -7,8 +7,11 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
+import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -24,20 +27,53 @@ public class PublishStartupRecovery implements ApplicationRunner {
 
     private final DdcPublishStateTransitionService stateTransitions;
 
+    private final DdcAdminProperties properties;
+
+    private final Clock clock;
+
     public PublishStartupRecovery(
             DdcPublishTaskRepository taskRepository,
-            DdcPublishStateTransitionService stateTransitions) {
+            DdcPublishStateTransitionService stateTransitions,
+            DdcAdminProperties properties) {
+        this(
+                taskRepository,
+                stateTransitions,
+                properties,
+                Clock.systemUTC()
+        );
+    }
+
+    PublishStartupRecovery(
+            DdcPublishTaskRepository taskRepository,
+            DdcPublishStateTransitionService stateTransitions,
+            DdcAdminProperties properties,
+            Clock clock) {
         this.taskRepository = taskRepository;
         this.stateTransitions = stateTransitions;
+        this.properties = properties;
+        this.clock = clock;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        taskRepository.findByStatusIn(ACTIVE_STATUSES)
+        long staleMs = properties.getPublish().getRecoveryStaleMs();
+        if (staleMs <= 0) {
+            throw new IllegalStateException(
+                    "DDC publish recovery stale interval must be positive"
+            );
+        }
+        LocalDateTime staleBefore = LocalDateTime.ofInstant(
+                clock.instant().minusMillis(staleMs),
+                clock.getZone()
+        );
+        taskRepository.findByStatusInAndUpdatedAtBefore(
+                        ACTIVE_STATUSES,
+                        staleBefore
+                )
                 .forEach(task -> stateTransitions.unknown(
                         task.getChangeId(),
-                        "admin restarted before publish completed"
+                        "publish owner did not complete before HA stale timeout"
                 ));
     }
 }

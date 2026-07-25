@@ -51,6 +51,11 @@ public class DdcPublishService {
             PublishStatus.UNKNOWN.name()
     );
 
+    private static final List<String> ACTIVE_STATUSES = List.of(
+            PublishStatus.PENDING.name(),
+            PublishStatus.PUBLISHING.name()
+    );
+
     private final DdcConfigItemRepository configItemRepository;
 
     private final DdcConfigVersionRepository versionRepository;
@@ -324,7 +329,13 @@ public class DdcPublishService {
                 }
                 waiter.awaitAfter(
                         signalVersion,
-                        Duration.between(clock.instant(), deadline)
+                        minimum(
+                                Duration.between(clock.instant(), deadline),
+                                Duration.ofMillis(
+                                        properties.getPublish()
+                                                .getCompletionPollIntervalMs()
+                                )
+                        )
                 );
             }
         } catch (InterruptedException exception) {
@@ -350,7 +361,8 @@ public class DdcPublishService {
         }
 
         DdcConfigItemEntity config =
-                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                configItemRepository
+                        .findForPublishByAppCodeAndEnvAndNamespaceAndConfigKey(
                                 request.getAppCode(),
                                 request.getEnv(),
                                 request.getNamespace(),
@@ -358,6 +370,17 @@ public class DdcPublishService {
                         )
                         .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
                         .orElseThrow(() -> new DdcAdminException("config item not found"));
+        if (publishTaskRepository
+                .findFirstByAppCodeAndEnvAndNamespaceAndConfigKeyAndStatusIn(
+                        request.getAppCode(),
+                        request.getEnv(),
+                        request.getNamespace(),
+                        request.getConfigKey(),
+                        ACTIVE_STATUSES
+                )
+                .isPresent()) {
+            throw new DdcAdminException(DdcErrorStatus.PUBLISH_IN_PROGRESS);
+        }
         if (!Objects.equals(request.getExpectedVersion(), config.getCurrentVersion())) {
             throw new DdcAdminException("config version changed");
         }
@@ -719,6 +742,15 @@ public class DdcPublishService {
         if (value == null || value.isBlank()) {
             throw new DdcAdminException(fieldName + " is required");
         }
+    }
+
+    private Duration minimum(Duration left, Duration pollInterval) {
+        if (pollInterval.isZero() || pollInterval.isNegative()) {
+            throw new DdcAdminException(
+                    "publish completion poll interval must be positive"
+            );
+        }
+        return left.compareTo(pollInterval) < 0 ? left : pollInterval;
     }
 
     private LocalDateTime toAckAt(Long ackTime) {

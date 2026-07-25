@@ -3,7 +3,6 @@ package top.egon.cola.component.ddc.config;
 import org.redisson.Redisson;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
-import org.redisson.config.Config;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.ObjectProvider;
@@ -90,15 +89,16 @@ public class DdcAutoConfig {
     @ConditionalOnMissingBean(RedissonClient.class)
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcRedissonClient(DdcProperties properties) {
-        Config config = new Config();
         DdcProperties.Redis redis = properties.getRedis();
-        config.useSingleServer()
-                .setAddress("redis://" + redis.getHost() + ":" + redis.getPort())
-                .setDatabase(redis.getDatabase());
-        if (redis.getPassword() != null && !redis.getPassword().isBlank()) {
-            config.useSingleServer().setPassword(redis.getPassword());
-        }
-        return Redisson.create(config);
+        return Redisson.create(DdcRedisTopology.create(
+                redis.getMode(),
+                redis.getNodes(),
+                redis.getMasterName(),
+                redis.getHost(),
+                redis.getPort(),
+                redis.getPassword(),
+                redis.getDatabase()
+        ));
     }
 
     @Bean

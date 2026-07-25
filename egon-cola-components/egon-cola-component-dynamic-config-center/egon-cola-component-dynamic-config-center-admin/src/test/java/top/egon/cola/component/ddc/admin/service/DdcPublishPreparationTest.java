@@ -10,14 +10,17 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigResourceKey;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
@@ -92,6 +95,9 @@ class DdcPublishPreparationTest {
 
     @Autowired
     private PublishResourceLockRegistry resourceRegistry;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void setUp() {
@@ -189,6 +195,71 @@ class DdcPublishPreparationTest {
 
             publishService.ack(ack(first, "instance-1", "lease-1"));
             assertThat(result.get(2, TimeUnit.SECONDS).getStatus()).isEqualTo("SUCCESS");
+        }
+    }
+
+    @Test
+    void rejectsPersistedActiveChangeOwnedByAnotherAdmin() {
+        saveConfig("shared-admin-lock");
+        LocalDateTime now = LocalDateTime.now();
+        var active = new DdcPublishTaskEntity();
+        active.setId(UuidV7.simpleString());
+        active.setChangeId(UuidV7.simpleString());
+        active.setAppCode("demo");
+        active.setEnv("dev");
+        active.setNamespace("default");
+        active.setConfigKey("shared-admin-lock");
+        active.setStatus("PUBLISHING");
+        active.setTargetCount(1);
+        active.setAckCount(0);
+        active.setFailedCount(0);
+        active.setIgnoredCount(0);
+        active.setTimeoutCount(0);
+        active.setAttemptCount(0);
+        active.setCreatedAt(now);
+        active.setUpdatedAt(now);
+        taskRepository.saveAndFlush(active);
+
+        assertThatThrownBy(() -> publishService.publish(
+                request("shared-admin-lock", "true"),
+                "second-admin"
+        )).isInstanceOf(DdcAdminException.class)
+                .hasMessageContaining("publish already in progress");
+    }
+
+    @Test
+    void observesTerminalStateWrittenByAnotherAdminWithoutLocalSignal()
+            throws Exception {
+        saveConfig("shared-admin-ack");
+        when(leaseService.activeTargets("demo", "dev", "default"))
+                .thenReturn(List.of(
+                        new DdcPublishTarget("instance-1", "lease-1")
+                ));
+        CountDownLatch published = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            published.countDown();
+            return null;
+        }).when(redisRepository).publish(any());
+        DdcPublishRequest request = request("shared-admin-ack", "true");
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<DdcPublishResultVO> result = executor.submit(
+                    () -> publishService.publish(request, "first-admin")
+            );
+            assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
+            new TransactionTemplate(transactionManager).executeWithoutResult(
+                    status -> taskRepository.transitionToTerminal(
+                            request.getChangeId(),
+                            "SUCCESS",
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            List.of("PENDING", "PUBLISHING")
+                    )
+            );
+
+            assertThat(result.get(1, TimeUnit.SECONDS).getStatus())
+                    .isEqualTo("SUCCESS");
         }
     }
 
