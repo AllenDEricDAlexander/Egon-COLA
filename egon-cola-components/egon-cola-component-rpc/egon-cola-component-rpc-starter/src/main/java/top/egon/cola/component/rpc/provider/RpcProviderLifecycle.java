@@ -18,7 +18,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
 
     private static final long HEARTBEAT_STOP_TIMEOUT_SECONDS = 5;
 
-    private final RpcProviderBeanScanner scanner;
+    private final RpcProviderMethodRegistry registry;
 
     private final RpcServerServiceDefinitionFactory definitionFactory;
 
@@ -41,7 +41,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
     private volatile ScheduledExecutorService heartbeatExecutor;
 
     public RpcProviderLifecycle(
-            RpcProviderBeanScanner scanner,
+            RpcProviderMethodRegistry registry,
             RpcServerServiceDefinitionFactory definitionFactory,
             RpcProviderServerFactory serverFactory,
             RpcProviderLeaseManager leaseManager,
@@ -49,7 +49,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             RpcProviderServerInterceptor interceptor,
             EgonRpcProperties rpcProperties,
             RpcProcessIdentity processIdentity) {
-        this.scanner = scanner;
+        this.registry = registry;
         this.definitionFactory = definitionFactory;
         this.serverFactory = serverFactory;
         this.leaseManager = leaseManager;
@@ -65,7 +65,6 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             return;
         }
         validateProperties();
-        RpcProviderMethodRegistry registry = scanner.scan();
         List<RpcProviderBinding> providers = registry.providers();
         if (providers.isEmpty()) {
             throw startFailed("no RPC Provider bean was found", null);

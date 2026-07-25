@@ -22,6 +22,7 @@ import top.egon.cola.component.rpc.provider.RpcProviderAvailabilityRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderBeanScanner;
 import top.egon.cola.component.rpc.provider.RpcProviderLeaseManager;
 import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
+import top.egon.cola.component.rpc.provider.RpcProviderMethodRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
 import top.egon.cola.component.rpc.provider.RpcServerServiceDefinitionFactory;
 
@@ -57,9 +58,24 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
-    public RpcProviderLifecycle rpcProviderLifecycle(
+    @ConditionalOnMissingBean
+    public RpcProviderMethodRegistry rpcProviderMethodRegistry(
             ApplicationContext applicationContext,
-            RpcContractValidator contractValidator,
+            RpcContractValidator contractValidator) {
+        return new RpcProviderBeanScanner(
+                applicationContext,
+                contractValidator
+        ).scan();
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.provider",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public RpcProviderLifecycle rpcProviderLifecycle(
+            RpcProviderMethodRegistry methodRegistry,
             DdcServiceRegistryClient registryClient,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
@@ -80,10 +96,7 @@ public class EgonRpcAutoConfig {
                 runtimeVersion
         );
         return new RpcProviderLifecycle(
-                new RpcProviderBeanScanner(
-                        applicationContext,
-                        contractValidator
-                ),
+                methodRegistry,
                 new RpcServerServiceDefinitionFactory(availability),
                 new RpcProviderServerFactory(),
                 leaseManager,

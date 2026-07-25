@@ -77,6 +77,36 @@ class RpcProviderLifecycleTest {
     }
 
     @Test
+    void shouldFailWithExistingErrorSemanticsWhenRegistryHasNoProvider() {
+        RecordingRegistry registryClient = new RecordingRegistry();
+        EgonRpcProperties properties = configuredProperties();
+        RpcProviderAvailabilityRegistry availability =
+                new RpcProviderAvailabilityRegistry();
+        RpcProcessIdentity identity = processIdentity();
+        RpcProviderLifecycle lifecycle = new RpcProviderLifecycle(
+                new RpcProviderMethodRegistry(List.of()),
+                new RpcServerServiceDefinitionFactory(availability),
+                new RpcProviderServerFactory(),
+                new RpcProviderLeaseManager(
+                        registryClient,
+                        availability,
+                        properties,
+                        identity,
+                        "test"
+                ),
+                availability,
+                new RpcProviderServerInterceptor(),
+                properties,
+                identity
+        );
+
+        assertThatThrownBy(lifecycle::start)
+                .isInstanceOf(EgonRpcException.class)
+                .hasMessageContaining("no RPC Provider bean");
+        assertThat(registryClient.events).isEmpty();
+    }
+
+    @Test
     void shouldReplaceLostLeaseBeforeRestoringAvailability() {
         RecordingRegistry registryClient = new RecordingRegistry();
         try (AnnotationConfigApplicationContext context = providerContext()) {
@@ -184,11 +214,12 @@ class RpcProviderLifecycleTest {
         RpcProviderAvailabilityRegistry availability =
                 new RpcProviderAvailabilityRegistry();
         RpcProcessIdentity identity = processIdentity();
+        RpcProviderMethodRegistry registry = new RpcProviderBeanScanner(
+                context,
+                new RpcContractValidator()
+        ).scan();
         return new RpcProviderLifecycle(
-                new RpcProviderBeanScanner(
-                        context,
-                        new RpcContractValidator()
-                ),
+                registry,
                 new RpcServerServiceDefinitionFactory(availability),
                 new RpcProviderServerFactory(),
                 new RpcProviderLeaseManager(
