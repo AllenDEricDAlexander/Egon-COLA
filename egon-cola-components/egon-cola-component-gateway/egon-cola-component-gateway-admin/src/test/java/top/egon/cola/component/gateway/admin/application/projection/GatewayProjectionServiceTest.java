@@ -166,6 +166,100 @@ class GatewayProjectionServiceTest {
     }
 
     @Test
+    void acceptsCurrentMetadataFromEnginesRegisteredAfterTheRelease() {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
+        GatewayReleaseService releases = mock(GatewayReleaseService.class);
+        GatewayGroupEntity group = new GatewayGroupEntity(
+                "group-1",
+                "edge",
+                "Edge",
+                "test",
+                "gateway",
+                null,
+                "admin",
+                now
+        );
+        when(groups.findByIdAndDeletedFalse("group-1"))
+                .thenReturn(java.util.Optional.of(group));
+        GatewayReleaseStore.TargetRecord historicalTarget =
+                new GatewayReleaseStore.TargetRecord(
+                        "engine-1",
+                        "lease-1",
+                        "SUCCESS",
+                        12L,
+                        "artifact-sha",
+                        null,
+                        now.minusSeconds(5)
+                );
+        when(releases.history("group-1")).thenReturn(List.of(
+                release("release-1", historicalTarget, now)
+        ));
+        Map<String, String> currentMetadata = Map.of(
+                "activeReleaseId", "release-1",
+                "activeRuleVersion", "12",
+                "activeRuleChecksum", "artifact-sha",
+                "lastApplyStatus", "ACK_SUCCESS",
+                "lastAckAt", now.minusSeconds(1).toString()
+        );
+        DdcManagementConfigClientInstance renewedLease =
+                new DdcManagementConfigClientInstance(
+                        "gateway-engine-edge",
+                        "test",
+                        "gateway",
+                        "engine-1",
+                        "lease-2",
+                        "127.0.0.1",
+                        18080,
+                        "CONFIG_CLIENT",
+                        "ONLINE",
+                        now.minusSeconds(3),
+                        now.minusSeconds(1),
+                        now.plusSeconds(30),
+                        currentMetadata
+                );
+        DdcManagementConfigClientInstance scaledNode =
+                new DdcManagementConfigClientInstance(
+                        "gateway-engine-edge",
+                        "test",
+                        "gateway",
+                        "engine-2",
+                        "lease-1",
+                        "127.0.0.2",
+                        18080,
+                        "CONFIG_CLIENT",
+                        "ONLINE",
+                        now.minusSeconds(3),
+                        now.minusSeconds(1),
+                        now.plusSeconds(30),
+                        currentMetadata
+                );
+        GatewayProjectionService service = new GatewayProjectionService(
+                groups,
+                releases,
+                new StubClient(
+                        now,
+                        null,
+                        null,
+                        List.of(renewedLease, scaledNode)
+                ),
+                Clock.fixed(now, ZoneOffset.UTC)
+        );
+
+        var consistency = service.runtimeConsistency("group-1");
+
+        assertThat(consistency.consistent()).isTrue();
+        assertThat(consistency.readyEngineNodeCount()).isEqualTo(2);
+        assertThat(consistency.nodes()).extracting(
+                GatewayProjectionService.EngineNodeConsistency::status,
+                GatewayProjectionService.EngineNodeConsistency::reason
+        ).containsExactly(
+                org.assertj.core.groups.Tuple.tuple("CONSISTENT", null),
+                org.assertj.core.groups.Tuple.tuple("CONSISTENT", null)
+        );
+    }
+
+    @Test
     void identifiesOnlineEngineWithStaleRelease() {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);

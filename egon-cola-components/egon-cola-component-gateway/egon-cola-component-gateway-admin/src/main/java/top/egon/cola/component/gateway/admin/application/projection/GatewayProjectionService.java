@@ -133,21 +133,12 @@ public class GatewayProjectionService {
         GatewayReleaseStore.AttemptRecord attempt = latestSuccessfulAttempt(
                 target
         );
-        Map<String, GatewayReleaseStore.TargetRecord> acknowledgements =
-                attempt == null
-                        ? Map.of()
-                        : attempt.targets().stream().collect(
-                                java.util.stream.Collectors.toUnmodifiableMap(
-                                        this::nodeKey,
-                                        value -> value,
-                                        (left, right) -> right
-                                )
-                        );
+        RuleExpectation expectation = expectation(attempt);
         List<EngineNodeConsistency> nodeStates = nodes.value().stream()
                 .map(node -> nodeConsistency(
                         node,
                         target,
-                        acknowledgements.get(nodeKey(node))
+                        expectation
                 ))
                 .toList();
         long ready = nodeStates.stream()
@@ -185,7 +176,7 @@ public class GatewayProjectionService {
     private EngineNodeConsistency nodeConsistency(
             DdcManagementConfigClientInstance node,
             GatewayReleaseService.ReleaseView release,
-            GatewayReleaseStore.TargetRecord acknowledgement) {
+            RuleExpectation expectation) {
         if (!online(node)) {
             return nodeState(node, "NOT_READY", "NODE_OFFLINE");
         }
@@ -194,31 +185,61 @@ public class GatewayProjectionService {
                         .GatewayReleaseStatus.SUCCESS) {
             return nodeState(node, "INCONSISTENT", "RELEASE_NOT_READY");
         }
-        if (acknowledgement == null
-                || !"SUCCESS".equals(acknowledgement.status())) {
-            return nodeState(node, "INCONSISTENT", "ACK_MISSING");
-        }
         Map<String, String> metadata = node.metadata();
         if (!release.releaseId().equals(metadata.get("activeReleaseId"))) {
             return nodeState(node, "INCONSISTENT", "RELEASE_MISMATCH");
         }
+        if (expectation == null) {
+            return nodeState(node, "INCONSISTENT", "ACK_MISSING");
+        }
         if (!Objects.equals(
-                value(acknowledgement.appliedVersion()),
+                value(expectation.version()),
                 metadata.get("activeRuleVersion")
         )) {
             return nodeState(node, "INCONSISTENT", "VERSION_MISMATCH");
         }
         if (!Objects.equals(
-                acknowledgement.appliedArtifactSha256(),
+                expectation.artifactSha256(),
                 metadata.get("activeRuleChecksum")
         )) {
             return nodeState(node, "INCONSISTENT", "CHECKSUM_MISMATCH");
         }
         if (!"ACK_SUCCESS".equals(metadata.get("lastApplyStatus"))
-                || metadata.getOrDefault("lastAckAt", "").isBlank()) {
+                || instantValue(metadata.get("lastAckAt")) == null) {
             return nodeState(node, "INCONSISTENT", "APPLY_NOT_ACKED");
         }
         return nodeState(node, "CONSISTENT", null);
+    }
+
+    private RuleExpectation expectation(
+            GatewayReleaseStore.AttemptRecord attempt) {
+        if (attempt == null) {
+            return null;
+        }
+        List<GatewayReleaseStore.TargetRecord> targets = attempt.targets();
+        if (targets.isEmpty() || targets.stream().anyMatch(target ->
+                !"SUCCESS".equals(target.status())
+                        || target.appliedVersion() == null
+                        || target.appliedArtifactSha256() == null
+                        || target.appliedArtifactSha256().isBlank())) {
+            return null;
+        }
+        GatewayReleaseStore.TargetRecord first = targets.getFirst();
+        boolean unanimous = targets.stream().allMatch(target ->
+                Objects.equals(
+                        first.appliedVersion(),
+                        target.appliedVersion()
+                )
+                        && Objects.equals(
+                        first.appliedArtifactSha256(),
+                        target.appliedArtifactSha256()
+                ));
+        return unanimous
+                ? new RuleExpectation(
+                first.appliedVersion(),
+                first.appliedArtifactSha256()
+        )
+                : null;
     }
 
     private EngineNodeConsistency nodeState(
@@ -238,14 +259,6 @@ public class GatewayProjectionService {
                 metadata.get("lastApplyStatus"),
                 instantValue(metadata.get("lastAckAt"))
         );
-    }
-
-    private String nodeKey(DdcManagementConfigClientInstance node) {
-        return node.instanceId() + "\u0000" + node.leaseId();
-    }
-
-    private String nodeKey(GatewayReleaseStore.TargetRecord target) {
-        return target.instanceId() + "\u0000" + target.leaseId();
     }
 
     private String value(Long value) {
@@ -549,6 +562,12 @@ public class GatewayProjectionService {
             String activeRuleChecksum,
             String lastApplyStatus,
             Instant lastAckAt
+    ) {
+    }
+
+    private record RuleExpectation(
+            Long version,
+            String artifactSha256
     ) {
     }
 
