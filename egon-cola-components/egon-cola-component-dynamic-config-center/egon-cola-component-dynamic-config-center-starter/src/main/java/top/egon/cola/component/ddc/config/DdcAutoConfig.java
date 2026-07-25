@@ -4,6 +4,7 @@ import org.redisson.Redisson;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -22,6 +23,8 @@ import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.processor.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
+import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcInstanceIdentityFactory;
 import top.egon.cola.component.ddc.service.DdcInstanceService;
@@ -57,11 +60,23 @@ public class DdcAutoConfig {
     }
 
     @Bean
+    public DefaultDdcConfigApplierRegistry ddcConfigApplierRegistry(
+            DdcFieldBindingService fieldBindingService) {
+        return new DefaultDdcConfigApplierRegistry(fieldBindingService::apply);
+    }
+
+    @Bean
+    public SmartInitializingSingleton ddcConfigApplierRegistryFreezer(
+            DefaultDdcConfigApplierRegistry registry) {
+        return registry::freeze;
+    }
+
+    @Bean
     public DdcRefreshService ddcRefreshService(DdcLocalConfigRepository repository,
-                                               DdcFieldBindingService fieldBindingService,
+                                               DdcConfigApplierRegistry applierRegistry,
                                                DdcAdminClient adminClient,
                                                DdcLeaseSessionHolder sessionHolder) {
-        return new DdcRefreshService(repository, fieldBindingService::apply, adminClient, sessionHolder);
+        return new DdcRefreshService(repository, applierRegistry, adminClient, sessionHolder);
     }
 
     @Bean

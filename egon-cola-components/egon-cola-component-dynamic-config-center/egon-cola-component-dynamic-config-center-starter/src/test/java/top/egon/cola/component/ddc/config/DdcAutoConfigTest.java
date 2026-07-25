@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
+import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +32,9 @@ class DdcAutoConfigTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcProperties.class);
                     assertThat(context).hasSingleBean(DdcFieldBindingService.class);
+                    assertThat(context).hasSingleBean(DdcConfigApplierRegistry.class);
                     assertThat(context).hasSingleBean(DdcAdminClient.class);
+                    assertThat(context.getBean(DefaultDdcConfigApplierRegistry.class).frozen()).isTrue();
                 });
     }
 }

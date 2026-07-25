@@ -18,7 +18,7 @@ public class DdcRefreshService {
 
     private final DdcLocalConfigRepository repository;
 
-    private final DdcConfigApplier applyFunction;
+    private final DdcConfigApplierRegistry applierRegistry;
 
     private final DdcAdminClient adminClient;
 
@@ -28,8 +28,15 @@ public class DdcRefreshService {
                              DdcConfigApplier applyFunction,
                              DdcAdminClient adminClient,
                              DdcLeaseSessionHolder sessionHolder) {
+        this(repository, new DefaultDdcConfigApplierRegistry(applyFunction), adminClient, sessionHolder);
+    }
+
+    public DdcRefreshService(DdcLocalConfigRepository repository,
+                             DdcConfigApplierRegistry applierRegistry,
+                             DdcAdminClient adminClient,
+                             DdcLeaseSessionHolder sessionHolder) {
         this.repository = repository;
-        this.applyFunction = applyFunction;
+        this.applierRegistry = applierRegistry;
         this.adminClient = adminClient;
         this.sessionHolder = sessionHolder;
     }
@@ -41,7 +48,8 @@ public class DdcRefreshService {
         repository.withConfigLock(config.getConfigKey(), () -> {
             Long localVersion = repository.version(config.getConfigKey());
             if (localVersion == null || config.getVersion() > localVersion) {
-                applyFunction.apply(config.getConfigKey(), config.getConfigValue(), config.getVersion());
+                applierRegistry.resolve(config.getConfigKey())
+                        .apply(config.getConfigKey(), config.getConfigValue(), config.getVersion());
                 repository.updateVersion(config.getConfigKey(), config.getVersion());
                 repository.updateChecksum(config.getConfigKey(), DdcChecksum.content(config.getConfigValue()));
             }
@@ -95,7 +103,8 @@ public class DdcRefreshService {
             return new AckOutcome(DdcAckStatus.SUCCESS, localVersion, null);
         }
         try {
-            applyFunction.apply(message.getConfigKey(), message.getConfigValue(), message.getTargetVersion());
+            applierRegistry.resolve(message.getConfigKey())
+                    .apply(message.getConfigKey(), message.getConfigValue(), message.getTargetVersion());
             repository.updateVersion(message.getConfigKey(), message.getTargetVersion());
             repository.updateChecksum(message.getConfigKey(), message.getContentChecksum());
             return new AckOutcome(DdcAckStatus.SUCCESS, message.getTargetVersion(), null);
