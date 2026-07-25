@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,10 +20,10 @@ import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/gateway/admin/gateway-groups")
+@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
 public class GatewayGroupController {
 
     private final GatewayGroupService service;
@@ -38,10 +39,10 @@ public class GatewayGroupController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
     public GatewayGroupService.GatewayGroupView create(
             @Valid @RequestBody CreateRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId,
+            AdminActor actor,
             @RequestHeader(value = "X-Request-Id",
                     required = false) String requestId,
             @RequestHeader(value = "X-Trace-Id",
@@ -54,7 +55,7 @@ public class GatewayGroupController {
                         request.namespace(),
                         request.description()
                 ),
-                actor(actorId),
+                actor,
                 audit(requestId, traceId)
         );
     }
@@ -66,11 +67,11 @@ public class GatewayGroupController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
     public GatewayGroupService.GatewayGroupView update(
             @PathVariable String id,
             @Valid @RequestBody UpdateRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId,
+            AdminActor actor,
             @RequestHeader(value = "X-Request-Id",
                     required = false) String requestId,
             @RequestHeader(value = "X-Trace-Id",
@@ -82,43 +83,34 @@ public class GatewayGroupController {
                         request.description(),
                         request.expectedRevision()
                 ),
-                actor(actorId),
+                actor,
                 audit(requestId, traceId)
         );
     }
 
     @PostMapping("/{id}/enable")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
     public GatewayGroupService.GatewayGroupView enable(
             @PathVariable String id,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.setEnabled(
                 id,
                 true,
-                actor(actorId),
+                actor,
                 audit(null, null)
         );
     }
 
     @PostMapping("/{id}/disable")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
     public GatewayGroupService.GatewayGroupView disable(
             @PathVariable String id,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.setEnabled(
                 id,
                 false,
-                actor(actorId),
+                actor,
                 audit(null, null)
-        );
-    }
-
-    private AdminActor actor(String actorId) {
-        return new AdminActor(
-                actorId,
-                AdminActor.ActorType.USER,
-                Set.of("*"),
-                Set.of("GATEWAY_ADMIN")
         );
     }
 

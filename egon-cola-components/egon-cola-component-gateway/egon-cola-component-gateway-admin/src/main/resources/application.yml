@@ -24,6 +24,9 @@ management:
 
 gateway:
   admin:
+    security:
+      issuer: ${GATEWAY_ADMIN_JWT_ISSUER:}
+      jwk-set-uri: ${GATEWAY_ADMIN_JWT_JWK_SET_URI:}
     ddc:
       enabled: false
       endpoint: http://127.0.0.1:18080

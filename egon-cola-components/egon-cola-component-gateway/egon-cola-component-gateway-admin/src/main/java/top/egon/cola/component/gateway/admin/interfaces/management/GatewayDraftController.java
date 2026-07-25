@@ -4,13 +4,13 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -19,10 +19,10 @@ import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftSer
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/gateway/admin/gateway-groups/{gatewayGroupId}/draft")
+@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
 public class GatewayDraftController {
 
     private final GatewayDraftService service;
@@ -38,12 +38,12 @@ public class GatewayDraftController {
     }
 
     @PutMapping("/routes/{routeId}")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public GatewayDraftService.MutationResult putRoute(
             @PathVariable String gatewayGroupId,
             @PathVariable String routeId,
             @Valid @RequestBody RouteRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.putRoute(
                 gatewayGroupId,
                 routeId,
@@ -55,34 +55,34 @@ public class GatewayDraftController {
                         request.idempotencyKey(),
                         request.changeReason()
                 ),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
 
     @DeleteMapping("/routes/{routeId}")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public GatewayDraftService.MutationResult deleteRoute(
             @PathVariable String gatewayGroupId,
             @PathVariable String routeId,
             @Valid @RequestBody MutationRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.deleteRoute(
                 gatewayGroupId,
                 routeId,
                 request.control(),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
 
     @PutMapping("/policies/{policyId}")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public GatewayDraftService.MutationResult putPolicy(
             @PathVariable String gatewayGroupId,
             @PathVariable String policyId,
             @Valid @RequestBody PolicyRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.putPolicy(
                 gatewayGroupId,
                 policyId,
@@ -95,23 +95,23 @@ public class GatewayDraftController {
                         request.idempotencyKey(),
                         request.changeReason()
                 ),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
 
     @DeleteMapping("/policies/{policyId}")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public GatewayDraftService.MutationResult deletePolicy(
             @PathVariable String gatewayGroupId,
             @PathVariable String policyId,
             @Valid @RequestBody MutationRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.deletePolicy(
                 gatewayGroupId,
                 policyId,
                 request.control(),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
@@ -126,15 +126,6 @@ public class GatewayDraftController {
     public GatewayDraftService.DraftDiff diff(
             @PathVariable String gatewayGroupId) {
         return service.diff(gatewayGroupId);
-    }
-
-    private AdminActor actor(String actorId) {
-        return new AdminActor(
-                actorId,
-                AdminActor.ActorType.USER,
-                Set.of("*"),
-                Set.of("GATEWAY_ADMIN")
-        );
     }
 
     private RequestAuditContext audit() {

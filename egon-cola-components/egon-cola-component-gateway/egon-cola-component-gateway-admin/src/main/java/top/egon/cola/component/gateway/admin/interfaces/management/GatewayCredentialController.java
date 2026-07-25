@@ -4,10 +4,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,10 +17,10 @@ import top.egon.cola.component.gateway.admin.application.credential.GatewayCrede
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.time.Duration;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/gateway/admin/applications/{applicationId}/credentials")
+@PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
 public class GatewayCredentialController {
 
     private final GatewayCredentialService service;
@@ -33,9 +33,8 @@ public class GatewayCredentialController {
     @ResponseStatus(HttpStatus.CREATED)
     public GatewayCredentialService.IssuedCredential create(
             @PathVariable String applicationId,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
-        return service.create(applicationId, actor(actorId), audit());
+            AdminActor actor) {
+        return service.create(applicationId, actor, audit());
     }
 
     @PostMapping("/{keyId}/rotate")
@@ -44,13 +43,12 @@ public class GatewayCredentialController {
             @PathVariable String applicationId,
             @PathVariable String keyId,
             @Valid @RequestBody RotateRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.rotate(
                 applicationId,
                 keyId,
                 Duration.ofMinutes(request.overlapMinutes()),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
@@ -59,22 +57,12 @@ public class GatewayCredentialController {
     public GatewayCredentialService.CredentialView revoke(
             @PathVariable String applicationId,
             @PathVariable String keyId,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.revoke(
                 applicationId,
                 keyId,
-                actor(actorId),
+                actor,
                 audit()
-        );
-    }
-
-    private AdminActor actor(String actorId) {
-        return new AdminActor(
-                actorId,
-                AdminActor.ActorType.USER,
-                Set.of("*"),
-                Set.of("GATEWAY_ADMIN")
         );
     }
 

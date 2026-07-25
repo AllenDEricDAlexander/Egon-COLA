@@ -4,12 +4,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,10 +21,10 @@ import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/gateway/admin")
+@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
 public class GatewayCatalogController {
 
     private final GatewayCatalogService service;
@@ -41,11 +41,11 @@ public class GatewayCatalogController {
 
     @PostMapping("/applications/{applicationId}/manual-interface-groups")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public ResourceCreated createInterfaceGroup(
             @PathVariable String applicationId,
             @Valid @RequestBody ManualInterfaceGroupRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         String id = service.createManualInterfaceGroup(
                 applicationId,
                 new GatewayCatalogStore.ManualHierarchy(
@@ -58,7 +58,7 @@ public class GatewayCatalogController {
                         request.className(),
                         request.description()
                 ),
-                actor(actorId),
+                actor,
                 audit()
         );
         return new ResourceCreated(id);
@@ -66,15 +66,15 @@ public class GatewayCatalogController {
 
     @PostMapping("/interface-groups/{interfaceGroupId}/manual-operations")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public GatewayCatalogService.OperationDetail createOperation(
             @PathVariable String interfaceGroupId,
             @Valid @RequestBody ManualOperationRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.createManualOperation(
                 interfaceGroupId,
                 request.command(),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
@@ -86,11 +86,11 @@ public class GatewayCatalogController {
     }
 
     @PutMapping("/operations/{operationId}/metadata")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public GatewayCatalogService.OperationDetail updateMetadata(
             @PathVariable String operationId,
             @Valid @RequestBody ManualMetadataRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.updateMetadata(
                 operationId,
                 new GatewayCatalogService.ManualMetadata(
@@ -98,43 +98,34 @@ public class GatewayCatalogController {
                         request.tags(),
                         request.owner()
                 ),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
 
     @PutMapping("/operations/{operationId}/manual-definition")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public GatewayCatalogService.OperationDetail updateDefinition(
             @PathVariable String operationId,
             @Valid @RequestBody ManualDefinitionRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.updateManualDefinition(
                 operationId,
                 request.definition(),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
 
     @PostMapping("/operations/{operationId}/deprecate")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public GatewayCatalogService.OperationDetail deprecate(
             @PathVariable String operationId,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.deprecate(
                 operationId,
-                actor(actorId),
+                actor,
                 audit()
-        );
-    }
-
-    private AdminActor actor(String id) {
-        return new AdminActor(
-                id,
-                AdminActor.ActorType.USER,
-                Set.of("*"),
-                Set.of("GATEWAY_ADMIN")
         );
     }
 

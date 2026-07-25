@@ -4,12 +4,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,10 +19,10 @@ import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/gateway/admin/applications")
+@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
 public class GatewayApplicationController {
 
     private final GatewayApplicationService service;
@@ -38,10 +38,10 @@ public class GatewayApplicationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
     public GatewayApplicationService.GatewayApplicationView create(
             @Valid @RequestBody CreateRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.create(
                 new GatewayApplicationService.CreateGatewayApplication(
                         request.applicationCode(),
@@ -50,7 +50,7 @@ public class GatewayApplicationController {
                         request.namespace(),
                         request.description()
                 ),
-                actor(actorId),
+                actor,
                 audit()
         );
     }
@@ -62,11 +62,11 @@ public class GatewayApplicationController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
     public GatewayApplicationService.GatewayApplicationView update(
             @PathVariable String id,
             @Valid @RequestBody UpdateRequest request,
-            @RequestHeader(value = "X-Admin-Actor-Id",
-                    defaultValue = "local-admin") String actorId) {
+            AdminActor actor) {
         return service.update(
                 id,
                 new GatewayApplicationService.UpdateGatewayApplication(
@@ -74,17 +74,8 @@ public class GatewayApplicationController {
                         request.description(),
                         request.expectedRevision()
                 ),
-                actor(actorId),
+                actor,
                 audit()
-        );
-    }
-
-    private AdminActor actor(String actorId) {
-        return new AdminActor(
-                actorId,
-                AdminActor.ActorType.USER,
-                Set.of("*"),
-                Set.of("GATEWAY_ADMIN")
         );
     }
 
