@@ -10,5 +10,11 @@ public interface GatewayGroupRepository
 
     List<GatewayGroupEntity> findAllByDeletedFalseOrderByCreatedAtDesc();
 
+    List<GatewayGroupEntity>
+    findAllByEnvAndNamespaceAndDeletedFalseOrderByCreatedAtDesc(
+            String env,
+            String namespace
+    );
+
     Optional<GatewayGroupEntity> findByIdAndDeletedFalse(String id);
 }

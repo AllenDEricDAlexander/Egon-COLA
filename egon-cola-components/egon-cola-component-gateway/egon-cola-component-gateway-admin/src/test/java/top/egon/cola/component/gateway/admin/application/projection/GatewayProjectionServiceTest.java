@@ -24,6 +24,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class GatewayProjectionServiceTest {
 
@@ -49,9 +50,15 @@ class GatewayProjectionServiceTest {
                 "RPC"
         );
         DdcManagementClient client = new StubClient(now, http, rpc);
+        var groups = mock(top.egon.cola.component.gateway.admin.infrastructure
+                .persistence.GatewayGroupRepository.class);
+        when(groups
+                .findAllByEnvAndNamespaceAndDeletedFalseOrderByCreatedAtDesc(
+                        "test",
+                        "gateway"
+                )).thenReturn(List.of());
         GatewayProjectionService service = new GatewayProjectionService(
-                mock(top.egon.cola.component.gateway.admin.infrastructure
-                        .persistence.GatewayGroupRepository.class),
+                groups,
                 mock(top.egon.cola.component.gateway.admin.application
                         .release.GatewayReleaseService.class),
                 client,
@@ -67,6 +74,14 @@ class GatewayProjectionServiceTest {
         assertThat(projection.value().getFirst().weight()).isEqualTo(80);
         assertThat(projection.value().getFirst().definitionSetId())
                 .isEqualTo("definition-http");
+        assertThat(service.scopeCounts("test", "gateway"))
+                .extracting(
+                        GatewayProjectionService.ProjectionCounts
+                                ::activeProviders,
+                        GatewayProjectionService.ProjectionCounts
+                                ::abnormalProviders
+                )
+                .containsExactly(2L, 0L);
     }
 
     private record StubClient(
@@ -104,7 +119,7 @@ class GatewayProjectionServiceTest {
                                     "definition-" + query.protocol()
                                             .toLowerCase()
                             ),
-                            "REGISTERED",
+                            "ONLINE",
                             now.minusSeconds(10),
                             now.minusSeconds(1),
                             now.plusSeconds(30)

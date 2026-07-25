@@ -122,7 +122,7 @@ public class GatewayProjectionService {
         ProjectionEnvelope<List<DdcManagementConfigClientInstance>> nodes =
                 engineNodes(gatewayGroupId);
         long ready = nodes.value().stream()
-                .filter(node -> "READY".equals(node.status()))
+                .filter(this::online)
                 .count();
         return new RuntimeConsistency(
                 target == null ? null : target.releaseId(),
@@ -135,6 +135,42 @@ public class GatewayProjectionService {
                 nodes.observedAt(),
                 nodes.source(),
                 nodes.stale()
+        );
+    }
+
+    public ProjectionCounts scopeCounts(String env, String namespace) {
+        long totalEngines = 0;
+        long readyEngines = 0;
+        long inconsistentGroups = 0;
+        boolean stale = false;
+        List<GatewayGroupEntity> scopedGroups = groups
+                .findAllByEnvAndNamespaceAndDeletedFalseOrderByCreatedAtDesc(
+                        env,
+                        namespace
+                );
+        for (GatewayGroupEntity group : scopedGroups) {
+            if (!group.isEnabled()) {
+                continue;
+            }
+            RuntimeConsistency consistency =
+                    runtimeConsistency(group.getId());
+            totalEngines += consistency.engineNodeCount();
+            readyEngines += consistency.readyEngineNodeCount();
+            inconsistentGroups += consistency.consistent() ? 0 : 1;
+            stale = stale || consistency.stale();
+        }
+        ProjectionEnvelope<List<ProviderInstanceProjection>> providers =
+                instances(env, namespace);
+        long activeProviders = providers.value().stream()
+                .filter(this::online)
+                .count();
+        return new ProjectionCounts(
+                readyEngines,
+                totalEngines,
+                inconsistentGroups,
+                activeProviders,
+                providers.value().size() - activeProviders,
+                stale || providers.stale()
         );
     }
 
@@ -235,6 +271,18 @@ public class GatewayProjectionService {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    private boolean online(DdcManagementConfigClientInstance instance) {
+        return "ONLINE".equals(instance.status())
+                && instance.expireAt() != null
+                && instance.expireAt().isAfter(clock.instant());
+    }
+
+    private boolean online(ProviderInstanceProjection instance) {
+        return "ONLINE".equals(instance.status())
+                && instance.expireAt() != null
+                && instance.expireAt().isAfter(clock.instant());
     }
 
     @SuppressWarnings("unchecked")
@@ -340,6 +388,16 @@ public class GatewayProjectionService {
             boolean consistent,
             Instant observedAt,
             String source,
+            boolean stale
+    ) {
+    }
+
+    public record ProjectionCounts(
+            long readyEngines,
+            long totalEngines,
+            long inconsistentGroups,
+            long activeProviders,
+            long abnormalProviders,
             boolean stale
     ) {
     }

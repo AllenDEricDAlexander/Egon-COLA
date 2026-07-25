@@ -14,6 +14,7 @@ import top.egon.cola.component.ddc.management.client.HttpDdcManagementClient;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayCallEventIngestService;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityQueryService;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityStore;
+import top.egon.cola.component.gateway.admin.application.projection.GatewayProjectionService;
 import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventCodec;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventConsumerHandler;
@@ -98,10 +99,12 @@ public class GatewayAdminConfiguration {
 
     @Bean
     GatewayObservabilityQueryService gatewayObservabilityQueryService(
-            GatewayObservabilityStore store) {
+            GatewayObservabilityStore store,
+            GatewayProjectionService projections) {
         return new GatewayObservabilityQueryService(
                 store,
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                projections
         );
     }
 
