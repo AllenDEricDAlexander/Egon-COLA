@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
+import top.egon.cola.component.ddc.management.client.DdcManagementClientProperties;
+import top.egon.cola.component.ddc.management.client.HttpDdcManagementClient;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayCallEventIngestService;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityQueryService;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityStore;
@@ -28,6 +30,30 @@ import java.time.Duration;
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 public class GatewayAdminConfiguration {
+
+    @Bean
+    @ConditionalOnProperty(
+            name = "gateway.admin.ddc.enabled",
+            havingValue = "true"
+    )
+    DdcManagementClient ddcManagementClient(
+            @Value("${gateway.admin.ddc.endpoint}") String endpoint,
+            @Value("${gateway.admin.ddc.access-key}") String accessKey,
+            @Value("${gateway.admin.ddc.secret-key}") String secretKey,
+            @Value("${gateway.admin.ddc.connect-timeout:PT3S}")
+            Duration connectTimeout,
+            @Value("${gateway.admin.ddc.read-timeout:PT10S}")
+            Duration readTimeout) {
+        return new HttpDdcManagementClient(
+                new DdcManagementClientProperties(
+                        endpoint,
+                        accessKey,
+                        secretKey,
+                        connectTimeout,
+                        readTimeout
+                )
+        );
+    }
 
     @Bean
     @ConditionalOnBean(DdcManagementClient.class)
