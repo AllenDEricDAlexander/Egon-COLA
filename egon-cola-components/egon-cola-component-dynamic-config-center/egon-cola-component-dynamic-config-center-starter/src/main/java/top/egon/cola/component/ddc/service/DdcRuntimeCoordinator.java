@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcException;
@@ -24,6 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class DdcRuntimeCoordinator implements SmartLifecycle {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(DdcRuntimeCoordinator.class);
+
     private final DdcProperties properties;
 
     private final DdcInstanceService instanceService;
@@ -42,7 +46,9 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
 
     private final AtomicBoolean running = new AtomicBoolean();
 
-    private volatile ScheduledExecutorService scheduler;
+    private volatile ScheduledExecutorService heartbeatScheduler;
+
+    private volatile ScheduledExecutorService reconcileScheduler;
 
     public DdcRuntimeCoordinator(DdcProperties properties,
                                  DdcInstanceService instanceService,
@@ -81,7 +87,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
             }
             state.set(DdcRuntimeState.RECOVERING);
         }
-        startScheduler();
+        startSchedulers();
     }
 
     @Override
@@ -90,11 +96,14 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
             return;
         }
         state.set(DdcRuntimeState.STOPPING);
-        ScheduledExecutorService currentScheduler = scheduler;
-        scheduler = null;
-        if (currentScheduler != null) {
-            currentScheduler.shutdownNow();
-        }
+        ScheduledExecutorService currentHeartbeatScheduler = heartbeatScheduler;
+        ScheduledExecutorService currentReconcileScheduler = reconcileScheduler;
+        heartbeatScheduler = null;
+        reconcileScheduler = null;
+        requestShutdown(currentHeartbeatScheduler);
+        requestShutdown(currentReconcileScheduler);
+        awaitShutdown(currentHeartbeatScheduler);
+        awaitShutdown(currentReconcileScheduler);
         sessionHolder.current().ifPresent(session -> {
             try {
                 instanceService.offline(session);
@@ -158,6 +167,19 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         }
     }
 
+    void reconcileOnce() {
+        if (!running.get()
+                || !properties.getConsistency().isReconcileEnabled()
+                || state.get() == DdcRuntimeState.STOPPING) {
+            return;
+        }
+        try {
+            adminClient.pull().forEach(refreshService::applySnapshot);
+        } catch (RuntimeException exception) {
+            LOGGER.warn("DDC config reconciliation failed", exception);
+        }
+    }
+
     private void initialize() {
         instanceService.register();
         adminClient.reportDefaults(defaultReport());
@@ -170,14 +192,51 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         state.set(DdcRuntimeState.READY);
     }
 
-    private void startScheduler() {
-        scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+    private void startSchedulers() {
+        heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "egon-cola-ddc-heartbeat");
             thread.setDaemon(true);
             return thread;
         });
         int interval = properties.getInstance().getHeartbeatIntervalSeconds();
-        scheduler.scheduleWithFixedDelay(this::heartbeatOnce, interval, interval, TimeUnit.SECONDS);
+        heartbeatScheduler.scheduleWithFixedDelay(
+                this::heartbeatOnce,
+                interval,
+                interval,
+                TimeUnit.SECONDS
+        );
+        if (!properties.getConsistency().isReconcileEnabled()) {
+            return;
+        }
+        reconcileScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "egon-cola-ddc-config-reconcile");
+            thread.setDaemon(true);
+            return thread;
+        });
+        int reconcileInterval = properties.getConsistency().getReconcileIntervalSeconds();
+        reconcileScheduler.scheduleWithFixedDelay(
+                this::reconcileOnce,
+                reconcileInterval,
+                reconcileInterval,
+                TimeUnit.SECONDS
+        );
+    }
+
+    private void requestShutdown(ScheduledExecutorService currentScheduler) {
+        if (currentScheduler != null) {
+            currentScheduler.shutdownNow();
+        }
+    }
+
+    private void awaitShutdown(ScheduledExecutorService currentScheduler) {
+        if (currentScheduler == null) {
+            return;
+        }
+        try {
+            currentScheduler.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private DdcDefaultReportRequest defaultReport() {
@@ -207,6 +266,10 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         requireText(properties.getAppCode(), "appCode");
         requireText(properties.getEnv(), "env");
         requireText(properties.getNamespace(), "namespace");
+        if (properties.getConsistency().isReconcileEnabled()
+                && properties.getConsistency().getReconcileIntervalSeconds() <= 0) {
+            throw new DdcException("reconcileIntervalSeconds must be positive");
+        }
     }
 
     private void requireText(String value, String fieldName) {

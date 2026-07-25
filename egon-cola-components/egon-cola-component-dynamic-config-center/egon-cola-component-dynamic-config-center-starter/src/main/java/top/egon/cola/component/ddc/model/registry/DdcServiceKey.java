@@ -33,6 +33,13 @@ public record DdcServiceKey(
         group = defaulted(group, "default");
         version = defaulted(version, "1.0.0");
         protocol = require(protocol, "protocol").toLowerCase(java.util.Locale.ROOT);
+        if (serviceKind == DdcServiceKind.HTTP_PROVIDER
+                && !"http".equals(protocol)
+                && !"https".equals(protocol)) {
+            throw new IllegalArgumentException(
+                    "HTTP_PROVIDER protocol must be http or https"
+            );
+        }
     }
 
     public String canonicalValue() {

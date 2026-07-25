@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: egon-cola-gateway-engine
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  address: 0.0.0.0
+  port: 18083
+  shutdown: graceful
+
+management:
+  otlp:
+    tracing:
+      export:
+        enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+egon:
+  cola:
+    component:
+      ddc:
+        app-code: egon-cola-gateway-engine
+        admin:
+          tls:
+            enabled: false
+            development-plaintext: true
+        registry:
+          enabled: true
+      gateway:
+        engine:
+          http:
+            public-tls:
+              enabled: false
+              development-plaintext: true
+            internal-tls:
+              enabled: false
+              development-plaintext: true
+          rpc:
+            tls:
+              enabled: false
+              development-plaintext: true
+          traffic:
+            redis:
+              enabled: false
+              address: redis://127.0.0.1:6379
+              database: 0
+              password:
+          kafka:
+            enabled: false

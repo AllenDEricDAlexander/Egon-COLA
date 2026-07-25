@@ -3,8 +3,9 @@ package top.egon.cola.component.ddc.config;
 import org.redisson.Redisson;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
-import org.redisson.config.Config;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -22,9 +23,12 @@ import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.processor.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
+import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcInstanceIdentityFactory;
 import top.egon.cola.component.ddc.service.DdcInstanceService;
+import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
@@ -57,11 +61,23 @@ public class DdcAutoConfig {
     }
 
     @Bean
+    public DefaultDdcConfigApplierRegistry ddcConfigApplierRegistry(
+            DdcFieldBindingService fieldBindingService) {
+        return new DefaultDdcConfigApplierRegistry(fieldBindingService::apply);
+    }
+
+    @Bean
+    public SmartInitializingSingleton ddcConfigApplierRegistryFreezer(
+            DefaultDdcConfigApplierRegistry registry) {
+        return registry::freeze;
+    }
+
+    @Bean
     public DdcRefreshService ddcRefreshService(DdcLocalConfigRepository repository,
-                                               DdcFieldBindingService fieldBindingService,
+                                               DdcConfigApplierRegistry applierRegistry,
                                                DdcAdminClient adminClient,
                                                DdcLeaseSessionHolder sessionHolder) {
-        return new DdcRefreshService(repository, fieldBindingService::apply, adminClient, sessionHolder);
+        return new DdcRefreshService(repository, applierRegistry, adminClient, sessionHolder);
     }
 
     @Bean
@@ -73,15 +89,16 @@ public class DdcAutoConfig {
     @ConditionalOnMissingBean(RedissonClient.class)
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcRedissonClient(DdcProperties properties) {
-        Config config = new Config();
         DdcProperties.Redis redis = properties.getRedis();
-        config.useSingleServer()
-                .setAddress("redis://" + redis.getHost() + ":" + redis.getPort())
-                .setDatabase(redis.getDatabase());
-        if (redis.getPassword() != null && !redis.getPassword().isBlank()) {
-            config.useSingleServer().setPassword(redis.getPassword());
-        }
-        return Redisson.create(config);
+        return Redisson.create(DdcRedisTopology.create(
+                redis.getMode(),
+                redis.getNodes(),
+                redis.getMasterName(),
+                redis.getHost(),
+                redis.getPort(),
+                redis.getPassword(),
+                redis.getDatabase()
+        ));
     }
 
     @Bean
@@ -128,8 +145,16 @@ public class DdcAutoConfig {
     public DdcInstanceService ddcInstanceService(DdcProperties properties,
                                                  DdcAdminClient adminClient,
                                                  DdcInstanceIdentity identity,
-                                                 DdcLeaseSessionHolder sessionHolder) {
-        return new DdcInstanceService(properties, adminClient, identity, sessionHolder);
+                                                 DdcLeaseSessionHolder sessionHolder,
+                                                 ObjectProvider<DdcInstanceMetadataContributor>
+                                                         metadataContributors) {
+        return new DdcInstanceService(
+                properties,
+                adminClient,
+                identity,
+                sessionHolder,
+                metadataContributors.orderedStream().toList()
+        );
     }
 
     @Bean

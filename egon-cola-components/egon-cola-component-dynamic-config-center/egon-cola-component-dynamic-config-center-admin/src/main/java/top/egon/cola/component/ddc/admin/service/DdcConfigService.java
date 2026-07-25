@@ -1,9 +1,11 @@
 package top.egon.cola.component.ddc.admin.service;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
+import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigRollbackRequest;
@@ -33,28 +35,86 @@ public class DdcConfigService {
 
     private final DdcOperationLogRepository operationLogRepository;
 
+    private final DdcConfigValueGuard valueGuard;
+
     public DdcConfigService(DdcConfigItemRepository configItemRepository,
                             DdcConfigVersionRepository versionRepository,
-                            DdcOperationLogRepository operationLogRepository) {
+                            DdcOperationLogRepository operationLogRepository,
+                            ObjectProvider<DdcAdminProperties> propertiesProvider) {
         this.configItemRepository = configItemRepository;
         this.versionRepository = versionRepository;
         this.operationLogRepository = operationLogRepository;
+        DdcAdminProperties properties =
+                propertiesProvider.getIfAvailable(DdcAdminProperties::new);
+        this.valueGuard = new DdcConfigValueGuard(properties.getMaxValueBytes());
     }
 
     @Transactional
     public DdcConfigVO create(DdcConfigCreateRequest request, String operator) {
-        requireText(request.getAppCode(), "appCode");
-        requireText(request.getEnv(), "env");
-        requireText(request.getNamespace(), "namespace");
-        requireText(request.getConfigKey(), "configKey");
-        requireText(request.getValueType(), "valueType");
+        validateDraft(request);
         configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
                         request.getAppCode(), request.getEnv(), request.getNamespace(), request.getConfigKey())
-                .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
                 .ifPresent(item -> {
                     throw new DdcAdminException("config item already exists");
                 });
+        return createDraft(request, operator);
+    }
 
+    @Transactional
+    public DdcConfigVO upsert(
+            DdcConfigCreateRequest request,
+            Long expectedVersion,
+            String operator
+    ) {
+        validateDraft(request);
+        DdcConfigItemEntity existing =
+                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                        request.getAppCode(),
+                        request.getEnv(),
+                        request.getNamespace(),
+                        request.getConfigKey()
+                ).orElse(null);
+        if (existing == null) {
+            if (expectedVersion != null && expectedVersion != 0L) {
+                throw new DdcAdminException("config version changed");
+            }
+            return createDraft(request, operator);
+        }
+        if (Boolean.TRUE.equals(existing.getDeleted())) {
+            throw new DdcAdminException("deleted config key cannot be reused");
+        }
+        if (expectedVersion == null
+                || !Objects.equals(expectedVersion, existing.getCurrentVersion())) {
+            throw new DdcAdminException("config version changed");
+        }
+        String oldValue = existing.getConfigValue();
+        existing.setConfigValue(request.getConfigValue());
+        existing.setValueType(request.getValueType());
+        existing.setDescription(request.getDescription());
+        existing.setCurrentVersion(existing.getCurrentVersion() + 1);
+        existing.setUpdatedAt(LocalDateTime.now());
+        DdcConfigItemEntity saved = configItemRepository.save(existing);
+        saveVersion(
+                saved,
+                oldValue,
+                saved.getConfigValue(),
+                ChangeType.UPDATE,
+                "upsert config draft",
+                operator
+        );
+        saveOperation(
+                saved,
+                ChangeType.UPDATE,
+                operator,
+                "upsert config draft"
+        );
+        return DdcConfigVO.from(saved);
+    }
+
+    private DdcConfigVO createDraft(
+            DdcConfigCreateRequest request,
+            String operator
+    ) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
         entity.setId(UuidV7.simpleString());
@@ -79,6 +139,10 @@ public class DdcConfigService {
 
     @Transactional
     public DdcConfigVO update(DdcConfigUpdateRequest request, String operator) {
+        if (request == null) {
+            throw new DdcAdminException("config update request is required");
+        }
+        valueGuard.check(request.getConfigValue());
         DdcConfigItemEntity entity = getConfig(request.getId());
         if (request.getCurrentVersion() != null && !Objects.equals(request.getCurrentVersion(), entity.getCurrentVersion())) {
             throw new DdcAdminException("config version changed");
@@ -96,6 +160,47 @@ public class DdcConfigService {
     @Transactional
     public DdcConfigVO delete(String configId, String operator, String reason) {
         DdcConfigItemEntity entity = getConfig(configId);
+        if (Boolean.TRUE.equals(entity.getDeleted())) {
+            return DdcConfigVO.from(entity);
+        }
+        return delete(entity, operator, reason);
+    }
+
+    @Transactional
+    public DdcConfigVO delete(
+            String appCode,
+            String env,
+            String namespace,
+            String configKey,
+            Long expectedVersion,
+            String operator,
+            String reason
+    ) {
+        DdcConfigItemEntity entity =
+                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                        appCode,
+                        env,
+                        namespace,
+                        configKey
+                ).orElse(null);
+        if (entity == null) {
+            return null;
+        }
+        if (Boolean.TRUE.equals(entity.getDeleted())) {
+            return DdcConfigVO.from(entity);
+        }
+        if (expectedVersion == null
+                || !Objects.equals(expectedVersion, entity.getCurrentVersion())) {
+            throw new DdcAdminException("config version changed");
+        }
+        return delete(entity, operator, reason);
+    }
+
+    private DdcConfigVO delete(
+            DdcConfigItemEntity entity,
+            String operator,
+            String reason
+    ) {
         String oldValue = entity.getConfigValue();
         entity.setDeleted(true);
         entity.setEnabled(false);
@@ -112,6 +217,7 @@ public class DdcConfigService {
         DdcConfigItemEntity entity = getConfig(request.getConfigId());
         DdcConfigVersionEntity target = versionRepository.findByConfigIdAndVersion(request.getConfigId(), request.getVersion())
                 .orElseThrow(() -> new DdcAdminException("config version not found"));
+        valueGuard.check(target.getNewValue());
         String oldValue = entity.getConfigValue();
         entity.setConfigValue(target.getNewValue());
         entity.setDeleted(false);
@@ -155,9 +261,11 @@ public class DdcConfigService {
 
     @Transactional
     public void reportDefaults(DdcDefaultReportRequest request) {
-        if (request.getConfigs() == null) {
+        if (request == null || request.getConfigs() == null) {
             return;
         }
+        request.getConfigs().forEach(config ->
+                valueGuard.check(config.getDefaultValue()));
         for (DdcDefaultReportRequest.DdcConfigValueRequest config : request.getConfigs()) {
             configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
                             request.getAppCode(), request.getEnv(), request.getNamespace(), config.getConfigKey())
@@ -247,5 +355,17 @@ public class DdcConfigService {
         if (value == null || value.isBlank()) {
             throw new DdcAdminException(fieldName + " is required");
         }
+    }
+
+    private void validateDraft(DdcConfigCreateRequest request) {
+        if (request == null) {
+            throw new DdcAdminException("config request is required");
+        }
+        requireText(request.getAppCode(), "appCode");
+        requireText(request.getEnv(), "env");
+        requireText(request.getNamespace(), "namespace");
+        requireText(request.getConfigKey(), "configKey");
+        requireText(request.getValueType(), "valueType");
+        valueGuard.check(request.getConfigValue());
     }
 }

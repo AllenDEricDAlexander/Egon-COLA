@@ -2,8 +2,13 @@ package top.egon.cola.component.ddc.admin.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @ConfigurationProperties(prefix = "egon.cola.component.ddc.admin", ignoreInvalidFields = true)
 public class DdcAdminProperties {
+
+    private long maxValueBytes = 1024L * 1024L;
 
     private Redis redis = new Redis();
 
@@ -14,6 +19,14 @@ public class DdcAdminProperties {
     private Publish publish = new Publish();
 
     private Manifest manifest = new Manifest();
+
+    public long getMaxValueBytes() {
+        return maxValueBytes;
+    }
+
+    public void setMaxValueBytes(long maxValueBytes) {
+        this.maxValueBytes = maxValueBytes;
+    }
 
     public Redis getRedis() {
         return redis;
@@ -59,6 +72,12 @@ public class DdcAdminProperties {
 
         private boolean enabled = true;
 
+        private String mode = "SINGLE";
+
+        private List<String> nodes = new ArrayList<>();
+
+        private String masterName;
+
         private String host = "127.0.0.1";
 
         private int port = 6379;
@@ -73,6 +92,30 @@ public class DdcAdminProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+
+        public List<String> getNodes() {
+            return nodes;
+        }
+
+        public void setNodes(List<String> nodes) {
+            this.nodes = nodes;
+        }
+
+        public String getMasterName() {
+            return masterName;
+        }
+
+        public void setMasterName(String masterName) {
+            this.masterName = masterName;
         }
 
         public String getHost() {
@@ -217,6 +260,10 @@ public class DdcAdminProperties {
 
         private long scanIntervalMs = 1000;
 
+        private long completionPollIntervalMs = 100;
+
+        private long recoveryStaleMs = 120000;
+
         public long getDispatchTimeoutMs() {
             return dispatchTimeoutMs;
         }
@@ -247,6 +294,23 @@ public class DdcAdminProperties {
 
         public void setScanIntervalMs(long scanIntervalMs) {
             this.scanIntervalMs = scanIntervalMs;
+        }
+
+        public long getCompletionPollIntervalMs() {
+            return completionPollIntervalMs;
+        }
+
+        public void setCompletionPollIntervalMs(
+                long completionPollIntervalMs) {
+            this.completionPollIntervalMs = completionPollIntervalMs;
+        }
+
+        public long getRecoveryStaleMs() {
+            return recoveryStaleMs;
+        }
+
+        public void setRecoveryStaleMs(long recoveryStaleMs) {
+            this.recoveryStaleMs = recoveryStaleMs;
         }
     }
 }

@@ -19,7 +19,9 @@ class DdcRegistryAutoConfigTest {
                 .withBean(RedissonClient.class, () -> mock(RedissonClient.class))
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=false",
-                        "egon.cola.component.ddc.registry.enabled=true"
+                        "egon.cola.component.ddc.registry.enabled=true",
+                        "egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext=true"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcServiceRegistryClient.class);
@@ -34,7 +36,9 @@ class DdcRegistryAutoConfigTest {
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=false",
-                        "egon.cola.component.ddc.registry.enabled=false"
+                        "egon.cola.component.ddc.registry.enabled=false",
+                        "egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext=true"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcAdminClient.class);

@@ -20,7 +20,9 @@ import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -72,6 +74,105 @@ class RpcProviderLifecycleTest {
 
             assertThatThrownBy(lifecycle::start)
                     .isInstanceOf(EgonRpcException.class);
+            assertThat(lifecycle.isRunning()).isFalse();
+        }
+    }
+
+    @Test
+    void shouldFailWithExistingErrorSemanticsWhenRegistryHasNoProvider() {
+        RecordingRegistry registryClient = new RecordingRegistry();
+        EgonRpcProperties properties = configuredProperties();
+        RpcProviderAvailabilityRegistry availability =
+                new RpcProviderAvailabilityRegistry();
+        RpcProcessIdentity identity = processIdentity();
+        RpcProviderLifecycle lifecycle = new RpcProviderLifecycle(
+                new RpcProviderMethodRegistry(List.of()),
+                new RpcServerServiceDefinitionFactory(availability),
+                new RpcProviderServerFactory(),
+                new RpcProviderLeaseManager(
+                        registryClient,
+                        availability,
+                        properties,
+                        identity,
+                        "test"
+                ),
+                availability,
+                new RpcProviderServerInterceptor(),
+                properties,
+                identity
+        );
+
+        assertThatThrownBy(lifecycle::start)
+                .isInstanceOf(EgonRpcException.class)
+                .hasMessageContaining("no RPC Provider bean");
+        assertThat(registryClient.events).isEmpty();
+    }
+
+    @Test
+    void contributorFailureStopsProviderWithoutRegisteringAnyLease() {
+        RecordingRegistry registryClient = new RecordingRegistry();
+        try (AnnotationConfigApplicationContext context = providerContext()) {
+            EgonRpcProperties properties = configuredProperties();
+            RpcProviderAvailabilityRegistry availability =
+                    new RpcProviderAvailabilityRegistry();
+            RpcProcessIdentity identity = processIdentity();
+            RpcProviderMethodRegistry registry =
+                    new RpcProviderBeanScanner(
+                            context,
+                            new RpcContractValidator()
+                    ).scan();
+            RpcProviderMetadataMerger metadataMerger =
+                    new RpcProviderMetadataMerger(List.of(service -> {
+                        throw new IllegalStateException("contributor failed");
+                    }));
+            RpcProviderLifecycle lifecycle = new RpcProviderLifecycle(
+                    registry,
+                    new RpcServerServiceDefinitionFactory(availability),
+                    new RpcProviderServerFactory(),
+                    new RpcProviderLeaseManager(
+                            registryClient,
+                            availability,
+                            properties,
+                            identity,
+                            "test",
+                            metadataMerger
+                    ),
+                    availability,
+                    new RpcProviderServerInterceptor(),
+                    properties,
+                    identity
+            );
+
+            assertThatThrownBy(lifecycle::start)
+                    .isInstanceOf(EgonRpcException.class)
+                    .hasRootCauseMessage("contributor failed");
+            assertThat(registryClient.events).isEmpty();
+            assertThat(lifecycle.isRunning()).isFalse();
+        }
+    }
+
+    @Test
+    void mergedMetadataStillUsesDdcCapacityGuardBeforeLeaseRegistration() {
+        RecordingRegistry registryClient = new RecordingRegistry();
+        EgonRpcProperties properties = configuredProperties();
+        Map<String, String> metadata = new LinkedHashMap<>();
+        for (int index = 0; index < 30; index++) {
+            metadata.put("custom.key." + index, "value");
+        }
+        properties.getProvider().setMetadata(metadata);
+        try (AnnotationConfigApplicationContext context = providerContext()) {
+            RpcProviderLifecycle lifecycle = lifecycle(
+                    context,
+                    registryClient,
+                    properties
+            );
+
+            assertThatThrownBy(lifecycle::start)
+                    .isInstanceOf(EgonRpcException.class)
+                    .hasRootCauseMessage(
+                            "metadata must contain at most 32 entries"
+                    );
+            assertThat(registryClient.events).isEmpty();
             assertThat(lifecycle.isRunning()).isFalse();
         }
     }
@@ -184,11 +285,12 @@ class RpcProviderLifecycleTest {
         RpcProviderAvailabilityRegistry availability =
                 new RpcProviderAvailabilityRegistry();
         RpcProcessIdentity identity = processIdentity();
+        RpcProviderMethodRegistry registry = new RpcProviderBeanScanner(
+                context,
+                new RpcContractValidator()
+        ).scan();
         return new RpcProviderLifecycle(
-                new RpcProviderBeanScanner(
-                        context,
-                        new RpcContractValidator()
-                ),
+                registry,
                 new RpcServerServiceDefinitionFactory(availability),
                 new RpcProviderServerFactory(),
                 new RpcProviderLeaseManager(

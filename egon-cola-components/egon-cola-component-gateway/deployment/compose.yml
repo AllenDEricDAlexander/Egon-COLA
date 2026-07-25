@@ -1,0 +1,221 @@
+name: egon-cola-gateway
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - gateway-postgres:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  ddc-redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - gateway-ddc-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  rate-limit-redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - gateway-rate-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  kafka:
+    image: apache/kafka-native:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - gateway-kafka:/tmp/kraft-combined-logs
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  ddc-admin:
+    build:
+      context: ../../egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin
+    environment:
+      SERVER_PORT: 18080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_ddc
+      SPRING_DATASOURCE_USERNAME: gateway
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST: ddc-redis
+      EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PORT: 6379
+      EGON_COLA_COMPONENT_DDC_ADMIN_OPENAPI_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_OPENAPI_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_OPENAPI_SECRET_KEY: ${DDC_SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ddc-redis:
+        condition: service_healthy
+    ports:
+      - "18070:18080"
+    restart: unless-stopped
+
+  gateway-admin:
+    build:
+      context: ../egon-cola-component-gateway-admin
+    environment:
+      SERVER_PORT: 18080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_admin
+      SPRING_DATASOURCE_USERNAME: gateway
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      GATEWAY_ADMIN_DDC_ENABLED: "true"
+      GATEWAY_ADMIN_DDC_ENDPOINT: http://ddc-admin:18080
+      GATEWAY_ADMIN_DDC_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      GATEWAY_ADMIN_DDC_SECRET_KEY: ${DDC_SECRET_KEY}
+      GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64: ${GATEWAY_MASTER_KEY_BASE64}
+      GATEWAY_ADMIN_SECURITY_HMAC_SECRET_BASE64: ${GATEWAY_ADMIN_JWT_HMAC_SECRET_BASE64}
+      GATEWAY_ADMIN_OBSERVABILITY_KAFKA_ENABLED: "true"
+      GATEWAY_ADMIN_OBSERVABILITY_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ddc-admin:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    ports:
+      - "18080:18080"
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  gateway-engine:
+    build:
+      context: ../egon-cola-component-gateway-engine
+    environment:
+      SERVER_PORT: 18083
+      EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-engine-${GATEWAY_GROUP_CODE:-default}
+      EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: http://ddc-admin:18080
+      EGON_COLA_COMPONENT_DDC_ADMIN_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_SECRET_KEY: ${DDC_SECRET_KEY}
+      EGON_COLA_COMPONENT_DDC_REGISTRY_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE: ${GATEWAY_GROUP_CODE:-default}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_NODE_ID: gateway-engine-local
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_INSTANCE_ID: gateway-engine-local-1
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY: /var/lib/egon-gateway
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_TRAFFIC_REDIS_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_TRAFFIC_REDIS_ADDRESS: redis://rate-limit-redis:6379
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_KAFKA_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      ddc-admin:
+        condition: service_started
+      rate-limit-redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - gateway-engine-lkg:/var/lib/egon-gateway
+    ports:
+      - "18081:18081"
+      - "18082:18082"
+      - "18083:18083"
+      - "19090:19090"
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  gateway-engine-2:
+    build:
+      context: ../egon-cola-component-gateway-engine
+    environment:
+      SERVER_PORT: 18083
+      EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-engine-${GATEWAY_GROUP_CODE:-default}
+      EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: http://ddc-admin:18080
+      EGON_COLA_COMPONENT_DDC_ADMIN_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_SECRET_KEY: ${DDC_SECRET_KEY}
+      EGON_COLA_COMPONENT_DDC_REGISTRY_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE: ${GATEWAY_GROUP_CODE:-default}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_NODE_ID: gateway-engine-local-2
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_INSTANCE_ID: gateway-engine-local-2
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY: /var/lib/egon-gateway
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_TRAFFIC_REDIS_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_TRAFFIC_REDIS_ADDRESS: redis://rate-limit-redis:6379
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_KAFKA_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      ddc-admin:
+        condition: service_started
+      rate-limit-redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - gateway-engine-2-lkg:/var/lib/egon-gateway
+    ports:
+      - "18181:18081"
+      - "18182:18082"
+      - "18183:18083"
+      - "19190:19090"
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  gateway-admin-web:
+    build:
+      context: ../egon-cola-component-gateway-admin-web
+    environment:
+      PORT: 8080
+      GATEWAY_ADMIN_API_BASE_URL: http://gateway-admin:18080
+      GATEWAY_ADMIN_API_DEVELOPMENT_PLAINTEXT: "true"
+    depends_on:
+      gateway-admin:
+        condition: service_started
+    ports:
+      - "18090:8080"
+    restart: unless-stopped
+
+volumes:
+  gateway-postgres:
+  gateway-ddc-redis:
+  gateway-rate-redis:
+  gateway-kafka:
+  gateway-engine-lkg:
+  gateway-engine-2-lkg:

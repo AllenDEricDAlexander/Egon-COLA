@@ -10,6 +10,11 @@ import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 public class DdcInstanceService {
 
     private final DdcProperties properties;
@@ -20,14 +25,26 @@ public class DdcInstanceService {
 
     private final DdcLeaseSessionHolder sessionHolder;
 
+    private final List<DdcInstanceMetadataContributor> metadataContributors;
+
     public DdcInstanceService(DdcProperties properties,
                               DdcAdminClient adminClient,
                               DdcInstanceIdentity identity,
                               DdcLeaseSessionHolder sessionHolder) {
+        this(properties, adminClient, identity, sessionHolder, List.of());
+    }
+
+    public DdcInstanceService(
+            DdcProperties properties,
+            DdcAdminClient adminClient,
+            DdcInstanceIdentity identity,
+            DdcLeaseSessionHolder sessionHolder,
+            List<DdcInstanceMetadataContributor> metadataContributors) {
         this.properties = properties;
         this.adminClient = adminClient;
         this.identity = identity;
         this.sessionHolder = sessionHolder;
+        this.metadataContributors = List.copyOf(metadataContributors);
     }
 
     public DdcLeaseSession register() {
@@ -69,6 +86,7 @@ public class DdcInstanceService {
         request.setPort(identity.port());
         request.setPid(identity.pid());
         request.setSdkVersion(identity.sdkVersion());
+        request.setMetadata(metadata());
     }
 
     private void fill(DdcInstanceRegisterRequest request) {
@@ -80,6 +98,54 @@ public class DdcInstanceService {
         request.setPort(identity.port());
         request.setPid(identity.pid());
         request.setSdkVersion(identity.sdkVersion());
+        request.setMetadata(metadata());
+    }
+
+    private Map<String, String> metadata() {
+        LinkedHashMap<String, String> result = new LinkedHashMap<>();
+        metadataContributors.forEach(contributor -> {
+            Map<String, String> values = contributor.metadata();
+            if (values != null) {
+                values.forEach((key, value) -> result.put(
+                        validatedKey(key),
+                        validatedValue(key, value)
+                ));
+            }
+        });
+        if (result.size() > 32) {
+            throw new DdcException(
+                    "DDC instance metadata must contain at most 32 entries"
+            );
+        }
+        return Map.copyOf(result);
+    }
+
+    private String validatedKey(String key) {
+        if (key == null || key.isBlank() || key.length() > 64) {
+            throw new DdcException("Invalid DDC instance metadata key");
+        }
+        String lower = key.toLowerCase(Locale.ROOT);
+        if (lower.contains("password")
+                || lower.contains("secret")
+                || lower.contains("token")
+                || lower.contains("privatekey")
+                || lower.contains("private-key")
+                || lower.contains("certificate")) {
+            throw new DdcException(
+                    "DDC instance metadata key may expose sensitive data"
+            );
+        }
+        return key;
+    }
+
+    private String validatedValue(String key, String value) {
+        String normalized = value == null ? "" : value;
+        if (normalized.length() > 512) {
+            throw new DdcException(
+                    "DDC instance metadata value is too long: " + key
+            );
+        }
+        return normalized;
     }
 
     private void validate(DdcLeaseSession session) {

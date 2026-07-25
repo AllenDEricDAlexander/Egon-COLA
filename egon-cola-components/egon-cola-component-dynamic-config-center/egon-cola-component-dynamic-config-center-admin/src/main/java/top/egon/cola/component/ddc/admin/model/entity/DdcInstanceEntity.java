@@ -1,13 +1,16 @@
 package top.egon.cola.component.ddc.admin.model.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import top.egon.cola.component.ddc.admin.infrastructure.persistence.DdcStringMapConverter;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -55,4 +58,12 @@ public class DdcInstanceEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Convert(converter = DdcStringMapConverter.class)
+    @Column(
+            name = "runtime_metadata",
+            nullable = false,
+            columnDefinition = "text"
+    )
+    private Map<String, String> runtimeMetadata = Map.of();
 }

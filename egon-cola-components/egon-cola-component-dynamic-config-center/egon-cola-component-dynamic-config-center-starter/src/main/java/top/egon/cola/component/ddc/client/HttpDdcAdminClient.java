@@ -12,6 +12,8 @@ import top.egon.cola.component.common.result.dto.ResultDto;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.management.client.DdcClientTransportSecurity;
+import top.egon.cola.component.ddc.management.client.DdcRestClientFactory;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
@@ -40,7 +42,38 @@ public class HttpDdcAdminClient implements DdcAdminClient {
     private final DdcRequestSigner signer = new DdcRequestSigner();
 
     public HttpDdcAdminClient(DdcProperties properties) {
-        this(properties, RestClient.builder());
+        this(properties, restClientBuilder(properties));
+    }
+
+    private static RestClient.Builder restClientBuilder(
+            DdcProperties properties) {
+        DdcProperties.Admin admin = properties.getAdmin();
+        DdcProperties.Tls tls = admin.getTls();
+        DdcClientTransportSecurity security =
+                new DdcClientTransportSecurity(
+                        tls.isEnabled(),
+                        tls.isDevelopmentPlaintext(),
+                        tls.getCertificateChainPath(),
+                        tls.getPrivateKeyPath(),
+                        tls.getTrustCertificateCollectionPath()
+                );
+        if (security.enabled()
+                && !admin.getEndpoint().startsWith("https://")) {
+            throw new IllegalArgumentException(
+                    "DDC mTLS endpoint must use HTTPS"
+            );
+        }
+        if (!security.enabled()
+                && !admin.getEndpoint().startsWith("http://")) {
+            throw new IllegalArgumentException(
+                    "DDC HTTPS endpoint requires configured mTLS"
+            );
+        }
+        return DdcRestClientFactory.create(
+                admin.getConnectTimeout(),
+                admin.getReadTimeout(),
+                security
+        );
     }
 
     HttpDdcAdminClient(DdcProperties properties, RestClient.Builder restClientBuilder) {

@@ -6,12 +6,15 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.RpcProcessIdentityFactory;
 import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
+import top.egon.cola.component.rpc.contract.DefaultRpcContractCatalog;
+import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractValidator;
 import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
@@ -22,6 +25,9 @@ import top.egon.cola.component.rpc.provider.RpcProviderAvailabilityRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderBeanScanner;
 import top.egon.cola.component.rpc.provider.RpcProviderLeaseManager;
 import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
+import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
+import top.egon.cola.component.rpc.provider.RpcProviderMetadataMerger;
+import top.egon.cola.component.rpc.provider.RpcProviderMethodRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
 import top.egon.cola.component.rpc.provider.RpcServerServiceDefinitionFactory;
 
@@ -57,9 +63,51 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
-    public RpcProviderLifecycle rpcProviderLifecycle(
+    @ConditionalOnMissingBean
+    public RpcProviderMethodRegistry rpcProviderMethodRegistry(
             ApplicationContext applicationContext,
-            RpcContractValidator contractValidator,
+            RpcContractValidator contractValidator) {
+        return new RpcProviderBeanScanner(
+                applicationContext,
+                contractValidator
+        ).scan();
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.provider",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcContractCatalog rpcContractCatalog(
+            RpcProviderMethodRegistry methodRegistry) {
+        return new DefaultRpcContractCatalog(methodRegistry);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.provider",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcProviderMetadataMerger rpcProviderMetadataMerger(
+            ObjectProvider<RpcProviderMetadataContributor> contributors) {
+        return new RpcProviderMetadataMerger(
+                contributors.orderedStream().toList()
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.provider",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public RpcProviderLifecycle rpcProviderLifecycle(
+            RpcProviderMethodRegistry methodRegistry,
+            RpcProviderMetadataMerger metadataMerger,
             DdcServiceRegistryClient registryClient,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
@@ -77,15 +125,13 @@ public class EgonRpcAutoConfig {
                 availability,
                 properties,
                 processIdentity,
-                runtimeVersion
+                runtimeVersion,
+                metadataMerger
         );
         return new RpcProviderLifecycle(
-                new RpcProviderBeanScanner(
-                        applicationContext,
-                        contractValidator
-                ),
+                methodRegistry,
                 new RpcServerServiceDefinitionFactory(availability),
-                new RpcProviderServerFactory(),
+                new RpcProviderServerFactory(transportSecurity(properties)),
                 leaseManager,
                 availability,
                 new RpcProviderServerInterceptor(),
@@ -106,7 +152,7 @@ public class EgonRpcAutoConfig {
             RpcProcessIdentity processIdentity) {
         return new RpcConsumerGatewayManager(
                 registryClient,
-                new RpcConsumerChannelFactory(),
+                new RpcConsumerChannelFactory(transportSecurity(properties)),
                 properties,
                 processIdentity
         );
@@ -141,5 +187,17 @@ public class EgonRpcAutoConfig {
     public EgonRpcReferenceBeanPostProcessor egonRpcReferenceBeanPostProcessor(
             RpcConsumerProxyFactory proxyFactory) {
         return new EgonRpcReferenceBeanPostProcessor(proxyFactory);
+    }
+
+    private RpcTransportSecurity transportSecurity(
+            EgonRpcProperties properties) {
+        EgonRpcProperties.Tls tls = properties.getTls();
+        return new RpcTransportSecurity(
+                tls.isEnabled(),
+                tls.isDevelopmentPlaintext(),
+                tls.getCertificateChainPath(),
+                tls.getPrivateKeyPath(),
+                tls.getTrustCertificateCollectionPath()
+        );
     }
 }

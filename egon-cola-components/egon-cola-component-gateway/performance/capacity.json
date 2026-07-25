@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "status": "PROVISIONAL_UNMEASURED",
+  "referenceMachine": {
+    "os": "Rocky Linux 10",
+    "architecture": "x86_64",
+    "logicalCpu": 8,
+    "memoryGiB": 16,
+    "java": "21",
+    "engineInstances": 2,
+    "providerInstances": 2
+  },
+  "dataScale": {
+    "gatewayGroups": 10,
+    "routesPerGroup": 1000,
+    "policiesPerGroup": 200,
+    "providerInstancesPerOperation": 10,
+    "concurrentRulePublishers": 2
+  },
+  "profiles": {
+    "smoke": {
+      "preAllocatedVus": 10,
+      "maxVus": 20,
+      "ratePerSecond": 20,
+      "duration": "30s"
+    },
+    "baseline": {
+      "preAllocatedVus": 100,
+      "maxVus": 400,
+      "ratePerSecond": 1000,
+      "duration": "10m"
+    },
+    "soak": {
+      "preAllocatedVus": 50,
+      "maxVus": 200,
+      "ratePerSecond": 300,
+      "duration": "24h"
+    }
+  },
+  "thresholds": {
+    "http": {
+      "failureRate": 0.001,
+      "p95Milliseconds": 50,
+      "p99Milliseconds": 150
+    },
+    "rpc": {
+      "failureRate": 0.001,
+      "p95Milliseconds": 80,
+      "p99Milliseconds": 200
+    },
+    "droppedIterations": 0
+  }
+}

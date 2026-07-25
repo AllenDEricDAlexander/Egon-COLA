@@ -10,14 +10,17 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigResourceKey;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
@@ -42,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,6 +68,7 @@ import static org.mockito.Mockito.when;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=1",
         "spring.flyway.enabled=false",
+        "egon.cola.component.ddc.admin.max-value-bytes=5",
         "egon.cola.component.ddc.admin.publish.default-timeout-ms=2000",
         "egon.cola.component.ddc.admin.publish.max-timeout-ms=5000"
 })
@@ -90,6 +95,9 @@ class DdcPublishPreparationTest {
 
     @Autowired
     private PublishResourceLockRegistry resourceRegistry;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @BeforeEach
     void setUp() {
@@ -191,6 +199,71 @@ class DdcPublishPreparationTest {
     }
 
     @Test
+    void rejectsPersistedActiveChangeOwnedByAnotherAdmin() {
+        saveConfig("shared-admin-lock");
+        LocalDateTime now = LocalDateTime.now();
+        var active = new DdcPublishTaskEntity();
+        active.setId(UuidV7.simpleString());
+        active.setChangeId(UuidV7.simpleString());
+        active.setAppCode("demo");
+        active.setEnv("dev");
+        active.setNamespace("default");
+        active.setConfigKey("shared-admin-lock");
+        active.setStatus("PUBLISHING");
+        active.setTargetCount(1);
+        active.setAckCount(0);
+        active.setFailedCount(0);
+        active.setIgnoredCount(0);
+        active.setTimeoutCount(0);
+        active.setAttemptCount(0);
+        active.setCreatedAt(now);
+        active.setUpdatedAt(now);
+        taskRepository.saveAndFlush(active);
+
+        assertThatThrownBy(() -> publishService.publish(
+                request("shared-admin-lock", "true"),
+                "second-admin"
+        )).isInstanceOf(DdcAdminException.class)
+                .hasMessageContaining("publish already in progress");
+    }
+
+    @Test
+    void observesTerminalStateWrittenByAnotherAdminWithoutLocalSignal()
+            throws Exception {
+        saveConfig("shared-admin-ack");
+        when(leaseService.activeTargets("demo", "dev", "default"))
+                .thenReturn(List.of(
+                        new DdcPublishTarget("instance-1", "lease-1")
+                ));
+        CountDownLatch published = new CountDownLatch(1);
+        doAnswer(invocation -> {
+            published.countDown();
+            return null;
+        }).when(redisRepository).publish(any());
+        DdcPublishRequest request = request("shared-admin-ack", "true");
+
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            Future<DdcPublishResultVO> result = executor.submit(
+                    () -> publishService.publish(request, "first-admin")
+            );
+            assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
+            new TransactionTemplate(transactionManager).executeWithoutResult(
+                    status -> taskRepository.transitionToTerminal(
+                            request.getChangeId(),
+                            "SUCCESS",
+                            LocalDateTime.now(),
+                            null,
+                            null,
+                            List.of("PENDING", "PUBLISHING")
+                    )
+            );
+
+            assertThat(result.get(1, TimeUnit.SECONDS).getStatus())
+                    .isEqualTo("SUCCESS");
+        }
+    }
+
+    @Test
     void preparesDifferentResourcesInParallel() throws Exception {
         saveConfig("parallel-a");
         saveConfig("parallel-b");
@@ -242,6 +315,30 @@ class DdcPublishPreparationTest {
         assertThat(resourceRegistry.owner(new DdcConfigResourceKey(
                 "demo", "dev", "default", "dispatch-failure"
         ))).isEmpty();
+    }
+
+    @Test
+    void oversizedUtf8ValueIsRejectedBeforeDatabaseOrRedisMutation() {
+        saveConfig("oversized");
+        DdcPublishRequest request = request("oversized", "你好");
+
+        assertThatThrownBy(() -> publishService.publish(request, "tester"))
+                .isInstanceOf(DdcAdminException.class)
+                .hasMessageContaining("5")
+                .hasMessageNotContaining("你好");
+
+        assertThat(taskRepository.findByChangeId(request.getChangeId())).isEmpty();
+        assertThat(configItemRepository
+                .findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                        "demo",
+                        "dev",
+                        "default",
+                        "oversized"
+                ))
+                .get()
+                .extracting(DdcConfigItemEntity::getConfigValue)
+                .isEqualTo("false");
+        verify(redisRepository, never()).publish(any());
     }
 
     private void saveConfig(String configKey) {

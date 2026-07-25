@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: egon-cola-gateway-admin
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  flyway:
+    locations: classpath:db/migration
+
+server:
+  address: 0.0.0.0
+  port: 18080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+
+gateway:
+  admin:
+    transport-security:
+      mode: DEVELOPMENT_PLAINTEXT
+    security:
+      issuer: ${GATEWAY_ADMIN_JWT_ISSUER:}
+      jwk-set-uri: ${GATEWAY_ADMIN_JWT_JWK_SET_URI:}
+    ddc:
+      enabled: false
+      endpoint: http://127.0.0.1:18080
+      access-key:
+      secret-key:
+      connect-timeout: 3s
+      read-timeout: 10s
+      tls:
+        enabled: false
+        development-plaintext: true
+    hmac:
+      allowed-skew: 5m
+    observability:
+      retention: 168h
+      kafka:
+        enabled: false
+        topic: gateway-call-events-v1
+        group-id: gateway-admin-call-events-v1

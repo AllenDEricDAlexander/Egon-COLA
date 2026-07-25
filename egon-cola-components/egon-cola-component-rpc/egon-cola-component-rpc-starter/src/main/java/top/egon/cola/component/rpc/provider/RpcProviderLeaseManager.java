@@ -13,6 +13,7 @@ import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RpcProviderLeaseManager {
@@ -26,9 +27,13 @@ public class RpcProviderLeaseManager {
 
     private final EgonRpcProperties.Provider properties;
 
+    private final boolean secure;
+
     private final RpcProcessIdentity processIdentity;
 
     private final String runtimeVersion;
+
+    private final RpcProviderMetadataMerger metadataMerger;
 
     private final Map<RpcServiceIdentity, DdcServiceRegistration> registrations =
             new ConcurrentHashMap<>();
@@ -44,17 +49,37 @@ public class RpcProviderLeaseManager {
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
             String runtimeVersion) {
+        this(
+                registryClient,
+                availability,
+                properties,
+                processIdentity,
+                runtimeVersion,
+                new RpcProviderMetadataMerger(List.of())
+        );
+    }
+
+    public RpcProviderLeaseManager(
+            DdcServiceRegistryClient registryClient,
+            RpcProviderAvailabilityRegistry availability,
+            EgonRpcProperties properties,
+            RpcProcessIdentity processIdentity,
+            String runtimeVersion,
+            RpcProviderMetadataMerger metadataMerger) {
         this.registryClient = registryClient;
         this.availability = availability;
         this.properties = properties.getProvider();
+        this.secure = properties.getTls().isEnabled();
         this.processIdentity = processIdentity;
         this.runtimeVersion = runtimeVersion;
+        this.metadataMerger = metadataMerger;
     }
 
     public void prepare(Iterable<RpcProviderBinding> providers,
                         String advertisedHost,
                         int advertisedPort) {
-        validateUserMetadata(properties.getMetadata());
+        Map<RpcServiceIdentity, DdcServiceRegistration> prepared =
+                new LinkedHashMap<>();
         for (RpcProviderBinding provider : providers) {
             RpcServiceIdentity service = provider.serviceIdentity();
             DdcServiceKey serviceKey = new DdcServiceKey(
@@ -66,18 +91,20 @@ public class RpcProviderLeaseManager {
                     service.version(),
                     "grpc"
             );
-            registrations.put(service, new DdcServiceRegistration(
+            prepared.put(service, new DdcServiceRegistration(
                     processIdentity.instanceId() + ":" + service.registrySuffix(),
                     serviceKey,
                     advertisedHost,
                     advertisedPort,
-                    false,
-                    registrationMetadata(),
+                    secure,
+                    registrationMetadata(service),
                     properties.getLeaseSeconds(),
                     properties.getHeartbeatIntervalSeconds()
             ));
-            availability.unavailable(service);
         }
+        registrations.clear();
+        registrations.putAll(prepared);
+        prepared.keySet().forEach(availability::unavailable);
     }
 
     public synchronized void enableRecovery() {
@@ -179,9 +206,11 @@ public class RpcProviderLeaseManager {
         availability.available(service);
     }
 
-    private Map<String, String> registrationMetadata() {
+    private Map<String, String> registrationMetadata(
+            RpcServiceIdentity service
+    ) {
         Map<String, String> metadata = new LinkedHashMap<>(
-                properties.getMetadata()
+                metadataMerger.merge(service, properties.getMetadata())
         );
         metadata.put("egon.rpc.transport", "grpc");
         metadata.put("egon.rpc.serialization", "protobuf");
@@ -189,21 +218,4 @@ public class RpcProviderLeaseManager {
         return metadata;
     }
 
-    private void validateUserMetadata(Map<String, String> metadata) {
-        if (metadata == null) {
-            return;
-        }
-        metadata.keySet().forEach(key -> {
-            String lower = key == null
-                    ? ""
-                    : key.toLowerCase(java.util.Locale.ROOT);
-            if (lower.startsWith("ddc.")
-                    || lower.startsWith("egon.internal.")
-                    || lower.startsWith("egon.rpc.")) {
-                throw new IllegalArgumentException(
-                        "RPC Provider metadata uses a reserved prefix"
-                );
-            }
-        });
-    }
 }

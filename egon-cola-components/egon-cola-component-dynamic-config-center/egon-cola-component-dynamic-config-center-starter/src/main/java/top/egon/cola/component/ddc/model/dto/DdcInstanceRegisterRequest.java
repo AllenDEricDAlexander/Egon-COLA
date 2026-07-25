@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.dto;
 
+import java.util.Map;
+
 public class DdcInstanceRegisterRequest {
 
     private String instanceId;
@@ -21,6 +23,8 @@ public class DdcInstanceRegisterRequest {
     private int leaseSeconds;
 
     private int heartbeatIntervalSeconds;
+
+    private Map<String, String> metadata = Map.of();
 
     public String getInstanceId() {
         return instanceId;
@@ -100,5 +104,13 @@ public class DdcInstanceRegisterRequest {
 
     public void setHeartbeatIntervalSeconds(int heartbeatIntervalSeconds) {
         this.heartbeatIntervalSeconds = heartbeatIntervalSeconds;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     }
 }

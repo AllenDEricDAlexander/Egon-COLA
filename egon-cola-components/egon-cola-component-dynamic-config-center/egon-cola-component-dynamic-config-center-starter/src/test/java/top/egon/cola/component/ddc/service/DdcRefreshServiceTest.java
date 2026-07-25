@@ -87,6 +87,25 @@ class DdcRefreshServiceTest {
     }
 
     @Test
+    void sameVersionWithDifferentChecksumReportsFailedAndKeepsLastKnownGoodValue() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        repository.updateVersion("switch", 2L);
+        repository.updateChecksum("switch", DdcChecksum.content("old"));
+        AtomicInteger applyCount = new AtomicInteger();
+        DdcRefreshService service = service(repository, (key, value, version) ->
+                applyCount.incrementAndGet(), client);
+
+        service.refresh(message("switch", "new", 2L));
+
+        assertThat(applyCount).hasValue(0);
+        assertThat(repository.version("switch")).isEqualTo(2L);
+        assertThat(repository.checksum("switch")).isEqualTo(DdcChecksum.content("old"));
+        assertThat(client.lastAck().getStatus()).isEqualTo(DdcAckStatus.FAILED);
+        assertThat(client.lastAck().getCurrentVersion()).isEqualTo(2L);
+    }
+
+    @Test
     void olderTopicMessageReportsIgnoredWithoutApplying() {
         RecordingAdminClient client = new RecordingAdminClient();
         DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
@@ -128,6 +147,50 @@ class DdcRefreshServiceTest {
 
         assertThat(client.lastAck().getStatus()).isEqualTo(DdcAckStatus.FAILED);
         assertThat(client.lastAck().getErrorMessage()).contains("convert config value failed");
+    }
+
+    @Test
+    void applyFailureRestoresMetadataAndReturnsBoundedSingleLineError() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        String oldChecksum = DdcChecksum.content("old");
+        repository.updateVersion("switch", 2L);
+        repository.updateChecksum("switch", oldChecksum);
+        String detail = "unsafe\n" + "x".repeat(400);
+        DdcRefreshService service = service(repository, (key, value, version) -> {
+            repository.updateVersion(key, version);
+            repository.updateChecksum(key, DdcChecksum.content(value));
+            throw new IllegalStateException(detail);
+        }, client);
+
+        service.refresh(message("switch", "bad", 4L));
+
+        assertThat(repository.version("switch")).isEqualTo(2L);
+        assertThat(repository.checksum("switch")).isEqualTo(oldChecksum);
+        assertThat(client.lastAck().getStatus()).isEqualTo(DdcAckStatus.FAILED);
+        assertThat(client.lastAck().getErrorMessage())
+                .startsWith("DDC config apply failed")
+                .doesNotContain("\n", "\r", "IllegalStateException")
+                .hasSizeLessThanOrEqualTo(256);
+    }
+
+    @Test
+    void sameVersionSnapshotWithDifferentChecksumKeepsLastKnownGoodValue() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        repository.updateVersion("switch", 2L);
+        String oldChecksum = DdcChecksum.content("old");
+        repository.updateChecksum("switch", oldChecksum);
+        AtomicInteger applyCount = new AtomicInteger();
+        DdcRefreshService service = service(repository, (key, value, version) ->
+                applyCount.incrementAndGet(), client);
+
+        service.applySnapshot(config("switch", "new", 2L));
+
+        assertThat(applyCount).hasValue(0);
+        assertThat(repository.version("switch")).isEqualTo(2L);
+        assertThat(repository.checksum("switch")).isEqualTo(oldChecksum);
+        assertThat(client.ackCount).isZero();
     }
 
     @Test

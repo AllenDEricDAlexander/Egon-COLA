@@ -161,7 +161,7 @@ class RpcTcpCallTest {
                 new RpcProviderBeanScanner(
                         context,
                         new RpcContractValidator()
-                ),
+                ).scan(),
                 new RpcServerServiceDefinitionFactory(availability),
                 new RpcProviderServerFactory(),
                 new RpcProviderLeaseManager(

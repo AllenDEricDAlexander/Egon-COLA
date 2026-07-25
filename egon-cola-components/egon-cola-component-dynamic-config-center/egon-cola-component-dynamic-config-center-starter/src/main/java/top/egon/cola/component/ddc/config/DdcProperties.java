@@ -2,6 +2,10 @@ package top.egon.cola.component.ddc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
 @ConfigurationProperties(prefix = "egon.cola.component.ddc", ignoreInvalidFields = true)
 public class DdcProperties {
 
@@ -105,6 +109,12 @@ public class DdcProperties {
 
         private boolean signatureEnabled;
 
+        private Duration connectTimeout = Duration.ofSeconds(3);
+
+        private Duration readTimeout = Duration.ofSeconds(10);
+
+        private Tls tls = new Tls();
+
         public String getEndpoint() {
             return endpoint;
         }
@@ -136,11 +146,96 @@ public class DdcProperties {
         public void setSignatureEnabled(boolean signatureEnabled) {
             this.signatureEnabled = signatureEnabled;
         }
+
+        public Duration getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        public void setConnectTimeout(Duration connectTimeout) {
+            this.connectTimeout = connectTimeout;
+        }
+
+        public Duration getReadTimeout() {
+            return readTimeout;
+        }
+
+        public void setReadTimeout(Duration readTimeout) {
+            this.readTimeout = readTimeout;
+        }
+
+        public Tls getTls() {
+            return tls;
+        }
+
+        public void setTls(Tls tls) {
+            this.tls = tls;
+        }
+    }
+
+    public static class Tls {
+
+        private boolean enabled;
+
+        private boolean developmentPlaintext;
+
+        private String certificateChainPath;
+
+        private String privateKeyPath;
+
+        private String trustCertificateCollectionPath;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isDevelopmentPlaintext() {
+            return developmentPlaintext;
+        }
+
+        public void setDevelopmentPlaintext(boolean developmentPlaintext) {
+            this.developmentPlaintext = developmentPlaintext;
+        }
+
+        public String getCertificateChainPath() {
+            return certificateChainPath;
+        }
+
+        public void setCertificateChainPath(String certificateChainPath) {
+            this.certificateChainPath = certificateChainPath;
+        }
+
+        public String getPrivateKeyPath() {
+            return privateKeyPath;
+        }
+
+        public void setPrivateKeyPath(String privateKeyPath) {
+            this.privateKeyPath = privateKeyPath;
+        }
+
+        public String getTrustCertificateCollectionPath() {
+            return trustCertificateCollectionPath;
+        }
+
+        public void setTrustCertificateCollectionPath(
+                String trustCertificateCollectionPath) {
+            this.trustCertificateCollectionPath =
+                    trustCertificateCollectionPath;
+        }
     }
 
     public static class Redis {
 
         private boolean enabled = true;
+
+        private String mode = "SINGLE";
+
+        private List<String> nodes = new ArrayList<>();
+
+        private String masterName;
 
         private String host = "127.0.0.1";
 
@@ -156,6 +251,30 @@ public class DdcProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+
+        public List<String> getNodes() {
+            return nodes;
+        }
+
+        public void setNodes(List<String> nodes) {
+            this.nodes = nodes;
+        }
+
+        public String getMasterName() {
+            return masterName;
+        }
+
+        public void setMasterName(String masterName) {
+            this.masterName = masterName;
         }
 
         public String getHost() {
@@ -234,12 +353,32 @@ public class DdcProperties {
 
         private boolean failFast = true;
 
+        private boolean reconcileEnabled = true;
+
+        private int reconcileIntervalSeconds = 30;
+
         public boolean isFailFast() {
             return failFast;
         }
 
         public void setFailFast(boolean failFast) {
             this.failFast = failFast;
+        }
+
+        public boolean isReconcileEnabled() {
+            return reconcileEnabled;
+        }
+
+        public void setReconcileEnabled(boolean reconcileEnabled) {
+            this.reconcileEnabled = reconcileEnabled;
+        }
+
+        public int getReconcileIntervalSeconds() {
+            return reconcileIntervalSeconds;
+        }
+
+        public void setReconcileIntervalSeconds(int reconcileIntervalSeconds) {
+            this.reconcileIntervalSeconds = reconcileIntervalSeconds;
         }
     }
 

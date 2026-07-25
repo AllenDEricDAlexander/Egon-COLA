@@ -17,6 +17,18 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
 
     List<DdcPublishTaskEntity> findByStatusIn(Collection<String> statuses);
 
+    List<DdcPublishTaskEntity> findByStatusInAndUpdatedAtBefore(
+            Collection<String> statuses,
+            LocalDateTime updatedAt);
+
+    Optional<DdcPublishTaskEntity>
+    findFirstByAppCodeAndEnvAndNamespaceAndConfigKeyAndStatusIn(
+            String appCode,
+            String env,
+            String namespace,
+            String configKey,
+            Collection<String> statuses);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update DdcPublishTaskEntity task

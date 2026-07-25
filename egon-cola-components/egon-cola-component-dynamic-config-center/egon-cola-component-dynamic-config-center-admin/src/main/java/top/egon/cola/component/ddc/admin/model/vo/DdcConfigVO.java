@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 public class DdcConfigVO {
@@ -32,6 +34,8 @@ public class DdcConfigVO {
 
     private Boolean deleted;
 
+    private LocalDateTime updatedAt;
+
     public static DdcConfigVO from(DdcConfigItemEntity entity) {
         DdcConfigVO vo = new DdcConfigVO();
         vo.setId(entity.getId());
@@ -46,6 +50,7 @@ public class DdcConfigVO {
         vo.setDescription(entity.getDescription());
         vo.setEnabled(entity.getEnabled());
         vo.setDeleted(entity.getDeleted());
+        vo.setUpdatedAt(entity.getUpdatedAt());
         return vo;
     }
 }

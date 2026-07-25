@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package egon.gateway.test.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.component.gateway.test.rpc.contract.proto";
+
+service EchoService {
+  rpc Echo(EchoRequest) returns (EchoResponse);
+}
+
+service OrderService {
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse);
+  rpc CreateOrder(CreateOrderRequest) returns (OrderResponse);
+  rpc SlowCall(SlowCallRequest) returns (OrderResponse);
+  rpc Fail(FailRequest) returns (OrderResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string provider_id = 1;
+  string message = 2;
+  string invocation_id = 3;
+  string trace_id = 4;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message CreateOrderRequest {
+  string customer_id = 1;
+  repeated string sku = 2;
+  Address delivery_address = 3;
+}
+
+message Address {
+  string province = 1;
+  string city = 2;
+}
+
+message SlowCallRequest {
+  string order_id = 1;
+  int64 delay_millis = 2;
+}
+
+message FailRequest {
+  string code = 1;
+}
+
+message OrderResponse {
+  string order_id = 1;
+  string status = 2;
+  string provider_id = 3;
+}

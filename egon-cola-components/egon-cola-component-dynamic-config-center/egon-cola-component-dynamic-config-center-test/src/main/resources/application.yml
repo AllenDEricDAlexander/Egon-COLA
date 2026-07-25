@@ -6,6 +6,10 @@ egon:
         app-code: demo-app
         env: dev
         namespace: default
+        admin:
+          tls:
+            enabled: false
+            development-plaintext: true
         redis:
           enabled: false
         instance:
