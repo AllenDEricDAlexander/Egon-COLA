@@ -15,12 +15,15 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Map;
+import javax.crypto.spec.SecretKeySpec;
 
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
@@ -72,16 +75,50 @@ public class GatewayAdminSecurityConfiguration {
             @Value("${gateway.admin.security.jwk-set-uri:}")
             String jwkSetUri,
             @Value("${gateway.admin.security.issuer:}")
-            String issuer) {
+            String issuer,
+            @Value("${gateway.admin.security.hmac-secret-base64:}")
+            String hmacSecretBase64) {
         if (jwkSetUri == null || jwkSetUri.isBlank()) {
+            return hmacDecoder(hmacSecretBase64, issuer);
+        }
+        NimbusJwtDecoder decoder = NimbusJwtDecoder
+                .withJwkSetUri(jwkSetUri.trim())
+                .build();
+        if (issuer != null && !issuer.isBlank()) {
+            decoder.setJwtValidator(
+                    JwtValidators.createDefaultWithIssuer(issuer.trim())
+            );
+        }
+        return decoder;
+    }
+
+    private JwtDecoder hmacDecoder(
+            String hmacSecretBase64,
+            String issuer) {
+        if (hmacSecretBase64 == null || hmacSecretBase64.isBlank()) {
             return token -> {
                 throw new JwtException(
                         "gateway admin JWT decoder is not configured"
                 );
             };
         }
+        byte[] secret;
+        try {
+            secret = Base64.getDecoder().decode(hmacSecretBase64.trim());
+        } catch (IllegalArgumentException failure) {
+            throw new IllegalArgumentException(
+                    "gateway admin HMAC secret is not valid Base64",
+                    failure
+            );
+        }
+        if (secret.length < 32) {
+            throw new IllegalArgumentException(
+                    "gateway admin HMAC secret must contain at least 32 bytes"
+            );
+        }
         NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withJwkSetUri(jwkSetUri.trim())
+                .withSecretKey(new SecretKeySpec(secret, "HmacSHA256"))
+                .macAlgorithm(MacAlgorithm.HS256)
                 .build();
         if (issuer != null && !issuer.isBlank()) {
             decoder.setJwtValidator(

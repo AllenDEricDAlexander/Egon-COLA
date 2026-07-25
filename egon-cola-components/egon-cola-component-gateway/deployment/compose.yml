@@ -101,6 +101,7 @@ services:
       GATEWAY_ADMIN_DDC_ACCESS_KEY: ${DDC_ACCESS_KEY}
       GATEWAY_ADMIN_DDC_SECRET_KEY: ${DDC_SECRET_KEY}
       GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64: ${GATEWAY_MASTER_KEY_BASE64}
+      GATEWAY_ADMIN_SECURITY_HMAC_SECRET_BASE64: ${GATEWAY_ADMIN_JWT_HMAC_SECRET_BASE64}
       GATEWAY_ADMIN_OBSERVABILITY_KAFKA_ENABLED: "true"
       GATEWAY_ADMIN_OBSERVABILITY_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
@@ -156,6 +157,47 @@ services:
     stop_grace_period: 30s
     restart: unless-stopped
 
+  gateway-engine-2:
+    build:
+      context: ../egon-cola-component-gateway-engine
+    environment:
+      SERVER_PORT: 18083
+      EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-engine-${GATEWAY_GROUP_CODE:-default}
+      EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: http://ddc-admin:18080
+      EGON_COLA_COMPONENT_DDC_ADMIN_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_SECRET_KEY: ${DDC_SECRET_KEY}
+      EGON_COLA_COMPONENT_DDC_REGISTRY_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE: ${GATEWAY_GROUP_CODE:-default}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_NODE_ID: gateway-engine-local-2
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_INSTANCE_ID: gateway-engine-local-2
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY: /var/lib/egon-gateway
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_TRAFFIC_REDIS_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_TRAFFIC_REDIS_ADDRESS: redis://rate-limit-redis:6379
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_KAFKA_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_ENGINE_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      ddc-admin:
+        condition: service_started
+      rate-limit-redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - gateway-engine-2-lkg:/var/lib/egon-gateway
+    ports:
+      - "18181:18081"
+      - "18182:18082"
+      - "18183:18083"
+      - "19190:19090"
+    stop_grace_period: 30s
+    restart: unless-stopped
+
   gateway-admin-web:
     build:
       context: ../egon-cola-component-gateway-admin-web
@@ -175,3 +217,4 @@ volumes:
   gateway-rate-redis:
   gateway-kafka:
   gateway-engine-lkg:
+  gateway-engine-2-lkg:

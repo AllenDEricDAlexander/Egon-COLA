@@ -1,0 +1,145 @@
+name: Gateway CI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/gateway.yml"
+      - "egon-cola-components/egon-cola-component-dynamic-config-center/**"
+      - "egon-cola-components/egon-cola-component-rpc/**"
+      - "egon-cola-components/egon-cola-component-gateway/**"
+  pull_request:
+    paths:
+      - ".github/workflows/gateway.yml"
+      - "egon-cola-components/egon-cola-component-dynamic-config-center/**"
+      - "egon-cola-components/egon-cola-component-rpc/**"
+      - "egon-cola-components/egon-cola-component-gateway/**"
+  schedule:
+    - cron: "23 18 * * *"
+  workflow_dispatch:
+    inputs:
+      run_live:
+        description: Run the Docker-backed live topology
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GATEWAY_ROOT: egon-cola-components/egon-cola-component-gateway
+  GATEWAY_TEST_SUITE: egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite
+
+jobs:
+  gateway-fast:
+    name: Gateway fast verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "21"
+          cache: maven
+
+      - name: Verify Gateway Java reactor
+        run: |
+          ./mvnw -B -ntp \
+            -pl "${GATEWAY_TEST_SUITE}" \
+            -am test
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/.node-version"
+          cache: npm
+          cache-dependency-path: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/package-lock.json"
+
+      - name: Verify Gateway Admin Web
+        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web
+        run: |
+          npm ci
+          npm run typecheck
+          npm test -- --run
+          npm run lint
+          npm run build
+
+  gateway-admin-e2e:
+    name: Gateway Admin browser acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/.node-version"
+          cache: npm
+          cache-dependency-path: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/package-lock.json"
+
+      - name: Install dependencies and Chromium
+        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Gateway Admin acceptance
+        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-admin-playwright-report
+          path: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/playwright-report
+          if-no-files-found: ignore
+
+  gateway-live:
+    name: Gateway real topology
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_live)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "21"
+          cache: maven
+
+      - name: Run Docker-backed live topology
+        run: |
+          ./mvnw -B -ntp \
+            -pl "${GATEWAY_TEST_SUITE}" \
+            -am -Pgateway-live verify
+
+      - name: Upload process evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-live-process-evidence
+          path: |
+            ${{ env.GATEWAY_TEST_SUITE }}/target/gateway-process-it
+            ${{ env.GATEWAY_TEST_SUITE }}/target/failsafe-reports
+          if-no-files-found: ignore

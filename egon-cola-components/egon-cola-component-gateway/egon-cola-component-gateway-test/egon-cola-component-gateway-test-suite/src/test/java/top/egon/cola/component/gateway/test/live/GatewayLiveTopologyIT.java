@@ -16,11 +16,14 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,6 +56,13 @@ class GatewayLiveTopologyIT {
     private static final String RPC_GATEWAY_SERVICE_NAME =
             "egon-gateway-rpc";
 
+    private static final byte[] ADMIN_JWT_SECRET =
+            "gateway-live-jwt-secret-32-bytes!".getBytes(
+                    java.nio.charset.StandardCharsets.UTF_8
+            );
+
+    private static final String ADMIN_TOKEN = adminToken();
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -77,6 +87,12 @@ class GatewayLiveTopologyIT {
             int engineManagementPort = GatewayProcessHarness.availablePort();
             int enginePublicPort = GatewayProcessHarness.availablePort();
             int engineInternalPort = GatewayProcessHarness.availablePort();
+            int secondEngineManagementPort =
+                    GatewayProcessHarness.availablePort();
+            int secondEnginePublicPort =
+                    GatewayProcessHarness.availablePort();
+            int secondEngineInternalPort =
+                    GatewayProcessHarness.availablePort();
             URI ddcBase = URI.create("http://127.0.0.1:" + ddcPort);
             URI adminBase = URI.create("http://127.0.0.1:" + adminPort);
 
@@ -173,6 +189,20 @@ class GatewayLiveTopologyIT {
                     engineInternalPort,
                     engineData
             ));
+            Path secondEngineData = Files.createTempDirectory(
+                    "gateway-live-engine-2-"
+            );
+            var secondEngine = processes.start(engineSpec(
+                    infrastructure,
+                    ddcBase,
+                    secondEngineManagementPort,
+                    secondEnginePublicPort,
+                    secondEngineInternalPort,
+                    secondEngineData,
+                    false,
+                    0,
+                    "gateway-engine-live-2"
+            ));
 
             String operationId = awaitOperation(
                     processes,
@@ -203,6 +233,11 @@ class GatewayLiveTopologyIT {
                     processes,
                     ddcBase,
                     engine
+            );
+            awaitEngineConfigClient(
+                    processes,
+                    ddcBase,
+                    secondEngine
             );
             JsonNode mutation = put(
                     adminBase.resolve(
@@ -302,6 +337,11 @@ class GatewayLiveTopologyIT {
             );
             assertThat(release.required("status").asText())
                     .isEqualTo("SUCCEEDED");
+            processes.awaitCondition(
+                    () -> engineNodeCount(adminBase, groupId) >= 2,
+                    Duration.ofSeconds(30),
+                    "two Engine nodes visible in Gateway Admin"
+            );
 
             processes.awaitHttp(
                     URI.create(
@@ -311,6 +351,15 @@ class GatewayLiveTopologyIT {
                     ),
                     STARTUP_TIMEOUT,
                     engine
+            );
+            processes.awaitHttp(
+                    URI.create(
+                            "http://127.0.0.1:"
+                                    + secondEngineManagementPort
+                                    + "/actuator/health/readiness"
+                    ),
+                    STARTUP_TIMEOUT,
+                    secondEngine
             );
 
             String traceId = "live-http-trace-0000000000000001";
@@ -759,6 +808,12 @@ class GatewayLiveTopologyIT {
                         masterKey
                 )
                 .argument(
+                        "gateway.admin.security.hmac-secret-base64",
+                        Base64.getEncoder().encodeToString(
+                                ADMIN_JWT_SECRET
+                        )
+                )
+                .argument(
                         "gateway.admin.observability.kafka.enabled",
                         true
                 )
@@ -1061,7 +1116,8 @@ class GatewayLiveTopologyIT {
                 internalPort,
                 dataDirectory,
                 false,
-                0
+                0,
+                "gateway-engine-live-1"
         );
     }
 
@@ -1074,6 +1130,29 @@ class GatewayLiveTopologyIT {
             Path dataDirectory,
             boolean rpcEnabled,
             int rpcPort) {
+        return engineSpec(
+                infrastructure,
+                ddcBase,
+                managementPort,
+                publicPort,
+                internalPort,
+                dataDirectory,
+                rpcEnabled,
+                rpcPort,
+                "gateway-engine-live-1"
+        );
+    }
+
+    private GatewayProcessSpec engineSpec(
+            GatewayTestInfrastructure infrastructure,
+            URI ddcBase,
+            int managementPort,
+            int publicPort,
+            int internalPort,
+            Path dataDirectory,
+            boolean rpcEnabled,
+            int rpcPort,
+            String instanceId) {
         GatewayProcessSpec.Builder builder = GatewayProcessSpec.builder(
                         "gateway-engine",
                         "top.egon.cola.component.gateway.engine."
@@ -1122,11 +1201,11 @@ class GatewayLiveTopologyIT {
                 )
                 .argument(
                         "egon.cola.component.gateway.engine.node-id",
-                        "gateway-engine-live"
+                        instanceId
                 )
                 .argument(
                         "egon.cola.component.gateway.engine.instance-id",
-                        "gateway-engine-live-1"
+                        instanceId
                 )
                 .argument(
                         "egon.cola.component.gateway.engine.data-directory",
@@ -1366,6 +1445,18 @@ class GatewayLiveTopologyIT {
         return Set.copyOf(providerIds);
     }
 
+    private int engineNodeCount(
+            URI adminBase,
+            String groupId) throws Exception {
+        JsonNode projection = get(adminBase.resolve(
+                "/api/v1/gateway/admin/gateway-groups/"
+                        + groupId
+                        + "/engine-nodes"
+        ));
+        JsonNode nodes = projection.path("value");
+        return nodes.isArray() ? nodes.size() : 0;
+    }
+
     private JsonNode get(URI uri) throws Exception {
         return exchange("GET", uri, null);
     }
@@ -1390,7 +1481,7 @@ class GatewayLiveTopologyIT {
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
-                .header("X-Admin-Actor-Id", "gateway-live-test")
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
                 .method(method, publisher)
                 .build();
         HttpResponse<String> response = httpClient.send(
@@ -1409,5 +1500,42 @@ class GatewayLiveTopologyIT {
             );
         }
         return objectMapper.readTree(response.body());
+    }
+
+    private static String adminToken() {
+        try {
+            Base64.Encoder encoder = Base64.getUrlEncoder()
+                    .withoutPadding();
+            String header = encoder.encodeToString(
+                    "{\"alg\":\"HS256\",\"typ\":\"JWT\"}".getBytes(
+                            java.nio.charset.StandardCharsets.UTF_8
+                    )
+            );
+            String payload = encoder.encodeToString(("""
+                    {"sub":"gateway-live-test","exp":%d,
+                     "capabilities":["*"],"roles":["gateway-admin"]}
+                    """.formatted(
+                    Instant.now().plus(Duration.ofHours(12))
+                            .getEpochSecond()
+            )).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String signingInput = header + "." + payload;
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(
+                    ADMIN_JWT_SECRET,
+                    "HmacSHA256"
+            ));
+            return signingInput
+                    + "."
+                    + encoder.encodeToString(mac.doFinal(
+                    signingInput.getBytes(
+                            java.nio.charset.StandardCharsets.US_ASCII
+                    )
+            ));
+        } catch (Exception failure) {
+            throw new IllegalStateException(
+                    "cannot create live topology JWT",
+                    failure
+            );
+        }
     }
 }
