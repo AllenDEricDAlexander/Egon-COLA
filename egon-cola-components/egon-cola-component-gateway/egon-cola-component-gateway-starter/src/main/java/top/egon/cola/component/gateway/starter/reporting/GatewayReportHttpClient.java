@@ -13,6 +13,7 @@ import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import java.net.http.HttpClient;
 import java.time.Clock;
 import java.util.Map;
+import java.util.Optional;
 
 public final class GatewayReportHttpClient {
 
@@ -105,6 +106,80 @@ public final class GatewayReportHttpClient {
                     failure
             );
         }
+    }
+
+    public Optional<GatewayInterfaceDefinitionReportResult> find(
+            String reportId) {
+        if (reportId == null
+                || !reportId.matches("[A-Za-z0-9_-]{1,128}")) {
+            throw new IllegalArgumentException(
+                    "gateway reportId is invalid"
+            );
+        }
+        String path = REPORT_PATH + "/" + reportId;
+        long timestamp = clock.millis();
+        String nonce = UuidV7.simpleString();
+        DdcCanonicalRequest canonical = new DdcCanonicalRequest(
+                "GET",
+                path,
+                Map.of(),
+                timestamp,
+                nonce,
+                new byte[0]
+        );
+        try {
+            return Optional.ofNullable(client.get()
+                    .uri(path)
+                    .header(
+                            DdcRequestSigner.ACCESS_KEY_HEADER,
+                            properties.getAccessKey()
+                    )
+                    .header(
+                            DdcRequestSigner.TIMESTAMP_HEADER,
+                            Long.toString(timestamp)
+                    )
+                    .header(DdcRequestSigner.NONCE_HEADER, nonce)
+                    .header(
+                            DdcRequestSigner.CONTENT_SHA256_HEADER,
+                            canonical.contentSha256()
+                    )
+                    .header(
+                            DdcRequestSigner.SIGNATURE_HEADER,
+                            signer.sign(
+                                    canonical,
+                                    properties.getSecretKey()
+                            )
+                    )
+                    .header(
+                            "X-Gateway-Application-Code",
+                            properties.getApplicationCode()
+                    )
+                    .retrieve()
+                    .body(GatewayInterfaceDefinitionReportResult.class));
+        } catch (RestClientResponseException failure) {
+            if (failure.getStatusCode().value() == 404) {
+                return Optional.empty();
+            }
+            throw transportFailure(failure);
+        } catch (RuntimeException failure) {
+            throw new GatewayReportTransportException(
+                    "gateway report receipt transport failed",
+                    true,
+                    failure
+            );
+        }
+    }
+
+    private GatewayReportTransportException transportFailure(
+            RestClientResponseException failure) {
+        boolean retryable = failure.getStatusCode().value() == 429
+                || failure.getStatusCode().is5xxServerError();
+        return new GatewayReportTransportException(
+                "gateway report failed with HTTP "
+                        + failure.getStatusCode().value(),
+                retryable,
+                failure
+        );
     }
 
     private static RestClient restClient(

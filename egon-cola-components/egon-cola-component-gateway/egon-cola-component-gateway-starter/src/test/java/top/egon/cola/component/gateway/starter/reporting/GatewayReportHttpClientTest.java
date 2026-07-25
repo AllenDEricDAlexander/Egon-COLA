@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.ExpectedCount.once;
@@ -89,6 +90,63 @@ class GatewayReportHttpClientTest {
         assertThat(result.status()).isEqualTo(
                 GatewayInterfaceDefinitionReportResult.Status.ACCEPTED
         );
+        server.verify();
+    }
+
+    @Test
+    void findsAnAcknowledgedReportWithASignedGet() {
+        GatewayReportingProperties properties = properties();
+        String reportId = "report-1";
+        RestClient.Builder builder = RestClient.builder()
+                .baseUrl("http://admin.local");
+        MockRestServiceServer server =
+                MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(
+                        "http://admin.local"
+                                + GatewayReportHttpClient.REPORT_PATH
+                                + "/"
+                                + reportId
+                ))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(header(
+                        DdcRequestSigner.ACCESS_KEY_HEADER,
+                        "access-key"
+                ))
+                .andRespond(withSuccess("""
+                        {
+                          "reportId":"report-1",
+                          "definitionSetId":"definition-1",
+                          "status":"ACCEPTED",
+                          "applicationId":"app-1",
+                          "counts":{
+                            "businessDomains":0,
+                            "entityDomains":0,
+                            "interfaceGroups":0,
+                            "operations":0,
+                            "created":0,
+                            "updated":0,
+                            "missingFromThisSet":0
+                          },
+                          "operationRefs":[],
+                          "warnings":[],
+                          "receivedAt":"2026-07-25T00:00:01Z"
+                        }
+                        """, MediaType.APPLICATION_JSON));
+        GatewayReportHttpClient client = new GatewayReportHttpClient(
+                properties,
+                builder.build(),
+                Clock.fixed(
+                        Instant.ofEpochMilli(1_753_401_600_000L),
+                        ZoneOffset.UTC
+                )
+        );
+
+        Optional<GatewayInterfaceDefinitionReportResult> result =
+                client.find(reportId);
+
+        assertThat(result).get().extracting(
+                GatewayInterfaceDefinitionReportResult::reportId
+        ).isEqualTo(reportId);
         server.verify();
     }
 

@@ -20,8 +20,10 @@ import top.egon.cola.component.gateway.starter.reporting.GatewayDefinitionReport
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
+import top.egon.cola.component.gateway.starter.reporting.GatewayReportingStateStore;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 
+import java.nio.file.Path;
 import java.util.List;
 
 @AutoConfiguration
@@ -75,16 +77,27 @@ public class GatewayReportingAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public GatewayReportingStateStore gatewayReportingStateStore(
+            GatewayReportingProperties properties) {
+        return new GatewayReportingStateStore(
+                Path.of(properties.getStateFile())
+        );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public GatewayReportingCoordinator gatewayReportingCoordinator(
             GatewayReportingProperties properties,
             GatewayDefinitionReportFactory.BuiltReport report,
             GatewayReportHttpClient client,
-            GatewayReportingState state) {
+            GatewayReportingState state,
+            GatewayReportingStateStore stateStore) {
         return new GatewayReportingCoordinator(
                 properties,
                 report,
                 client,
-                state
+                state,
+                stateStore
         );
     }
 

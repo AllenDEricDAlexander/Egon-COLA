@@ -39,6 +39,11 @@ public class GatewayReportingProperties {
 
     private int maxAttempts = 5;
 
+    private Duration reconcileInterval = Duration.ofMinutes(5);
+
+    private String stateFile =
+            "data/gateway-definition-report.state";
+
     public void validate() {
         if (!enabled) {
             return;
@@ -57,6 +62,16 @@ public class GatewayReportingProperties {
                     "maxAttempts must be between 1 and 20"
             );
         }
+        if (reconcileInterval == null
+                || reconcileInterval.compareTo(
+                Duration.ofMillis(10)
+        ) < 0
+                || reconcileInterval.compareTo(Duration.ofDays(1)) > 0) {
+            throw new IllegalArgumentException(
+                    "reconcileInterval must be between PT0.01S and P1D"
+            );
+        }
+        required(stateFile, "stateFile");
     }
 
     private void required(String value, String field) {
@@ -187,5 +202,21 @@ public class GatewayReportingProperties {
 
     public void setMaxAttempts(int maxAttempts) {
         this.maxAttempts = maxAttempts;
+    }
+
+    public Duration getReconcileInterval() {
+        return reconcileInterval;
+    }
+
+    public void setReconcileInterval(Duration reconcileInterval) {
+        this.reconcileInterval = reconcileInterval;
+    }
+
+    public String getStateFile() {
+        return stateFile;
+    }
+
+    public void setStateFile(String stateFile) {
+        this.stateFile = stateFile;
     }
 }
