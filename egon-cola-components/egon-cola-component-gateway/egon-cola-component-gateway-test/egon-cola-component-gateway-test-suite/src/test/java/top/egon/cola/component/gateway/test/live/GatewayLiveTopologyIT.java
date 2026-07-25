@@ -39,6 +39,18 @@ class GatewayLiveTopologyIT {
     private static final String APPLICATION_CODE =
             "gateway-test-http-provider";
 
+    private static final String RPC_APPLICATION_CODE =
+            "gateway-test-rpc-provider";
+
+    private static final String RPC_SERVICE_NAME =
+            "EchoService";
+
+    private static final String RPC_METHOD_NAME =
+            "egon.gateway.test.v1.EchoService/Echo";
+
+    private static final String RPC_GATEWAY_SERVICE_NAME =
+            "egon-gateway-rpc";
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -253,6 +265,229 @@ class GatewayLiveTopologyIT {
         }
     }
 
+    @Test
+    void reportsDiscoversAndForwardsRealRpcTopology() throws Exception {
+        try (GatewayTestInfrastructure infrastructure =
+                     new GatewayTestInfrastructure();
+             GatewayProcessHarness processes =
+                     new GatewayProcessHarness("rpc-topology")) {
+            infrastructure.start();
+            infrastructure.createDatabase("gateway_ddc");
+            infrastructure.createDatabase("gateway_admin");
+
+            int ddcPort = GatewayProcessHarness.availablePort();
+            int adminPort = GatewayProcessHarness.availablePort();
+            int providerManagementPort =
+                    GatewayProcessHarness.availablePort();
+            int providerRpcPort = GatewayProcessHarness.availablePort();
+            int engineManagementPort =
+                    GatewayProcessHarness.availablePort();
+            int enginePublicPort = GatewayProcessHarness.availablePort();
+            int engineInternalPort = GatewayProcessHarness.availablePort();
+            int engineRpcPort = GatewayProcessHarness.availablePort();
+            int consumerPort = GatewayProcessHarness.availablePort();
+            URI ddcBase = URI.create("http://127.0.0.1:" + ddcPort);
+            URI adminBase = URI.create("http://127.0.0.1:" + adminPort);
+
+            var ddc = processes.start(ddcSpec(
+                    infrastructure,
+                    ddcPort
+            ));
+            processes.awaitHttp(
+                    ddcBase.resolve("/api/v1/ddc/manifest"),
+                    STARTUP_TIMEOUT,
+                    ddc
+            );
+
+            var admin = processes.start(adminSpec(
+                    infrastructure,
+                    ddcBase,
+                    adminPort
+            ));
+            processes.awaitHttp(
+                    adminBase.resolve("/actuator/health/readiness"),
+                    STARTUP_TIMEOUT,
+                    admin
+            );
+
+            JsonNode application = post(
+                    adminBase.resolve(
+                            "/api/v1/gateway/admin/applications"
+                    ),
+                    Map.of(
+                            "applicationCode", RPC_APPLICATION_CODE,
+                            "displayName", "Gateway Live RPC Provider",
+                            "env", ENV,
+                            "namespace", NAMESPACE,
+                            "description", "GWS-13 live RPC topology"
+                    )
+            );
+            String applicationId = application.required("id").asText();
+            JsonNode credential = post(
+                    adminBase.resolve(
+                            "/api/v1/gateway/admin/applications/"
+                                    + applicationId
+                                    + "/credentials"
+                    ),
+                    Map.of()
+            );
+
+            var provider = processes.start(rpcProviderSpec(
+                    ddcBase,
+                    adminBase,
+                    providerManagementPort,
+                    providerRpcPort,
+                    credential.required("accessKey").asText(),
+                    credential.required("secret").asText()
+            ));
+            processes.awaitHttp(
+                    URI.create(
+                            "http://127.0.0.1:"
+                                    + providerManagementPort
+                                    + "/actuator/health/readiness"
+                    ),
+                    STARTUP_TIMEOUT,
+                    provider
+            );
+
+            Path engineData = Files.createTempDirectory(
+                    "gateway-live-rpc-engine-"
+            );
+            var engine = processes.start(engineSpec(
+                    infrastructure,
+                    ddcBase,
+                    engineManagementPort,
+                    enginePublicPort,
+                    engineInternalPort,
+                    engineData,
+                    true,
+                    engineRpcPort
+            ));
+
+            String operationId = awaitOperation(
+                    processes,
+                    adminBase,
+                    applicationId,
+                    RPC_METHOD_NAME
+            );
+            JsonNode group = post(
+                    adminBase.resolve(
+                            "/api/v1/gateway/admin/gateway-groups"
+                    ),
+                    Map.of(
+                            "gatewayGroupCode", "default",
+                            "displayName", "Gateway Live RPC Group",
+                            "env", ENV,
+                            "namespace", NAMESPACE,
+                            "description", "GWS-13 live RPC topology"
+                    )
+            );
+            String groupId = group.required("id").asText();
+
+            awaitEngineConfigClient(
+                    processes,
+                    ddcBase,
+                    engine
+            );
+            JsonNode mutation = put(
+                    adminBase.resolve(
+                            "/api/v1/gateway/admin/gateway-groups/"
+                                    + groupId
+                                    + "/draft/routes/live-rpc-echo"
+                    ),
+                    Map.of(
+                            "operationId", operationId,
+                            "content", Map.of(
+                                    "host", "rpc.gateway.test",
+                                    "httpMethod", "POST",
+                                    "pathPattern", "/rpc/echo",
+                                    "accessZones", List.of("INTERNAL"),
+                                    "priority", 0
+                            ),
+                            "enabled", true,
+                            "expectedRevision", 0,
+                            "idempotencyKey", "live-rpc-echo-route",
+                            "changeReason", "GWS-13 live RPC route"
+                    )
+            );
+            long revision = mutation.required("revision").asLong();
+            JsonNode validation = post(
+                    adminBase.resolve(
+                            "/api/v1/gateway/admin/gateway-groups/"
+                                    + groupId
+                                    + "/draft/validate"
+                    ),
+                    Map.of()
+            );
+            assertThat(validation.required("valid").asBoolean()).isTrue();
+            JsonNode release = post(
+                    adminBase.resolve(
+                            "/api/v1/gateway/admin/gateway-groups/"
+                                    + groupId
+                                    + "/releases"
+                    ),
+                    Map.of(
+                            "expectedDraftRevision", revision,
+                            "changeReason", "GWS-13 live RPC release"
+                    )
+            );
+            assertThat(release.required("status").asText())
+                    .isEqualTo("SUCCEEDED");
+
+            processes.awaitHttp(
+                    URI.create(
+                            "http://127.0.0.1:"
+                                    + engineManagementPort
+                                    + "/actuator/health/readiness"
+                    ),
+                    STARTUP_TIMEOUT,
+                    engine
+            );
+            awaitRpcProviderProjection(processes, adminBase);
+
+            var consumer = processes.start(rpcConsumerSpec(
+                    ddcBase,
+                    consumerPort
+            ));
+            URI consumerBase = URI.create(
+                    "http://127.0.0.1:" + consumerPort
+            );
+            processes.awaitHttp(
+                    consumerBase.resolve("/actuator/health/readiness"),
+                    STARTUP_TIMEOUT,
+                    consumer
+            );
+
+            String traceId = "live-rpc-trace-0000000000000001";
+            HttpResponse<String> response = httpClient.send(
+                    HttpRequest.newBuilder(consumerBase.resolve(
+                                    "/test/rpc/echo?message=through-gateway"
+                            ))
+                            .header("X-Trace-ID", traceId)
+                            .timeout(Duration.ofSeconds(10))
+                            .GET()
+                            .build(),
+                    HttpResponse.BodyHandlers.ofString()
+            );
+            assertThat(response.statusCode())
+                    .as(processes.output(consumer))
+                    .isEqualTo(200);
+            JsonNode forwarded = objectMapper.readTree(response.body());
+            assertThat(forwarded.required("providerId").asText())
+                    .isEqualTo("rpc-provider-live");
+            assertThat(forwarded.required("message").asText())
+                    .isEqualTo("through-gateway");
+            assertThat(forwarded.required("traceId").asText())
+                    .isEqualTo(traceId);
+
+            processes.awaitCondition(
+                    () -> traceCount(adminBase, traceId) == 1,
+                    Duration.ofSeconds(30),
+                    "RPC Kafka call event projection in Gateway Admin"
+            );
+        }
+    }
+
     private GatewayProcessSpec ddcSpec(
             GatewayTestInfrastructure infrastructure,
             int port) {
@@ -449,6 +684,182 @@ class GatewayLiveTopologyIT {
                 .build();
     }
 
+    private GatewayProcessSpec rpcProviderSpec(
+            URI ddcBase,
+            URI adminBase,
+            int managementPort,
+            int rpcPort,
+            String accessKey,
+            String secretKey) {
+        return GatewayProcessSpec.builder(
+                        "rpc-provider",
+                        "top.egon.cola.component.gateway.test.rpc.provider."
+                                + "GatewayRpcTestProviderApplication"
+                )
+                .argument("server.port", managementPort)
+                .argument("egon.cola.component.ddc.enabled", true)
+                .argument(
+                        "egon.cola.component.ddc.app-code",
+                        RPC_APPLICATION_CODE
+                )
+                .argument("egon.cola.component.ddc.env", ENV)
+                .argument(
+                        "egon.cola.component.ddc.namespace",
+                        NAMESPACE
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.endpoint",
+                        ddcBase
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.signature-enabled",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.access-key",
+                        DDC_ACCESS_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.secret-key",
+                        DDC_SECRET_KEY
+                )
+                .argument("egon.cola.component.ddc.registry.enabled", true)
+                .argument("egon.cola.component.rpc.enabled", true)
+                .argument(
+                        "egon.cola.component.rpc.provider.enabled",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.rpc.provider.port",
+                        rpcPort
+                )
+                .argument(
+                        "egon.cola.component.rpc.provider."
+                                + "advertised-host",
+                        "127.0.0.1"
+                )
+                .argument(
+                        "egon.cola.component.rpc.provider."
+                                + "advertised-port",
+                        rpcPort
+                )
+                .argument("gateway.test.env", ENV)
+                .argument("gateway.test.namespace", NAMESPACE)
+                .argument("gateway.test.provider-id", "rpc-provider-live")
+                .argument(
+                        "egon.cola.component.gateway.reporting.enabled",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting."
+                                + "admin-base-url",
+                        adminBase
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting."
+                                + "application-code",
+                        RPC_APPLICATION_CODE
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting."
+                                + "application-name",
+                        "Gateway Live RPC Provider"
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting.env",
+                        ENV
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting.namespace",
+                        NAMESPACE
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting."
+                                + "artifact-version",
+                        "1.0.0-live"
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting.build-id",
+                        "gateway-live-rpc-build"
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting.fail-fast",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting.access-key",
+                        accessKey
+                )
+                .argument(
+                        "egon.cola.component.gateway.reporting.secret-key",
+                        secretKey
+                )
+                .startupTimeout(STARTUP_TIMEOUT)
+                .build();
+    }
+
+    private GatewayProcessSpec rpcConsumerSpec(
+            URI ddcBase,
+            int port) {
+        return GatewayProcessSpec.builder(
+                        "rpc-consumer",
+                        "top.egon.cola.component.gateway.test.rpc.consumer."
+                                + "GatewayRpcTestConsumerApplication"
+                )
+                .argument("server.port", port)
+                .argument("egon.cola.component.ddc.enabled", true)
+                .argument(
+                        "egon.cola.component.ddc.app-code",
+                        "gateway-test-rpc-consumer"
+                )
+                .argument("egon.cola.component.ddc.env", ENV)
+                .argument(
+                        "egon.cola.component.ddc.namespace",
+                        NAMESPACE
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.endpoint",
+                        ddcBase
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.signature-enabled",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.access-key",
+                        DDC_ACCESS_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.secret-key",
+                        DDC_SECRET_KEY
+                )
+                .argument("egon.cola.component.rpc.enabled", true)
+                .argument(
+                        "egon.cola.component.rpc.consumer.enabled",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.rpc.consumer."
+                                + "gateway-discovery-timeout-ms",
+                        30000
+                )
+                .argument(
+                        "egon.cola.component.rpc.consumer."
+                                + "gateway-service-name",
+                        RPC_GATEWAY_SERVICE_NAME
+                )
+                .argument(
+                        "egon.cola.component.rpc.consumer.gateway-group",
+                        "default"
+                )
+                .argument(
+                        "egon.cola.component.rpc.consumer.gateway-version",
+                        "1.0.0"
+                )
+                .startupTimeout(STARTUP_TIMEOUT)
+                .build();
+    }
+
     private GatewayProcessSpec engineSpec(
             GatewayTestInfrastructure infrastructure,
             URI ddcBase,
@@ -456,7 +867,28 @@ class GatewayLiveTopologyIT {
             int publicPort,
             int internalPort,
             Path dataDirectory) {
-        return GatewayProcessSpec.builder(
+        return engineSpec(
+                infrastructure,
+                ddcBase,
+                managementPort,
+                publicPort,
+                internalPort,
+                dataDirectory,
+                false,
+                0
+        );
+    }
+
+    private GatewayProcessSpec engineSpec(
+            GatewayTestInfrastructure infrastructure,
+            URI ddcBase,
+            int managementPort,
+            int publicPort,
+            int internalPort,
+            Path dataDirectory,
+            boolean rpcEnabled,
+            int rpcPort) {
+        GatewayProcessSpec.Builder builder = GatewayProcessSpec.builder(
                         "gateway-engine",
                         "top.egon.cola.component.gateway.engine."
                                 + "GatewayEngineApplication"
@@ -526,7 +958,7 @@ class GatewayLiveTopologyIT {
                 )
                 .argument(
                         "egon.cola.component.gateway.engine.rpc.enabled",
-                        false
+                        rpcEnabled
                 )
                 .argument(
                         "egon.cola.component.gateway.engine.kafka.enabled",
@@ -549,15 +981,51 @@ class GatewayLiveTopologyIT {
                                 + infrastructure.rateLimitRedisHost()
                                 + ":"
                                 + infrastructure.rateLimitRedisPort()
-                )
-                .startupTimeout(STARTUP_TIMEOUT)
-                .build();
+                );
+        if (rpcEnabled) {
+            builder.argument(
+                            "egon.cola.component.gateway.engine.rpc.port",
+                            rpcPort
+                    )
+                    .argument(
+                            "egon.cola.component.gateway.engine.rpc."
+                                    + "advertised-host",
+                            "127.0.0.1"
+                    )
+                    .argument(
+                            "egon.cola.component.gateway.engine.rpc."
+                                    + "service-name",
+                            RPC_GATEWAY_SERVICE_NAME
+                    )
+                    .argument(
+                            "egon.cola.component.gateway.engine.rpc.group",
+                            "default"
+                    )
+                    .argument(
+                            "egon.cola.component.gateway.engine.rpc.version",
+                            "1.0.0"
+                    );
+        }
+        return builder.startupTimeout(STARTUP_TIMEOUT).build();
     }
 
     private String awaitOperation(
             GatewayProcessHarness processes,
             URI adminBase,
             String applicationId) {
+        return awaitOperation(
+                processes,
+                adminBase,
+                applicationId,
+                "GET /api/orders/{id}"
+        );
+    }
+
+    private String awaitOperation(
+            GatewayProcessHarness processes,
+            URI adminBase,
+            String applicationId,
+            String methodIdentity) {
         String[] operationId = new String[1];
         processes.awaitCondition(
                 () -> {
@@ -568,7 +1036,7 @@ class GatewayLiveTopologyIT {
                     ));
                     operationId[0] = findOperation(
                             tree,
-                            "GET /api/orders/{id}"
+                            methodIdentity
                     );
                     return operationId[0] != null;
                 },
@@ -576,6 +1044,42 @@ class GatewayLiveTopologyIT {
                 "Starter definition report in Gateway Admin"
         );
         return operationId[0];
+    }
+
+    private void awaitRpcProviderProjection(
+            GatewayProcessHarness processes,
+            URI adminBase) {
+        processes.awaitCondition(
+                () -> {
+                    JsonNode projection = get(adminBase.resolve(
+                            "/api/v1/gateway/admin/providers/instances"
+                                    + "?env="
+                                    + ENV
+                                    + "&namespace="
+                                    + NAMESPACE
+                                    + "&protocol=RPC"
+                                    + "&serviceName="
+                                    + RPC_SERVICE_NAME
+                    ));
+                    JsonNode instances = projection.path("value")
+                            .path("instances");
+                    if (!instances.isArray()) {
+                        instances = projection.path("value");
+                    }
+                    for (JsonNode instance : instances) {
+                        if (RPC_SERVICE_NAME.equals(
+                                instance.path("serviceName").asText()
+                        ) || instance.toString().contains(
+                                "rpc-provider-live"
+                        )) {
+                            return true;
+                        }
+                    }
+                    return false;
+                },
+                Duration.ofSeconds(30),
+                "RPC Provider projection in Gateway Admin"
+        );
     }
 
     private String findOperation(JsonNode tree, String methodIdentity) {

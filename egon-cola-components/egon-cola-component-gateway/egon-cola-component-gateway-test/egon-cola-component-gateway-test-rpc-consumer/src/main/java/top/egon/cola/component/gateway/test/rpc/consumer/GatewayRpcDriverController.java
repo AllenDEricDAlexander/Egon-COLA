@@ -25,50 +25,56 @@ public class GatewayRpcDriverController {
     }
 
     @GetMapping("/echo")
-    public EchoResponse echo(
+    public EchoView echo(
             @RequestParam String message,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
-        return traced(traceId, () -> client.echo(message));
+        return traced(traceId, () -> EchoView.from(client.echo(message)));
     }
 
     @GetMapping("/orders")
-    public OrderResponse order(
+    public OrderView order(
             @RequestParam String orderId,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
-        return traced(traceId, () -> client.order(orderId));
+        return traced(traceId, () -> OrderView.from(client.order(orderId)));
     }
 
     @PostMapping("/orders")
-    public OrderResponse create(
+    public OrderView create(
             @RequestBody CreateOrder command,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
         return traced(
                 traceId,
-                () -> client.create(command.customerId(), command.skus())
+                () -> OrderView.from(client.create(
+                        command.customerId(),
+                        command.skus()
+                ))
         );
     }
 
     @GetMapping("/slow")
-    public OrderResponse slow(
+    public OrderView slow(
             @RequestParam String orderId,
             @RequestParam long delayMillis,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
         return traced(
                 traceId,
-                () -> client.slow(orderId, delayMillis)
+                () -> OrderView.from(client.slow(orderId, delayMillis))
         );
     }
 
     @GetMapping("/fail")
-    public OrderResponse fail(
+    public OrderView fail(
             @RequestParam String code,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
-        return traced(traceId, () -> client.fail(code));
+        return traced(
+                traceId,
+                () -> OrderView.from(client.fail(code))
+        );
     }
 
     private <T> T traced(String traceId, Supplier<T> invocation) {
@@ -85,6 +91,38 @@ public class GatewayRpcDriverController {
 
         public CreateOrder {
             skus = skus == null ? List.of() : List.copyOf(skus);
+        }
+    }
+
+    public record EchoView(
+            String providerId,
+            String message,
+            String invocationId,
+            String traceId
+    ) {
+
+        private static EchoView from(EchoResponse response) {
+            return new EchoView(
+                    response.getProviderId(),
+                    response.getMessage(),
+                    response.getInvocationId(),
+                    response.getTraceId()
+            );
+        }
+    }
+
+    public record OrderView(
+            String orderId,
+            String status,
+            String providerId
+    ) {
+
+        private static OrderView from(OrderResponse response) {
+            return new OrderView(
+                    response.getOrderId(),
+                    response.getStatus(),
+                    response.getProviderId()
+            );
         }
     }
 }
