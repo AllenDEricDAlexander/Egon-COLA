@@ -21,5 +21,10 @@
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-gateway-contract</artifactId>
         </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>
