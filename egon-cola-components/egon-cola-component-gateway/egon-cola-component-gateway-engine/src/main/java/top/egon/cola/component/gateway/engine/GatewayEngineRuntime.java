@@ -90,6 +90,7 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
         }
         httpServer.beginDrain();
         rpcSlot.beginDrain();
+        httpServer.awaitDrain();
         rpcServer.close();
         httpServer.close();
     }
