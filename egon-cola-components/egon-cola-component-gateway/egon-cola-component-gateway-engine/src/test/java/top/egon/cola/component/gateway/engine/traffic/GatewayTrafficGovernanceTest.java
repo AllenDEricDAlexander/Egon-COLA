@@ -163,6 +163,7 @@ class GatewayTrafficGovernanceTest {
                                 java.util.function.Function.identity()
                         )
                 ),
+                Map.of(),
                 Map.of()
         );
         return new GatewayTrafficGovernance(() -> rules, null);

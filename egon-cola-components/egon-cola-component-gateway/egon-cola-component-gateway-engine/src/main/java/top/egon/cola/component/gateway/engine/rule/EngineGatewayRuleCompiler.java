@@ -16,6 +16,7 @@ import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndex;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndexCompiler;
 import top.egon.cola.component.gateway.engine.rpc.RuntimeRpcRoute;
 import top.egon.cola.component.gateway.engine.discovery.GatewayProviderPolicyCompiler;
+import top.egon.cola.component.gateway.engine.cors.GatewayCorsPolicyCompiler;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
@@ -41,6 +42,9 @@ public final class EngineGatewayRuleCompiler {
 
     private final GatewayProviderPolicyCompiler providerPolicyCompiler =
             new GatewayProviderPolicyCompiler();
+
+    private final GatewayCorsPolicyCompiler corsPolicyCompiler =
+            new GatewayCorsPolicyCompiler();
 
     private final GatewaySecurityPolicyCompiler securityPolicyCompiler;
 
@@ -131,6 +135,9 @@ public final class EngineGatewayRuleCompiler {
         var providerPolicies = providerPolicyCompiler.compile(
                 content.providerPolicies()
         );
+        var corsPolicies = corsPolicyCompiler.compile(
+                content.corsPolicies()
+        );
         content.operations().stream()
                 .filter(operation -> !operation.deprecated())
                 .forEach(operation -> {
@@ -162,6 +169,16 @@ public final class EngineGatewayRuleCompiler {
                                         + "policies"
                         );
                     }
+                    long corsReferences = operation.policyRefs().stream()
+                            .filter(corsPolicies::containsKey)
+                            .count();
+                    if (corsReferences > 1) {
+                        throw new IllegalArgumentException(
+                                "GATEWAY_RULE_COMPILE_FAILED: operation "
+                                        + operation.operationId()
+                                        + " references multiple CORS policies"
+                        );
+                    }
                 });
         return new CompiledGatewayRules(
                 snapshot,
@@ -170,7 +187,8 @@ public final class EngineGatewayRuleCompiler {
                 services,
                 providerPolicies,
                 trafficPolicyCompiler.compile(runtimePolicies),
-                securityPolicies
+                securityPolicies,
+                corsPolicies
         );
     }
 

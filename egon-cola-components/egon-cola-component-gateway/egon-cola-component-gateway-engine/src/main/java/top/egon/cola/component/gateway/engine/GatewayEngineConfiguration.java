@@ -319,7 +319,10 @@ public class GatewayEngineConfiguration {
                 properties.getNodeId(),
                 trafficGovernance,
                 httpRpcUpstream,
-                passiveHealth
+                passiveHealth,
+                () -> activation.active() == null
+                        ? Map.of()
+                        : activation.active().corsPolicies()
         );
         return new GatewayHttpServer(engineProperties, handler);
     }

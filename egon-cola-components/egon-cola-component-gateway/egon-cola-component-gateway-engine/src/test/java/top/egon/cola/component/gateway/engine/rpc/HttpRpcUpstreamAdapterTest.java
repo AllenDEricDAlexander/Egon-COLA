@@ -175,6 +175,7 @@ class HttpRpcUpstreamAdapterTest {
                 Set.of(),
                 Map.of(),
                 Map.of(),
+                Map.of(),
                 Map.of()
         );
     }

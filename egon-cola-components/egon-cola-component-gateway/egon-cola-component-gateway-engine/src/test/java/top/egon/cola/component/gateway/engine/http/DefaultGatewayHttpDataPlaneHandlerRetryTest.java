@@ -205,6 +205,7 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
                 Set.of(),
                 Map.of(),
                 Map.of("retry", retry),
+                Map.of(),
                 Map.of()
         );
         return new GatewayTrafficGovernance(() -> rules, null);

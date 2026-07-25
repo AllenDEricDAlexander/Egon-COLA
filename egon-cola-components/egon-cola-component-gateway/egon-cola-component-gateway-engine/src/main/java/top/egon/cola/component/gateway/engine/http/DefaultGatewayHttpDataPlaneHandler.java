@@ -1,8 +1,13 @@
 package top.egon.cola.component.gateway.engine.http;
 
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.trace.GatewayTraceContext;
+import top.egon.cola.component.gateway.core.context.GatewayContext;
+import top.egon.cola.component.gateway.core.context.GatewayStage;
+import top.egon.cola.component.gateway.core.exchange.GatewayResponse;
+import top.egon.cola.component.gateway.core.filter.GatewayFilterChain;
 import top.egon.cola.component.gateway.core.http.GatewayRequestRejectedException;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
 import top.egon.cola.component.gateway.core.http.NormalizedHttpRequest;
@@ -13,6 +18,7 @@ import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecorder;
+import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
@@ -29,6 +35,7 @@ import top.egon.cola.component.gateway.engine.traffic.ProviderCallClassification
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -77,6 +84,11 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private final GatewayBodySizeLimiter bodySizeLimiter =
             new GatewayBodySizeLimiter();
+
+    private final GatewayHttpExecutionPipeline executionPipeline =
+            new GatewayHttpExecutionPipeline();
+
+    private final GatewayCorsProcessor corsProcessor;
 
     public DefaultGatewayHttpDataPlaneHandler(
             HttpRequestNormalizer normalizer,
@@ -218,6 +230,37 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayTrafficGovernance trafficGovernance,
             HttpRpcUpstreamAdapter httpRpcUpstream,
             ProviderCallOutcomeRecorder outcomeRecorder) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                httpRpcUpstream,
+                outcomeRecorder,
+                Map::of
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            HttpRpcUpstreamAdapter httpRpcUpstream,
+            ProviderCallOutcomeRecorder outcomeRecorder,
+            Supplier<Map<String, RuntimeCorsPolicy>> corsPolicies) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -254,6 +297,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 outcomeRecorder,
                 "outcomeRecorder"
         );
+        corsProcessor = new GatewayCorsProcessor(
+                Objects.requireNonNull(corsPolicies, "corsPolicies")
+        );
         resourceGuard = new GatewayRequestResourceGuard(
                 new GatewayResourceLimits(
                         128,
@@ -284,9 +330,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     request.headers()
             );
             resourceGuard.validate(normalized);
+            String routeMethod = routeMethod(request, normalized.method());
             HttpRouteMatch match = routeIndex.get().match(
                     normalized.host(),
-                    normalized.method(),
+                    routeMethod,
                     normalized.normalizedPath(),
                     accessZone
             ).orElse(null);
@@ -304,7 +351,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 ));
             }
             observation.route(
-                    normalized.method(),
+                    routeMethod,
                     match.route().pathPattern(),
                     match.route().gatewayGroupId(),
                     match.route().metadata().get("releaseId"),
@@ -329,39 +376,19 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         "GATEWAY_ROUTE_NOT_FOUND"
                 ));
             }
-            return securityProcessor.authorize(
-                            accessZone,
-                            request,
-                            normalized,
-                            match,
-                            trace.traceId()
-                    )
-                    .flatMap(security -> {
-                        GatewayTrafficContext trafficContext =
-                                trafficContext(
-                                        match,
-                                        normalized,
-                                        request,
-                                        security
-                                );
-                        return trafficGovernance.acquire(
-                                        match.route().policyRefs(),
-                                        trafficContext,
-                                        upstreamTimeout
-                                )
-                                .flatMap(permit -> invokeUpstream(
-                                                match,
-                                                normalized,
-                                                request,
-                                                security,
-                                                trace,
-                                                observation,
-                                                permit
-                                        )
-                                        .doFinally(signal ->
-                                                permit.close()));
-                    })
-                    .map(response -> observed(
+            HttpStageExchange exchange = new HttpStageExchange(
+                    accessZone,
+                    request,
+                    normalized,
+                    match,
+                    routeMethod,
+                    trace,
+                    observation
+            );
+            return executionPipeline.execute(exchange)
+                    .map(response -> exchange.failed()
+                            ? response
+                            : observed(
                             response,
                             observation,
                             "COMPLETE",
@@ -370,95 +397,6 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     ? "GATEWAY_UPSTREAM_STATUS"
                                     : null
                     ))
-                    .onErrorResume(GatewaySecurityException.class,
-                            rejected -> Mono.just(observed(
-                                    error(
-                                            rejected.httpStatus(),
-                                            rejected.code(),
-                                            trace.traceId()
-                                    ),
-                                    observation,
-                                    "SECURITY",
-                                    "REJECTED",
-                                    rejected.code()
-                            )))
-                    .onErrorResume(GatewayRequestRejectedException.class,
-                            rejected -> Mono.just(observed(
-                                    error(
-                                            rejected.status(),
-                                            rejected.code(),
-                                            trace.traceId()
-                                    ),
-                                    observation,
-                                    "RESOURCE",
-                                    "REJECTED",
-                                    rejected.code()
-                            )))
-                    .onErrorResume(GatewayRequestBodyTooLargeException.class,
-                            rejected -> Mono.just(observed(
-                                    error(
-                                            413,
-                                            rejected.code(),
-                                            trace.traceId()
-                                    ),
-                                    observation,
-                                    "RESOURCE",
-                                    "REJECTED",
-                                    rejected.code()
-                            )))
-                    .onErrorResume(GatewayResponseBodyTooLargeException.class,
-                            rejected -> Mono.just(observed(
-                                    error(
-                                            502,
-                                            rejected.code(),
-                                            trace.traceId()
-                                    ),
-                                    observation,
-                                    "UPSTREAM",
-                                    "REJECTED",
-                                    rejected.code()
-                            )))
-                    .onErrorResume(GatewayTrafficRejectedException.class,
-                            rejected -> {
-                                observation.governance(
-                                        "APPLIED",
-                                        rejected.code(),
-                                        "REJECT"
-                                );
-                                return Mono.just(observed(
-                                        trafficError(
-                                                rejected,
-                                                trace.traceId()
-                                        ),
-                                        observation,
-                                        "GOVERNANCE",
-                                        "REJECTED",
-                                        rejected.code()
-                                ));
-                            })
-                    .onErrorResume(java.util.concurrent.TimeoutException.class,
-                            timeout -> Mono.just(observed(
-                                    error(
-                                            504,
-                                            "GATEWAY_UPSTREAM_TIMEOUT",
-                                            trace.traceId()
-                                    ),
-                                    observation,
-                                    "UPSTREAM",
-                                    "TIMEOUT",
-                                    "GATEWAY_UPSTREAM_TIMEOUT"
-                            )))
-                    .onErrorResume(error -> Mono.just(observed(
-                            error(
-                                    502,
-                                    "GATEWAY_UPSTREAM_CONNECT_FAILED",
-                                    trace.traceId()
-                            ),
-                            observation,
-                            "UPSTREAM",
-                            "ERROR",
-                            "GATEWAY_UPSTREAM_CONNECT_FAILED"
-                    )))
                     .doOnCancel(() -> publish(
                             observation,
                             "CLIENT",
@@ -491,6 +429,21 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     "GATEWAY_INTERNAL_ERROR"
             ));
         }
+    }
+
+    private String routeMethod(
+            GatewayInboundHttpRequest request,
+            String method) {
+        if (!"OPTIONS".equalsIgnoreCase(method)) {
+            return method;
+        }
+        String requested = firstHeader(
+                request.headers(),
+                "access-control-request-method"
+        );
+        return requested == null || requested.isBlank()
+                ? method
+                : requested.trim().toUpperCase(java.util.Locale.ROOT);
     }
 
     private Mono<GatewayOutboundHttpResponse> invokeUpstream(
@@ -971,6 +924,241 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 0,
                 (System.nanoTime() - startedNanos) / 1_000_000
         );
+    }
+
+    private GatewayContext gatewayContext(
+            AccessZone accessZone,
+            HttpRouteMatch match,
+            GatewayTraceContext trace) {
+        Instant startedAt = Instant.now();
+        return new GatewayContext(
+                trace.traceId(),
+                trace.traceId(),
+                trace.engineTraceparent(),
+                trace.tracestate(),
+                accessZone,
+                match.route().gatewayGroupId(),
+                engineNodeId,
+                match.route().operationId(),
+                match.route().routeId(),
+                match.route().metadata().get("releaseId"),
+                null,
+                null,
+                startedAt.plus(upstreamTimeout),
+                startedAt,
+                GatewayStage.ROUTE_MATCHED,
+                List.of(),
+                List.of()
+        );
+    }
+
+    private final class HttpStageExchange
+            extends AbstractGatewayHttpStageExchange {
+
+        private final AccessZone accessZone;
+
+        private final NormalizedHttpRequest normalized;
+
+        private final HttpRouteMatch match;
+
+        private final String routeMethod;
+
+        private final GatewayTraceContext trace;
+
+        private final GatewayCallObservation observation;
+
+        private GatewayCorsProcessor.Decision cors;
+
+        private GatewayHttpSecurityProcessor.Outcome security;
+
+        private GatewayTrafficGovernance.RequestPermit permit;
+
+        private boolean failed;
+
+        private HttpStageExchange(
+                AccessZone accessZone,
+                GatewayInboundHttpRequest request,
+                NormalizedHttpRequest normalized,
+                HttpRouteMatch match,
+                String routeMethod,
+                GatewayTraceContext trace,
+                GatewayCallObservation observation) {
+            super(request, gatewayContext(accessZone, match, trace));
+            this.accessZone = accessZone;
+            this.normalized = normalized;
+            this.match = match;
+            this.routeMethod = routeMethod;
+            this.trace = trace;
+            this.observation = observation;
+        }
+
+        @Override
+        public Publisher<GatewayResponse> cors(
+                GatewayFilterChain chain) {
+            cors = corsProcessor.evaluate(
+                    match.route().policyRefs(),
+                    inbound(),
+                    routeMethod,
+                    trace.traceId()
+            );
+            return cors.preflightResponse()
+                    .<Publisher<GatewayResponse>>map(this::respond)
+                    .orElseGet(() -> chain.filter(this));
+        }
+
+        @Override
+        public Publisher<GatewayResponse> security(
+                GatewayFilterChain chain) {
+            return securityProcessor.authorize(
+                            accessZone,
+                            inbound(),
+                            normalized,
+                            match,
+                            trace.traceId()
+                    )
+                    .flatMap(outcome -> {
+                        security = outcome;
+                        return Mono.from(chain.filter(this));
+                    });
+        }
+
+        @Override
+        public Publisher<GatewayResponse> governance(
+                GatewayFilterChain chain) {
+            GatewayTrafficContext context = trafficContext(
+                    match,
+                    normalized,
+                    inbound(),
+                    security
+            );
+            return trafficGovernance.acquire(
+                            match.route().policyRefs(),
+                            context,
+                            upstreamTimeout
+                    )
+                    .flatMap(acquired -> {
+                        permit = acquired;
+                        return Mono.from(chain.filter(this))
+                                .doFinally(signal -> acquired.close());
+                    });
+        }
+
+        @Override
+        public Publisher<GatewayResponse> invoke() {
+            return invokeUpstream(
+                    match,
+                    normalized,
+                    inbound(),
+                    security,
+                    trace,
+                    observation,
+                    permit
+            )
+                    .map(cors::decorate)
+                    .flatMap(response -> Mono.from(respond(response)));
+        }
+
+        @Override
+        public GatewayOutboundHttpResponse mapFailure(Throwable failure) {
+            failed = true;
+            if (failure instanceof GatewaySecurityException rejected) {
+                return observed(
+                        error(
+                                rejected.httpStatus(),
+                                rejected.code(),
+                                trace.traceId()
+                        ),
+                        observation,
+                        "SECURITY",
+                        "REJECTED",
+                        rejected.code()
+                );
+            }
+            if (failure instanceof GatewayCorsException rejected) {
+                return observed(
+                        error(403, rejected.code(), trace.traceId()),
+                        observation,
+                        "CORS",
+                        "REJECTED",
+                        rejected.code()
+                );
+            }
+            if (failure instanceof GatewayRequestRejectedException rejected) {
+                return observed(
+                        error(
+                                rejected.status(),
+                                rejected.code(),
+                                trace.traceId()
+                        ),
+                        observation,
+                        "RESOURCE",
+                        "REJECTED",
+                        rejected.code()
+                );
+            }
+            if (failure instanceof GatewayRequestBodyTooLargeException
+                    rejected) {
+                return observed(
+                        error(413, rejected.code(), trace.traceId()),
+                        observation,
+                        "RESOURCE",
+                        "REJECTED",
+                        rejected.code()
+                );
+            }
+            if (failure instanceof GatewayResponseBodyTooLargeException
+                    rejected) {
+                return observed(
+                        error(502, rejected.code(), trace.traceId()),
+                        observation,
+                        "UPSTREAM",
+                        "REJECTED",
+                        rejected.code()
+                );
+            }
+            if (failure instanceof GatewayTrafficRejectedException rejected) {
+                observation.governance(
+                        "APPLIED",
+                        rejected.code(),
+                        "REJECT"
+                );
+                return observed(
+                        trafficError(rejected, trace.traceId()),
+                        observation,
+                        "GOVERNANCE",
+                        "REJECTED",
+                        rejected.code()
+                );
+            }
+            if (failure instanceof java.util.concurrent.TimeoutException) {
+                return observed(
+                        error(
+                                504,
+                                "GATEWAY_UPSTREAM_TIMEOUT",
+                                trace.traceId()
+                        ),
+                        observation,
+                        "UPSTREAM",
+                        "TIMEOUT",
+                        "GATEWAY_UPSTREAM_TIMEOUT"
+                );
+            }
+            return observed(
+                    error(
+                            502,
+                            "GATEWAY_UPSTREAM_CONNECT_FAILED",
+                            trace.traceId()
+                    ),
+                    observation,
+                    "UPSTREAM",
+                    "ERROR",
+                    "GATEWAY_UPSTREAM_CONNECT_FAILED"
+            );
+        }
+
+        private boolean failed() {
+            return failed;
+        }
     }
 
     private static final class RetryableHttpStatusException
