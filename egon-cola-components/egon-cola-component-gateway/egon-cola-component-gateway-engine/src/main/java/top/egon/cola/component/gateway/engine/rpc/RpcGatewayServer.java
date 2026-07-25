@@ -1,8 +1,13 @@
 package top.egon.cola.component.gateway.engine.rpc;
 
 import io.grpc.Server;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
+import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
 
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -15,12 +20,27 @@ public final class RpcGatewayServer implements AutoCloseable {
 
     private final RpcGatewayHandlerRegistry registry;
 
+    private final GatewayTransportSecurity transportSecurity;
+
     private Server server;
 
     public RpcGatewayServer(
             int configuredPort,
             int maxInboundMessageBytes,
             RpcGatewayHandlerRegistry registry) {
+        this(
+                configuredPort,
+                maxInboundMessageBytes,
+                registry,
+                GatewayTransportSecurity.developmentPlaintextConfig()
+        );
+    }
+
+    public RpcGatewayServer(
+            int configuredPort,
+            int maxInboundMessageBytes,
+            RpcGatewayHandlerRegistry registry,
+            GatewayTransportSecurity transportSecurity) {
         if (configuredPort < 0 || configuredPort > 65535) {
             throw new IllegalArgumentException("invalid RPC listener port");
         }
@@ -32,6 +52,16 @@ public final class RpcGatewayServer implements AutoCloseable {
         this.configuredPort = configuredPort;
         this.maxInboundMessageBytes = maxInboundMessageBytes;
         this.registry = Objects.requireNonNull(registry, "registry");
+        this.transportSecurity = Objects.requireNonNull(
+                transportSecurity,
+                "transportSecurity"
+        );
+        if (transportSecurity.enabled()
+                && !transportSecurity.clientCertificateRequired()) {
+            throw new IllegalArgumentException(
+                    "RPC Gateway TLS must require a client certificate"
+            );
+        }
     }
 
     public synchronized void start() {
@@ -39,9 +69,14 @@ public final class RpcGatewayServer implements AutoCloseable {
             return;
         }
         try {
-            server = NettyServerBuilder.forPort(configuredPort)
+            NettyServerBuilder builder =
+                    NettyServerBuilder.forPort(configuredPort)
                     .maxInboundMessageSize(maxInboundMessageBytes)
-                    .fallbackHandlerRegistry(registry)
+                    .fallbackHandlerRegistry(registry);
+            if (transportSecurity.enabled()) {
+                builder.sslContext(serverSslContext());
+            }
+            server = builder
                     .build()
                     .start();
         } catch (IOException failure) {
@@ -54,6 +89,14 @@ public final class RpcGatewayServer implements AutoCloseable {
 
     public synchronized int port() {
         return server == null ? -1 : server.getPort();
+    }
+
+    public synchronized void reloadTransportSecurity() {
+        boolean running = server != null;
+        close();
+        if (running) {
+            start();
+        }
     }
 
     @Override
@@ -71,6 +114,27 @@ public final class RpcGatewayServer implements AutoCloseable {
             server.shutdownNow();
         } finally {
             server = null;
+        }
+    }
+
+    private SslContext serverSslContext() {
+        try {
+            return GrpcSslContexts.forServer(
+                            transportSecurity.certificateChainFile().toFile(),
+                            transportSecurity.privateKeyFile().toFile()
+                    )
+                    .trustManager(
+                            transportSecurity
+                                    .trustCertificateCollectionFile()
+                                    .toFile()
+                    )
+                    .clientAuth(ClientAuth.REQUIRE)
+                    .build();
+        } catch (SSLException failure) {
+            throw new IllegalStateException(
+                    "failed to configure RPC Gateway mTLS",
+                    failure
+            );
         }
     }
 }

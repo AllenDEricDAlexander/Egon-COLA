@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.engine;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micrometer.observation.ObservationRegistry;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -64,6 +65,8 @@ import top.egon.cola.component.gateway.engine.rule.GatewayRuleLkgRepository;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleRuntimeStatus;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityChain;
+import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
+import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurityEndpoint;
 import top.egon.cola.component.gateway.engine.security.TrustedClientAddressResolver;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
@@ -337,12 +340,14 @@ public class GatewayEngineConfiguration {
                         new GatewayHttpEngineProperties.Listener(
                                 http.isPublicEnabled(),
                                 http.getPublicHost(),
-                                http.getPublicPort()
+                                http.getPublicPort(),
+                                transportSecurity(http.getPublicTls())
                         ),
                         new GatewayHttpEngineProperties.Listener(
                                 http.isInternalEnabled(),
                                 http.getInternalHost(),
-                                http.getInternalPort()
+                                http.getInternalPort(),
+                                transportSecurity(http.getInternalTls())
                         ),
                         http.getMaxHeaderCount(),
                         http.getMaxHeaderBytes(),
@@ -391,7 +396,8 @@ public class GatewayEngineConfiguration {
     public RpcProviderChannelCache gatewayRpcProviderChannels(
             GatewayEngineRuntimeProperties properties) {
         return new RpcProviderChannelCache(
-                properties.getRpc().getChannelDrainTimeout()
+                properties.getRpc().getChannelDrainTimeout(),
+                transportSecurity(properties.getRpc().getTls())
         );
     }
 
@@ -471,8 +477,38 @@ public class GatewayEngineConfiguration {
         return new RpcGatewayServer(
                 properties.getRpc().getPort(),
                 properties.getRpc().getMaxInboundMessageBytes(),
-                registry
+                registry,
+                transportSecurity(properties.getRpc().getTls())
         );
+    }
+
+    @Bean
+    public GatewayTransportSecurityEndpoint gatewayTransportSecurityEndpoint(
+            GatewayHttpServer httpServer,
+            RpcGatewayServer rpcServer) {
+        return new GatewayTransportSecurityEndpoint(httpServer, rpcServer);
+    }
+
+    @Bean
+    public MeterBinder gatewayTlsCertificateMetrics(
+            GatewayEngineRuntimeProperties properties) {
+        return registry -> {
+            registerCertificateExpiry(
+                    registry,
+                    "public-http",
+                    transportSecurity(properties.getHttp().getPublicTls())
+            );
+            registerCertificateExpiry(
+                    registry,
+                    "internal-http",
+                    transportSecurity(properties.getHttp().getInternalTls())
+            );
+            registerCertificateExpiry(
+                    registry,
+                    "rpc",
+                    transportSecurity(properties.getRpc().getTls())
+            );
+        };
     }
 
     @Bean
@@ -494,6 +530,7 @@ public class GatewayEngineConfiguration {
                         properties.getGatewayGroupCode(),
                         "5.2.3",
                         "5.2.3",
+                        rpc.getTls().isEnabled(),
                         rpc.getLeaseSeconds(),
                         rpc.getHeartbeatIntervalSeconds()
                 )
@@ -532,6 +569,38 @@ public class GatewayEngineConfiguration {
                     "lastAckAt", status.updatedAt().toString()
             );
         };
+    }
+
+    private GatewayTransportSecurity transportSecurity(
+            GatewayEngineRuntimeProperties.Tls tls) {
+        return new GatewayTransportSecurity(
+                tls.isEnabled(),
+                tls.isDevelopmentPlaintext(),
+                tls.getCertificateChainPath(),
+                tls.getPrivateKeyPath(),
+                tls.getTrustCertificateCollectionPath(),
+                tls.isClientCertificateRequired()
+        );
+    }
+
+    private void registerCertificateExpiry(
+            MeterRegistry registry,
+            String listener,
+            GatewayTransportSecurity security) {
+        if (!security.enabled()) {
+            return;
+        }
+        registry.gauge(
+                "gateway.tls.certificate.expiry.epoch.seconds",
+                List.of(
+                        io.micrometer.core.instrument.Tag.of(
+                                "listener",
+                                listener
+                        )
+                ),
+                security,
+                GatewayTransportSecurity::certificateExpiryEpochSeconds
+        );
     }
 
     @Bean

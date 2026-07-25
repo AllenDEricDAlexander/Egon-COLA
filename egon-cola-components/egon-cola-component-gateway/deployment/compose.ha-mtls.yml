@@ -1,0 +1,50 @@
+name: egon-cola-gateway
+
+services:
+  ddc-admin-2:
+    environment:
+      EGON_COLA_COMPONENT_DDC_ADMIN_TRANSPORT_SECURITY_MODE: MTLS
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_CLIENT_AUTH: need
+      SERVER_SSL_BUNDLE: management
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_RELOAD_ON_UPDATE: "true"
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_CERTIFICATE: file:/run/egon-tls/ddc-admin-2.crt
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_PRIVATE_KEY: file:/run/egon-tls/ddc-admin-2.key
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_TRUSTSTORE_CERTIFICATE: file:/run/egon-tls/ca.crt
+    volumes:
+      - ${GATEWAY_TLS_DIRECTORY:?set GATEWAY_TLS_DIRECTORY}:/run/egon-tls:ro
+
+  gateway-admin:
+    environment:
+      GATEWAY_ADMIN_DDC_ENDPOINT: https://control-plane-proxy:18070
+
+  gateway-admin-2:
+    environment:
+      GATEWAY_ADMIN_TRANSPORT_SECURITY_MODE: MTLS
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_CLIENT_AUTH: need
+      SERVER_SSL_BUNDLE: management
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_RELOAD_ON_UPDATE: "true"
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_CERTIFICATE: file:/run/egon-tls/gateway-admin-2.crt
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_PRIVATE_KEY: file:/run/egon-tls/gateway-admin-2.key
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_TRUSTSTORE_CERTIFICATE: file:/run/egon-tls/ca.crt
+      GATEWAY_ADMIN_DDC_ENDPOINT: https://control-plane-proxy:18070
+      GATEWAY_ADMIN_DDC_TLS_ENABLED: "true"
+      GATEWAY_ADMIN_DDC_TLS_DEVELOPMENT_PLAINTEXT: "false"
+      GATEWAY_ADMIN_DDC_TLS_CERTIFICATE_CHAIN_PATH: /run/egon-tls/gateway-admin-2.crt
+      GATEWAY_ADMIN_DDC_TLS_PRIVATE_KEY_PATH: /run/egon-tls/gateway-admin-2.key
+      GATEWAY_ADMIN_DDC_TLS_TRUST_CERTIFICATE_COLLECTION_PATH: /run/egon-tls/ca.crt
+    volumes:
+      - ${GATEWAY_TLS_DIRECTORY:?set GATEWAY_TLS_DIRECTORY}:/run/egon-tls:ro
+
+  gateway-engine:
+    environment:
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: https://control-plane-proxy:18070
+
+  gateway-engine-2:
+    environment:
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: https://control-plane-proxy:18070
+
+  gateway-admin-web:
+    environment:
+      GATEWAY_ADMIN_API_BASE_URL: https://control-plane-proxy:18080

@@ -131,7 +131,7 @@ public class EgonRpcAutoConfig {
         return new RpcProviderLifecycle(
                 methodRegistry,
                 new RpcServerServiceDefinitionFactory(availability),
-                new RpcProviderServerFactory(),
+                new RpcProviderServerFactory(transportSecurity(properties)),
                 leaseManager,
                 availability,
                 new RpcProviderServerInterceptor(),
@@ -152,7 +152,7 @@ public class EgonRpcAutoConfig {
             RpcProcessIdentity processIdentity) {
         return new RpcConsumerGatewayManager(
                 registryClient,
-                new RpcConsumerChannelFactory(),
+                new RpcConsumerChannelFactory(transportSecurity(properties)),
                 properties,
                 processIdentity
         );
@@ -187,5 +187,17 @@ public class EgonRpcAutoConfig {
     public EgonRpcReferenceBeanPostProcessor egonRpcReferenceBeanPostProcessor(
             RpcConsumerProxyFactory proxyFactory) {
         return new EgonRpcReferenceBeanPostProcessor(proxyFactory);
+    }
+
+    private RpcTransportSecurity transportSecurity(
+            EgonRpcProperties properties) {
+        EgonRpcProperties.Tls tls = properties.getTls();
+        return new RpcTransportSecurity(
+                tls.isEnabled(),
+                tls.isDevelopmentPlaintext(),
+                tls.getCertificateChainPath(),
+                tls.getPrivateKeyPath(),
+                tls.getTrustCertificateCollectionPath()
+        );
     }
 }

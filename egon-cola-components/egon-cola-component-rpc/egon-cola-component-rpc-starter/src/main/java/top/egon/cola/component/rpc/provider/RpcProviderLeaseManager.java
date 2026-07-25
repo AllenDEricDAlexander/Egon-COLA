@@ -27,6 +27,8 @@ public class RpcProviderLeaseManager {
 
     private final EgonRpcProperties.Provider properties;
 
+    private final boolean secure;
+
     private final RpcProcessIdentity processIdentity;
 
     private final String runtimeVersion;
@@ -67,6 +69,7 @@ public class RpcProviderLeaseManager {
         this.registryClient = registryClient;
         this.availability = availability;
         this.properties = properties.getProvider();
+        this.secure = properties.getTls().isEnabled();
         this.processIdentity = processIdentity;
         this.runtimeVersion = runtimeVersion;
         this.metadataMerger = metadataMerger;
@@ -93,7 +96,7 @@ public class RpcProviderLeaseManager {
                     serviceKey,
                     advertisedHost,
                     advertisedPort,
-                    false,
+                    secure,
                     registrationMetadata(service),
                     properties.getLeaseSeconds(),
                     properties.getHeartbeatIntervalSeconds()

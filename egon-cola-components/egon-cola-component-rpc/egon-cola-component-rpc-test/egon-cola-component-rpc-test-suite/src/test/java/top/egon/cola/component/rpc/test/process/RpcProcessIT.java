@@ -290,11 +290,14 @@ class RpcProcessIT {
                         "--egon.cola.component.ddc.registry.enabled=true",
                         "--egon.cola.component.ddc.admin.endpoint="
                                 + adminEndpoint,
+                        "--egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext=true",
                         "--egon.cola.component.ddc.redis.host=" + redisHost,
                         "--egon.cola.component.ddc.redis.port=" + redisPort,
                         "--egon.cola.component.ddc.env=" + env,
                         "--egon.cola.component.ddc.namespace=" + namespace,
                         "--egon.cola.component.rpc.enabled=true",
+                        "--egon.cola.component.rpc.tls.development-plaintext=true",
                         "--egon.cola.component.rpc.provider.lease-seconds=60",
                         "--egon.cola.component.rpc.provider.heartbeat-interval-seconds=10",
                         "--egon.cola.component.rpc.consumer.gateway-discovery-timeout-ms=15000",

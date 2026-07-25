@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
+import top.egon.cola.component.ddc.management.client.DdcClientTransportSecurity;
 import top.egon.cola.component.ddc.management.client.DdcManagementClientProperties;
 import top.egon.cola.component.ddc.management.client.HttpDdcManagementClient;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayCallEventIngestService;
@@ -34,6 +35,21 @@ import java.time.Duration;
 @EnableScheduling
 public class GatewayAdminConfiguration {
 
+    @Value("${gateway.admin.ddc.tls.enabled:false}")
+    private boolean ddcTlsEnabled;
+
+    @Value("${gateway.admin.ddc.tls.development-plaintext:false}")
+    private boolean ddcDevelopmentPlaintext = true;
+
+    @Value("${gateway.admin.ddc.tls.certificate-chain-path:}")
+    private String ddcCertificateChainPath = "";
+
+    @Value("${gateway.admin.ddc.tls.private-key-path:}")
+    private String ddcPrivateKeyPath = "";
+
+    @Value("${gateway.admin.ddc.tls.trust-certificate-collection-path:}")
+    private String ddcTrustCertificateCollectionPath = "";
+
     @Bean
     @ConditionalOnProperty(
             name = "gateway.admin.ddc.enabled",
@@ -53,7 +69,14 @@ public class GatewayAdminConfiguration {
                         accessKey,
                         secretKey,
                         connectTimeout,
-                        readTimeout
+                        readTimeout,
+                        new DdcClientTransportSecurity(
+                                ddcTlsEnabled,
+                                ddcDevelopmentPlaintext,
+                                ddcCertificateChainPath,
+                                ddcPrivateKeyPath,
+                                ddcTrustCertificateCollectionPath
+                        )
                 )
         );
     }

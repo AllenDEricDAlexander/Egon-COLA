@@ -856,6 +856,11 @@ class GatewayLiveTopologyIT {
                         ddcBase
                 )
                 .argument(
+                        "egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext",
+                        true
+                )
+                .argument(
                         "egon.cola.component.ddc.admin.signature-enabled",
                         true
                 )
@@ -953,6 +958,11 @@ class GatewayLiveTopologyIT {
                         ddcBase
                 )
                 .argument(
+                        "egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext",
+                        true
+                )
+                .argument(
                         "egon.cola.component.ddc.admin.signature-enabled",
                         true
                 )
@@ -966,6 +976,10 @@ class GatewayLiveTopologyIT {
                 )
                 .argument("egon.cola.component.ddc.registry.enabled", true)
                 .argument("egon.cola.component.rpc.enabled", true)
+                .argument(
+                        "egon.cola.component.rpc.tls.development-plaintext",
+                        true
+                )
                 .argument(
                         "egon.cola.component.rpc.provider.enabled",
                         true
@@ -1063,6 +1077,11 @@ class GatewayLiveTopologyIT {
                         ddcBase
                 )
                 .argument(
+                        "egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext",
+                        true
+                )
+                .argument(
                         "egon.cola.component.ddc.admin.signature-enabled",
                         true
                 )
@@ -1075,6 +1094,10 @@ class GatewayLiveTopologyIT {
                         DDC_SECRET_KEY
                 )
                 .argument("egon.cola.component.rpc.enabled", true)
+                .argument(
+                        "egon.cola.component.rpc.tls.development-plaintext",
+                        true
+                )
                 .argument(
                         "egon.cola.component.rpc.consumer.enabled",
                         true
@@ -1172,6 +1195,11 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.ddc.admin.endpoint",
                         ddcBase
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.tls."
+                                + "development-plaintext",
+                        true
                 )
                 .argument(
                         "egon.cola.component.ddc.admin.signature-enabled",

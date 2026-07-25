@@ -1,11 +1,38 @@
-import { createReadStream, statSync } from 'node:fs'
+import { createReadStream, readFileSync, statSync } from 'node:fs'
 import { createServer, request as proxyRequest } from 'node:http'
+import { request as secureProxyRequest } from 'node:https'
 import { extname, join, normalize } from 'node:path'
 
 const port = Number.parseInt(process.env.PORT ?? '8080', 10)
 const apiBase = new URL(
   process.env.GATEWAY_ADMIN_API_BASE_URL ?? 'http://gateway-admin:18080',
 )
+const developmentPlaintext =
+  process.env.GATEWAY_ADMIN_API_DEVELOPMENT_PLAINTEXT === 'true'
+const tlsFile = (name) => {
+  const path = process.env[name]
+  if (!path) {
+    throw new Error(`${name} is required for Gateway Admin mTLS`)
+  }
+  return readFileSync(path)
+}
+if (apiBase.protocol === 'http:' && !developmentPlaintext) {
+  throw new Error(
+    'Gateway Admin plaintext requires explicit development configuration',
+  )
+}
+if (!['http:', 'https:'].includes(apiBase.protocol)) {
+  throw new Error('Gateway Admin API must use HTTP or HTTPS')
+}
+const apiTls = apiBase.protocol === 'https:'
+  ? {
+      ca: tlsFile('GATEWAY_ADMIN_API_TLS_CA_PATH'),
+      cert: tlsFile('GATEWAY_ADMIN_API_TLS_CERTIFICATE_PATH'),
+      key: tlsFile('GATEWAY_ADMIN_API_TLS_PRIVATE_KEY_PATH'),
+      rejectUnauthorized: true,
+      servername: apiBase.hostname,
+    }
+  : {}
 const root = '/app/dist'
 const contentTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -19,11 +46,15 @@ const contentTypes = new Map([
 ])
 
 const proxy = (incoming, outgoing) => {
-  const upstream = proxyRequest(
+  const request = apiBase.protocol === 'https:'
+    ? secureProxyRequest
+    : proxyRequest
+  const upstream = request(
     new URL(incoming.url, apiBase),
     {
       method: incoming.method,
       headers: { ...incoming.headers, host: apiBase.host },
+      ...apiTls,
     },
     (response) => {
       outgoing.writeHead(response.statusCode ?? 502, response.headers)

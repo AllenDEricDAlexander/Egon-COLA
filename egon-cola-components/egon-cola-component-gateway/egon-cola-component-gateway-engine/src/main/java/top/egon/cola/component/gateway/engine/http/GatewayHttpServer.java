@@ -88,6 +88,22 @@ public final class GatewayHttpServer implements AutoCloseable {
         return internalListener.port();
     }
 
+    public synchronized void reloadTransportSecurity() {
+        beginDrain();
+        awaitDrain();
+        publicListener.close();
+        internalListener.close();
+        try {
+            publicListener.start();
+            internalListener.start();
+            accepting.set(true);
+        } catch (RuntimeException failure) {
+            publicListener.close();
+            internalListener.close();
+            throw failure;
+        }
+    }
+
     @Override
     public void close() {
         beginDrain();

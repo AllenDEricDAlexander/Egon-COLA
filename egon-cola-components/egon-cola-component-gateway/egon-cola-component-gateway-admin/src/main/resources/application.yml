@@ -24,6 +24,8 @@ management:
 
 gateway:
   admin:
+    transport-security:
+      mode: DEVELOPMENT_PLAINTEXT
     security:
       issuer: ${GATEWAY_ADMIN_JWT_ISSUER:}
       jwk-set-uri: ${GATEWAY_ADMIN_JWT_JWK_SET_URI:}
@@ -34,6 +36,9 @@ gateway:
       secret-key:
       connect-timeout: 3s
       read-timeout: 10s
+      tls:
+        enabled: false
+        development-plaintext: true
     hmac:
       allowed-skew: 5m
     observability:

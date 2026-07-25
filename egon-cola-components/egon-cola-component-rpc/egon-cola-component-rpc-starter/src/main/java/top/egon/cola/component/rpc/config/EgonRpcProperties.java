@@ -14,6 +14,8 @@ public class EgonRpcProperties {
 
     private Consumer consumer = new Consumer();
 
+    private Tls tls = new Tls();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -36,6 +38,14 @@ public class EgonRpcProperties {
 
     public void setConsumer(Consumer consumer) {
         this.consumer = consumer;
+    }
+
+    public Tls getTls() {
+        return tls;
+    }
+
+    public void setTls(Tls tls) {
+        this.tls = tls;
     }
 
     public static class Provider {
@@ -221,6 +231,61 @@ public class EgonRpcProperties {
 
         public void setGatewayMaxAttempts(int gatewayMaxAttempts) {
             this.gatewayMaxAttempts = gatewayMaxAttempts;
+        }
+    }
+
+    public static class Tls {
+
+        private boolean enabled;
+
+        private boolean developmentPlaintext;
+
+        private String certificateChainPath;
+
+        private String privateKeyPath;
+
+        private String trustCertificateCollectionPath;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isDevelopmentPlaintext() {
+            return developmentPlaintext;
+        }
+
+        public void setDevelopmentPlaintext(boolean developmentPlaintext) {
+            this.developmentPlaintext = developmentPlaintext;
+        }
+
+        public String getCertificateChainPath() {
+            return certificateChainPath;
+        }
+
+        public void setCertificateChainPath(String certificateChainPath) {
+            this.certificateChainPath = certificateChainPath;
+        }
+
+        public String getPrivateKeyPath() {
+            return privateKeyPath;
+        }
+
+        public void setPrivateKeyPath(String privateKeyPath) {
+            this.privateKeyPath = privateKeyPath;
+        }
+
+        public String getTrustCertificateCollectionPath() {
+            return trustCertificateCollectionPath;
+        }
+
+        public void setTrustCertificateCollectionPath(
+                String trustCertificateCollectionPath) {
+            this.trustCertificateCollectionPath =
+                    trustCertificateCollectionPath;
         }
     }
 }

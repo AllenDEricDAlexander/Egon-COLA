@@ -1,11 +1,16 @@
 package top.egon.cola.component.gateway.engine.http;
 
 import io.netty.buffer.ByteBufUtil;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
+import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
 
+import javax.net.ssl.SSLException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -36,9 +41,34 @@ public final class GatewayHttpListener implements AutoCloseable {
         if (!properties.enabled() || server != null) {
             return;
         }
-        server = HttpServer.create()
+        HttpServer httpServer = HttpServer.create()
                 .host(properties.host())
-                .port(properties.port())
+                .port(properties.port());
+        GatewayTransportSecurity security =
+                properties.transportSecurity();
+        if (security.enabled()) {
+            try {
+                SslContextBuilder context = SslContextBuilder.forServer(
+                        security.certificateChainFile().toFile(),
+                        security.privateKeyFile().toFile()
+                );
+                if (security.clientCertificateRequired()) {
+                    context.trustManager(
+                            security.trustCertificateCollectionFile().toFile()
+                    ).clientAuth(ClientAuth.REQUIRE);
+                }
+                SslContext sslContext = context.build();
+                httpServer = httpServer.secure(spec ->
+                        spec.sslContext(sslContext)
+                );
+            } catch (SSLException failure) {
+                throw new IllegalStateException(
+                        "failed to configure " + accessZone + " HTTP TLS",
+                        failure
+                );
+            }
+        }
+        server = httpServer
                 .handle((request, response) -> {
                     Map<String, List<String>> headers = new LinkedHashMap<>();
                     request.requestHeaders().forEach(entry ->

@@ -204,6 +204,7 @@ services:
     environment:
       PORT: 8080
       GATEWAY_ADMIN_API_BASE_URL: http://gateway-admin:18080
+      GATEWAY_ADMIN_API_DEVELOPMENT_PLAINTEXT: "true"
     depends_on:
       gateway-admin:
         condition: service_started

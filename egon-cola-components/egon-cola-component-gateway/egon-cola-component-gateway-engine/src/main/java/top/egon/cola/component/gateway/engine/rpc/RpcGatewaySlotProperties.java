@@ -12,9 +12,42 @@ public record RpcGatewaySlotProperties(
         String gatewayGroupCode,
         String gatewayVersion,
         String rpcRuntimeVersion,
+        boolean secure,
         int leaseSeconds,
         int heartbeatIntervalSeconds
 ) {
+
+    public RpcGatewaySlotProperties(
+            boolean enabled,
+            String env,
+            String namespace,
+            String instanceId,
+            String advertisedHost,
+            String serviceName,
+            String group,
+            String version,
+            String gatewayGroupCode,
+            String gatewayVersion,
+            String rpcRuntimeVersion,
+            int leaseSeconds,
+            int heartbeatIntervalSeconds) {
+        this(
+                enabled,
+                env,
+                namespace,
+                instanceId,
+                advertisedHost,
+                serviceName,
+                group,
+                version,
+                gatewayGroupCode,
+                gatewayVersion,
+                rpcRuntimeVersion,
+                false,
+                leaseSeconds,
+                heartbeatIntervalSeconds
+        );
+    }
 
     public RpcGatewaySlotProperties {
         env = required(env, "env");

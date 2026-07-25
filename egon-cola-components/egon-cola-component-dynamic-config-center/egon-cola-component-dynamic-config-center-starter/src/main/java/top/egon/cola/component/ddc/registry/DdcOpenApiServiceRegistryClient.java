@@ -13,6 +13,8 @@ import top.egon.cola.component.common.result.dto.ResultDto;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.management.client.DdcClientTransportSecurity;
+import top.egon.cola.component.ddc.management.client.DdcRestClientFactory;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -67,7 +69,33 @@ public final class DdcOpenApiServiceRegistryClient
                                            RedissonClient redissonClient) {
         this.properties = properties;
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.restClient = RestClient.builder()
+        DdcProperties.Admin admin = properties.getAdmin();
+        DdcProperties.Tls tls = admin.getTls();
+        DdcClientTransportSecurity transportSecurity =
+                new DdcClientTransportSecurity(
+                        tls.isEnabled(),
+                        tls.isDevelopmentPlaintext(),
+                        tls.getCertificateChainPath(),
+                        tls.getPrivateKeyPath(),
+                        tls.getTrustCertificateCollectionPath()
+                );
+        if (transportSecurity.enabled()
+                && !admin.getEndpoint().startsWith("https://")) {
+            throw new IllegalArgumentException(
+                    "DDC mTLS endpoint must use HTTPS"
+            );
+        }
+        if (!transportSecurity.enabled()
+                && !admin.getEndpoint().startsWith("http://")) {
+            throw new IllegalArgumentException(
+                    "DDC HTTPS endpoint requires configured mTLS"
+            );
+        }
+        this.restClient = DdcRestClientFactory.create(
+                        admin.getConnectTimeout(),
+                        admin.getReadTimeout(),
+                        transportSecurity
+                )
                 .baseUrl(properties.getAdmin().getEndpoint())
                 .messageConverters(converters -> {
                     converters.removeIf(MappingJackson2HttpMessageConverter.class::isInstance);

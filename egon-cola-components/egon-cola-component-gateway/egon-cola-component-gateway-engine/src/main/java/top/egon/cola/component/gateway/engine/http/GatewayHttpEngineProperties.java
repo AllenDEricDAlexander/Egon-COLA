@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.engine.http;
 
+import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
+
 import java.time.Duration;
 import java.util.Objects;
 
@@ -34,6 +36,14 @@ public record GatewayHttpEngineProperties(
                     "at least one HTTP listener must be enabled"
             );
         }
+        if (internalListener.enabled()
+                && internalListener.transportSecurity().enabled()
+                && !internalListener.transportSecurity()
+                .clientCertificateRequired()) {
+            throw new IllegalArgumentException(
+                    "INTERNAL HTTP TLS must require a client certificate"
+            );
+        }
         if (maxHeaderCount < 1 || maxHeaderBytes < 256) {
             throw new IllegalArgumentException("invalid HTTP header limits");
         }
@@ -56,7 +66,21 @@ public record GatewayHttpEngineProperties(
         }
     }
 
-    public record Listener(boolean enabled, String host, int port) {
+    public record Listener(
+            boolean enabled,
+            String host,
+            int port,
+            GatewayTransportSecurity transportSecurity
+    ) {
+
+        public Listener(boolean enabled, String host, int port) {
+            this(
+                    enabled,
+                    host,
+                    port,
+                    GatewayTransportSecurity.developmentPlaintextConfig()
+            );
+        }
 
         public Listener {
             if (host == null || host.isBlank()) {
@@ -67,6 +91,10 @@ public record GatewayHttpEngineProperties(
                         "listener port must be between 0 and 65535"
                 );
             }
+            transportSecurity = Objects.requireNonNull(
+                    transportSecurity,
+                    "transportSecurity"
+            );
         }
     }
 

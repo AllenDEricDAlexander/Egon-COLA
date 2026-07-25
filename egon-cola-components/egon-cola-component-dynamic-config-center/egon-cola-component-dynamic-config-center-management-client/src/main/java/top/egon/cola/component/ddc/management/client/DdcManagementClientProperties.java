@@ -8,8 +8,25 @@ public record DdcManagementClientProperties(
         String accessKey,
         String secretKey,
         Duration connectTimeout,
-        Duration readTimeout
+        Duration readTimeout,
+        DdcClientTransportSecurity transportSecurity
 ) {
+
+    public DdcManagementClientProperties(
+            String endpoint,
+            String accessKey,
+            String secretKey,
+            Duration connectTimeout,
+            Duration readTimeout) {
+        this(
+                endpoint,
+                accessKey,
+                secretKey,
+                connectTimeout,
+                readTimeout,
+                DdcClientTransportSecurity.developmentPlaintextConfig()
+        );
+    }
 
     public DdcManagementClientProperties {
         endpoint = normalizeEndpoint(endpoint);
@@ -17,6 +34,23 @@ public record DdcManagementClientProperties(
         requireText(secretKey, "secretKey");
         connectTimeout = requirePositive(connectTimeout, "connectTimeout");
         readTimeout = requirePositive(readTimeout, "readTimeout");
+        if (transportSecurity == null) {
+            throw new IllegalArgumentException(
+                    "transportSecurity is required"
+            );
+        }
+        if (transportSecurity.enabled()
+                && !endpoint.startsWith("https://")) {
+            throw new IllegalArgumentException(
+                    "DDC mTLS endpoint must use HTTPS"
+            );
+        }
+        if (!transportSecurity.enabled()
+                && !endpoint.startsWith("http://")) {
+            throw new IllegalArgumentException(
+                    "DDC HTTPS endpoint requires configured mTLS"
+            );
+        }
     }
 
     @Override
@@ -29,6 +63,8 @@ public record DdcManagementClientProperties(
                 + connectTimeout
                 + ", readTimeout="
                 + readTimeout
+                + ", transportSecurity="
+                + (transportSecurity.enabled() ? "MTLS" : "DEVELOPMENT")
                 + "]";
     }
 

@@ -3,11 +3,23 @@ package top.egon.cola.component.rpc.consumer;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import top.egon.cola.component.rpc.config.RpcTransportSecurity;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class RpcConsumerChannelFactory {
+
+    private final RpcTransportSecurity transportSecurity;
+
+    public RpcConsumerChannelFactory() {
+        this(RpcTransportSecurity.developmentPlaintextConfig());
+    }
+
+    public RpcConsumerChannelFactory(
+            RpcTransportSecurity transportSecurity) {
+        this.transportSecurity = transportSecurity;
+    }
 
     public ManagedChannel create(RpcGatewayEndpoint endpoint) {
         NettyChannelBuilder builder = NettyChannelBuilder.forAddress(
@@ -15,8 +27,18 @@ public class RpcConsumerChannelFactory {
                 endpoint.port()
         ).disableRetry();
         if (endpoint.secure()) {
-            builder.useTransportSecurity();
+            if (!transportSecurity.enabled()) {
+                throw new IllegalStateException(
+                        "secure RPC Gateway requires configured mTLS material"
+                );
+            }
+            builder.sslContext(transportSecurity.clientContext());
         } else {
+            if (transportSecurity.enabled()) {
+                throw new IllegalStateException(
+                        "plaintext RPC Gateway rejected while mTLS is enabled"
+                );
+            }
             builder.usePlaintext();
         }
         return builder.build();

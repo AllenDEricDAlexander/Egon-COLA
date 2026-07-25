@@ -10,6 +10,7 @@ FROM node:22-alpine
 
 ENV PORT=8080
 ENV GATEWAY_ADMIN_API_BASE_URL=http://gateway-admin:18080
+ENV GATEWAY_ADMIN_API_DEVELOPMENT_PLAINTEXT=true
 
 WORKDIR /app
 COPY --from=build --chown=node:node /workspace/dist /app/dist

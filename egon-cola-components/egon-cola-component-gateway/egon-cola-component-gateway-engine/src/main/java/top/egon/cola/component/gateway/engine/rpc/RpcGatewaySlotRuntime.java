@@ -66,7 +66,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                 ),
                 properties.advertisedHost(),
                 actualPort,
-                false,
+                properties.secure(),
                 Map.of(
                         "egon.rpc.transport", "grpc",
                         "egon.rpc.serialization", "protobuf",

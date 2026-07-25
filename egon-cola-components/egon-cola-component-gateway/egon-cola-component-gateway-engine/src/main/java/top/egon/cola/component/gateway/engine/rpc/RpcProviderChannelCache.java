@@ -1,9 +1,12 @@
 package top.egon.cola.component.gateway.engine.rpc;
 
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
+import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
 
+import javax.net.ssl.SSLException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +26,19 @@ public final class RpcProviderChannelCache implements AutoCloseable {
     private final Duration drainTimeout;
 
     public RpcProviderChannelCache(Duration drainTimeout) {
-        this(drainTimeout, RpcProviderChannelCache::createChannel);
+        this(
+                drainTimeout,
+                GatewayTransportSecurity.developmentPlaintextConfig()
+        );
+    }
+
+    public RpcProviderChannelCache(
+            Duration drainTimeout,
+            GatewayTransportSecurity transportSecurity) {
+        this(
+                drainTimeout,
+                key -> createChannel(key, transportSecurity)
+        );
     }
 
     RpcProviderChannelCache(
@@ -103,10 +118,46 @@ public final class RpcProviderChannelCache implements AutoCloseable {
         }
     }
 
-    private static ManagedChannel createChannel(RpcProviderChannelKey key) {
-        ManagedChannelBuilder<?> builder = ManagedChannelBuilder
-                .forAddress(key.host(), key.port());
-        if (!key.secure()) {
+    private static ManagedChannel createChannel(
+            RpcProviderChannelKey key,
+            GatewayTransportSecurity transportSecurity) {
+        NettyChannelBuilder builder = NettyChannelBuilder
+                .forAddress(key.host(), key.port())
+                .disableRetry();
+        if (key.secure()) {
+            if (!transportSecurity.enabled()) {
+                throw new IllegalStateException(
+                        "secure RPC Provider requires configured mTLS material"
+                );
+            }
+            try {
+                builder.sslContext(GrpcSslContexts.forClient()
+                        .trustManager(
+                                transportSecurity
+                                        .trustCertificateCollectionFile()
+                                        .toFile()
+                        )
+                        .keyManager(
+                                transportSecurity
+                                        .certificateChainFile()
+                                        .toFile(),
+                                transportSecurity
+                                        .privateKeyFile()
+                                        .toFile()
+                        )
+                        .build());
+            } catch (SSLException failure) {
+                throw new IllegalStateException(
+                        "failed to configure RPC Provider mTLS",
+                        failure
+                );
+            }
+        } else {
+            if (transportSecurity.enabled()) {
+                throw new IllegalStateException(
+                        "plaintext RPC Provider rejected while mTLS is enabled"
+                );
+            }
             builder.usePlaintext();
         }
         return builder.build();

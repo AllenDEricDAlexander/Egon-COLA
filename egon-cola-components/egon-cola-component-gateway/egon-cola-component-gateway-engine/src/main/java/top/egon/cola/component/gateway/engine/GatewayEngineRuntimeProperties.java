@@ -149,6 +149,10 @@ public class GatewayEngineRuntimeProperties {
 
         private int upstreamPendingAcquireMaxCount = 1024;
 
+        private Tls publicTls = new Tls();
+
+        private Tls internalTls = new Tls();
+
         public boolean isPublicEnabled() {
             return publicEnabled;
         }
@@ -262,6 +266,22 @@ public class GatewayEngineRuntimeProperties {
             this.upstreamPendingAcquireMaxCount =
                     upstreamPendingAcquireMaxCount;
         }
+
+        public Tls getPublicTls() {
+            return publicTls;
+        }
+
+        public void setPublicTls(Tls publicTls) {
+            this.publicTls = publicTls;
+        }
+
+        public Tls getInternalTls() {
+            return internalTls;
+        }
+
+        public void setInternalTls(Tls internalTls) {
+            this.internalTls = internalTls;
+        }
     }
 
     public static class Rpc {
@@ -287,6 +307,8 @@ public class GatewayEngineRuntimeProperties {
         private int leaseSeconds = 30;
 
         private int heartbeatIntervalSeconds = 10;
+
+        private Tls tls = new Tls();
 
         public boolean isEnabled() {
             return enabled;
@@ -375,6 +397,80 @@ public class GatewayEngineRuntimeProperties {
         public void setHeartbeatIntervalSeconds(
                 int heartbeatIntervalSeconds) {
             this.heartbeatIntervalSeconds = heartbeatIntervalSeconds;
+        }
+
+        public Tls getTls() {
+            return tls;
+        }
+
+        public void setTls(Tls tls) {
+            this.tls = tls;
+        }
+    }
+
+    public static class Tls {
+
+        private boolean enabled;
+
+        private boolean developmentPlaintext;
+
+        private String certificateChainPath;
+
+        private String privateKeyPath;
+
+        private String trustCertificateCollectionPath;
+
+        private boolean clientCertificateRequired;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isDevelopmentPlaintext() {
+            return developmentPlaintext;
+        }
+
+        public void setDevelopmentPlaintext(boolean developmentPlaintext) {
+            this.developmentPlaintext = developmentPlaintext;
+        }
+
+        public String getCertificateChainPath() {
+            return certificateChainPath;
+        }
+
+        public void setCertificateChainPath(String certificateChainPath) {
+            this.certificateChainPath = certificateChainPath;
+        }
+
+        public String getPrivateKeyPath() {
+            return privateKeyPath;
+        }
+
+        public void setPrivateKeyPath(String privateKeyPath) {
+            this.privateKeyPath = privateKeyPath;
+        }
+
+        public String getTrustCertificateCollectionPath() {
+            return trustCertificateCollectionPath;
+        }
+
+        public void setTrustCertificateCollectionPath(
+                String trustCertificateCollectionPath) {
+            this.trustCertificateCollectionPath =
+                    trustCertificateCollectionPath;
+        }
+
+        public boolean isClientCertificateRequired() {
+            return clientCertificateRequired;
+        }
+
+        public void setClientCertificateRequired(
+                boolean clientCertificateRequired) {
+            this.clientCertificateRequired = clientCertificateRequired;
         }
     }
 
