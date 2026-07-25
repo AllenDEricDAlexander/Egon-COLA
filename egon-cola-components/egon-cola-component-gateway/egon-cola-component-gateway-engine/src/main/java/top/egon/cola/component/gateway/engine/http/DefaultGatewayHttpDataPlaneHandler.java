@@ -16,13 +16,22 @@ import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
 import top.egon.cola.component.gateway.engine.traffic.GatewayRequestResourceGuard;
 import top.egon.cola.component.gateway.engine.traffic.GatewayResourceLimits;
+import top.egon.cola.component.gateway.engine.traffic.GatewayAttemptExecutor;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficContext;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficRejectedException;
+import top.egon.cola.component.gateway.engine.traffic.ProviderCallClassification;
 
 import java.io.ByteArrayOutputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public final class DefaultGatewayHttpDataPlaneHandler
@@ -46,6 +55,11 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private final GatewayCallCompletionListener completionListener;
 
+    private final GatewayTrafficGovernance trafficGovernance;
+
+    private final GatewayAttemptExecutor attemptExecutor =
+            new GatewayAttemptExecutor();
+
     private final String engineNodeId;
 
     private final TrustedIdentitySanitizer identitySanitizer =
@@ -68,9 +82,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 (zone, request, normalized, route, traceId) ->
                         Mono.just(
                                 GatewayHttpSecurityProcessor.Outcome.anonymous()
-                        ),
+                ),
                 GatewayCallCompletionListener.noop(),
-                "unknown-engine"
+                "unknown-engine",
+                GatewayTrafficGovernance.noop()
         );
     }
 
@@ -91,7 +106,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 upstreamTimeout,
                 securityProcessor,
                 GatewayCallCompletionListener.noop(),
-                "unknown-engine"
+                "unknown-engine",
+                GatewayTrafficGovernance.noop()
         );
     }
 
@@ -105,6 +121,31 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayHttpSecurityProcessor securityProcessor,
             GatewayCallCompletionListener completionListener,
             String engineNodeId) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                GatewayTrafficGovernance.noop()
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -131,6 +172,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
         this.engineNodeId = Objects.requireNonNull(
                 engineNodeId,
                 "engineNodeId"
+        );
+        this.trafficGovernance = Objects.requireNonNull(
+                trafficGovernance,
+                "trafficGovernance"
         );
         resourceGuard = new GatewayRequestResourceGuard(
                 new GatewayResourceLimits(
@@ -215,25 +260,29 @@ public final class DefaultGatewayHttpDataPlaneHandler
                             trace.traceId()
                     )
                     .flatMap(security -> {
-                        observation.governance(
-                                "NOT_APPLIED",
-                                "NOT_APPLIED",
-                                "ALLOW"
-                        );
-                        return Mono.using(
-                            () -> providerSelector.select(
-                                    match.route().upstream()
-                            ),
-                            selection -> invokeUpstream(
-                                    selection.instance(),
-                                    normalized,
-                                    request,
-                                    security,
-                                    trace,
-                                    observation
-                            ),
-                            ProviderSelectionHandle::close
-                        );
+                        GatewayTrafficContext trafficContext =
+                                trafficContext(
+                                        match,
+                                        normalized,
+                                        request,
+                                        security
+                                );
+                        return trafficGovernance.acquire(
+                                        match.route().policyRefs(),
+                                        trafficContext,
+                                        upstreamTimeout
+                                )
+                                .flatMap(permit -> invokeUpstream(
+                                                match,
+                                                normalized,
+                                                request,
+                                                security,
+                                                trace,
+                                                observation,
+                                                permit
+                                        )
+                                        .doFinally(signal ->
+                                                permit.close()));
                     })
                     .map(response -> observed(
                             response,
@@ -268,6 +317,24 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     "REJECTED",
                                     rejected.code()
                             )))
+                    .onErrorResume(GatewayTrafficRejectedException.class,
+                            rejected -> {
+                                observation.governance(
+                                        "APPLIED",
+                                        rejected.code(),
+                                        "REJECT"
+                                );
+                                return Mono.just(observed(
+                                        trafficError(
+                                                rejected,
+                                                trace.traceId()
+                                        ),
+                                        observation,
+                                        "GOVERNANCE",
+                                        "REJECTED",
+                                        rejected.code()
+                                ));
+                            })
                     .onErrorResume(java.util.concurrent.TimeoutException.class,
                             timeout -> Mono.just(observed(
                                     error(
@@ -326,12 +393,65 @@ public final class DefaultGatewayHttpDataPlaneHandler
     }
 
     private Mono<GatewayOutboundHttpResponse> invokeUpstream(
-            ProviderInstance provider,
+            HttpRouteMatch match,
             NormalizedHttpRequest normalized,
             GatewayInboundHttpRequest request,
             GatewayHttpSecurityProcessor.Outcome security,
             GatewayTraceContext trace,
-            GatewayCallObservation observation) {
+            GatewayCallObservation observation,
+            GatewayTrafficGovernance.RequestPermit permit) {
+        return aggregate(request.body())
+                .doOnNext(body -> observation.addRequestBytes(body.length))
+                .flatMap(body -> {
+                    AtomicInteger attempts = new AtomicInteger();
+                    observation.governance(
+                            "APPLIED",
+                            permit.retryPolicy().enabled()
+                                    ? "RETRY_ENABLED"
+                                    : "RETRY_DISABLED",
+                            "ALLOW"
+                    );
+                    return attemptExecutor.execute(
+                            permit.retryPolicy(),
+                            idempotent(match, normalized),
+                            true,
+                            permit.timeout(),
+                            () -> invokeAttempt(
+                                    match,
+                                    normalized,
+                                    body,
+                                    security,
+                                    trace,
+                                    observation,
+                                    permit,
+                                    attempts.incrementAndGet()
+                            ),
+                            this::retryable
+                    );
+                });
+    }
+
+    private Mono<GatewayOutboundHttpResponse> invokeAttempt(
+            HttpRouteMatch match,
+            NormalizedHttpRequest normalized,
+            byte[] body,
+            GatewayHttpSecurityProcessor.Outcome security,
+            GatewayTraceContext trace,
+            GatewayCallObservation observation,
+            GatewayTrafficGovernance.RequestPermit requestPermit,
+            int attemptNumber) {
+        ProviderSelectionHandle selection = providerSelector.select(
+                match.route().upstream(),
+                match.route().policyRefs()
+        );
+        ProviderInstance provider = selection.instance();
+        GatewayTrafficGovernance.AttemptPermit attemptPermit;
+        try {
+            attemptPermit = requestPermit.acquireAttempt(provider);
+        } catch (RuntimeException failure) {
+            selection.close();
+            return Mono.error(failure);
+        }
         long attemptStartedAt = System.currentTimeMillis();
         long attemptStartedNanos = System.nanoTime();
         String attemptSpanId = trace.newChildSpanId();
@@ -345,9 +465,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 "group",
                 provider.serviceKey().group()
         ));
-        return aggregate(request.body())
-                .doOnNext(body -> observation.addRequestBytes(body.length))
-                .flatMap(body -> upstreamAdapter.invoke(new HttpUpstreamRequest(
+        return upstreamAdapter.invoke(new HttpUpstreamRequest(
                         provider,
                         normalized.method(),
                         normalized.normalizedPath()
@@ -361,26 +479,42 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                 security
                         ),
                         reactor.core.publisher.Flux.just(body),
-                        upstreamTimeout
-                )))
-                .doOnSuccess(response -> observation.attempt(
-                        1,
-                        attemptSpanId,
-                        provider.instanceId(),
-                        attemptStartedAt,
-                        elapsedMillis(attemptStartedNanos),
-                        category(response.status()),
-                        null
+                        requestPermit.timeout()
                 ))
-                .doOnError(failure -> observation.attempt(
-                        1,
-                        attemptSpanId,
-                        provider.instanceId(),
-                        attemptStartedAt,
-                        elapsedMillis(attemptStartedNanos),
-                        "ERROR",
-                        null
-                ));
+                .doOnSuccess(response -> {
+                    ProviderCallClassification classification =
+                            classification(response.status());
+                    attemptPermit.complete(classification);
+                    observation.attempt(
+                            attemptNumber,
+                            attemptSpanId,
+                            provider.instanceId(),
+                            attemptStartedAt,
+                            elapsedMillis(attemptStartedNanos),
+                            category(response.status()),
+                            null
+                    );
+                })
+                .doOnError(failure -> {
+                    attemptPermit.complete(
+                            ProviderCallClassification.RETRYABLE_FAILURE
+                    );
+                    observation.attempt(
+                            attemptNumber,
+                            attemptSpanId,
+                            provider.instanceId(),
+                            attemptStartedAt,
+                            elapsedMillis(attemptStartedNanos),
+                            "ERROR",
+                            retryable(failure)
+                                    ? "RETRYABLE_UPSTREAM_FAILURE"
+                                    : null
+                    );
+                })
+                .doFinally(signal -> {
+                    attemptPermit.close();
+                    selection.close();
+                });
     }
 
     private Mono<byte[]> aggregate(reactor.core.publisher.Flux<byte[]> body) {
@@ -442,6 +576,34 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 reactor.core.publisher.Flux.just(
                         body.getBytes(java.nio.charset.StandardCharsets.UTF_8)
                 )
+        );
+    }
+
+    private GatewayOutboundHttpResponse trafficError(
+            GatewayTrafficRejectedException rejected,
+            String traceId) {
+        GatewayOutboundHttpResponse response = error(
+                rejected.httpStatus(),
+                rejected.code(),
+                traceId
+        );
+        if (rejected.retryAfterMillis() == 0) {
+            return response;
+        }
+        Map<String, List<String>> headers = new LinkedHashMap<>(
+                response.headers()
+        );
+        headers.put(
+                "retry-after",
+                List.of(Long.toString(Math.max(
+                        1,
+                        (rejected.retryAfterMillis() + 999) / 1000
+                )))
+        );
+        return new GatewayOutboundHttpResponse(
+                response.status(),
+                headers,
+                response.body()
         );
     }
 
@@ -525,6 +687,102 @@ public final class DefaultGatewayHttpDataPlaneHandler
             return "SUCCESS";
         }
         return status < 500 ? "REJECTED" : "ERROR";
+    }
+
+    private ProviderCallClassification classification(int status) {
+        if (status < 400) {
+            return ProviderCallClassification.SUCCESS;
+        }
+        return status >= 500
+                ? ProviderCallClassification.RETRYABLE_FAILURE
+                : ProviderCallClassification.BUSINESS_FAILURE;
+    }
+
+    private boolean retryable(Throwable failure) {
+        return failure instanceof java.io.IOException
+                || failure instanceof java.util.concurrent.TimeoutException
+                || failure instanceof java.net.ConnectException
+                || failure.getCause() != null
+                && failure.getCause() != failure
+                && retryable(failure.getCause());
+    }
+
+    private boolean idempotent(
+            HttpRouteMatch match,
+            NormalizedHttpRequest request) {
+        String configured = match.route().metadata().get("idempotent");
+        if (configured != null) {
+            return Boolean.parseBoolean(configured);
+        }
+        return Set.of("GET", "HEAD", "OPTIONS", "PUT", "DELETE")
+                .contains(request.method());
+    }
+
+    private GatewayTrafficContext trafficContext(
+            HttpRouteMatch match,
+            NormalizedHttpRequest normalized,
+            GatewayInboundHttpRequest request,
+            GatewayHttpSecurityProcessor.Outcome security) {
+        return new GatewayTrafficContext(
+                match.route().operationId(),
+                match.route().routeId(),
+                match.route().metadata().getOrDefault(
+                        "applicationCode",
+                        match.route().gatewayGroupId()
+                ),
+                security.trustedIdentity().httpHeaders().get(
+                        "X-Egon-Gateway-Principal-Id"
+                ),
+                request.remoteAddress() == null
+                        ? null
+                        : request.remoteAddress().getAddress()
+                        .getHostAddress(),
+                match.route().upstream().serviceName(),
+                null,
+                approvedHeaders(normalized.headers()),
+                match.pathVariables(),
+                queryParameters(normalized.rawQuery())
+        );
+    }
+
+    private Map<String, String> approvedHeaders(
+            Map<String, List<String>> headers) {
+        Map<String, String> approved = new LinkedHashMap<>();
+        headers.forEach((name, values) -> {
+            String lower = name.toLowerCase(java.util.Locale.ROOT);
+            if (!Set.of(
+                    "authorization",
+                    "proxy-authorization",
+                    "cookie",
+                    "set-cookie"
+            ).contains(lower)
+                    && values != null
+                    && !values.isEmpty()) {
+                approved.put(lower, values.getFirst());
+            }
+        });
+        return Map.copyOf(approved);
+    }
+
+    private Map<String, String> queryParameters(String query) {
+        if (query == null || query.isBlank()) {
+            return Map.of();
+        }
+        Map<String, String> values = new LinkedHashMap<>();
+        for (String parameter : query.split("&")) {
+            int separator = parameter.indexOf('=');
+            String name = separator < 0
+                    ? parameter
+                    : parameter.substring(0, separator);
+            String value = separator < 0
+                    ? ""
+                    : parameter.substring(separator + 1);
+            values.putIfAbsent(
+                    URLDecoder.decode(name, StandardCharsets.UTF_8),
+                    URLDecoder.decode(value, StandardCharsets.UTF_8)
+            );
+        }
+        return Map.copyOf(values);
     }
 
     private long elapsedMillis(long startedNanos) {

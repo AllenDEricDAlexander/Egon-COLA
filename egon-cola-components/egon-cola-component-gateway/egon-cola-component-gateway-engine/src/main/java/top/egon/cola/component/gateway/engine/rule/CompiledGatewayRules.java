@@ -5,6 +5,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndex;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
+import top.egon.cola.component.gateway.engine.discovery.RuntimeProviderPolicy;
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
 
 import java.util.Map;
@@ -16,6 +17,7 @@ public record CompiledGatewayRules(
         CompiledHttpRouteIndex httpRoutes,
         RpcMethodIndex rpcMethods,
         Set<ProviderServiceKey> providerServices,
+        Map<String, RuntimeProviderPolicy> providerPolicies,
         Map<String, RuntimeTrafficPolicy> trafficPolicies,
         Map<String, GatewaySecurityPolicy> securityPolicies
 ) {
@@ -27,6 +29,10 @@ public record CompiledGatewayRules(
         providerServices = Set.copyOf(Objects.requireNonNull(
                 providerServices,
                 "providerServices"
+        ));
+        providerPolicies = Map.copyOf(Objects.requireNonNull(
+                providerPolicies,
+                "providerPolicies"
         ));
         trafficPolicies = Map.copyOf(Objects.requireNonNull(
                 trafficPolicies,

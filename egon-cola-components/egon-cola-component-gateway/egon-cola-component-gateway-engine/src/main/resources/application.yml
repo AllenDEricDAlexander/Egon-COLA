@@ -29,5 +29,11 @@ egon:
           enabled: true
       gateway:
         engine:
+          traffic:
+            redis:
+              enabled: false
+              address: redis://127.0.0.1:6379
+              database: 0
+              password:
           kafka:
             enabled: false

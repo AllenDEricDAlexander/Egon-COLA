@@ -1,6 +1,11 @@
 package top.egon.cola.component.gateway.engine;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
@@ -16,8 +21,6 @@ import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvid
 import top.egon.cola.component.gateway.core.security.GatewayAuthorizationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
 import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
-import top.egon.cola.component.gateway.engine.balance.LoadBalancerType;
-import top.egon.cola.component.gateway.engine.balance.ProviderLoadBalancers;
 import top.egon.cola.component.gateway.engine.discovery.DdcProviderServiceRegistryAdapter;
 import top.egon.cola.component.gateway.engine.discovery.DirectoryProviderSelector;
 import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
@@ -49,6 +52,9 @@ import top.egon.cola.component.gateway.engine.rule.GatewayRuleLkgRepository;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityChain;
 import top.egon.cola.component.gateway.engine.security.TrustedClientAddressResolver;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
+import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketExecutor;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -123,11 +129,74 @@ public class GatewayEngineConfiguration {
 
     @Bean
     public DirectoryProviderSelector gatewayProviderSelector(
-            ProviderDirectory providerDirectory) {
+            ProviderDirectory providerDirectory,
+            GatewayRuleActivationApplier activation) {
         return new DirectoryProviderSelector(
                 providerDirectory,
-                ProviderLoadBalancers.create(LoadBalancerType.ROUND_ROBIN)
+                DirectoryProviderSelector.defaultLoadBalancers(),
+                new top.egon.cola.component.gateway.engine.discovery
+                        .ProviderCandidateFilter(
+                        Clock.systemUTC(),
+                        ignored -> true
+                ),
+                key -> top.egon.cola.component.gateway.engine.discovery
+                        .ProviderSelectionPolicy.defaults(
+                        key.transport().equals("https")
+                ),
+                () -> activation.active() == null
+                        ? Map.of()
+                        : activation.active().providerPolicies()
         );
+    }
+
+    @Bean
+    public GatewayTrafficGovernance gatewayTrafficGovernance(
+            GatewayRuleActivationApplier activation,
+            ObjectProvider<RedisTokenBucketExecutor> redis) {
+        return new GatewayTrafficGovernance(
+                activation::active,
+                redis.getIfAvailable()
+        );
+    }
+
+    @Bean(name = "gatewayRateLimitRedissonClient", destroyMethod = "shutdown")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.gateway.engine.traffic.redis",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public RedissonClient gatewayRateLimitRedissonClient(
+            @Value(
+                    "${egon.cola.component.gateway.engine.traffic.redis.address}"
+            ) String address,
+            @Value(
+                    "${egon.cola.component.gateway.engine.traffic.redis."
+                            + "database:0}"
+            ) int database,
+            @Value(
+                    "${egon.cola.component.gateway.engine.traffic.redis."
+                            + "password:}"
+            ) String password) {
+        Config config = new Config();
+        var server = config.useSingleServer()
+                .setAddress(address)
+                .setDatabase(database);
+        if (password != null && !password.isBlank()) {
+            server.setPassword(password);
+        }
+        return Redisson.create(config);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.gateway.engine.traffic.redis",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public RedisTokenBucketExecutor gatewayRedisTokenBucketExecutor(
+            @Qualifier("gatewayRateLimitRedissonClient")
+            RedissonClient redisson) {
+        return new RedissonRedisTokenBucketExecutor(redisson);
     }
 
     @Bean
@@ -185,7 +254,8 @@ public class GatewayEngineConfiguration {
             DirectoryProviderSelector providerSelector,
             ReactorNettyHttpUpstreamAdapter upstream,
             GatewaySecurityCapabilityRegistry capabilities,
-            GatewayCallCompletionListener completionListener) {
+            GatewayCallCompletionListener completionListener,
+            GatewayTrafficGovernance trafficGovernance) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         GatewayHttpEngineProperties engineProperties =
                 new GatewayHttpEngineProperties(
@@ -230,7 +300,8 @@ public class GatewayEngineConfiguration {
                 http.getUpstreamTimeout(),
                 security,
                 completionListener,
-                properties.getNodeId()
+                properties.getNodeId(),
+                trafficGovernance
         );
         return new GatewayHttpServer(engineProperties, handler);
     }
@@ -250,7 +321,8 @@ public class GatewayEngineConfiguration {
             DirectoryProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             GatewaySecurityCapabilityRegistry capabilities,
-            GatewayCallCompletionListener completionListener) {
+            GatewayCallCompletionListener completionListener,
+            GatewayTrafficGovernance trafficGovernance) {
         var security = new RuleBackedRpcGatewaySecurityProcessor(
                 new GatewaySecurityChain(capabilities),
                 activation::active,
@@ -263,7 +335,8 @@ public class GatewayEngineConfiguration {
                 properties.getRpc().getMaxInboundMessageBytes(),
                 security,
                 completionListener,
-                properties.getNodeId()
+                properties.getNodeId(),
+                trafficGovernance
         );
         return new RpcGatewayHandlerRegistry(
                 forwarder,

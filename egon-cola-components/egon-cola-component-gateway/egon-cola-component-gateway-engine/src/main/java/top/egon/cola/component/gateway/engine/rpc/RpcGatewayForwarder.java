@@ -18,6 +18,10 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletio
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficContext;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficRejectedException;
+import top.egon.cola.component.gateway.engine.traffic.ProviderCallClassification;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import java.time.Duration;
@@ -42,6 +46,8 @@ public final class RpcGatewayForwarder {
 
     private final String engineNodeId;
 
+    private final GatewayTrafficGovernance trafficGovernance;
+
     private final TrustedIdentitySanitizer identitySanitizer =
             new TrustedIdentitySanitizer();
 
@@ -58,9 +64,10 @@ public final class RpcGatewayForwarder {
                 (route, metadata, traceId, deadline) ->
                         reactor.core.publisher.Mono.just(
                                 GatewayRpcSecurityProcessor.Outcome.anonymous()
-                        ),
+                ),
                 GatewayCallCompletionListener.noop(),
-                "unknown-engine"
+                "unknown-engine",
+                GatewayTrafficGovernance.noop()
         );
     }
 
@@ -77,7 +84,8 @@ public final class RpcGatewayForwarder {
                 maxInboundMessageBytes,
                 securityProcessor,
                 GatewayCallCompletionListener.noop(),
-                "unknown-engine"
+                "unknown-engine",
+                GatewayTrafficGovernance.noop()
         );
     }
 
@@ -89,6 +97,27 @@ public final class RpcGatewayForwarder {
             GatewayRpcSecurityProcessor securityProcessor,
             GatewayCallCompletionListener completionListener,
             String engineNodeId) {
+        this(
+                providerSelector,
+                channels,
+                maximumTimeout,
+                maxInboundMessageBytes,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                GatewayTrafficGovernance.noop()
+        );
+    }
+
+    public RpcGatewayForwarder(
+            ProviderSelector providerSelector,
+            RpcProviderChannelCache channels,
+            Duration maximumTimeout,
+            int maxInboundMessageBytes,
+            GatewayRpcSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance) {
         this.providerSelector = Objects.requireNonNull(
                 providerSelector,
                 "providerSelector"
@@ -110,6 +139,10 @@ public final class RpcGatewayForwarder {
         this.engineNodeId = Objects.requireNonNull(
                 engineNodeId,
                 "engineNodeId"
+        );
+        this.trafficGovernance = Objects.requireNonNull(
+                trafficGovernance,
+                "trafficGovernance"
         );
     }
 
@@ -204,6 +237,10 @@ public final class RpcGatewayForwarder {
 
         private GatewayRpcSecurityProcessor.Outcome security;
 
+        private GatewayTrafficGovernance.RequestPermit trafficPermit;
+
+        private GatewayTrafficGovernance.AttemptPermit attemptPermit;
+
         private ProviderSelectionHandle selection;
 
         private RpcProviderChannelCache.ChannelHandle channelHandle;
@@ -288,12 +325,31 @@ public final class RpcGatewayForwarder {
                 return;
             }
             security = Objects.requireNonNull(outcome, "security outcome");
-            observation.governance(
-                    "NOT_APPLIED",
-                    "NOT_APPLIED",
-                    "ALLOW"
-            );
-            startIfReady();
+            trafficGovernance.acquire(
+                            route.policyRefs(),
+                            trafficContext(route, inboundHeaders, security),
+                            route.timeout()
+                    )
+                    .subscribe(
+                            permit -> {
+                                synchronized (PendingCall.this) {
+                                    if (cancelled || released.get()) {
+                                        permit.close();
+                                        return;
+                                    }
+                                    trafficPermit = permit;
+                                    observation.governance(
+                                            "APPLIED",
+                                            permit.retryPolicy().enabled()
+                                                    ? "RETRY_ENABLED"
+                                                    : "RETRY_DISABLED",
+                                            "ALLOW"
+                                    );
+                                    startIfReady();
+                                }
+                            },
+                            this::trafficFailed
+                    );
         }
 
         private synchronized void securityFailed(Throwable failure) {
@@ -310,18 +366,42 @@ public final class RpcGatewayForwarder {
             );
         }
 
+        private synchronized void trafficFailed(Throwable failure) {
+            if (failure instanceof GatewayTrafficRejectedException rejected) {
+                observation.governance(
+                        "APPLIED",
+                        rejected.code(),
+                        "REJECT"
+                );
+                close(
+                        rpcStatus(rejected.rpcStatus()),
+                        rejected.code()
+                );
+                return;
+            }
+            close(
+                    Status.UNAVAILABLE,
+                    "GATEWAY_GOVERNANCE_UNAVAILABLE"
+            );
+        }
+
         private void startIfReady() {
             if (started
                     || cancelled
                     || security == null
+                    || trafficPermit == null
                     || request == null
                     || !halfClosed) {
                 return;
             }
             started = true;
             try {
-                selection = providerSelector.select(route.targetService());
+                selection = providerSelector.select(
+                        route.targetService(),
+                        route.policyRefs()
+                );
                 ProviderInstance provider = selection.instance();
+                attemptPermit = trafficPermit.acquireAttempt(provider);
                 observation.provider(provider.instanceId(), Map.of(
                         "serviceKey",
                         provider.serviceKey().serviceName(),
@@ -338,7 +418,10 @@ public final class RpcGatewayForwarder {
                 channelHandle = channels.acquire(provider);
                 clientCall = channelHandle.channel().newCall(
                         method,
-                        callOptions(route.timeout(), inboundDeadline)
+                        callOptions(
+                                trafficPermit.timeout(),
+                                inboundDeadline
+                        )
                 );
                 clientCall.start(new ClientCall.Listener<>() {
                     @Override
@@ -362,6 +445,9 @@ public final class RpcGatewayForwarder {
                             Metadata trailers) {
                         try {
                             recordAttempt(status, null);
+                            attemptPermit.complete(
+                                    classification(status)
+                            );
                             serverCall.close(
                                     status,
                                     safeMetadata(
@@ -429,6 +515,12 @@ public final class RpcGatewayForwarder {
             }
             if (selection != null) {
                 selection.close();
+            }
+            if (attemptPermit != null) {
+                attemptPermit.close();
+            }
+            if (trafficPermit != null) {
+                trafficPermit.close();
             }
         }
 
@@ -576,8 +668,44 @@ public final class RpcGatewayForwarder {
             case "UNAUTHENTICATED" -> Status.UNAUTHENTICATED;
             case "PERMISSION_DENIED" -> Status.PERMISSION_DENIED;
             case "INTERNAL" -> Status.INTERNAL;
+            case "RESOURCE_EXHAUSTED" -> Status.RESOURCE_EXHAUSTED;
+            case "DEADLINE_EXCEEDED" -> Status.DEADLINE_EXCEEDED;
             default -> Status.UNAVAILABLE;
         };
+    }
+
+    private ProviderCallClassification classification(Status status) {
+        if (status.isOk()) {
+            return ProviderCallClassification.SUCCESS;
+        }
+        return switch (status.getCode()) {
+            case INVALID_ARGUMENT, NOT_FOUND, ALREADY_EXISTS,
+                    FAILED_PRECONDITION, UNAUTHENTICATED,
+                    PERMISSION_DENIED ->
+                    ProviderCallClassification.BUSINESS_FAILURE;
+            case CANCELLED -> ProviderCallClassification.CANCELLED;
+            default -> ProviderCallClassification.RETRYABLE_FAILURE;
+        };
+    }
+
+    private GatewayTrafficContext trafficContext(
+            RuntimeRpcRoute route,
+            Metadata metadata,
+            GatewayRpcSecurityProcessor.Outcome security) {
+        return new GatewayTrafficContext(
+                route.operationId(),
+                route.routeId(),
+                valueOrGenerated(metadata.get(RpcMetadataKeys.SOURCE_APP)),
+                security.trustedIdentity().rpcMetadata().get(
+                        "egon-gateway-principal-id"
+                ),
+                null,
+                route.targetService().serviceName(),
+                null,
+                Map.of(),
+                Map.of(),
+                Map.of()
+        );
     }
 
     private void publish(

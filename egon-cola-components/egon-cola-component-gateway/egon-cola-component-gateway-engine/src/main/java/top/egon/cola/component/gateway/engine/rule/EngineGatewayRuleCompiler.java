@@ -15,6 +15,7 @@ import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndex;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndexCompiler;
 import top.egon.cola.component.gateway.engine.rpc.RuntimeRpcRoute;
+import top.egon.cola.component.gateway.engine.discovery.GatewayProviderPolicyCompiler;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
@@ -37,6 +38,9 @@ public final class EngineGatewayRuleCompiler {
 
     private final GatewayTrafficPolicyCompiler trafficPolicyCompiler =
             new GatewayTrafficPolicyCompiler();
+
+    private final GatewayProviderPolicyCompiler providerPolicyCompiler =
+            new GatewayProviderPolicyCompiler();
 
     private final GatewaySecurityPolicyCompiler securityPolicyCompiler;
 
@@ -85,7 +89,10 @@ public final class EngineGatewayRuleCompiler {
                             GatewayResponseMode.valueOf(
                                     operation.responseMode()
                             ),
-                            Map.of()
+                            routeMetadata(
+                                    operation.attributes(),
+                                    snapshot.releaseId()
+                            )
                     );
                 })
                 .toList();
@@ -121,6 +128,9 @@ public final class EngineGatewayRuleCompiler {
                         runtimePolicies,
                         policyProtocols
                 );
+        var providerPolicies = providerPolicyCompiler.compile(
+                content.providerPolicies()
+        );
         content.operations().stream()
                 .filter(operation -> !operation.deprecated())
                 .forEach(operation -> {
@@ -135,12 +145,30 @@ public final class EngineGatewayRuleCompiler {
                                         + "policies"
                         );
                     }
+                    long loadBalanceReferences = operation.policyRefs()
+                            .stream()
+                            .map(providerPolicies::get)
+                            .filter(java.util.Objects::nonNull)
+                            .filter(policy -> policy.type()
+                                    == top.egon.cola.component.gateway.engine
+                                    .discovery.RuntimeProviderPolicy.Type
+                                    .LOAD_BALANCE)
+                            .count();
+                    if (loadBalanceReferences > 1) {
+                        throw new IllegalArgumentException(
+                                "GATEWAY_RULE_COMPILE_FAILED: operation "
+                                        + operation.operationId()
+                                        + " references multiple load balance "
+                                        + "policies"
+                        );
+                    }
                 });
         return new CompiledGatewayRules(
                 snapshot,
                 httpCompiler.compile(httpRoutes),
                 rpcCompiler.compile(rpcRoutes),
                 services,
+                providerPolicies,
                 trafficPolicyCompiler.compile(runtimePolicies),
                 securityPolicies
         );
@@ -170,6 +198,14 @@ public final class EngineGatewayRuleCompiler {
                 GatewayResponseMode.valueOf(operation.responseMode()),
                 Duration.ofMillis(timeoutMillis)
         );
+    }
+
+    private Map<String, String> routeMetadata(
+            Map<String, String> attributes,
+            String releaseId) {
+        Map<String, String> metadata = new LinkedHashMap<>(attributes);
+        metadata.put("releaseId", releaseId);
+        return Map.copyOf(metadata);
     }
 
     private ProviderServiceKey serviceKey(
