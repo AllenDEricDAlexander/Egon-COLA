@@ -40,25 +40,46 @@ public final class GatewayCallEventConsumerHandler {
             ));
             return inserted ? Result.PROJECTED : Result.DUPLICATE;
         } catch (IllegalArgumentException poison) {
-            byte[] payload = record.value() == null
-                    ? new byte[0]
-                    : record.value();
-            ingestService.poison(
-                    new GatewayObservabilityStore.ConsumeFailure(
-                            UuidV7.simpleString(),
-                            record.topic(),
-                            record.partition(),
-                            record.offset(),
-                            header(record, "event-id"),
-                            "GATEWAY_CALL_EVENT_INVALID",
-                            bounded(poison.getMessage()),
-                            sha256(payload),
-                            payload.length,
-                            clock.instant()
-                    )
+            recordFailure(
+                    record,
+                    "GATEWAY_CALL_EVENT_INVALID",
+                    poison
             );
             return Result.POISON_RECORDED;
         }
+    }
+
+    public void deadLetter(
+            ConsumerRecord<String, byte[]> record,
+            RuntimeException failure) {
+        recordFailure(
+                record,
+                "GATEWAY_CALL_EVENT_PROCESSING_FAILED",
+                failure
+        );
+    }
+
+    private void recordFailure(
+            ConsumerRecord<String, byte[]> record,
+            String failureCode,
+            RuntimeException failure) {
+        byte[] payload = record.value() == null
+                ? new byte[0]
+                : record.value();
+        ingestService.poison(
+                new GatewayObservabilityStore.ConsumeFailure(
+                        UuidV7.simpleString(),
+                        record.topic(),
+                        record.partition(),
+                        record.offset(),
+                        header(record, "event-id"),
+                        failureCode,
+                        bounded(failure.getMessage()),
+                        sha256(payload),
+                        payload.length,
+                        clock.instant()
+                )
+        );
     }
 
     private String header(

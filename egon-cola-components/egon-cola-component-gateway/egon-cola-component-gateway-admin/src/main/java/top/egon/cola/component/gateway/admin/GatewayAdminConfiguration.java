@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import top.egon.cola.component.gateway.admin.application.credential.GatewaySecre
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventCodec;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventConsumerHandler;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaCallEventConsumer;
+import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaConsumerMetrics;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.JdbcGatewayObservabilityStore;
 import top.egon.cola.component.gateway.admin.infrastructure.security.AesGcmGatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.interfaces.management.GatewayAdminTraceFilter;
@@ -143,6 +145,7 @@ public class GatewayAdminConfiguration {
     )
     GatewayKafkaCallEventConsumer gatewayKafkaCallEventConsumer(
             GatewayCallEventConsumerHandler handler,
+            MeterRegistry meterRegistry,
             @Value(
                     "${gateway.admin.observability.kafka.bootstrap-servers}"
             ) String bootstrapServers,
@@ -153,9 +156,21 @@ public class GatewayAdminConfiguration {
             @Value(
                     "${gateway.admin.observability.kafka.group-id:"
                             + "gateway-admin-call-events-v1}"
-            ) String groupId) {
+            ) String groupId,
+            @Value(
+                    "${gateway.admin.observability.kafka.retry-backoff:"
+                            + "PT0.25S}"
+            ) Duration retryBackoff,
+            @Value(
+                    "${gateway.admin.observability.kafka."
+                            + "max-record-attempts:5}"
+            ) int maxRecordAttempts) {
         return new GatewayKafkaCallEventConsumer(
                 handler,
+                new GatewayKafkaConsumerMetrics(
+                        meterRegistry,
+                        Clock.systemUTC()
+                ),
                 new GatewayKafkaCallEventConsumer.Settings(
                         bootstrapServers,
                         topic,
@@ -163,6 +178,8 @@ public class GatewayAdminConfiguration {
                         Duration.ofMillis(500),
                         Duration.ofSeconds(5),
                         Duration.ofSeconds(5),
+                        retryBackoff,
+                        maxRecordAttempts,
                         java.util.Map.of()
                 )
         );
