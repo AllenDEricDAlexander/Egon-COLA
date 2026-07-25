@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
+
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -24,6 +26,12 @@ public record DdcServiceRegistration(
         host = require(host, "host");
         if (port <= 0 || port > 65535) {
             throw new IllegalArgumentException("port must be between 1 and 65535");
+        }
+        if (serviceKey.serviceKind() == DdcServiceKind.HTTP_PROVIDER
+                && secure != "https".equals(serviceKey.protocol())) {
+            throw new IllegalArgumentException(
+                    "HTTP_PROVIDER secure flag must match its protocol"
+            );
         }
         metadata = validatedMetadata(metadata);
         if (leaseSeconds <= 0) {

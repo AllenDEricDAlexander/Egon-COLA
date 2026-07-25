@@ -6,5 +6,7 @@ public enum DdcLeaseRole {
 
     RPC_PROVIDER,
 
+    HTTP_PROVIDER,
+
     INTERNAL_GATEWAY
 }
