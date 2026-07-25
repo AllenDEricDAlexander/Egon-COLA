@@ -11,16 +11,15 @@ import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
+import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.traffic.GatewayRequestResourceGuard;
 import top.egon.cola.component.gateway.engine.traffic.GatewayResourceLimits;
-import top.egon.cola.component.gateway.core.security.TrustedIdentity;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -44,6 +43,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private final GatewayRequestResourceGuard resourceGuard;
 
+    private final GatewayHttpSecurityProcessor securityProcessor;
+
     private final TrustedIdentitySanitizer identitySanitizer =
             new TrustedIdentitySanitizer();
 
@@ -54,6 +55,28 @@ public final class DefaultGatewayHttpDataPlaneHandler
             HttpUpstreamAdapter upstreamAdapter,
             long maxBodyBytes,
             Duration upstreamTimeout) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                (zone, request, normalized, route, traceId) ->
+                        Mono.just(
+                                GatewayHttpSecurityProcessor.Outcome.anonymous()
+                        )
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -68,6 +91,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
         this.upstreamTimeout = Objects.requireNonNull(
                 upstreamTimeout,
                 "upstreamTimeout"
+        );
+        this.securityProcessor = Objects.requireNonNull(
+                securityProcessor,
+                "securityProcessor"
         );
         resourceGuard = new GatewayRequestResourceGuard(
                 new GatewayResourceLimits(
@@ -111,15 +138,32 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         traceId(normalized.headers())
                 ));
             }
-            return Mono.using(
-                    () -> providerSelector.select(match.route().upstream()),
-                    selection -> invokeUpstream(
-                            selection.instance(),
+            String traceId = traceId(normalized.headers());
+            return securityProcessor.authorize(
+                            accessZone,
+                            request,
                             normalized,
-                            request
-                    ),
-                    ProviderSelectionHandle::close
-            )
+                            match,
+                            traceId
+                    )
+                    .flatMap(security -> Mono.using(
+                            () -> providerSelector.select(
+                                    match.route().upstream()
+                            ),
+                            selection -> invokeUpstream(
+                                    selection.instance(),
+                                    normalized,
+                                    request,
+                                    security
+                            ),
+                            ProviderSelectionHandle::close
+                    ))
+                    .onErrorResume(GatewaySecurityException.class,
+                            rejected -> Mono.just(error(
+                                    rejected.httpStatus(),
+                                    rejected.code(),
+                                    traceId
+                            )))
                     .onErrorResume(GatewayRequestRejectedException.class,
                             rejected -> Mono.just(error(
                                     rejected.status(),
@@ -155,7 +199,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private Mono<GatewayOutboundHttpResponse> invokeUpstream(
             ProviderInstance provider,
             NormalizedHttpRequest normalized,
-            GatewayInboundHttpRequest request) {
+            GatewayInboundHttpRequest request,
+            GatewayHttpSecurityProcessor.Outcome security) {
         return aggregate(request.body())
                 .flatMap(body -> upstreamAdapter.invoke(
                         new HttpUpstreamRequest(
@@ -167,7 +212,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                         : "?" + normalized.rawQuery()),
                                 forwardedHeaders(
                                         normalized.headers(),
-                                        traceId(normalized.headers())
+                                        traceId(normalized.headers()),
+                                        security
                                 ),
                                 reactor.core.publisher.Flux.just(body),
                                 upstreamTimeout
@@ -193,11 +239,12 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private Map<String, List<String>> forwardedHeaders(
             Map<String, List<String>> source,
-            String traceId) {
+            String traceId,
+            GatewayHttpSecurityProcessor.Outcome security) {
         return identitySanitizer.sanitizeHttp(
                 source,
-                Set.of(),
-                TrustedIdentity.empty(),
+                security.fieldsToRemove(),
+                security.trustedIdentity(),
                 traceId
         );
     }

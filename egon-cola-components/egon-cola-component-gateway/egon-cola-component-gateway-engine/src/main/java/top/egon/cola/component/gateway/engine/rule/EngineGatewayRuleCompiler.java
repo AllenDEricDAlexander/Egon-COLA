@@ -11,6 +11,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
+import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndex;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndexCompiler;
 import top.egon.cola.component.gateway.engine.rpc.RuntimeRpcRoute;
@@ -110,16 +111,33 @@ public final class EngineGatewayRuleCompiler {
                                 ignored -> new LinkedHashSet<>()
                         ).add(operation.protocol())
                 ));
+        Map<String, GatewaySecurityPolicy> securityPolicies =
+                securityPolicyCompiler.compile(
+                        content.trafficPolicies(),
+                        policyProtocols
+                );
+        content.operations().stream()
+                .filter(operation -> !operation.deprecated())
+                .forEach(operation -> {
+                    long securityReferences = operation.policyRefs().stream()
+                            .filter(securityPolicies::containsKey)
+                            .count();
+                    if (securityReferences > 1) {
+                        throw new IllegalArgumentException(
+                                "GATEWAY_RULE_COMPILE_FAILED: operation "
+                                        + operation.operationId()
+                                        + " references multiple security "
+                                        + "policies"
+                        );
+                    }
+                });
         return new CompiledGatewayRules(
                 snapshot,
                 httpCompiler.compile(httpRoutes),
                 rpcCompiler.compile(rpcRoutes),
                 services,
                 trafficPolicyCompiler.compile(content.trafficPolicies()),
-                securityPolicyCompiler.compile(
-                        content.trafficPolicies(),
-                        policyProtocols
-                )
+                securityPolicies
         );
     }
 
