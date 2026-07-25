@@ -2,14 +2,17 @@ import { apiRequest } from './client'
 import { createLogicalTrace, newIdempotencyKey, type LogicalTrace } from './trace'
 import type {
   Application,
+  AdminSession,
   AuditEntry,
   CatalogTree,
+  Credential,
   DashboardSummary,
   DraftMutationResult,
   EngineNode,
   GatewayDraft,
   GatewayGroup,
   GatewayRelease,
+  IssuedCredential,
   OperationDetail,
   Page,
   ProviderInstance,
@@ -77,10 +80,45 @@ const mapRelease = ({ releaseId, ...release }: ReleaseResponse): GatewayRelease 
 })
 
 export const gatewayApi = {
+  session: (signal?: AbortSignal) =>
+    apiRequest<AdminSession>(`${admin}/session`, { signal }),
   dashboard: (scope: Scope, signal?: AbortSignal) =>
     apiRequest<DashboardSummary>(`${admin}/dashboard?${query(scope)}`, { signal }),
   groups: (scope: Scope, signal?: AbortSignal) =>
     apiRequest<GatewayGroup[]>(`${admin}/gateway-groups?${query(scope)}`, { signal }),
+  createGroup: (
+    group: {
+      gatewayGroupCode: string
+      displayName: string
+      env: string
+      namespace: string
+      description?: string
+    },
+    trace = createLogicalTrace(),
+  ) => apiRequest<GatewayGroup>(`${admin}/gateway-groups`, {
+    method: 'POST',
+    body: group,
+    trace,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  updateGroup: (
+    groupId: string,
+    group: { displayName: string; description?: string; expectedRevision: number },
+    trace = createLogicalTrace(),
+  ) => apiRequest<GatewayGroup>(`${admin}/gateway-groups/${groupId}`, {
+    method: 'PUT',
+    body: group,
+    trace,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  setGroupEnabled: (
+    groupId: string,
+    enabled: boolean,
+    trace = createLogicalTrace(),
+  ) => apiRequest<GatewayGroup>(
+    `${admin}/gateway-groups/${groupId}/${enabled ? 'enable' : 'disable'}`,
+    { method: 'POST', trace, idempotencyKey: newIdempotencyKey() },
+  ),
   group: (groupId: string, signal?: AbortSignal) =>
     apiRequest<GatewayGroup>(`${admin}/gateway-groups/${groupId}`, { signal }),
   engineNodes: async (groupId: string, signal?: AbortSignal) => {
@@ -112,8 +150,85 @@ export const gatewayApi = {
   },
   applications: (scope: Scope, signal?: AbortSignal) =>
     apiRequest<Application[]>(`${admin}/applications?${query(scope)}`, { signal }),
+  createApplication: (
+    application: {
+      applicationCode: string
+      displayName: string
+      env: string
+      namespace: string
+      description?: string
+    },
+  ) => apiRequest<Application>(`${admin}/applications`, {
+    method: 'POST',
+    body: application,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  updateApplication: (
+    applicationId: string,
+    application: {
+      displayName: string
+      description?: string
+      expectedRevision: number
+    },
+  ) => apiRequest<Application>(`${admin}/applications/${applicationId}`, {
+    method: 'PUT',
+    body: application,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  credentials: (applicationId: string, signal?: AbortSignal) =>
+    apiRequest<Credential[]>(`${admin}/applications/${applicationId}/credentials`, { signal }),
+  createCredential: (applicationId: string) =>
+    apiRequest<IssuedCredential>(`${admin}/applications/${applicationId}/credentials`, {
+      method: 'POST',
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  rotateCredential: (applicationId: string, keyId: string, overlapMinutes: number) =>
+    apiRequest<IssuedCredential>(
+      `${admin}/applications/${applicationId}/credentials/${keyId}/rotate`,
+      {
+        method: 'POST',
+        body: { overlapMinutes },
+        idempotencyKey: newIdempotencyKey(),
+      },
+    ),
+  revokeCredential: (applicationId: string, keyId: string) =>
+    apiRequest<Credential>(
+      `${admin}/applications/${applicationId}/credentials/${keyId}/revoke`,
+      { method: 'POST', idempotencyKey: newIdempotencyKey() },
+    ),
   catalog: (applicationId: string, signal?: AbortSignal) =>
     apiRequest<CatalogTree>(`${admin}/applications/${applicationId}/catalog`, { signal }),
+  createManualInterfaceGroup: (
+    applicationId: string,
+    hierarchy: {
+      businessCode: string
+      businessName: string
+      entityCode: string
+      entityName: string
+      interfaceGroupCode: string
+      interfaceGroupName: string
+      className?: string
+      description?: string
+    },
+  ) => apiRequest<{ id: string }>(
+    `${admin}/applications/${applicationId}/manual-interface-groups`,
+    {
+      method: 'POST',
+      body: hierarchy,
+      idempotencyKey: newIdempotencyKey(),
+    },
+  ),
+  createManualOperation: (
+    interfaceGroupId: string,
+    operation: Record<string, unknown>,
+  ) => apiRequest<OperationDetail>(
+    `${admin}/interface-groups/${interfaceGroupId}/manual-operations`,
+    {
+      method: 'POST',
+      body: operation,
+      idempotencyKey: newIdempotencyKey(),
+    },
+  ),
   operation: (operationId: string, signal?: AbortSignal) =>
     apiRequest<OperationDetail>(`${admin}/operations/${operationId}`, { signal }),
   draft: async (groupId: string, signal?: AbortSignal) =>
@@ -165,6 +280,38 @@ export const gatewayApi = {
         body: { ...policy, expectedRevision: revision, idempotencyKey },
         trace,
         idempotencyKey,
+      },
+    )
+  },
+  deleteRoute: (
+    groupId: string,
+    routeId: string,
+    revision: number,
+    changeReason: string,
+  ) => {
+    const idempotencyKey = newIdempotencyKey()
+    return apiRequest<DraftMutationResult>(
+      `${admin}/gateway-groups/${groupId}/draft/routes/${routeId}`,
+      {
+      method: 'DELETE',
+      body: { expectedRevision: revision, changeReason, idempotencyKey },
+      idempotencyKey,
+      },
+    )
+  },
+  deletePolicy: (
+    groupId: string,
+    policyId: string,
+    revision: number,
+    changeReason: string,
+  ) => {
+    const idempotencyKey = newIdempotencyKey()
+    return apiRequest<DraftMutationResult>(
+      `${admin}/gateway-groups/${groupId}/draft/policies/${policyId}`,
+      {
+      method: 'DELETE',
+      body: { expectedRevision: revision, changeReason, idempotencyKey },
+      idempotencyKey,
       },
     )
   },

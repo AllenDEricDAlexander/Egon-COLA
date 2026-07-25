@@ -1,8 +1,8 @@
 import type { AdminErrorBody } from './types'
 import { createLogicalTrace, traceHeaders, type LogicalTrace } from './trace'
+import { refreshAccessToken, tokenStore } from '../auth/tokenStore'
 
 const API_BASE_URL = import.meta.env.VITE_GATEWAY_ADMIN_API_BASE_URL ?? ''
-const ACTOR_ID = import.meta.env.VITE_GATEWAY_ADMIN_ACTOR_ID ?? 'gateway-admin-web'
 const CONTRACT_VERSION = 'v1'
 
 export type ApiRequest = Omit<RequestInit, 'body'> & {
@@ -69,7 +69,8 @@ export const apiRequest = async <T>(
   const headers = new Headers(request.headers)
   headers.set('Accept', 'application/json')
   headers.set('X-Gateway-Contract-Version', CONTRACT_VERSION)
-  headers.set('X-Admin-Actor-Id', ACTOR_ID)
+  const accessToken = tokenStore.get()?.accessToken
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
   Object.entries(traceHeaders(trace)).forEach(([name, value]) => headers.set(name, value))
   if (request.idempotencyKey) {
     headers.set('Idempotency-Key', request.idempotencyKey)
@@ -80,11 +81,23 @@ export const apiRequest = async <T>(
     body = JSON.stringify(request.body)
   }
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    let response = await fetch(`${API_BASE_URL}${path}`, {
       ...request,
       body,
       headers,
     })
+    if (response.status === 401 && accessToken) {
+      try {
+        headers.set('Authorization', `Bearer ${await refreshAccessToken()}`)
+        response = await fetch(`${API_BASE_URL}${path}`, {
+          ...request,
+          body,
+          headers,
+        })
+      } catch {
+        tokenStore.clear()
+      }
+    }
     if (!response.ok) {
       throw await decodeError(response)
     }

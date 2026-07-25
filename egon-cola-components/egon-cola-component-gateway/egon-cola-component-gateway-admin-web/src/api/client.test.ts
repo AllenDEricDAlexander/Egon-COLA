@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest, GatewayApiError } from './client'
 import { createLogicalTrace } from './trace'
+import { tokenStore } from '../auth/tokenStore'
 
 afterEach(() => {
+  tokenStore.clear()
   vi.unstubAllGlobals()
 })
 
@@ -49,5 +51,22 @@ describe('typed API client', () => {
       currentRevision: 9,
       traceId: 'a'.repeat(32),
     } satisfies Partial<GatewayApiError>)
+  })
+
+  it('uses the persisted bearer token and never trusts an actor header', async () => {
+    tokenStore.set({ accessToken: 'signed-jwt' }, false)
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiRequest('/api/test')
+
+    const headers = (fetchMock.mock.calls[0][1] as RequestInit).headers as Headers
+    expect(headers.get('Authorization')).toBe('Bearer signed-jwt')
+    expect(headers.has('X-Admin-Actor-Id')).toBe(false)
   })
 })

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,10 +18,11 @@ import top.egon.cola.component.gateway.admin.application.credential.GatewayCrede
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.time.Duration;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/gateway/admin/applications/{applicationId}/credentials")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
+@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
 public class GatewayCredentialController {
 
     private final GatewayCredentialService service;
@@ -29,8 +31,15 @@ public class GatewayCredentialController {
         this.service = service;
     }
 
+    @GetMapping
+    public List<GatewayCredentialService.CredentialView> list(
+            @PathVariable String applicationId) {
+        return service.list(applicationId);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
     public GatewayCredentialService.IssuedCredential create(
             @PathVariable String applicationId,
             AdminActor actor) {
@@ -39,6 +48,7 @@ public class GatewayCredentialController {
 
     @PostMapping("/{keyId}/rotate")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
     public GatewayCredentialService.IssuedCredential rotate(
             @PathVariable String applicationId,
             @PathVariable String keyId,
@@ -54,6 +64,7 @@ public class GatewayCredentialController {
     }
 
     @PostMapping("/{keyId}/revoke")
+    @PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
     public GatewayCredentialService.CredentialView revoke(
             @PathVariable String applicationId,
             @PathVariable String keyId,

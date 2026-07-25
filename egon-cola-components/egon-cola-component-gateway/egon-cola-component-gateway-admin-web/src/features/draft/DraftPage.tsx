@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Switch,
@@ -14,7 +15,7 @@ import {
   Typography,
   message,
 } from 'antd'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { GatewayApiError } from '../../api/client'
 import { gatewayApi } from '../../api/gatewayApi'
@@ -32,11 +33,40 @@ const json = (value: string): Record<string, unknown> => {
   return parsed as Record<string, unknown>
 }
 
+const routeContent = (values: any): Record<string, unknown> => ({
+  ...json(values.advancedContent || '{}'),
+  listener: values.accessZone,
+  protocol: values.protocol,
+  method: values.protocol === 'HTTP' ? values.method : undefined,
+  path: values.protocol === 'HTTP' ? values.path : undefined,
+  fullMethodName: values.protocol === 'RPC' ? values.fullMethodName : undefined,
+  providerServiceName: values.providerServiceName,
+  priority: Number(values.priority ?? 0),
+})
+
+const policyContent = (values: any): Record<string, unknown> => ({
+  ...json(values.advancedContent || '{}'),
+  timeoutMs: values.timeoutMs ? Number(values.timeoutMs) : undefined,
+  permitsPerSecond: values.permitsPerSecond
+    ? Number(values.permitsPerSecond)
+    : undefined,
+  maxConcurrent: values.maxConcurrent
+    ? Number(values.maxConcurrent)
+    : undefined,
+  maxAttempts: values.maxAttempts ? Number(values.maxAttempts) : undefined,
+  strategy: values.strategy,
+  failureMode: values.failureMode,
+  allowedOrigins: values.allowedOrigins
+    ?.split(',')
+    .map((value: string) => value.trim())
+    .filter(Boolean),
+})
+
 export const DraftPage = () => {
   const { groupId = '' } = useParams()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const canWrite = useCapability('gateway.draft.write')
+  const canWrite = useCapability('gateway:drafts:write')
   const [routeForm] = Form.useForm()
   const [policyForm] = Form.useForm()
   const [routeOpen, setRouteOpen] = useState(false)
@@ -65,8 +95,7 @@ export const DraftPage = () => {
         {
           operationId: values.operationId,
           content: {
-            ...json(values.content),
-            listener: values.accessZone,
+            ...routeContent(values),
           },
           enabled: values.enabled,
           changeReason: values.changeReason,
@@ -95,7 +124,7 @@ export const DraftPage = () => {
         {
           policyType: values.policyType,
           policyScope: values.policyScope,
-          content: json(values.content),
+          content: policyContent(values),
           enabled: values.enabled,
           changeReason: values.changeReason,
         },
@@ -114,16 +143,44 @@ export const DraftPage = () => {
       }
     },
   })
+  const deleteRoute = useMutation({
+    mutationFn: (route: DraftRoute) =>
+      gatewayApi.deleteRoute(
+        groupId,
+        route.routeId,
+        draft.data!.revision,
+        'Delete route from Gateway Admin Web',
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['draft', groupId] })
+      await queryClient.invalidateQueries({ queryKey: ['draft-diff', groupId] })
+      void message.success('Route 已删除')
+    },
+  })
+  const deletePolicy = useMutation({
+    mutationFn: (policy: DraftPolicy) =>
+      gatewayApi.deletePolicy(
+        groupId,
+        policy.policyId,
+        draft.data!.revision,
+        'Delete policy from Gateway Admin Web',
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['draft', groupId] })
+      await queryClient.invalidateQueries({ queryKey: ['draft-diff', groupId] })
+      void message.success('Policy 已删除')
+    },
+  })
   const active = location.pathname.endsWith('/policies') ? 'policies' : 'routes'
-  const policyContent = Form.useWatch('content', policyForm) ?? '{}'
+  const watchedPolicy = Form.useWatch([], policyForm) ?? {}
   const policyType = Form.useWatch('policyType', policyForm) ?? ''
-  const warnings = useMemo(() => {
+  const warnings = (() => {
     try {
-      return policyWarnings(policyType, json(policyContent))
+      return policyWarnings(policyType, policyContent(watchedPolicy))
     } catch {
       return []
     }
-  }, [policyContent, policyType])
+  })()
 
   if (draft.isLoading) return <LoadingBlock />
   if (draft.error || !draft.data) return <QueryFailure error={draft.error} />
@@ -164,6 +221,44 @@ export const DraftPage = () => {
                       { title: 'Listener', render: (_, row) => String(row.routeContent.listener ?? '-') },
                       { title: '协议', render: (_, row) => String(row.routeContent.protocol ?? '-') },
                       { title: '状态', render: (_, row) => row.enabled ? '启用' : '禁用' },
+                      {
+                        title: '操作',
+                        render: (_, row) => (
+                          <Space>
+                            <Button
+                              disabled={!canWrite}
+                              onClick={() => {
+                                routeForm.setFieldsValue({
+                                  routeId: row.routeId,
+                                  operationId: row.operationId,
+                                  accessZone: row.routeContent.listener ?? 'INTERNAL',
+                                  operationExternalAccessible:
+                                    row.routeContent.operationExternalAccessible ?? false,
+                                  protocol: row.routeContent.protocol ?? 'HTTP',
+                                  method: row.routeContent.method,
+                                  path: row.routeContent.path,
+                                  fullMethodName: row.routeContent.fullMethodName,
+                                  providerServiceName: row.routeContent.providerServiceName,
+                                  priority: row.routeContent.priority ?? 0,
+                                  advancedContent: '{}',
+                                  enabled: row.enabled,
+                                  changeReason: 'Edit route from Gateway Admin Web',
+                                })
+                                setRouteOpen(true)
+                              }}
+                            >
+                              编辑
+                            </Button>
+                            <Popconfirm
+                              title="确认删除 Route？"
+                              description="删除会产生新的 Draft Revision。"
+                              onConfirm={() => deleteRoute.mutate(row)}
+                            >
+                              <Button danger disabled={!canWrite}>删除</Button>
+                            </Popconfirm>
+                          </Space>
+                        ),
+                      },
                     ]}
                   />
                 </Card>
@@ -184,6 +279,42 @@ export const DraftPage = () => {
                       { title: '类型', dataIndex: 'policyType' },
                       { title: '作用域', dataIndex: 'policyScope' },
                       { title: '状态', render: (_, row) => row.enabled ? '启用' : '禁用' },
+                      {
+                        title: '操作',
+                        render: (_, row) => (
+                          <Space>
+                            <Button
+                              disabled={!canWrite}
+                              onClick={() => {
+                                policyForm.setFieldsValue({
+                                  policyId: row.policyId,
+                                  policyType: row.policyType,
+                                  policyScope: row.policyScope,
+                                  ...row.policyContent,
+                                  allowedOrigins: Array.isArray(
+                                    row.policyContent.allowedOrigins,
+                                  )
+                                    ? row.policyContent.allowedOrigins.join(',')
+                                    : undefined,
+                                  advancedContent: '{}',
+                                  enabled: row.enabled,
+                                  changeReason: 'Edit policy from Gateway Admin Web',
+                                })
+                                setPolicyOpen(true)
+                              }}
+                            >
+                              编辑
+                            </Button>
+                            <Popconfirm
+                              title="确认删除 Policy？"
+                              description="删除会影响引用该策略的路由。"
+                              onConfirm={() => deletePolicy.mutate(row)}
+                            >
+                              <Button danger disabled={!canWrite}>删除</Button>
+                            </Popconfirm>
+                          </Space>
+                        ),
+                      },
                     ]}
                   />
                 </Card>
@@ -208,7 +339,10 @@ export const DraftPage = () => {
             accessZone: 'INTERNAL',
             enabled: true,
             operationExternalAccessible: false,
-            content: '{"protocol":"HTTP","path":"/example","method":"GET"}',
+            protocol: 'HTTP',
+            method: 'GET',
+            priority: 0,
+            advancedContent: '{}',
           }}
           onFinish={(values) => saveRoute.mutate(values)}
         >
@@ -225,7 +359,28 @@ export const DraftPage = () => {
             showIcon
             message="Provider 只能通过注册中心发现，本表单不提供静态 URL。"
           />
-          <Form.Item name="content" label="协议 Route JSON" rules={[{ required: true }]}><Input.TextArea rows={8} /></Form.Item>
+          <Form.Item name="protocol" label="协议" rules={[{ required: true }]}>
+            <Select options={['HTTP', 'RPC'].map((value) => ({ value }))} />
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(previous, current) => previous.protocol !== current.protocol}>
+            {({ getFieldValue }) => getFieldValue('protocol') === 'HTTP' ? (
+              <>
+                <Form.Item name="method" label="HTTP Method" rules={[{ required: true }]}>
+                  <Select options={['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map((value) => ({ value }))} />
+                </Form.Item>
+                <Form.Item name="path" label="Path" rules={[{ required: true }]}><Input /></Form.Item>
+              </>
+            ) : (
+              <Form.Item name="fullMethodName" label="RPC Full Method" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            )}
+          </Form.Item>
+          <Form.Item name="providerServiceName" label="Provider Service" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="priority" label="优先级"><Input type="number" /></Form.Item>
+          <Form.Item name="advancedContent" label="高级扩展 JSON"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
           <Form.Item name="changeReason" label="变更原因" rules={[{ required: true }]}><Input /></Form.Item>
         </Form>
@@ -241,7 +396,12 @@ export const DraftPage = () => {
         <Form
           form={policyForm}
           layout="vertical"
-          initialValues={{ enabled: true, policyScope: 'ROUTE', content: '{}' }}
+          initialValues={{
+            enabled: true,
+            policyScope: 'ROUTE',
+            advancedContent: '{}',
+            failureMode: 'FAIL_CLOSED',
+          }}
           onFinish={(values) => savePolicy.mutate(values)}
         >
           <Form.Item name="policyId" label="Policy ID" rules={[{ required: true }]}><Input /></Form.Item>
@@ -249,8 +409,19 @@ export const DraftPage = () => {
             <Select options={['TIMEOUT', 'RATE_LIMIT', 'BULKHEAD', 'CIRCUIT_BREAKER', 'RETRY', 'LOAD_BALANCE', 'SECURITY', 'CORS'].map((value) => ({ value }))} />
           </Form.Item>
           <Form.Item name="policyScope" label="作用域" rules={[{ required: true }]}><Select options={['GLOBAL', 'GROUP', 'ROUTE', 'OPERATION'].map((value) => ({ value }))} /></Form.Item>
+          <Form.Item name="timeoutMs" label="超时（ms）"><Input type="number" min={1} /></Form.Item>
+          <Form.Item name="permitsPerSecond" label="每秒许可数"><Input type="number" min={1} /></Form.Item>
+          <Form.Item name="maxConcurrent" label="最大并发"><Input type="number" min={1} /></Form.Item>
+          <Form.Item name="maxAttempts" label="最大尝试次数"><Input type="number" min={1} /></Form.Item>
+          <Form.Item name="strategy" label="负载均衡策略">
+            <Select allowClear options={['ROUND_ROBIN', 'WEIGHTED_RANDOM', 'LEAST_ACTIVE', 'CONSISTENT_HASH'].map((value) => ({ value }))} />
+          </Form.Item>
+          <Form.Item name="failureMode" label="失败模式">
+            <Select options={['FAIL_CLOSED', 'FAIL_OPEN'].map((value) => ({ value }))} />
+          </Form.Item>
+          <Form.Item name="allowedOrigins" label="CORS Origins（逗号分隔）"><Input /></Form.Item>
           {warnings.map((warning) => <Alert key={warning} type="warning" showIcon message={warning} />)}
-          <Form.Item name="content" label="策略 JSON（单位必须显式）" rules={[{ required: true }]}><Input.TextArea rows={10} /></Form.Item>
+          <Form.Item name="advancedContent" label="高级扩展 JSON（单位必须显式）"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
           <Form.Item name="changeReason" label="变更原因" rules={[{ required: true }]}><Input /></Form.Item>
         </Form>

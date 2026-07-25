@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.application.credential;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface GatewayCredentialStore {
@@ -10,6 +11,8 @@ public interface GatewayCredentialStore {
     Optional<CredentialRecord> find(String applicationId, String keyId);
 
     Optional<CredentialRecord> findByAccessKey(String accessKey);
+
+    List<CredentialRecord> list(String applicationId);
 
     void overlap(String id, Instant validUntil, Instant now);
 

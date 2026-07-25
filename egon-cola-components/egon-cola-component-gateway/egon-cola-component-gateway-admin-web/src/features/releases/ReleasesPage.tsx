@@ -13,7 +13,7 @@ import { StatusTag } from '../../components/StatusTag'
 export const ReleasesPage = () => {
   const { groupId = '' } = useParams()
   const queryClient = useQueryClient()
-  const canPublish = useCapability('gateway.release.publish')
+  const canPublish = useCapability('gateway:releases:write')
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [trace] = useState(() => createLogicalTrace())

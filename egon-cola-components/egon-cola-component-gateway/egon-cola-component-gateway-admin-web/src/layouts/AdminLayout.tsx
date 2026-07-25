@@ -5,6 +5,8 @@ import {
   DashboardOutlined,
   DeploymentUnitOutlined,
   EyeOutlined,
+  KeyOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons'
@@ -13,28 +15,44 @@ import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useScope } from '../hooks/useScope'
+import { useAuth } from '../auth/AuthContext'
+import { useCapability, type Capability } from '../app/capabilities'
 
 const { Header, Sider, Content } = Layout
 
-const items = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: <Link to="/dashboard">总览</Link> },
+const navigation: Array<{
+  key: string
+  icon: React.ReactNode
+  label: string
+  capability: Capability
+}> = [
+  { key: '/dashboard', icon: <DashboardOutlined />, label: '总览', capability: 'gateway:read' },
   {
     key: '/gateway-groups',
     icon: <DeploymentUnitOutlined />,
-    label: <Link to="/gateway-groups">Gateway Group</Link>,
+    label: 'Gateway Group',
+    capability: 'gateway:read',
+  },
+  {
+    key: '/applications',
+    icon: <KeyOutlined />,
+    label: 'Application / Credential',
+    capability: 'gateway:read',
   },
   {
     key: '/interface-catalog',
     icon: <AppstoreOutlined />,
-    label: <Link to="/interface-catalog">接口目录</Link>,
+    label: '接口目录',
+    capability: 'gateway:read',
   },
-  { key: '/providers', icon: <ApiOutlined />, label: <Link to="/providers">Provider</Link> },
+  { key: '/providers', icon: <ApiOutlined />, label: 'Provider', capability: 'gateway:read' },
   {
     key: '/observability/traces',
     icon: <EyeOutlined />,
-    label: <Link to="/observability/traces">调用观测</Link>,
+    label: '调用观测',
+    capability: 'gateway:read',
   },
-  { key: '/audit', icon: <AuditOutlined />, label: <Link to="/audit">审计日志</Link> },
+  { key: '/audit', icon: <AuditOutlined />, label: '审计日志', capability: 'gateway:read' },
 ]
 
 export const AdminLayout = () => {
@@ -43,6 +61,15 @@ export const AdminLayout = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { scope, setScope } = useScope()
+  const auth = useAuth()
+  const canRead = useCapability('gateway:read')
+  const items = canRead
+    ? navigation.map((item) => ({
+        key: item.key,
+        icon: item.icon,
+        label: <Link to={item.key}>{item.label}</Link>,
+      }))
+    : []
 
   const changeScope = (field: 'env' | 'namespace', value: string) => {
     if (!window.confirm('切换作用域会清空当前缓存和未保存表单，是否继续？')) {
@@ -94,7 +121,19 @@ export const AdminLayout = () => {
           </Space>
           <Space>
             <Badge status="processing" text="Admin API" />
-            <Typography.Text type="secondary">gateway-admin-web</Typography.Text>
+            <Typography.Text type="secondary">
+              {auth.session?.displayName}
+            </Typography.Text>
+            <Button
+              icon={<LogoutOutlined />}
+              onClick={() => {
+                auth.logout()
+                queryClient.clear()
+                navigate('/login', { replace: true })
+              }}
+            >
+              退出
+            </Button>
           </Space>
         </Header>
         <Content className="app-content">

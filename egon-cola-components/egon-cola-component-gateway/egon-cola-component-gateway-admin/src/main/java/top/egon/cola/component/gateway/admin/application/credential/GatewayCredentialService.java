@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -61,6 +62,20 @@ public class GatewayCredentialService {
         this.protector = protector;
         this.random = random;
         this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public List<CredentialView> list(String applicationId) {
+        requireApplication(applicationId);
+        return credentials.list(applicationId).stream()
+                .map(credential -> new CredentialView(
+                        credential.id(),
+                        credential.accessKey(),
+                        credential.status(),
+                        credential.validFrom(),
+                        credential.validUntil()
+                ))
+                .toList();
     }
 
     @Transactional

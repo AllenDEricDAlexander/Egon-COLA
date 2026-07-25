@@ -4,6 +4,9 @@ import zhCN from 'antd/locale/zh_CN'
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { CapabilityProvider } from './capabilities'
+import { AuthProvider } from '../auth/AuthContext'
+import { LoginPage } from '../auth/LoginPage'
+import { RequireAuth, RequireCapability } from '../auth/RouteGuards'
 import { LoadingBlock } from '../components/QueryState'
 import { AdminLayout } from '../layouts/AdminLayout'
 import { ScopeProvider } from '../hooks/useScope'
@@ -63,16 +66,32 @@ const AuditPage = lazy(() =>
     default: module.AuditPage,
   })),
 )
+const ApplicationsPage = lazy(() =>
+  import('../features/applications/ApplicationsPage').then((module) => ({
+    default: module.ApplicationsPage,
+  })),
+)
 
 const router = createBrowserRouter([
+  { path: '/login', element: <LoginPage /> },
   {
     path: '/',
-    element: <AdminLayout />,
+    element: (
+      <RequireAuth>
+        <RequireCapability capability="gateway:read">
+          <AdminLayout />
+        </RequireCapability>
+      </RequireAuth>
+    ),
     errorElement: <Result status="error" title="页面加载失败" subTitle="请返回上一页或刷新。" />,
     children: [
       { index: true, element: <Navigate replace to="/dashboard" /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'gateway-groups', element: <GatewayGroupsPage /> },
+      {
+        path: 'applications',
+        element: <RequireCapability capability="gateway:read"><ApplicationsPage /></RequireCapability>,
+      },
       { path: 'gateway-groups/:groupId/overview', element: <GatewayGroupDetailPage /> },
       { path: 'gateway-groups/:groupId/draft/routes', element: <DraftPage /> },
       { path: 'gateway-groups/:groupId/draft/policies', element: <DraftPage /> },
@@ -86,7 +105,10 @@ const router = createBrowserRouter([
       { path: 'operations/:operationId', element: <OperationPage /> },
       { path: 'providers', element: <ProvidersPage /> },
       { path: 'observability/traces', element: <TracesPage /> },
-      { path: 'audit', element: <AuditPage /> },
+      {
+        path: 'audit',
+        element: <RequireCapability capability="gateway:read"><AuditPage /></RequireCapability>,
+      },
       { path: '*', element: <Result status="404" title="404" subTitle="页面不存在" /> },
     ],
   },
@@ -118,13 +140,15 @@ export const App = () => (
     }}
   >
     <QueryClientProvider client={queryClient}>
-      <CapabilityProvider>
-        <ScopeProvider>
-          <Suspense fallback={<LoadingBlock />}>
-            <RouterProvider router={router} />
-          </Suspense>
-        </ScopeProvider>
-      </CapabilityProvider>
+      <AuthProvider>
+        <CapabilityProvider>
+          <ScopeProvider>
+            <Suspense fallback={<LoadingBlock />}>
+              <RouterProvider router={router} />
+            </Suspense>
+          </ScopeProvider>
+        </CapabilityProvider>
+      </AuthProvider>
     </QueryClientProvider>
   </ConfigProvider>
 )

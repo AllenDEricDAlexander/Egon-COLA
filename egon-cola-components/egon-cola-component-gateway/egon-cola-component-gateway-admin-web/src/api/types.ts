@@ -3,6 +3,15 @@ export type Scope = {
   namespace: string
 }
 
+export type AdminSession = {
+  actorId: string
+  displayName: string
+  actorType: string
+  capabilities: string[]
+  roles: string[]
+  expiresAt?: string
+}
+
 export type GatewayGroup = Scope & {
   id: string
   gatewayGroupCode: string
@@ -20,6 +29,18 @@ export type Application = Scope & {
   displayName: string
   description?: string
   revision: number
+}
+
+export type Credential = {
+  id: string
+  accessKey: string
+  status: string
+  validFrom: string
+  validUntil?: string
+}
+
+export type IssuedCredential = Credential & {
+  secret: string
 }
 
 export type EngineNode = {

@@ -18,10 +18,14 @@ import java.util.List;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
-        controllers = GatewayGroupController.class,
+        controllers = {
+                GatewayGroupController.class,
+                GatewayAdminSessionController.class
+        },
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
                 classes = GatewayReportHmacFilter.class
@@ -66,5 +70,35 @@ class GatewayAdminSecurityIntegrationTest {
                                         "CAP_gateway:read"
                                 ))))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void exposesVerifiedActorAndCapabilitiesToTheAdminWeb()
+            throws Exception {
+        mockMvc.perform(get("/api/v1/gateway/admin/session")
+                        .with(jwt()
+                                .jwt(token -> token
+                                        .subject("admin-1")
+                                        .claim("preferred_username", "Mario"))
+                                .authorities(
+                                        new SimpleGrantedAuthority(
+                                                "CAP_gateway:read"
+                                        ),
+                                        new SimpleGrantedAuthority(
+                                                "CAP_gateway:groups:write"
+                                        ),
+                                        new SimpleGrantedAuthority(
+                                                "ROLE_gateway-admin"
+                                        )
+                                )))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actorId").value("admin-1"))
+                .andExpect(jsonPath("$.displayName").value("Mario"))
+                .andExpect(jsonPath("$.capabilities[0]")
+                        .value("gateway:groups:write"))
+                .andExpect(jsonPath("$.capabilities[1]")
+                        .value("gateway:read"))
+                .andExpect(jsonPath("$.roles[0]")
+                        .value("gateway-admin"));
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 import top.egon.cola.component.gateway.admin.application.credential.GatewayCredentialStore;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -63,7 +64,25 @@ public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
                 """, accessKey);
     }
 
+    @Override
+    public List<CredentialRecord> list(String applicationId) {
+        return queryAll("""
+                SELECT id, application_id, access_key, secret_ciphertext,
+                       key_version, status, valid_from, valid_until,
+                       created_at, updated_at
+                  FROM gateway_application_credential
+                 WHERE application_id = ?
+                 ORDER BY created_at DESC, id DESC
+                """, applicationId);
+    }
+
     private Optional<CredentialRecord> query(
+            String sql,
+            Object... arguments) {
+        return queryAll(sql, arguments).stream().findFirst();
+    }
+
+    private List<CredentialRecord> queryAll(
             String sql,
             Object... arguments) {
         return jdbc.query(sql, (result, row) -> new CredentialRecord(
@@ -79,7 +98,7 @@ public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
                         : result.getTimestamp("valid_until").toInstant(),
                 result.getTimestamp("created_at").toInstant(),
                 result.getTimestamp("updated_at").toInstant()
-        ), arguments).stream().findFirst();
+        ), arguments);
     }
 
     @Override

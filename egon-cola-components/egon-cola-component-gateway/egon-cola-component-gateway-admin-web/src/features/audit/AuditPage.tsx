@@ -12,7 +12,7 @@ import { sanitizeForDisplay } from '../observability/sanitize'
 
 export const AuditPage = () => {
   const { scope } = useScope()
-  const canRead = useCapability('gateway.audit.read')
+  const canRead = useCapability('gateway:read')
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [selected, setSelected] = useState<AuditEntry>()
   const search = useMemo(() => new URLSearchParams(filters), [filters])
