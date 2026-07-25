@@ -55,6 +55,15 @@ public class DdcLocalConfigRepository {
         }
     }
 
+    public void restoreMetadata(String key, Long version, String checksum) {
+        if (version == null) {
+            versions.remove(key);
+        } else {
+            versions.put(key, version);
+        }
+        updateChecksum(key, checksum);
+    }
+
     public <T> T withConfigLock(String key, Supplier<T> action) {
         ReentrantLock lock = locks.computeIfAbsent(key, ignored -> new ReentrantLock());
         lock.lock();

@@ -16,6 +16,8 @@ public class DdcRefreshService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DdcRefreshService.class);
 
+    private static final int MAX_ERROR_MESSAGE_LENGTH = 256;
+
     private final DdcLocalConfigRepository repository;
 
     private final DdcConfigApplierRegistry applierRegistry;
@@ -46,12 +48,23 @@ public class DdcRefreshService {
             return;
         }
         repository.withConfigLock(config.getConfigKey(), () -> {
-            Long localVersion = repository.version(config.getConfigKey());
-            if (localVersion == null || config.getVersion() > localVersion) {
-                applierRegistry.resolve(config.getConfigKey())
-                        .apply(config.getConfigKey(), config.getConfigValue(), config.getVersion());
-                repository.updateVersion(config.getConfigKey(), config.getVersion());
-                repository.updateChecksum(config.getConfigKey(), DdcChecksum.content(config.getConfigValue()));
+            String contentChecksum = DdcChecksum.content(config.getConfigValue());
+            ConfigMetadata local = metadata(config.getConfigKey());
+            VersionRelation relation = compare(local, config.getVersion(), contentChecksum);
+            if (relation == VersionRelation.CHECKSUM_CONFLICT) {
+                LOGGER.warn(
+                        "DDC snapshot checksum conflict for configKey={} version={}",
+                        config.getConfigKey(),
+                        config.getVersion()
+                );
+            } else if (relation == VersionRelation.NEWER) {
+                applyAndStore(
+                        config.getConfigKey(),
+                        config.getConfigValue(),
+                        config.getVersion(),
+                        contentChecksum,
+                        local
+                );
             }
             return null;
         });
@@ -92,25 +105,79 @@ public class DdcRefreshService {
     }
 
     private AckOutcome apply(DdcPublishMessage message) {
-        Long localVersion = repository.version(message.getConfigKey());
-        String localChecksum = repository.checksum(message.getConfigKey());
-        if (localVersion != null && message.getTargetVersion() < localVersion) {
-            return new AckOutcome(DdcAckStatus.IGNORED, localVersion, null);
+        ConfigMetadata local = metadata(message.getConfigKey());
+        VersionRelation relation = compare(
+                local,
+                message.getTargetVersion(),
+                message.getContentChecksum()
+        );
+        if (relation == VersionRelation.STALE) {
+            return new AckOutcome(DdcAckStatus.IGNORED, local.version(), null);
         }
-        if (localVersion != null
-                && message.getTargetVersion().equals(localVersion)
-                && message.getContentChecksum().equals(localChecksum)) {
-            return new AckOutcome(DdcAckStatus.SUCCESS, localVersion, null);
+        if (relation == VersionRelation.SAME_CONTENT) {
+            return new AckOutcome(DdcAckStatus.SUCCESS, local.version(), null);
+        }
+        if (relation == VersionRelation.CHECKSUM_CONFLICT) {
+            return new AckOutcome(
+                    DdcAckStatus.FAILED,
+                    local.version(),
+                    "DDC config checksum conflict"
+            );
         }
         try {
-            applierRegistry.resolve(message.getConfigKey())
-                    .apply(message.getConfigKey(), message.getConfigValue(), message.getTargetVersion());
-            repository.updateVersion(message.getConfigKey(), message.getTargetVersion());
-            repository.updateChecksum(message.getConfigKey(), message.getContentChecksum());
+            applyAndStore(
+                    message.getConfigKey(),
+                    message.getConfigValue(),
+                    message.getTargetVersion(),
+                    message.getContentChecksum(),
+                    local
+            );
             return new AckOutcome(DdcAckStatus.SUCCESS, message.getTargetVersion(), null);
         } catch (RuntimeException exception) {
-            return new AckOutcome(DdcAckStatus.FAILED, localVersion, exception.getMessage());
+            return new AckOutcome(DdcAckStatus.FAILED, local.version(), safeErrorMessage(exception));
         }
+    }
+
+    private ConfigMetadata metadata(String configKey) {
+        return new ConfigMetadata(repository.version(configKey), repository.checksum(configKey));
+    }
+
+    private VersionRelation compare(ConfigMetadata local, long targetVersion, String targetChecksum) {
+        if (local.version() == null || targetVersion > local.version()) {
+            return VersionRelation.NEWER;
+        }
+        if (targetVersion < local.version()) {
+            return VersionRelation.STALE;
+        }
+        return targetChecksum.equals(local.checksum())
+                ? VersionRelation.SAME_CONTENT
+                : VersionRelation.CHECKSUM_CONFLICT;
+    }
+
+    private void applyAndStore(String configKey,
+                               String configValue,
+                               long version,
+                               String checksum,
+                               ConfigMetadata previous) {
+        try {
+            applierRegistry.resolve(configKey).apply(configKey, configValue, version);
+            repository.updateVersion(configKey, version);
+            repository.updateChecksum(configKey, checksum);
+        } catch (RuntimeException exception) {
+            repository.restoreMetadata(configKey, previous.version(), previous.checksum());
+            throw exception;
+        }
+    }
+
+    private String safeErrorMessage(RuntimeException exception) {
+        String prefix = "DDC config apply failed";
+        String detail = exception.getMessage();
+        String message = detail == null || detail.isBlank()
+                ? prefix
+                : prefix + ": " + detail.replaceAll("\\s+", " ").trim();
+        return message.length() <= MAX_ERROR_MESSAGE_LENGTH
+                ? message
+                : message.substring(0, MAX_ERROR_MESSAGE_LENGTH);
     }
 
     private boolean isTarget(DdcPublishMessage message, DdcLeaseSession session) {
@@ -146,5 +213,15 @@ public class DdcRefreshService {
             Long currentVersion,
             String errorMessage
     ) {
+    }
+
+    private record ConfigMetadata(Long version, String checksum) {
+    }
+
+    private enum VersionRelation {
+        NEWER,
+        SAME_CONTENT,
+        CHECKSUM_CONFLICT,
+        STALE
     }
 }
