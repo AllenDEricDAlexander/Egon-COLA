@@ -26,18 +26,34 @@ public final class KafkaGatewayCallEventSink
 
     private final Duration closeTimeout;
 
+    private final GatewayTelemetry telemetry;
+
     private final AtomicLong acknowledged = new AtomicLong();
 
     private final AtomicLong failed = new AtomicLong();
 
     public KafkaGatewayCallEventSink(Settings settings) {
-        this(settings, createProducer(settings));
+        this(settings, createProducer(settings), GatewayTelemetry.noop());
+    }
+
+    public KafkaGatewayCallEventSink(
+            Settings settings,
+            GatewayTelemetry telemetry) {
+        this(settings, createProducer(settings), telemetry);
     }
 
     KafkaGatewayCallEventSink(
             Settings settings,
             Producer<String, byte[]> producer) {
+        this(settings, producer, GatewayTelemetry.noop());
+    }
+
+    KafkaGatewayCallEventSink(
+            Settings settings,
+            Producer<String, byte[]> producer,
+            GatewayTelemetry telemetry) {
         this.producer = Objects.requireNonNull(producer, "producer");
+        this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
         topic = required(settings.topic(), "topic");
         closeTimeout = Objects.requireNonNull(
                 settings.closeTimeout(),
@@ -47,6 +63,10 @@ public final class KafkaGatewayCallEventSink
 
     @Override
     public void send(GatewayCallEventV1 event, byte[] payload) {
+        GatewayTelemetry.Operation operation = telemetry.startKafkaSend(
+                event.eventId(),
+                event.trace().traceId()
+        );
         String key = event.routing().gatewayGroupId().isBlank()
                 ? event.trace().traceId()
                 : event.routing().gatewayGroupId();
@@ -62,13 +82,20 @@ public final class KafkaGatewayCallEventSink
                         header("trace-id", event.trace().traceId())
                 )
         );
-        producer.send(record, (metadata, error) -> {
-            if (error == null) {
-                acknowledged.incrementAndGet();
-            } else {
-                failed.incrementAndGet();
-            }
-        });
+        try {
+            producer.send(record, (metadata, error) -> {
+                if (error == null) {
+                    acknowledged.incrementAndGet();
+                    operation.success();
+                } else {
+                    failed.incrementAndGet();
+                    operation.failure(error);
+                }
+            });
+        } catch (RuntimeException failure) {
+            operation.failure(failure);
+            throw failure;
+        }
     }
 
     public Delivery delivery() {

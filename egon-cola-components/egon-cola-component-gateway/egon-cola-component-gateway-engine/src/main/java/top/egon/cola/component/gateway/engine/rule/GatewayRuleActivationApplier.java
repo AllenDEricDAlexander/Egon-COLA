@@ -6,6 +6,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
+import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -30,6 +31,8 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
 
     private final Clock clock;
 
+    private final GatewayTelemetry telemetry;
+
     private final AtomicReference<CompiledGatewayRules> active =
             new AtomicReference<>();
 
@@ -43,6 +46,25 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
             ProviderDirectory providerDirectory,
             GatewayRuleLkgRepository lkgRepository,
             Clock clock) {
+        this(
+                codec,
+                compiler,
+                chunks,
+                providerDirectory,
+                lkgRepository,
+                clock,
+                GatewayTelemetry.noop()
+        );
+    }
+
+    public GatewayRuleActivationApplier(
+            GatewayRuleJsonCodec codec,
+            EngineGatewayRuleCompiler compiler,
+            GatewayRuleChunkStore chunks,
+            ProviderDirectory providerDirectory,
+            GatewayRuleLkgRepository lkgRepository,
+            Clock clock,
+            GatewayTelemetry telemetry) {
         this.codec = Objects.requireNonNull(codec, "codec");
         this.compiler = Objects.requireNonNull(compiler, "compiler");
         this.chunks = Objects.requireNonNull(chunks, "chunks");
@@ -55,18 +77,25 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
                 "lkgRepository"
         );
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
     }
 
     @Override
     public synchronized void apply(String key, String value, long version) {
+        GatewayTelemetry.Operation operation =
+                telemetry.startDdcApply(key, version);
         if (!ACTIVE_CONFIG_KEY.equals(key)) {
+            operation.failure(new IllegalArgumentException(
+                    "unexpected active rule key"
+            ));
             throw new IllegalArgumentException("unexpected active rule key");
         }
         if (version <= status.get().activeDdcVersion()) {
+            operation.ignored();
             return;
         }
-        updateStage(GatewayRuleApplyStage.RECEIVED, null);
         try {
+            updateStage(GatewayRuleApplyStage.RECEIVED, null);
             GatewayRuleActivation activation = codec.readActivation(value);
             byte[] snapshotJson = snapshotJson(activation);
             GatewayRuleSnapshot snapshot = codec.readSnapshot(snapshotJson);
@@ -102,7 +131,9 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
                 ));
             }
             status.set(successStatus(prepared, version));
+            operation.success();
         } catch (RuntimeException failure) {
+            operation.failure(failure);
             GatewayRuleRuntimeStatus current = status.get();
             status.set(new GatewayRuleRuntimeStatus(
                     current.activeReleaseId(),

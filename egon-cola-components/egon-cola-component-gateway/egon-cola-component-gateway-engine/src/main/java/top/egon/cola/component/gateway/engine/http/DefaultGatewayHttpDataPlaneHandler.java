@@ -21,6 +21,7 @@ import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecor
 import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
+import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
 import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
@@ -67,6 +68,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private final GatewayHttpSecurityProcessor securityProcessor;
 
     private final GatewayCallCompletionListener completionListener;
+
+    private final GatewayTelemetry telemetry;
 
     private final GatewayTrafficGovernance trafficGovernance;
 
@@ -261,6 +264,39 @@ public final class DefaultGatewayHttpDataPlaneHandler
             HttpRpcUpstreamAdapter httpRpcUpstream,
             ProviderCallOutcomeRecorder outcomeRecorder,
             Supplier<Map<String, RuntimeCorsPolicy>> corsPolicies) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                httpRpcUpstream,
+                outcomeRecorder,
+                corsPolicies,
+                GatewayTelemetry.noop()
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            HttpRpcUpstreamAdapter httpRpcUpstream,
+            ProviderCallOutcomeRecorder outcomeRecorder,
+            Supplier<Map<String, RuntimeCorsPolicy>> corsPolicies,
+            GatewayTelemetry telemetry) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -284,6 +320,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 completionListener,
                 "completionListener"
         );
+        this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
         this.engineNodeId = Objects.requireNonNull(
                 engineNodeId,
                 "engineNodeId"
@@ -315,13 +352,17 @@ public final class DefaultGatewayHttpDataPlaneHandler
     public Mono<GatewayOutboundHttpResponse> handle(
             AccessZone accessZone,
             GatewayInboundHttpRequest request) {
-        GatewayTraceContext trace = traceContext(request.headers());
+        GatewayTraceContext selectedTrace = traceContext(
+                request.headers()
+        );
         GatewayCallObservation observation = GatewayCallObservation.start(
-                trace,
+                selectedTrace,
                 "HTTP",
                 accessZone.name(),
-                engineNodeId
+                engineNodeId,
+                telemetry
         );
+        GatewayTraceContext trace = observation.trace();
         try {
             NormalizedHttpRequest normalized = normalizer.normalize(
                     request.method(),
@@ -517,7 +558,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
         }
         long attemptStartedAt = System.currentTimeMillis();
         long attemptStartedNanos = System.nanoTime();
-        String attemptSpanId = trace.newChildSpanId();
+        GatewayTelemetry.AttemptTrace attemptTrace =
+                observation.beginAttempt(
+                        attemptNumber,
+                        provider.instanceId(),
+                        provider.serviceKey().protocolType().name()
+                );
+        String attemptSpanId = attemptTrace.spanId();
         observation.provider(provider.instanceId(), Map.of(
                 "serviceKey",
                 provider.serviceKey().serviceName(),
@@ -531,7 +578,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
         Map<String, List<String>> headers = forwardedHeaders(
                 normalized.headers(),
                 trace,
-                attemptSpanId,
+                attemptTrace,
                 security
         );
         Mono<GatewayOutboundHttpResponse> invocation;
@@ -635,7 +682,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private Map<String, List<String>> forwardedHeaders(
             Map<String, List<String>> source,
             GatewayTraceContext trace,
-            String childSpanId,
+            GatewayTelemetry.AttemptTrace attemptTrace,
             GatewayHttpSecurityProcessor.Outcome security) {
         Map<String, List<String>> sanitized =
                 identitySanitizer.sanitizeHttp(
@@ -647,10 +694,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
         Map<String, List<String>> result = new LinkedHashMap<>(sanitized);
         result.put(
                 "traceparent",
-                List.of(trace.childTraceparent(childSpanId))
+                List.of(attemptTrace.traceparent())
         );
-        if (trace.tracestate() != null) {
-            result.put("tracestate", List.of(trace.tracestate()));
+        if (attemptTrace.tracestate() != null) {
+            result.put(
+                    "tracestate",
+                    List.of(attemptTrace.tracestate())
+            );
         }
         return Map.copyOf(result);
     }

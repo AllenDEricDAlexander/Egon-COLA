@@ -18,6 +18,7 @@ import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecor
 import top.egon.cola.component.gateway.engine.http.ProviderSelector;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
+import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficContext;
@@ -47,6 +48,8 @@ public final class RpcGatewayForwarder {
     private final GatewayRpcSecurityProcessor securityProcessor;
 
     private final GatewayCallCompletionListener completionListener;
+
+    private final GatewayTelemetry telemetry;
 
     private final String engineNodeId;
 
@@ -147,6 +150,31 @@ public final class RpcGatewayForwarder {
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance,
             ProviderCallOutcomeRecorder outcomeRecorder) {
+        this(
+                providerSelector,
+                channels,
+                maximumTimeout,
+                maxInboundMessageBytes,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                outcomeRecorder,
+                GatewayTelemetry.noop()
+        );
+    }
+
+    public RpcGatewayForwarder(
+            ProviderSelector providerSelector,
+            RpcProviderChannelCache channels,
+            Duration maximumTimeout,
+            int maxInboundMessageBytes,
+            GatewayRpcSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            ProviderCallOutcomeRecorder outcomeRecorder,
+            GatewayTelemetry telemetry) {
         this.providerSelector = Objects.requireNonNull(
                 providerSelector,
                 "providerSelector"
@@ -165,6 +193,7 @@ public final class RpcGatewayForwarder {
                 completionListener,
                 "completionListener"
         );
+        this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
         this.engineNodeId = Objects.requireNonNull(
                 engineNodeId,
                 "engineNodeId"
@@ -183,13 +212,17 @@ public final class RpcGatewayForwarder {
         MethodDescriptor<byte[], byte[]> method =
                 RawByteMarshaller.INSTANCE.descriptor(route.fullMethodName());
         return (serverCall, inboundHeaders) -> {
-            GatewayTraceContext trace = traceContext(inboundHeaders);
+            GatewayTraceContext selectedTrace = traceContext(
+                    inboundHeaders
+            );
             GatewayCallObservation observation = GatewayCallObservation.start(
-                    trace,
+                    selectedTrace,
                     "RPC",
                     "INTERNAL",
-                    engineNodeId
+                    engineNodeId,
+                    telemetry
             );
+            GatewayTraceContext trace = observation.trace();
             observation.route(
                     route.fullMethodName(),
                     route.fullMethodName(),
@@ -470,7 +503,15 @@ public final class RpcGatewayForwarder {
                 ));
                 attemptStartedAt = System.currentTimeMillis();
                 attemptStartedNanos = System.nanoTime();
-                attemptSpanId = trace.newChildSpanId();
+                GatewayTelemetry.AttemptTrace attemptTrace =
+                        observation.beginAttempt(
+                                attemptNumber,
+                                provider.instanceId(),
+                                provider.serviceKey()
+                                        .protocolType()
+                                        .name()
+                        );
+                attemptSpanId = attemptTrace.spanId();
                 channelHandle = channels.acquire(provider);
                 clientCall = channelHandle.channel().newCall(
                         method,
@@ -565,7 +606,7 @@ public final class RpcGatewayForwarder {
                         route,
                         inboundHeaders,
                         trace,
-                        attemptSpanId,
+                        attemptTrace,
                         security
                 ));
                 activeCall.request(1);
@@ -746,7 +787,7 @@ public final class RpcGatewayForwarder {
             RuntimeRpcRoute route,
             Metadata inbound,
             GatewayTraceContext trace,
-            String childSpanId,
+            GatewayTelemetry.AttemptTrace attemptTrace,
             GatewayRpcSecurityProcessor.Outcome security) {
         Metadata result = new Metadata();
         result.put(
@@ -762,10 +803,13 @@ public final class RpcGatewayForwarder {
         result.put(RpcMetadataKeys.TRACE_ID, trace.traceId());
         result.put(
                 RpcMetadataKeys.TRACEPARENT,
-                trace.childTraceparent(childSpanId)
+                attemptTrace.traceparent()
         );
-        if (trace.tracestate() != null) {
-            result.put(RpcMetadataKeys.TRACESTATE, trace.tracestate());
+        if (attemptTrace.tracestate() != null) {
+            result.put(
+                    RpcMetadataKeys.TRACESTATE,
+                    attemptTrace.tracestate()
+            );
         }
         copy(inbound, result, RpcMetadataKeys.SOURCE_APP);
         copy(inbound, result, RpcMetadataKeys.SOURCE_INSTANCE);

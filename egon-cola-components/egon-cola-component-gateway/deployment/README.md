@@ -66,6 +66,21 @@ Compose 为进程预留 30 秒优雅停止时间。Kafka 故障不应改变业�
 暴露丢弃/失败；DDC 暂时不可用时，已运行 Engine 只能继续使用有效内存状态与 LKG，
 冷启动节点不能据此声称 Ready。
 
+## OpenTelemetry
+
+Engine 已通过 Micrometer Observation 和 OTel Bridge 记录 Request、Provider Attempt、
+DDC Apply 与 Kafka Send Span。默认不连接 Collector；启用 OTLP 时显式注入：
+
+```text
+MANAGEMENT_OTLP_TRACING_EXPORT_ENABLED=true
+MANAGEMENT_OTLP_TRACING_ENDPOINT=https://otel-collector.example/v1/traces
+MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
+```
+
+合法的上游 W3C `traceparent` 采样标志优先；只有调用方未提供 W3C Parent 时才使用本地
+采样概率。Operation、Route、Provider Instance、Event ID 等高基数字段只进入 Span，
+不会进入低基数指标 Tag。Collector 不可用不影响 Gateway 业务响应。
+
 ## 已知部署边界
 
 - DDC 当前按单 Admin、单 Redis 能力部署，不声称 HA；

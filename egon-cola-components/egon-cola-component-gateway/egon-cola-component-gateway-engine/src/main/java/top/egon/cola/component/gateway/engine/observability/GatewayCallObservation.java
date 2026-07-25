@@ -23,6 +23,8 @@ public final class GatewayCallObservation {
 
     private final GatewayTraceContext trace;
 
+    private final GatewayTelemetry.Request telemetry;
+
     private final String requestId;
 
     private final String protocol;
@@ -77,8 +79,35 @@ public final class GatewayCallObservation {
             String protocol,
             String accessZone,
             String engineNodeId) {
+        this(
+                clock,
+                trace,
+                requestId,
+                protocol,
+                accessZone,
+                engineNodeId,
+                GatewayTelemetry.noop()
+        );
+    }
+
+    public GatewayCallObservation(
+            Clock clock,
+            GatewayTraceContext trace,
+            String requestId,
+            String protocol,
+            String accessZone,
+            String engineNodeId,
+            GatewayTelemetry gatewayTelemetry) {
         this.clock = Objects.requireNonNull(clock, "clock");
-        this.trace = Objects.requireNonNull(trace, "trace");
+        telemetry = Objects.requireNonNull(
+                gatewayTelemetry,
+                "gatewayTelemetry"
+        ).startRequest(
+                Objects.requireNonNull(trace, "trace"),
+                protocol,
+                accessZone
+        );
+        this.trace = telemetry.trace();
         this.requestId = required(requestId, "requestId");
         this.protocol = required(protocol, "protocol");
         this.accessZone = required(accessZone, "accessZone");
@@ -92,13 +121,29 @@ public final class GatewayCallObservation {
             String protocol,
             String accessZone,
             String engineNodeId) {
+        return start(
+                trace,
+                protocol,
+                accessZone,
+                engineNodeId,
+                GatewayTelemetry.noop()
+        );
+    }
+
+    public static GatewayCallObservation start(
+            GatewayTraceContext trace,
+            String protocol,
+            String accessZone,
+            String engineNodeId,
+            GatewayTelemetry telemetry) {
         return new GatewayCallObservation(
                 Clock.systemUTC(),
                 trace,
                 UuidV7.simpleString(),
                 protocol,
                 accessZone,
-                engineNodeId
+                engineNodeId,
+                telemetry
         );
     }
 
@@ -120,6 +165,7 @@ public final class GatewayCallObservation {
         this.operationId = safe(operationId);
         this.routeId = safe(routeId);
         terminalStage = "ROUTE";
+        telemetry.route(gatewayGroupId, operationId, routeId);
     }
 
     public void scope(String env, String namespace) {
@@ -174,6 +220,12 @@ public final class GatewayCallObservation {
             long durationMs,
             String category,
             String retryReason) {
+        telemetry.finishAttempt(
+                spanId,
+                category,
+                retryReason,
+                null
+        );
         attempts.add(new GatewayCallEventV1.Attempt(
                 number,
                 spanId,
@@ -185,6 +237,17 @@ public final class GatewayCallObservation {
         ));
     }
 
+    public GatewayTelemetry.AttemptTrace beginAttempt(
+            int number,
+            String providerInstanceId,
+            String providerProtocol) {
+        return telemetry.startAttempt(
+                number,
+                providerInstanceId,
+                providerProtocol
+        );
+    }
+
     public Optional<GatewayCallEventV1> complete(
             String terminalStage,
             String category,
@@ -194,6 +257,7 @@ public final class GatewayCallObservation {
         if (!completed.compareAndSet(false, true)) {
             return Optional.empty();
         }
+        telemetry.finish(terminalStage, category, gatewayErrorCode);
         long completedAt = Math.max(clock.millis(), occurredAt);
         long durationMs = Math.max(
                 0,

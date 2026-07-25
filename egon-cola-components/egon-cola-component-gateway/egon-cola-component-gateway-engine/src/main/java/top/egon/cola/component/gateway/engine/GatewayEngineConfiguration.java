@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.engine;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -43,6 +44,7 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletio
 import top.egon.cola.component.gateway.engine.observability.GatewayCallEventDispatcher;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallEventSerializer;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallMetricsListener;
+import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 import top.egon.cola.component.gateway.engine.observability.KafkaGatewayCallEventSink;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayForwarder;
 import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
@@ -80,6 +82,17 @@ public class GatewayEngineConfiguration {
     @Bean
     public Clock gatewayClock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    public GatewayTelemetry gatewayTelemetry(
+            ObservationRegistry observationRegistry,
+            @Value("${management.tracing.sampling.probability:0.1}")
+            double samplingProbability) {
+        return new GatewayTelemetry(
+                observationRegistry,
+                samplingProbability
+        );
     }
 
     @Bean
@@ -157,7 +170,8 @@ public class GatewayEngineConfiguration {
             GatewayRuleChunkStore chunks,
             ProviderDirectory providerDirectory,
             GatewayEngineRuntimeProperties properties,
-            Clock gatewayClock) {
+            Clock gatewayClock,
+            GatewayTelemetry telemetry) {
         GatewayRuleActivationApplier activation =
                 new GatewayRuleActivationApplier(
                         new GatewayRuleJsonCodec(),
@@ -168,7 +182,8 @@ public class GatewayEngineConfiguration {
                                 Path.of(properties.getDataDirectory()),
                                 properties.getGatewayGroupCode()
                         ),
-                        gatewayClock
+                        gatewayClock,
+                        telemetry
                 );
         GatewayRuleApplierRegistrar.register(
                 applierRegistry,
@@ -283,7 +298,8 @@ public class GatewayEngineConfiguration {
             havingValue = "true"
     )
     public GatewayCallEventDispatcher gatewayCallEventDispatcher(
-            GatewayEngineRuntimeProperties properties) {
+            GatewayEngineRuntimeProperties properties,
+            GatewayTelemetry telemetry) {
         GatewayEngineRuntimeProperties.Kafka kafka = properties.getKafka();
         return new GatewayCallEventDispatcher(
                 kafka.getMaxQueuedEvents(),
@@ -297,7 +313,8 @@ public class GatewayEngineConfiguration {
                                 kafka.getDeliveryTimeout(),
                                 kafka.getShutdownDrain(),
                                 Map.of()
-                        )
+                        ),
+                        telemetry
                 )
         );
     }
@@ -312,7 +329,8 @@ public class GatewayEngineConfiguration {
             GatewayCallCompletionListener completionListener,
             GatewayTrafficGovernance trafficGovernance,
             HttpRpcUpstreamAdapter httpRpcUpstream,
-            PassiveHealthTracker passiveHealth) {
+            PassiveHealthTracker passiveHealth,
+            GatewayTelemetry telemetry) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         GatewayHttpEngineProperties engineProperties =
                 new GatewayHttpEngineProperties(
@@ -363,7 +381,8 @@ public class GatewayEngineConfiguration {
                 passiveHealth,
                 () -> activation.active() == null
                         ? Map.of()
-                        : activation.active().corsPolicies()
+                        : activation.active().corsPolicies(),
+                telemetry
         );
         return new GatewayHttpServer(engineProperties, handler);
     }
@@ -418,7 +437,8 @@ public class GatewayEngineConfiguration {
             GatewaySecurityCapabilityRegistry capabilities,
             GatewayCallCompletionListener completionListener,
             GatewayTrafficGovernance trafficGovernance,
-            PassiveHealthTracker passiveHealth) {
+            PassiveHealthTracker passiveHealth,
+            GatewayTelemetry telemetry) {
         var security = new RuleBackedRpcGatewaySecurityProcessor(
                 new GatewaySecurityChain(capabilities),
                 activation::active,
@@ -433,7 +453,8 @@ public class GatewayEngineConfiguration {
                 completionListener,
                 properties.getNodeId(),
                 trafficGovernance,
-                passiveHealth
+                passiveHealth,
+                telemetry
         );
         return new RpcGatewayHandlerRegistry(
                 forwarder,
