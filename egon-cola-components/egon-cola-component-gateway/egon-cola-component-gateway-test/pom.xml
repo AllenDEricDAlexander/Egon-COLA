@@ -23,4 +23,34 @@
         <module>egon-cola-component-gateway-test-rpc-consumer</module>
         <module>egon-cola-component-gateway-test-suite</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>gateway-live-test</id>
+            <properties>
+                <gateway.live.test>true</gateway.live.test>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <gateway.live.test>${gateway.live.test}</gateway.live.test>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
