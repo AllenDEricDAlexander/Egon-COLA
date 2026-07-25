@@ -182,25 +182,32 @@ public class JdbcGatewayObservabilityStore
         );
         List<RequestPoint> series = jdbc.query(
                 """
-                SELECT bucket_at,
-                       sum(request_count) AS requests,
-                       sum(error_count) AS errors,
-                       CASE WHEN sum(request_count) = 0 THEN 0
-                            ELSE sum(duration_total_ms)
-                                 / sum(request_count) END AS average_ms,
-                       max(duration_max_ms) AS maximum_ms
-                  FROM gateway_call_metric_minute
-                 WHERE env = ? AND namespace = ? AND bucket_at >= ?
-                 GROUP BY bucket_at
+                SELECT date_trunc('minute', occurred_at) AS bucket_at,
+                       count(*) AS requests,
+                       count(*) FILTER (
+                           WHERE result_category <> 'SUCCESS'
+                       ) AS errors,
+                       percentile_cont(0.50) WITHIN GROUP (
+                           ORDER BY duration_ms
+                       ) AS p50_ms,
+                       percentile_cont(0.95) WITHIN GROUP (
+                           ORDER BY duration_ms
+                       ) AS p95_ms,
+                       percentile_cont(0.99) WITHIN GROUP (
+                           ORDER BY duration_ms
+                       ) AS p99_ms
+                  FROM gateway_call_event_summary
+                 WHERE env = ? AND namespace = ? AND occurred_at >= ?
+                 GROUP BY date_trunc('minute', occurred_at)
                  ORDER BY bucket_at
                 """,
                 (result, row) -> new RequestPoint(
                         result.getTimestamp("bucket_at").toInstant(),
                         result.getLong("requests"),
                         result.getLong("errors"),
-                        result.getLong("average_ms"),
-                        result.getLong("average_ms"),
-                        result.getLong("maximum_ms")
+                        Math.round(result.getDouble("p50_ms")),
+                        Math.round(result.getDouble("p95_ms")),
+                        Math.round(result.getDouble("p99_ms"))
                 ),
                 env,
                 namespace,
