@@ -72,12 +72,28 @@ public final class DirectoryProviderSelector implements ProviderSelector {
     public ProviderSelectionHandle select(
             ProviderServiceKey serviceKey,
             Set<String> policyRefs) {
+        return select(serviceKey, policyRefs, Set.of());
+    }
+
+    @Override
+    public ProviderSelectionHandle select(
+            ProviderServiceKey serviceKey,
+            Set<String> policyRefs,
+            Set<String> excludedRuntimeIdentities) {
         ResolvedPolicies resolved = resolve(serviceKey, policyRefs);
         ProviderCandidateFilterResult result = candidateFilter.filter(
                 serviceKey,
                 directory.instances(serviceKey),
                 resolved.selectionPolicy()
         );
+        var preferred = result.candidates().stream()
+                .filter(instance -> !excludedRuntimeIdentities.contains(
+                        instance.runtimeIdentity()
+                ))
+                .toList();
+        var candidates = preferred.isEmpty()
+                ? result.candidates()
+                : preferred;
         ProviderLoadBalancer loadBalancer = loadBalancers.get(
                 resolved.loadBalancer()
         );
@@ -87,7 +103,7 @@ public final class DirectoryProviderSelector implements ProviderSelector {
                             + resolved.loadBalancer()
             );
         }
-        return loadBalancer.select(serviceKey, result.candidates());
+        return loadBalancer.select(serviceKey, candidates);
     }
 
     private ResolvedPolicies resolve(

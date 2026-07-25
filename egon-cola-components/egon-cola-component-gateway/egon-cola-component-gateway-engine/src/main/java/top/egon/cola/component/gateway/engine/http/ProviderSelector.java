@@ -15,4 +15,11 @@ public interface ProviderSelector {
             Set<String> policyRefs) {
         return select(serviceKey);
     }
+
+    default ProviderSelectionHandle select(
+            ProviderServiceKey serviceKey,
+            Set<String> policyRefs,
+            Set<String> excludedRuntimeIdentities) {
+        return select(serviceKey, policyRefs);
+    }
 }

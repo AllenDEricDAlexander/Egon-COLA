@@ -7,6 +7,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 
 import java.time.Instant;
@@ -120,6 +121,56 @@ class GatewayRuleCompilerTest {
         assertTrue(release.activation().chunks().stream()
                 .allMatch(chunk -> chunk.size()
                         <= GatewayRuleCompiler.CHUNK_LIMIT_BYTES));
+    }
+
+    @Test
+    void retryRequiresExplicitlyIdempotentOperation() {
+        GatewayRuntimeOperation operation = new GatewayRuntimeOperation(
+                "orders",
+                "orders",
+                GatewayProtocol.HTTP,
+                "POST /orders",
+                "{}",
+                "{}",
+                true,
+                service(),
+                "TRANSPARENT",
+                Set.of("retry"),
+                Map.of("idempotent", "false"),
+                false
+        );
+        GatewayRuntimePolicy retry = new GatewayRuntimePolicy(
+                "retry",
+                "RETRY",
+                "OPERATION",
+                Map.of("maxAttempts", 2)
+        );
+        GatewayRuleContent invalid = new GatewayRuleContent(
+                "group-1",
+                "orders",
+                "local",
+                "default",
+                List.of(operation),
+                List.of(route("orders", "orders")),
+                List.of(),
+                List.of(retry),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> compiler.compile(
+                        "release-1",
+                        Instant.now(),
+                        invalid
+                )
+        );
+
+        assertTrue(failure.getMessage().contains(
+                "Retry requires an explicitly idempotent operation"
+        ));
     }
 
     private GatewayRuleContent content(

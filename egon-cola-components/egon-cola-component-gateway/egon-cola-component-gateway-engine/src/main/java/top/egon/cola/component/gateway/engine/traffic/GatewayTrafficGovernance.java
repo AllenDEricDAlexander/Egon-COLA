@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.function.Supplier;
 
 public final class GatewayTrafficGovernance {
@@ -380,6 +381,20 @@ public final class GatewayTrafficGovernance {
                             values,
                             "minimumAttemptBudget",
                             Duration.ofMillis(20)
+                    ),
+                    integerSet(
+                            values,
+                            "retryableHttpStatuses",
+                            Set.of(502, 503, 504)
+                    ),
+                    stringSet(
+                            values,
+                            "retryableRpcStatuses",
+                            Set.of(
+                                    "UNAVAILABLE",
+                                    "RESOURCE_EXHAUSTED",
+                                    "ABORTED"
+                            )
                     )
             );
         }
@@ -506,5 +521,44 @@ public final class GatewayTrafficGovernance {
                 ),
                 integer(values, "halfOpenPermits", 3)
         );
+    }
+
+    private Set<Integer> integerSet(
+            Map<String, Object> values,
+            String key,
+            Set<Integer> defaults) {
+        return stringSet(
+                values,
+                key,
+                defaults.stream()
+                        .map(String::valueOf)
+                        .collect(java.util.stream.Collectors.toSet())
+        ).stream().map(Integer::valueOf).collect(
+                java.util.stream.Collectors.toUnmodifiableSet()
+        );
+    }
+
+    private Set<String> stringSet(
+            Map<String, Object> values,
+            String key,
+            Set<String> defaults) {
+        Object raw = values.get(key);
+        if (raw == null) {
+            return defaults;
+        }
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        if (raw instanceof Iterable<?> iterable) {
+            iterable.forEach(value -> result.add(value.toString().trim()));
+        } else {
+            for (String value : raw.toString().split(",")) {
+                result.add(value.trim());
+            }
+        }
+        if (result.contains("")) {
+            throw new IllegalArgumentException(
+                    key + " must not contain blank values"
+            );
+        }
+        return Set.copyOf(result);
     }
 }

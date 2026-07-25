@@ -196,6 +196,10 @@ public final class EngineGatewayRuleCompiler {
                 descriptorSha,
                 operation.policyRefs(),
                 GatewayResponseMode.valueOf(operation.responseMode()),
+                Boolean.parseBoolean(operation.attributes().getOrDefault(
+                        "idempotent",
+                        "false"
+                )),
                 Duration.ofMillis(timeoutMillis)
         );
     }

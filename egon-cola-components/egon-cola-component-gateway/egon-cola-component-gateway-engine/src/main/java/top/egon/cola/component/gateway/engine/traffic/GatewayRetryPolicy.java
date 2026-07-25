@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.engine.traffic;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Set;
 
 public record GatewayRetryPolicy(
         boolean enabled,
@@ -9,7 +10,9 @@ public record GatewayRetryPolicy(
         Duration initialBackoff,
         Duration maximumBackoff,
         double multiplier,
-        Duration minimumAttemptBudget
+        Duration minimumAttemptBudget,
+        Set<Integer> retryableHttpStatuses,
+        Set<String> retryableRpcStatuses
 ) {
 
     public GatewayRetryPolicy {
@@ -22,6 +25,20 @@ public record GatewayRetryPolicy(
                 minimumAttemptBudget,
                 "minimumAttemptBudget"
         );
+        retryableHttpStatuses = Set.copyOf(Objects.requireNonNull(
+                retryableHttpStatuses,
+                "retryableHttpStatuses"
+        ));
+        retryableRpcStatuses = Set.copyOf(Objects.requireNonNull(
+                retryableRpcStatuses,
+                "retryableRpcStatuses"
+        ));
+        if (retryableHttpStatuses.stream()
+                .anyMatch(status -> status < 500 || status > 599)) {
+            throw new IllegalArgumentException(
+                    "retryable HTTP statuses must be 5xx"
+            );
+        }
         if (maximumBackoff.compareTo(initialBackoff) < 0) {
             throw new IllegalArgumentException(
                     "maximumBackoff must not be shorter than initial"
@@ -41,11 +58,21 @@ public record GatewayRetryPolicy(
                 Duration.ZERO,
                 Duration.ZERO,
                 1,
-                Duration.ofMillis(1)
+                Duration.ofMillis(1),
+                Set.of(),
+                Set.of()
         );
     }
 
-    Duration backoff(int completedAttempts) {
+    public boolean retryableHttpStatus(int status) {
+        return retryableHttpStatuses.contains(status);
+    }
+
+    public boolean retryableRpcStatus(String status) {
+        return retryableRpcStatuses.contains(status);
+    }
+
+    public Duration backoff(int completedAttempts) {
         double factor = Math.pow(multiplier, Math.max(0, completedAttempts - 1));
         long requested;
         try {

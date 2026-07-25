@@ -133,6 +133,11 @@ public final class GatewayRuleCompiler {
         Set<String> policyIds = policies.stream()
                 .map(GatewayRuntimePolicy::policyId)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        Map<String, GatewayRuntimePolicy> policiesById = policies.stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                        GatewayRuntimePolicy::policyId,
+                        Function.identity()
+                ));
         Map<String, GatewayRuntimeOperation> operations = content.operations()
                 .stream()
                 .collect(java.util.stream.Collectors.toUnmodifiableMap(
@@ -161,10 +166,19 @@ public final class GatewayRuleCompiler {
             if (operation.providerService().serviceName().contains("://")) {
                 throw invalid("static provider URL is forbidden");
             }
-            if (operation.protocol() == GatewayProtocol.RPC
-                    && Boolean.parseBoolean(
+            if (Boolean.parseBoolean(
                     operation.attributes().get("streaming"))) {
-                throw invalid("RPC streaming is not supported");
+                throw invalid("streaming operation is not supported in v1");
+            }
+            boolean retryReferenced = operation.policyRefs().stream()
+                    .map(policiesById::get)
+                    .anyMatch(policy -> "RETRY".equals(policy.type()));
+            if (retryReferenced && !Boolean.parseBoolean(
+                    operation.attributes().get("idempotent"))) {
+                throw invalid(
+                        "Retry requires an explicitly idempotent operation: "
+                                + operation.operationId()
+                );
             }
         });
         List<RuntimeHttpRoute> runtimeRoutes = content.routes().stream()

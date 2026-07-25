@@ -80,7 +80,9 @@ class GatewayResilienceTest {
                 Duration.ZERO,
                 Duration.ZERO,
                 1,
-                Duration.ofMillis(1)
+                Duration.ofMillis(1),
+                java.util.Set.of(503),
+                java.util.Set.of("UNAVAILABLE")
         );
         AtomicInteger attempts = new AtomicInteger();
 

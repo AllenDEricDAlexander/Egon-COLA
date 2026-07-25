@@ -52,6 +52,7 @@ class RpcMethodIndexCompilerTest {
                 "sha",
                 Set.of(),
                 GatewayResponseMode.TRANSPARENT,
+                false,
                 Duration.ofSeconds(3)
         );
     }

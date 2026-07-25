@@ -27,8 +27,10 @@ import top.egon.cola.component.gateway.engine.traffic.ProviderCallClassification
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import java.time.Duration;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -284,6 +286,14 @@ public final class RpcGatewayForwarder {
 
         private String attemptSpanId;
 
+        private int attemptNumber;
+
+        private long retryDeadlineNanos;
+
+        private boolean responseStarted;
+
+        private final Set<String> failedProviders = new LinkedHashSet<>();
+
         private PendingCall(
                 RuntimeRpcRoute route,
                 MethodDescriptor<byte[], byte[]> method,
@@ -426,10 +436,25 @@ public final class RpcGatewayForwarder {
                 return;
             }
             started = true;
+            retryDeadlineNanos = System.nanoTime()
+                    + totalBudgetNanos(
+                    trafficPermit.timeout(),
+                    inboundDeadline
+            );
+            startAttempt();
+        }
+
+        private synchronized void startAttempt() {
+            if (cancelled || released.get()) {
+                return;
+            }
+            attemptNumber++;
+            responseStarted = false;
             try {
                 selection = providerSelector.select(
                         route.targetService(),
-                        route.policyRefs()
+                        route.policyRefs(),
+                        failedProviders
                 );
                 ProviderInstance provider = selection.instance();
                 attemptPermit = trafficPermit.acquireAttempt(provider);
@@ -450,39 +475,74 @@ public final class RpcGatewayForwarder {
                 clientCall = channelHandle.channel().newCall(
                         method,
                         callOptions(
-                                trafficPermit.timeout(),
+                                remainingBudget(),
                                 inboundDeadline
                         )
                 );
-                clientCall.start(new ClientCall.Listener<>() {
+                ClientCall<byte[], byte[]> activeCall = clientCall;
+                activeCall.start(new ClientCall.Listener<>() {
                     @Override
                     public void onHeaders(Metadata headers) {
-                        serverCall.sendHeaders(safeMetadata(
-                                headers,
-                                trace.traceId()
-                        ));
+                        synchronized (PendingCall.this) {
+                            if (activeCall != clientCall
+                                    || released.get()) {
+                                return;
+                            }
+                            responseStarted = true;
+                            serverCall.sendHeaders(safeMetadata(
+                                    headers,
+                                    trace.traceId()
+                            ));
+                        }
                     }
 
                     @Override
                     public void onMessage(byte[] message) {
-                        observation.addResponseBytes(message.length);
-                        serverCall.sendMessage(message);
-                        clientCall.request(1);
+                        synchronized (PendingCall.this) {
+                            if (activeCall != clientCall
+                                    || released.get()) {
+                                return;
+                            }
+                            responseStarted = true;
+                            observation.addResponseBytes(message.length);
+                            serverCall.sendMessage(message);
+                            activeCall.request(1);
+                        }
                     }
 
                     @Override
                     public void onClose(
                             Status status,
                             Metadata trailers) {
-                        try {
-                            recordAttempt(status, null);
+                        synchronized (PendingCall.this) {
+                            if (activeCall != clientCall
+                                    || released.get()) {
+                                return;
+                            }
+                            boolean retry = shouldRetry(status);
+                            recordAttempt(
+                                    status,
+                                    retry
+                                            ? "RETRYABLE_RPC_STATUS"
+                                            : null
+                            );
                             attemptPermit.complete(
                                     classification(status)
                             );
+                            attemptPermit = null;
                             outcomeRecorder.record(
                                     selection.instance().runtimeIdentity(),
                                     healthOutcome(status)
                             );
+                            if (retry) {
+                                failedProviders.add(
+                                        selection.instance()
+                                                .runtimeIdentity()
+                                );
+                                closeAttemptHandles();
+                                scheduleRetry();
+                                return;
+                            }
                             serverCall.close(
                                     status,
                                     safeMetadata(
@@ -498,7 +558,6 @@ public final class RpcGatewayForwarder {
                                             ? null
                                             : "GATEWAY_RPC_UPSTREAM_STATUS"
                             );
-                        } finally {
                             release();
                         }
                     }
@@ -509,9 +568,9 @@ public final class RpcGatewayForwarder {
                         attemptSpanId,
                         security
                 ));
-                clientCall.request(1);
-                clientCall.sendMessage(request);
-                clientCall.halfClose();
+                activeCall.request(1);
+                activeCall.sendMessage(request);
+                activeCall.halfClose();
             } catch (RuntimeException unavailable) {
                 if (selection != null) {
                     outcomeRecorder.record(
@@ -528,6 +587,40 @@ public final class RpcGatewayForwarder {
                         "GATEWAY_PROVIDER_UNAVAILABLE"
                 );
             }
+        }
+
+        private boolean shouldRetry(Status status) {
+            var policy = trafficPermit.retryPolicy();
+            if (!policy.enabled()
+                    || !route.idempotent()
+                    || responseStarted
+                    || attemptNumber >= policy.maxAttempts()
+                    || !policy.retryableRpcStatus(
+                    status.getCode().name()
+            )) {
+                return false;
+            }
+            long required = policy.backoff(attemptNumber).toNanos()
+                    + policy.minimumAttemptBudget().toNanos();
+            return retryDeadlineNanos - System.nanoTime() >= required;
+        }
+
+        private void scheduleRetry() {
+            Duration backoff = trafficPermit.retryPolicy().backoff(
+                    attemptNumber
+            );
+            reactor.core.publisher.Mono.delay(backoff).subscribe(ignored -> {
+                synchronized (PendingCall.this) {
+                    startAttempt();
+                }
+            });
+        }
+
+        private Duration remainingBudget() {
+            return Duration.ofNanos(Math.max(
+                    1,
+                    retryDeadlineNanos - System.nanoTime()
+            ));
         }
 
         private void close(Status status, String code) {
@@ -551,18 +644,27 @@ public final class RpcGatewayForwarder {
         }
 
         private void closeHandles() {
+            closeAttemptHandles();
+            if (trafficPermit != null) {
+                trafficPermit.close();
+                trafficPermit = null;
+            }
+        }
+
+        private void closeAttemptHandles() {
             if (channelHandle != null) {
                 channelHandle.close();
+                channelHandle = null;
             }
             if (selection != null) {
                 selection.close();
+                selection = null;
             }
             if (attemptPermit != null) {
                 attemptPermit.close();
+                attemptPermit = null;
             }
-            if (trafficPermit != null) {
-                trafficPermit.close();
-            }
+            clientCall = null;
         }
 
         private void recordAttempt(Status status, String retryReason) {
@@ -570,7 +672,7 @@ public final class RpcGatewayForwarder {
                 return;
             }
             observation.attempt(
-                    1,
+                    attemptNumber,
                     attemptSpanId,
                     selection == null
                             ? null
@@ -603,6 +705,22 @@ public final class RpcGatewayForwarder {
                 Math.max(1, remainingNanos),
                 TimeUnit.NANOSECONDS
         );
+    }
+
+    private long totalBudgetNanos(
+            Duration routeTimeout,
+            Deadline inboundDeadline) {
+        long result = Math.min(
+                maximumTimeout.toNanos(),
+                routeTimeout.toNanos()
+        );
+        if (inboundDeadline != null) {
+            result = Math.min(
+                    result,
+                    inboundDeadline.timeRemaining(TimeUnit.NANOSECONDS)
+            );
+        }
+        return Math.max(1, result);
     }
 
     private boolean metadataMatches(

@@ -31,6 +31,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -476,6 +477,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 .doOnNext(body -> observation.addRequestBytes(body.length))
                 .flatMap(body -> {
                     AtomicInteger attempts = new AtomicInteger();
+                    Set<String> failedProviders = new LinkedHashSet<>();
                     observation.governance(
                             "APPLIED",
                             permit.retryPolicy().enabled()
@@ -496,9 +498,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     trace,
                                     observation,
                                     permit,
-                                    attempts.incrementAndGet()
+                                    attempts.incrementAndGet(),
+                                    failedProviders
                             ),
                             this::retryable
+                    ).onErrorResume(
+                            RetryableHttpStatusException.class,
+                            failure -> Mono.just(failure.response())
                     );
                 });
     }
@@ -511,10 +517,12 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayTraceContext trace,
             GatewayCallObservation observation,
             GatewayTrafficGovernance.RequestPermit requestPermit,
-            int attemptNumber) {
+            int attemptNumber,
+            Set<String> failedProviders) {
         ProviderSelectionHandle selection = providerSelector.select(
                 match.route().upstream(),
-                match.route().policyRefs()
+                match.route().policyRefs(),
+                failedProviders
         );
         ProviderInstance provider = selection.instance();
         GatewayTrafficGovernance.AttemptPermit attemptPermit;
@@ -590,6 +598,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                             provider.runtimeIdentity(),
                             healthOutcome(classification)
                     );
+                    if (requestPermit.retryPolicy()
+                            .retryableHttpStatus(response.status())) {
+                        failedProviders.add(provider.runtimeIdentity());
+                    }
                     observation.attempt(
                             attemptNumber,
                             attemptSpanId,
@@ -608,6 +620,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                             provider.runtimeIdentity(),
                             ProviderCallOutcome.RETRYABLE_FAILURE
                     );
+                    failedProviders.add(provider.runtimeIdentity());
                     observation.attempt(
                             attemptNumber,
                             attemptSpanId,
@@ -620,14 +633,16 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     : null
                     );
                 })
-                .doOnCancel(() -> outcomeRecorder.record(
-                        provider.runtimeIdentity(),
-                        ProviderCallOutcome.CANCELLED
-                ))
                 .doFinally(signal -> {
                     attemptPermit.close();
                     selection.close();
-                });
+                })
+                .flatMap(response -> requestPermit.retryPolicy()
+                        .retryableHttpStatus(response.status())
+                        ? Mono.error(new RetryableHttpStatusException(
+                        response
+                ))
+                        : Mono.just(response));
     }
 
     private Mono<byte[]> aggregate(reactor.core.publisher.Flux<byte[]> body) {
@@ -846,7 +861,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
     }
 
     private boolean retryable(Throwable failure) {
-        return failure instanceof java.io.IOException
+        return failure instanceof RetryableHttpStatusException
+                || failure instanceof java.io.IOException
                 || failure instanceof java.util.concurrent.TimeoutException
                 || failure instanceof java.net.ConnectException
                 || failure.getCause() != null
@@ -937,5 +953,21 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 0,
                 (System.nanoTime() - startedNanos) / 1_000_000
         );
+    }
+
+    private static final class RetryableHttpStatusException
+            extends RuntimeException {
+
+        private final GatewayOutboundHttpResponse response;
+
+        private RetryableHttpStatusException(
+                GatewayOutboundHttpResponse response) {
+            super("retryable HTTP status " + response.status());
+            this.response = response;
+        }
+
+        private GatewayOutboundHttpResponse response() {
+            return response;
+        }
     }
 }

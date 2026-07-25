@@ -18,6 +18,7 @@ public record RuntimeRpcRoute(
         String descriptorSha256,
         Set<String> policyRefs,
         GatewayResponseMode responseMode,
+        boolean idempotent,
         Duration timeout
 ) {
 
