@@ -9,6 +9,7 @@ import org.springframework.test.context.TestPropertySource;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigUpdateRequest;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
+import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +34,9 @@ class DdcConfigServiceTest {
 
     @Autowired
     private DdcConfigVersionRepository versionRepository;
+
+    @Autowired
+    private DdcOperationLogRepository operationLogRepository;
 
     @Test
     void updateCreatesNewVersion() {
@@ -110,5 +114,8 @@ class DdcConfigServiceTest {
         assertThat(repeated.getCurrentVersion()).isEqualTo(deleted.getCurrentVersion());
         assertThat(versionRepository.findByConfigIdOrderByVersionDesc(created.getId()))
                 .hasSize(3);
+        assertThat(operationLogRepository.findAll())
+                .extracting(log -> log.getOperationType())
+                .containsExactlyInAnyOrder("CREATE", "UPDATE", "DELETE");
     }
 }

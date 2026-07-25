@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,7 +26,8 @@ class DdcOpenApiHmacFilterTest {
 
     private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 
-    private static final String PATH = "/api/v1/ddc/openapi/instances/register";
+    private static final String PATH =
+            "/api/v1/ddc/openapi/management/configs/gateway/dev/runtime/gateway.routes";
 
     private static final byte[] BODY = "{\"instanceId\":\"i1\"}".getBytes(StandardCharsets.UTF_8);
 
@@ -65,6 +67,64 @@ class DdcOpenApiHmacFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(204);
         assertThat(controllerBody.get()).containsExactly(BODY);
+    }
+
+    @Test
+    void everyManagementApiShapeUsesTheSameSignatureContract() throws Exception {
+        List<RequestShape> requests = List.of(
+                new RequestShape("PUT", PATH, Map.of(), BODY),
+                new RequestShape("DELETE", PATH, Map.of(), BODY),
+                new RequestShape("POST", PATH + "/publish", Map.of(), BODY),
+                new RequestShape("GET",
+                        "/api/v1/ddc/openapi/management/publish-tasks/change-1",
+                        Map.of(),
+                        new byte[0]),
+                new RequestShape("POST",
+                        "/api/v1/ddc/openapi/management/publish-tasks/change-1/retry",
+                        Map.of(),
+                        new byte[0]),
+                new RequestShape("GET",
+                        "/api/v1/ddc/openapi/management/instances",
+                        Map.of("appCode", List.of("gateway"),
+                                "env", List.of("dev"),
+                                "namespace", List.of("runtime")),
+                        new byte[0]),
+                new RequestShape("GET",
+                        "/api/v1/ddc/openapi/management/registry/services",
+                        Map.of("env", List.of("dev"),
+                                "namespace", List.of("runtime"),
+                                "serviceKind", List.of("PROVIDER"),
+                                "protocol", List.of("HTTP")),
+                        new byte[0]),
+                new RequestShape("GET",
+                        "/api/v1/ddc/openapi/management/registry/instances",
+                        Map.of("env", List.of("dev"),
+                                "namespace", List.of("runtime"),
+                                "serviceKind", List.of("PROVIDER"),
+                                "protocol", List.of("HTTP"),
+                                "serviceName", List.of("orders")),
+                        new byte[0])
+        );
+
+        for (int index = 0; index < requests.size(); index++) {
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            MockFilterChain chain = new MockFilterChain();
+
+            filter.doFilter(
+                    signedRequest(
+                            requests.get(index),
+                            NOW.toEpochMilli(),
+                            "management-api-" + index
+                    ),
+                    response,
+                    chain
+            );
+
+            assertThat(chain.getRequest())
+                    .as("management request %s", requests.get(index).path())
+                    .isNotNull();
+            assertThat(response.getStatus()).isEqualTo(200);
+        }
     }
 
     @Test
@@ -145,9 +205,29 @@ class DdcOpenApiHmacFilterTest {
     }
 
     private MockHttpServletRequest signedRequest(long timestamp, String nonce, byte[] body) {
-        MockHttpServletRequest request = request(body);
+        return signedRequest(
+                new RequestShape("POST", PATH, Map.of(), body),
+                timestamp,
+                nonce
+        );
+    }
+
+    private MockHttpServletRequest signedRequest(
+            RequestShape shape,
+            long timestamp,
+            String nonce
+    ) {
+        MockHttpServletRequest request =
+                request(shape.method(), shape.path(), shape.query(), shape.body());
         DdcCanonicalRequest canonicalRequest =
-                new DdcCanonicalRequest("POST", PATH, Map.of(), timestamp, nonce, body);
+                new DdcCanonicalRequest(
+                        shape.method(),
+                        shape.path(),
+                        shape.query(),
+                        timestamp,
+                        nonce,
+                        shape.body()
+                );
         request.addHeader(DdcRequestSigner.ACCESS_KEY_HEADER, "access");
         request.addHeader(DdcRequestSigner.TIMESTAMP_HEADER, Long.toString(timestamp));
         request.addHeader(DdcRequestSigner.NONCE_HEADER, nonce);
@@ -157,8 +237,19 @@ class DdcOpenApiHmacFilterTest {
     }
 
     private MockHttpServletRequest request(byte[] body) {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", PATH);
-        request.setRequestURI(PATH);
+        return request("POST", PATH, Map.of(), body);
+    }
+
+    private MockHttpServletRequest request(
+            String method,
+            String path,
+            Map<String, List<String>> query,
+            byte[] body
+    ) {
+        MockHttpServletRequest request = new MockHttpServletRequest(method, path);
+        request.setRequestURI(path);
+        query.forEach((name, values) ->
+                request.addParameter(name, values.toArray(String[]::new)));
         request.setContentType(MediaType.APPLICATION_JSON_VALUE);
         request.setContent(body);
         return request;
@@ -173,5 +264,13 @@ class DdcOpenApiHmacFilterTest {
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getContentAsString()).contains("\"status\":\"" + status + "\"");
         assertThat(chain.getRequest()).isNull();
+    }
+
+    private record RequestShape(
+            String method,
+            String path,
+            Map<String, List<String>> query,
+            byte[] body
+    ) {
     }
 }
