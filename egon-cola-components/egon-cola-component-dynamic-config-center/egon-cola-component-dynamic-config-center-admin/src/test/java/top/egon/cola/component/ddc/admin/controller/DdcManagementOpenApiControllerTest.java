@@ -1,0 +1,107 @@
+package top.egon.cola.component.ddc.admin.controller;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
+import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
+import top.egon.cola.component.ddc.management.model.DdcManagementPublishTarget;
+import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
+
+import java.time.Instant;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(DdcManagementOpenApiController.class)
+class DdcManagementOpenApiControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private DdcManagementFacade facade;
+
+    @Test
+    void pathScopeOverridesDuplicatedBodyIdentity() throws Exception {
+        when(facade.upsert(any())).thenReturn(new DdcManagementConfig(
+                "gateway",
+                "dev",
+                "runtime",
+                "gateway.routes",
+                "{}",
+                "JSON",
+                1L,
+                true,
+                false,
+                Instant.parse("2026-07-25T02:00:00Z")
+        ));
+
+        mockMvc.perform(put(
+                        "/api/v1/ddc/openapi/management/configs"
+                                + "/gateway/dev/runtime/gateway.routes"
+                )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "appCode":"forged",
+                                  "env":"prod",
+                                  "namespace":"other",
+                                  "configKey":"other.key",
+                                  "configValue":"{}",
+                                  "valueType":"JSON",
+                                  "description":"routes",
+                                  "operator":"gateway-admin"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.appCode").value("gateway"))
+                .andExpect(jsonPath("$.data.configKey").value("gateway.routes"));
+    }
+
+    @Test
+    void taskEndpointReturnsStableTargetProjection() throws Exception {
+        when(facade.getPublishTask("change-1")).thenReturn(new DdcManagementPublishTask(
+                "change-1",
+                DdcManagementPublishStatus.SUCCESS,
+                2L,
+                "checksum",
+                1,
+                1,
+                0,
+                0,
+                0,
+                1,
+                List.of(new DdcManagementPublishTarget(
+                        "engine-1",
+                        "lease-1",
+                        2L,
+                        "SUCCESS",
+                        null,
+                        Instant.parse("2026-07-25T02:00:02Z")
+                )),
+                null,
+                Instant.parse("2026-07-25T02:00:00Z"),
+                Instant.parse("2026-07-25T02:00:01Z"),
+                Instant.parse("2026-07-25T02:00:02Z")
+        ));
+
+        mockMvc.perform(get(
+                        "/api/v1/ddc/openapi/management/publish-tasks/change-1"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.changeId").value("change-1"))
+                .andExpect(jsonPath("$.data.targets[0].instanceId").value("engine-1"))
+                .andExpect(jsonPath("$.data.targets[0].leaseId").value("lease-1"));
+    }
+}

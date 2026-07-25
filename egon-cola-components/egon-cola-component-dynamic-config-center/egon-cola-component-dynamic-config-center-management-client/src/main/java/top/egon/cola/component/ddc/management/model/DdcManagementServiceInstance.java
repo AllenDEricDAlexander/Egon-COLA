@@ -10,6 +10,7 @@ public record DdcManagementServiceInstance(
         int port,
         boolean secure,
         Map<String, String> metadata,
+        String status,
         Instant registeredAt,
         Instant lastHeartbeatAt,
         Instant expireAt

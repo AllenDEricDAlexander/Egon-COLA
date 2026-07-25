@@ -11,6 +11,7 @@ public record DdcManagementConfigClientInstance(
         String host,
         Integer port,
         String leaseRole,
+        String status,
         Instant registeredAt,
         Instant lastHeartbeatAt,
         Instant expireAt

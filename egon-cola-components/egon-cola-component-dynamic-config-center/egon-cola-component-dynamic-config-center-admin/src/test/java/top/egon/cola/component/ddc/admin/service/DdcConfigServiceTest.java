@@ -12,6 +12,7 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
 @Import(DdcConfigService.class)
@@ -45,5 +46,69 @@ class DdcConfigServiceTest {
 
         assertThat(updated.getCurrentVersion()).isEqualTo(2L);
         assertThat(versionRepository.findByConfigIdOrderByVersionDesc(created.getId())).hasSize(2);
+    }
+
+    @Test
+    void scopedUpsertAndDeleteUseExpectedVersionAndDeleteIsIdempotent() {
+        DdcConfigCreateRequest request = new DdcConfigCreateRequest(
+                "gateway",
+                "dev",
+                "runtime",
+                "gateway.routes",
+                "{}",
+                null,
+                "JSON",
+                "routes"
+        );
+        DdcConfigVO created = configService.upsert(request, null, "gateway-admin");
+        DdcConfigVO updated = configService.upsert(
+                new DdcConfigCreateRequest(
+                        "gateway",
+                        "dev",
+                        "runtime",
+                        "gateway.routes",
+                        "{\"enabled\":true}",
+                        null,
+                        "JSON",
+                        "routes"
+                ),
+                created.getCurrentVersion(),
+                "gateway-admin"
+        );
+
+        assertThat(updated.getCurrentVersion()).isEqualTo(2L);
+        assertThatThrownBy(() -> configService.delete(
+                "gateway",
+                "dev",
+                "runtime",
+                "gateway.routes",
+                1L,
+                "gateway-admin",
+                "release removed"
+        )).hasMessageContaining("version");
+
+        DdcConfigVO deleted = configService.delete(
+                "gateway",
+                "dev",
+                "runtime",
+                "gateway.routes",
+                updated.getCurrentVersion(),
+                "gateway-admin",
+                "release removed"
+        );
+        DdcConfigVO repeated = configService.delete(
+                "gateway",
+                "dev",
+                "runtime",
+                "gateway.routes",
+                deleted.getCurrentVersion(),
+                "gateway-admin",
+                "repeat"
+        );
+
+        assertThat(deleted.getDeleted()).isTrue();
+        assertThat(repeated.getCurrentVersion()).isEqualTo(deleted.getCurrentVersion());
+        assertThat(versionRepository.findByConfigIdOrderByVersionDesc(created.getId()))
+                .hasSize(3);
     }
 }

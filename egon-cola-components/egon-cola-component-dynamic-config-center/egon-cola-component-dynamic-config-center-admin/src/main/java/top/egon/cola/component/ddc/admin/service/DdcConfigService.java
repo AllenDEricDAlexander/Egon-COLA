@@ -43,18 +43,70 @@ public class DdcConfigService {
 
     @Transactional
     public DdcConfigVO create(DdcConfigCreateRequest request, String operator) {
-        requireText(request.getAppCode(), "appCode");
-        requireText(request.getEnv(), "env");
-        requireText(request.getNamespace(), "namespace");
-        requireText(request.getConfigKey(), "configKey");
-        requireText(request.getValueType(), "valueType");
+        validateDraft(request);
         configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
                         request.getAppCode(), request.getEnv(), request.getNamespace(), request.getConfigKey())
-                .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
                 .ifPresent(item -> {
                     throw new DdcAdminException("config item already exists");
                 });
+        return createDraft(request, operator);
+    }
 
+    @Transactional
+    public DdcConfigVO upsert(
+            DdcConfigCreateRequest request,
+            Long expectedVersion,
+            String operator
+    ) {
+        validateDraft(request);
+        DdcConfigItemEntity existing =
+                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                        request.getAppCode(),
+                        request.getEnv(),
+                        request.getNamespace(),
+                        request.getConfigKey()
+                ).orElse(null);
+        if (existing == null) {
+            if (expectedVersion != null && expectedVersion != 0L) {
+                throw new DdcAdminException("config version changed");
+            }
+            return createDraft(request, operator);
+        }
+        if (Boolean.TRUE.equals(existing.getDeleted())) {
+            throw new DdcAdminException("deleted config key cannot be reused");
+        }
+        if (expectedVersion == null
+                || !Objects.equals(expectedVersion, existing.getCurrentVersion())) {
+            throw new DdcAdminException("config version changed");
+        }
+        String oldValue = existing.getConfigValue();
+        existing.setConfigValue(request.getConfigValue());
+        existing.setValueType(request.getValueType());
+        existing.setDescription(request.getDescription());
+        existing.setCurrentVersion(existing.getCurrentVersion() + 1);
+        existing.setUpdatedAt(LocalDateTime.now());
+        DdcConfigItemEntity saved = configItemRepository.save(existing);
+        saveVersion(
+                saved,
+                oldValue,
+                saved.getConfigValue(),
+                ChangeType.UPDATE,
+                "upsert config draft",
+                operator
+        );
+        saveOperation(
+                saved,
+                ChangeType.UPDATE,
+                operator,
+                "upsert config draft"
+        );
+        return DdcConfigVO.from(saved);
+    }
+
+    private DdcConfigVO createDraft(
+            DdcConfigCreateRequest request,
+            String operator
+    ) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
         entity.setId(UuidV7.simpleString());
@@ -96,6 +148,47 @@ public class DdcConfigService {
     @Transactional
     public DdcConfigVO delete(String configId, String operator, String reason) {
         DdcConfigItemEntity entity = getConfig(configId);
+        if (Boolean.TRUE.equals(entity.getDeleted())) {
+            return DdcConfigVO.from(entity);
+        }
+        return delete(entity, operator, reason);
+    }
+
+    @Transactional
+    public DdcConfigVO delete(
+            String appCode,
+            String env,
+            String namespace,
+            String configKey,
+            Long expectedVersion,
+            String operator,
+            String reason
+    ) {
+        DdcConfigItemEntity entity =
+                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                        appCode,
+                        env,
+                        namespace,
+                        configKey
+                ).orElse(null);
+        if (entity == null) {
+            return null;
+        }
+        if (Boolean.TRUE.equals(entity.getDeleted())) {
+            return DdcConfigVO.from(entity);
+        }
+        if (expectedVersion == null
+                || !Objects.equals(expectedVersion, entity.getCurrentVersion())) {
+            throw new DdcAdminException("config version changed");
+        }
+        return delete(entity, operator, reason);
+    }
+
+    private DdcConfigVO delete(
+            DdcConfigItemEntity entity,
+            String operator,
+            String reason
+    ) {
         String oldValue = entity.getConfigValue();
         entity.setDeleted(true);
         entity.setEnabled(false);
@@ -247,5 +340,16 @@ public class DdcConfigService {
         if (value == null || value.isBlank()) {
             throw new DdcAdminException(fieldName + " is required");
         }
+    }
+
+    private void validateDraft(DdcConfigCreateRequest request) {
+        if (request == null) {
+            throw new DdcAdminException("config request is required");
+        }
+        requireText(request.getAppCode(), "appCode");
+        requireText(request.getEnv(), "env");
+        requireText(request.getNamespace(), "namespace");
+        requireText(request.getConfigKey(), "configKey");
+        requireText(request.getValueType(), "valueType");
     }
 }
