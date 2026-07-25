@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -526,9 +527,6 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     failedProviders
                             ),
                             this::retryable
-                    ).onErrorResume(
-                            RetryableHttpStatusException.class,
-                            failure -> Mono.just(failure.response())
                     );
                 });
     }
@@ -565,6 +563,17 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         provider.serviceKey().protocolType().name()
                 );
         String attemptSpanId = attemptTrace.spanId();
+        AttemptLifecycle lifecycle = new AttemptLifecycle(
+                selection,
+                attemptPermit,
+                provider,
+                observation,
+                attemptNumber,
+                attemptSpanId,
+                attemptStartedAt,
+                attemptStartedNanos,
+                failedProviders
+        );
         observation.provider(provider.instanceId(), Map.of(
                 "serviceKey",
                 provider.serviceKey().serviceName(),
@@ -624,59 +633,40 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         response,
                         requestPermit.responseSizeLimit(maxResponseBytes)
                 ))
-                .doOnSuccess(response -> {
-                    ProviderCallClassification classification =
-                            classification(response.status());
-                    attemptPermit.complete(classification);
-                    outcomeRecorder.record(
-                            provider.runtimeIdentity(),
-                            healthOutcome(classification)
-                    );
-                    if (requestPermit.retryPolicy()
-                            .retryableHttpStatus(response.status())) {
-                        failedProviders.add(provider.runtimeIdentity());
+                .flatMap(response -> {
+                    GatewayOutboundHttpResponse tracked =
+                            trackAttemptResponse(response, lifecycle);
+                    lifecycle.responseReady();
+                    boolean retryStatus = requestPermit.retryPolicy()
+                            .retryableHttpStatus(response.status());
+                    if (retryStatus
+                            && attemptNumber
+                            < requestPermit.retryPolicy().maxAttempts()) {
+                        return tracked.body()
+                                .then(Mono.error(
+                                        new RetryableHttpStatusException(
+                                                response.status()
+                                        )
+                                ));
                     }
-                    observation.attempt(
-                            attemptNumber,
-                            attemptSpanId,
-                            provider.instanceId(),
-                            attemptStartedAt,
-                            elapsedMillis(attemptStartedNanos),
-                            category(response.status()),
-                            null
-                    );
+                    return Mono.just(tracked);
                 })
-                .doOnError(failure -> {
-                    attemptPermit.complete(
-                            ProviderCallClassification.RETRYABLE_FAILURE
-                    );
-                    outcomeRecorder.record(
-                            provider.runtimeIdentity(),
-                            ProviderCallOutcome.RETRYABLE_FAILURE
-                    );
-                    failedProviders.add(provider.runtimeIdentity());
-                    observation.attempt(
-                            attemptNumber,
-                            attemptSpanId,
-                            provider.instanceId(),
-                            attemptStartedAt,
-                            elapsedMillis(attemptStartedNanos),
-                            "ERROR",
-                            retryable(failure)
-                                    ? "RETRYABLE_UPSTREAM_FAILURE"
-                                    : null
-                    );
-                })
-                .doFinally(signal -> {
-                    attemptPermit.close();
-                    selection.close();
-                })
-                .flatMap(response -> requestPermit.retryPolicy()
-                        .retryableHttpStatus(response.status())
-                        ? Mono.error(new RetryableHttpStatusException(
-                        response
-                ))
-                        : Mono.just(response));
+                .doOnError(lifecycle::fail)
+                .doOnCancel(lifecycle::cancelBeforeResponse);
+    }
+
+    private GatewayOutboundHttpResponse trackAttemptResponse(
+            GatewayOutboundHttpResponse response,
+            AttemptLifecycle lifecycle) {
+        return new GatewayOutboundHttpResponse(
+                response.status(),
+                response.headers(),
+                response.body()
+                        .doOnComplete(() ->
+                                lifecycle.complete(response.status()))
+                        .doOnError(lifecycle::fail)
+                        .doOnCancel(lifecycle::cancel)
+        );
     }
 
     private Map<String, List<String>> forwardedHeaders(
@@ -1214,16 +1204,127 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private static final class RetryableHttpStatusException
             extends RuntimeException {
 
-        private final GatewayOutboundHttpResponse response;
+        private RetryableHttpStatusException(int status) {
+            super("retryable HTTP status " + status);
+        }
+    }
 
-        private RetryableHttpStatusException(
-                GatewayOutboundHttpResponse response) {
-            super("retryable HTTP status " + response.status());
-            this.response = response;
+    private final class AttemptLifecycle {
+
+        private final AtomicBoolean completed = new AtomicBoolean();
+
+        private final AtomicBoolean responseReady = new AtomicBoolean();
+
+        private final ProviderSelectionHandle selection;
+
+        private final GatewayTrafficGovernance.AttemptPermit permit;
+
+        private final ProviderInstance provider;
+
+        private final GatewayCallObservation observation;
+
+        private final int attemptNumber;
+
+        private final String attemptSpanId;
+
+        private final long attemptStartedAt;
+
+        private final long attemptStartedNanos;
+
+        private final Set<String> failedProviders;
+
+        private AttemptLifecycle(
+                ProviderSelectionHandle selection,
+                GatewayTrafficGovernance.AttemptPermit permit,
+                ProviderInstance provider,
+                GatewayCallObservation observation,
+                int attemptNumber,
+                String attemptSpanId,
+                long attemptStartedAt,
+                long attemptStartedNanos,
+                Set<String> failedProviders) {
+            this.selection = selection;
+            this.permit = permit;
+            this.provider = provider;
+            this.observation = observation;
+            this.attemptNumber = attemptNumber;
+            this.attemptSpanId = attemptSpanId;
+            this.attemptStartedAt = attemptStartedAt;
+            this.attemptStartedNanos = attemptStartedNanos;
+            this.failedProviders = failedProviders;
         }
 
-        private GatewayOutboundHttpResponse response() {
-            return response;
+        private void complete(int status) {
+            ProviderCallClassification classification =
+                    classification(status);
+            finish(
+                    classification,
+                    category(status),
+                    null,
+                    classification
+                            == ProviderCallClassification.RETRYABLE_FAILURE
+            );
+        }
+
+        private void fail(Throwable failure) {
+            finish(
+                    ProviderCallClassification.RETRYABLE_FAILURE,
+                    "ERROR",
+                    retryable(failure)
+                            ? "RETRYABLE_UPSTREAM_FAILURE"
+                            : null,
+                    true
+            );
+        }
+
+        private void cancel() {
+            finish(
+                    ProviderCallClassification.CANCELLED,
+                    "CANCELLED",
+                    "GATEWAY_CLIENT_CANCELLED",
+                    false
+            );
+        }
+
+        private void responseReady() {
+            responseReady.set(true);
+        }
+
+        private void cancelBeforeResponse() {
+            if (!responseReady.get()) {
+                cancel();
+            }
+        }
+
+        private void finish(
+                ProviderCallClassification classification,
+                String category,
+                String retryReason,
+                boolean failedProvider) {
+            if (!completed.compareAndSet(false, true)) {
+                return;
+            }
+            try {
+                permit.complete(classification);
+                outcomeRecorder.record(
+                        provider.runtimeIdentity(),
+                        healthOutcome(classification)
+                );
+                if (failedProvider) {
+                    failedProviders.add(provider.runtimeIdentity());
+                }
+                observation.attempt(
+                        attemptNumber,
+                        attemptSpanId,
+                        provider.instanceId(),
+                        attemptStartedAt,
+                        elapsedMillis(attemptStartedNanos),
+                        category,
+                        retryReason
+                );
+            } finally {
+                selection.close();
+            }
         }
     }
 }
