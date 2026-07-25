@@ -202,6 +202,59 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
     }
 
     @Test
+    void releasesProviderAttemptWhenCancelledBeforeResponseHandoff() {
+        ProviderInstance provider = provider();
+        AtomicInteger selectionReleases = new AtomicInteger();
+        AtomicInteger upstreamCancellations = new AtomicInteger();
+        List<ProviderCallOutcome> outcomes = new ArrayList<>();
+        DefaultGatewayHttpDataPlaneHandler handler =
+                new DefaultGatewayHttpDataPlaneHandler(
+                        new HttpRequestNormalizer(32, 8192),
+                        () -> new HttpRouteCompiler().compile(
+                                List.of(route())
+                        ),
+                        ignored -> new ProviderSelectionHandle(
+                                provider,
+                                selectionReleases::incrementAndGet
+                        ),
+                        request -> Mono
+                                .<GatewayOutboundHttpResponse>never()
+                                .doOnCancel(
+                                        upstreamCancellations::incrementAndGet
+                                ),
+                        1024,
+                        Duration.ofSeconds(1),
+                        (zone, request, normalized, route, traceId) ->
+                                Mono.just(
+                                        GatewayHttpSecurityProcessor.Outcome
+                                                .anonymous()
+                                ),
+                        GatewayCallCompletionListener.noop(),
+                        "engine-1",
+                        GatewayTrafficGovernance.noop(),
+                        null,
+                        (runtimeIdentity, outcome) -> outcomes.add(outcome)
+                );
+
+        Disposable subscription = handler.handle(
+                AccessZone.INTERNAL,
+                new GatewayInboundHttpRequest(
+                        "GET",
+                        "api.example.com",
+                        "/orders",
+                        Map.of(),
+                        new InetSocketAddress("127.0.0.1", 12345),
+                        Flux.empty()
+                )
+        ).subscribe();
+        subscription.dispose();
+
+        assertEquals(1, upstreamCancellations.get());
+        assertEquals(1, selectionReleases.get());
+        assertEquals(List.of(ProviderCallOutcome.CANCELLED), outcomes);
+    }
+
+    @Test
     void recordsStreamingBodyFailureBeforeReleasingProviderAttempt() {
         ProviderInstance provider = provider();
         AtomicInteger selectionReleases = new AtomicInteger();

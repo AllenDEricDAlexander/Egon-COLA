@@ -1,6 +1,8 @@
 package top.egon.cola.component.gateway.engine.http;
 
 import org.reactivestreams.Publisher;
+import reactor.core.Disposable;
+import reactor.core.Disposables;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.trace.GatewayTraceContext;
@@ -628,7 +630,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     requestPermit.timeout()
             ));
         }
-        return invocation
+        Mono<GatewayOutboundHttpResponse> attemptResponse = invocation
                 .map(response -> bodySizeLimiter.limitResponse(
                         response,
                         requestPermit.responseSizeLimit(maxResponseBytes)
@@ -636,7 +638,6 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 .flatMap(response -> {
                     GatewayOutboundHttpResponse tracked =
                             trackAttemptResponse(response, lifecycle);
-                    lifecycle.responseReady();
                     boolean retryStatus = requestPermit.retryPolicy()
                             .retryableHttpStatus(response.status());
                     if (retryStatus
@@ -651,8 +652,30 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     }
                     return Mono.just(tracked);
                 })
-                .doOnError(lifecycle::fail)
-                .doOnCancel(lifecycle::cancelBeforeResponse);
+                .doOnError(lifecycle::fail);
+        return handoffAttemptResponse(attemptResponse, lifecycle);
+    }
+
+    private Mono<GatewayOutboundHttpResponse> handoffAttemptResponse(
+            Mono<GatewayOutboundHttpResponse> response,
+            AttemptLifecycle lifecycle) {
+        return Mono.create(sink -> {
+            // MonoSink makes cancellation and response ownership transfer
+            // mutually exclusive before the streamed body takes ownership.
+            Disposable.Swap upstream = Disposables.swap();
+            sink.onCancel(() -> {
+                lifecycle.cancel();
+                upstream.dispose();
+            });
+            Disposable subscription = response
+                    .contextWrite(sink.currentContext())
+                    .subscribe(
+                            sink::success,
+                            sink::error,
+                            sink::success
+                    );
+            upstream.update(subscription);
+        });
     }
 
     private GatewayOutboundHttpResponse trackAttemptResponse(
@@ -1213,8 +1236,6 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
         private final AtomicBoolean completed = new AtomicBoolean();
 
-        private final AtomicBoolean responseReady = new AtomicBoolean();
-
         private final ProviderSelectionHandle selection;
 
         private final GatewayTrafficGovernance.AttemptPermit permit;
@@ -1284,16 +1305,6 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     "GATEWAY_CLIENT_CANCELLED",
                     false
             );
-        }
-
-        private void responseReady() {
-            responseReady.set(true);
-        }
-
-        private void cancelBeforeResponse() {
-            if (!responseReady.get()) {
-                cancel();
-            }
         }
 
         private void finish(
