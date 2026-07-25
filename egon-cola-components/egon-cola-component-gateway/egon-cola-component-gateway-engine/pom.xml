@@ -25,5 +25,14 @@
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-gateway-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-id</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-http</artifactId>
+        </dependency>
     </dependencies>
 </project>
