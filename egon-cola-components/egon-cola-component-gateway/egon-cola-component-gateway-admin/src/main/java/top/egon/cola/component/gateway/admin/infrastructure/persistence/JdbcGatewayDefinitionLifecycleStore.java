@@ -16,6 +16,9 @@ import java.util.Set;
 public class JdbcGatewayDefinitionLifecycleStore
         implements GatewayDefinitionLifecycleStore {
 
+    private static final String NO_ACTIVE_DEFINITION_SET =
+            "__gateway_no_active_definition_set__";
+
     private final NamedParameterJdbcTemplate jdbc;
 
     public JdbcGatewayDefinitionLifecycleStore(
@@ -27,27 +30,37 @@ public class JdbcGatewayDefinitionLifecycleStore
     public ReconcileResult reconcile(
             Set<String> activeDefinitionSetIds,
             Instant now) {
-        if (activeDefinitionSetIds == null
-                || activeDefinitionSetIds.isEmpty()) {
-            return new ReconcileResult(0, 0, 0, 0);
-        }
+        Set<String> activeIds = activeDefinitionSetIds == null
+                ? Set.of()
+                : Set.copyOf(activeDefinitionSetIds);
         Map<String, Set<String>> applications = new LinkedHashMap<>();
-        jdbc.query("""
-                SELECT id, application_id
-                  FROM gateway_definition_set
-                 WHERE id IN (:definitionSetIds)
-                """,
-                new MapSqlParameterSource(
-                        "definitionSetIds",
-                        activeDefinitionSetIds
-                ),
+        MapSqlParameterSource scanParameters = new MapSqlParameterSource();
+        String scanSql;
+        if (activeIds.isEmpty()) {
+            scanSql = """
+                    SELECT id, application_id
+                      FROM gateway_definition_set
+                     WHERE status = 'ACTIVE'
+                    """;
+        } else {
+            scanSql = """
+                    SELECT id, application_id
+                      FROM gateway_definition_set
+                     WHERE status = 'ACTIVE'
+                        OR id IN (:definitionSetIds)
+                    """;
+            scanParameters.addValue("definitionSetIds", activeIds);
+        }
+        jdbc.query(
+                scanSql,
+                scanParameters,
                 (org.springframework.jdbc.core.RowCallbackHandler) result ->
-                        applications
-                        .computeIfAbsent(
+                        collectApplication(
+                                applications,
+                                activeIds,
                                 result.getString("application_id"),
-                                ignored -> new LinkedHashSet<>()
+                                result.getString("id")
                         )
-                        .add(result.getString("id"))
         );
         int activatedSets = 0;
         int retiredSets = 0;
@@ -57,7 +70,12 @@ public class JdbcGatewayDefinitionLifecycleStore
                 : applications.entrySet()) {
             MapSqlParameterSource parameters = new MapSqlParameterSource()
                     .addValue("applicationId", application.getKey())
-                    .addValue("definitionSetIds", application.getValue())
+                    .addValue(
+                            "definitionSetIds",
+                            application.getValue().isEmpty()
+                                    ? Set.of(NO_ACTIVE_DEFINITION_SET)
+                                    : application.getValue()
+                    )
                     .addValue("now", Timestamp.from(now));
             activatedSets += jdbc.update("""
                     UPDATE gateway_definition_set
@@ -151,5 +169,19 @@ public class JdbcGatewayDefinitionLifecycleStore
                 activatedOperations,
                 offlinedOperations
         );
+    }
+
+    private void collectApplication(
+            Map<String, Set<String>> applications,
+            Set<String> activeDefinitionSetIds,
+            String applicationId,
+            String definitionSetId) {
+        Set<String> applicationActiveSets = applications.computeIfAbsent(
+                applicationId,
+                ignored -> new LinkedHashSet<>()
+        );
+        if (activeDefinitionSetIds.contains(definitionSetId)) {
+            applicationActiveSets.add(definitionSetId);
+        }
     }
 }

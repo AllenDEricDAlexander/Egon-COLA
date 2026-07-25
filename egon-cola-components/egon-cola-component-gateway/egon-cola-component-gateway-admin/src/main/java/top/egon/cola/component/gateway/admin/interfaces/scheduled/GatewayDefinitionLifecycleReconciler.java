@@ -112,9 +112,6 @@ public class GatewayDefinitionLifecycleReconciler {
                     .filter(value -> value != null && !value.isBlank())
                     .forEach(activeDefinitionSets::add);
         }
-        if (activeDefinitionSets.isEmpty()) {
-            return;
-        }
         transactions.executeWithoutResult(status -> {
             GatewayDefinitionLifecycleStore.ReconcileResult result =
                     lifecycle.reconcile(activeDefinitionSets, now);

@@ -49,9 +49,19 @@ class GatewayReportingAutoConfigurationTest {
                 .run(context -> {
                     assertThat(context)
                             .hasSingleBean(GatewayDefinitionIdentity.class);
+                    assertThat(context).hasSingleBean(
+                            top.egon.cola.component.gateway.contract.definition
+                                    .GatewayDefinitionIdentity.class
+                    );
                     assertThat(context.getBean(
                             GatewayDefinitionIdentity.class
                     ).buildId()).isEqualTo("build-1");
+                    assertThat(context.getBean(
+                            top.egon.cola.component.gateway.contract.definition
+                                    .GatewayDefinitionIdentity.class
+                    ).definitionSetId()).isEqualTo(context.getBean(
+                            GatewayDefinitionIdentity.class
+                    ).definitionSetId());
                 });
     }
 

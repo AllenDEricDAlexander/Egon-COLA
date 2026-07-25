@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.test.http;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationListener;
@@ -7,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.gateway.contract.definition
+        .GatewayDefinitionIdentity;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
 import top.egon.cola.component.gateway.provider.HttpProviderRuntimeProperties;
 
@@ -19,6 +22,7 @@ public class HttpProviderRuntimeConfiguration {
     @Bean
     public HttpProviderLeaseRuntime httpProviderLeaseRuntime(
             DdcServiceRegistryClient registry,
+            ObjectProvider<GatewayDefinitionIdentity> definitions,
             Environment environment) {
         String providerId = value(
                 environment,
@@ -65,15 +69,9 @@ public class HttpProviderRuntimeConfiguration {
                                         environment,
                                         "gateway.test.weight",
                                         "100"
-                                ),
-                                "gateway.definition-set",
-                                value(
-                                        environment,
-                                        "gateway.test.definition-set",
-                                        "pending-report"
                                 )
                         ),
-                        null
+                        definitions.getIfAvailable()
                 )
         );
     }

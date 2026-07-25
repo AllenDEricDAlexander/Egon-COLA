@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -134,6 +135,66 @@ class GatewayDefinitionLifecycleReconcilerTest {
         reconciler.reconcile();
 
         verify(lifecycle, never()).reconcile(any(), any());
+    }
+
+    @Test
+    void reconcilesEmptyActiveSetWhenLastProviderDisappears() {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        GatewayApplicationRepository applications =
+                mock(GatewayApplicationRepository.class);
+        GatewayProjectionService projections =
+                mock(GatewayProjectionService.class);
+        GatewayDefinitionLifecycleStore lifecycle =
+                mock(GatewayDefinitionLifecycleStore.class);
+        TransactionTemplate transactions = mock(TransactionTemplate.class);
+        doAnswer(invocation -> {
+            java.util.function.Consumer<org.springframework.transaction
+                    .TransactionStatus> callback = invocation.getArgument(0);
+            callback.accept(null);
+            return null;
+        }).when(transactions).executeWithoutResult(any());
+        when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
+                .thenReturn(List.of(new GatewayApplicationEntity(
+                        "application-1",
+                        "orders",
+                        "Orders",
+                        "test",
+                        "gateway",
+                        null,
+                        "admin",
+                        now
+                )));
+        when(projections.instances("test", "gateway")).thenReturn(
+                new GatewayProjectionService.ProjectionEnvelope<>(
+                        List.of(),
+                        now,
+                        "DDC_SERVICE_REGISTRY",
+                        false,
+                        null
+                )
+        );
+        when(lifecycle.reconcile(Set.of(), now)).thenReturn(
+                new GatewayDefinitionLifecycleStore.ReconcileResult(
+                        0,
+                        1,
+                        0,
+                        2
+                )
+        );
+        GatewayDefinitionLifecycleReconciler reconciler =
+                new GatewayDefinitionLifecycleReconciler(
+                        mock(DdcManagementClient.class),
+                        applications,
+                        projections,
+                        lifecycle,
+                        mock(GatewayAuditLogRepository.class),
+                        transactions,
+                        Clock.fixed(now, ZoneOffset.UTC)
+                );
+
+        reconciler.reconcile();
+
+        verify(lifecycle).reconcile(Set.of(), now);
     }
 
     private GatewayProjectionService.ProviderInstanceProjection provider(

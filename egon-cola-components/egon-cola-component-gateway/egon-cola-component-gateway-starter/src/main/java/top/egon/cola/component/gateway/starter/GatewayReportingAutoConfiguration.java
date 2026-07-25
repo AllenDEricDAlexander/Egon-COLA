@@ -64,6 +64,19 @@ public class GatewayReportingAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public top.egon.cola.component.gateway.contract.definition
+            .GatewayDefinitionIdentity gatewayProviderDefinitionIdentity(
+            GatewayDefinitionIdentity identity) {
+        return new top.egon.cola.component.gateway.contract.definition
+                .GatewayDefinitionIdentity(
+                identity.definitionSetId(),
+                identity.artifactVersion(),
+                identity.buildId()
+        );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public GatewayReportingState gatewayReportingState() {
         return new GatewayReportingState();
     }
