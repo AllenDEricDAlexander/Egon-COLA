@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.engine;
 
 import org.springframework.context.SmartLifecycle;
+import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewaySlotRuntime;
@@ -24,6 +25,8 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
 
     private final GatewayRuleActivationApplier activation;
 
+    private final ProviderDirectory providerDirectory;
+
     private volatile boolean running;
 
     private volatile boolean ready;
@@ -35,12 +38,17 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
             GatewayHttpServer httpServer,
             RpcGatewayServer rpcServer,
             RpcGatewaySlotRuntime rpcSlot,
-            GatewayRuleActivationApplier activation) {
+            GatewayRuleActivationApplier activation,
+            ProviderDirectory providerDirectory) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.httpServer = Objects.requireNonNull(httpServer, "httpServer");
         this.rpcServer = Objects.requireNonNull(rpcServer, "rpcServer");
         this.rpcSlot = Objects.requireNonNull(rpcSlot, "rpcSlot");
         this.activation = Objects.requireNonNull(activation, "activation");
+        this.providerDirectory = Objects.requireNonNull(
+                providerDirectory,
+                "providerDirectory"
+        );
     }
 
     @Override
@@ -111,7 +119,12 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
     private synchronized void refreshReadiness() {
         boolean rulesReady = activation.active() != null
                 && activation.status().ready();
+        boolean providersReady = rulesReady
+                && providerDirectory.allAvailable(
+                activation.active().providerServices()
+        );
         if (rulesReady
+                && providersReady
                 && properties.getRpc().isEnabled()
                 && rpcSlot.state()
                 == RpcGatewaySubsystemState.LISTENING_NOT_REGISTERED) {
@@ -120,7 +133,11 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
         boolean rpcReady = !properties.getRpc().isEnabled()
                 || rpcSlot.state()
                 == RpcGatewaySubsystemState.REGISTERED_READY;
-        ready = running && httpServer.accepting() && rulesReady && rpcReady;
+        ready = running
+                && httpServer.accepting()
+                && rulesReady
+                && providersReady
+                && rpcReady;
     }
 
     private void refreshReadinessSafely() {

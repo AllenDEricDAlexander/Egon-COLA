@@ -101,6 +101,11 @@ public final class ProviderDirectory implements AutoCloseable {
         return snapshot.get();
     }
 
+    public boolean allAvailable(Set<ProviderServiceKey> serviceKeys) {
+        return Set.copyOf(serviceKeys).stream()
+                .allMatch(key -> !available(key).isEmpty());
+    }
+
     public synchronized int referenceCount(ProviderServiceKey key) {
         SubscriptionRef reference = subscriptions.get(key);
         return reference == null ? 0 : reference.references;

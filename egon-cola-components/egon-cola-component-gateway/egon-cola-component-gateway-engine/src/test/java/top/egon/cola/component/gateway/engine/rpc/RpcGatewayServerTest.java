@@ -18,6 +18,8 @@ import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
+import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
+import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -63,6 +65,7 @@ class RpcGatewayServerTest {
         );
         List<top.egon.cola.component.gateway.contract.observability
                 .GatewayCallEventV1> events = new CopyOnWriteArrayList<>();
+        List<ProviderCallOutcome> outcomes = new CopyOnWriteArrayList<>();
         RpcGatewayForwarder forwarder = new RpcGatewayForwarder(
                 ignored -> new ProviderSelectionHandle(provider, () -> {
                 }),
@@ -72,9 +75,11 @@ class RpcGatewayServerTest {
                 (route, metadata, traceId, deadline) ->
                         reactor.core.publisher.Mono.just(
                                 GatewayRpcSecurityProcessor.Outcome.anonymous()
-                        ),
+                ),
                 events::add,
-                "engine-1"
+                "engine-1",
+                GatewayTrafficGovernance.noop(),
+                (runtimeIdentity, outcome) -> outcomes.add(outcome)
         );
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
@@ -105,6 +110,7 @@ class RpcGatewayServerTest {
                     events.getFirst().result().category()
             );
             assertEquals(1, events.getFirst().attempts().size());
+            assertEquals(List.of(ProviderCallOutcome.SUCCESS), outcomes);
             MethodDescriptor<byte[], byte[]> unknown =
                     RawByteMarshaller.INSTANCE.descriptor(
                             "test.Echo/Unknown"

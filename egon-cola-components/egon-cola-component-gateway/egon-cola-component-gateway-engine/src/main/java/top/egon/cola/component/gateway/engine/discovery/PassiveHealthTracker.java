@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class PassiveHealthTracker {
+public final class PassiveHealthTracker
+        implements ProviderCallOutcomeRecorder {
 
     private final PassiveHealthPolicy policy;
 
@@ -27,6 +28,7 @@ public final class PassiveHealthTracker {
         return state == null || state.eligible(clock.instant());
     }
 
+    @Override
     public void record(
             String runtimeIdentity,
             ProviderCallOutcome outcome) {

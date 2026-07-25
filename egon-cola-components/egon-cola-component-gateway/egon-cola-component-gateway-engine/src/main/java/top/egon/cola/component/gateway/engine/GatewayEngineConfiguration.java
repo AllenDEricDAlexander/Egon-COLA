@@ -23,6 +23,8 @@ import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
 import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
 import top.egon.cola.component.gateway.engine.discovery.DdcProviderServiceRegistryAdapter;
 import top.egon.cola.component.gateway.engine.discovery.DirectoryProviderSelector;
+import top.egon.cola.component.gateway.engine.discovery.PassiveHealthPolicy;
+import top.egon.cola.component.gateway.engine.discovery.PassiveHealthTracker;
 import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
 import top.egon.cola.component.gateway.engine.http.DefaultGatewayHttpDataPlaneHandler;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpEngineProperties;
@@ -101,6 +103,15 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
+    public PassiveHealthTracker gatewayPassiveHealthTracker(
+            Clock gatewayClock) {
+        return new PassiveHealthTracker(
+                PassiveHealthPolicy.defaults(),
+                gatewayClock
+        );
+    }
+
+    @Bean
     public GatewayRuleActivationApplier gatewayRuleActivationApplier(
             DdcConfigApplierRegistry applierRegistry,
             GatewaySecurityCapabilityRegistry capabilities,
@@ -131,14 +142,16 @@ public class GatewayEngineConfiguration {
     @Bean
     public DirectoryProviderSelector gatewayProviderSelector(
             ProviderDirectory providerDirectory,
-            GatewayRuleActivationApplier activation) {
+            GatewayRuleActivationApplier activation,
+            PassiveHealthTracker passiveHealth,
+            Clock gatewayClock) {
         return new DirectoryProviderSelector(
                 providerDirectory,
                 DirectoryProviderSelector.defaultLoadBalancers(),
                 new top.egon.cola.component.gateway.engine.discovery
                         .ProviderCandidateFilter(
-                        Clock.systemUTC(),
-                        ignored -> true
+                        gatewayClock,
+                        passiveHealth::eligible
                 ),
                 key -> top.egon.cola.component.gateway.engine.discovery
                         .ProviderSelectionPolicy.defaults(
@@ -257,7 +270,8 @@ public class GatewayEngineConfiguration {
             GatewaySecurityCapabilityRegistry capabilities,
             GatewayCallCompletionListener completionListener,
             GatewayTrafficGovernance trafficGovernance,
-            HttpRpcUpstreamAdapter httpRpcUpstream) {
+            HttpRpcUpstreamAdapter httpRpcUpstream,
+            PassiveHealthTracker passiveHealth) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         GatewayHttpEngineProperties engineProperties =
                 new GatewayHttpEngineProperties(
@@ -304,7 +318,8 @@ public class GatewayEngineConfiguration {
                 completionListener,
                 properties.getNodeId(),
                 trafficGovernance,
-                httpRpcUpstream
+                httpRpcUpstream,
+                passiveHealth
         );
         return new GatewayHttpServer(engineProperties, handler);
     }
@@ -337,7 +352,8 @@ public class GatewayEngineConfiguration {
             RpcProviderChannelCache channels,
             GatewaySecurityCapabilityRegistry capabilities,
             GatewayCallCompletionListener completionListener,
-            GatewayTrafficGovernance trafficGovernance) {
+            GatewayTrafficGovernance trafficGovernance,
+            PassiveHealthTracker passiveHealth) {
         var security = new RuleBackedRpcGatewaySecurityProcessor(
                 new GatewaySecurityChain(capabilities),
                 activation::active,
@@ -351,7 +367,8 @@ public class GatewayEngineConfiguration {
                 security,
                 completionListener,
                 properties.getNodeId(),
-                trafficGovernance
+                trafficGovernance,
+                passiveHealth
         );
         return new RpcGatewayHandlerRegistry(
                 forwarder,
@@ -403,13 +420,15 @@ public class GatewayEngineConfiguration {
             GatewayHttpServer httpServer,
             RpcGatewayServer rpcServer,
             RpcGatewaySlotRuntime rpcSlot,
-            GatewayRuleActivationApplier activation) {
+            GatewayRuleActivationApplier activation,
+            ProviderDirectory providerDirectory) {
         return new GatewayEngineRuntime(
                 properties,
                 httpServer,
                 rpcServer,
                 rpcSlot,
-                activation
+                activation,
+                providerDirectory
         );
     }
 

@@ -11,6 +11,8 @@ import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
+import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
+import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecorder;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
@@ -60,6 +62,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private final GatewayTrafficGovernance trafficGovernance;
 
     private final HttpRpcUpstreamAdapter httpRpcUpstream;
+
+    private final ProviderCallOutcomeRecorder outcomeRecorder;
 
     private final GatewayAttemptExecutor attemptExecutor =
             new GatewayAttemptExecutor();
@@ -136,7 +140,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 completionListener,
                 engineNodeId,
                 GatewayTrafficGovernance.noop(),
-                null
+                null,
+                ProviderCallOutcomeRecorder.noop()
         );
     }
 
@@ -162,7 +167,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 completionListener,
                 engineNodeId,
                 trafficGovernance,
-                null
+                null,
+                ProviderCallOutcomeRecorder.noop()
         );
     }
 
@@ -178,6 +184,35 @@ public final class DefaultGatewayHttpDataPlaneHandler
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance,
             HttpRpcUpstreamAdapter httpRpcUpstream) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                httpRpcUpstream,
+                ProviderCallOutcomeRecorder.noop()
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            HttpRpcUpstreamAdapter httpRpcUpstream,
+            ProviderCallOutcomeRecorder outcomeRecorder) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -210,6 +245,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 "trafficGovernance"
         );
         this.httpRpcUpstream = httpRpcUpstream;
+        this.outcomeRecorder = Objects.requireNonNull(
+                outcomeRecorder,
+                "outcomeRecorder"
+        );
         resourceGuard = new GatewayRequestResourceGuard(
                 new GatewayResourceLimits(
                         128,
@@ -547,6 +586,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     ProviderCallClassification classification =
                             classification(response.status());
                     attemptPermit.complete(classification);
+                    outcomeRecorder.record(
+                            provider.runtimeIdentity(),
+                            healthOutcome(classification)
+                    );
                     observation.attempt(
                             attemptNumber,
                             attemptSpanId,
@@ -561,6 +604,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     attemptPermit.complete(
                             ProviderCallClassification.RETRYABLE_FAILURE
                     );
+                    outcomeRecorder.record(
+                            provider.runtimeIdentity(),
+                            ProviderCallOutcome.RETRYABLE_FAILURE
+                    );
                     observation.attempt(
                             attemptNumber,
                             attemptSpanId,
@@ -573,6 +620,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     : null
                     );
                 })
+                .doOnCancel(() -> outcomeRecorder.record(
+                        provider.runtimeIdentity(),
+                        ProviderCallOutcome.CANCELLED
+                ))
                 .doFinally(signal -> {
                     attemptPermit.close();
                     selection.close();
@@ -780,6 +831,18 @@ public final class DefaultGatewayHttpDataPlaneHandler
         return status >= 500
                 ? ProviderCallClassification.RETRYABLE_FAILURE
                 : ProviderCallClassification.BUSINESS_FAILURE;
+    }
+
+    private ProviderCallOutcome healthOutcome(
+            ProviderCallClassification classification) {
+        return switch (classification) {
+            case SUCCESS -> ProviderCallOutcome.SUCCESS;
+            case RETRYABLE_FAILURE ->
+                    ProviderCallOutcome.RETRYABLE_FAILURE;
+            case BUSINESS_FAILURE ->
+                    ProviderCallOutcome.BUSINESS_REJECTION;
+            case CANCELLED -> ProviderCallOutcome.CANCELLED;
+        };
     }
 
     private boolean retryable(Throwable failure) {

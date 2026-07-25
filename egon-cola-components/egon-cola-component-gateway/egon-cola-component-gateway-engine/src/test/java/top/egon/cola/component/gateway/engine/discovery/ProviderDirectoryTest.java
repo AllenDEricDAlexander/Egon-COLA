@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProviderDirectoryTest {
@@ -41,11 +42,13 @@ class ProviderDirectoryTest {
 
         assertEquals(2, directory.referenceCount(key));
         assertEquals(1, directory.available(key).size());
+        assertTrue(directory.allAvailable(Set.of(key)));
 
         directory.release(Set.of(key));
         assertEquals(1, directory.referenceCount(key));
         directory.release(Set.of(key));
         assertEquals(0, directory.referenceCount(key));
+        assertFalse(directory.allAvailable(Set.of(key)));
         assertTrue(registry.closed.get());
     }
 

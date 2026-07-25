@@ -13,6 +13,8 @@ import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.contract.trace.GatewayTraceContext;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
+import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
+import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecorder;
 import top.egon.cola.component.gateway.engine.http.ProviderSelector;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
@@ -47,6 +49,8 @@ public final class RpcGatewayForwarder {
     private final String engineNodeId;
 
     private final GatewayTrafficGovernance trafficGovernance;
+
+    private final ProviderCallOutcomeRecorder outcomeRecorder;
 
     private final TrustedIdentitySanitizer identitySanitizer =
             new TrustedIdentitySanitizer();
@@ -118,6 +122,29 @@ public final class RpcGatewayForwarder {
             GatewayCallCompletionListener completionListener,
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance) {
+        this(
+                providerSelector,
+                channels,
+                maximumTimeout,
+                maxInboundMessageBytes,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                ProviderCallOutcomeRecorder.noop()
+        );
+    }
+
+    public RpcGatewayForwarder(
+            ProviderSelector providerSelector,
+            RpcProviderChannelCache channels,
+            Duration maximumTimeout,
+            int maxInboundMessageBytes,
+            GatewayRpcSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            ProviderCallOutcomeRecorder outcomeRecorder) {
         this.providerSelector = Objects.requireNonNull(
                 providerSelector,
                 "providerSelector"
@@ -143,6 +170,10 @@ public final class RpcGatewayForwarder {
         this.trafficGovernance = Objects.requireNonNull(
                 trafficGovernance,
                 "trafficGovernance"
+        );
+        this.outcomeRecorder = Objects.requireNonNull(
+                outcomeRecorder,
+                "outcomeRecorder"
         );
     }
 
@@ -448,6 +479,10 @@ public final class RpcGatewayForwarder {
                             attemptPermit.complete(
                                     classification(status)
                             );
+                            outcomeRecorder.record(
+                                    selection.instance().runtimeIdentity(),
+                                    healthOutcome(status)
+                            );
                             serverCall.close(
                                     status,
                                     safeMetadata(
@@ -478,6 +513,12 @@ public final class RpcGatewayForwarder {
                 clientCall.sendMessage(request);
                 clientCall.halfClose();
             } catch (RuntimeException unavailable) {
+                if (selection != null) {
+                    outcomeRecorder.record(
+                            selection.instance().runtimeIdentity(),
+                            ProviderCallOutcome.RETRYABLE_FAILURE
+                    );
+                }
                 recordAttempt(
                         Status.UNAVAILABLE,
                         "GATEWAY_PROVIDER_UNAVAILABLE"
@@ -685,6 +726,17 @@ public final class RpcGatewayForwarder {
                     ProviderCallClassification.BUSINESS_FAILURE;
             case CANCELLED -> ProviderCallClassification.CANCELLED;
             default -> ProviderCallClassification.RETRYABLE_FAILURE;
+        };
+    }
+
+    private ProviderCallOutcome healthOutcome(Status status) {
+        return switch (classification(status)) {
+            case SUCCESS -> ProviderCallOutcome.SUCCESS;
+            case RETRYABLE_FAILURE ->
+                    ProviderCallOutcome.RETRYABLE_FAILURE;
+            case BUSINESS_FAILURE ->
+                    ProviderCallOutcome.BUSINESS_REJECTION;
+            case CANCELLED -> ProviderCallOutcome.CANCELLED;
         };
     }
 
