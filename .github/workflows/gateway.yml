@@ -143,3 +143,31 @@ jobs:
             ${{ env.GATEWAY_TEST_SUITE }}/target/gateway-process-it
             ${{ env.GATEWAY_TEST_SUITE }}/target/failsafe-reports
           if-no-files-found: ignore
+
+  gateway-performance:
+    name: Gateway nightly performance
+    if: github.event_name == 'schedule' && vars.GATEWAY_PERFORMANCE_ENABLED == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 1500
+    env:
+      GATEWAY_PERF_PROFILE: soak
+      GATEWAY_SOAK_DURATION_SECONDS: "43200"
+      GATEWAY_PUBLIC_BASE_URL: ${{ vars.GATEWAY_PUBLIC_BASE_URL }}
+      GATEWAY_INTERNAL_BASE_URL: ${{ vars.GATEWAY_INTERNAL_BASE_URL }}
+      GATEWAY_RPC_CONSUMER_BASE_URL: ${{ vars.GATEWAY_RPC_CONSUMER_BASE_URL }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Run HTTP and RPC soak
+        working-directory: ${{ env.GATEWAY_ROOT }}/performance
+        run: ./soak.sh
+
+      - name: Upload performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-performance-evidence
+          path: ${{ env.GATEWAY_ROOT }}/performance/artifacts
+          if-no-files-found: ignore
