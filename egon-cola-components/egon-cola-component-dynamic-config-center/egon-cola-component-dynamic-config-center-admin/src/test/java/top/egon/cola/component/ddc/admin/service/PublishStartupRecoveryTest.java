@@ -8,8 +8,9 @@ import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -31,7 +32,7 @@ class PublishStartupRecoveryTest {
         properties.getPublish().setRecoveryStaleMs(120000);
         LocalDateTime staleBefore = LocalDateTime.ofInstant(
                 now.minusMillis(120000),
-                ZoneOffset.UTC
+                ZoneId.systemDefault()
         );
         when(repository.findByStatusInAndUpdatedAtBefore(List.of(
                 PublishStatus.PENDING.name(),

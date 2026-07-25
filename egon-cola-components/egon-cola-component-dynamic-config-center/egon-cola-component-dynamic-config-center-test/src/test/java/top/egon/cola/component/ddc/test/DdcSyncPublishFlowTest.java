@@ -199,6 +199,13 @@ class DdcSyncPublishFlowTest {
                     executor.submit(() -> publishService.publish(request, "tester"));
             assertThat(published.poll(2, TimeUnit.SECONDS)).isNotNull();
 
+            var persistedTask = taskRepository.findByChangeId(
+                    request.getChangeId()
+            ).orElseThrow();
+            persistedTask.setUpdatedAt(
+                    LocalDateTime.now().minusMinutes(3)
+            );
+            taskRepository.saveAndFlush(persistedTask);
             startupRecovery.run(null);
 
             assertThat(result.get(2, TimeUnit.SECONDS).getStatus())

@@ -1,17 +1,19 @@
 package top.egon.cola.component.ddc.admin.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
+import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Component
@@ -31,6 +33,7 @@ public class PublishStartupRecovery implements ApplicationRunner {
 
     private final Clock clock;
 
+    @Autowired
     public PublishStartupRecovery(
             DdcPublishTaskRepository taskRepository,
             DdcPublishStateTransitionService stateTransitions,
@@ -65,7 +68,7 @@ public class PublishStartupRecovery implements ApplicationRunner {
         }
         LocalDateTime staleBefore = LocalDateTime.ofInstant(
                 clock.instant().minusMillis(staleMs),
-                clock.getZone()
+                ZoneId.systemDefault()
         );
         taskRepository.findByStatusInAndUpdatedAtBefore(
                         ACTIVE_STATUSES,
