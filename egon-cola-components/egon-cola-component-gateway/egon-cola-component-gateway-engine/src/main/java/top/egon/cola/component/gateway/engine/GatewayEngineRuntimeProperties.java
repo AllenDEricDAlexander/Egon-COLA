@@ -127,7 +127,7 @@ public class GatewayEngineRuntimeProperties {
 
         private int maxHeaderBytes = 64 * 1024;
 
-        private long maxBodyBytes = 4L * 1024 * 1024;
+        private long maxBodyBytes = 2L * 1024 * 1024;
 
         private Duration idleTimeout = Duration.ofSeconds(30);
 
