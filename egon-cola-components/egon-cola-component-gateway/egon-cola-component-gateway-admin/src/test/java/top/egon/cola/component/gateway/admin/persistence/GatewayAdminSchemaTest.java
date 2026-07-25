@@ -19,7 +19,7 @@ class GatewayAdminSchemaTest {
                              "src/main/resources",
                              root
                      ))) {
-            assertEquals(2, migrations.filter(
+            assertEquals(3, migrations.filter(
                     path -> path.getFileName().toString().endsWith(".sql")
             ).count());
         }
@@ -53,5 +53,18 @@ class GatewayAdminSchemaTest {
         assertTrue(observability.contains(
                 "CREATE TABLE gateway_call_event_consume_failure"
         ));
+
+        String lifecycle = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root
+                                + "/V3__add_definition_lifecycle_membership.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(lifecycle.contains(
+                "CREATE TABLE gateway_definition_set_operation"
+        ));
+        assertTrue(lifecycle.contains("activated_at"));
+        assertTrue(lifecycle.contains("retired_at"));
     }
 }

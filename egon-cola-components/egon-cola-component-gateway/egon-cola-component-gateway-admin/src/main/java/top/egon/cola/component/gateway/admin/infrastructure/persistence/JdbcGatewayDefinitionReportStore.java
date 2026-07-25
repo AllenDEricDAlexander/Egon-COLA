@@ -291,7 +291,7 @@ public class JdbcGatewayDefinitionReportStore
                         lifecycle_status, current_definition_id, revision,
                         created_at, updated_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, 'STARTER',
-                              'ACTIVE', NULL, 0, ?, ?)
+                              'DISCOVERED', NULL, 0, ?, ?)
                     """,
                     operationId,
                     applicationId,
@@ -312,7 +312,14 @@ public class JdbcGatewayDefinitionReportStore
                     operation,
                     now
             );
-            point(operationId, definitionId, operation, now);
+            linkDefinitionSet(
+                    definitionSetId,
+                    operationId,
+                    definitionId,
+                    operation,
+                    now
+            );
+            pointPending(operationId, definitionId, operation, now);
             stored.created++;
             stored.refs.add(ref(operation, operationId, "CREATED"));
             return;
@@ -331,18 +338,33 @@ public class JdbcGatewayDefinitionReportStore
             );
         }
         if (definitionSha.equals(row.definitionSha256)) {
+            linkDefinitionSet(
+                    definitionSetId,
+                    row.id,
+                    row.currentDefinitionId,
+                    operation,
+                    now
+            );
             stored.refs.add(ref(operation, row.id, "UNCHANGED"));
             return;
         }
-        String definitionId = appendDefinition(
-                row.id,
+        String definitionId = findDefinition(row.id, definitionSha)
+                .orElseGet(() -> appendDefinition(
+                        row.id,
+                        definitionSetId,
+                        row.maxVersion + 1,
+                        definitionSha,
+                        operation,
+                        now
+                ));
+        linkDefinitionSet(
                 definitionSetId,
-                row.maxVersion + 1,
-                definitionSha,
+                row.id,
+                definitionId,
                 operation,
                 now
         );
-        point(row.id, definitionId, operation, now);
+        pointPending(row.id, definitionId, operation, now);
         stored.updated++;
         stored.refs.add(ref(operation, row.id, "UPDATED"));
     }
@@ -384,7 +406,44 @@ public class JdbcGatewayDefinitionReportStore
         return id;
     }
 
-    private void point(
+    private Optional<String> findDefinition(
+            String operationId,
+            String definitionSha) {
+        return jdbc.queryForList("""
+                SELECT id
+                  FROM gateway_operation_definition
+                 WHERE operation_id = ? AND definition_sha256 = ?
+                """, String.class, operationId, definitionSha)
+                .stream()
+                .findFirst();
+    }
+
+    private void linkDefinitionSet(
+            String definitionSetId,
+            String operationId,
+            String definitionId,
+            GatewayInterfaceDefinitionReport.Operation operation,
+            Instant now) {
+        jdbc.update("""
+                INSERT INTO gateway_definition_set_operation(
+                    definition_set_id, operation_id, definition_id,
+                    method_identity, provider_service_identity,
+                    external_accessible, deprecated, created_at
+                ) VALUES (?, ?, ?, ?, ?::jsonb, ?, ?, ?)
+                ON CONFLICT (definition_set_id, operation_id) DO NOTHING
+                """,
+                definitionSetId,
+                operationId,
+                definitionId,
+                operation.methodIdentity(),
+                json(operation.providerService()),
+                operation.externalAccessible(),
+                operation.deprecated(),
+                now
+        );
+    }
+
+    private void pointPending(
             String operationId,
             String definitionId,
             GatewayInterfaceDefinitionReport.Operation operation,
@@ -395,20 +454,17 @@ public class JdbcGatewayDefinitionReportStore
                        method_identity = ?,
                        external_accessible = ?,
                        provider_service_identity = ?::jsonb,
-                       lifecycle_status = CASE WHEN ? THEN 'DEPRECATED'
-                                               ELSE 'ACTIVE' END,
-                       deprecated_at = CASE WHEN ? THEN ? ELSE NULL END,
+                       lifecycle_status = 'DISCOVERED',
+                       deprecated_at = NULL,
                        revision = revision + 1,
                        updated_at = ?
                  WHERE id = ?
+                   AND lifecycle_status IN ('DISCOVERED', 'OFFLINE')
                 """,
                 definitionId,
                 operation.methodIdentity(),
                 operation.externalAccessible(),
                 json(operation.providerService()),
-                operation.deprecated(),
-                operation.deprecated(),
-                now,
                 now,
                 operationId
         );

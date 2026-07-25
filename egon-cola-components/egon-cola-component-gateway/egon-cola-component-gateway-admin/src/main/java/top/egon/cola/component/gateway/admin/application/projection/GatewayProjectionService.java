@@ -102,14 +102,21 @@ public class GatewayProjectionService {
                     env,
                     namespace,
                     "HTTP_PROVIDER",
-                    "HTTP"
+                    "http"
+            );
+            collectInstances(
+                    result,
+                    env,
+                    namespace,
+                    "HTTP_PROVIDER",
+                    "https"
             );
             collectInstances(
                     result,
                     env,
                     namespace,
                     "RPC_PROVIDER",
-                    "RPC"
+                    "grpc"
             );
             return List.copyOf(result);
         });
@@ -378,7 +385,7 @@ public class GatewayProjectionService {
                 metadata.get("gateway.zone"),
                 integer(metadata.get("gateway.weight")),
                 metadata,
-                metadata.get("gateway.definition-set"),
+                definitionSetId(metadata),
                 instance.status(),
                 instance.expireAt(),
                 observedAt
@@ -387,6 +394,13 @@ public class GatewayProjectionService {
 
     private String value(String value) {
         return value == null ? "" : value;
+    }
+
+    private String definitionSetId(Map<String, String> metadata) {
+        String canonical = metadata.get("gateway.definition-set-id");
+        return canonical == null || canonical.isBlank()
+                ? metadata.get("gateway.definition-set")
+                : canonical;
     }
 
     private Integer integer(String value) {

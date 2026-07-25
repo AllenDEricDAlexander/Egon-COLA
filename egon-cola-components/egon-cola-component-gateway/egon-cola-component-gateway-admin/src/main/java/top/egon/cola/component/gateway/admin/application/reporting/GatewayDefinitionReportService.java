@@ -167,7 +167,8 @@ public class GatewayDefinitionReportService {
                         ? List.of()
                         : List.of(warning(
                         "MISSING_FROM_THIS_SET",
-                        "interfaces absent from this set were not offlined"
+                        "interfaces absent from this set are offlined after "
+                                + "providers activate it"
                 )),
                 now
         );

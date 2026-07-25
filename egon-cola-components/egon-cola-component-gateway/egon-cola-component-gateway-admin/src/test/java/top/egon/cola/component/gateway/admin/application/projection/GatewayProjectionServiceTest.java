@@ -43,7 +43,7 @@ class GatewayProjectionServiceTest {
                 "orders",
                 "default",
                 "1.0.0",
-                "HTTP"
+                "http"
         );
         DdcManagementServiceKey rpc = new DdcManagementServiceKey(
                 "test",
@@ -52,7 +52,7 @@ class GatewayProjectionServiceTest {
                 "orders-rpc",
                 "default",
                 "1.0.0",
-                "RPC"
+                "grpc"
         );
         DdcManagementClient client = new StubClient(
                 now,
@@ -80,7 +80,7 @@ class GatewayProjectionServiceTest {
         assertThat(projection.stale()).isFalse();
         assertThat(projection.value()).extracting(
                 GatewayProjectionService.ProviderInstanceProjection::protocol
-        ).containsExactly("HTTP", "RPC");
+        ).containsExactly("http", "grpc");
         assertThat(projection.value().getFirst().weight()).isEqualTo(80);
         assertThat(projection.value().getFirst().definitionSetId())
                 .isEqualTo("definition-http");
@@ -276,8 +276,15 @@ class GatewayProjectionServiceTest {
         @Override
         public DdcManagementServiceCatalog getServiceKeys(
                 DdcManagementServiceQuery query) {
+            if ("https".equals(query.protocol())) {
+                return new DdcManagementServiceCatalog(
+                        1,
+                        now,
+                        List.of()
+                );
+            }
             DdcManagementServiceKey key =
-                    "HTTP".equals(query.protocol()) ? http : rpc;
+                    "http".equals(query.protocol()) ? http : rpc;
             return new DdcManagementServiceCatalog(1, now, List.of(key));
         }
 
@@ -285,7 +292,7 @@ class GatewayProjectionServiceTest {
         public DdcManagementServiceSnapshot getInstances(
                 DdcManagementServiceQuery query) {
             DdcManagementServiceKey key =
-                    "HTTP".equals(query.protocol()) ? http : rpc;
+                    "http".equals(query.protocol()) ? http : rpc;
             return new DdcManagementServiceSnapshot(
                     key,
                     1,
@@ -298,9 +305,8 @@ class GatewayProjectionServiceTest {
                             false,
                             Map.of(
                                     "gateway.weight", "80",
-                                    "gateway.definition-set",
+                                    "gateway.definition-set-id",
                                     "definition-" + query.protocol()
-                                            .toLowerCase()
                             ),
                             "ONLINE",
                             now.minusSeconds(10),

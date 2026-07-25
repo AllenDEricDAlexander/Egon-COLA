@@ -291,6 +291,13 @@ public class GatewayDraftService {
                         "OPERATION_OFFLINE",
                         "offline operation cannot be published"
                 ));
+            } else if ("DISCOVERED".equals(
+                    operation.lifecycleStatus())) {
+                errors.add(new ValidationIssue(
+                        "routes." + route.routeId() + ".operationId",
+                        "OPERATION_NOT_ACTIVE",
+                        "operation is not active on any provider"
+                ));
             } else if ("DEPRECATED".equals(operation.lifecycleStatus())) {
                 warnings.add(new ValidationIssue(
                         "routes." + route.routeId() + ".operationId",
