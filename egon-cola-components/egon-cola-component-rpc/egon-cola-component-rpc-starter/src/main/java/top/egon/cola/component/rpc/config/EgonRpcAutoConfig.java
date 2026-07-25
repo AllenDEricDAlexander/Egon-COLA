@@ -12,6 +12,8 @@ import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.RpcProcessIdentityFactory;
 import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
+import top.egon.cola.component.rpc.contract.DefaultRpcContractCatalog;
+import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractValidator;
 import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
@@ -66,6 +68,18 @@ public class EgonRpcAutoConfig {
                 applicationContext,
                 contractValidator
         ).scan();
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.provider",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcContractCatalog rpcContractCatalog(
+            RpcProviderMethodRegistry methodRegistry) {
+        return new DefaultRpcContractCatalog(methodRegistry);
     }
 
     @Bean
