@@ -10,9 +10,12 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.Status;
 import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.gateway.contract.trace.GatewayTraceContext;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.http.ProviderSelector;
+import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
+import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
@@ -35,6 +38,10 @@ public final class RpcGatewayForwarder {
 
     private final GatewayRpcSecurityProcessor securityProcessor;
 
+    private final GatewayCallCompletionListener completionListener;
+
+    private final String engineNodeId;
+
     private final TrustedIdentitySanitizer identitySanitizer =
             new TrustedIdentitySanitizer();
 
@@ -51,7 +58,9 @@ public final class RpcGatewayForwarder {
                 (route, metadata, traceId, deadline) ->
                         reactor.core.publisher.Mono.just(
                                 GatewayRpcSecurityProcessor.Outcome.anonymous()
-                        )
+                        ),
+                GatewayCallCompletionListener.noop(),
+                "unknown-engine"
         );
     }
 
@@ -61,6 +70,25 @@ public final class RpcGatewayForwarder {
             Duration maximumTimeout,
             int maxInboundMessageBytes,
             GatewayRpcSecurityProcessor securityProcessor) {
+        this(
+                providerSelector,
+                channels,
+                maximumTimeout,
+                maxInboundMessageBytes,
+                securityProcessor,
+                GatewayCallCompletionListener.noop(),
+                "unknown-engine"
+        );
+    }
+
+    public RpcGatewayForwarder(
+            ProviderSelector providerSelector,
+            RpcProviderChannelCache channels,
+            Duration maximumTimeout,
+            int maxInboundMessageBytes,
+            GatewayRpcSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId) {
         this.providerSelector = Objects.requireNonNull(
                 providerSelector,
                 "providerSelector"
@@ -75,19 +103,54 @@ public final class RpcGatewayForwarder {
                 securityProcessor,
                 "securityProcessor"
         );
+        this.completionListener = Objects.requireNonNull(
+                completionListener,
+                "completionListener"
+        );
+        this.engineNodeId = Objects.requireNonNull(
+                engineNodeId,
+                "engineNodeId"
+        );
     }
 
     public ServerCallHandler<byte[], byte[]> handler(RuntimeRpcRoute route) {
         MethodDescriptor<byte[], byte[]> method =
                 RawByteMarshaller.INSTANCE.descriptor(route.fullMethodName());
         return (serverCall, inboundHeaders) -> {
-            String traceId = traceId(inboundHeaders);
+            GatewayTraceContext trace = traceContext(inboundHeaders);
+            GatewayCallObservation observation = GatewayCallObservation.start(
+                    trace,
+                    "RPC",
+                    "INTERNAL",
+                    engineNodeId
+            );
+            observation.route(
+                    route.fullMethodName(),
+                    route.fullMethodName(),
+                    route.targetService().group(),
+                    null,
+                    route.operationId(),
+                    route.routeId()
+            );
+            observation.scope(
+                    route.targetService().env(),
+                    route.targetService().namespace()
+            );
             if (!metadataMatches(route, inboundHeaders)) {
                 serverCall.close(
                         Status.INVALID_ARGUMENT.withDescription(
                                 "RPC method metadata conflicts with route"
                         ),
-                        new Metadata()
+                        gatewayTrailers(
+                                "GATEWAY_RPC_METADATA_MISMATCH",
+                                trace.traceId()
+                        )
+                );
+                publish(
+                        observation,
+                        "ROUTE",
+                        Status.INVALID_ARGUMENT,
+                        "GATEWAY_RPC_METADATA_MISMATCH"
                 );
                 return new ServerCall.Listener<>() {
                 };
@@ -97,13 +160,14 @@ public final class RpcGatewayForwarder {
                     method,
                     serverCall,
                     inboundHeaders,
-                    traceId,
-                    Context.current().getDeadline()
+                    trace,
+                    Context.current().getDeadline(),
+                    observation
             );
             securityProcessor.authorize(
                             route,
                             inboundHeaders,
-                            traceId,
+                            trace.traceId(),
                             Context.current().getDeadline()
                     )
                     .subscribe(pending::authorized, pending::securityFailed);
@@ -122,9 +186,11 @@ public final class RpcGatewayForwarder {
 
         private final Metadata inboundHeaders;
 
-        private final String traceId;
+        private final GatewayTraceContext trace;
 
         private final Deadline inboundDeadline;
+
+        private final GatewayCallObservation observation;
 
         private final AtomicBoolean released = new AtomicBoolean();
 
@@ -144,19 +210,27 @@ public final class RpcGatewayForwarder {
 
         private ClientCall<byte[], byte[]> clientCall;
 
+        private long attemptStartedAt;
+
+        private long attemptStartedNanos;
+
+        private String attemptSpanId;
+
         private PendingCall(
                 RuntimeRpcRoute route,
                 MethodDescriptor<byte[], byte[]> method,
                 ServerCall<byte[], byte[]> serverCall,
                 Metadata inboundHeaders,
-                String traceId,
-                Deadline inboundDeadline) {
+                GatewayTraceContext trace,
+                Deadline inboundDeadline,
+                GatewayCallObservation observation) {
             this.route = route;
             this.method = method;
             this.serverCall = serverCall;
             this.inboundHeaders = inboundHeaders;
-            this.traceId = traceId;
+            this.trace = trace;
             this.inboundDeadline = inboundDeadline;
+            this.observation = observation;
         }
 
         @Override
@@ -176,6 +250,7 @@ public final class RpcGatewayForwarder {
                 return;
             }
             request = message;
+            observation.addRequestBytes(message.length);
             startIfReady();
         }
 
@@ -198,6 +273,12 @@ public final class RpcGatewayForwarder {
             if (clientCall != null) {
                 clientCall.cancel("consumer cancelled", null);
             }
+            publish(
+                    observation,
+                    "CLIENT",
+                    Status.CANCELLED,
+                    "GATEWAY_RPC_CANCELLED"
+            );
             release();
         }
 
@@ -207,6 +288,11 @@ public final class RpcGatewayForwarder {
                 return;
             }
             security = Objects.requireNonNull(outcome, "security outcome");
+            observation.governance(
+                    "NOT_APPLIED",
+                    "NOT_APPLIED",
+                    "ALLOW"
+            );
             startIfReady();
         }
 
@@ -236,6 +322,19 @@ public final class RpcGatewayForwarder {
             try {
                 selection = providerSelector.select(route.targetService());
                 ProviderInstance provider = selection.instance();
+                observation.provider(provider.instanceId(), Map.of(
+                        "serviceKey",
+                        provider.serviceKey().serviceName(),
+                        "protocol",
+                        provider.serviceKey().protocolType().name(),
+                        "version",
+                        provider.serviceKey().version(),
+                        "group",
+                        provider.serviceKey().group()
+                ));
+                attemptStartedAt = System.currentTimeMillis();
+                attemptStartedNanos = System.nanoTime();
+                attemptSpanId = trace.newChildSpanId();
                 channelHandle = channels.acquire(provider);
                 clientCall = channelHandle.channel().newCall(
                         method,
@@ -244,11 +343,15 @@ public final class RpcGatewayForwarder {
                 clientCall.start(new ClientCall.Listener<>() {
                     @Override
                     public void onHeaders(Metadata headers) {
-                        serverCall.sendHeaders(safeMetadata(headers));
+                        serverCall.sendHeaders(safeMetadata(
+                                headers,
+                                trace.traceId()
+                        ));
                     }
 
                     @Override
                     public void onMessage(byte[] message) {
+                        observation.addResponseBytes(message.length);
                         serverCall.sendMessage(message);
                         clientCall.request(1);
                     }
@@ -258,9 +361,21 @@ public final class RpcGatewayForwarder {
                             Status status,
                             Metadata trailers) {
                         try {
+                            recordAttempt(status, null);
                             serverCall.close(
                                     status,
-                                    safeMetadata(trailers)
+                                    safeMetadata(
+                                            trailers,
+                                            trace.traceId()
+                                    )
+                            );
+                            publish(
+                                    observation,
+                                    "COMPLETE",
+                                    status,
+                                    status.isOk()
+                                            ? null
+                                            : "GATEWAY_RPC_UPSTREAM_STATUS"
                             );
                         } finally {
                             release();
@@ -269,13 +384,18 @@ public final class RpcGatewayForwarder {
                 }, outboundHeaders(
                         route,
                         inboundHeaders,
-                        traceId,
+                        trace,
+                        attemptSpanId,
                         security
                 ));
                 clientCall.request(1);
                 clientCall.sendMessage(request);
                 clientCall.halfClose();
             } catch (RuntimeException unavailable) {
+                recordAttempt(
+                        Status.UNAVAILABLE,
+                        "GATEWAY_PROVIDER_UNAVAILABLE"
+                );
                 close(
                         Status.UNAVAILABLE,
                         "GATEWAY_PROVIDER_UNAVAILABLE"
@@ -290,8 +410,9 @@ public final class RpcGatewayForwarder {
                 }
                 serverCall.close(
                         status.withDescription(code),
-                        gatewayTrailers(code, traceId)
+                        gatewayTrailers(code, trace.traceId())
                 );
+                publish(observation, "GATEWAY", status, code);
                 closeHandles();
             }
         }
@@ -309,6 +430,28 @@ public final class RpcGatewayForwarder {
             if (selection != null) {
                 selection.close();
             }
+        }
+
+        private void recordAttempt(Status status, String retryReason) {
+            if (attemptSpanId == null) {
+                return;
+            }
+            observation.attempt(
+                    1,
+                    attemptSpanId,
+                    selection == null
+                            ? null
+                            : selection.instance().instanceId(),
+                    attemptStartedAt,
+                    Math.max(
+                            0,
+                            (System.nanoTime() - attemptStartedNanos)
+                                    / 1_000_000
+                    ),
+                    status.isOk() ? "SUCCESS" : "ERROR",
+                    retryReason
+            );
+            attemptSpanId = null;
         }
     }
 
@@ -351,7 +494,8 @@ public final class RpcGatewayForwarder {
     private Metadata outboundHeaders(
             RuntimeRpcRoute route,
             Metadata inbound,
-            String traceId,
+            GatewayTraceContext trace,
+            String childSpanId,
             GatewayRpcSecurityProcessor.Outcome security) {
         Metadata result = new Metadata();
         result.put(
@@ -364,9 +508,14 @@ public final class RpcGatewayForwarder {
                 RpcMetadataKeys.INVOCATION_ID,
                 valueOrGenerated(inbound.get(RpcMetadataKeys.INVOCATION_ID))
         );
-        result.put(RpcMetadataKeys.TRACE_ID, traceId);
-        copy(inbound, result, RpcMetadataKeys.TRACEPARENT);
-        copy(inbound, result, RpcMetadataKeys.TRACESTATE);
+        result.put(RpcMetadataKeys.TRACE_ID, trace.traceId());
+        result.put(
+                RpcMetadataKeys.TRACEPARENT,
+                trace.childTraceparent(childSpanId)
+        );
+        if (trace.tracestate() != null) {
+            result.put(RpcMetadataKeys.TRACESTATE, trace.tracestate());
+        }
         copy(inbound, result, RpcMetadataKeys.SOURCE_APP);
         copy(inbound, result, RpcMetadataKeys.SOURCE_INSTANCE);
         Map<String, String> trusted = identitySanitizer.sanitizeRpc(
@@ -394,10 +543,10 @@ public final class RpcGatewayForwarder {
         }
     }
 
-    private Metadata safeMetadata(Metadata source) {
+    private Metadata safeMetadata(Metadata source, String traceId) {
         Metadata safe = new Metadata();
         copy(source, safe, RpcMetadataKeys.FAILURE_STAGE);
-        copy(source, safe, RpcMetadataKeys.TRACE_ID);
+        safe.put(RpcMetadataKeys.TRACE_ID, traceId);
         return safe;
     }
 
@@ -408,8 +557,12 @@ public final class RpcGatewayForwarder {
         return trailers;
     }
 
-    private String traceId(Metadata metadata) {
-        return valueOrGenerated(metadata.get(RpcMetadataKeys.TRACE_ID));
+    private GatewayTraceContext traceContext(Metadata metadata) {
+        return GatewayTraceContext.select(
+                metadata.get(RpcMetadataKeys.TRACEPARENT),
+                metadata.get(RpcMetadataKeys.TRACE_ID),
+                metadata.get(RpcMetadataKeys.TRACESTATE)
+        );
     }
 
     private String valueOrGenerated(String value) {
@@ -425,5 +578,29 @@ public final class RpcGatewayForwarder {
             case "INTERNAL" -> Status.INTERNAL;
             default -> Status.UNAVAILABLE;
         };
+    }
+
+    private void publish(
+            GatewayCallObservation observation,
+            String stage,
+            Status status,
+            String code) {
+        observation.complete(
+                stage,
+                status.isOk()
+                        ? "SUCCESS"
+                        : status.getCode() == Status.Code.CANCELLED
+                        ? "CANCELLED"
+                        : status.getCode() == Status.Code.DEADLINE_EXCEEDED
+                        ? "TIMEOUT"
+                        : status.getCode() == Status.Code.PERMISSION_DENIED
+                        || status.getCode() == Status.Code.UNAUTHENTICATED
+                        || status.getCode() == Status.Code.INVALID_ARGUMENT
+                        ? "REJECTED"
+                        : "ERROR",
+                code,
+                null,
+                status.getCode().name()
+        ).ifPresent(completionListener::onComplete);
     }
 }

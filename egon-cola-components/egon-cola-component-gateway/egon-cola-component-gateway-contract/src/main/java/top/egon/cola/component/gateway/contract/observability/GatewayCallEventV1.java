@@ -57,6 +57,8 @@ public record GatewayCallEventV1(
     }
 
     public record Routing(
+            String env,
+            String namespace,
             String gatewayGroupId,
             String engineNodeId,
             String releaseId,

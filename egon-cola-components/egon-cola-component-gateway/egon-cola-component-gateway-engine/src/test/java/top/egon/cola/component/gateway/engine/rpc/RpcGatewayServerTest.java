@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.TimeUnit;
 
@@ -60,12 +61,20 @@ class RpcGatewayServerTest {
         RpcProviderChannelCache channels = new RpcProviderChannelCache(
                 Duration.ofSeconds(1)
         );
+        List<top.egon.cola.component.gateway.contract.observability
+                .GatewayCallEventV1> events = new CopyOnWriteArrayList<>();
         RpcGatewayForwarder forwarder = new RpcGatewayForwarder(
                 ignored -> new ProviderSelectionHandle(provider, () -> {
                 }),
                 channels,
                 Duration.ofSeconds(5),
-                1024
+                1024,
+                (route, metadata, traceId, deadline) ->
+                        reactor.core.publisher.Mono.just(
+                                GatewayRpcSecurityProcessor.Outcome.anonymous()
+                        ),
+                events::add,
+                "engine-1"
         );
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
@@ -90,6 +99,12 @@ class RpcGatewayServerTest {
             );
 
             assertArrayEquals(request, response);
+            assertEquals(1, events.size());
+            assertEquals(
+                    "SUCCESS",
+                    events.getFirst().result().category()
+            );
+            assertEquals(1, events.getFirst().attempts().size());
             MethodDescriptor<byte[], byte[]> unknown =
                     RawByteMarshaller.INSTANCE.descriptor(
                             "test.Echo/Unknown"
