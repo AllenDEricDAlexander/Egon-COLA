@@ -1,10 +1,10 @@
 package top.egon.cola.component.gateway.engine.http;
 
-import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
+import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 
 @FunctionalInterface
 public interface ProviderSelector {
 
-    ProviderInstance select(ProviderServiceKey serviceKey);
+    ProviderSelectionHandle select(ProviderServiceKey serviceKey);
 }

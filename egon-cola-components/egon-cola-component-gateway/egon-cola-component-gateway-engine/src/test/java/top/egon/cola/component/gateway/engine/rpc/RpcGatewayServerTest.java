@@ -16,6 +16,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
+import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 
 import java.nio.charset.StandardCharsets;
@@ -59,7 +60,8 @@ class RpcGatewayServerTest {
                 Duration.ofSeconds(1)
         );
         RpcGatewayForwarder forwarder = new RpcGatewayForwarder(
-                ignored -> provider,
+                ignored -> new ProviderSelectionHandle(provider, () -> {
+                }),
                 channels,
                 Duration.ofSeconds(5),
                 1024

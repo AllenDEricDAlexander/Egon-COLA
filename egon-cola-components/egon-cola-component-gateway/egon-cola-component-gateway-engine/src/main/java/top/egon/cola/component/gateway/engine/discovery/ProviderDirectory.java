@@ -84,13 +84,17 @@ public final class ProviderDirectory implements AutoCloseable {
 
     public List<ProviderInstance> available(ProviderServiceKey key) {
         Instant now = clock.instant();
+        return instances(key).stream()
+                .filter(instance -> instance.availableAt(now))
+                .toList();
+    }
+
+    public List<ProviderInstance> instances(ProviderServiceKey key) {
         ProviderServiceSnapshot service = snapshot.get().get(key);
         if (service == null) {
             return List.of();
         }
-        return service.instances().stream()
-                .filter(instance -> instance.availableAt(now))
-                .toList();
+        return service.instances();
     }
 
     public Map<ProviderServiceKey, ProviderServiceSnapshot> snapshot() {

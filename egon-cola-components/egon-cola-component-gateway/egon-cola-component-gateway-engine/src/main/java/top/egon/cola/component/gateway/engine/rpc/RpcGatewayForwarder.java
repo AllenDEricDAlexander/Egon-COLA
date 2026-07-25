@@ -11,6 +11,7 @@ import io.grpc.ServerCallHandler;
 import io.grpc.Status;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
+import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.http.ProviderSelector;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
@@ -59,9 +60,9 @@ public final class RpcGatewayForwarder {
                 return new ServerCall.Listener<>() {
                 };
             }
-            ProviderInstance provider;
+            ProviderSelectionHandle selection;
             try {
-                provider = providerSelector.select(route.targetService());
+                selection = providerSelector.select(route.targetService());
             } catch (RuntimeException unavailable) {
                 serverCall.close(
                         Status.UNAVAILABLE.withDescription(
@@ -75,6 +76,7 @@ public final class RpcGatewayForwarder {
                 return new ServerCall.Listener<>() {
                 };
             }
+            ProviderInstance provider = selection.instance();
             RpcProviderChannelCache.ChannelHandle handle =
                     channels.acquire(provider);
             ClientCall<byte[], byte[]> clientCall = handle.channel().newCall(
@@ -105,6 +107,7 @@ public final class RpcGatewayForwarder {
                         serverCall.close(status, safeMetadata(trailers));
                     } finally {
                         handle.close();
+                        selection.close();
                     }
                 }
             }, outboundHeaders);
@@ -127,6 +130,7 @@ public final class RpcGatewayForwarder {
                                 )
                         );
                         handle.close();
+                        selection.close();
                         return;
                     }
                     if (request != null) {
@@ -138,6 +142,7 @@ public final class RpcGatewayForwarder {
                                 new Metadata()
                         );
                         handle.close();
+                        selection.close();
                         return;
                     }
                     request = message;
@@ -154,6 +159,7 @@ public final class RpcGatewayForwarder {
                                 new Metadata()
                         );
                         handle.close();
+                        selection.close();
                         return;
                     }
                     clientCall.sendMessage(request);
@@ -164,6 +170,7 @@ public final class RpcGatewayForwarder {
                 public void onCancel() {
                     clientCall.cancel("consumer cancelled", null);
                     handle.close();
+                    selection.close();
                 }
 
                 @Override

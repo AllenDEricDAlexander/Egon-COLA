@@ -9,6 +9,7 @@ import top.egon.cola.component.gateway.core.http.NormalizedHttpRequest;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
+import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;
@@ -93,33 +94,15 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         traceId(normalized.headers())
                 ));
             }
-            ProviderInstance provider = providerSelector.select(
-                    match.route().upstream()
-            );
-            if (provider == null) {
-                return Mono.just(error(
-                        503,
-                        "GATEWAY_PROVIDER_UNAVAILABLE",
-                        traceId(normalized.headers())
-                ));
-            }
-            return aggregate(request.body())
-                    .flatMap(body -> upstreamAdapter.invoke(
-                            new HttpUpstreamRequest(
-                                    provider,
-                                    normalized.method(),
-                                    normalized.normalizedPath()
-                                            + (normalized.rawQuery().isEmpty()
-                                            ? ""
-                                            : "?" + normalized.rawQuery()),
-                                    forwardedHeaders(
-                                            normalized.headers(),
-                                            traceId(normalized.headers())
-                                    ),
-                                    reactor.core.publisher.Flux.just(body),
-                                    upstreamTimeout
-                            )
-                    ))
+            return Mono.using(
+                    () -> providerSelector.select(match.route().upstream()),
+                    selection -> invokeUpstream(
+                            selection.instance(),
+                            normalized,
+                            request
+                    ),
+                    ProviderSelectionHandle::close
+            )
                     .onErrorResume(GatewayRequestRejectedException.class,
                             rejected -> Mono.just(error(
                                     rejected.status(),
@@ -150,6 +133,29 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     UuidV7.simpleString()
             ));
         }
+    }
+
+    private Mono<GatewayOutboundHttpResponse> invokeUpstream(
+            ProviderInstance provider,
+            NormalizedHttpRequest normalized,
+            GatewayInboundHttpRequest request) {
+        return aggregate(request.body())
+                .flatMap(body -> upstreamAdapter.invoke(
+                        new HttpUpstreamRequest(
+                                provider,
+                                normalized.method(),
+                                normalized.normalizedPath()
+                                        + (normalized.rawQuery().isEmpty()
+                                        ? ""
+                                        : "?" + normalized.rawQuery()),
+                                forwardedHeaders(
+                                        normalized.headers(),
+                                        traceId(normalized.headers())
+                                ),
+                                reactor.core.publisher.Flux.just(body),
+                                upstreamTimeout
+                        )
+                ));
     }
 
     private Mono<byte[]> aggregate(reactor.core.publisher.Flux<byte[]> body) {
