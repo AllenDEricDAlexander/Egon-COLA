@@ -283,7 +283,8 @@ public class DdcManagementFacade {
                 value.getStatus(),
                 instant(value.getCreatedAt()),
                 instant(value.getLastHeartbeatAt()),
-                instant(value.getLeaseExpireAt())
+                instant(value.getLeaseExpireAt()),
+                value.getRuntimeMetadata()
         );
     }
 

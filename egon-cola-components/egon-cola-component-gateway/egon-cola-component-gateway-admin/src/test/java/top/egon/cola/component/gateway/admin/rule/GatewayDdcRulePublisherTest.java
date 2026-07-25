@@ -178,7 +178,8 @@ class GatewayDdcRulePublisherTest {
                     "REGISTERED",
                     Instant.now(),
                     Instant.now(),
-                    Instant.now().plusSeconds(30)
+                    Instant.now().plusSeconds(30),
+                    java.util.Map.of()
             ));
         }
 

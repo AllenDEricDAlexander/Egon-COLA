@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.management.model;
 
 import java.time.Instant;
+import java.util.Map;
 
 public record DdcManagementConfigClientInstance(
         String appCode,
@@ -14,6 +15,11 @@ public record DdcManagementConfigClientInstance(
         String status,
         Instant registeredAt,
         Instant lastHeartbeatAt,
-        Instant expireAt
+        Instant expireAt,
+        Map<String, String> metadata
 ) {
+
+    public DdcManagementConfigClientInstance {
+        metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+    }
 }

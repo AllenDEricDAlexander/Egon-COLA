@@ -12,6 +12,7 @@ import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseService;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
@@ -21,6 +22,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -121,8 +123,28 @@ public class GatewayProjectionService {
                 : history.getFirst();
         ProjectionEnvelope<List<DdcManagementConfigClientInstance>> nodes =
                 engineNodes(gatewayGroupId);
-        long ready = nodes.value().stream()
-                .filter(this::online)
+        GatewayReleaseStore.AttemptRecord attempt = latestSuccessfulAttempt(
+                target
+        );
+        Map<String, GatewayReleaseStore.TargetRecord> acknowledgements =
+                attempt == null
+                        ? Map.of()
+                        : attempt.targets().stream().collect(
+                                java.util.stream.Collectors.toUnmodifiableMap(
+                                        this::nodeKey,
+                                        value -> value,
+                                        (left, right) -> right
+                                )
+                        );
+        List<EngineNodeConsistency> nodeStates = nodes.value().stream()
+                .map(node -> nodeConsistency(
+                        node,
+                        target,
+                        acknowledgements.get(nodeKey(node))
+                ))
+                .toList();
+        long ready = nodeStates.stream()
+                .filter(node -> "CONSISTENT".equals(node.status()))
                 .count();
         return new RuntimeConsistency(
                 target == null ? null : target.releaseId(),
@@ -131,11 +153,116 @@ public class GatewayProjectionService {
                 ready,
                 target != null
                         && "SUCCESS".equals(target.status().name())
+                        && !nodes.value().isEmpty()
                         && ready == nodes.value().size(),
                 nodes.observedAt(),
                 nodes.source(),
-                nodes.stale()
+                nodes.stale(),
+                nodeStates
         );
+    }
+
+    private GatewayReleaseStore.AttemptRecord latestSuccessfulAttempt(
+            GatewayReleaseService.ReleaseView release) {
+        if (release == null) {
+            return null;
+        }
+        return release.attempts().stream()
+                .filter(attempt -> "SUCCESS".equals(attempt.status()))
+                .max(java.util.Comparator.comparingInt(
+                        GatewayReleaseStore.AttemptRecord::attemptNo
+                ))
+                .orElse(null);
+    }
+
+    private EngineNodeConsistency nodeConsistency(
+            DdcManagementConfigClientInstance node,
+            GatewayReleaseService.ReleaseView release,
+            GatewayReleaseStore.TargetRecord acknowledgement) {
+        if (!online(node)) {
+            return nodeState(node, "NOT_READY", "NODE_OFFLINE");
+        }
+        if (release == null || release.status() !=
+                top.egon.cola.component.gateway.admin.domain
+                        .GatewayReleaseStatus.SUCCESS) {
+            return nodeState(node, "INCONSISTENT", "RELEASE_NOT_READY");
+        }
+        if (acknowledgement == null
+                || !"SUCCESS".equals(acknowledgement.status())) {
+            return nodeState(node, "INCONSISTENT", "ACK_MISSING");
+        }
+        Map<String, String> metadata = node.metadata();
+        if (!release.releaseId().equals(metadata.get("activeReleaseId"))) {
+            return nodeState(node, "INCONSISTENT", "RELEASE_MISMATCH");
+        }
+        if (!Objects.equals(
+                value(acknowledgement.appliedVersion()),
+                metadata.get("activeRuleVersion")
+        )) {
+            return nodeState(node, "INCONSISTENT", "VERSION_MISMATCH");
+        }
+        if (!Objects.equals(
+                acknowledgement.appliedArtifactSha256(),
+                metadata.get("activeRuleChecksum")
+        )) {
+            return nodeState(node, "INCONSISTENT", "CHECKSUM_MISMATCH");
+        }
+        if (!"ACK_SUCCESS".equals(metadata.get("lastApplyStatus"))
+                || metadata.getOrDefault("lastAckAt", "").isBlank()) {
+            return nodeState(node, "INCONSISTENT", "APPLY_NOT_ACKED");
+        }
+        return nodeState(node, "CONSISTENT", null);
+    }
+
+    private EngineNodeConsistency nodeState(
+            DdcManagementConfigClientInstance node,
+            String status,
+            String reason) {
+        Map<String, String> metadata = node.metadata();
+        return new EngineNodeConsistency(
+                node.instanceId(),
+                node.leaseId(),
+                node.status(),
+                status,
+                reason,
+                metadata.get("activeReleaseId"),
+                longValue(metadata.get("activeRuleVersion")),
+                metadata.get("activeRuleChecksum"),
+                metadata.get("lastApplyStatus"),
+                instantValue(metadata.get("lastAckAt"))
+        );
+    }
+
+    private String nodeKey(DdcManagementConfigClientInstance node) {
+        return node.instanceId() + "\u0000" + node.leaseId();
+    }
+
+    private String nodeKey(GatewayReleaseStore.TargetRecord target) {
+        return target.instanceId() + "\u0000" + target.leaseId();
+    }
+
+    private String value(Long value) {
+        return value == null ? null : value.toString();
+    }
+
+    private Long longValue(String value) {
+        try {
+            return value == null || value.isBlank()
+                    ? null
+                    : Long.valueOf(value);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private Instant instantValue(String value) {
+        try {
+            return value == null || value.isBlank()
+                    ? null
+                    : Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     public ProjectionCounts scopeCounts(String env, String namespace) {
@@ -388,7 +515,26 @@ public class GatewayProjectionService {
             boolean consistent,
             Instant observedAt,
             String source,
-            boolean stale
+            boolean stale,
+            List<EngineNodeConsistency> nodes
+    ) {
+
+        public RuntimeConsistency {
+            nodes = List.copyOf(nodes);
+        }
+    }
+
+    public record EngineNodeConsistency(
+            String instanceId,
+            String leaseId,
+            String leaseStatus,
+            String status,
+            String reason,
+            String activeReleaseId,
+            Long activeRuleVersion,
+            String activeRuleChecksum,
+            String lastApplyStatus,
+            Instant lastAckAt
     ) {
     }
 

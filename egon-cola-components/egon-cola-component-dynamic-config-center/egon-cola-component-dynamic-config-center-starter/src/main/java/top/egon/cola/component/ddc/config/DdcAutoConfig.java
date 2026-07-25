@@ -6,6 +6,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -28,6 +29,7 @@ import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcInstanceIdentityFactory;
 import top.egon.cola.component.ddc.service.DdcInstanceService;
+import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
@@ -143,8 +145,16 @@ public class DdcAutoConfig {
     public DdcInstanceService ddcInstanceService(DdcProperties properties,
                                                  DdcAdminClient adminClient,
                                                  DdcInstanceIdentity identity,
-                                                 DdcLeaseSessionHolder sessionHolder) {
-        return new DdcInstanceService(properties, adminClient, identity, sessionHolder);
+                                                 DdcLeaseSessionHolder sessionHolder,
+                                                 ObjectProvider<DdcInstanceMetadataContributor>
+                                                         metadataContributors) {
+        return new DdcInstanceService(
+                properties,
+                adminClient,
+                identity,
+                sessionHolder,
+                metadataContributors.orderedStream().toList()
+        );
     }
 
     @Bean

@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.dto;
 
+import java.util.Map;
+
 public class DdcHeartbeatRequest {
 
     private String instanceId;
@@ -19,6 +21,8 @@ public class DdcHeartbeatRequest {
     private String pid;
 
     private String sdkVersion;
+
+    private Map<String, String> metadata = Map.of();
 
     public String getInstanceId() {
         return instanceId;
@@ -90,5 +94,13 @@ public class DdcHeartbeatRequest {
 
     public void setSdkVersion(String sdkVersion) {
         this.sdkVersion = sdkVersion;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     }
 }

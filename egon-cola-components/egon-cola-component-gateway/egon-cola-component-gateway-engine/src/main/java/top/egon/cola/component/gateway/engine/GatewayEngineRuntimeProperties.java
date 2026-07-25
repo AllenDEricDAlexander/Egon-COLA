@@ -266,7 +266,7 @@ public class GatewayEngineRuntimeProperties {
 
     public static class Rpc {
 
-        private boolean enabled;
+        private boolean enabled = true;
 
         private int port = 19090;
 
@@ -380,7 +380,7 @@ public class GatewayEngineRuntimeProperties {
 
     public static class ActiveHealth {
 
-        private boolean enabled = true;
+        private boolean enabled;
 
         private Duration interval = Duration.ofSeconds(10);
 

@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
 import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
@@ -58,6 +59,7 @@ import top.egon.cola.component.gateway.engine.rule.GatewayRuleApplierRegistrar;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleChunkStore;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleJsonCodec;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleLkgRepository;
+import top.egon.cola.component.gateway.engine.rule.GatewayRuleRuntimeStatus;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityChain;
 import top.egon.cola.component.gateway.engine.security.TrustedClientAddressResolver;
@@ -496,6 +498,22 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
+    public DdcInstanceMetadataContributor gatewayRuntimeMetadata(
+            GatewayRuleActivationApplier activation) {
+        return () -> {
+            GatewayRuleRuntimeStatus status = activation.status();
+            return Map.of(
+                    "activeReleaseId", value(status.activeReleaseId()),
+                    "activeRuleVersion",
+                    Long.toString(status.activeDdcVersion()),
+                    "activeRuleChecksum", value(status.artifactSha256()),
+                    "lastApplyStatus", status.lastStage().name(),
+                    "lastAckAt", status.updatedAt().toString()
+            );
+        };
+    }
+
+    @Bean
     public HealthIndicator gatewayEngineHealthIndicator(
             GatewayEngineRuntime runtime,
             GatewayRuleActivationApplier activation) {
@@ -524,5 +542,9 @@ public class GatewayEngineConfiguration {
                     )
                     .build();
         };
+    }
+
+    private String value(String value) {
+        return value == null ? "" : value;
     }
 }

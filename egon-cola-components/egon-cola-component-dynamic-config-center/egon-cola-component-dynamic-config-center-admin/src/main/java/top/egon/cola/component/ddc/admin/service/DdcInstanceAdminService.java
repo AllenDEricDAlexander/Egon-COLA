@@ -54,6 +54,7 @@ public class DdcInstanceAdminService {
                 instance.setStatus(InstanceStatus.ONLINE.name());
                 instance.setLastHeartbeatAt(LocalDateTime.now());
                 instance.setLeaseExpireAt(LocalDateTime.ofInstant(result.leaseExpireAt(), ZoneOffset.UTC));
+                instance.setRuntimeMetadata(request.getMetadata());
                 instance.setUpdatedAt(LocalDateTime.now());
                 instanceRepository.save(instance);
             });
@@ -95,5 +96,6 @@ public class DdcInstanceAdminService {
         instance.setPort(request.getPort());
         instance.setPid(request.getPid());
         instance.setSdkVersion(request.getSdkVersion());
+        instance.setRuntimeMetadata(request.getMetadata());
     }
 }

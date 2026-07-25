@@ -334,7 +334,12 @@ public class GatewayReleaseService {
                     result.activationResult()
                             .targets()
                             .stream()
-                            .map(this::target)
+                            .map(target -> target(
+                                    target,
+                                    prepared.compiled()
+                                            .activation()
+                                            .artifactSha256()
+                            ))
                             .toList();
             transactions.executeWithoutResult(status -> {
                 releases.completeAttempt(
@@ -571,13 +576,14 @@ public class GatewayReleaseService {
     }
 
     private GatewayReleaseStore.TargetRecord target(
-            DdcManagementPublishTarget target) {
+            DdcManagementPublishTarget target,
+            String artifactSha256) {
         return new GatewayReleaseStore.TargetRecord(
                 target.instanceId(),
                 target.leaseId(),
                 target.status(),
                 target.currentVersion(),
-                null,
+                artifactSha256,
                 target.errorMessage() == null ? null : "DDC_TARGET_ERROR",
                 target.ackAt() == null ? clock.instant() : target.ackAt()
         );
