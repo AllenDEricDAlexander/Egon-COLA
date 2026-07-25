@@ -10,17 +10,17 @@ import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
+import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
 import top.egon.cola.component.gateway.engine.traffic.GatewayRequestResourceGuard;
 import top.egon.cola.component.gateway.engine.traffic.GatewayResourceLimits;
+import top.egon.cola.component.gateway.core.security.TrustedIdentity;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -43,6 +43,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private final Duration upstreamTimeout;
 
     private final GatewayRequestResourceGuard resourceGuard;
+
+    private final TrustedIdentitySanitizer identitySanitizer =
+            new TrustedIdentitySanitizer();
 
     public DefaultGatewayHttpDataPlaneHandler(
             HttpRequestNormalizer normalizer,
@@ -104,7 +107,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     && !match.route().externalAccessible()) {
                 return Mono.just(error(
                         404,
-                        "GATEWAY_EXTERNAL_NOT_ACCESSIBLE",
+                        "GATEWAY_ROUTE_NOT_FOUND",
                         traceId(normalized.headers())
                 ));
             }
@@ -191,17 +194,12 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private Map<String, List<String>> forwardedHeaders(
             Map<String, List<String>> source,
             String traceId) {
-        Map<String, List<String>> result = new LinkedHashMap<>();
-        source.forEach((name, values) -> {
-            String lower = name.toLowerCase(Locale.ROOT);
-            if (!lower.startsWith("x-egon-")
-                    && !lower.startsWith("x-forwarded-")
-                    && !lower.equals("authorization")) {
-                result.put(lower, List.copyOf(values));
-            }
-        });
-        result.put("x-trace-id", List.of(traceId));
-        return Map.copyOf(result);
+        return identitySanitizer.sanitizeHttp(
+                source,
+                Set.of(),
+                TrustedIdentity.empty(),
+                traceId
+        );
     }
 
     private String traceId(Map<String, List<String>> headers) {
