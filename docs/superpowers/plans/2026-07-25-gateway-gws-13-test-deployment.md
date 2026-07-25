@@ -1,5 +1,7 @@
 # GWS-13 Gateway Test and Deployment Implementation Plan
 
+状态：已执行
+
 **Goal:** Turn the existing test-module skeleton into independently runnable
 HTTP and Egon RPC applications, add deterministic process/Testcontainers
 harnesses and deployment assets, and make fast versus live validation

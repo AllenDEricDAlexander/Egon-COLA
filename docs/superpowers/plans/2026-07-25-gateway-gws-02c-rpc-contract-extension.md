@@ -1,5 +1,7 @@
 # Gateway GWS-02C RPC Contract Extension Implementation Plan
 
+状态：已执行
+
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans and
 > superpowers:test-driven-development to implement this plan task-by-task.
 

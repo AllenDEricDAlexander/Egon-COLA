@@ -1,5 +1,7 @@
 # GWS-10 Gateway Starter 接口定义上报实施计划
 
+状态：已执行
+
 > 对应 Spec：
 > `docs/superpowers/specs/2026-07-25-gateway-starter-interface-reporting-design.md`
 

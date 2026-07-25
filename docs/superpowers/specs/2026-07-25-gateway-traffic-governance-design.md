@@ -1,6 +1,6 @@
 # GWS-07 Gateway 流量治理 Spec
 
-状态：草案，等待审核
+状态：已实现，待用户验收
 
 父文档：`2026-07-24-gateway-component-design.md`
 

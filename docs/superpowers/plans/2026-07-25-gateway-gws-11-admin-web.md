@@ -1,5 +1,7 @@
 # GWS-11 Gateway Admin Web Implementation Plan
 
+状态：已执行
+
 **Goal:** Deliver the independent React administration console defined by
 GWS-11, connected only to Gateway Admin APIs and preserving trace,
 revision, idempotency, release evidence, and access-zone constraints.
@@ -101,4 +103,3 @@ Add fixtures and component tests covering PUBLIC constraints, revision
 conflicts, release state semantics, target ACK evidence, catalog source
 semantics, capability behavior, sensitive-field exclusion, and polling cleanup.
 Build the production bundle and run `git diff --check`.
-

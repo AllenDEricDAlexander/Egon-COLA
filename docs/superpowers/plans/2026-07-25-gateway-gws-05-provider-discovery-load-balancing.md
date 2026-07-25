@@ -1,5 +1,7 @@
 # Gateway GWS-05 Provider 发现、健康与负载均衡实现计划
 
+状态：已执行
+
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans and
 > superpowers:test-driven-development to implement this plan task-by-task.
 

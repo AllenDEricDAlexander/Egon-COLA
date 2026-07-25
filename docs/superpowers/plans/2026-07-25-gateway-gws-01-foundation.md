@@ -1,5 +1,7 @@
 # Gateway GWS-01 Foundation Implementation Plan
 
+状态：已执行
+
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 建立 Gateway Component 的完整 Maven 工程边界，并实现后续 Engine、Admin、Starter、Provider Runtime 共用的版本、身份、错误、请求上下文和生命周期基础契约。

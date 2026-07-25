@@ -1,5 +1,7 @@
 # Gateway GWS-02A DDC Runtime Extension Implementation Plan
 
+状态：已执行
+
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 为 Gateway 补齐 DDC 运行时所需的 `HTTP_PROVIDER` 服务租约、可冻结的 Config Applier Registry、严格版本/checksum 语义和独立周期校准。

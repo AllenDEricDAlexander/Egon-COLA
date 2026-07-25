@@ -1,5 +1,7 @@
 # Gateway GWS-06 Rule Snapshot、DDC 发布与运行态实现计划
 
+状态：已执行
+
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans and
 > superpowers:test-driven-development to implement this plan task-by-task.
 

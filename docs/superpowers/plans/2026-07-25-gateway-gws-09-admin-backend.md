@@ -1,5 +1,7 @@
 # Gateway GWS-09 Admin 后端实现计划
 
+状态：已执行
+
 **Goal:** 建立可独立启动、可持久化、可恢复发布的 Gateway Admin 控制面，承载三级
 接口目录、Draft、Release、审计与运行投影，且不进入业务请求热路径。
 

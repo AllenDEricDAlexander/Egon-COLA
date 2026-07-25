@@ -1,5 +1,7 @@
 # GWS-12 Trace, Observability, and Call Event Implementation Plan
 
+状态：已执行
+
 **Goal:** Produce one safe, immutable completion fact for every Engine business
 call, propagate a valid caller trace, emit low-cardinality metrics/logs, deliver
 one bounded best-effort Kafka event, and expose an idempotent Admin query
@@ -70,4 +72,3 @@ Test trace parsing, one-shot completion, retries in one top-level event, payload
 redaction, queue rejection, shutdown drain, Kafka record shape, consumer
 idempotency, minute aggregation, and frontend DTO compatibility. Run targeted
 Engine/Admin reactors and `git diff --check`.
-
