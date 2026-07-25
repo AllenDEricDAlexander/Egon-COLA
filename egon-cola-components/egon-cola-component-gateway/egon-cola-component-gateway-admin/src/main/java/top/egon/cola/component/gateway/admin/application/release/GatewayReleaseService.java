@@ -409,9 +409,6 @@ public class GatewayReleaseService {
         List<GatewayRuntimeRoute> runtimeRoutes = draft.routes()
                 .stream()
                 .filter(GatewayDraftStore.RouteDraft::enabled)
-                .filter(route -> operations.get(route.operationId())
-                        .protocol()
-                        .equals("HTTP"))
                 .map(this::route)
                 .toList();
         List<GatewayRuntimePolicy> provider = policies.stream()
@@ -486,13 +483,19 @@ public class GatewayReleaseService {
         GatewayProtocol protocol = GatewayProtocol.valueOf(
                 operation.protocol()
         );
+        String requestSchema = protocol == GatewayProtocol.RPC
+                ? text(definition.requestSchema(), "messageType")
+                : canonicalizer.json(definition.requestSchema());
+        String responseSchema = protocol == GatewayProtocol.RPC
+                ? text(definition.responseSchema(), "messageType")
+                : canonicalizer.json(definition.responseSchema());
         return new GatewayRuntimeOperation(
                 operation.id(),
                 operation.operationKey(),
                 protocol,
                 operation.methodIdentity(),
-                canonicalizer.json(definition.requestSchema()),
-                canonicalizer.json(definition.responseSchema()),
+                requestSchema,
+                responseSchema,
                 operation.externalAccessible(),
                 new GatewayProviderServiceRef(
                         text(provider, "env"),
