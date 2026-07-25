@@ -3,6 +3,7 @@ package top.egon.cola.component.gateway.engine.http;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.http.HttpMethod;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
 
@@ -57,6 +58,7 @@ public final class ReactorNettyHttpUpstreamAdapter
             HttpUpstreamRequest request) {
         String scheme = request.provider().secure() ? "https" : "http";
         return client
+                .responseTimeout(request.timeout())
                 .headers(headers -> {
                     request.headers().forEach((name, values) -> {
                         if (!FORBIDDEN.contains(name.toLowerCase(Locale.ROOT))) {
@@ -75,14 +77,18 @@ public final class ReactorNettyHttpUpstreamAdapter
                         + request.pathAndQuery())
                 .send((ignored, outbound) ->
                         outbound.sendByteArray(request.body()))
-                .responseSingle((response, body) -> body
-                        .asByteArray()
-                        .defaultIfEmpty(new byte[0])
-                        .map(bytes -> new GatewayOutboundHttpResponse(
+                .responseConnection((response, connection) ->
+                        Flux.just(new GatewayOutboundHttpResponse(
                                 response.status().code(),
                                 responseHeaders(response.responseHeaders()),
-                                reactor.core.publisher.Flux.just(bytes)
+                                connection.inbound()
+                                        .receive()
+                                        .map(ByteBufUtil::getBytes)
+                                        .timeout(request.timeout())
+                                        .doFinally(ignored ->
+                                                connection.dispose())
                         )))
+                .single()
                 .timeout(request.timeout());
     }
 

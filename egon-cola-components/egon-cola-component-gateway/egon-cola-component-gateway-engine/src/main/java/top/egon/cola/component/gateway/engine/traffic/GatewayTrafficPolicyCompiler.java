@@ -23,6 +23,13 @@ public final class GatewayTrafficPolicyCompiler {
             if (type == TrafficPolicyType.RATE_LIMIT) {
                 keyCompiler.compile(keyExpression);
             }
+            if ((type == TrafficPolicyType.REQUEST_SIZE
+                    || type == TrafficPolicyType.RESPONSE_SIZE)
+                    && longValue(config, "maxBytes", 0) <= 0) {
+                throw new IllegalArgumentException(
+                        type + " maxBytes must be positive"
+                );
+            }
             RuntimeTrafficPolicy policy = new RuntimeTrafficPolicy(
                     source.policyId(),
                     type,

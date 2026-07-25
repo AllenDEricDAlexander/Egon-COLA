@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.engine.http;
 
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import top.egon.cola.component.gateway.core.provider.ProviderHealthState;
@@ -18,6 +19,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ReactorNettyHttpUpstreamAdapterTest {
@@ -86,6 +88,51 @@ class ReactorNettyHttpUpstreamAdapterTest {
                         Duration.ofSeconds(1)
                 )
         );
+    }
+
+    @Test
+    void returnsResponseHeadersBeforeUpstreamBodyCompletes() {
+        Sinks.Many<String> chunks = Sinks.many()
+                .unicast()
+                .onBackpressureBuffer();
+        DisposableServer provider = HttpServer.create()
+                .host("127.0.0.1")
+                .port(0)
+                .handle((request, response) ->
+                        response.sendString(chunks.asFlux()))
+                .bindNow();
+        ReactorNettyHttpUpstreamAdapter adapter =
+                new ReactorNettyHttpUpstreamAdapter(
+                        4,
+                        4,
+                        Duration.ofSeconds(30)
+                );
+        try {
+            GatewayOutboundHttpResponse response = adapter.invoke(
+                    new HttpUpstreamRequest(
+                            provider(provider.port()),
+                            "GET",
+                            "/stream",
+                            Map.of(),
+                            Flux.empty(),
+                            Duration.ofSeconds(3)
+                    )
+            ).block(Duration.ofSeconds(1));
+
+            assertNotNull(response);
+            chunks.tryEmitNext("first");
+            chunks.tryEmitNext("second");
+            chunks.tryEmitComplete();
+            String body = response.body()
+                    .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                    .collectList()
+                    .map(parts -> String.join("", parts))
+                    .block(Duration.ofSeconds(1));
+            assertEquals("firstsecond", body);
+        } finally {
+            adapter.close();
+            provider.disposeNow();
+        }
     }
 
     private ProviderInstance provider(int port) {

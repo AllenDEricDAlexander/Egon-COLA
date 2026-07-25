@@ -91,6 +91,37 @@ class GatewayTrafficGovernanceTest {
         ).block().close();
     }
 
+    @Test
+    void selectsMostRestrictiveReferencedBodySizePolicies() {
+        RuntimeTrafficPolicy requestSize = runtime(new GatewayRuntimePolicy(
+                "request-size",
+                "REQUEST_SIZE",
+                "ROUTE",
+                Map.of("maxBytes", 512)
+        ));
+        RuntimeTrafficPolicy responseSize = runtime(new GatewayRuntimePolicy(
+                "response-size",
+                "RESPONSE_SIZE",
+                "ROUTE",
+                Map.of("maxBytes", 1024)
+        ));
+        GatewayTrafficGovernance governance = governance(
+                requestSize,
+                responseSize
+        );
+
+        GatewayTrafficGovernance.RequestPermit permit =
+                governance.acquire(
+                        Set.of("request-size", "response-size"),
+                        context(),
+                        Duration.ofSeconds(2)
+                ).block();
+
+        assertEquals(512, permit.requestSizeLimit(2048));
+        assertEquals(1024, permit.responseSizeLimit(4096));
+        permit.close();
+    }
+
     private RuntimeTrafficPolicy runtime(GatewayRuntimePolicy source) {
         return new GatewayTrafficPolicyCompiler()
                 .compile(List.of(source))
@@ -98,7 +129,7 @@ class GatewayTrafficGovernanceTest {
     }
 
     private GatewayTrafficGovernance governance(
-            RuntimeTrafficPolicy policy) {
+            RuntimeTrafficPolicy... policies) {
         GatewayRuleContent content = new GatewayRuleContent(
                 "group-id",
                 "group",
@@ -126,7 +157,12 @@ class GatewayTrafficGovernanceTest {
                 RpcMethodIndex.empty(),
                 Set.of(),
                 Map.of(),
-                Map.of(policy.policyId(), policy),
+                java.util.Arrays.stream(policies).collect(
+                        java.util.stream.Collectors.toUnmodifiableMap(
+                                RuntimeTrafficPolicy::policyId,
+                                java.util.function.Function.identity()
+                        )
+                ),
                 Map.of()
         );
         return new GatewayTrafficGovernance(() -> rules, null);

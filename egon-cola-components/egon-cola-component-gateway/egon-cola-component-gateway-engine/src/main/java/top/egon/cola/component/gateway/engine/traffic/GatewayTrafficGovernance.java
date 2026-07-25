@@ -399,6 +399,33 @@ public final class GatewayTrafficGovernance {
             );
         }
 
+        public long requestSizeLimit(long hardLimit) {
+            return bodySizeLimit(TrafficPolicyType.REQUEST_SIZE, hardLimit);
+        }
+
+        public long responseSizeLimit(long hardLimit) {
+            return bodySizeLimit(TrafficPolicyType.RESPONSE_SIZE, hardLimit);
+        }
+
+        private long bodySizeLimit(
+                TrafficPolicyType type,
+                long hardLimit) {
+            long result = hardLimit;
+            for (RuntimeTrafficPolicy policy : policies) {
+                if (policy.type() == type) {
+                    result = Math.min(
+                            result,
+                            longValue(
+                                    policy.parameters(),
+                                    "maxBytes",
+                                    hardLimit
+                            )
+                    );
+                }
+            }
+            return result;
+        }
+
         public AttemptPermit acquireAttempt(ProviderInstance provider) {
             List<GatewayBulkheadRegistry.Permit> instancePermits =
                     new ArrayList<>();

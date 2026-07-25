@@ -26,7 +26,6 @@ import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficRejectedException;
 import top.egon.cola.component.gateway.engine.traffic.ProviderCallClassification;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -52,6 +51,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private final long maxBodyBytes;
 
+    private final long maxResponseBytes = 4 * 1024 * 1024;
+
     private final Duration upstreamTimeout;
 
     private final GatewayRequestResourceGuard resourceGuard;
@@ -73,6 +74,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private final TrustedIdentitySanitizer identitySanitizer =
             new TrustedIdentitySanitizer();
+
+    private final GatewayBodySizeLimiter bodySizeLimiter =
+            new GatewayBodySizeLimiter();
 
     public DefaultGatewayHttpDataPlaneHandler(
             HttpRequestNormalizer normalizer,
@@ -390,6 +394,30 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     "REJECTED",
                                     rejected.code()
                             )))
+                    .onErrorResume(GatewayRequestBodyTooLargeException.class,
+                            rejected -> Mono.just(observed(
+                                    error(
+                                            413,
+                                            rejected.code(),
+                                            trace.traceId()
+                                    ),
+                                    observation,
+                                    "RESOURCE",
+                                    "REJECTED",
+                                    rejected.code()
+                            )))
+                    .onErrorResume(GatewayResponseBodyTooLargeException.class,
+                            rejected -> Mono.just(observed(
+                                    error(
+                                            502,
+                                            rejected.code(),
+                                            trace.traceId()
+                                    ),
+                                    observation,
+                                    "UPSTREAM",
+                                    "REJECTED",
+                                    rejected.code()
+                            )))
                     .onErrorResume(GatewayTrafficRejectedException.class,
                             rejected -> {
                                 observation.governance(
@@ -473,7 +501,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayTraceContext trace,
             GatewayCallObservation observation,
             GatewayTrafficGovernance.RequestPermit permit) {
-        return aggregate(request.body())
+        long requestLimit = permit.requestSizeLimit(maxBodyBytes);
+        bodySizeLimiter.validateRequestHeaders(request.headers(), requestLimit);
+        return bodySizeLimiter.aggregateRequest(request.body(), requestLimit)
                 .doOnNext(body -> observation.addRequestBytes(body.length))
                 .flatMap(body -> {
                     AtomicInteger attempts = new AtomicInteger();
@@ -590,6 +620,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
             ));
         }
         return invocation
+                .map(response -> bodySizeLimiter.limitResponse(
+                        response,
+                        requestPermit.responseSizeLimit(maxResponseBytes)
+                ))
                 .doOnSuccess(response -> {
                     ProviderCallClassification classification =
                             classification(response.status());
@@ -643,22 +677,6 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         response
                 ))
                         : Mono.just(response));
-    }
-
-    private Mono<byte[]> aggregate(reactor.core.publisher.Flux<byte[]> body) {
-        return body.collect(
-                ByteArrayOutputStream::new,
-                (output, bytes) -> {
-                    if ((long) output.size() + bytes.length > maxBodyBytes) {
-                        throw new GatewayRequestRejectedException(
-                                "GATEWAY_REQUEST_BODY_TOO_LARGE",
-                                413,
-                                "request body exceeds configured limit"
-                        );
-                    }
-                    output.writeBytes(bytes);
-                }
-        ).map(ByteArrayOutputStream::toByteArray);
     }
 
     private Map<String, List<String>> forwardedHeaders(
