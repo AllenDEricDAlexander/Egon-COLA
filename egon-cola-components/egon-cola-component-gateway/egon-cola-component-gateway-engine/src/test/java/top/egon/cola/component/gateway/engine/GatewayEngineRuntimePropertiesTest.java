@@ -22,6 +22,7 @@ class GatewayEngineRuntimePropertiesTest {
         );
         assertTrue(properties.getRpc().isEnabled());
         assertFalse(properties.getKafka().isEnabled());
+        assertFalse(properties.getActiveHealth().isEnabled());
         assertEquals(
                 2L * 1024 * 1024,
                 properties.getHttp().getMaxBodyBytes()

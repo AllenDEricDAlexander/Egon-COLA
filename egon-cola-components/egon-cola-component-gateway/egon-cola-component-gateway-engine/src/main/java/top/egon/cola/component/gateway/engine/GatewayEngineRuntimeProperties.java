@@ -29,6 +29,8 @@ public class GatewayEngineRuntimeProperties {
 
     private Security security = new Security();
 
+    private ActiveHealth activeHealth = new ActiveHealth();
+
     public String getGatewayGroupCode() {
         return gatewayGroupCode;
     }
@@ -107,6 +109,14 @@ public class GatewayEngineRuntimeProperties {
 
     public void setSecurity(Security security) {
         this.security = security;
+    }
+
+    public ActiveHealth getActiveHealth() {
+        return activeHealth;
+    }
+
+    public void setActiveHealth(ActiveHealth activeHealth) {
+        this.activeHealth = activeHealth;
     }
 
     public static class Http {
@@ -256,7 +266,7 @@ public class GatewayEngineRuntimeProperties {
 
     public static class Rpc {
 
-        private boolean enabled = true;
+        private boolean enabled;
 
         private int port = 19090;
 
@@ -365,6 +375,131 @@ public class GatewayEngineRuntimeProperties {
         public void setHeartbeatIntervalSeconds(
                 int heartbeatIntervalSeconds) {
             this.heartbeatIntervalSeconds = heartbeatIntervalSeconds;
+        }
+    }
+
+    public static class ActiveHealth {
+
+        private boolean enabled = true;
+
+        private Duration interval = Duration.ofSeconds(10);
+
+        private double jitterRatio = 0.2;
+
+        private Duration timeout = Duration.ofSeconds(2);
+
+        private int maximumConcurrency = 16;
+
+        private int failureThreshold = 2;
+
+        private int successThreshold = 2;
+
+        private String httpMethod = "GET";
+
+        private String httpPath = "/actuator/health";
+
+        private List<Integer> httpSuccessStatuses = List.of(200);
+
+        private String rpcServiceName = "";
+
+        private boolean rpcConnectFallback = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public Duration getInterval() {
+            return interval;
+        }
+
+        public void setInterval(Duration interval) {
+            this.interval = interval;
+        }
+
+        public double getJitterRatio() {
+            return jitterRatio;
+        }
+
+        public void setJitterRatio(double jitterRatio) {
+            this.jitterRatio = jitterRatio;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration timeout) {
+            this.timeout = timeout;
+        }
+
+        public int getMaximumConcurrency() {
+            return maximumConcurrency;
+        }
+
+        public void setMaximumConcurrency(int maximumConcurrency) {
+            this.maximumConcurrency = maximumConcurrency;
+        }
+
+        public int getFailureThreshold() {
+            return failureThreshold;
+        }
+
+        public void setFailureThreshold(int failureThreshold) {
+            this.failureThreshold = failureThreshold;
+        }
+
+        public int getSuccessThreshold() {
+            return successThreshold;
+        }
+
+        public void setSuccessThreshold(int successThreshold) {
+            this.successThreshold = successThreshold;
+        }
+
+        public String getHttpMethod() {
+            return httpMethod;
+        }
+
+        public void setHttpMethod(String httpMethod) {
+            this.httpMethod = httpMethod;
+        }
+
+        public String getHttpPath() {
+            return httpPath;
+        }
+
+        public void setHttpPath(String httpPath) {
+            this.httpPath = httpPath;
+        }
+
+        public List<Integer> getHttpSuccessStatuses() {
+            return httpSuccessStatuses;
+        }
+
+        public void setHttpSuccessStatuses(
+                List<Integer> httpSuccessStatuses) {
+            this.httpSuccessStatuses = httpSuccessStatuses;
+        }
+
+        public String getRpcServiceName() {
+            return rpcServiceName;
+        }
+
+        public void setRpcServiceName(String rpcServiceName) {
+            this.rpcServiceName = rpcServiceName;
+        }
+
+        public boolean isRpcConnectFallback() {
+            return rpcConnectFallback;
+        }
+
+        public void setRpcConnectFallback(
+                boolean rpcConnectFallback) {
+            this.rpcConnectFallback = rpcConnectFallback;
         }
     }
 

@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
+import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayAuthorizationProvider;
@@ -23,9 +24,14 @@ import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
 import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
 import top.egon.cola.component.gateway.engine.discovery.DdcProviderServiceRegistryAdapter;
 import top.egon.cola.component.gateway.engine.discovery.DirectoryProviderSelector;
+import top.egon.cola.component.gateway.engine.discovery.ActiveHealthProbePolicy;
+import top.egon.cola.component.gateway.engine.discovery.ActiveHealthTracker;
+import top.egon.cola.component.gateway.engine.discovery.HttpProviderActiveHealthProbe;
 import top.egon.cola.component.gateway.engine.discovery.PassiveHealthPolicy;
 import top.egon.cola.component.gateway.engine.discovery.PassiveHealthTracker;
+import top.egon.cola.component.gateway.engine.discovery.ProviderActiveHealthMonitor;
 import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
+import top.egon.cola.component.gateway.engine.discovery.RpcProviderActiveHealthProbe;
 import top.egon.cola.component.gateway.engine.http.DefaultGatewayHttpDataPlaneHandler;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpServer;
@@ -63,6 +69,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(GatewayEngineRuntimeProperties.class)
@@ -112,6 +119,36 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
+    public ActiveHealthProbePolicy gatewayActiveHealthProbePolicy(
+            GatewayEngineRuntimeProperties properties) {
+        GatewayEngineRuntimeProperties.ActiveHealth configured =
+                properties.getActiveHealth();
+        return new ActiveHealthProbePolicy(
+                configured.isEnabled(),
+                configured.getInterval(),
+                configured.getJitterRatio(),
+                configured.getTimeout(),
+                configured.getMaximumConcurrency(),
+                configured.getFailureThreshold(),
+                configured.getSuccessThreshold(),
+                configured.getHttpMethod(),
+                configured.getHttpPath(),
+                Set.copyOf(configured.getHttpSuccessStatuses()),
+                configured.getRpcServiceName(),
+                configured.isRpcConnectFallback()
+        );
+    }
+
+    @Bean
+    public ActiveHealthTracker gatewayActiveHealthTracker(
+            ActiveHealthProbePolicy policy) {
+        return new ActiveHealthTracker(
+                policy.failureThreshold(),
+                policy.successThreshold()
+        );
+    }
+
+    @Bean
     public GatewayRuleActivationApplier gatewayRuleActivationApplier(
             DdcConfigApplierRegistry applierRegistry,
             GatewaySecurityCapabilityRegistry capabilities,
@@ -144,6 +181,7 @@ public class GatewayEngineConfiguration {
             ProviderDirectory providerDirectory,
             GatewayRuleActivationApplier activation,
             PassiveHealthTracker passiveHealth,
+            ActiveHealthTracker activeHealth,
             Clock gatewayClock) {
         return new DirectoryProviderSelector(
                 providerDirectory,
@@ -151,7 +189,8 @@ public class GatewayEngineConfiguration {
                 new top.egon.cola.component.gateway.engine.discovery
                         .ProviderCandidateFilter(
                         gatewayClock,
-                        passiveHealth::eligible
+                        identity -> passiveHealth.eligible(identity)
+                                && activeHealth.eligible(identity)
                 ),
                 key -> top.egon.cola.component.gateway.engine.discovery
                         .ProviderSelectionPolicy.defaults(
@@ -332,6 +371,27 @@ public class GatewayEngineConfiguration {
             GatewayEngineRuntimeProperties properties) {
         return new RpcProviderChannelCache(
                 properties.getRpc().getChannelDrainTimeout()
+        );
+    }
+
+    @Bean(destroyMethod = "close")
+    public ProviderActiveHealthMonitor gatewayProviderActiveHealthMonitor(
+            ProviderDirectory directory,
+            RpcProviderChannelCache channels,
+            ActiveHealthTracker tracker,
+            ActiveHealthProbePolicy policy) {
+        return new ProviderActiveHealthMonitor(
+                directory,
+                Map.of(
+                        ProviderProtocolType.HTTP,
+                        new HttpProviderActiveHealthProbe(
+                                reactor.netty.http.client.HttpClient.create()
+                        ),
+                        ProviderProtocolType.RPC,
+                        new RpcProviderActiveHealthProbe(channels)
+                ),
+                tracker,
+                policy
         );
     }
 
