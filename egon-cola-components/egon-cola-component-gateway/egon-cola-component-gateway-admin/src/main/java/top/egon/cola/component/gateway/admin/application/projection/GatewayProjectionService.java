@@ -6,6 +6,8 @@ import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
+import top.egon.cola.component.ddc.management.model.DdcManagementServiceInstance;
+import top.egon.cola.component.ddc.management.model.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
@@ -16,6 +18,7 @@ import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -86,6 +89,30 @@ public class GatewayProjectionService {
                 .getInstances(query.ddc()));
     }
 
+    public ProjectionEnvelope<List<ProviderInstanceProjection>> instances(
+            String env,
+            String namespace) {
+        String key = "instances:" + env + ":" + namespace;
+        return load(key, "DDC_SERVICE_REGISTRY", () -> {
+            List<ProviderInstanceProjection> result = new ArrayList<>();
+            collectInstances(
+                    result,
+                    env,
+                    namespace,
+                    "HTTP_PROVIDER",
+                    "HTTP"
+            );
+            collectInstances(
+                    result,
+                    env,
+                    namespace,
+                    "RPC_PROVIDER",
+                    "RPC"
+            );
+            return List.copyOf(result);
+        });
+    }
+
     public RuntimeConsistency runtimeConsistency(String gatewayGroupId) {
         List<GatewayReleaseService.ReleaseView> history =
                 releases.history(gatewayGroupId);
@@ -125,6 +152,89 @@ public class GatewayProjectionService {
             );
         }
         return client;
+    }
+
+    private void collectInstances(
+            List<ProviderInstanceProjection> result,
+            String env,
+            String namespace,
+            String serviceKind,
+            String protocol) {
+        DdcManagementServiceCatalog catalog = client().getServiceKeys(
+                new DdcManagementServiceQuery(
+                        env,
+                        namespace,
+                        serviceKind,
+                        protocol,
+                        null,
+                        null,
+                        null
+                )
+        );
+        for (DdcManagementServiceKey service : catalog.services()) {
+            DdcManagementServiceSnapshot snapshot = client().getInstances(
+                    new DdcManagementServiceQuery(
+                            service.env(),
+                            service.namespace(),
+                            service.serviceKind(),
+                            service.protocol(),
+                            service.serviceName(),
+                            service.group(),
+                            service.version()
+                    )
+            );
+            snapshot.instances().forEach(instance -> result.add(
+                    projection(service, instance, snapshot.observedAt())
+            ));
+        }
+    }
+
+    private ProviderInstanceProjection projection(
+            DdcManagementServiceKey service,
+            DdcManagementServiceInstance instance,
+            Instant observedAt) {
+        Map<String, String> metadata = instance.metadata();
+        return new ProviderInstanceProjection(
+                String.join(
+                        ":",
+                        service.serviceKind(),
+                        service.protocol(),
+                        service.serviceName(),
+                        value(service.group()),
+                        value(service.version())
+                ),
+                service.protocol(),
+                service.serviceName(),
+                service.group(),
+                service.version(),
+                instance.instanceId(),
+                instance.leaseId(),
+                instance.host(),
+                instance.port(),
+                metadata.get("gateway.region"),
+                metadata.get("gateway.zone"),
+                integer(metadata.get("gateway.weight")),
+                metadata,
+                metadata.get("gateway.definition-set"),
+                instance.status(),
+                instance.expireAt(),
+                observedAt
+        );
+    }
+
+    private String value(String value) {
+        return value == null ? "" : value;
+    }
+
+    private Integer integer(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(value);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -194,6 +304,31 @@ public class GatewayProjectionService {
                     group,
                     version
             );
+        }
+    }
+
+    public record ProviderInstanceProjection(
+            String serviceKey,
+            String protocol,
+            String serviceName,
+            String group,
+            String version,
+            String instanceId,
+            String leaseId,
+            String host,
+            int port,
+            String region,
+            String zone,
+            Integer weight,
+            Map<String, String> tags,
+            String definitionSetId,
+            String status,
+            Instant expireAt,
+            Instant observedAt
+    ) {
+
+        public ProviderInstanceProjection {
+            tags = Map.copyOf(tags);
         }
     }
 

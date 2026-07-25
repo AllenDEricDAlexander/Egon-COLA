@@ -23,20 +23,25 @@ export type Application = Scope & {
 }
 
 export type EngineNode = {
+  appCode: string
+  env: string
+  namespace: string
   instanceId: string
   leaseId: string
   host?: string
   port?: number
+  leaseRole: string
+  status: string
+  registeredAt: string
+  lastHeartbeatAt: string
+  expireAt: string
   observedAt: string
   stale: boolean
-  capabilities?: string[]
-  metadata?: Record<string, unknown>
-  activeReleaseId?: string
-  lastAck?: string
 }
 
 export type RuntimeConsistency = {
-  desiredReleaseId?: string
+  targetReleaseId?: string
+  targetReleaseStatus?: string
   readyNodes: number
   totalNodes: number
   consistent: boolean
@@ -60,6 +65,8 @@ export type ProviderInstance = {
   weight?: number
   tags?: Record<string, string>
   definitionSetId?: string
+  status: string
+  expireAt: string
   observedAt: string
   stale: boolean
 }
@@ -153,6 +160,13 @@ export type GatewayDraft = {
   changeSummary?: string
   routes: DraftRoute[]
   policies: DraftPolicy[]
+  updatedAt: string
+}
+
+export type DraftMutationResult = {
+  revision: number
+  resourceId: string
+  replayed: boolean
 }
 
 export type ValidationIssue = {

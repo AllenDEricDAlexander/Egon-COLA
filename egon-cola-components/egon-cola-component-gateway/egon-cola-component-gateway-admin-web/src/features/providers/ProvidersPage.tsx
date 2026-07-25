@@ -39,6 +39,8 @@ export const ProvidersPage = () => {
           { title: 'Region/Zone', render: (_, row) => `${row.region ?? '-'} / ${row.zone ?? '-'}` },
           { title: 'Weight', dataIndex: 'weight' },
           { title: 'Definition Set', dataIndex: 'definitionSetId' },
+          { title: 'Status', render: (_, row) => <StatusTag status={row.status} /> },
+          { title: 'Expire At', dataIndex: 'expireAt' },
           { title: 'Observed At', dataIndex: 'observedAt' },
           { title: 'Stale', render: (_, row) => <StatusTag status={row.stale ? 'STALE' : 'FRESH'} /> },
         ]}

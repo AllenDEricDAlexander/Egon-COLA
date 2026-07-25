@@ -47,11 +47,19 @@ public class GatewayProjectionController {
     public GatewayProjectionService.ProjectionEnvelope<?> instances(
             @RequestParam String env,
             @RequestParam String namespace,
-            @RequestParam String protocol,
-            @RequestParam String serviceName,
+            @RequestParam(required = false) String protocol,
+            @RequestParam(required = false) String serviceName,
             @RequestParam(required = false) String serviceKind,
             @RequestParam(required = false) String group,
             @RequestParam(required = false) String version) {
+        if (protocol == null && serviceName == null) {
+            return service.instances(env, namespace);
+        }
+        if (protocol == null || serviceName == null) {
+            throw new IllegalArgumentException(
+                    "protocol and serviceName must be supplied together"
+            );
+        }
         return service.instances(query(
                 env,
                 namespace,

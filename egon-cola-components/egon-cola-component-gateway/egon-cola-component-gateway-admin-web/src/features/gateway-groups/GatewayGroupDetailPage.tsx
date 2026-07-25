@@ -51,7 +51,8 @@ export const GatewayGroupDetailPage = () => {
                         <StatusTag status={consistency.data.consistent ? 'CONSISTENT' : 'INCONSISTENT'} />
                       </Descriptions.Item>
                       <Descriptions.Item label="Ready">{consistency.data.readyNodes} / {consistency.data.totalNodes}</Descriptions.Item>
-                      <Descriptions.Item label="目标 Release">{consistency.data.desiredReleaseId ?? '-'}</Descriptions.Item>
+                      <Descriptions.Item label="目标 Release">{consistency.data.targetReleaseId ?? '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Release 状态">{consistency.data.targetReleaseStatus ?? '-'}</Descriptions.Item>
                       <Descriptions.Item label="观测">{consistency.data.observedAt}</Descriptions.Item>
                       <Descriptions.Item label="数据状态"><StatusTag status={consistency.data.stale ? 'STALE' : 'FRESH'} /></Descriptions.Item>
                     </Descriptions>
@@ -73,9 +74,11 @@ export const GatewayGroupDetailPage = () => {
                   { title: 'Lease ID', dataIndex: 'leaseId' },
                   { title: 'Observed At', dataIndex: 'observedAt' },
                   { title: 'Stale', render: (_, row) => <StatusTag status={row.stale ? 'STALE' : 'FRESH'} /> },
-                  { title: 'Capabilities', render: (_, row) => row.capabilities?.join(', ') ?? '-' },
-                  { title: 'Active Release', dataIndex: 'activeReleaseId' },
-                  { title: 'Last ACK', dataIndex: 'lastAck' },
+                  { title: 'Status', render: (_, row) => <StatusTag status={row.status} /> },
+                  { title: 'Role', dataIndex: 'leaseRole' },
+                  { title: 'Host:Port', render: (_, row) => `${row.host ?? '-'}:${row.port ?? '-'}` },
+                  { title: 'Last Heartbeat', dataIndex: 'lastHeartbeatAt' },
+                  { title: 'Expire At', dataIndex: 'expireAt' },
                 ]}
               />
             ),
