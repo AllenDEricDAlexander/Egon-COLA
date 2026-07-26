@@ -58,4 +58,26 @@ final class RpcProviderTestFixtures {
             return StringValue.of("provider-v2:" + request.getValue());
         }
     }
+
+    interface PlainContract {
+
+        StringValue echo(StringValue request);
+    }
+
+    @EgonRpcProvider
+    static class ContractlessProvider implements PlainContract {
+
+        @Override
+        public StringValue echo(StringValue request) {
+            return request;
+        }
+    }
+
+    @EgonRpcProvider
+    static class InterfacelessProvider {
+
+        public StringValue echo(StringValue request) {
+            return request;
+        }
+    }
 }

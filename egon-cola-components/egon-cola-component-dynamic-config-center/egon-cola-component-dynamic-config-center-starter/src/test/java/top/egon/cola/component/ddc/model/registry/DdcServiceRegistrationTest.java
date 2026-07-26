@@ -27,6 +27,35 @@ class DdcServiceRegistrationTest {
         ))).isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void shouldNotChargeReservedKeysAgainstTheBusinessMetadataBudget() {
+        // Adopting typed instance metadata must not shrink what a caller can register:
+        // a full business allowance plus the reserved gateway.* keys has to stay valid.
+        Map<String, String> metadata = new java.util.HashMap<>();
+        for (int i = 0; i < 32; i++) {
+            metadata.put("business.key-" + i, "value-" + i);
+        }
+        metadata.put("gateway.weight", "250");
+        metadata.put("gateway.zone", "cn-east-1a");
+        metadata.put("gateway.health-state", "UP");
+
+        DdcServiceRegistration registration = registration(metadata);
+
+        assertThat(registration.metadata()).hasSize(35);
+    }
+
+    @Test
+    void shouldRejectMoreThanTheBusinessMetadataAllowance() {
+        Map<String, String> metadata = new java.util.HashMap<>();
+        for (int i = 0; i < 33; i++) {
+            metadata.put("business.key-" + i, "value-" + i);
+        }
+
+        assertThatThrownBy(() -> registration(metadata))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("non-reserved");
+    }
+
     private DdcServiceRegistration registration(Map<String, String> metadata) {
         return new DdcServiceRegistration(
                 "provider-1",

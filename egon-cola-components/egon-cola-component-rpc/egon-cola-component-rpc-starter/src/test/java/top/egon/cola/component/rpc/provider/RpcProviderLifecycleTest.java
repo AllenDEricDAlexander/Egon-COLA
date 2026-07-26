@@ -170,7 +170,7 @@ class RpcProviderLifecycleTest {
             assertThatThrownBy(lifecycle::start)
                     .isInstanceOf(EgonRpcException.class)
                     .hasRootCauseMessage(
-                            "metadata must contain at most 32 entries"
+                            "metadata must contain at most 32 non-reserved entries"
                     );
             assertThat(registryClient.events).isEmpty();
             assertThat(lifecycle.isRunning()).isFalse();

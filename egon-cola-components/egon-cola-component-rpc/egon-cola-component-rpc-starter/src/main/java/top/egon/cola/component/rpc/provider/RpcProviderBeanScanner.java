@@ -44,7 +44,12 @@ public class RpcProviderBeanScanner {
         if (contracts.isEmpty()) {
             throw new EgonRpcException(
                     EgonRpcErrorCode.RPC_INVALID_CONTRACT,
-                    "@EgonRpcProvider bean implements no @EgonRpcService interface"
+                    "@EgonRpcProvider bean " + beanType.getName()
+                            + " implements no @EgonRpcService interface, so it "
+                            + "exports no callable method. Annotate the "
+                            + "interface it implements with @EgonRpcService, or "
+                            + "remove @EgonRpcProvider from "
+                            + beanType.getSimpleName() + "."
             );
         }
         contracts.forEach(contract -> providers.add(
