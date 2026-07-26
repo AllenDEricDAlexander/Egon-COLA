@@ -301,8 +301,10 @@ git commit -m "fix: package executable ddc admin image"
 - Modify: `.../gateway/deployment/.env.example`
 - Modify: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java`
 - Modify: `.../gateway-test-http-provider/src/main/resources/application.yml`
+- Modify: `.../gateway-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/HttpProviderRuntimeConfiguration.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcProperties.java`
-- Test: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
+- Create: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
+- Create: `.../rpc-starter/src/test/java/top/egon/cola/component/rpc/config/EgonRpcPropertiesTest.java`
 
 **Interfaces:**
 - Produces default RPC Gateway service name `egon-gateway-rpc`.
@@ -329,7 +331,8 @@ Add a live fixture assertion that every child process receives the Testcontainer
   -pl egon-cola-components/egon-cola-component-gateway/\
 egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite,\
 egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
-  -am test -Dtest=GatewayComposeConfigurationTest,EgonRpcPropertiesTest
+  -am test -Dtest=GatewayComposeConfigurationTest,EgonRpcPropertiesTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: DDC Redis, advertised host, or default service name assertions fail.
@@ -344,8 +347,8 @@ EGON_COLA_COMPONENT_DDC_REDIS_PORT: 6379
 EGON_COLA_COMPONENT_GATEWAY_ENGINE_RPC_ADVERTISED_HOST: gateway-engine
 ```
 
-Use the same artifact/service version value in Reporting and `HttpProviderRuntimeProperties`; set the RPC
-Consumer default to `egon-gateway-rpc`.
+Use one `gateway.test.service-version` value for both Reporting artifact version and
+`HttpProviderRuntimeProperties`; set the RPC Consumer default to `egon-gateway-rpc`.
 
 - [ ] **Step 4: Verify static Compose and focused tests**
 
