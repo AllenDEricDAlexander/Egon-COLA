@@ -3,7 +3,10 @@ package top.egon.cola.component.gateway.engine;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.MapPropertySource;
 import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
 import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketExecutor;
@@ -71,6 +74,19 @@ class GatewayEngineConfigurationTest {
         }
     }
 
+    @Test
+    void doesNotCreateRateLimitExecutorFromUnrelatedApplicationClient() {
+        try (AnnotationConfigApplicationContext context = context(
+                Map.of("applicationRedissonClient", redissonClient()),
+                true,
+                GatewayEngineConfigurationWithoutRateLimitClient.class
+        )) {
+            assertFalse(context.containsBean("gatewayRedisTokenBucketExecutor"));
+            assertFalse(context.getBeanProvider(RedisTokenBucketExecutor.class)
+                    .iterator().hasNext());
+        }
+    }
+
     private AnnotationConfigApplicationContext context(
             String redissonClientName,
             RedissonClient redissonClient) {
@@ -80,6 +96,17 @@ class GatewayEngineConfigurationTest {
     private AnnotationConfigApplicationContext context(
             Map<String, RedissonClient> redissonClients,
             boolean preserveRateLimitExecutor) {
+        return context(
+                redissonClients,
+                preserveRateLimitExecutor,
+                GatewayEngineConfiguration.class
+        );
+    }
+
+    private AnnotationConfigApplicationContext context(
+            Map<String, RedissonClient> redissonClients,
+            boolean preserveRateLimitExecutor,
+            Class<?> configurationType) {
         AnnotationConfigApplicationContext context =
                 new AnnotationConfigApplicationContext();
         context.getEnvironment().getPropertySources().addFirst(
@@ -91,12 +118,13 @@ class GatewayEngineConfigurationTest {
                 ))
         );
         redissonClients.forEach(context.getBeanFactory()::registerSingleton);
-        context.register(GatewayEngineConfiguration.class);
+        context.register(configurationType);
         context.addBeanFactoryPostProcessor(beanFactory -> {
             for (String beanName : beanFactory.getBeanDefinitionNames()) {
                 if (beanName.startsWith("gateway")
                         && !beanName.equals("gatewayRateLimitRedissonClient")
                         && !beanName.equals("gatewayEngineConfiguration")
+                        && !beanName.contains("GatewayEngineConfiguration")
                         && (!preserveRateLimitExecutor
                         || !beanName.equals("gatewayRedisTokenBucketExecutor"))) {
                     ((DefaultListableBeanFactory) beanFactory)
@@ -112,6 +140,25 @@ class GatewayEngineConfigurationTest {
         });
         context.refresh();
         return context;
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class GatewayEngineConfigurationWithoutRateLimitClient
+            extends GatewayEngineConfiguration {
+
+        @Override
+        @Bean(name = "gatewayRateLimitRedissonClient")
+        @ConditionalOnProperty(
+                prefix = "gateway.test",
+                name = "rate-limit-client-producer",
+                havingValue = "true"
+        )
+        public RedissonClient gatewayRateLimitRedissonClient(
+                String address,
+                int database,
+                String password) {
+            return null;
+        }
     }
 
     private RedissonClient redissonClient() {
