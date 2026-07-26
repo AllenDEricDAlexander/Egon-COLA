@@ -38,8 +38,8 @@ scenarios. The command is not a substitute for the Gateway live Maven suite.
 ## Runtime configuration
 
 The browser calls Gateway Admin. Set `VITE_GATEWAY_ADMIN_API_BASE_URL` to use a different API
-origin; an empty value uses the current origin. `VITE_GATEWAY_ADMIN_ACTOR_ID` provides the
-placeholder management actor until the host platform supplies IAM.
+origin; an empty value uses the current origin. The authenticated session endpoint supplies
+the actor and capabilities; the browser does not configure a placeholder actor.
 
 Keep credentials out of committed `.env` files. The identity provider, browser CORS/PKCE setup,
 TLS termination, and the Gateway Admin authorization policy remain deployment responsibilities.

@@ -3,7 +3,6 @@ package top.egon.cola.component.gateway.test.live;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import top.egon.cola.component.gateway.test.process.GatewayProcessHarness;
 import top.egon.cola.component.gateway.test.process.GatewayProcessSpec;
 import top.egon.cola.component.gateway.test.process.GatewayTestInfrastructure;
@@ -13,7 +12,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,8 +24,10 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-@EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
 class GatewayLiveTopologyIT {
 
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(2);
@@ -43,6 +43,8 @@ class GatewayLiveTopologyIT {
 
     private static final String APPLICATION_CODE =
             "gateway-test-http-provider";
+
+    private static final String SERVICE_VERSION = "1.0.0-live";
 
     private static final String RPC_APPLICATION_CODE =
             "gateway-test-rpc-provider";
@@ -69,13 +71,13 @@ class GatewayLiveTopologyIT {
             .connectTimeout(Duration.ofSeconds(3))
             .build();
 
-    @Test
-    void reportsReleasesDiscoversForwardsAndProjectsTrace() throws Exception {
-        try (GatewayTestInfrastructure infrastructure =
-                     new GatewayTestInfrastructure();
-             GatewayProcessHarness processes =
-                     new GatewayProcessHarness("http-topology")) {
-            infrastructure.start();
+    void verifyHttpProvidersLifecycle() throws Exception {
+        try (GatewayLiveEnvironment environment =
+                     new GatewayLiveEnvironment("http-topology")) {
+            environment.startInfrastructure();
+            GatewayTestInfrastructure infrastructure =
+                    environment.infrastructure();
+            GatewayProcessHarness processes = environment.processes();
             infrastructure.createDatabase("gateway_ddc");
             infrastructure.createDatabase("gateway_admin");
 
@@ -95,6 +97,8 @@ class GatewayLiveTopologyIT {
                     GatewayProcessHarness.availablePort();
             URI ddcBase = URI.create("http://127.0.0.1:" + ddcPort);
             URI adminBase = URI.create("http://127.0.0.1:" + adminPort);
+            GatewayAdminTestClient adminClient =
+                    new GatewayAdminTestClient(adminBase, ADMIN_TOKEN);
 
             var ddc = processes.start(ddcSpec(
                     infrastructure,
@@ -117,10 +121,7 @@ class GatewayLiveTopologyIT {
                     admin
             );
 
-            JsonNode application = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/applications"
-                    ),
+            JsonNode application = adminClient.createApplication(
                     Map.of(
                             "applicationCode", APPLICATION_CODE,
                             "displayName", "Gateway Live HTTP Provider",
@@ -130,16 +131,10 @@ class GatewayLiveTopologyIT {
                     )
             );
             String applicationId = application.required("id").asText();
-            JsonNode credential = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/applications/"
-                                    + applicationId
-                                    + "/credentials"
-                    ),
-                    Map.of()
-            );
+            JsonNode credential = adminClient.createCredential(applicationId);
 
             var provider = processes.start(providerSpec(
+                    infrastructure,
                     ddcBase,
                     adminBase,
                     providerPort,
@@ -158,28 +153,8 @@ class GatewayLiveTopologyIT {
                     STARTUP_TIMEOUT,
                     provider
             );
-            var secondProvider = processes.start(providerSpec(
-                    ddcBase,
-                    adminBase,
-                    secondProviderPort,
-                    "http-provider-two",
-                    "http-provider-live-2",
-                    false,
-                    credential.required("accessKey").asText(),
-                    credential.required("secret").asText()
-            ));
-            processes.awaitHttp(
-                    URI.create(
-                            "http://127.0.0.1:"
-                                    + secondProviderPort
-                                    + "/actuator/health/readiness"
-                    ),
-                    STARTUP_TIMEOUT,
-                    secondProvider
-            );
-
-            Path engineData = Files.createTempDirectory(
-                    "gateway-live-engine-"
+            Path engineData = environment.dataDirectory(
+                    "gateway-engine-1"
             );
             var engine = processes.start(engineSpec(
                     infrastructure,
@@ -189,8 +164,8 @@ class GatewayLiveTopologyIT {
                     engineInternalPort,
                     engineData
             ));
-            Path secondEngineData = Files.createTempDirectory(
-                    "gateway-live-engine-2-"
+            Path secondEngineData = environment.dataDirectory(
+                    "gateway-engine-2"
             );
             var secondEngine = processes.start(engineSpec(
                     infrastructure,
@@ -201,24 +176,27 @@ class GatewayLiveTopologyIT {
                     secondEngineData,
                     false,
                     0,
-                    "gateway-engine-live-2"
+                    "gateway-engine-2"
             ));
 
             String operationId = awaitOperation(
                     processes,
-                    adminBase,
+                    adminClient,
                     applicationId
             );
             String inventoryOperationId = awaitOperation(
                     processes,
-                    adminBase,
+                    adminClient,
                     applicationId,
                     "GET /api/internal/inventory/{sku}"
             );
-            JsonNode group = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups"
-                    ),
+            String providerIdentityOperationId = awaitOperation(
+                    processes,
+                    adminClient,
+                    applicationId,
+                    "GET /api/providers/{requestId}"
+            );
+            JsonNode group = adminClient.createGroup(
                     Map.of(
                             "gatewayGroupCode", "default",
                             "displayName", "Gateway Live Group",
@@ -239,12 +217,9 @@ class GatewayLiveTopologyIT {
                     ddcBase,
                     secondEngine
             );
-            JsonNode mutation = put(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/draft/routes/live-http-order"
-                    ),
+            JsonNode mutation = adminClient.putRoute(
+                    groupId,
+                    "live-http-order",
                     Map.of(
                             "operationId", operationId,
                             "content", Map.of(
@@ -264,12 +239,9 @@ class GatewayLiveTopologyIT {
                     )
             );
             long revision = mutation.required("revision").asLong();
-            mutation = put(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/draft/routes/live-http-inventory"
-                    ),
+            mutation = adminClient.putRoute(
+                    groupId,
+                    "live-http-inventory",
                     Map.of(
                             "operationId", inventoryOperationId,
                             "content", Map.of(
@@ -289,12 +261,34 @@ class GatewayLiveTopologyIT {
                     )
             );
             revision = mutation.required("revision").asLong();
-            mutation = put(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/draft/policies/live-http-rate"
-                    ),
+            mutation = adminClient.putRoute(
+                    groupId,
+                    "live-http-provider-identity",
+                    Map.of(
+                            "operationId", providerIdentityOperationId,
+                            "content", Map.of(
+                                    "host", "providers.gateway.test",
+                                    "httpMethod", "GET",
+                                    "pathPattern",
+                                    "/api/providers/{requestId}",
+                                    "accessZones", List.of(
+                                            "PUBLIC",
+                                            "INTERNAL"
+                                    ),
+                                    "priority", 0
+                            ),
+                            "enabled", true,
+                            "expectedRevision", revision,
+                            "idempotencyKey",
+                            "live-http-provider-identity-route",
+                            "changeReason",
+                            "GWS-13 shared Provider identity route"
+                    )
+            );
+            revision = mutation.required("revision").asLong();
+            mutation = adminClient.putPolicy(
+                    groupId,
+                    "live-http-rate",
                     Map.of(
                             "policyType", "RATE_LIMIT",
                             "policyScope", "OPERATION",
@@ -305,7 +299,7 @@ class GatewayLiveTopologyIT {
                                     "initialTokens", 1,
                                     "refillTokens", 1,
                                     "refillPeriod", "PT1H",
-                                    "mode", "LOCAL"
+                                    "mode", "DISTRIBUTED"
                             ),
                             "enabled", true,
                             "expectedRevision", revision,
@@ -315,21 +309,10 @@ class GatewayLiveTopologyIT {
                     )
             );
             revision = mutation.required("revision").asLong();
-            JsonNode validation = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/draft/validate"
-                    ),
-                    Map.of()
-            );
+            JsonNode validation = adminClient.validateDraft(groupId);
             assertThat(validation.required("valid").asBoolean()).isTrue();
-            JsonNode release = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/releases"
-                    ),
+            JsonNode release = adminClient.release(
+                    groupId,
                     Map.of(
                             "expectedDraftRevision", revision,
                             "changeReason", "GWS-13 live HTTP release"
@@ -337,10 +320,58 @@ class GatewayLiveTopologyIT {
             );
             assertThat(release.required("status").asText())
                     .isEqualTo("SUCCEEDED");
+            String v1ReleaseId = release.required("releaseId").asText();
             processes.awaitCondition(
-                    () -> engineNodeCount(adminBase, groupId) >= 2,
+                    () -> engineNodeCount(adminClient, groupId) >= 2,
                     Duration.ofSeconds(30),
                     "two Engine nodes visible in Gateway Admin"
+            );
+            awaitRuntimeConsistency(
+                    processes,
+                    adminClient,
+                    groupId,
+                    v1ReleaseId
+            );
+
+            mutation = adminClient.putRoute(
+                    groupId,
+                    "live-http-provider-identity",
+                    Map.of(
+                            "operationId", providerIdentityOperationId,
+                            "content", Map.of(
+                                    "host", "providers.gateway.test",
+                                    "httpMethod", "GET",
+                                    "pathPattern",
+                                    "/api/providers/{requestId}",
+                                    "accessZones", List.of(
+                                            "PUBLIC",
+                                            "INTERNAL"
+                                    ),
+                                    "priority", 1
+                            ),
+                            "enabled", true,
+                            "expectedRevision", revision,
+                            "idempotencyKey",
+                            "live-http-provider-identity-route-v2",
+                            "changeReason",
+                            "GWS-13 live HTTP v2 route priority"
+                    )
+            );
+            revision = mutation.required("revision").asLong();
+            JsonNode v2Release = adminClient.release(
+                    groupId,
+                    Map.of(
+                            "expectedDraftRevision", revision,
+                            "changeReason", "GWS-13 live HTTP v2 release"
+                    )
+            );
+            assertThat(v2Release.required("status").asText())
+                    .isEqualTo("SUCCEEDED");
+            awaitRuntimeConsistency(
+                    processes,
+                    adminClient,
+                    groupId,
+                    v2Release.required("releaseId").asText()
             );
 
             processes.awaitHttp(
@@ -366,7 +397,7 @@ class GatewayLiveTopologyIT {
             HttpResponse<String> gatewayResponse = httpClient.send(
                     HttpRequest.newBuilder(URI.create(
                                     "http://127.0.0.1:"
-                                            + enginePublicPort
+                                            + secondEnginePublicPort
                                             + "/api/orders/order-live-1"
                             ))
                             .header("Host", "api.gateway.test")
@@ -411,63 +442,161 @@ class GatewayLiveTopologyIT {
             );
             assertThat(publicInternal.statusCode()).isEqualTo(404);
 
-            Set<String> selectedProviders = new LinkedHashSet<>();
-            for (int invocation = 0; invocation < 6; invocation++) {
-                HttpResponse<String> internal = inventory(
-                        engineInternalPort,
-                        "sku-" + invocation
-                );
-                assertThat(internal.statusCode()).isEqualTo(200);
-                selectedProviders.add(objectMapper
-                        .readTree(internal.body())
-                        .required("providerId")
-                        .asText());
-            }
-            assertThat(selectedProviders).containsExactlyInAnyOrder(
+            HttpResponse<String> internal = inventory(
+                    engineInternalPort,
+                    "sku-live"
+            );
+            assertThat(internal.statusCode()).isEqualTo(200);
+            assertThat(objectMapper.readTree(internal.body())
+                    .required("providerId").asText())
+                    .isEqualTo("http-provider-live-1");
+
+            var secondProvider = processes.start(webFluxProviderSpec(
+                    infrastructure,
+                    ddcBase,
+                    adminBase,
+                    secondProviderPort,
+                    "webflux-http-provider",
+                    "http-provider-live-2",
+                    false,
+                    credential.required("accessKey").asText(),
+                    credential.required("secret").asText()
+            ));
+            URI secondProviderReadiness = URI.create(
+                    "http://127.0.0.1:"
+                            + secondProviderPort
+                            + "/actuator/health/readiness"
+            );
+            processes.awaitHttp(
+                    secondProviderReadiness,
+                    STARTUP_TIMEOUT,
+                    secondProvider
+            );
+            processes.awaitCondition(
+                    () -> httpProviderIds(adminClient).containsAll(Set.of(
+                            "http-provider-live-1",
+                            "http-provider-live-2"
+                    )),
+                    Duration.ofSeconds(30),
+                    "MVC and WebFlux Provider projection"
+            );
+            Map<String, String> initialLeases = providerLeases(adminClient);
+            assertThat(initialLeases).containsKeys(
                     "http-provider-live-1",
                     "http-provider-live-2"
             );
+            assertThat(awaitProviderFrameworks(
+                    processes,
+                    enginePublicPort,
+                    Set.of("mvc", "webflux")
+            )).containsExactlyInAnyOrder("mvc", "webflux");
 
             processes.stop(provider);
             processes.awaitCondition(
-                    () -> !httpProviderIds(adminBase).contains(
+                    () -> !httpProviderIds(adminClient).contains(
                             "http-provider-live-1"
                     ),
                     Duration.ofSeconds(30),
                     "stopped HTTP Provider removal"
             );
-            processes.awaitCondition(
-                    () -> {
-                        HttpResponse<String> recovered = inventory(
-                                engineInternalPort,
-                                "sku-recovered"
-                        );
-                        return recovered.statusCode() == 200
-                                && "http-provider-live-2".equals(
-                                objectMapper.readTree(recovered.body())
-                                        .path("providerId")
-                                        .asText()
-                        );
-                    },
-                    Duration.ofSeconds(30),
-                    "HTTP Provider failure recovery"
+            awaitOnlyProviderFramework(
+                    processes,
+                    enginePublicPort,
+                    "webflux"
             );
 
+            provider = processes.restart(provider);
+            processes.awaitHttp(
+                    URI.create(
+                            "http://127.0.0.1:"
+                                    + providerPort
+                                    + "/actuator/health/readiness"
+                    ),
+                    STARTUP_TIMEOUT,
+                    provider
+            );
             processes.awaitCondition(
-                    () -> traceCount(adminBase, traceId) == 1,
+                    () -> !initialLeases.get("http-provider-live-1")
+                            .equals(providerLeases(adminClient).get(
+                                    "http-provider-live-1"
+                            )),
+                    Duration.ofSeconds(30),
+                    "restarted MVC Provider lease replacement"
+            );
+            assertThat(awaitProviderFrameworks(
+                    processes,
+                    enginePublicPort,
+                    Set.of("mvc", "webflux")
+            )).containsExactlyInAnyOrder("mvc", "webflux");
+
+            processes.kill(secondProvider);
+            processes.awaitCondition(
+                    () -> !httpProviderIds(adminClient).contains(
+                            "http-provider-live-2"
+                    ),
+                    Duration.ofSeconds(45),
+                    "force-killed WebFlux Provider lease expiry"
+            );
+            awaitOnlyProviderFramework(
+                    processes,
+                    enginePublicPort,
+                    "mvc"
+            );
+
+            secondProvider = processes.restart(secondProvider);
+            processes.awaitHttp(
+                    secondProviderReadiness,
+                    STARTUP_TIMEOUT,
+                    secondProvider
+            );
+            processes.awaitCondition(
+                    () -> !initialLeases.get("http-provider-live-2")
+                            .equals(providerLeases(adminClient).get(
+                                    "http-provider-live-2"
+                            )),
+                    Duration.ofSeconds(30),
+                    "restarted WebFlux Provider lease replacement"
+            );
+            assertThat(awaitProviderFrameworks(
+                    processes,
+                    enginePublicPort,
+                    Set.of("mvc", "webflux")
+            )).containsExactlyInAnyOrder("mvc", "webflux");
+
+            processes.awaitCondition(
+                    () -> traceCount(adminClient, traceId) == 1,
                     Duration.ofSeconds(30),
                     "Kafka call event projection in Gateway Admin"
+            );
+
+            JsonNode rollback = adminClient.rollback(
+                    groupId,
+                    Map.of(
+                            "sourceReleaseId", v1ReleaseId,
+                            "expectedDraftRevision", revision,
+                            "changeReason", "GWS-13 rollback to v1 content"
+                    )
+            );
+            assertThat(rollback.required("status").asText())
+                    .isEqualTo("SUCCEEDED");
+            assertThat(rollback.required("rollbackOfReleaseId").asText())
+                    .isEqualTo(v1ReleaseId);
+            awaitRuntimeConsistency(
+                    processes,
+                    adminClient,
+                    groupId,
+                    rollback.required("releaseId").asText()
             );
         }
     }
 
-    @Test
-    void reportsDiscoversAndForwardsRealRpcTopology() throws Exception {
-        try (GatewayTestInfrastructure infrastructure =
-                     new GatewayTestInfrastructure();
-             GatewayProcessHarness processes =
-                     new GatewayProcessHarness("rpc-topology")) {
-            infrastructure.start();
+    void verifyRpcDualEngineLifecycle() throws Exception {
+        try (GatewayLiveEnvironment environment =
+                     new GatewayLiveEnvironment("rpc-topology")) {
+            environment.startInfrastructure();
+            GatewayTestInfrastructure infrastructure =
+                    environment.infrastructure();
+            GatewayProcessHarness processes = environment.processes();
             infrastructure.createDatabase("gateway_ddc");
             infrastructure.createDatabase("gateway_admin");
 
@@ -481,9 +610,19 @@ class GatewayLiveTopologyIT {
             int enginePublicPort = GatewayProcessHarness.availablePort();
             int engineInternalPort = GatewayProcessHarness.availablePort();
             int engineRpcPort = GatewayProcessHarness.availablePort();
+            int secondEngineManagementPort =
+                    GatewayProcessHarness.availablePort();
+            int secondEnginePublicPort =
+                    GatewayProcessHarness.availablePort();
+            int secondEngineInternalPort =
+                    GatewayProcessHarness.availablePort();
+            int secondEngineRpcPort =
+                    GatewayProcessHarness.availablePort();
             int consumerPort = GatewayProcessHarness.availablePort();
             URI ddcBase = URI.create("http://127.0.0.1:" + ddcPort);
             URI adminBase = URI.create("http://127.0.0.1:" + adminPort);
+            GatewayAdminTestClient adminClient =
+                    new GatewayAdminTestClient(adminBase, ADMIN_TOKEN);
 
             var ddc = processes.start(ddcSpec(
                     infrastructure,
@@ -506,10 +645,7 @@ class GatewayLiveTopologyIT {
                     admin
             );
 
-            JsonNode application = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/applications"
-                    ),
+            JsonNode application = adminClient.createApplication(
                     Map.of(
                             "applicationCode", RPC_APPLICATION_CODE,
                             "displayName", "Gateway Live RPC Provider",
@@ -519,16 +655,10 @@ class GatewayLiveTopologyIT {
                     )
             );
             String applicationId = application.required("id").asText();
-            JsonNode credential = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/applications/"
-                                    + applicationId
-                                    + "/credentials"
-                    ),
-                    Map.of()
-            );
+            JsonNode credential = adminClient.createCredential(applicationId);
 
             var provider = processes.start(rpcProviderSpec(
+                    infrastructure,
                     ddcBase,
                     adminBase,
                     providerManagementPort,
@@ -546,8 +676,8 @@ class GatewayLiveTopologyIT {
                     provider
             );
 
-            Path engineData = Files.createTempDirectory(
-                    "gateway-live-rpc-engine-"
+            Path engineData = environment.dataDirectory(
+                    "gateway-engine-1"
             );
             var engine = processes.start(engineSpec(
                     infrastructure,
@@ -559,17 +689,28 @@ class GatewayLiveTopologyIT {
                     true,
                     engineRpcPort
             ));
+            Path secondEngineData = environment.dataDirectory(
+                    "gateway-engine-2"
+            );
+            var secondEngine = processes.start(engineSpec(
+                    infrastructure,
+                    ddcBase,
+                    secondEngineManagementPort,
+                    secondEnginePublicPort,
+                    secondEngineInternalPort,
+                    secondEngineData,
+                    true,
+                    secondEngineRpcPort,
+                    "gateway-engine-2"
+            ));
 
             String operationId = awaitOperation(
                     processes,
-                    adminBase,
+                    adminClient,
                     applicationId,
                     RPC_METHOD_NAME
             );
-            JsonNode group = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups"
-                    ),
+            JsonNode group = adminClient.createGroup(
                     Map.of(
                             "gatewayGroupCode", "default",
                             "displayName", "Gateway Live RPC Group",
@@ -585,12 +726,14 @@ class GatewayLiveTopologyIT {
                     ddcBase,
                     engine
             );
-            JsonNode mutation = put(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/draft/routes/live-rpc-echo"
-                    ),
+            awaitEngineConfigClient(
+                    processes,
+                    ddcBase,
+                    secondEngine
+            );
+            JsonNode mutation = adminClient.putRoute(
+                    groupId,
+                    "live-rpc-echo",
                     Map.of(
                             "operationId", operationId,
                             "content", Map.of(
@@ -607,21 +750,10 @@ class GatewayLiveTopologyIT {
                     )
             );
             long revision = mutation.required("revision").asLong();
-            JsonNode validation = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/draft/validate"
-                    ),
-                    Map.of()
-            );
+            JsonNode validation = adminClient.validateDraft(groupId);
             assertThat(validation.required("valid").asBoolean()).isTrue();
-            JsonNode release = post(
-                    adminBase.resolve(
-                            "/api/v1/gateway/admin/gateway-groups/"
-                                    + groupId
-                                    + "/releases"
-                    ),
+            JsonNode release = adminClient.release(
+                    groupId,
                     Map.of(
                             "expectedDraftRevision", revision,
                             "changeReason", "GWS-13 live RPC release"
@@ -629,6 +761,11 @@ class GatewayLiveTopologyIT {
             );
             assertThat(release.required("status").asText())
                     .isEqualTo("SUCCEEDED");
+            processes.awaitCondition(
+                    () -> engineNodeCount(adminClient, groupId) >= 2,
+                    Duration.ofSeconds(30),
+                    "two RPC Engine nodes visible in Gateway Admin"
+            );
 
             processes.awaitHttp(
                     URI.create(
@@ -639,9 +776,19 @@ class GatewayLiveTopologyIT {
                     STARTUP_TIMEOUT,
                     engine
             );
-            awaitRpcProviderProjection(processes, adminBase);
+            processes.awaitHttp(
+                    URI.create(
+                            "http://127.0.0.1:"
+                                    + secondEngineManagementPort
+                                    + "/actuator/health/readiness"
+                    ),
+                    STARTUP_TIMEOUT,
+                    secondEngine
+            );
+            awaitRpcProviderProjection(processes, adminClient);
 
             var consumer = processes.start(rpcConsumerSpec(
+                    infrastructure,
                     ddcBase,
                     consumerPort
             ));
@@ -708,16 +855,200 @@ class GatewayLiveTopologyIT {
                     .isEqualTo(httpRpcTraceId);
 
             processes.awaitCondition(
-                    () -> traceCount(adminBase, traceId) == 1,
+                    () -> traceCount(adminClient, traceId) == 1,
                     Duration.ofSeconds(30),
                     "RPC Kafka call event projection in Gateway Admin"
             );
             processes.awaitCondition(
-                    () -> traceCount(adminBase, httpRpcTraceId) == 1,
+                    () -> traceCount(adminClient, httpRpcTraceId) == 1,
                     Duration.ofSeconds(30),
                     "HTTP to RPC Kafka call event projection in Gateway Admin"
             );
+
+            Map<String, String> initialEngineLeases = engineLeases(
+                    adminClient,
+                    groupId
+            );
+            assertThat(initialEngineLeases).containsKeys(
+                    "gateway-engine-1",
+                    "gateway-engine-2"
+            );
+            assertThat(awaitRpcEngineSelections(
+                    processes,
+                    adminClient,
+                    consumerBase,
+                    Set.of("gateway-engine-1", "gateway-engine-2")
+            )).containsExactlyInAnyOrder(
+                    "gateway-engine-1",
+                    "gateway-engine-2"
+            );
+
+            processes.stop(engine);
+            processes.awaitCondition(
+                    () -> !engineLeases(adminClient, groupId).containsKey(
+                            "gateway-engine-1"
+                    ),
+                    Duration.ofSeconds(30),
+                    "stopped RPC Engine removal"
+            );
+            assertRpcConsumerEngine(
+                    processes,
+                    adminClient,
+                    consumerBase,
+                    "gateway-engine-2"
+            );
+
+            engine = processes.restart(engine);
+            processes.awaitHttp(
+                    URI.create(
+                            "http://127.0.0.1:"
+                                    + engineManagementPort
+                                    + "/actuator/health/readiness"
+                    ),
+                    STARTUP_TIMEOUT,
+                    engine
+            );
+            processes.awaitCondition(
+                    () -> !initialEngineLeases.get("gateway-engine-1")
+                            .equals(engineLeases(adminClient, groupId).get(
+                                    "gateway-engine-1"
+                            )),
+                    Duration.ofSeconds(30),
+                    "restarted RPC Engine lease replacement"
+            );
+            assertThat(awaitRpcEngineSelections(
+                    processes,
+                    adminClient,
+                    consumerBase,
+                    Set.of("gateway-engine-1", "gateway-engine-2")
+            )).containsExactlyInAnyOrder(
+                    "gateway-engine-1",
+                    "gateway-engine-2"
+            );
         }
+    }
+
+    @Test
+    void everyDdcClientUsesInfrastructureRedisCoordinates() {
+        GatewayTestInfrastructure infrastructure = testInfrastructure();
+
+        URI ddcBase = URI.create("http://127.0.0.1:18070");
+        URI adminBase = URI.create("http://127.0.0.1:18080");
+        GatewayProcessSpec httpProvider = providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                18084,
+                "http-provider-one",
+                "http-provider-live-1",
+                true,
+                "access-key",
+                "secret-key"
+        );
+        List<GatewayProcessSpec> ddcClients = List.of(
+                httpProvider,
+                providerSpec(
+                        infrastructure,
+                        ddcBase,
+                        adminBase,
+                        18085,
+                        "http-provider-two",
+                        "http-provider-live-2",
+                        false,
+                        "access-key",
+                        "secret-key"
+                ),
+                rpcProviderSpec(
+                        infrastructure,
+                        ddcBase,
+                        adminBase,
+                        18086,
+                        19091,
+                        "access-key",
+                        "secret-key"
+                ),
+                rpcConsumerSpec(infrastructure, ddcBase, 18087),
+                engineSpec(
+                        infrastructure,
+                        ddcBase,
+                        18088,
+                        18089,
+                        18090,
+                        Path.of("target/engine-one")
+                ),
+                engineSpec(
+                        infrastructure,
+                        ddcBase,
+                        18091,
+                        18092,
+                        18093,
+                        Path.of("target/engine-two"),
+                        true,
+                        19092,
+                        "gateway-engine-2"
+                )
+        );
+
+        assertSoftly(softly -> {
+            ddcClients.forEach(spec -> softly.assertThat(spec.arguments())
+                    .as(spec.name())
+                    .contains(
+                            "--egon.cola.component.ddc.redis.host="
+                                    + infrastructure.ddcRedisHost(),
+                            "--egon.cola.component.ddc.redis.port="
+                                    + infrastructure.ddcRedisPort()
+                    ));
+        });
+    }
+
+    @Test
+    void httpProviderSpecUsesSingleServiceVersionSource() {
+        GatewayTestInfrastructure infrastructure = testInfrastructure();
+        URI ddcBase = URI.create("http://127.0.0.1:18070");
+        URI adminBase = URI.create("http://127.0.0.1:18080");
+        GatewayProcessSpec httpProvider = providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                18084,
+                "http-provider-one",
+                "http-provider-live-1",
+                true,
+                "access-key",
+                "secret-key"
+        );
+
+        assertThat(httpProvider.arguments())
+                .contains("--gateway.test.service-version=1.0.0-live")
+                .noneMatch(argument -> argument.startsWith(
+                        "--egon.cola.component.gateway.reporting."
+                                + "artifact-version="
+                ));
+    }
+
+    private GatewayTestInfrastructure testInfrastructure() {
+        GatewayTestInfrastructure infrastructure =
+                mock(GatewayTestInfrastructure.class);
+        when(infrastructure.ddcRedisHost()).thenReturn("ddc-live-host");
+        when(infrastructure.ddcRedisPort()).thenReturn(16379);
+        when(infrastructure.rateLimitRedisHost()).thenReturn("rate-live-host");
+        when(infrastructure.rateLimitRedisPort()).thenReturn(26379);
+        when(infrastructure.kafkaBootstrapServers()).thenReturn("kafka:19092");
+        return infrastructure;
+    }
+
+    private GatewayProcessSpec.Builder ddcClient(
+            GatewayProcessSpec.Builder builder,
+            GatewayTestInfrastructure infrastructure) {
+        return builder
+                .argument(
+                        "egon.cola.component.ddc.redis.host",
+                        infrastructure.ddcRedisHost()
+                )
+                .argument(
+                        "egon.cola.component.ddc.redis.port",
+                        infrastructure.ddcRedisPort()
+                );
     }
 
     private GatewayProcessSpec ddcSpec(
@@ -827,6 +1158,7 @@ class GatewayLiveTopologyIT {
     }
 
     private GatewayProcessSpec providerSpec(
+            GatewayTestInfrastructure infrastructure,
             URI ddcBase,
             URI adminBase,
             int port,
@@ -835,11 +1167,64 @@ class GatewayLiveTopologyIT {
             boolean reportingEnabled,
             String accessKey,
             String secretKey) {
-        return GatewayProcessSpec.builder(
-                        processName,
-                        "top.egon.cola.component.gateway.test.http."
-                                + "GatewayHttpTestProviderApplication"
-                )
+        return providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                port,
+                processName,
+                providerId,
+                reportingEnabled,
+                accessKey,
+                secretKey,
+                "top.egon.cola.component.gateway.test.http."
+                        + "GatewayHttpTestProviderApplication"
+        );
+    }
+
+    private GatewayProcessSpec webFluxProviderSpec(
+            GatewayTestInfrastructure infrastructure,
+            URI ddcBase,
+            URI adminBase,
+            int port,
+            String processName,
+            String providerId,
+            boolean reportingEnabled,
+            String accessKey,
+            String secretKey) {
+        return providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                port,
+                processName,
+                providerId,
+                reportingEnabled,
+                accessKey,
+                secretKey,
+                "top.egon.cola.component.gateway.test.webflux."
+                        + "GatewayWebFluxHttpTestProviderApplication"
+        );
+    }
+
+    private GatewayProcessSpec providerSpec(
+            GatewayTestInfrastructure infrastructure,
+            URI ddcBase,
+            URI adminBase,
+            int port,
+            String processName,
+            String providerId,
+            boolean reportingEnabled,
+            String accessKey,
+            String secretKey,
+            String mainClass) {
+        return ddcClient(
+                GatewayProcessSpec.builder(
+                                processName,
+                                mainClass
+                        ),
+                infrastructure
+        )
                 .argument("server.port", port)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(
@@ -876,6 +1261,7 @@ class GatewayLiveTopologyIT {
                 .argument("gateway.test.env", ENV)
                 .argument("gateway.test.namespace", NAMESPACE)
                 .argument("gateway.test.provider-id", providerId)
+                .argument("gateway.test.service-version", SERVICE_VERSION)
                 .argument("gateway.test.advertised-host", "127.0.0.1")
                 .argument("gateway.test.advertised-port", port)
                 .argument(
@@ -906,11 +1292,6 @@ class GatewayLiveTopologyIT {
                         NAMESPACE
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
-                                + "artifact-version",
-                        "1.0.0-live"
-                )
-                .argument(
                         "egon.cola.component.gateway.reporting.build-id",
                         "gateway-live-build"
                 )
@@ -931,17 +1312,22 @@ class GatewayLiveTopologyIT {
     }
 
     private GatewayProcessSpec rpcProviderSpec(
+            GatewayTestInfrastructure infrastructure,
             URI ddcBase,
             URI adminBase,
             int managementPort,
             int rpcPort,
             String accessKey,
             String secretKey) {
-        return GatewayProcessSpec.builder(
-                        "rpc-provider",
-                        "top.egon.cola.component.gateway.test.rpc.provider."
-                                + "GatewayRpcTestProviderApplication"
-                )
+        return ddcClient(
+                GatewayProcessSpec.builder(
+                                "rpc-provider",
+                                "top.egon.cola.component.gateway.test.rpc."
+                                        + "provider."
+                                        + "GatewayRpcTestProviderApplication"
+                        ),
+                infrastructure
+        )
                 .argument("server.port", managementPort)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(
@@ -1054,13 +1440,18 @@ class GatewayLiveTopologyIT {
     }
 
     private GatewayProcessSpec rpcConsumerSpec(
+            GatewayTestInfrastructure infrastructure,
             URI ddcBase,
             int port) {
-        return GatewayProcessSpec.builder(
-                        "rpc-consumer",
-                        "top.egon.cola.component.gateway.test.rpc.consumer."
-                                + "GatewayRpcTestConsumerApplication"
-                )
+        return ddcClient(
+                GatewayProcessSpec.builder(
+                                "rpc-consumer",
+                                "top.egon.cola.component.gateway.test.rpc."
+                                        + "consumer."
+                                        + "GatewayRpcTestConsumerApplication"
+                        ),
+                infrastructure
+        )
                 .argument("server.port", port)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(
@@ -1140,7 +1531,7 @@ class GatewayLiveTopologyIT {
                 dataDirectory,
                 false,
                 0,
-                "gateway-engine-live-1"
+                "gateway-engine-1"
         );
     }
 
@@ -1162,7 +1553,7 @@ class GatewayLiveTopologyIT {
                 dataDirectory,
                 rpcEnabled,
                 rpcPort,
-                "gateway-engine-live-1"
+                "gateway-engine-1"
         );
     }
 
@@ -1176,11 +1567,14 @@ class GatewayLiveTopologyIT {
             boolean rpcEnabled,
             int rpcPort,
             String instanceId) {
-        GatewayProcessSpec.Builder builder = GatewayProcessSpec.builder(
-                        "gateway-engine",
-                        "top.egon.cola.component.gateway.engine."
-                                + "GatewayEngineApplication"
-                )
+        GatewayProcessSpec.Builder builder = ddcClient(
+                GatewayProcessSpec.builder(
+                                instanceId,
+                                "top.egon.cola.component.gateway.engine."
+                                        + "GatewayEngineApplication"
+                        ),
+                infrastructure
+        )
                 .argument("server.port", managementPort)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(
@@ -1304,11 +1698,11 @@ class GatewayLiveTopologyIT {
 
     private String awaitOperation(
             GatewayProcessHarness processes,
-            URI adminBase,
+            GatewayAdminTestClient adminClient,
             String applicationId) {
         return awaitOperation(
                 processes,
-                adminBase,
+                adminClient,
                 applicationId,
                 "GET /api/orders/{id}"
         );
@@ -1316,17 +1710,15 @@ class GatewayLiveTopologyIT {
 
     private String awaitOperation(
             GatewayProcessHarness processes,
-            URI adminBase,
+            GatewayAdminTestClient adminClient,
             String applicationId,
             String methodIdentity) {
         String[] operationId = new String[1];
         processes.awaitCondition(
                 () -> {
-                    JsonNode tree = get(adminBase.resolve(
-                            "/api/v1/gateway/admin/applications/"
-                                    + applicationId
-                                    + "/catalog"
-                    ));
+                    JsonNode tree = adminClient.applicationCatalog(
+                            applicationId
+                    );
                     operationId[0] = findOperation(
                             tree,
                             methodIdentity
@@ -1341,19 +1733,15 @@ class GatewayLiveTopologyIT {
 
     private void awaitRpcProviderProjection(
             GatewayProcessHarness processes,
-            URI adminBase) {
+            GatewayAdminTestClient adminClient) {
         processes.awaitCondition(
                 () -> {
-                    JsonNode projection = get(adminBase.resolve(
-                            "/api/v1/gateway/admin/providers/instances"
-                                    + "?env="
-                                    + ENV
-                                    + "&namespace="
-                                    + NAMESPACE
-                                    + "&protocol=RPC"
-                                    + "&serviceName="
-                                    + RPC_SERVICE_NAME
-                    ));
+                    JsonNode projection = adminClient.providerInstances(
+                            ENV,
+                            NAMESPACE,
+                            "RPC",
+                            RPC_SERVICE_NAME
+                    );
                     JsonNode instances = projection.path("value")
                             .path("instances");
                     if (!instances.isArray()) {
@@ -1417,16 +1805,10 @@ class GatewayLiveTopologyIT {
                 .isTrue();
     }
 
-    private int traceCount(URI adminBase, String traceId) throws Exception {
-        JsonNode page = get(adminBase.resolve(
-                "/api/v1/gateway/admin/observability/traces"
-                        + "?env="
-                        + ENV
-                        + "&namespace="
-                        + NAMESPACE
-                        + "&traceId="
-                        + traceId
-        ));
+    private int traceCount(
+            GatewayAdminTestClient adminClient,
+            String traceId) throws Exception {
+        JsonNode page = adminClient.traces(ENV, NAMESPACE, traceId);
         return page.path("items").size();
     }
 
@@ -1448,18 +1830,20 @@ class GatewayLiveTopologyIT {
         );
     }
 
-    private Set<String> httpProviderIds(URI adminBase) throws Exception {
-        JsonNode projection = get(adminBase.resolve(
-                "/api/v1/gateway/admin/providers/instances"
-                        + "?env="
-                        + ENV
-                        + "&namespace="
-                        + NAMESPACE
-                        + "&protocol=HTTP"
-                        + "&serviceName="
-                        + APPLICATION_CODE
-        ));
-        Set<String> providerIds = new LinkedHashSet<>();
+    private Set<String> httpProviderIds(
+            GatewayAdminTestClient adminClient) throws Exception {
+        return providerLeases(adminClient).keySet();
+    }
+
+    private Map<String, String> providerLeases(
+            GatewayAdminTestClient adminClient) throws Exception {
+        JsonNode projection = adminClient.providerInstances(
+                ENV,
+                NAMESPACE,
+                "HTTP",
+                APPLICATION_CODE
+        );
+        Map<String, String> providerLeases = new java.util.LinkedHashMap<>();
         JsonNode instances = projection.path("value").path("instances");
         if (!instances.isArray()) {
             instances = projection.path("value");
@@ -1467,34 +1851,206 @@ class GatewayLiveTopologyIT {
         for (JsonNode instance : instances) {
             String instanceId = instance.path("instanceId").asText();
             if (!instanceId.isBlank()) {
-                providerIds.add(instanceId);
+                providerLeases.put(
+                        instanceId,
+                        instance.path("leaseId").asText()
+                );
             }
         }
-        return Set.copyOf(providerIds);
+        return Map.copyOf(providerLeases);
+    }
+
+    private Set<String> awaitProviderFrameworks(
+            GatewayProcessHarness processes,
+            int listenerPort,
+            Set<String> expected) {
+        Set<String> observed = new LinkedHashSet<>();
+        int[] invocation = {0};
+        processes.awaitCondition(
+                () -> {
+                    HttpResponse<String> response = providerIdentity(
+                            listenerPort,
+                            "request-" + invocation[0]++
+                    );
+                    if (response.statusCode() == 200) {
+                        observed.add(objectMapper.readTree(response.body())
+                                .path("framework").asText());
+                    }
+                    return observed.containsAll(expected);
+                },
+                Duration.ofSeconds(30),
+                "shared Provider route selections " + expected
+        );
+        return Set.copyOf(observed);
+    }
+
+    private void awaitOnlyProviderFramework(
+            GatewayProcessHarness processes,
+            int listenerPort,
+            String expected) {
+        int[] invocation = {0};
+        processes.awaitCondition(
+                () -> {
+                    HttpResponse<String> response = providerIdentity(
+                            listenerPort,
+                            "single-" + invocation[0]++
+                    );
+                    return response.statusCode() == 200
+                            && expected.equals(objectMapper
+                            .readTree(response.body())
+                            .path("framework")
+                            .asText());
+                },
+                Duration.ofSeconds(30),
+                "shared Provider route selection " + expected
+        );
+    }
+
+    private HttpResponse<String> providerIdentity(
+            int listenerPort,
+            String requestId) throws Exception {
+        return httpClient.send(
+                HttpRequest.newBuilder(URI.create(
+                                "http://127.0.0.1:"
+                                        + listenerPort
+                                        + "/api/providers/"
+                                        + requestId
+                        ))
+                        .header("Host", "providers.gateway.test")
+                        .timeout(Duration.ofSeconds(10))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString()
+        );
     }
 
     private int engineNodeCount(
-            URI adminBase,
+            GatewayAdminTestClient adminClient,
             String groupId) throws Exception {
-        JsonNode projection = get(adminBase.resolve(
-                "/api/v1/gateway/admin/gateway-groups/"
-                        + groupId
-                        + "/engine-nodes"
-        ));
+        JsonNode projection = adminClient.engineNodes(groupId);
         JsonNode nodes = projection.path("value");
         return nodes.isArray() ? nodes.size() : 0;
     }
 
+    private Map<String, String> engineLeases(
+            GatewayAdminTestClient adminClient,
+            String groupId) throws Exception {
+        JsonNode nodes = adminClient.engineNodes(groupId).path("value");
+        Map<String, String> leases = new java.util.LinkedHashMap<>();
+        if (nodes.isArray()) {
+            for (JsonNode node : nodes) {
+                String instanceId = node.path("instanceId").asText();
+                if (!instanceId.isBlank()) {
+                    leases.put(instanceId, node.path("leaseId").asText());
+                }
+            }
+        }
+        return Map.copyOf(leases);
+    }
+
+    private void awaitRuntimeConsistency(
+            GatewayProcessHarness processes,
+            GatewayAdminTestClient adminClient,
+            String groupId,
+            String expectedReleaseId) {
+        processes.awaitCondition(
+                () -> {
+                    JsonNode consistency = adminClient.runtimeConsistency(
+                            groupId
+                    );
+                    return consistency.path("consistent").asBoolean()
+                            && expectedReleaseId.equals(consistency
+                            .path("targetReleaseId")
+                            .asText())
+                            && consistency.path("readyEngineNodeCount")
+                            .asInt() == 2;
+                },
+                Duration.ofSeconds(30),
+                "two Engine runtime consistency for " + expectedReleaseId
+        );
+    }
+
+    private Set<String> awaitRpcEngineSelections(
+            GatewayProcessHarness processes,
+            GatewayAdminTestClient adminClient,
+            URI consumerBase,
+            Set<String> expected) throws Exception {
+        Set<String> observed = new LinkedHashSet<>();
+        for (int invocation = 0;
+             invocation < 12 && !observed.containsAll(expected);
+             invocation++) {
+            String traceId = "rpc-engine-selection-%02d-%d".formatted(
+                    invocation,
+                    System.nanoTime()
+            );
+            HttpResponse<String> response = rpcConsumerEcho(
+                    consumerBase,
+                    traceId,
+                    "selection-" + invocation
+            );
+            assertThat(response.statusCode()).isEqualTo(200);
+            processes.awaitCondition(
+                    () -> traceCount(adminClient, traceId) == 1,
+                    Duration.ofSeconds(30),
+                    "RPC Engine selection trace " + traceId
+            );
+            observed.add(traceEngineId(adminClient, traceId));
+        }
+        return Set.copyOf(observed);
+    }
+
+    private void assertRpcConsumerEngine(
+            GatewayProcessHarness processes,
+            GatewayAdminTestClient adminClient,
+            URI consumerBase,
+            String expectedEngineId) throws Exception {
+        String traceId = "rpc-engine-failover-" + System.nanoTime();
+        HttpResponse<String> response = rpcConsumerEcho(
+                consumerBase,
+                traceId,
+                "after-engine-stop"
+        );
+        assertThat(response.statusCode()).isEqualTo(200);
+        processes.awaitCondition(
+                () -> traceCount(adminClient, traceId) == 1,
+                Duration.ofSeconds(30),
+                "RPC Engine failover trace"
+        );
+        assertThat(traceEngineId(adminClient, traceId))
+                .isEqualTo(expectedEngineId);
+    }
+
+    private HttpResponse<String> rpcConsumerEcho(
+            URI consumerBase,
+            String traceId,
+            String message) throws Exception {
+        return httpClient.send(
+                HttpRequest.newBuilder(consumerBase.resolve(
+                                "/test/rpc/echo?message=" + message
+                        ))
+                        .header("X-Trace-ID", traceId)
+                        .timeout(Duration.ofSeconds(10))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString()
+        );
+    }
+
+    private String traceEngineId(
+            GatewayAdminTestClient adminClient,
+            String traceId) throws Exception {
+        JsonNode items = adminClient.traces(
+                ENV,
+                NAMESPACE,
+                traceId
+        ).path("items");
+        return items.isArray() && !items.isEmpty()
+                ? items.get(0).path("engineInstanceId").asText()
+                : "";
+    }
+
     private JsonNode get(URI uri) throws Exception {
         return exchange("GET", uri, null);
-    }
-
-    private JsonNode post(URI uri, Object body) throws Exception {
-        return exchange("POST", uri, body);
-    }
-
-    private JsonNode put(URI uri, Object body) throws Exception {
-        return exchange("PUT", uri, body);
     }
 
     private JsonNode exchange(

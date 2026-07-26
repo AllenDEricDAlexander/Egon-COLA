@@ -1,47 +1,107 @@
 package top.egon.cola.component.ddc.admin.service;
 
 import org.springframework.stereotype.Service;
+import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
+import top.egon.cola.component.ddc.admin.model.enums.ChangeType;
 import top.egon.cola.component.ddc.admin.model.vo.DdcCacheCheckRow;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class DdcCacheService {
 
     private final DdcConfigItemRepository configItemRepository;
 
+    private final DdcConfigVersionRepository versionRepository;
+
     private final DdcRedisRepository redisRepository;
 
-    public DdcCacheService(DdcConfigItemRepository configItemRepository, DdcRedisRepository redisRepository) {
+    public DdcCacheService(
+            DdcConfigItemRepository configItemRepository,
+            DdcConfigVersionRepository versionRepository,
+            DdcRedisRepository redisRepository
+    ) {
         this.configItemRepository = configItemRepository;
+        this.versionRepository = versionRepository;
         this.redisRepository = redisRepository;
     }
 
     public int rebuild(String appCode, String env, String namespace) {
-        List<DdcConfigItemEntity> items = configItemRepository.findByAppCodeAndEnvAndNamespaceAndDeletedFalse(appCode, env, namespace);
-        items.stream()
-                .filter(item -> Boolean.TRUE.equals(item.getEnabled()))
-                .forEach(item -> redisRepository.writeConfig(appCode, env, namespace, item.getConfigKey(),
-                        item.getConfigValue(), item.getCurrentVersion()));
-        return items.size();
+        List<DdcConfigItemEntity> items = configItemRepository
+                .findByAppCodeAndEnvAndNamespace(appCode, env, namespace);
+        List<DdcConfigVersionEntity> published = items.stream()
+                .map(this::publishedVersion)
+                .flatMap(Optional::stream)
+                .filter(this::isRuntimeValue)
+                .toList();
+        published.forEach(version -> redisRepository.writeConfig(
+                appCode,
+                env,
+                namespace,
+                version.getConfigKey(),
+                version.getNewValue(),
+                version.getVersion()
+        ));
+        return published.size();
     }
 
     public List<DdcCacheCheckRow> check(String appCode, String env, String namespace) {
-        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndDeletedFalse(appCode, env, namespace).stream()
-                .map(item -> checkItem(appCode, env, namespace, item))
+        return configItemRepository.findByAppCodeAndEnvAndNamespace(
+                        appCode, env, namespace
+                ).stream()
+                .map(this::publishedVersion)
+                .flatMap(Optional::stream)
+                .filter(this::isRuntimeValue)
+                .map(version -> checkVersion(appCode, env, namespace, version))
                 .toList();
     }
 
-    private DdcCacheCheckRow checkItem(String appCode, String env, String namespace, DdcConfigItemEntity item) {
-        String redisValue = redisRepository.readConfigValue(appCode, env, namespace, item.getConfigKey());
-        Long redisVersion = redisRepository.readConfigVersion(appCode, env, namespace, item.getConfigKey());
-        boolean matched = Objects.equals(item.getConfigValue(), redisValue)
-                && Objects.equals(item.getCurrentVersion(), redisVersion);
-        return new DdcCacheCheckRow(item.getConfigKey(), item.getConfigValue(), redisValue,
-                item.getCurrentVersion(), redisVersion, matched);
+    private DdcCacheCheckRow checkVersion(
+            String appCode,
+            String env,
+            String namespace,
+            DdcConfigVersionEntity version
+    ) {
+        String redisValue = redisRepository.readConfigValue(
+                appCode, env, namespace, version.getConfigKey()
+        );
+        Long redisVersion = redisRepository.readConfigVersion(
+                appCode, env, namespace, version.getConfigKey()
+        );
+        boolean matched = Objects.equals(version.getNewValue(), redisValue)
+                && Objects.equals(version.getVersion(), redisVersion);
+        return new DdcCacheCheckRow(
+                version.getConfigKey(),
+                version.getNewValue(),
+                redisValue,
+                version.getVersion(),
+                redisVersion,
+                matched
+        );
+    }
+
+    private Optional<DdcConfigVersionEntity> publishedVersion(
+            DdcConfigItemEntity item
+    ) {
+        if (item.getPublishedVersion() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(versionRepository.findByConfigIdAndVersion(
+                item.getId(),
+                item.getPublishedVersion()
+        ).orElseThrow(() -> new DdcAdminException(
+                "published config version not found"
+        )));
+    }
+
+    private boolean isRuntimeValue(DdcConfigVersionEntity version) {
+        return !ChangeType.DELETE.name().equals(version.getChangeType());
     }
 }

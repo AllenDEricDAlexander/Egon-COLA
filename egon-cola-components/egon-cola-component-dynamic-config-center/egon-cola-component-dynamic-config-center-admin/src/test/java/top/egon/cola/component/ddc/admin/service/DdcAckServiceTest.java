@@ -14,10 +14,12 @@ import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishAckEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.PublishMode;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.common.DdcChecksum;
@@ -32,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DataJpaTest
 @Import({
         DdcPublishService.class,
+        DdcPendingPublishDispatcher.class,
         DdcPublishStateTransitionService.class,
         PublishFailureRecorder.class,
         PublishResourceLockRegistry.class,
@@ -59,6 +62,9 @@ class DdcAckServiceTest {
     private DdcPublishTaskRepository taskRepository;
 
     @Autowired
+    private DdcConfigItemRepository configItemRepository;
+
+    @Autowired
     private DdcPublishAckRepository ackRepository;
 
     @Autowired
@@ -81,6 +87,28 @@ class DdcAckServiceTest {
                     assertThat(updated.getAckCount()).isEqualTo(1);
                     assertThat(updated.getStatus()).isEqualTo(PublishStatus.SUCCESS.name());
                 });
+    }
+
+    @Test
+    void duplicateAckCompletesAfterPublishedPointerCatchesUp() {
+        DdcPublishTaskEntity task = savePublishingTask("ack-pointer-catch-up");
+        DdcConfigItemEntity config = configItemRepository.findById(task.getConfigId())
+                .orElseThrow();
+        config.setPublishedVersion(1L);
+        configItemRepository.saveAndFlush(config);
+        saveTarget(task, "instance-1", "lease-1");
+        DdcAckRequest request =
+                ackRequest(task.getChangeId(), "instance-1", "lease-1", CHECKSUM);
+
+        assertThat(publishService.ack(request).getStatus())
+                .isEqualTo(PublishStatus.PUBLISHING.name());
+        config = configItemRepository.findById(task.getConfigId()).orElseThrow();
+        config.setPublishedVersion(2L);
+        configItemRepository.saveAndFlush(config);
+
+        assertThat(publishService.ack(request).getStatus())
+                .isEqualTo(PublishStatus.SUCCESS.name());
+        assertThat(ackRepository.findByChangeId(task.getChangeId())).hasSize(1);
     }
 
     @Test
@@ -172,9 +200,27 @@ class DdcAckServiceTest {
     private DdcPublishTaskEntity savePublishingTask(String configKey) {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
+        String configId = UuidV7.simpleString();
+        DdcConfigItemEntity config = new DdcConfigItemEntity();
+        config.setId(configId);
+        config.setAppCode("demo");
+        config.setEnv("dev");
+        config.setNamespace("default");
+        config.setConfigKey(configKey);
+        config.setConfigValue("true");
+        config.setDefaultValue("false");
+        config.setValueType("BOOLEAN");
+        config.setCurrentVersion(2L);
+        config.setPublishedVersion(2L);
+        config.setEnabled(true);
+        config.setDeleted(false);
+        config.setCreatedAt(now);
+        config.setUpdatedAt(now);
+        configItemRepository.saveAndFlush(config);
+
         task.setId(UuidV7.simpleString());
         task.setChangeId(UuidV7.simpleString());
-        task.setConfigId(UuidV7.simpleString());
+        task.setConfigId(configId);
         task.setAppCode("demo");
         task.setEnv("dev");
         task.setNamespace("default");

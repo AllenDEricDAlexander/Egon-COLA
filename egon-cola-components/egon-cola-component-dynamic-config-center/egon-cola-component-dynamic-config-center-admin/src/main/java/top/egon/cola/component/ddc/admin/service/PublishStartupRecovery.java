@@ -5,9 +5,11 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
+import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 
@@ -22,12 +24,13 @@ public class PublishStartupRecovery implements ApplicationRunner {
 
     private static final List<String> ACTIVE_STATUSES = List.of(
             PublishStatus.PENDING.name(),
-            PublishStatus.PUBLISHING.name()
+            PublishStatus.PUBLISHING.name(),
+            PublishStatus.UNKNOWN.name()
     );
 
     private final DdcPublishTaskRepository taskRepository;
 
-    private final DdcPublishStateTransitionService stateTransitions;
+    private final DdcPendingPublishDispatcher dispatcher;
 
     private final DdcAdminProperties properties;
 
@@ -36,11 +39,11 @@ public class PublishStartupRecovery implements ApplicationRunner {
     @Autowired
     public PublishStartupRecovery(
             DdcPublishTaskRepository taskRepository,
-            DdcPublishStateTransitionService stateTransitions,
+            DdcPendingPublishDispatcher dispatcher,
             DdcAdminProperties properties) {
         this(
                 taskRepository,
-                stateTransitions,
+                dispatcher,
                 properties,
                 Clock.systemUTC()
         );
@@ -48,18 +51,25 @@ public class PublishStartupRecovery implements ApplicationRunner {
 
     PublishStartupRecovery(
             DdcPublishTaskRepository taskRepository,
-            DdcPublishStateTransitionService stateTransitions,
+            DdcPendingPublishDispatcher dispatcher,
             DdcAdminProperties properties,
             Clock clock) {
         this.taskRepository = taskRepository;
-        this.stateTransitions = stateTransitions;
+        this.dispatcher = dispatcher;
         this.properties = properties;
         this.clock = clock;
     }
 
     @Override
-    @Transactional
     public void run(ApplicationArguments args) {
+        recoverStale();
+    }
+
+    @Scheduled(
+            fixedDelayString = "${egon.cola.component.ddc.admin.publish.recovery-stale-ms:120000}",
+            initialDelayString = "${egon.cola.component.ddc.admin.publish.recovery-stale-ms:120000}"
+    )
+    public int recoverStale() {
         long staleMs = properties.getPublish().getRecoveryStaleMs();
         if (staleMs <= 0) {
             throw new IllegalStateException(
@@ -70,13 +80,20 @@ public class PublishStartupRecovery implements ApplicationRunner {
                 clock.instant().minusMillis(staleMs),
                 ZoneId.systemDefault()
         );
-        taskRepository.findByStatusInAndUpdatedAtBefore(
+        List<DdcPublishTaskEntity> tasks =
+                taskRepository.findByStatusInAndUpdatedAtBefore(
                         ACTIVE_STATUSES,
                         staleBefore
-                )
-                .forEach(task -> stateTransitions.unknown(
-                        task.getChangeId(),
-                        "publish owner did not complete before HA stale timeout"
-                ));
+                );
+        tasks.forEach(task -> replay(task.getChangeId()));
+        return tasks.size();
+    }
+
+    private void replay(String changeId) {
+        try {
+            dispatcher.dispatch(changeId);
+        } catch (DdcAdminException ignored) {
+            // The dispatcher persisted the deterministic rejection on the task.
+        }
     }
 }

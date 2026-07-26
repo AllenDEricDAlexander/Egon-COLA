@@ -3,7 +3,7 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.context.RpcFailureStage;
 
 public class RpcStatusExceptionMapper {
 
@@ -21,6 +21,7 @@ public class RpcStatusExceptionMapper {
             case UNAVAILABLE -> unavailableCode(exception.getTrailers());
             case INVALID_ARGUMENT -> EgonRpcErrorCode.RPC_INVALID_REQUEST;
             case PERMISSION_DENIED -> EgonRpcErrorCode.RPC_PROVIDER_REJECTED;
+            case UNIMPLEMENTED -> EgonRpcErrorCode.RPC_METHOD_NOT_FOUND;
             case NOT_FOUND -> notFoundCode(exception.getTrailers());
             default -> EgonRpcErrorCode.RPC_INTERNAL;
         };
@@ -39,10 +40,9 @@ public class RpcStatusExceptionMapper {
     }
 
     private EgonRpcErrorCode unavailableCode(Metadata trailers) {
-        String stage = trailers == null
-                ? null
-                : trailers.get(RpcMetadataKeys.FAILURE_STAGE);
-        return "provider".equalsIgnoreCase(stage)
+        return RpcFailureStage.from(trailers)
+                .filter(stage -> stage == RpcFailureStage.PROVIDER)
+                .isPresent()
                 ? EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE
                 : EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE;
     }

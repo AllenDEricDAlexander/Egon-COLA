@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: gateway-test-webflux-http-provider
+  main:
+    web-application-type: reactive
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+
+server:
+  port: 0
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+gateway:
+  test:
+    service-version: ${GATEWAY_TEST_SERVICE_VERSION:1.0.0-live}
+
+egon:
+  cola:
+    component:
+      ddc:
+        enabled: false
+        env: test
+        namespace: gateway-test
+        registry:
+          enabled: false
+      gateway:
+        reporting:
+          enabled: false
+          application-code: gateway-test-http-provider
+          application-name: Gateway Test HTTP Provider
+          env: test
+          namespace: gateway-test
+          artifact-version: ${gateway.test.service-version}
+          build-id: ${GATEWAY_TEST_BUILD_ID:local-webflux}
+        provider:
+          http:
+            enabled: true
+            instance-id: ${gateway.test.provider-id:webflux-http-provider-default}
+            service-name: gateway-test-http-provider
+            group: default
+            version: ${egon.cola.component.gateway.reporting.artifact-version}
+            protocol: http
+            advertised-host: ${gateway.test.advertised-host:127.0.0.1}
+            port: ${gateway.test.advertised-port:0}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true
+            metadata:
+              gateway.zone: ${gateway.test.zone:zone-b}
+              gateway.weight: ${gateway.test.weight:100}

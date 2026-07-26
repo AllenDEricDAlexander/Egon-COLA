@@ -134,13 +134,17 @@ public class DdcConfigLeaseRedisRepository {
                                                 String namespace,
                                                 Instant now) {
         Set<String> instanceIds =
-                redissonClient.<String>getSet(DdcKeys.instances(appCode, env, namespace))
+                redissonClient.<String>getSet(
+                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace)
+                        )
                         .readAll();
         List<DdcPublishTarget> targets = new ArrayList<>();
         for (String instanceId : instanceIds) {
-            JsonNode lease = currentLease(env, namespace, instanceId);
+            JsonNode lease = currentLease(appCode, env, namespace, instanceId);
             if (!isActive(lease, appCode, env, namespace, now)) {
-                redissonClient.<String>getSet(DdcKeys.instances(appCode, env, namespace))
+                redissonClient.<String>getSet(
+                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace)
+                        )
                         .remove(instanceId);
                 continue;
             }
@@ -160,20 +164,22 @@ public class DdcConfigLeaseRedisRepository {
                                   String namespace,
                                   DdcPublishTarget target,
                                   Instant now) {
-        JsonNode lease = currentLease(env, namespace, target.instanceId());
+        JsonNode lease = currentLease(
+                appCode, env, namespace, target.instanceId()
+        );
         return isActive(lease, appCode, env, namespace, now)
                 && target.leaseId().equals(lease.path("leaseId").asText());
     }
 
     private List<Object> keys(String env, String namespace, String appCode, String instanceId) {
         return List.of(
-                DdcKeys.leaseInstance(
+                DdcKeys.v2ConfigLeaseInstance(
+                        appCode,
                         env,
                         namespace,
-                        DdcLeaseRole.CONFIG_CLIENT,
                         instanceId
                 ),
-                DdcKeys.instances(appCode, env, namespace)
+                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace)
         );
     }
 
@@ -204,13 +210,13 @@ public class DdcConfigLeaseRedisRepository {
         }
     }
 
-    private JsonNode currentLease(String env, String namespace, String instanceId) {
-        String value = redissonClient.<String>getBucket(DdcKeys.leaseInstance(
-                env,
-                namespace,
-                DdcLeaseRole.CONFIG_CLIENT,
-                instanceId
-        )).get();
+    private JsonNode currentLease(String appCode,
+                                  String env,
+                                  String namespace,
+                                  String instanceId) {
+        String value = redissonClient.<String>getBucket(
+                DdcKeys.v2ConfigLeaseInstance(appCode, env, namespace, instanceId)
+        ).get();
         if (value == null) {
             return null;
         }

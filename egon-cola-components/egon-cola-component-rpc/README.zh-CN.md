@@ -298,7 +298,7 @@ egon:
           enabled: true
           default-timeout-ms: 3000
           gateway-discovery-timeout-ms: 5000
-          gateway-service-name: egon-internal-rpc-gateway
+          gateway-service-name: egon-gateway-rpc
           gateway-group: default
           gateway-version: 1.0.0
           channel-drain-timeout-ms: 5000
@@ -313,7 +313,7 @@ Consumer 配置项：
 | `consumer.enabled` | `false` | 启用 Gateway 发现与 Consumer Proxy |
 | `consumer.default-timeout-ms` | `3000` | 默认 unary Deadline 上限 |
 | `consumer.gateway-discovery-timeout-ms` | `5000` | 启动发现及 Channel Ready 超时 |
-| `consumer.gateway-service-name` | `egon-internal-rpc-gateway` | 精确 Gateway 服务名 |
+| `consumer.gateway-service-name` | `egon-gateway-rpc` | 精确 Gateway 服务名 |
 | `consumer.gateway-group` | `default` | 精确 Gateway 分组 |
 | `consumer.gateway-version` | `1.0.0` | 精确 Gateway 版本 |
 | `consumer.channel-drain-timeout-ms` | `5000` | 被替换 Channel 的排空超时 |
@@ -394,6 +394,9 @@ Redis 需要鉴权时设置 `DDC_TEST_REDIS_PASSWORD`。进程测试使用临时
 停止所有子进程。
 
 ## V1 非目标
+
+生产 Gateway 拓扑、双 Engine 调用和故障演练见
+[Gateway + DDC + RPC 联调 Runbook](../egon-cola-component-gateway/docs/developer-integration.zh-CN.md)。
 
 V1 不实现：
 

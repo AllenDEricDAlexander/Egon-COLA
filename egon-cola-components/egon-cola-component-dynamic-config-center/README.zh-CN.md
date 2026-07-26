@@ -250,8 +250,18 @@ egon:
             maximum-seconds: 300
           openapi:
             signature-enabled: true
-            access-key: ${DDC_ACCESS_KEY}
-            secret-key: ${DDC_SECRET_KEY}
+            credentials:
+              - credential-id: gateway-engine
+                access-key: ${DDC_ACCESS_KEY}
+                secret: ${DDC_SECRET_KEY}
+                client-type: "*"
+                app-code-patterns: [gateway-engine-*]
+                env-patterns: [local]
+                namespace-patterns: [default]
+                allowed-operations: [SDK_REGISTER, SDK_HEARTBEAT,
+                  SDK_OFFLINE, CONFIG_PULL, CONFIG_VALUE, PUBLISH_ACK,
+                  DEFAULTS_REPORT, REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
+                  REGISTRY_DEREGISTER, REGISTRY_READ]
           publish:
             dispatch-timeout-ms: 5000
             default-timeout-ms: 30000
@@ -277,6 +287,9 @@ egon:
 ```
 
 ## 明确边界
+
+完整的 DDC + Gateway + RPC 启动顺序、凭据、租约演练和运行证据见
+[开发联调 Runbook](../egon-cola-component-gateway/docs/developer-integration.zh-CN.md)。
 
 - 不支持 Raft、Leader 选举、共识日志或成员协议；
 - 多 Admin 运行要求共享 PostgreSQL 和 Redis；组件不负责提供数据库或 Redis HA；

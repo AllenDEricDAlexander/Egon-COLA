@@ -63,7 +63,8 @@ public class DdcServiceRegistryRedisRepository {
                 instanceJson(instance),
                 instance.leaseSeconds(),
                 instance.leaseExpireAt().toEpochMilli(),
-                json(serviceKey)
+                json(serviceKey),
+                legacyTopic(serviceKey)
         );
         int code = number(result, 0).intValue();
         if (code == 2) {
@@ -83,13 +84,8 @@ public class DdcServiceRegistryRedisRepository {
                 HEARTBEAT_SCRIPT,
                 RScript.ReturnType.MULTI,
                 List.of(
-                        DdcKeys.registryInstance(
-                                request.getEnv(),
-                                request.getNamespace(),
-                                request.getServiceKind(),
-                                request.getInstanceId()
-                        ),
-                        DdcKeys.registryService(serviceKey)
+                        DdcKeys.v2RegistryInstance(serviceKey, request.getInstanceId()),
+                        DdcKeys.v2RegistryService(serviceKey)
                 ),
                 request.getInstanceId(),
                 request.getLeaseId(),
@@ -122,7 +118,8 @@ public class DdcServiceRegistryRedisRepository {
                 request.getLeaseId(),
                 serviceKey.canonicalValue(),
                 json(serviceKey),
-                deregisteredAt.toEpochMilli()
+                deregisteredAt.toEpochMilli(),
+                legacyTopic(serviceKey)
         );
         int code = number(result, 0).intValue();
         return switch (code) {
@@ -138,21 +135,18 @@ public class DdcServiceRegistryRedisRepository {
     public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey, Instant now) {
         knownServiceKeys.add(serviceKey);
         Collection<String> expired = redissonClient.<String>getScoredSortedSet(
-                        DdcKeys.registryService(serviceKey))
+                        DdcKeys.v2RegistryService(serviceKey))
                 .valueRange(Double.NEGATIVE_INFINITY, true, now.toEpochMilli(), true);
         expired.forEach(instanceId -> expire(serviceKey, instanceId, now));
 
         Collection<String> members = redissonClient.<String>getScoredSortedSet(
-                        DdcKeys.registryService(serviceKey))
+                        DdcKeys.v2RegistryService(serviceKey))
                 .valueRange(now.toEpochMilli(), false, Double.POSITIVE_INFINITY, true);
         List<DdcServiceInstance> instances = new ArrayList<>();
         for (String instanceId : members) {
-            String value = redissonClient.<String>getBucket(DdcKeys.registryInstance(
-                    serviceKey.env(),
-                    serviceKey.namespace(),
-                    serviceKey.serviceKind(),
-                    instanceId
-            )).get();
+            String value = redissonClient.<String>getBucket(
+                    DdcKeys.v2RegistryInstance(serviceKey, instanceId)
+            ).get();
             if (value == null) {
                 expire(serviceKey, instanceId, now);
                 continue;
@@ -170,13 +164,13 @@ public class DdcServiceRegistryRedisRepository {
             expire(serviceKey, "", now);
         }
         long revision =
-                redissonClient.getAtomicLong(DdcKeys.registryRevision(serviceKey)).get();
+                redissonClient.getAtomicLong(DdcKeys.v2RegistryRevision(serviceKey)).get();
         return new DdcServiceSnapshot(serviceKey, revision, instances, now);
     }
 
     public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query,
                                                     Instant now) {
-        Set<String> members = redissonClient.<String>getSet(DdcKeys.registryCatalog(
+        Set<String> members = redissonClient.<String>getSet(DdcKeys.v2RegistryCatalog(
                 query.env(),
                 query.namespace(),
                 query.serviceKind(),
@@ -193,7 +187,7 @@ public class DdcServiceRegistryRedisRepository {
             }
             serviceKeys.add(serviceKey);
         }
-        long revision = redissonClient.getAtomicLong(DdcKeys.registryCatalogRevision(
+        long revision = redissonClient.getAtomicLong(DdcKeys.v2RegistryCatalogRevision(
                 query.env(),
                 query.namespace(),
                 query.serviceKind(),
@@ -206,11 +200,11 @@ public class DdcServiceRegistryRedisRepository {
         int removed = 0;
         for (DdcServiceKey serviceKey : List.copyOf(knownServiceKeys)) {
             int before = redissonClient.<String>getScoredSortedSet(
-                    DdcKeys.registryService(serviceKey)
+                    DdcKeys.v2RegistryService(serviceKey)
             ).size();
             getInstances(serviceKey, now);
             int after = redissonClient.<String>getScoredSortedSet(
-                    DdcKeys.registryService(serviceKey)
+                    DdcKeys.v2RegistryService(serviceKey)
             ).size();
             removed += Math.max(0, before - after);
             if (after == 0) {
@@ -229,38 +223,43 @@ public class DdcServiceRegistryRedisRepository {
                 instanceId,
                 serviceKey.canonicalValue(),
                 now.toEpochMilli(),
-                json(serviceKey)
+                json(serviceKey),
+                legacyTopic(serviceKey)
         );
     }
 
     private List<Object> keys(DdcServiceKey serviceKey, String instanceId) {
         return List.of(
-                DdcKeys.registryInstance(
-                        serviceKey.env(),
-                        serviceKey.namespace(),
-                        serviceKey.serviceKind(),
-                        instanceId
-                ),
-                DdcKeys.registryService(serviceKey),
-                DdcKeys.registryRevision(serviceKey),
-                DdcKeys.registryCatalog(
+                DdcKeys.v2RegistryInstance(serviceKey, instanceId),
+                DdcKeys.v2RegistryService(serviceKey),
+                DdcKeys.v2RegistryRevision(serviceKey),
+                DdcKeys.v2RegistryCatalog(
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind(),
                         serviceKey.protocol()
                 ),
-                DdcKeys.registryCatalogRevision(
+                DdcKeys.v2RegistryCatalogRevision(
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind(),
                         serviceKey.protocol()
                 ),
-                DdcKeys.registryTopic(
+                DdcKeys.v2RegistryTopic(
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind(),
                         serviceKey.protocol()
                 )
+        );
+    }
+
+    private String legacyTopic(DdcServiceKey serviceKey) {
+        return DdcKeys.registryTopic(
+                serviceKey.env(),
+                serviceKey.namespace(),
+                serviceKey.serviceKind(),
+                serviceKey.protocol()
         );
     }
 

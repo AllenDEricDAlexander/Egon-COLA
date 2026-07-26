@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.service;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.common.DdcException;
@@ -21,13 +22,89 @@ import java.time.Instant;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class DdcRefreshServiceTest {
+
+    @Test
+    void targetMessageSubmitsAckToLifecycleDelivery() {
+        DdcAckDelivery delivery = mock(DdcAckDelivery.class);
+        when(delivery.submit(any())).thenReturn(true);
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        DdcConfigApplier applier = (key, value, version) -> {
+        };
+        DdcRefreshService service = new DdcRefreshService(
+                repository,
+                new DefaultDdcConfigApplierRegistry(applier),
+                delivery,
+                sessionHolder()
+        );
+
+        service.refresh(message("switch", "on", 2L));
+
+        ArgumentCaptor<DdcAckRequest> ack =
+                ArgumentCaptor.forClass(DdcAckRequest.class);
+        verify(delivery).submit(ack.capture());
+        assertThat(ack.getValue()).satisfies(request -> {
+            assertThat(request.getChangeId()).isEqualTo("c1");
+            assertThat(request.getStatus()).isEqualTo(DdcAckStatus.SUCCESS);
+            assertThat(request.getInstanceId()).isEqualTo("instance-1");
+            assertThat(request.getLeaseId()).isEqualTo("lease-1");
+        });
+    }
+
+    @Test
+    void batchSnapshotAppliesByPriorityThenConfigKey() {
+        RecordingAdminClient client = new RecordingAdminClient();
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        List<String> applied = new ArrayList<>();
+        DdcConfigApplier fallback = (key, value, version) -> applied.add(key);
+        DefaultDdcConfigApplierRegistry registry =
+                new DefaultDdcConfigApplierRegistry(fallback);
+        registry.registerPrefix(
+                "gateway.rules.chunk.",
+                (key, value, version) -> applied.add(key)
+        );
+        registry.registerExact(
+                "gateway.rules.active",
+                new DdcConfigApplier() {
+                    @Override
+                    public void apply(String key, String value, long version) {
+                        applied.add(key);
+                    }
+
+                    @Override
+                    public int priority() {
+                        return 100;
+                    }
+                }
+        );
+        registry.freeze();
+        DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
+        DdcRefreshService service =
+                new DdcRefreshService(repository, registry, client, holder);
+
+        service.applySnapshots(List.of(
+                config("gateway.rules.active", "release-1", 1L),
+                config("gateway.rules.chunk.002", "chunk-2", 1L),
+                config("gateway.rules.chunk.001", "chunk-1", 1L)
+        ));
+
+        assertThat(applied).containsExactly(
+                "gateway.rules.chunk.001",
+                "gateway.rules.chunk.002",
+                "gateway.rules.active"
+        );
+    }
 
     @Test
     void snapshotAppliesWithoutAckAndOlderSnapshotCannotOverwriteTopicValue() {
@@ -213,6 +290,10 @@ class DdcRefreshServiceTest {
     private DdcRefreshService service(DdcLocalConfigRepository repository,
                                       DdcConfigApplier applier,
                                       RecordingAdminClient client) {
+        return new DdcRefreshService(repository, applier, client, sessionHolder());
+    }
+
+    private DdcLeaseSessionHolder sessionHolder() {
         DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
         Instant registeredAt = Instant.parse("2026-07-24T12:00:00Z");
         holder.replace(new DdcLeaseSession(
@@ -224,7 +305,7 @@ class DdcRefreshServiceTest {
                 registeredAt,
                 registeredAt.plusSeconds(30)
         ));
-        return new DdcRefreshService(repository, applier, client, holder);
+        return holder;
     }
 
     private DdcPublishMessage message(String key, String value, long version) {

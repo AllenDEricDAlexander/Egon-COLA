@@ -4,10 +4,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishTarget;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
 import top.egon.cola.component.gateway.admin.domain.GatewayReleaseStatus;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
@@ -21,7 +20,7 @@ public class GatewayReleaseReconciler {
 
     private final GatewayReleaseStore releases;
 
-    private final DdcManagementClient client;
+    private final GatewayReleasePublicationCoordinator coordinator;
 
     private final GatewayDraftRepository drafts;
 
@@ -31,12 +30,13 @@ public class GatewayReleaseReconciler {
 
     public GatewayReleaseReconciler(
             GatewayReleaseStore releases,
-            ObjectProvider<DdcManagementClient> client,
+            ObjectProvider<GatewayReleasePublicationCoordinator>
+                    coordinator,
             GatewayDraftRepository drafts,
             TransactionTemplate transactions) {
         this(
                 releases,
-                client.getIfAvailable(),
+                coordinator.getIfAvailable(),
                 drafts,
                 transactions,
                 Clock.systemUTC()
@@ -45,12 +45,12 @@ public class GatewayReleaseReconciler {
 
     GatewayReleaseReconciler(
             GatewayReleaseStore releases,
-            DdcManagementClient client,
+            GatewayReleasePublicationCoordinator coordinator,
             GatewayDraftRepository drafts,
             TransactionTemplate transactions,
             Clock clock) {
         this.releases = releases;
-        this.client = client;
+        this.coordinator = coordinator;
         this.drafts = drafts;
         this.transactions = transactions;
         this.clock = clock;
@@ -61,69 +61,72 @@ public class GatewayReleaseReconciler {
                     "${gateway.admin.release-reconcile-delay:30000}"
     )
     public void reconcile() {
-        if (client == null) {
+        if (coordinator == null) {
             return;
         }
         releases.recoverable().forEach(this::reconcile);
     }
 
-    private void reconcile(GatewayReleaseStore.ReleaseRecord release) {
-        DdcManagementPublishTask task;
+    private void reconcile(GatewayReleaseStore.RecoverableAttempt attempt) {
+        GatewayReleasePublicationCoordinator.PublicationOutcome outcome;
         try {
-            task = client.getPublishTask(release.changeId());
+            outcome = coordinator.resume(
+                    attempt.releaseId(),
+                    attempt.attemptNo()
+            );
         } catch (RuntimeException unavailable) {
             return;
         }
-        GatewayReleaseStatus status = terminal(task.status());
-        if (status == null) {
-            return;
-        }
-        int attempt = releases.latestAttempt(release.id());
-        List<GatewayReleaseStore.TargetRecord> targets = task.targets()
+        List<GatewayReleaseStore.TargetRecord> targets = outcome.result()
+                .targets()
                 .stream()
                 .map(this::target)
                 .toList();
         transactions.executeWithoutResult(transaction -> {
             releases.completeAttempt(
-                        release.id(),
-                        attempt,
-                        status,
-                        task.status()
-                                == DdcManagementPublishStatus.PARTIAL_SUCCESS,
-                        task.changeId(),
-                        task.errorMessage() == null
-                                ? null
-                                : "DDC_PUBLISH_" + task.status(),
-                        task.errorMessage(),
-                        targets,
-                        clock.instant()
-                );
-            if (status == GatewayReleaseStatus.SUCCESS) {
-                GatewayDraftEntity draft = drafts.findById(
-                        release.gatewayGroupId()
-                ).orElse(null);
-                if (draft != null
-                        && !release.id().equals(
-                        draft.getBasedOnReleaseId())) {
-                    draft.baseOn(
-                            release.id(),
-                            "gateway-release-reconciler",
-                            clock.instant()
-                    );
-                    drafts.flush();
-                }
+                    attempt.releaseId(),
+                    attempt.attemptNo(),
+                    releaseStatus(outcome.status()),
+                    outcome.partialApplied(),
+                    outcome.changeId(),
+                    outcome.successful()
+                            ? null
+                            : "DDC_PUBLISH_" + outcome.status(),
+                    outcome.result().errorMessage(),
+                    targets,
+                    clock.instant()
+            );
+            if (outcome.successful()) {
+                advanceDraft(attempt);
             }
         });
     }
 
-    private GatewayReleaseStatus terminal(
-            DdcManagementPublishStatus status) {
+    private void advanceDraft(
+            GatewayReleaseStore.RecoverableAttempt attempt) {
+        GatewayDraftEntity draft = drafts.findById(
+                attempt.gatewayGroupId()
+        ).orElse(null);
+        if (draft != null
+                && !attempt.releaseId().equals(
+                draft.getBasedOnReleaseId())) {
+            draft.baseOn(
+                    attempt.releaseId(),
+                    "gateway_release_reconciler",
+                    clock.instant()
+            );
+            drafts.flush();
+        }
+    }
+
+    private GatewayReleaseStatus releaseStatus(
+            GatewayReleasePublicationStore.PublicationStatus status) {
         return switch (status) {
             case SUCCESS -> GatewayReleaseStatus.SUCCESS;
-            case PARTIAL_SUCCESS, FAILED -> GatewayReleaseStatus.FAILED;
+            case FAILED, PARTIAL_SUCCESS -> GatewayReleaseStatus.FAILED;
             case TIMEOUT -> GatewayReleaseStatus.TIMEOUT;
-            case UNKNOWN -> GatewayReleaseStatus.UNKNOWN;
-            case PENDING, PUBLISHING -> null;
+            case PLANNED, RESOLVED, SUBMITTED, UNKNOWN ->
+                    GatewayReleaseStatus.UNKNOWN;
         };
     }
 

@@ -197,10 +197,13 @@ git commit -m "test: verify gateway rpc and rule lifecycle"
 - Produces commands `doctor|build|up-control|init|up-providers|publish|up-consumer|verify|logs|down|purge`.
 - Produces deterministic ports 18070-19190 and unique Compose project name.
 
-- [ ] **Step 1: Write shell/Compose contract tests**
+- [ ] **Step 1: Write shell/Compose behavior tests**
 
-Assert each subcommand exists, scripts use `set -euo pipefail`, secrets are not echoed, `down` omits `-v`,
-`purge` checks project/local marker before `down -v`, and all advertised hosts are service DNS names.
+Run every subcommand with fake `docker`, `docker compose` and `curl` executables placed first on `PATH`.
+Assert observable argv, exit status and filesystem effects: secrets are not printed, `down` never passes `-v`,
+`purge` refuses an unmarked/non-local project and only a marked local project reaches `down -v`. Parse the
+rendered Compose model to assert advertised hosts resolve through service DNS names. Do not grep shell source
+text for implementation details such as `set -euo pipefail`.
 
 - [ ] **Step 2: Run static test and Compose config**
 
@@ -258,24 +261,23 @@ git commit -m "feat: add gateway integration demo"
 - Modify: `.../gateway/deployment/README.md`
 - Modify: `.../gateway/deployment/README.zh-CN.md`
 - Modify: Admin Web README files to remove nonexistent `VITE_GATEWAY_ADMIN_ACTOR_ID`.
-- Test: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/docs/GatewayIntegrationDocumentationTest.java`
 
 **Interfaces:**
 - Consumes only commands and ports implemented by Task 4.
 - Produces environment, startup, verification, failure, logs, metrics, stop/cleanup and troubleshooting guidance.
 
-- [ ] **Step 1: Add documentation link/command drift test**
+- [ ] **Step 1: Inventory executed evidence and documentation targets**
 
-Extract `./scripts/demo.sh <command>` and documented ports from both languages; assert they match the script and
-Compose model. Assert every relative README link resolves and forbidden obsolete variables are absent.
+Use the Task 4 command transcripts, rendered Compose model and actual `demo.sh --help` output as the source of
+truth. Resolve every relative README link and inventory obsolete variables before editing. Do not add a unit
+test that parses prose or shell source.
 
-- [ ] **Step 2: Run documentation contract test**
+- [ ] **Step 2: Run current module tests before documentation edits**
 
 ```bash
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-gateway/\
-egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
-  -am test -Dtest=GatewayIntegrationDocumentationTest
+egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite -am test
 ```
 
 - [ ] **Step 3: Write both Runbooks from executed evidence**
@@ -287,7 +289,10 @@ scenarios explicitly unverified.
 
 - [ ] **Step 4: Re-run documentation/static/real verification**
 
-Run Step 2, `docker compose config --quiet`, `demo.sh verify`, and `git diff --check`. Expected: PASS.
+Run Step 2, `demo.sh --help`, `docker compose config --quiet`, the documented Demo lifecycle including
+`demo.sh verify`, a relative-link resolver, `rg 'VITE_GATEWAY_ADMIN_ACTOR_ID'` expecting no matches, and
+`git diff --check`. Expected: PASS. Record the exact evidence in the final acceptance report rather than
+encoding prose structure into a change-detector test.
 
 - [ ] **Step 5: Commit**
 

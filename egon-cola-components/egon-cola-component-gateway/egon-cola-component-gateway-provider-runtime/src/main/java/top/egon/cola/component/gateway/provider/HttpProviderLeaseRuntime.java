@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class HttpProviderLeaseRuntime implements AutoCloseable {
@@ -24,6 +25,8 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
 
     private final AtomicReference<HttpProviderRuntimeState> state =
             new AtomicReference<>(HttpProviderRuntimeState.NEW);
+
+    private final AtomicBoolean heartbeatScheduled = new AtomicBoolean();
 
     private volatile DdcServiceRegistration registration;
 
@@ -76,18 +79,16 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
         );
         try {
             register();
-            scheduler.scheduleWithFixedDelay(
-                    this::heartbeatSafely,
-                    properties.heartbeatIntervalSeconds(),
-                    properties.heartbeatIntervalSeconds(),
-                    TimeUnit.SECONDS
-            );
         } catch (RuntimeException failure) {
             state.set(properties.failFast()
                     ? HttpProviderRuntimeState.FAILED
                     : HttpProviderRuntimeState.RECOVERING);
             if (properties.failFast()) {
                 throw failure;
+            }
+        } finally {
+            if (state.get() != HttpProviderRuntimeState.FAILED) {
+                scheduleHeartbeat();
             }
         }
     }
@@ -110,6 +111,8 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
             if (!result.renewed()) {
                 lease = null;
                 recover();
+            } else if (result.leaseExpireAt() != null) {
+                renewLeaseExpiry(result);
             }
         } catch (RuntimeException failure) {
             lease = null;
@@ -123,6 +126,10 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
 
     public Optional<DdcLeaseSession> lease() {
         return Optional.ofNullable(lease);
+    }
+
+    public String instanceId() {
+        return properties.instanceId();
     }
 
     @Override
@@ -147,8 +154,36 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
         try {
             heartbeatAndRecover();
         } catch (RuntimeException ignored) {
-            state.set(HttpProviderRuntimeState.RECOVERING);
+            if (state.get() != HttpProviderRuntimeState.FAILED
+                    && state.get() != HttpProviderRuntimeState.STOPPED) {
+                state.set(HttpProviderRuntimeState.RECOVERING);
+            }
         }
+    }
+
+    private void scheduleHeartbeat() {
+        if (!heartbeatScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        scheduler.scheduleWithFixedDelay(
+                this::heartbeatSafely,
+                properties.heartbeatIntervalSeconds(),
+                properties.heartbeatIntervalSeconds(),
+                TimeUnit.SECONDS
+        );
+    }
+
+    private void renewLeaseExpiry(DdcLeaseOperationResult result) {
+        DdcLeaseSession current = lease;
+        lease = new DdcLeaseSession(
+                current.instanceId(),
+                current.leaseId(),
+                current.role(),
+                current.leaseSeconds(),
+                current.heartbeatIntervalSeconds(),
+                current.registeredAt(),
+                result.leaseExpireAt()
+        );
     }
 
     private void recover() {

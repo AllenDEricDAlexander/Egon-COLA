@@ -21,6 +21,7 @@ class GatewayEngineRuntimePropertiesTest {
                 properties.getHttp().getInternalPort()
         );
         assertTrue(properties.getRpc().isEnabled());
+        assertEquals("egon-gateway-rpc", properties.getRpc().getServiceName());
         assertFalse(properties.getKafka().isEnabled());
         assertFalse(properties.getActiveHealth().isEnabled());
         assertEquals(

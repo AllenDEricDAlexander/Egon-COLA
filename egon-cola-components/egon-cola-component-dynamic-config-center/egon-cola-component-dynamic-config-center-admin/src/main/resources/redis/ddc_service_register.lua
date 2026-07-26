@@ -24,4 +24,5 @@ local event = {
     catalogRevision = catalogRevision
 }
 redis.call('PUBLISH', KEYS[6], cjson.encode(event))
+redis.call('PUBLISH', ARGV[8], cjson.encode(event))
 return {1, serviceRevision, catalogRevision}

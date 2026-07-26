@@ -33,12 +33,21 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
     @Query("""
             update DdcPublishTaskEntity task
                set task.status = :publishingStatus,
+                   task.attemptCount = case
+                       when task.status = :pendingStatus
+                       then task.attemptCount
+                       else coalesce(task.attemptCount, 0) + 1
+                   end,
                    task.dispatchedAt = :dispatchedAt,
+                   task.completedAt = null,
+                   task.failureStage = null,
+                   task.errorMessage = null,
                    task.updatedAt = :dispatchedAt
              where task.changeId = :changeId
-               and task.status = :pendingStatus
+               and task.status in :dispatchableStatuses
             """)
     int transitionToPublishing(@Param("changeId") String changeId,
+                               @Param("dispatchableStatuses") Collection<String> dispatchableStatuses,
                                @Param("pendingStatus") String pendingStatus,
                                @Param("publishingStatus") String publishingStatus,
                                @Param("dispatchedAt") LocalDateTime dispatchedAt);

@@ -10,9 +10,11 @@ import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
+import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
@@ -68,6 +70,24 @@ public class DdcManagementFacade {
         this.publishAckRepository = publishAckRepository;
         this.instanceAdminService = instanceAdminService;
         this.registryService = registryService;
+    }
+
+    public DdcManagementConfig findConfig(DdcManagementConfigQuery query) {
+        require(query, "config query");
+        validateScope(
+                query.appCode(),
+                query.env(),
+                query.namespace(),
+                query.configKey()
+        );
+        return config(configService.find(
+                query.appCode(),
+                query.env(),
+                query.namespace(),
+                query.configKey()
+        ).orElseThrow(() -> new DdcAdminException(
+                DdcManagementErrorCode.CONFIG_NOT_FOUND
+        )));
     }
 
     public DdcManagementConfig upsert(DdcManagementConfigUpsertRequest request) {
@@ -141,7 +161,9 @@ public class DdcManagementFacade {
     public DdcManagementPublishTask getPublishTask(String changeId) {
         requireText(changeId, "changeId");
         DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(changeId)
-                .orElseThrow(() -> new DdcAdminException("publish task not found"));
+                .orElseThrow(() -> new DdcAdminException(
+                        DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND
+                ));
         List<DdcManagementPublishTarget> targets =
                 publishAckRepository.findByChangeId(changeId).stream()
                         .sorted(Comparator

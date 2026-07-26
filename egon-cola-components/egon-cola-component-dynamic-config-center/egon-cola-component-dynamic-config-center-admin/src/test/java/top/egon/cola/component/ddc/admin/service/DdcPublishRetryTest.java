@@ -16,12 +16,15 @@ import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.PublishMode;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
+import top.egon.cola.component.ddc.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
@@ -52,6 +55,7 @@ import static org.mockito.Mockito.when;
 @DataJpaTest
 @Import({
         DdcPublishService.class,
+        DdcPendingPublishDispatcher.class,
         DdcPublishStateTransitionService.class,
         PublishFailureRecorder.class,
         PublishResourceLockRegistry.class,
@@ -82,6 +86,9 @@ class DdcPublishRetryTest {
     private DdcPublishTaskRepository taskRepository;
 
     @Autowired
+    private DdcConfigItemRepository configItemRepository;
+
+    @Autowired
     private DdcPublishAckRepository ackRepository;
 
     @Autowired
@@ -102,9 +109,10 @@ class DdcPublishRetryTest {
     void retriesFailedTimeoutAndUnknownUsingOnlyOriginalTargets() throws Exception {
         LinkedBlockingQueue<DdcPublishMessage> published = new LinkedBlockingQueue<>();
         doAnswer(invocation -> {
-            published.add(invocation.getArgument(0));
+            DdcAtomicPublishCommand command = invocation.getArgument(0);
+            published.add(command.message());
             return null;
-        }).when(redisRepository).publish(any());
+        }).when(redisRepository).dispatch(any());
         when(leaseService.areActiveTargets(
                 eq("demo"),
                 eq("dev"),
@@ -164,7 +172,7 @@ class DdcPublishRetryTest {
                             .isEqualTo("DDC_TARGET_LEASE_EXPIRED");
                     assertThat(updated.getAttemptCount()).isZero();
                 });
-        verify(redisRepository, never()).publish(any());
+        verify(redisRepository, never()).dispatch(any());
     }
 
     @Test
@@ -185,6 +193,23 @@ class DdcPublishRetryTest {
     private DdcPublishTaskEntity saveRetryable(PublishStatus status, String configKey) {
         LocalDateTime now = LocalDateTime.now();
         String configId = UuidV7.simpleString();
+        DdcConfigItemEntity config = new DdcConfigItemEntity();
+        config.setId(configId);
+        config.setAppCode("demo");
+        config.setEnv("dev");
+        config.setNamespace("default");
+        config.setConfigKey(configKey);
+        config.setConfigValue("true");
+        config.setDefaultValue("false");
+        config.setValueType("BOOLEAN");
+        config.setCurrentVersion(2L);
+        config.setPublishedVersion(1L);
+        config.setEnabled(true);
+        config.setDeleted(false);
+        config.setCreatedAt(now.minusSeconds(10));
+        config.setUpdatedAt(now);
+        configItemRepository.saveAndFlush(config);
+
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(UuidV7.simpleString());
         task.setChangeId(UuidV7.simpleString());

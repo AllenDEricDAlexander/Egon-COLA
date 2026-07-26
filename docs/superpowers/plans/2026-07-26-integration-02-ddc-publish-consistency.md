@@ -27,8 +27,10 @@
 - Modify: `.../management-client/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacade.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`
 - Test: `.../management-client/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
 - Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiControllerTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacadeTest.java`
 
 **Interfaces:**
 - Produces `Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query)`.
@@ -58,7 +60,8 @@ Add a 404/empty response case that returns `Optional.empty()` and a validation c
 egon-cola-component-dynamic-config-center-management-client,\
 egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am test \
-  -Dtest=HttpDdcManagementClientTest,DdcManagementOpenApiControllerTest
+  -Dtest=HttpDdcManagementClientTest,DdcManagementOpenApiControllerTest,DdcManagementFacadeTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: missing method/endpoint failure.
@@ -78,7 +81,9 @@ public record DdcManagementConfigQuery(
 }
 ```
 
-The HTTP client catches only `DdcManagementClientException` with code `CONFIG_NOT_FOUND` and returns empty;
+`DdcConfigService` adds a repository-level exact lookup that preserves disabled/deleted management state; it
+must not reuse fuzzy list filtering or the runtime `value` method. The HTTP client catches only
+`DdcManagementClientException` with code `CONFIG_NOT_FOUND` and returns empty;
 authentication, `PUBLISH_TASK_NOT_FOUND`, signature and network failures propagate unchanged. The Admin facade
 uses the stable not-found codes instead of message matching.
 
@@ -100,9 +105,11 @@ git commit -m "feat: query exact ddc management config"
 - Create: `.../admin/src/main/resources/db/sqlite/V4__add_published_config_pointer.sql`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcConfigItemEntity.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcCacheService.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/migration/DdcV4MigrationTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV4MigrationTest.java`
 - Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcConfigServiceTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcCacheServiceTest.java`
 
 **Interfaces:**
 - Produces `DdcConfigItemEntity.publishedVersion`.
@@ -127,7 +134,9 @@ void pullReturnsPublishedVersionInsteadOfNewerDraft() {
 }
 ```
 
-Migration test upgrades V1-V3 data and asserts `published_version=current_version` for both dialects.
+Migration test executes a SQLite V1-V4 upgrade with existing data and asserts
+`published_version=current_version`. It also checks the PostgreSQL V4 contract; a real PostgreSQL migration run
+is required when Docker or an external PostgreSQL test endpoint is available.
 
 - [ ] **Step 2: Run tests and observe missing column/old pull behavior**
 
@@ -135,7 +144,8 @@ Migration test upgrades V1-V3 data and asserts `published_version=current_versio
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am test \
-  -Dtest=DdcV4MigrationTest,DdcConfigServiceTest
+  -Dtest=DdcV4MigrationTest,DdcConfigServiceTest,DdcCacheServiceTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 - [ ] **Step 3: Add both V4 files and published snapshot mapping**
@@ -157,7 +167,8 @@ update ddc_config_item set published_version = current_version;
 
 New configs initialize `current_version=1` and `published_version=NULL`. Pull skips a null published pointer,
 resolves non-null pointers through the immutable version row, and never reads a newer `config_value` as runtime
-state.
+state. Cache rebuild/check use the same published snapshot and do not leak draft values through an operations
+endpoint.
 
 - [ ] **Step 4: Run admin tests for both database profiles**
 
@@ -175,7 +186,10 @@ git commit -m "feat: separate ddc draft and published versions"
 **Files:**
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepository.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/service/DdcRedisChangeSubscription.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeSubscription.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscriptionManager.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigLeaseRedisRepository.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepository.java`
 - Modify: `.../admin/src/main/resources/redis/ddc_config_lease_register.lua`
@@ -218,7 +232,8 @@ Use Redisson/Redis CRC16 implementation or a deterministic test helper that hono
 egon-cola-component-dynamic-config-center-starter,\
 egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am test \
-  -Dtest=DdcKeysTest,DdcRedisClusterSlotContractTest
+  -Dtest=DdcKeysTest,DdcRedisClusterSlotContractTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: current legacy keys occupy different slots.
@@ -235,8 +250,12 @@ private static String registryTag(String env, String namespace, DdcServiceKind k
 }
 ```
 
-Write legacy and v2 config value/version; publish both topics. New readers use v2 first and legacy only on
-absence. Registry scripts receive only v2 same-slot keys; legacy topic remains emitted for old subscribers.
+The Admin `DdcRedisRepository` writes legacy and v2 config value/version and publishes both topics; the Starter
+repository reads v2 first and legacy only on absence, while its subscription listens to both channels. Registry
+scripts receive only v2 same-slot keys; the legacy topic is passed as a Lua argument (not a script key) and is
+still emitted for old subscribers without reintroducing a cross-slot key. New registry subscriptions listen to
+both v2 and legacy channels so every old/new Admin and Starter combination remains observable during the
+compatibility window.
 
 - [ ] **Step 4: Run unit tests, Sentinel failover and real three-node Redis Cluster IT**
 
@@ -261,14 +280,17 @@ git commit -m "feat: add cluster-safe ddc redis keys"
 ### Task 4: 原子 Redis dispatch 与 published pointer 推进
 
 **Files:**
+- Create: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcAtomicPublishCommand.java`
 - Create: `.../admin/src/main/resources/redis/ddc_config_publish.lua`
 - Create: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPendingPublishDispatcher.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishService.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishStateTransitionService.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/PublishStartupRecovery.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`
 - Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcPublishDispatchConsistencyTest.java`
+- Test: existing Admin publish preparation, retry, failure and startup recovery tests
 
 **Interfaces:**
 - Produces `DdcRedisRepository.dispatch(DdcAtomicPublishCommand)`.
@@ -316,8 +338,11 @@ if (changed != 1) {
 }
 ```
 
-Startup recovery claims stale PENDING/PUBLISHING/UNKNOWN tasks and replays the same command; it never creates
-a new config version.
+Startup and periodic recovery claim stale PENDING/PUBLISHING/UNKNOWN tasks and replay the same command; they
+never create a new config version. The reconstructed message timestamp comes from the persisted task
+`createdAt`, so replay keeps the same event checksum and identity. The v2 idempotency key uses the same config
+hash tag as the value, version and topic keys. ACK aggregation may persist an early ACK, but cannot transition
+the task to SUCCESS until the published pointer reaches the target version.
 
 - [ ] **Step 4: Run admin suite and Redis integration tests**
 

@@ -12,6 +12,10 @@ import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+
 public class DdcRefreshService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DdcRefreshService.class);
@@ -22,7 +26,7 @@ public class DdcRefreshService {
 
     private final DdcConfigApplierRegistry applierRegistry;
 
-    private final DdcAdminClient adminClient;
+    private final AckSubmitter ackSubmitter;
 
     private final DdcLeaseSessionHolder sessionHolder;
 
@@ -30,17 +34,51 @@ public class DdcRefreshService {
                              DdcConfigApplier applyFunction,
                              DdcAdminClient adminClient,
                              DdcLeaseSessionHolder sessionHolder) {
-        this(repository, new DefaultDdcConfigApplierRegistry(applyFunction), adminClient, sessionHolder);
+        this(
+                repository,
+                new DefaultDdcConfigApplierRegistry(applyFunction),
+                directAck(adminClient),
+                sessionHolder
+        );
     }
 
     public DdcRefreshService(DdcLocalConfigRepository repository,
                              DdcConfigApplierRegistry applierRegistry,
                              DdcAdminClient adminClient,
                              DdcLeaseSessionHolder sessionHolder) {
+        this(repository, applierRegistry, directAck(adminClient), sessionHolder);
+    }
+
+    public DdcRefreshService(DdcLocalConfigRepository repository,
+                             DdcConfigApplierRegistry applierRegistry,
+                             DdcAckDelivery ackDelivery,
+                             DdcLeaseSessionHolder sessionHolder) {
+        this(repository, applierRegistry, ackDelivery::submit, sessionHolder);
+    }
+
+    private DdcRefreshService(DdcLocalConfigRepository repository,
+                              DdcConfigApplierRegistry applierRegistry,
+                              AckSubmitter ackSubmitter,
+                              DdcLeaseSessionHolder sessionHolder) {
         this.repository = repository;
         this.applierRegistry = applierRegistry;
-        this.adminClient = adminClient;
+        this.ackSubmitter = ackSubmitter;
         this.sessionHolder = sessionHolder;
+    }
+
+    public void applySnapshots(List<DdcConfigValue> configs) {
+        if (configs == null || configs.isEmpty()) {
+            return;
+        }
+        configs.stream()
+                .filter(Objects::nonNull)
+                .sorted(Comparator
+                        .comparingInt(this::priority)
+                        .thenComparing(
+                                DdcConfigValue::getConfigKey,
+                                Comparator.nullsLast(String::compareTo)
+                        ))
+                .forEach(this::applySnapshot);
     }
 
     public void applySnapshot(DdcConfigValue config) {
@@ -81,7 +119,13 @@ public class DdcRefreshService {
 
         AckOutcome outcome = repository.withConfigLock(message.getConfigKey(), () -> apply(message));
         try {
-            adminClient.ack(ack(message, session, outcome));
+            if (!ackSubmitter.submit(ack(message, session, outcome))) {
+                LOGGER.warn(
+                        "DDC ACK delivery rejected for changeId={} instanceId={}",
+                        message.getChangeId(),
+                        session.instanceId()
+                );
+            }
         } catch (RuntimeException exception) {
             LOGGER.warn(
                     "DDC ACK delivery failed for changeId={} instanceId={}",
@@ -140,6 +184,14 @@ public class DdcRefreshService {
 
     private ConfigMetadata metadata(String configKey) {
         return new ConfigMetadata(repository.version(configKey), repository.checksum(configKey));
+    }
+
+    private int priority(DdcConfigValue config) {
+        String configKey = config.getConfigKey();
+        if (configKey == null || configKey.isBlank()) {
+            return Integer.MAX_VALUE;
+        }
+        return applierRegistry.resolve(configKey).priority();
     }
 
     private VersionRelation compare(ConfigMetadata local, long targetVersion, String targetChecksum) {
@@ -216,6 +268,22 @@ public class DdcRefreshService {
     }
 
     private record ConfigMetadata(Long version, String checksum) {
+    }
+
+    private static AckSubmitter directAck(DdcAdminClient adminClient) {
+        if (adminClient == null) {
+            throw new IllegalArgumentException("adminClient must not be null");
+        }
+        return request -> {
+            adminClient.ack(request);
+            return true;
+        };
+    }
+
+    @FunctionalInterface
+    private interface AckSubmitter {
+
+        boolean submit(DdcAckRequest request);
     }
 
     private enum VersionRelation {

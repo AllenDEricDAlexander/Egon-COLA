@@ -2,7 +2,6 @@ package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -20,11 +19,14 @@ import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
+import top.egon.cola.component.ddc.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.service.DdcConfigLeaseService;
+import top.egon.cola.component.ddc.admin.service.DdcPendingPublishDispatcher;
 import top.egon.cola.component.ddc.admin.service.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.DdcPublishStateTransitionService;
 import top.egon.cola.component.ddc.admin.service.PublishCompletionWaiterRegistry;
@@ -59,6 +61,7 @@ import static org.mockito.Mockito.when;
 @EnableJpaRepositories("top.egon.cola.component.ddc.admin.repository")
 @Import({
         DdcPublishService.class,
+        DdcPendingPublishDispatcher.class,
         DdcPublishStateTransitionService.class,
         PublishFailureRecorder.class,
         PublishResourceLockRegistry.class,
@@ -162,30 +165,34 @@ class DdcSyncPublishFlowTest {
     }
 
     @Test
-    void exposesRedisDispatchFailure() {
+    void exposesUncertainRedisDispatchWithoutAdvancingPublishedPointer() {
         saveConfig("dispatch-failure");
         when(leaseService.activeTargets("demo", "dev", "default"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         doThrow(new IllegalStateException("redis unavailable"))
                 .when(redisRepository)
-                .publish(any());
+                .dispatch(any());
         DdcPublishRequest request =
                 request("dispatch-failure", "true", 2000);
 
-        assertThatThrownBy(() -> publishService.publish(request, "tester"))
-                .isInstanceOf(DdcAdminException.class)
-                .hasMessageContaining("publish dispatch failed");
+        assertThat(publishService.publish(request, "tester").getStatus())
+                .isEqualTo(PublishStatus.UNKNOWN.name());
 
         assertThat(taskRepository.findByChangeId(request.getChangeId()))
                 .get()
                 .satisfies(task -> {
-                    assertThat(task.getStatus()).isEqualTo("FAILED");
+                    assertThat(task.getStatus()).isEqualTo("UNKNOWN");
                     assertThat(task.getFailureStage()).isEqualTo("REDIS_DISPATCH");
                 });
+        assertThat(configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                "demo", "dev", "default", "dispatch-failure"
+        )).get()
+                .extracting(DdcConfigItemEntity::getPublishedVersion)
+                .isNull();
     }
 
     @Test
-    void exposesAdminRestartAsUnknown() throws Exception {
+    void restartRecoveryReplaysTheSameEvent() throws Exception {
         saveConfig("restart-unknown");
         when(leaseService.activeTargets("demo", "dev", "default"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
@@ -197,7 +204,8 @@ class DdcSyncPublishFlowTest {
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
                     executor.submit(() -> publishService.publish(request, "tester"));
-            assertThat(published.poll(2, TimeUnit.SECONDS)).isNotNull();
+            DdcPublishMessage first = published.poll(2, TimeUnit.SECONDS);
+            assertThat(first).isNotNull();
 
             var persistedTask = taskRepository.findByChangeId(
                     request.getChangeId()
@@ -207,9 +215,15 @@ class DdcSyncPublishFlowTest {
             );
             taskRepository.saveAndFlush(persistedTask);
             startupRecovery.run(null);
+            DdcPublishMessage replay = published.poll(2, TimeUnit.SECONDS);
 
+            assertThat(replay).isNotNull();
+            assertThat(replay.getChangeId()).isEqualTo(first.getChangeId());
+            assertThat(replay.getTimestamp()).isEqualTo(first.getTimestamp());
+            assertThat(replay.getChecksum()).isEqualTo(first.getChecksum());
+            publishService.ack(ack(request, "instance-1", "lease-1"));
             assertThat(result.get(2, TimeUnit.SECONDS).getStatus())
-                    .isEqualTo("UNKNOWN");
+                    .isEqualTo("SUCCESS");
         }
     }
 
@@ -261,9 +275,10 @@ class DdcSyncPublishFlowTest {
         LinkedBlockingQueue<DdcPublishMessage> published =
                 new LinkedBlockingQueue<>();
         doAnswer(invocation -> {
-            published.add(invocation.getArgument(0));
+            DdcAtomicPublishCommand command = invocation.getArgument(0);
+            published.add(command.message());
             return null;
-        }).when(redisRepository).publish(any());
+        }).when(redisRepository).dispatch(any());
         return published;
     }
 

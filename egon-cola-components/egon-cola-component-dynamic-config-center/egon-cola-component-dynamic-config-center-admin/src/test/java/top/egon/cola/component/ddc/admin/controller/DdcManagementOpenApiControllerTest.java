@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.admin.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(DdcManagementOpenApiController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class DdcManagementOpenApiControllerTest {
 
     @Autowired
@@ -67,6 +69,33 @@ class DdcManagementOpenApiControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.appCode").value("gateway"))
                 .andExpect(jsonPath("$.data.configKey").value("gateway.routes"));
+    }
+
+    @Test
+    void exactConfigEndpointReturnsManagementProjection() throws Exception {
+        when(facade.findConfig(any())).thenReturn(new DdcManagementConfig(
+                "gateway",
+                "dev",
+                "runtime",
+                "gateway.routes",
+                "{}",
+                "JSON",
+                2L,
+                false,
+                true,
+                Instant.parse("2026-07-26T00:00:00Z")
+        ));
+
+        mockMvc.perform(get(
+                        "/api/v1/ddc/openapi/management/configs"
+                                + "/gateway/dev/runtime/gateway.routes"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.configKey").value("gateway.routes"))
+                .andExpect(jsonPath("$.data.version").value(2))
+                .andExpect(jsonPath("$.data.enabled").value(false))
+                .andExpect(jsonPath("$.data.deleted").value(true));
     }
 
     @Test

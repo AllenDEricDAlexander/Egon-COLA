@@ -8,8 +8,10 @@ import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
+import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
@@ -107,6 +109,60 @@ class DdcManagementFacadeTest {
                 any(),
                 any()
         );
+    }
+
+    @Test
+    void exactConfigQueryPreservesDisabledDeletedManagementState() {
+        DdcConfigVO value = config(
+                "gateway",
+                "dev",
+                "runtime",
+                "gateway.routes",
+                2L,
+                true
+        );
+        when(configService.find(
+                "gateway", "dev", "runtime", "gateway.routes"
+        )).thenReturn(Optional.of(value));
+
+        DdcManagementConfig response = facade.findConfig(new DdcManagementConfigQuery(
+                "gateway", "dev", "runtime", "gateway.routes"
+        ));
+
+        assertThat(response.enabled()).isFalse();
+        assertThat(response.deleted()).isTrue();
+        verify(configService).find("gateway", "dev", "runtime", "gateway.routes");
+    }
+
+    @Test
+    void missingExactConfigUsesStableManagementCode() {
+        when(configService.find(
+                "gateway", "dev", "runtime", "gateway.routes"
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> facade.findConfig(new DdcManagementConfigQuery(
+                "gateway", "dev", "runtime", "gateway.routes"
+        )))
+                .isInstanceOfSatisfying(DdcAdminException.class, exception -> {
+                    assertThat(exception.getCode())
+                            .isEqualTo(DdcManagementErrorCode.CONFIG_NOT_FOUND.getCode());
+                    assertThat(exception.getStatus())
+                            .isEqualTo(DdcManagementErrorCode.CONFIG_NOT_FOUND.getStatus());
+                });
+    }
+
+    @Test
+    void missingPublishTaskUsesStableManagementCode() {
+        when(publishTaskRepository.findByChangeId("missing"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> facade.getPublishTask("missing"))
+                .isInstanceOfSatisfying(DdcAdminException.class, exception -> {
+                    assertThat(exception.getCode())
+                            .isEqualTo(DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND.getCode());
+                    assertThat(exception.getStatus())
+                            .isEqualTo(DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND.getStatus());
+                });
     }
 
     @Test

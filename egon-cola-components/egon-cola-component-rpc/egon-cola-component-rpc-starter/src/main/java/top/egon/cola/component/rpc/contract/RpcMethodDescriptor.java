@@ -9,6 +9,7 @@ public record RpcMethodDescriptor(
         Method javaMethod,
         String methodName,
         String fullMethodName,
+        boolean idempotent,
         io.grpc.MethodDescriptor<Message, Message> grpcMethod,
         Descriptors.MethodDescriptor protoMethod
 ) {

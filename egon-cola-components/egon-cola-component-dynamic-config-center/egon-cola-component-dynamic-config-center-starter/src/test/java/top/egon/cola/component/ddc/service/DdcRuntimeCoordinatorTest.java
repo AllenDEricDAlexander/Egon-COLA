@@ -48,7 +48,7 @@ class DdcRuntimeCoordinatorTest {
         doAnswer(invocation -> {
             events.add("snapshot");
             return null;
-        }).when(refreshService).applySnapshot(adminClient.snapshot);
+        }).when(refreshService).applySnapshots(List.of(adminClient.snapshot));
         DdcRedisChangeSubscription subscription = subscription(events);
         DdcRuntimeCoordinator coordinator = coordinator(adminClient, refreshService, subscription, true);
 
@@ -185,7 +185,7 @@ class DdcRuntimeCoordinatorTest {
         coordinator.reconcileOnce();
 
         assertThat(adminClient.pullCount).isEqualTo(2);
-        verify(refreshService).applySnapshot(adminClient.snapshot);
+        verify(refreshService).applySnapshots(List.of(adminClient.snapshot));
         coordinator.stop();
     }
 
@@ -212,7 +212,7 @@ class DdcRuntimeCoordinatorTest {
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.READY);
         assertThat(repository.version("switch")).isEqualTo(1L);
         assertThat(repository.checksum("switch")).isEqualTo("last-known-good");
-        verify(refreshService, never()).applySnapshot(adminClient.snapshot);
+        verify(refreshService, never()).applySnapshots(List.of(adminClient.snapshot));
         coordinator.stop();
     }
 

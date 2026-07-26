@@ -183,6 +183,31 @@ class DdcOpenApiHmacFilterTest {
     }
 
     @Test
+    void rejectsSignedWriteWhenNonceStoreIsUnavailable() throws Exception {
+        filter = new DdcOpenApiHmacFilter(
+                properties,
+                new ObjectMapper(),
+                (credentialId, nonce, ttl) -> {
+                    throw new IllegalStateException("redis unavailable");
+                },
+                Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(
+                signedRequest(NOW.toEpochMilli(), "nonce-outage", BODY),
+                response,
+                chain
+        );
+
+        assertThat(response.getStatus()).isEqualTo(503);
+        assertThat(response.getContentAsString())
+                .contains("DDC_NONCE_STORE_UNAVAILABLE");
+        assertThat(chain.getRequest()).isNull();
+    }
+
+    @Test
     void disabledVerificationBypassesHeadersAndBodyWrapping() throws Exception {
         properties.getOpenapi().setSignatureEnabled(false);
         filter = filter();
@@ -199,14 +224,16 @@ class DdcOpenApiHmacFilterTest {
         return new DdcOpenApiHmacFilter(
                 properties,
                 new ObjectMapper(),
-                new DdcNonceCache(properties.getOpenapi().getNonceCacheMaxSize()),
+                new InMemoryDdcNonceStore(
+                        properties.getOpenapi().getNonceCacheMaxSize()
+                ),
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
 
     private MockHttpServletRequest signedRequest(long timestamp, String nonce, byte[] body) {
         return signedRequest(
-                new RequestShape("POST", PATH, Map.of(), body),
+                new RequestShape("PUT", PATH, Map.of(), body),
                 timestamp,
                 nonce
         );

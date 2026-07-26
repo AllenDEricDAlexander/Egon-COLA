@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,10 @@ import top.egon.cola.component.gateway.admin.application.observability.GatewayOb
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityStore;
 import top.egon.cola.component.gateway.admin.application.projection.GatewayProjectionService;
 import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
+import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventCodec;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventConsumerHandler;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaCallEventConsumer;
@@ -33,6 +38,7 @@ import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
+@EnableConfigurationProperties(GatewayAdminProperties.class)
 public class GatewayAdminConfiguration {
 
     @Value("${gateway.admin.ddc.tls.enabled:false}")
@@ -85,7 +91,30 @@ public class GatewayAdminConfiguration {
     @ConditionalOnBean(DdcManagementClient.class)
     GatewayDdcRulePublisher gatewayDdcRulePublisher(
             DdcManagementClient client) {
-        return new GatewayDdcRulePublisher(client, Duration.ofSeconds(10));
+        return new GatewayDdcRulePublisher(client);
+    }
+
+    @Bean
+    @ConditionalOnBean({
+            DdcManagementClient.class,
+            GatewayDdcRulePublisher.class
+    })
+    GatewayReleasePublicationCoordinator
+            gatewayReleasePublicationCoordinator(
+            GatewayReleasePublicationStore journal,
+            GatewayReleaseStore releases,
+            DdcManagementClient client,
+            GatewayDdcRulePublisher publisher,
+            @Value("${gateway.admin.ddc.publish-timeout:PT30S}")
+            Duration timeout) {
+        return new GatewayReleasePublicationCoordinator(
+                journal,
+                releases,
+                client,
+                publisher,
+                Clock.systemUTC(),
+                timeout
+        );
     }
 
     @Bean

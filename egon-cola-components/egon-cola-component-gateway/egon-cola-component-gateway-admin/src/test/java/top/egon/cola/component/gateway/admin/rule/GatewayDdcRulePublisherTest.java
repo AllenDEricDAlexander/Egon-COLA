@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.rule;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
@@ -14,108 +15,120 @@ import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
-import top.egon.cola.component.gateway.contract.protocol.AccessZone;
-import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
-import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
-import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
-import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
-import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayDdcRulePublisherTest {
 
     @Test
-    void publishesChunksBeforeTheOnlyActivationKey() {
-        GatewayRuleCompiler compiler = new GatewayRuleCompiler(
-                new GatewayRuleCanonicalizer()
-        );
-        CompiledGatewayRelease release = compiler.compile(
-                "release-large",
-                Instant.parse("2026-07-25T00:00:00Z"),
-                content("x".repeat(GatewayRuleCompiler.INLINE_LIMIT_BYTES + 10))
-        );
+    void publishesExactlyOneFullyResolvedArtifact() {
         RecordingClient client = new RecordingClient();
-        GatewayDdcRulePublisher publisher = new GatewayDdcRulePublisher(
-                client,
-                Duration.ofSeconds(10)
-        );
+        GatewayDdcRulePublisher publisher =
+                new GatewayDdcRulePublisher(client);
+        String changeId = UuidV7.string();
+        GatewayDdcPublicationCommand command =
+                new GatewayDdcPublicationCommand(
+                        "gateway-engine-default",
+                        "test",
+                        "default",
+                        "gateway.rules.chunk.release-1.0",
+                        "{\"releaseId\":\"release-1\"}",
+                        1L,
+                        changeId,
+                        "admin",
+                        Duration.ofSeconds(30)
+                );
 
-        GatewayRulePublishResult result = publisher.publish(
-                release,
-                3L,
-                "change-1",
-                "tester"
-        );
+        DdcManagementPublishResult result = publisher.publish(command);
 
-        assertEquals(
-                release.activation().chunks().size(),
-                result.chunkResults().size()
-        );
-        assertEquals(
-                GatewayDdcRulePublisher.ACTIVE_CONFIG_KEY,
-                client.requests.getLast().configKey()
-        );
-        assertEquals(3L, client.requests.getLast().expectedVersion());
-        assertEquals(
-                "gateway-engine-orders",
-                client.requests.getLast().appCode()
-        );
+        assertThat(result.status())
+                .isEqualTo(DdcManagementPublishStatus.SUCCESS);
+        assertThat(client.requests).singleElement().satisfies(request -> {
+            assertThat(request.appCode())
+                    .isEqualTo("gateway-engine-default");
+            assertThat(request.configKey())
+                    .isEqualTo("gateway.rules.chunk.release-1.0");
+            assertThat(request.expectedVersion()).isEqualTo(1L);
+            assertThat(request.timeoutMs()).isEqualTo(30_000L);
+            assertThat(request.operator()).isEqualTo("admin");
+            assertThat(UUID.fromString(request.changeId()).version())
+                    .isEqualTo(7);
+        });
     }
 
-    private GatewayRuleContent content(String schema) {
-        GatewayProviderServiceRef service = new GatewayProviderServiceRef(
-                "local",
+    @Test
+    void rejectsIncompleteOrNonUuidV7Commands() {
+        assertThat(command(1L, UuidV7.simpleString()).changeId())
+                .hasSize(32);
+        assertThatThrownBy(() -> command(null, UuidV7.string()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("expectedVersion");
+        assertThatThrownBy(() -> command(1L, UUID.randomUUID().toString()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UUIDv7");
+        assertThatThrownBy(() -> new GatewayDdcPublicationCommand(
+                " ",
+                "test",
                 "default",
-                GatewayProtocol.HTTP,
-                "orders",
-                "default",
-                "v1",
-                "http"
-        );
-        GatewayRuntimeOperation operation = new GatewayRuntimeOperation(
-                "orders",
-                "orders",
-                GatewayProtocol.HTTP,
-                "GET /orders",
-                schema,
+                "gateway.rules.active",
                 "{}",
-                true,
-                service,
-                "TRANSPARENT",
-                Set.of(),
-                Map.of(),
-                false
-        );
-        GatewayRuntimeRoute route = new GatewayRuntimeRoute(
-                "orders",
-                "orders",
-                "api.example.com",
-                "GET",
-                "/orders",
-                Set.of(AccessZone.PUBLIC),
-                0,
-                true
-        );
-        return new GatewayRuleContent(
-                "group-1",
-                "orders",
-                "local",
+                1L,
+                UuidV7.string(),
+                "admin",
+                Duration.ofSeconds(1)
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("appCode");
+    }
+
+    @Test
+    void preflightRequiresAnOnlineUnexpiredConfigClient() {
+        RecordingClient client = new RecordingClient();
+        client.targets = List.of(new DdcManagementConfigClientInstance(
+                "gateway-engine-default",
+                "test",
                 "default",
-                List.of(operation),
-                List.of(route),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of(),
-                List.of()
+                "engine-1",
+                "lease-1",
+                "127.0.0.1",
+                18080,
+                "CONFIG_CLIENT",
+                "OFFLINE",
+                Instant.now(),
+                Instant.now(),
+                Instant.now().plusSeconds(30),
+                java.util.Map.of()
+        ));
+        GatewayDdcRulePublisher publisher =
+                new GatewayDdcRulePublisher(client);
+
+        assertThatThrownBy(() -> publisher.ensureReadyTarget(
+                "gateway-engine-default",
+                "test",
+                "default"
+        )).isInstanceOf(IllegalStateException.class)
+                .hasMessage("GATEWAY_RELEASE_NO_READY_TARGET");
+    }
+
+    private GatewayDdcPublicationCommand command(
+            Long expectedVersion,
+            String changeId) {
+        return new GatewayDdcPublicationCommand(
+                "gateway-engine-default",
+                "test",
+                "default",
+                "gateway.rules.active",
+                "{}",
+                expectedVersion,
+                changeId,
+                "admin",
+                Duration.ofSeconds(1)
         );
     }
 
@@ -124,6 +137,24 @@ class GatewayDdcRulePublisherTest {
 
         private final List<DdcManagementPublishRequest> requests =
                 new ArrayList<>();
+
+        private List<DdcManagementConfigClientInstance> targets = List.of(
+                new DdcManagementConfigClientInstance(
+                        "gateway-engine-default",
+                        "test",
+                        "default",
+                        "engine-1",
+                        "lease-1",
+                        "127.0.0.1",
+                        18080,
+                        "CONFIG_CLIENT",
+                        "ONLINE",
+                        Instant.now(),
+                        Instant.now(),
+                        Instant.now().plusSeconds(30),
+                        java.util.Map.of()
+                )
+        );
 
         @Override
         public DdcManagementConfig upsert(
@@ -142,7 +173,7 @@ class GatewayDdcRulePublisherTest {
             return new DdcManagementPublishResult(
                     request.changeId(),
                     DdcManagementPublishStatus.SUCCESS,
-                    1L,
+                    request.expectedVersion() + 1,
                     "checksum",
                     1,
                     List.of(),
@@ -166,21 +197,7 @@ class GatewayDdcRulePublisherTest {
         @Override
         public List<DdcManagementConfigClientInstance> getConfigClients(
                 DdcManagementInstanceQuery query) {
-            return List.of(new DdcManagementConfigClientInstance(
-                    query.appCode(),
-                    query.env(),
-                    query.namespace(),
-                    "engine-1",
-                    "lease-1",
-                    "127.0.0.1",
-                    18080,
-                    "CONFIG_CLIENT",
-                    "REGISTERED",
-                    Instant.now(),
-                    Instant.now(),
-                    Instant.now().plusSeconds(30),
-                    java.util.Map.of()
-            ));
+            return targets;
         }
 
         @Override

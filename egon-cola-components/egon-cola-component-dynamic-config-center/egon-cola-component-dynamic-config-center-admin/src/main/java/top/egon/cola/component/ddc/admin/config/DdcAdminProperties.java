@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.ArrayList;
 import java.util.List;
 
-@ConfigurationProperties(prefix = "egon.cola.component.ddc.admin", ignoreInvalidFields = true)
+@ConfigurationProperties(prefix = "egon.cola.component.ddc.admin")
 public class DdcAdminProperties {
 
     private long maxValueBytes = 1024L * 1024L;
@@ -15,6 +15,8 @@ public class DdcAdminProperties {
     private Lease lease = new Lease();
 
     private Openapi openapi = new Openapi();
+
+    private Security security = new Security();
 
     private Publish publish = new Publish();
 
@@ -50,6 +52,14 @@ public class DdcAdminProperties {
 
     public void setOpenapi(Openapi openapi) {
         this.openapi = openapi;
+    }
+
+    public Security getSecurity() {
+        return security;
+    }
+
+    public void setSecurity(Security security) {
+        this.security = security;
     }
 
     public Publish getPublish() {
@@ -186,7 +196,7 @@ public class DdcAdminProperties {
 
     public static class Manifest {
 
-        private String version = "5.2.1";
+        private String version;
 
         public String getVersion() {
             return version;
@@ -208,6 +218,8 @@ public class DdcAdminProperties {
         private int allowedClockSkewSeconds = 300;
 
         private int nonceCacheMaxSize = 10000;
+
+        private List<Credential> credentials = new ArrayList<>();
 
         public boolean isSignatureEnabled() {
             return signatureEnabled;
@@ -247,6 +259,163 @@ public class DdcAdminProperties {
 
         public void setNonceCacheMaxSize(int nonceCacheMaxSize) {
             this.nonceCacheMaxSize = nonceCacheMaxSize;
+        }
+
+        public List<Credential> getCredentials() {
+            return credentials;
+        }
+
+        public void setCredentials(List<Credential> credentials) {
+            this.credentials = credentials;
+        }
+    }
+
+    public static class Credential {
+
+        private String credentialId;
+
+        private String accessKey;
+
+        private String secret;
+
+        private String clientType;
+
+        private List<String> appCodePatterns = new ArrayList<>();
+
+        private List<String> envPatterns = new ArrayList<>();
+
+        private List<String> namespacePatterns = new ArrayList<>();
+
+        private List<String> allowedOperations = new ArrayList<>();
+
+        public String getCredentialId() {
+            return credentialId;
+        }
+
+        public void setCredentialId(String credentialId) {
+            this.credentialId = credentialId;
+        }
+
+        public String getAccessKey() {
+            return accessKey;
+        }
+
+        public void setAccessKey(String accessKey) {
+            this.accessKey = accessKey;
+        }
+
+        public String getSecret() {
+            return secret;
+        }
+
+        public void setSecret(String secret) {
+            this.secret = secret;
+        }
+
+        public String getClientType() {
+            return clientType;
+        }
+
+        public void setClientType(String clientType) {
+            this.clientType = clientType;
+        }
+
+        public List<String> getAppCodePatterns() {
+            return appCodePatterns;
+        }
+
+        public void setAppCodePatterns(List<String> appCodePatterns) {
+            this.appCodePatterns = appCodePatterns;
+        }
+
+        public List<String> getEnvPatterns() {
+            return envPatterns;
+        }
+
+        public void setEnvPatterns(List<String> envPatterns) {
+            this.envPatterns = envPatterns;
+        }
+
+        public List<String> getNamespacePatterns() {
+            return namespacePatterns;
+        }
+
+        public void setNamespacePatterns(List<String> namespacePatterns) {
+            this.namespacePatterns = namespacePatterns;
+        }
+
+        public List<String> getAllowedOperations() {
+            return allowedOperations;
+        }
+
+        public void setAllowedOperations(List<String> allowedOperations) {
+            this.allowedOperations = allowedOperations;
+        }
+    }
+
+    public static class Security {
+
+        private boolean localDev;
+
+        private Jwt jwt = new Jwt();
+
+        public boolean isLocalDev() {
+            return localDev;
+        }
+
+        public void setLocalDev(boolean localDev) {
+            this.localDev = localDev;
+        }
+
+        public Jwt getJwt() {
+            return jwt;
+        }
+
+        public void setJwt(Jwt jwt) {
+            this.jwt = jwt;
+        }
+    }
+
+    public static class Jwt {
+
+        private String issuer;
+
+        private String audience;
+
+        private String jwkSetUri;
+
+        private String hmacSecretBase64;
+
+        public String getIssuer() {
+            return issuer;
+        }
+
+        public void setIssuer(String issuer) {
+            this.issuer = issuer;
+        }
+
+        public String getAudience() {
+            return audience;
+        }
+
+        public void setAudience(String audience) {
+            this.audience = audience;
+        }
+
+        public String getJwkSetUri() {
+            return jwkSetUri;
+        }
+
+        public void setJwkSetUri(String jwkSetUri) {
+            this.jwkSetUri = jwkSetUri;
+        }
+
+        public String getHmacSecretBase64() {
+            return hmacSecretBase64;
+        }
+
+        public void setHmacSecretBase64(String hmacSecretBase64) {
+            this.hmacSecretBase64 = hmacSecretBase64;
         }
     }
 

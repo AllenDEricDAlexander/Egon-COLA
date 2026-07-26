@@ -25,6 +25,7 @@ import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficContext;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficRejectedException;
 import top.egon.cola.component.gateway.engine.traffic.ProviderCallClassification;
+import top.egon.cola.component.rpc.context.RpcFailureStage;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import java.time.Duration;
@@ -240,10 +241,7 @@ public final class RpcGatewayForwarder {
                         Status.INVALID_ARGUMENT.withDescription(
                                 "RPC method metadata conflicts with route"
                         ),
-                        gatewayTrailers(
-                                "GATEWAY_RPC_METADATA_MISMATCH",
-                                trace.traceId()
-                        )
+                        gatewayTrailers(trace.traceId())
                 );
                 publish(
                         observation,
@@ -531,7 +529,6 @@ public final class RpcGatewayForwarder {
                             }
                             responseStarted = true;
                             serverCall.sendHeaders(safeMetadata(
-                                    headers,
                                     trace.traceId()
                             ));
                         }
@@ -586,9 +583,9 @@ public final class RpcGatewayForwarder {
                             }
                             serverCall.close(
                                     status,
-                                    safeMetadata(
-                                            trailers,
-                                            trace.traceId()
+                                    providerTrailers(
+                                            trace.traceId(),
+                                            status
                                     )
                             );
                             publish(
@@ -671,7 +668,7 @@ public final class RpcGatewayForwarder {
                 }
                 serverCall.close(
                         status.withDescription(code),
-                        gatewayTrailers(code, trace.traceId())
+                        gatewayTrailers(trace.traceId())
                 );
                 publish(observation, "GATEWAY", status, code);
                 closeHandles();
@@ -838,17 +835,25 @@ public final class RpcGatewayForwarder {
         }
     }
 
-    private Metadata safeMetadata(Metadata source, String traceId) {
+    private Metadata safeMetadata(String traceId) {
         Metadata safe = new Metadata();
-        copy(source, safe, RpcMetadataKeys.FAILURE_STAGE);
         safe.put(RpcMetadataKeys.TRACE_ID, traceId);
         return safe;
     }
 
-    private Metadata gatewayTrailers(String errorCode, String traceId) {
-        Metadata trailers = new Metadata();
-        trailers.put(RpcMetadataKeys.FAILURE_STAGE, errorCode);
-        trailers.put(RpcMetadataKeys.TRACE_ID, traceId);
+    private Metadata providerTrailers(
+            String traceId,
+            Status status) {
+        Metadata trailers = safeMetadata(traceId);
+        if (!status.isOk()) {
+            RpcFailureStage.PROVIDER.put(trailers);
+        }
+        return trailers;
+    }
+
+    private Metadata gatewayTrailers(String traceId) {
+        Metadata trailers = safeMetadata(traceId);
+        RpcFailureStage.GATEWAY.put(trailers);
         return trailers;
     }
 

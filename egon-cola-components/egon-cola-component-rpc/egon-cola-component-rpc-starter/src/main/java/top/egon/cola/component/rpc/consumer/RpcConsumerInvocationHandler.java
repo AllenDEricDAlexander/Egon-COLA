@@ -5,13 +5,12 @@ import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientInterceptors;
 import io.grpc.ManagedChannel;
-import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
 import top.egon.cola.component.rpc.context.RpcConsumerClientInterceptor;
+import top.egon.cola.component.rpc.context.RpcFailureStage;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.RpcMethodDescriptor;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
@@ -97,7 +96,7 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
                 );
             } catch (StatusRuntimeException exception) {
                 lastFailure = exception;
-                if (!retryableGatewayFailure(exception)
+                if (!retryableGatewayFailure(rpcMethod, exception)
                         || attempt + 1 >= gatewayManager.maxAttempts()) {
                     throw statusMapper.map(exception);
                 }
@@ -113,15 +112,13 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
     }
 
     private boolean retryableGatewayFailure(
+            RpcMethodDescriptor method,
             StatusRuntimeException exception) {
-        if (exception.getStatus().getCode() != Status.Code.UNAVAILABLE) {
-            return false;
-        }
-        Metadata trailers = exception.getTrailers();
-        String stage = trailers == null
-                ? null
-                : trailers.get(RpcMetadataKeys.FAILURE_STAGE);
-        return !"provider".equalsIgnoreCase(stage);
+        return method.idempotent()
+                && exception.getStatus().getCode() == Status.Code.UNAVAILABLE
+                && RpcFailureStage.from(exception.getTrailers())
+                .filter(stage -> stage == RpcFailureStage.GATEWAY)
+                .isPresent();
     }
 
     private Object objectMethod(Object proxy, Method method, Object[] args) {

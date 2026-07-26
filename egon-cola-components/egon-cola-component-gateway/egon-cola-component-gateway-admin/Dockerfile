@@ -9,7 +9,7 @@ RUN groupadd --gid "${APP_GID}" gateway \
 
 WORKDIR /app
 COPY --chown=gateway:gateway \
-    target/egon-cola-component-gateway-admin.jar \
+    target/egon-cola-component-gateway-admin-exec.jar \
     /app/app.jar
 
 USER gateway

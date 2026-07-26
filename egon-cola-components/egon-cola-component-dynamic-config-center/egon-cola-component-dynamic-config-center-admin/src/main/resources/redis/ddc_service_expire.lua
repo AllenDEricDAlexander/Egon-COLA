@@ -41,5 +41,6 @@ if changed == 1 then
         catalogRevision = catalogRevision
     }
     redis.call('PUBLISH', KEYS[6], cjson.encode(event))
+    redis.call('PUBLISH', ARGV[5], cjson.encode(event))
 end
 return {changed, serviceRevision, catalogRevision}

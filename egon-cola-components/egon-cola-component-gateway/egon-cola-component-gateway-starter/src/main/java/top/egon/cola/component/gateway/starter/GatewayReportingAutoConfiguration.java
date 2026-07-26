@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.starter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -148,6 +149,7 @@ public class GatewayReportingAutoConfiguration {
         @Bean
         @ConditionalOnBean(RequestMappingHandlerMapping.class)
         GatewayDefinitionContributor webFluxGatewayDefinitionContributor(
+                @Qualifier("requestMappingHandlerMapping")
                 RequestMappingHandlerMapping mappings,
                 GatewayReportingProperties properties,
                 ObjectMapper objectMapper) {

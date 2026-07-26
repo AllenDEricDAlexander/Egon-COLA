@@ -25,6 +25,7 @@ import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class DdcConfigService {
@@ -127,6 +128,7 @@ public class DdcConfigService {
         entity.setValueType(request.getValueType());
         entity.setDescription(request.getDescription());
         entity.setCurrentVersion(1L);
+        entity.setPublishedVersion(null);
         entity.setEnabled(true);
         entity.setDeleted(false);
         entity.setCreatedAt(now);
@@ -244,17 +246,35 @@ public class DdcConfigService {
         return DdcConfigVO.from(getConfig(configId));
     }
 
+    public Optional<DdcConfigVO> find(
+            String appCode,
+            String env,
+            String namespace,
+            String configKey
+    ) {
+        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                appCode,
+                env,
+                namespace,
+                configKey
+        ).map(DdcConfigVO::from);
+    }
+
     public List<DdcConfigValue> pull(String appCode, String env, String namespace) {
-        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndDeletedFalse(appCode, env, namespace).stream()
-                .filter(item -> Boolean.TRUE.equals(item.getEnabled()))
+        return configItemRepository.findByAppCodeAndEnvAndNamespace(
+                        appCode, env, namespace
+                ).stream()
+                .map(this::publishedVersion)
+                .flatMap(Optional::stream)
+                .filter(this::isRuntimeValue)
                 .map(this::toConfigValue)
                 .toList();
     }
 
     public DdcConfigValue value(String appCode, String env, String namespace, String configKey) {
         return configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(appCode, env, namespace, configKey)
-                .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
-                .filter(item -> Boolean.TRUE.equals(item.getEnabled()))
+                .flatMap(this::publishedVersion)
+                .filter(this::isRuntimeValue)
                 .map(this::toConfigValue)
                 .orElse(null);
     }
@@ -331,6 +351,7 @@ public class DdcConfigService {
         entity.setDefaultValue(config.getDefaultValue());
         entity.setValueType(config.getValueType());
         entity.setCurrentVersion(1L);
+        entity.setPublishedVersion(null);
         entity.setEnabled(true);
         entity.setDeleted(false);
         entity.setDescription("reported by " + request.getInstanceId());
@@ -342,13 +363,31 @@ public class DdcConfigService {
         return saved;
     }
 
-    private DdcConfigValue toConfigValue(DdcConfigItemEntity entity) {
+    private Optional<DdcConfigVersionEntity> publishedVersion(
+            DdcConfigItemEntity entity
+    ) {
+        if (entity.getPublishedVersion() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(versionRepository.findByConfigIdAndVersion(
+                entity.getId(),
+                entity.getPublishedVersion()
+        ).orElseThrow(() -> new DdcAdminException(
+                "published config version not found"
+        )));
+    }
+
+    private DdcConfigValue toConfigValue(DdcConfigVersionEntity version) {
         DdcConfigValue value = new DdcConfigValue();
-        value.setConfigKey(entity.getConfigKey());
-        value.setConfigValue(entity.getConfigValue());
-        value.setValueType(entity.getValueType());
-        value.setVersion(entity.getCurrentVersion());
+        value.setConfigKey(version.getConfigKey());
+        value.setConfigValue(version.getNewValue());
+        value.setValueType(version.getValueType());
+        value.setVersion(version.getVersion());
         return value;
+    }
+
+    private boolean isRuntimeValue(DdcConfigVersionEntity version) {
+        return !ChangeType.DELETE.name().equals(version.getChangeType());
     }
 
     private void requireText(String value, String fieldName) {

@@ -1,6 +1,9 @@
 spring:
   application:
     name: gateway-test-http-provider
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
 
 server:
   port: 0
@@ -16,13 +19,36 @@ management:
       probes:
         enabled: true
 
+gateway:
+  test:
+    service-version: ${GATEWAY_TEST_SERVICE_VERSION:1.0.0-live}
+
 egon:
   cola:
     component:
       ddc:
         enabled: false
+        env: test
+        namespace: gateway-test
         registry:
           enabled: false
       gateway:
         reporting:
           enabled: false
+          artifact-version: ${gateway.test.service-version}
+        provider:
+          http:
+            enabled: true
+            instance-id: ${gateway.test.provider-id:http-provider-default}
+            service-name: gateway-test-http-provider
+            group: default
+            version: ${egon.cola.component.gateway.reporting.artifact-version}
+            protocol: http
+            advertised-host: ${gateway.test.advertised-host:127.0.0.1}
+            port: ${gateway.test.advertised-port:0}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true
+            metadata:
+              gateway.zone: ${gateway.test.zone:zone-a}
+              gateway.weight: ${gateway.test.weight:100}

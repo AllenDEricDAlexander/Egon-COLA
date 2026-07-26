@@ -123,6 +123,7 @@ public class RpcContractValidator {
                 javaMethod,
                 rpcMethod.name(),
                 grpcMethod.getFullMethodName(),
+                rpcMethod.idempotent(),
                 grpcMethod,
                 generatedMethod.protoMethod()
         );

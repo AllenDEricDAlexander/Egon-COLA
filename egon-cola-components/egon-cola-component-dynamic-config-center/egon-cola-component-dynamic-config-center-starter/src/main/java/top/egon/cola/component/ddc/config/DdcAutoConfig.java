@@ -24,6 +24,8 @@ import top.egon.cola.component.ddc.processor.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.DdcAckDelivery;
+import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
 import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcInstanceIdentityFactory;
@@ -33,9 +35,14 @@ import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 
+import java.util.List;
+
 @AutoConfiguration
 @EnableScheduling
-@EnableConfigurationProperties(DdcProperties.class)
+@EnableConfigurationProperties({
+        DdcProperties.class,
+        DdcAckDeliveryProperties.class
+})
 @ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DdcAutoConfig {
 
@@ -73,11 +80,19 @@ public class DdcAutoConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    public DdcAckDelivery ddcAckDelivery(
+            DdcAdminClient adminClient,
+            DdcAckDeliveryProperties properties) {
+        return new DdcAckDelivery(adminClient, properties);
+    }
+
+    @Bean
     public DdcRefreshService ddcRefreshService(DdcLocalConfigRepository repository,
                                                DdcConfigApplierRegistry applierRegistry,
-                                               DdcAdminClient adminClient,
+                                               DdcAckDelivery ackDelivery,
                                                DdcLeaseSessionHolder sessionHolder) {
-        return new DdcRefreshService(repository, applierRegistry, adminClient, sessionHolder);
+        return new DdcRefreshService(repository, applierRegistry, ackDelivery, sessionHolder);
     }
 
     @Bean
@@ -86,7 +101,7 @@ public class DdcAutoConfig {
     }
 
     @Bean(name = "ddcRedissonClient", destroyMethod = "shutdown")
-    @ConditionalOnMissingBean(RedissonClient.class)
+    @ConditionalOnMissingBean(name = "ddcRedissonClient")
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcRedissonClient(DdcProperties properties) {
         DdcProperties.Redis redis = properties.getRedis();
@@ -102,7 +117,7 @@ public class DdcAutoConfig {
     }
 
     @Bean
-    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnBean(name = "ddcRedissonClient")
     public DdcRedisConfigRepository ddcRedisConfigRepository(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
                                                             DdcProperties properties) {
         return new DdcRedisConfigRepository(redissonClient, properties);
@@ -115,7 +130,7 @@ public class DdcAutoConfig {
     }
 
     @Bean("ddcRedisTopic")
-    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnBean(name = "ddcRedissonClient")
     public RTopic ddcRedisTopic(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
                                 DdcProperties properties) {
         return redissonClient.getTopic(
@@ -123,12 +138,27 @@ public class DdcAutoConfig {
         );
     }
 
+    @Bean("ddcRedisV2Topic")
+    @ConditionalOnBean(name = "ddcRedissonClient")
+    public RTopic ddcRedisV2Topic(
+            @Qualifier("ddcRedissonClient") RedissonClient redissonClient,
+            DdcProperties properties) {
+        return redissonClient.getTopic(
+                DdcKeys.v2Topic(
+                        properties.getAppCode(),
+                        properties.getEnv(),
+                        properties.getNamespace()
+                )
+        );
+    }
+
     @Bean
-    @ConditionalOnBean(name = "ddcRedisTopic")
+    @ConditionalOnBean(name = {"ddcRedisV2Topic", "ddcRedisTopic"})
     public DdcRedisChangeSubscription ddcRedisChangeSubscription(
+            @Qualifier("ddcRedisV2Topic") RTopic v2Topic,
             @Qualifier("ddcRedisTopic") RTopic topic,
             DdcRedisChangeListener listener) {
-        return new DdcRedisChangeSubscription(topic, listener);
+        return new DdcRedisChangeSubscription(List.of(v2Topic, topic), listener);
     }
 
     @Bean

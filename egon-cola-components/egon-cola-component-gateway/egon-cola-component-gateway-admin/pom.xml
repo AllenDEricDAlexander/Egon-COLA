@@ -107,6 +107,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <classifier>exec</classifier>
                     <mainClass>top.egon.cola.component.gateway.admin.GatewayAdminApplication</mainClass>
                     <layout>JAR</layout>
                 </configuration>

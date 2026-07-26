@@ -14,6 +14,7 @@ import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
@@ -28,6 +29,7 @@ import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -69,6 +71,32 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
                     converters.add(new MappingJackson2HttpMessageConverter(objectMapper));
                 })
                 .build();
+    }
+
+    @Override
+    public Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query) {
+        require(query, "query");
+        try {
+            return Optional.of(exchange(
+                    HttpMethod.GET,
+                    configPath(
+                            query.appCode(),
+                            query.env(),
+                            query.namespace(),
+                            query.configKey()
+                    ),
+                    Map.of(),
+                    null,
+                    new ParameterizedTypeReference<>() {
+                    },
+                    true
+            ));
+        } catch (DdcManagementClientException exception) {
+            if (exception.code() == DdcManagementErrorCode.CONFIG_NOT_FOUND.getCode()) {
+                return Optional.empty();
+            }
+            throw exception;
+        }
     }
 
     @Override

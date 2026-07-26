@@ -220,13 +220,12 @@ git commit -m "fix: isolate ddc and gateway redis clients"
 - Modify: `.../dynamic-config-center-admin/src/main/resources/application.yml`
 - Modify: `.../dynamic-config-center/docs/manifest.md`
 - Test: `.../dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManifestControllerTest.java`
-- Test: `.../dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/DdcExecutableJarContractTest.java`
 
 **Interfaces:**
 - Produces executable artifact `egon-cola-component-dynamic-config-center-admin-exec.jar` for Docker.
 - Produces manifest version from `${project.version}` filtered metadata, not source literals.
 
-- [ ] **Step 1: Add failing artifact/version contract tests**
+- [ ] **Step 1: Add the failing manifest version contract test**
 
 ```java
 @Test
@@ -235,32 +234,32 @@ void manifestUsesFilteredComponentVersion() {
 }
 ```
 
-The artifact test opens `target/*-exec.jar` and asserts `Main-Class` exists; it also asserts Dockerfile
-contains `-exec.jar` and no command copies the thin JAR as the runtime artifact.
+Do not open `target/*-exec.jar` from Surefire: the Boot repackage execution creates that artifact after the
+test phase. The executable artifact and image contract are verified after `package` in Step 4 so a clean build
+cannot accidentally inspect stale output. Do not assert Dockerfile source text: build the image instead.
 
-- [ ] **Step 2: Run admin tests and package**
+- [ ] **Step 2: Run the focused admin test**
 
 ```bash
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-dynamic-config-center/\
-egon-cola-component-dynamic-config-center-admin -am clean package
+egon-cola-component-dynamic-config-center-admin \
+  -am -Dtest=DdcManifestControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-Expected: new Docker/runtime artifact contract fails before the Dockerfile/version fix.
+Expected: the new manifest/version contract fails before the version fix.
 
 - [ ] **Step 3: Use the exec artifact and filtered version metadata**
 
-Dockerfile runtime copy must be:
+The module-scoped Dockerfile runtime copy must be:
 
 ```dockerfile
-COPY --from=builder /workspace/egon-cola-components/\
-egon-cola-component-dynamic-config-center/\
-egon-cola-component-dynamic-config-center-admin/target/\
-egon-cola-component-dynamic-config-center-admin-exec.jar app.jar
+COPY target/egon-cola-component-dynamic-config-center-admin-exec.jar app.jar
 ```
 
-Use the already filtered `META-INF/egon-cola-ddc.properties` or a `BuildProperties`/package implementation
-version fallback. Remove all `5.2.1` source and documentation defaults.
+Import the Starter's already filtered `META-INF/egon-cola-ddc.properties` and feed its `sdk.version` into the
+admin manifest property. Keep the explicit admin manifest property overridable, but remove all `5.2.1`
+source and documentation defaults.
 
 - [ ] **Step 4: Re-run package and inspect both manifests**
 
@@ -271,9 +270,22 @@ egon-cola-component-dynamic-config-center-admin -am clean package
 unzip -p egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin/target/\
 egon-cola-component-dynamic-config-center-admin-exec.jar META-INF/MANIFEST.MF
+unzip -p egon-cola-components/egon-cola-component-dynamic-config-center/\
+egon-cola-component-dynamic-config-center-starter/target/\
+egon-cola-component-dynamic-config-center-starter-5.2.3.jar \
+META-INF/egon-cola-ddc.properties
+
+docker build \
+  -f egon-cola-components/egon-cola-component-dynamic-config-center/\
+egon-cola-component-dynamic-config-center-admin/Dockerfile \
+  -t egon-cola-ddc-admin:contract-test \
+  egon-cola-components/egon-cola-component-dynamic-config-center/\
+egon-cola-component-dynamic-config-center-admin
+docker image inspect egon-cola-ddc-admin:contract-test --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}'
 ```
 
-Expected: package PASS; exec JAR contains Boot launcher Main-Class.
+Expected: package PASS; exec JAR contains the Boot launcher `Main-Class`; filtered metadata contains
+`sdk.version=5.2.3`; the image builds from the same module context used by Compose and executes the exec JAR.
 
 - [ ] **Step 5: Commit**
 
@@ -289,8 +301,13 @@ git commit -m "fix: package executable ddc admin image"
 - Modify: `.../gateway/deployment/.env.example`
 - Modify: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java`
 - Modify: `.../gateway-test-http-provider/src/main/resources/application.yml`
+- Modify: `.../gateway-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/HttpProviderRuntimeConfiguration.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcProperties.java`
-- Test: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
+- Create: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
+- Create: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyContractTest.java`
+- Create: `.../rpc-starter/src/test/java/top/egon/cola/component/rpc/config/EgonRpcPropertiesTest.java`
+- Modify: `.../rpc/README.md`
+- Modify: `.../rpc/README.zh-CN.md`
 
 **Interfaces:**
 - Produces default RPC Gateway service name `egon-gateway-rpc`.
@@ -308,7 +325,9 @@ assertThat(new EgonRpcProperties().getConsumer().getGatewayServiceName())
         .isEqualTo("egon-gateway-rpc");
 ```
 
-Add a live fixture assertion that every child process receives the Testcontainers DDC Redis mapped port.
+Add a default-Surefire contract test for the live fixture so every child-process spec is checked for the
+Testcontainers DDC Redis mapped port without starting the gated `*IT` topology. Bind the Compose environment
+through Spring's relaxed-binding path instead of asserting only raw YAML keys.
 
 - [ ] **Step 2: Run deployment/default tests**
 
@@ -317,7 +336,8 @@ Add a live fixture assertion that every child process receives the Testcontainer
   -pl egon-cola-components/egon-cola-component-gateway/\
 egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite,\
 egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
-  -am test -Dtest=GatewayComposeConfigurationTest,EgonRpcPropertiesTest
+  -am test -Dtest=GatewayComposeConfigurationTest,EgonRpcPropertiesTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: DDC Redis, advertised host, or default service name assertions fail.
@@ -332,8 +352,8 @@ EGON_COLA_COMPONENT_DDC_REDIS_PORT: 6379
 EGON_COLA_COMPONENT_GATEWAY_ENGINE_RPC_ADVERTISED_HOST: gateway-engine
 ```
 
-Use the same artifact/service version value in Reporting and `HttpProviderRuntimeProperties`; set the RPC
-Consumer default to `egon-gateway-rpc`.
+Use one `gateway.test.service-version` value for both Reporting artifact version and
+`HttpProviderRuntimeProperties`; set the RPC Consumer default to `egon-gateway-rpc`.
 
 - [ ] **Step 4: Verify static Compose and focused tests**
 
@@ -351,6 +371,8 @@ egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
 ```
 
 Expected: both commands PASS. This does not yet claim real processes started.
+The default test run must execute the live-fixture contract; an explicit `-Dtest=GatewayLiveTopologyIT`
+must not be the only way to cover it. Update the RPC README defaults together with the code default.
 
 - [ ] **Step 5: Commit**
 

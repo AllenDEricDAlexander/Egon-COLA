@@ -308,7 +308,7 @@ egon:
           enabled: true
           default-timeout-ms: 3000
           gateway-discovery-timeout-ms: 5000
-          gateway-service-name: egon-internal-rpc-gateway
+          gateway-service-name: egon-gateway-rpc
           gateway-group: default
           gateway-version: 1.0.0
           channel-drain-timeout-ms: 5000
@@ -323,7 +323,7 @@ Consumer properties:
 | `consumer.enabled` | `false` | Enables Gateway discovery and Consumer proxies |
 | `consumer.default-timeout-ms` | `3000` | Maximum default unary deadline |
 | `consumer.gateway-discovery-timeout-ms` | `5000` | Startup discovery and Channel-ready timeout |
-| `consumer.gateway-service-name` | `egon-internal-rpc-gateway` | Exact Gateway service name |
+| `consumer.gateway-service-name` | `egon-gateway-rpc` | Exact Gateway service name |
 | `consumer.gateway-group` | `default` | Exact Gateway group |
 | `consumer.gateway-version` | `1.0.0` | Exact Gateway version |
 | `consumer.channel-drain-timeout-ms` | `5000` | Replaced Channel drain timeout |
@@ -408,6 +408,9 @@ test uses a temporary SQLite database, verifies Flyway V1/V2, writes child logs
 under `target/rpc-process-it`, and stops children in reverse order.
 
 ## V1 Non-goals
+
+Use the [Gateway + DDC + RPC integration runbook](../egon-cola-component-gateway/docs/developer-integration.md)
+for the production Gateway topology, dual-Engine calls, and fault drills.
 
 V1 does not implement:
 

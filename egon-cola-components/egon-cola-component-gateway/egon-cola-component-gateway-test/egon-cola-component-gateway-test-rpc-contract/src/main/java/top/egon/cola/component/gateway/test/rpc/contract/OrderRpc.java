@@ -26,7 +26,7 @@ import top.egon.cola.component.rpc.annotation.EgonRpcService;
 )
 public interface OrderRpc {
 
-    @EgonRpcMethod(name = "GetOrder")
+    @EgonRpcMethod(name = "GetOrder", idempotent = true)
     @GatewayOperation(
             name = "RPC 查询订单",
             externalAccessible = false,
@@ -34,7 +34,7 @@ public interface OrderRpc {
     )
     OrderResponse getOrder(GetOrderRequest request);
 
-    @EgonRpcMethod(name = "CreateOrder")
+    @EgonRpcMethod(name = "CreateOrder", idempotent = false)
     @GatewayOperation(
             name = "RPC 创建订单",
             externalAccessible = false,

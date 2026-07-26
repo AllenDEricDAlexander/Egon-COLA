@@ -264,8 +264,18 @@ egon:
             maximum-seconds: 300
           openapi:
             signature-enabled: true
-            access-key: ${DDC_ACCESS_KEY}
-            secret-key: ${DDC_SECRET_KEY}
+            credentials:
+              - credential-id: gateway-engine
+                access-key: ${DDC_ACCESS_KEY}
+                secret: ${DDC_SECRET_KEY}
+                client-type: "*"
+                app-code-patterns: [gateway-engine-*]
+                env-patterns: [local]
+                namespace-patterns: [default]
+                allowed-operations: [SDK_REGISTER, SDK_HEARTBEAT,
+                  SDK_OFFLINE, CONFIG_PULL, CONFIG_VALUE, PUBLISH_ACK,
+                  DEFAULTS_REPORT, REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
+                  REGISTRY_DEREGISTER, REGISTRY_READ]
           publish:
             dispatch-timeout-ms: 5000
             default-timeout-ms: 30000
@@ -291,6 +301,9 @@ Admin Redis connection. It is not the production storage topology.
 ```
 
 ## Explicit Boundaries
+
+For the complete DDC + Gateway + RPC startup order, credentials, lease drills, and
+runtime evidence, use the [developer integration runbook](../egon-cola-component-gateway/docs/developer-integration.md).
 
 - no Raft, leader election, consensus log, or membership protocol;
 - multi-Admin operation requires shared PostgreSQL and Redis; the component does not provision database or Redis HA;

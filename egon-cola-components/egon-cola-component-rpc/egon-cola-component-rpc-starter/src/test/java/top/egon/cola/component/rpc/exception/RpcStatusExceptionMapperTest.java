@@ -3,6 +3,7 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.context.RpcFailureStage;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,6 +19,7 @@ class RpcStatusExceptionMapperTest {
         assertCode(Status.CANCELLED, EgonRpcErrorCode.RPC_CANCELLED);
         assertCode(Status.UNAVAILABLE, EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE);
         assertCode(Status.INVALID_ARGUMENT, EgonRpcErrorCode.RPC_INVALID_REQUEST);
+        assertCode(Status.UNIMPLEMENTED, EgonRpcErrorCode.RPC_METHOD_NOT_FOUND);
         assertCode(Status.INTERNAL, EgonRpcErrorCode.RPC_INTERNAL);
     }
 
@@ -42,14 +44,16 @@ class RpcStatusExceptionMapperTest {
 
     @Test
     void shouldDistinguishProviderFromGatewayUnavailable() {
-        Metadata trailers = new Metadata();
-        trailers.put(RpcMetadataKeys.FAILURE_STAGE, "provider");
+        Metadata providerTrailers = new Metadata();
+        RpcFailureStage.PROVIDER.put(providerTrailers);
+        Metadata gatewayTrailers = new Metadata();
+        RpcFailureStage.GATEWAY.put(gatewayTrailers);
 
         assertThat(mapper.map(
-                Status.UNAVAILABLE.asRuntimeException(trailers)
+                Status.UNAVAILABLE.asRuntimeException(providerTrailers)
         ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE);
         assertThat(mapper.map(
-                Status.UNAVAILABLE.asRuntimeException()
+                Status.UNAVAILABLE.asRuntimeException(gatewayTrailers)
         ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE);
     }
 

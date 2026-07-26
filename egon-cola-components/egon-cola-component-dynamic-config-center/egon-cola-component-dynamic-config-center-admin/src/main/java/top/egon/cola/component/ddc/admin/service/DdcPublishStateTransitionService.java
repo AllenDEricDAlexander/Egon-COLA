@@ -9,6 +9,7 @@ import top.egon.cola.component.ddc.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigResourceKey;
+import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
@@ -24,7 +25,14 @@ public class DdcPublishStateTransitionService {
 
     private static final List<String> ACTIVE_STATUSES = List.of(
             PublishStatus.PENDING.name(),
-            PublishStatus.PUBLISHING.name()
+            PublishStatus.PUBLISHING.name(),
+            PublishStatus.UNKNOWN.name()
+    );
+
+    private static final List<String> DISPATCHABLE_STATUSES = List.of(
+            PublishStatus.PENDING.name(),
+            PublishStatus.PUBLISHING.name(),
+            PublishStatus.UNKNOWN.name()
     );
 
     private static final Set<String> TERMINAL_STATUSES = Set.of(
@@ -35,6 +43,8 @@ public class DdcPublishStateTransitionService {
     );
 
     private final DdcPublishTaskRepository taskRepository;
+
+    private final DdcConfigItemRepository configItemRepository;
 
     private final DdcPublishAckRepository ackRepository;
 
@@ -47,11 +57,13 @@ public class DdcPublishStateTransitionService {
     @Autowired
     public DdcPublishStateTransitionService(
             DdcPublishTaskRepository taskRepository,
+            DdcConfigItemRepository configItemRepository,
             DdcPublishAckRepository ackRepository,
             PublishResourceLockRegistry resourceRegistry,
             PublishCompletionWaiterRegistry waiterRegistry) {
         this(
                 taskRepository,
+                configItemRepository,
                 ackRepository,
                 resourceRegistry,
                 waiterRegistry,
@@ -61,11 +73,13 @@ public class DdcPublishStateTransitionService {
 
     DdcPublishStateTransitionService(
             DdcPublishTaskRepository taskRepository,
+            DdcConfigItemRepository configItemRepository,
             DdcPublishAckRepository ackRepository,
             PublishResourceLockRegistry resourceRegistry,
             PublishCompletionWaiterRegistry waiterRegistry,
             Clock clock) {
         this.taskRepository = taskRepository;
+        this.configItemRepository = configItemRepository;
         this.ackRepository = ackRepository;
         this.resourceRegistry = resourceRegistry;
         this.waiterRegistry = waiterRegistry;
@@ -77,6 +91,7 @@ public class DdcPublishStateTransitionService {
         LocalDateTime now = now();
         taskRepository.transitionToPublishing(
                 changeId,
+                DISPATCHABLE_STATUSES,
                 PublishStatus.PENDING.name(),
                 PublishStatus.PUBLISHING.name(),
                 now
@@ -105,7 +120,8 @@ public class DdcPublishStateTransitionService {
             );
         } else if (task.getTargetCount() != null
                 && success == targets.size()
-                && success == task.getTargetCount()) {
+                && success == task.getTargetCount()
+                && isPublished(task)) {
             transitionToTerminal(task, PublishStatus.SUCCESS, null, null);
         } else {
             signalAfterCommit(changeId);
@@ -141,8 +157,15 @@ public class DdcPublishStateTransitionService {
     @Transactional
     public DdcPublishTaskEntity unknown(String changeId,
                                         String errorMessage) {
+        return unknown(changeId, "ADMIN_RESTART", errorMessage);
+    }
+
+    @Transactional
+    public DdcPublishTaskEntity unknown(String changeId,
+                                        String failureStage,
+                                        String errorMessage) {
         DdcPublishTaskEntity task = requiredTask(changeId);
-        transitionToTerminal(task, PublishStatus.UNKNOWN, "ADMIN_RESTART", errorMessage);
+        transitionToTerminal(task, PublishStatus.UNKNOWN, failureStage, errorMessage);
         return requiredTask(changeId);
     }
 
@@ -211,6 +234,13 @@ public class DdcPublishStateTransitionService {
         return (int) targets.stream()
                 .filter(target -> status.equals(target.getAckStatus()))
                 .count();
+    }
+
+    private boolean isPublished(DdcPublishTaskEntity task) {
+        return configItemRepository.findById(task.getConfigId())
+                .map(config -> config.getPublishedVersion() != null
+                        && config.getPublishedVersion().equals(task.getTargetVersion()))
+                .orElse(false);
     }
 
     private DdcPublishTaskEntity requiredTask(String changeId) {

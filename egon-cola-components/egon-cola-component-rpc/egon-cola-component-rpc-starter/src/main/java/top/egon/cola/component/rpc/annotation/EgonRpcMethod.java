@@ -10,4 +10,6 @@ import java.lang.annotation.Target;
 public @interface EgonRpcMethod {
 
     String name();
+
+    boolean idempotent() default false;
 }

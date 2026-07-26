@@ -2,9 +2,11 @@ package top.egon.cola.component.ddc.admin.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
@@ -21,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(DdcConfigController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class DdcConfigControllerTest {
 
     @Autowired
@@ -40,9 +43,13 @@ class DdcConfigControllerTest {
         vo.setEnv("dev");
         vo.setNamespace("default");
         vo.setConfigKey("switch");
-        when(configService.create(any(DdcConfigCreateRequest.class), eq("tester"))).thenReturn(vo);
+        when(configService.create(
+                any(DdcConfigCreateRequest.class),
+                eq("user:controller-test [requested=tester]")
+        )).thenReturn(vo);
 
         mockMvc.perform(post("/api/v1/ddc/configs?operator=tester")
+                        .principal(authentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"appCode":"demo","env":"dev","namespace":"default","configKey":"switch","configValue":"true","defaultValue":"false","valueType":"BOOLEAN"}
@@ -64,10 +71,14 @@ class DdcConfigControllerTest {
         DdcPublishResultVO result = new DdcPublishResultVO();
         result.setChangeId("01919f66-7e0e-7a1a-8000-000000000001");
         result.setStatus("SUCCESS");
-        when(publishService.publish(any(DdcPublishRequest.class), eq("tester")))
+        when(publishService.publish(
+                any(DdcPublishRequest.class),
+                eq("user:controller-test [requested=tester]")
+        ))
                 .thenReturn(result);
 
         mockMvc.perform(post("/api/v1/ddc/configs/cfg1/publish?operator=tester")
+                        .principal(authentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -81,5 +92,13 @@ class DdcConfigControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.changeId")
                         .value("01919f66-7e0e-7a1a-8000-000000000001"));
+    }
+
+    private TestingAuthenticationToken authentication() {
+        return new TestingAuthenticationToken(
+                "controller-test",
+                null,
+                "ROLE_USER"
+        );
     }
 }

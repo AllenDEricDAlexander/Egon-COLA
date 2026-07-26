@@ -19,10 +19,8 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayD
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
-import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCompiler;
-import top.egon.cola.component.gateway.admin.rule.GatewayRulePublishResult;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
@@ -59,7 +57,7 @@ public class GatewayReleaseService {
 
     private final TransactionTemplate transactions;
 
-    private final GatewayDdcRulePublisher publisher;
+    private final GatewayReleasePublicationCoordinator publications;
 
     private final GatewayRuleCanonicalizer canonicalizer =
             new GatewayRuleCanonicalizer();
@@ -77,7 +75,8 @@ public class GatewayReleaseService {
             GatewayReleaseStore releases,
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
-            ObjectProvider<GatewayDdcRulePublisher> publisher) {
+            ObjectProvider<GatewayReleasePublicationCoordinator>
+                    publications) {
         this(
                 groups,
                 drafts,
@@ -86,7 +85,7 @@ public class GatewayReleaseService {
                 releases,
                 audits,
                 transactions,
-                publisher.getIfAvailable(),
+                publications.getIfAvailable(),
                 Clock.systemUTC()
         );
     }
@@ -99,7 +98,7 @@ public class GatewayReleaseService {
             GatewayReleaseStore releases,
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
-            GatewayDdcRulePublisher publisher,
+            GatewayReleasePublicationCoordinator publications,
             Clock clock) {
         this.groups = groups;
         this.drafts = drafts;
@@ -108,7 +107,7 @@ public class GatewayReleaseService {
         this.releases = releases;
         this.audits = audits;
         this.transactions = transactions;
-        this.publisher = publisher;
+        this.publications = publications;
         this.clock = clock;
     }
 
@@ -306,7 +305,7 @@ public class GatewayReleaseService {
                 prepared.attemptNo(),
                 clock.instant()
         ));
-        if (publisher == null) {
+        if (publications == null) {
             transactions.executeWithoutResult(status -> releases
                     .completeAttempt(
                             prepared.release().id(),
@@ -321,47 +320,49 @@ public class GatewayReleaseService {
                     ));
             return get(prepared.release().id());
         }
-        String changeId = "gateway-release-" + prepared.release().id()
-                + "-attempt-" + prepared.attemptNo();
         try {
-            GatewayRulePublishResult result = publisher.publish(
-                    prepared.compiled(),
-                    null,
-                    changeId,
-                    actor.actorId()
-            );
-            List<GatewayReleaseStore.TargetRecord> targets =
-                    result.activationResult()
-                            .targets()
-                            .stream()
-                            .map(target -> target(
-                                    target,
-                                    prepared.compiled()
-                                            .activation()
-                                            .artifactSha256()
-                            ))
-                            .toList();
+            GatewayReleasePublicationCoordinator.PublicationOutcome outcome =
+                    publications.execute(
+                            prepared.release().id(),
+                            prepared.attemptNo(),
+                            prepared.compiled(),
+                            actor.actorId()
+                    );
+            List<GatewayReleaseStore.TargetRecord> targets = outcome.result()
+                    .targets()
+                    .stream()
+                    .map(target -> target(
+                            target,
+                            prepared.compiled()
+                                    .activation()
+                                    .artifactSha256()
+                    ))
+                    .toList();
             transactions.executeWithoutResult(status -> {
                 releases.completeAttempt(
                         prepared.release().id(),
                         prepared.attemptNo(),
-                        GatewayReleaseStatus.SUCCESS,
-                        false,
-                        result.activationResult().changeId(),
-                        null,
-                        null,
+                        releaseStatus(outcome.status()),
+                        outcome.partialApplied(),
+                        outcome.changeId(),
+                        outcome.successful()
+                                ? null
+                                : "DDC_PUBLISH_" + outcome.status(),
+                        outcome.result().errorMessage(),
                         targets,
                         clock.instant()
                 );
-                GatewayDraftEntity draft = drafts.findById(
-                        prepared.release().gatewayGroupId()
-                ).orElseThrow();
-                draft.baseOn(
-                        prepared.release().id(),
-                        actor.actorId(),
-                        clock.instant()
-                );
-                drafts.flush();
+                if (outcome.successful()) {
+                    GatewayDraftEntity draft = drafts.findById(
+                            prepared.release().gatewayGroupId()
+                    ).orElseThrow();
+                    draft.baseOn(
+                            prepared.release().id(),
+                            actor.actorId(),
+                            clock.instant()
+                    );
+                    drafts.flush();
+                }
             });
         } catch (RuntimeException failure) {
             transactions.executeWithoutResult(status -> releases
@@ -370,7 +371,7 @@ public class GatewayReleaseService {
                             prepared.attemptNo(),
                             GatewayReleaseStatus.UNKNOWN,
                             false,
-                            changeId,
+                            null,
                             "GATEWAY_ADMIN_DDC_UNAVAILABLE",
                             bounded(failure.getMessage()),
                             List.of(),
@@ -378,6 +379,17 @@ public class GatewayReleaseService {
                     ));
         }
         return get(prepared.release().id());
+    }
+
+    private GatewayReleaseStatus releaseStatus(
+            GatewayReleasePublicationStore.PublicationStatus status) {
+        return switch (status) {
+            case SUCCESS -> GatewayReleaseStatus.SUCCESS;
+            case FAILED, PARTIAL_SUCCESS -> GatewayReleaseStatus.FAILED;
+            case TIMEOUT -> GatewayReleaseStatus.TIMEOUT;
+            case PLANNED, RESOLVED, SUBMITTED, UNKNOWN ->
+                    GatewayReleaseStatus.UNKNOWN;
+        };
     }
 
     private GatewayRuleContent content(

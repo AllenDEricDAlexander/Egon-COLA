@@ -9,6 +9,10 @@ import java.io.IOException;
 
 public final class GatewayTestInfrastructure implements AutoCloseable {
 
+    private boolean started;
+
+    private boolean closed;
+
     private final PostgreSQLContainer<?> postgres =
             new PostgreSQLContainer<>("postgres:16.6-alpine");
 
@@ -24,11 +28,27 @@ public final class GatewayTestInfrastructure implements AutoCloseable {
             DockerImageName.parse("apache/kafka-native:3.9.1")
     );
 
-    public void start() {
-        postgres.start();
-        ddcRedis.start();
-        rateLimitRedis.start();
-        kafka.start();
+    public synchronized void start() {
+        if (closed) {
+            throw new IllegalStateException(
+                    "gateway test infrastructure is already closed"
+            );
+        }
+        if (started) {
+            throw new IllegalStateException(
+                    "gateway test infrastructure is already started"
+            );
+        }
+        try {
+            postgres.start();
+            ddcRedis.start();
+            rateLimitRedis.start();
+            kafka.start();
+            started = true;
+        } catch (RuntimeException failure) {
+            close();
+            throw failure;
+        }
     }
 
     public PostgreSQLContainer<?> postgres() {
@@ -110,10 +130,21 @@ public final class GatewayTestInfrastructure implements AutoCloseable {
     }
 
     @Override
-    public void close() {
-        kafka.stop();
-        rateLimitRedis.stop();
-        ddcRedis.stop();
-        postgres.stop();
+    public synchronized void close() {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        stopIfRunning(kafka);
+        stopIfRunning(rateLimitRedis);
+        stopIfRunning(ddcRedis);
+        stopIfRunning(postgres);
+        started = false;
+    }
+
+    private void stopIfRunning(GenericContainer<?> container) {
+        if (container.isRunning()) {
+            container.stop();
+        }
     }
 }

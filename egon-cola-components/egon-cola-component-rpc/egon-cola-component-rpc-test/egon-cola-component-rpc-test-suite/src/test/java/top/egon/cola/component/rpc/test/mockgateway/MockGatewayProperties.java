@@ -13,7 +13,7 @@ public record MockGatewayProperties(
 
     public static MockGatewayProperties defaults() {
         return new MockGatewayProperties(
-                "egon-internal-rpc-gateway",
+                "egon-gateway-rpc",
                 "default",
                 "1.0.0",
                 "127.0.0.1",

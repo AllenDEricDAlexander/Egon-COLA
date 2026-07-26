@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.admin.controller;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,35 +45,52 @@ public class DdcConfigController {
 
     @PostMapping
     public ResultDto<DdcConfigVO> create(@RequestBody DdcConfigCreateRequest request,
-                                      @RequestParam(name = "operator", defaultValue = "system") String operator) {
-        return ResultDtos.success(configService.create(request, operator));
+                                      @RequestParam(name = "operator", defaultValue = "system") String operator,
+                                      Authentication authentication) {
+        return ResultDtos.success(configService.create(
+                request,
+                trustedOperator(authentication, operator)
+        ));
     }
 
     @PutMapping("/{id}")
     public ResultDto<DdcConfigVO> update(@PathVariable("id") String id,
                                       @RequestBody DdcConfigUpdateRequest request,
-                                      @RequestParam(name = "operator", defaultValue = "system") String operator) {
+                                      @RequestParam(name = "operator", defaultValue = "system") String operator,
+                                      Authentication authentication) {
         request.setId(id);
-        return ResultDtos.success(configService.update(request, operator));
+        return ResultDtos.success(configService.update(
+                request,
+                trustedOperator(authentication, operator)
+        ));
     }
 
     @DeleteMapping("/{id}")
     public ResultDto<DdcConfigVO> delete(@PathVariable("id") String id,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
-                                      @RequestParam(name = "reason", defaultValue = "delete config") String reason) {
-        return ResultDtos.success(configService.delete(id, operator, reason));
+                                      @RequestParam(name = "reason", defaultValue = "delete config") String reason,
+                                      Authentication authentication) {
+        return ResultDtos.success(configService.delete(
+                id,
+                trustedOperator(authentication, operator),
+                reason
+        ));
     }
 
     @PostMapping("/{id}/publish")
     public ResultDto<DdcPublishResultVO> publish(@PathVariable("id") String id,
                                               @RequestBody DdcPublishRequest request,
-                                              @RequestParam(name = "operator", defaultValue = "system") String operator) {
+                                              @RequestParam(name = "operator", defaultValue = "system") String operator,
+                                              Authentication authentication) {
         DdcConfigVO config = configService.get(id);
         request.setAppCode(config.getAppCode());
         request.setEnv(config.getEnv());
         request.setNamespace(config.getNamespace());
         request.setConfigKey(config.getConfigKey());
-        return ResultDtos.success(publishService.publish(request, operator));
+        return ResultDtos.success(publishService.publish(
+                request,
+                trustedOperator(authentication, operator)
+        ));
     }
 
     @GetMapping("/{id}/versions")
@@ -83,8 +101,48 @@ public class DdcConfigController {
     @PostMapping("/{id}/rollback")
     public ResultDto<DdcConfigVO> rollback(@PathVariable("id") String id,
                                         @RequestBody DdcConfigRollbackRequest request,
-                                        @RequestParam(name = "operator", defaultValue = "system") String operator) {
+                                        @RequestParam(name = "operator", defaultValue = "system") String operator,
+                                        Authentication authentication) {
         request.setConfigId(id);
-        return ResultDtos.success(configService.rollback(request, operator));
+        return ResultDtos.success(configService.rollback(
+                request,
+                trustedOperator(authentication, operator)
+        ));
+    }
+
+    private String trustedOperator(
+            Authentication authentication,
+            String requestedOperator) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || authentication.getName().isBlank()) {
+            throw new IllegalStateException(
+                    "Authenticated DDC Admin principal is required"
+            );
+        }
+        String actor = auditValue(authentication.getName());
+        if (actor.isBlank()) {
+            throw new IllegalStateException(
+                    "Authenticated DDC Admin principal is required"
+            );
+        }
+        String trusted = "user:" + actor;
+        if (requestedOperator == null || requestedOperator.isBlank()) {
+            return trusted;
+        }
+        return trusted + " [requested="
+                + auditValue(requestedOperator)
+                + ']';
+    }
+
+    private String auditValue(String value) {
+        String normalized = value
+                .replaceAll("[\\p{Cntrl}]", " ")
+                .trim();
+        if (normalized.length() > 128) {
+            return normalized.substring(0, 128);
+        }
+        return normalized;
     }
 }

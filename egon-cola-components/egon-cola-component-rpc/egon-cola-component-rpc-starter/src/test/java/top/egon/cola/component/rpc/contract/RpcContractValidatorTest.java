@@ -33,6 +33,21 @@ class RpcContractValidatorTest {
         ).fullMethodName()).isEqualTo(
                 "egon.rpc.fixture.v1.UnaryFixtureService/Echo"
         );
+        assertThat(first.method(
+                ValidContract.class.getMethod("echo", StringValue.class)
+        ).idempotent()).isTrue();
+    }
+
+    @Test
+    void shouldKeepLegacyMethodsNonIdempotentByDefault() throws Exception {
+        RpcMethodDescriptor method = validator.validate(
+                LegacyContract.class
+        ).method(LegacyContract.class.getMethod(
+                "echo",
+                StringValue.class
+        ));
+
+        assertThat(method.idempotent()).isFalse();
     }
 
     @Test
@@ -78,6 +93,17 @@ class RpcContractValidatorTest {
             version = "1.0.0"
     )
     interface ValidContract {
+
+        @EgonRpcMethod(name = "Echo", idempotent = true)
+        StringValue echo(StringValue request);
+    }
+
+    @EgonRpcService(
+            grpcClass = UnaryFixtureGrpc.class,
+            group = "test",
+            version = "1.0.0"
+    )
+    interface LegacyContract {
 
         @EgonRpcMethod(name = "Echo")
         StringValue echo(StringValue request);

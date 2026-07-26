@@ -16,6 +16,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -120,15 +121,25 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
 
         private final AtomicBoolean refreshQueued = new AtomicBoolean();
 
-        private RTopic topic;
-
-        private int listenerId = -1;
+        private List<TopicRegistration> topicRegistrations = List.of();
 
         private ScheduledFuture<?> reconciliation;
 
-        protected void start(String topicName) {
-            topic = redissonClient.getTopic(topicName, StringCodec.INSTANCE);
-            listenerId = topic.addListener(String.class, this::onEvent);
+        protected void start(List<String> topicNames) {
+            List<TopicRegistration> registered = new ArrayList<>();
+            try {
+                for (String topicName : topicNames) {
+                    RTopic topic = redissonClient.getTopic(topicName, StringCodec.INSTANCE);
+                    registered.add(new TopicRegistration(
+                            topic,
+                            topic.addListener(String.class, this::onEvent)
+                    ));
+                }
+            } catch (RuntimeException exception) {
+                registered.forEach(TopicRegistration::remove);
+                throw exception;
+            }
+            topicRegistrations = List.copyOf(registered);
             refresh();
             reconciliation = scheduler.scheduleWithFixedDelay(
                     this::safeRefresh,
@@ -196,9 +207,7 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
             if (reconciliation != null) {
                 reconciliation.cancel(false);
             }
-            if (topic != null && listenerId >= 0) {
-                topic.removeListener(listenerId);
-            }
+            topicRegistrations.forEach(TopicRegistration::remove);
             subscriptions.remove(this);
         }
     }
@@ -218,11 +227,19 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         }
 
         private void start() {
-            start(DdcKeys.registryTopic(
-                    serviceKey.env(),
-                    serviceKey.namespace(),
-                    serviceKey.serviceKind(),
-                    serviceKey.protocol()
+            start(List.of(
+                    DdcKeys.v2RegistryTopic(
+                            serviceKey.env(),
+                            serviceKey.namespace(),
+                            serviceKey.serviceKind(),
+                            serviceKey.protocol()
+                    ),
+                    DdcKeys.registryTopic(
+                            serviceKey.env(),
+                            serviceKey.namespace(),
+                            serviceKey.serviceKind(),
+                            serviceKey.protocol()
+                    )
             ));
         }
 
@@ -283,11 +300,19 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         }
 
         private void start() {
-            start(DdcKeys.registryTopic(
-                    query.env(),
-                    query.namespace(),
-                    query.serviceKind(),
-                    query.protocol()
+            start(List.of(
+                    DdcKeys.v2RegistryTopic(
+                            query.env(),
+                            query.namespace(),
+                            query.serviceKind(),
+                            query.protocol()
+                    ),
+                    DdcKeys.registryTopic(
+                            query.env(),
+                            query.namespace(),
+                            query.serviceKind(),
+                            query.protocol()
+                    )
             ));
         }
 
@@ -314,6 +339,13 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         @Override
         protected synchronized void expireLocal() {
             // Service catalog membership cannot be inferred safely without Admin.
+        }
+    }
+
+    private record TopicRegistration(RTopic topic, int listenerId) {
+
+        private void remove() {
+            topic.removeListener(listenerId);
         }
     }
 }
