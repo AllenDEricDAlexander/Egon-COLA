@@ -186,7 +186,7 @@ public class DdcAdminProperties {
 
     public static class Manifest {
 
-        private String version = "5.2.1";
+        private String version;
 
         public String getVersion() {
             return version;

@@ -18,13 +18,16 @@ Response fields:
 | `frontendModuleKey` | External UI module key. |
 | `routeBase` | Suggested external UI route base. |
 
+The version defaults to the Starter's filtered `sdk.version` metadata. Operators can override it with
+`egon.cola.component.ddc.admin.manifest.version`.
+
 Example:
 
 ```json
 {
   "component": "dynamic-config-center",
   "displayName": "Dynamic Config Center",
-  "version": "5.2.1",
+  "version": "<component-version>",
   "enabled": true,
   "baseApiPath": "/api/v1/ddc",
   "frontendModuleKey": "dynamic-config-center",

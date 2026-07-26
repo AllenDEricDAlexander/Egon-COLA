@@ -12,7 +12,7 @@ import top.egon.cola.component.ddc.admin.manifest.DdcComponentManifest;
 @RequestMapping("/api/v1/ddc")
 public class DdcManifestController {
 
-    @Value("${egon.cola.component.ddc.admin.manifest.version:5.2.1}")
+    @Value("${egon.cola.component.ddc.admin.manifest.version}")
     private String version;
 
     @GetMapping("/manifest")
