@@ -1232,7 +1232,10 @@ assertFile("src/test/java/it/pkg/adapter/user/rpc/PermissionRpcProviderTest.java
 assertFile("src/test/java/it/pkg/adapter/teaching/rpc/SchoolClassRpcProviderTest.java")
 
 def readme = assertFile("README.md").text
-assert readme.contains("Student Management")
+// The generated guide must name the generated project, not the archetype's own sample.
+assert readme.contains("# basic")
+assert !readme.contains("Student Management")
+assert assertFile("README.zh-CN.md").text.contains("# basic")
 assert readme.contains("single Maven module")
 assert readme.contains("start          -> adapter, infrastructure")
 assert readme.contains("adapter        -> application, facade")

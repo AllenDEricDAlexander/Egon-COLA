@@ -1,19 +1,19 @@
 #set( $symbol_pound = '#' )
-${symbol_pound} 学生管理组织
+${symbol_pound} ${rootArtifactId}
 
-[English](README.md) | 中文
+[English](README.md) | [中文](README.zh-CN.md)
 
-该项目由 `egon-cola-archetype-web` 生成，是一个独立的、只负责组织领域的 Project。Adapter 实现 `top.egon:egon-cola-organization-facade`，Infrastructure 消费 `top.egon:egon-cola-evaluation-facade`。
+`${rootArtifactId}` 由 `egon-cola-archetype-web` 生成，是一个独立的、只负责组织领域的 Project。Adapter 实现 `top.egon:egon-cola-organization-facade`，Infrastructure 消费 `top.egon:egon-cola-evaluation-facade`。
 
 ${symbol_pound}${symbol_pound} 模块
 
 ```text
-student-management-organization-common
-student-management-organization-domain
-student-management-organization-application
-student-management-organization-infrastructure
-student-management-organization-adapter
-student-management-organization-starter
+${rootArtifactId}-common
+${rootArtifactId}-domain
+${rootArtifactId}-application
+${rootArtifactId}-infrastructure
+${rootArtifactId}-adapter
+${rootArtifactId}-starter
 ```
 
 ${symbol_pound}${symbol_pound} 领域优先包布局
@@ -66,7 +66,9 @@ ${symbol_pound}${symbol_pound} 运行时 Profile
 
 Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2、内存缓存/幂等 adapter、本地事件发布器、确定性的 Evaluation 查询 stub、已关闭的 RabbitMQ 与 Nacos 连接，以及不使用 registry 的 Dubbo `injvm`。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都使用 Dubbo Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。Facade group 和 version 使用 `EVALUATION_*_FACADE_GROUP` 与 `EVALUATION_FACADE_SERVICE_VERSION`；其他 datasource、Redis、RabbitMQ、Nacos、cache 和幂等配置仍由环境变量提供。
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都使用 Dubbo Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0.0`）。
+
+Nacos 使用 `NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`，config 与 discovery 的分组变量是分开的 `NACOS_CONFIG_GROUP` 与 `NACOS_DISCOVERY_GROUP`，开关为 `NACOS_CONFIG_ENABLED`、`NACOS_DISCOVERY_ENABLED`、`NACOS_CONFIG_REFRESH_ENABLED` 和 `DISCOVERY_ENABLED`。RabbitMQ 连接参数使用 Spring 自身的 `SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`。其他 datasource、Redis、cache 和幂等配置仍由环境变量提供。
 
 ${symbol_pound}${symbol_pound} 分片、读写分离与 Flyway
 
@@ -114,7 +116,9 @@ Spring Boot Flyway 自动配置被排除，replica 和逻辑数据源均不会�
 和 `兼容性说明` 三项注释。
 
 数据库数、每库物理表数和总物理节点数都必须是 2 的幂。初始映射为
-`2 库 × 每库 2 表 = 4 节点`。容量按 2N 法扩展：每次只将一个维度从 `N`
+`2 库 × 每库 2 表 = 4 节点`，由 `ORGANIZATION_SHARDING_NODE_COUNT`（默认 `4`）与
+`ORGANIZATION_SHARDING_NODE_MAP`（默认 `0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`）承载，
+逻辑库名由 `ORGANIZATION_SHARDING_DATABASE_NAME` 指定。容量按 2N 法扩展：每次只将一个维度从 `N`
 调整为 `2N`，并整体发布完整的 `node-count` 与 `node-map`。当前是尚未执行过
 迁移的新脚手架，没有历史数据，也不提供在线迁移、双写、CDC 或自动搬数机制。
 
@@ -134,20 +138,25 @@ ${symbol_pound}${symbol_pound} 命令
 bash ./mvnw -V --no-transfer-progress clean verify
 ```
 
+必须使用 `verify` 而非 `test`：架构治理插件绑定在该阶段，并以 `unknownLayerPolicy=FAIL`
+运行，任何解析不到分层的模块或类都会让构建失败。
+
 打包分层可执行 Jar：
 
 ```bash
 bash ./mvnw -V --no-transfer-progress -DskipTests package
 ```
 
-加密配置值：
+使用通过 `EGON_CONFIG_DECRYPT_KEY` 或 `EGON_CONFIG_DECRYPT_KEY_FILE` 提供的 32 字节密钥加密配置值：
 
 ```bash
-CONFIG_DECRYPT_KEY=base64-encoded-32-byte-key \
-  bash ./mvnw -pl ${rootArtifactId}-starter \
-  -Dexec.mainClass=${package}.starter.config.encryption.ConfigCipherCli \
-  -Dexec.args='encrypt plaintext-value' exec:java
+printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-key' \
+  bash ./mvnw -q -pl ${rootArtifactId}-starter -am -DskipTests compile exec:java \
+  -Dexec.mainClass=${package}.starter.config.encryption.ConfigCipherCli
 ```
+
+`ConfigCipherCli` 不接受任何参数，明文从标准输入读取；`exec:java` 在 Maven 自身的 JVM 中运行，
+上面的管道才能送达。将输出的 `ENC(v1:...)` 值填入配置。
 
 ${symbol_pound}${symbol_pound} 容器交付
 

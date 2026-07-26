@@ -1702,7 +1702,12 @@ def starterApplication = assertFile(
 assert starterApplication.contains("exclude = FlywayAutoConfiguration.class")
 
 def readme = assertFile("README.md").text
-assert readme.contains("Student Management Organization")
+// The generated guide must name the generated project and its real modules,
+// not the archetype's own sample project.
+assert readme.contains("# student-management-organization")
+assert !readme.contains("Student Management Organization")
+assert readme.contains("student-management-organization-starter")
+assert assertFile("README.zh-CN.md").text.contains("# student-management-organization")
 assert readme.contains("organization-only Project")
 assert readme.contains("user")
 assert readme.contains("teaching")

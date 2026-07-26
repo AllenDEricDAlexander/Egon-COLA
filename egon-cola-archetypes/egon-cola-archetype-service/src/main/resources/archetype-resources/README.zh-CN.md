@@ -58,11 +58,11 @@ Organization Facade client 仍是一个暂未使用的 infrastructure 基础能�
 `prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都选择真实的 Organization Dubbo client，通过生成的 POM 固定 `top.egon:egon-cola-organization-facade`，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
 
 - 数据库：按下文为 `master_data`、`shard_0`、`shard_1` 配置 ShardingSphere 物理数据源。
-- Nacos：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_GROUP`、`NACOS_USERNAME`、`NACOS_PASSWORD`。
+- Nacos：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`。config 与 discovery 的分组是分开的：`NACOS_CONFIG_GROUP` 与 `NACOS_DISCOVERY_GROUP`；开关同样分开：`NACOS_CONFIG_ENABLED`、`NACOS_DISCOVERY_ENABLED`、`NACOS_CONFIG_REFRESH_ENABLED` 和 `DISCOVERY_ENABLED`。
 - Dubbo：`DUBBO_REGISTRY_ADDRESS`、`DUBBO_PORT`、`DUBBO_CONSUMER_TIMEOUT`。
 - Organization Facade：`ORGANIZATION_FACADE_ENABLED`、`ORGANIZATION_FACADE_GROUP`、`ORGANIZATION_FACADE_SERVICE_VERSION`。
-- RabbitMQ：`RABBITMQ_HOST`、`RABBITMQ_PORT`、`RABBITMQ_USERNAME`、`RABBITMQ_PASSWORD`、`RABBITMQ_ENABLED`、`RABBITMQ_LISTENER_AUTO_STARTUP`。
-- 配置解密：`CONFIG_DECRYPT_KEY` 或文档化的 config-tree secret source。
+- RabbitMQ：连接参数通过 Spring 自身的变量名绑定——`SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`；`RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 则是本应用自己的开关。
+- 配置解密：`EGON_CONFIG_DECRYPT_KEY`、`EGON_CONFIG_DECRYPT_KEY_FILE` 或文档化的 config-tree secret source。
 
 ${symbol_pound}${symbol_pound} 分片、读写分离与 Flyway
 
@@ -109,7 +109,9 @@ Spring Boot Flyway 自动配置被排除，replica 和逻辑数据源均不会�
 和 `兼容性说明` 三项注释。
 
 数据库数、每库物理表数和总物理节点数都必须是 2 的幂。初始映射为
-`2 库 × 每库 2 表 = 4 节点`。容量按 2N 法扩展：每次只将一个维度从 `N`
+`2 库 × 每库 2 表 = 4 节点`，由 `EVALUATION_SHARDING_NODE_COUNT`（默认 `4`）与
+`EVALUATION_SHARDING_NODE_MAP`（默认 `0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`）承载，
+逻辑库名由 `EVALUATION_SHARDING_DATABASE_NAME` 指定。容量按 2N 法扩展：每次只将一个维度从 `N`
 调整为 `2N`，并整体发布完整的 `node-count` 与 `node-map`。当前是尚未执行过
 迁移的新脚手架，没有历史数据，也不提供在线迁移、双写、CDC 或自动搬数机制。
 
@@ -120,13 +122,27 @@ Spring Boot Flyway 自动配置被排除，replica 和逻辑数据源均不会�
 ${symbol_pound}${symbol_pound} 验证与打包
 
 ```bash
-SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test
+SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify
 SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 ```
 
 测试套件包括 Domain 规则、Application 编排、JPA adapter、日期序列 Flyway
 migration 契约、无 broker 的 MQ adapter、实际 Dubbo Triple proxy 调用、
 无外部依赖的 Spring context 组装和架构依赖检查。构建镜像不会启动服务。
+
+必须使用 `verify` 而不是 `test`：架构治理插件绑定在 `verify` 阶段并以
+`unknownLayerPolicy=FAIL` 运行，`clean test` 会跑完全部单元测试但完全不做分层检查。
+生成的 `.github/workflows/ci.yml` 与根目录 `Jenkinsfile` 也因此统一使用 `verify`。
+
+使用通过 `EGON_CONFIG_DECRYPT_KEY` 或 `EGON_CONFIG_DECRYPT_KEY_FILE` 提供的 32 字节密钥加密配置值：
+
+```bash
+printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-key' \
+  bash ./mvnw -q -pl ${rootArtifactId}-starter -am -DskipTests compile exec:java \
+  -Dexec.mainClass=${package}.starter.config.encryption.ConfigCipherCli
+```
+
+`ConfigCipherCli` 不接受任何参数，明文从标准输入读取。将输出的 `ENC(v1:...)` 值填入配置。
 
 ${symbol_pound}${symbol_pound} 容器交付
 

@@ -141,6 +141,49 @@ update_archetype_pom_versions() {
     printf 'Updated %d archetype template POM(s).\n' "$updated_count"
 }
 
+find_readme_files() {
+    local readme
+
+    for readme in "$PROJECT_ROOT/README.md" "$PROJECT_ROOT/README.zh-CN.md"; do
+        [[ -f "$readme" ]] && printf '%s\0' "$readme"
+    done
+}
+
+update_readme_archetype_versions() {
+    local new_version="$1"
+    local readme_file
+    local temp_file
+    local updated_count=0
+
+    while IFS= read -r -d '' readme_file; do
+        if ! grep -Eq -- "-DarchetypeVersion='[^']*'" "$readme_file"; then
+            continue
+        fi
+
+        temp_file="$BACKUP_DIR/updated/${readme_file#"$PROJECT_ROOT"/}"
+        mkdir -p "$(dirname "$temp_file")"
+        sed -E "s|-DarchetypeVersion='[^']*'|-DarchetypeVersion='$new_version'|g" \
+            "$readme_file" > "$temp_file"
+        cp "$temp_file" "$readme_file"
+        updated_count=$((updated_count + 1))
+    done < <(find_readme_files)
+
+    printf 'Updated %d README file(s).\n' "$updated_count"
+}
+
+verify_readme_archetype_versions() {
+    local expected_version="$1"
+    local readme_file
+    local stale
+
+    while IFS= read -r -d '' readme_file; do
+        stale="$(grep -Eo -- "-DarchetypeVersion='[^']*'" "$readme_file" \
+            | grep -Fv -- "-DarchetypeVersion='$expected_version'" || true)"
+        [[ -z "$stale" ]] || \
+            die "$readme_file still documents $stale; expected $expected_version"
+    done < <(find_readme_files)
+}
+
 if [[ $# -ne 1 ]]; then
     usage >&2
     exit 2
@@ -184,6 +227,8 @@ printf 'Updating Egon-COLA from %s to %s...\n' "$CURRENT_VERSION" "$NEW_VERSION"
 
 update_archetype_pom_versions "$CURRENT_VERSION" "$NEW_VERSION"
 verify_archetype_pom_versions "$NEW_VERSION"
+update_readme_archetype_versions "$NEW_VERSION"
+verify_readme_archetype_versions "$NEW_VERSION"
 
 UPDATED_VERSION="$(read_project_version)"
 readonly UPDATED_VERSION

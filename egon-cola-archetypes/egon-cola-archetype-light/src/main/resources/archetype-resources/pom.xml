@@ -32,6 +32,7 @@
         <springdoc.version>2.8.17</springdoc.version>
         <shardingsphere.version>5.5.3</shardingsphere.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
+        <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -282,18 +283,24 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec.maven.plugin.version}</version>
+            </plugin>
+            <plugin>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
                 <version>${egon-cola.version}</version>
                 <configuration>
+                    <unknownLayerPolicy>FAIL</unknownLayerPolicy>
                     <packageMappings>
-                        <it.pkg.domain..>DOMAIN</it.pkg.domain..>
-                        <it.pkg.application..>APPLICATION</it.pkg.application..>
-                        <it.pkg.infrastructure..>INFRASTRUCTURE</it.pkg.infrastructure..>
-                        <it.pkg.adapter..>ADAPTER</it.pkg.adapter..>
-                        <it.pkg.facade..>FACADE</it.pkg.facade..>
-                        <it.pkg.start..>STARTER</it.pkg.start..>
-                        <it.pkg.common..>COMMON</it.pkg.common..>
+                        <${package}.domain..>DOMAIN</${package}.domain..>
+                        <${package}.application..>APPLICATION</${package}.application..>
+                        <${package}.infrastructure..>INFRASTRUCTURE</${package}.infrastructure..>
+                        <${package}.adapter..>ADAPTER</${package}.adapter..>
+                        <${package}.facade..>FACADE</${package}.facade..>
+                        <${package}.start..>STARTER</${package}.start..>
+                        <${package}.common..>COMMON</${package}.common..>
                     </packageMappings>
                 </configuration>
                 <executions>

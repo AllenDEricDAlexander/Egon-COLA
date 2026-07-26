@@ -221,7 +221,7 @@ jobs:
 
             if [ "${SHORT_NAME}" = "service" ]; then
               test -f .github/workflows/ci.yml
-              grep -Fq 'SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test' .github/workflows/ci.yml
+              grep -Fq 'SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify' .github/workflows/ci.yml
               grep -Fq 'docker build' .github/workflows/ci.yml
               grep -Fq -- '--file deploy/container/Dockerfile' .github/workflows/ci.yml
               grep -Fq -- '--tag ci-service-demo-java-${JAVA_VERSION}:ci' .github/workflows/ci.yml
@@ -229,13 +229,10 @@ jobs:
 
             test -f ./mvnw
             chmod +x ./mvnw
-            if [ "${SHORT_NAME}" = "web" ]; then
-              rocky_run "${CONTAINER_PROJECT_DIR}" \
-                'SPRING_PROFILES_ACTIVE=test ./mvnw -V --no-transfer-progress clean verify'
-            else
-              rocky_run "${CONTAINER_PROJECT_DIR}" \
-                'SPRING_PROFILES_ACTIVE=test ./mvnw -V --no-transfer-progress clean test'
-            fi
+            # `verify` (not `test`) is required: the architecture-governance plugin binds
+            # to the verify phase, so `clean test` would silently skip every layer check.
+            rocky_run "${CONTAINER_PROJECT_DIR}" \
+              'SPRING_PROFILES_ACTIVE=test ./mvnw -V --no-transfer-progress clean verify'
             rocky_run "${CONTAINER_PROJECT_DIR}" \
               'SPRING_PROFILES_ACTIVE=test ./mvnw -V --no-transfer-progress -DskipTests package'
             docker build \
