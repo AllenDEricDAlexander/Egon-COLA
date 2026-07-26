@@ -1,6 +1,6 @@
 package top.egon.cola.component.dtp.domain;
 
-import org.apache.commons.lang.StringUtils;
+import org.springframework.util.StringUtils;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
@@ -38,7 +38,7 @@ public class DynamicThreadPoolService implements IDynamicThreadPoolService {
 
     @Override
     public UpdateResult updateExecutor(ExecutorUpdateCommand command) {
-        if (command == null || StringUtils.isBlank(command.getExecutorName())) {
+        if (command == null || !StringUtils.hasText(command.getExecutorName())) {
             return failure("executorName must not be blank");
         }
         return managedExecutorRegistry.get(command.getExecutorName())
@@ -55,10 +55,10 @@ public class DynamicThreadPoolService implements IDynamicThreadPoolService {
     }
 
     private UpdateResult validateIdentity(ManagedExecutor managedExecutor, ExecutorUpdateCommand command) {
-        if (StringUtils.isBlank(command.getAppName())) {
+        if (!StringUtils.hasText(command.getAppName())) {
             return failure("appName must not be blank");
         }
-        if (StringUtils.isBlank(command.getInstanceId())) {
+        if (!StringUtils.hasText(command.getInstanceId())) {
             return failure("instanceId must not be blank");
         }
         if (command.getExecutorKind() == null) {

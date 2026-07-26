@@ -12,6 +12,7 @@ import top.egon.cola.component.accessguard.context.AccessGuardDecision;
 import top.egon.cola.component.accessguard.context.AccessGuardResult;
 import top.egon.cola.component.accessguard.event.AccessGuardEvent;
 import top.egon.cola.component.accessguard.event.AccessGuardEventPublisher;
+import top.egon.cola.component.accessguard.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.key.AccessKeyResolution;
 import top.egon.cola.component.accessguard.key.AccessKeyResolver;
 import top.egon.cola.component.accessguard.ratelimiter.RateLimiterDecision;
@@ -165,23 +166,26 @@ public class AccessGuardExecutionService {
         }
     }
 
+    /**
+     * A rejection decision is terminal. The fail strategy governs stages that could not reach a
+     * decision, not the rendering of the rejection itself, so a failure here must never fall back
+     * to executing the business method.
+     */
     private Object reject(
             ProceedingJoinPoint joinPoint,
             AccessGuardRule rule,
             AccessGuardContext context,
             AccessGuardDecision decision,
             String message
-    ) throws Throwable {
+    ) {
         AccessGuardResult result = AccessGuardResult.reject(
                 decision, rule.name(), context.accessKeyHash(), message);
         publish(context, result);
         try {
             return rejectResponseInvoker.reject(joinPoint, rule, context, joinPoint.getArgs());
         } catch (RuntimeException failure) {
-            if (failureHandler.failOpen(rule, "reject response", failure)) {
-                return joinPoint.proceed();
-            }
-            throw failure;
+            throw new AccessGuardRejectedException(
+                    "Access Guard rejected the call (" + decision + ") and the reject response failed", failure);
         }
     }
 

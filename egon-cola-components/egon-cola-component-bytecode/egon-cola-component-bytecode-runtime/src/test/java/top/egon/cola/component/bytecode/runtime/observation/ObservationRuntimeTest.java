@@ -105,6 +105,33 @@ class ObservationRuntimeTest {
         assertEquals(1L, runtime.snapshot().slowCount());
     }
 
+    @Test
+    void publishesTheSuppliedTraceIdAndSurvivesAFailingSupplier() {
+        long methodId = register(91_010L, "traced", -1L);
+        List<ObservationEvent> events = new ArrayList<>();
+        ObservationRuntime runtime = new ObservationRuntime(
+                true, 1.0, -1L, List.of(events::add), new BoundedFailureStore(4), () -> "trace-42");
+
+        ObservationState state = runtime.enter(Owner.class, methodId);
+        runtime.success(state);
+        runtime.exit(state);
+
+        assertEquals("trace-42", events.getFirst().traceId());
+
+        List<ObservationEvent> fromFailingSupplier = new ArrayList<>();
+        ObservationRuntime failing = new ObservationRuntime(
+                true, 1.0, -1L, List.of(fromFailingSupplier::add), new BoundedFailureStore(4),
+                () -> {
+                    throw new IllegalStateException("no trace binding");
+                });
+
+        ObservationState failingState = failing.enter(Owner.class, methodId);
+        failing.success(failingState);
+        failing.exit(failingState);
+
+        assertEquals("", fromFailingSupplier.getFirst().traceId());
+    }
+
     private long register(long methodId, String methodName, long slowThresholdNanos) {
         ClassLoader loader = Owner.class.getClassLoader();
         DispatcherRegistry.registerMethod(loader, new MethodMetadata(

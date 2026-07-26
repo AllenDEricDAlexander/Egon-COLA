@@ -21,9 +21,13 @@ public class AccessGuardProperties {
 
     private AccessGuardEngine engine = AccessGuardEngine.AOP;
 
-    private Storage storage = Storage.REDISSON;
+    private Storage storage = Storage.LOCAL;
 
     private String keyPrefix = "egon:access-guard";
+
+    private String app = "";
+
+    private String env = "";
 
     private FailStrategy failStrategy = FailStrategy.FAIL_OPEN;
 
@@ -50,6 +54,13 @@ public class AccessGuardProperties {
     private List<Rule> rules = new ArrayList<>();
 
     public enum Storage {
+        /**
+         * In-process governance state. Requires no external infrastructure.
+         */
+        LOCAL,
+        /**
+         * Shared governance state in Redis. Requires a RedissonClient bean.
+         */
         REDISSON
     }
 
@@ -150,8 +161,6 @@ public class AccessGuardProperties {
     public static class LocalFallback {
 
         private boolean enabled = true;
-
-        private Duration expireAfterWrite = Duration.ofMinutes(10);
     }
 
     @Getter

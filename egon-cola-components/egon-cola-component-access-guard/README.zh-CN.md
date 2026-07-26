@@ -151,8 +151,10 @@ egon:
       access-guard:
         enabled: true
         engine: AOP
-        storage: REDISSON
+        storage: LOCAL
         key-prefix: egon:access-guard
+        app: ""
+        env: ""
         fail-strategy: FAIL_OPEN
         key-resolve-failure-strategy: USE_ALL
         aop:
@@ -186,8 +188,11 @@ egon:
           provider-bean-name:
         local-fallback:
           enabled: true
-          expire-after-write: 10m
 ```
+
+`storage` 默认为 `LOCAL`，不依赖任何外部设施。需要多实例共享治理状态时设置为 `REDISSON`，
+此时业务应用必须自行提供 `RedissonClient` Bean；存在多个客户端时通过
+`redisson.client-bean-name` 选择。starter 以 optional 方式声明 Redisson，自身不创建客户端。
 
 可以通过配置覆盖指定规则：
 

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 public final class ObservationRuntime {
 
@@ -20,6 +21,7 @@ public final class ObservationRuntime {
     private final double samplingRate;
     private final long defaultSlowThresholdNanos;
     private final List<ObservationEventSink> sinks;
+    private final Supplier<String> traceIdSupplier;
     private final BoundedFailureStore failureStore;
     private final ObservationReentrancyGuard reentrancyGuard =
             new ObservationReentrancyGuard();
@@ -56,6 +58,21 @@ public final class ObservationRuntime {
             List<? extends ObservationEventSink> sinks,
             BoundedFailureStore failureStore
     ) {
+        this(enabled, samplingRate, defaultSlowThresholdNanos, sinks, failureStore, () -> "");
+    }
+
+    /**
+     * @param traceIdSupplier supplies the trace id carried on each event. This module keeps no
+     *                        logging or tracing dependency, so the starter provides the binding.
+     */
+    public ObservationRuntime(
+            boolean enabled,
+            double samplingRate,
+            long defaultSlowThresholdNanos,
+            List<? extends ObservationEventSink> sinks,
+            BoundedFailureStore failureStore,
+            Supplier<String> traceIdSupplier
+    ) {
         if (samplingRate < 0.0 || samplingRate > 1.0) {
             throw new IllegalArgumentException("samplingRate must be between 0 and 1");
         }
@@ -67,6 +84,7 @@ public final class ObservationRuntime {
         this.samplingRate = samplingRate;
         this.defaultSlowThresholdNanos = defaultSlowThresholdNanos;
         this.sinks = List.copyOf(sinks);
+        this.traceIdSupplier = Objects.requireNonNull(traceIdSupplier, "traceIdSupplier");
         this.failureStore = Objects.requireNonNull(failureStore, "failureStore");
     }
 
@@ -108,6 +126,18 @@ public final class ObservationRuntime {
         return throwable;
     }
 
+    /**
+     * Never lets a misbehaving supplier break the observed method.
+     */
+    private String traceId() {
+        try {
+            String traceId = traceIdSupplier.get();
+            return traceId == null ? "" : traceId;
+        } catch (RuntimeException ignored) {
+            return "";
+        }
+    }
+
     public void exit(ObservationState state) {
         if (state == null || state.exited) {
             return;
@@ -129,7 +159,7 @@ public final class ObservationRuntime {
                 duration,
                 state.result,
                 state.exceptionGroup,
-                "",
+                traceId(),
                 Thread.currentThread().isVirtual(),
                 state.observation.staticTags(),
                 slowThresholdNanos
