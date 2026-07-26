@@ -20,20 +20,39 @@ import java.util.Map;
 
 public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
 
+    static final int DEFAULT_MAX_STEPS = 100;
+
+    static final long DEFAULT_TIMEOUT_MILLIS = 3000L;
+
     private final boolean traceEnabled;
 
     private final boolean throwException;
 
     private final RuleExecutionListener listener;
 
+    private final int defaultMaxSteps;
+
+    private final long defaultTimeoutMillis;
+
     public DefaultRuleTreeExecutor(boolean traceEnabled, boolean throwException) {
         this(traceEnabled, throwException, new RuleExecutionListenerComposite(List.of(), true));
     }
 
     public DefaultRuleTreeExecutor(boolean traceEnabled, boolean throwException, RuleExecutionListener listener) {
+        this(traceEnabled, throwException, listener, DEFAULT_MAX_STEPS, DEFAULT_TIMEOUT_MILLIS);
+    }
+
+    /**
+     * @param defaultMaxSteps      applied when the tree declares no positive limit of its own
+     * @param defaultTimeoutMillis applied when the tree declares no positive timeout of its own
+     */
+    public DefaultRuleTreeExecutor(boolean traceEnabled, boolean throwException, RuleExecutionListener listener,
+                                   int defaultMaxSteps, long defaultTimeoutMillis) {
         this.traceEnabled = traceEnabled;
         this.throwException = throwException;
         this.listener = listener == null ? new RuleExecutionListenerComposite(List.of(), true) : listener;
+        this.defaultMaxSteps = defaultMaxSteps > 0 ? defaultMaxSteps : DEFAULT_MAX_STEPS;
+        this.defaultTimeoutMillis = defaultTimeoutMillis > 0 ? defaultTimeoutMillis : DEFAULT_TIMEOUT_MILLIS;
     }
 
     @Override
@@ -50,7 +69,9 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
                     .withCostMillis(Duration.between(start, Instant.now()).toMillis());
             return complete(ruleCode, actualContext, result);
         }
-        actualContext.maxSteps(ruleTree.maxSteps()).timeout(Duration.ofMillis(ruleTree.timeoutMillis()));
+        actualContext.defaultMaxSteps(ruleTree.maxSteps() > 0 ? ruleTree.maxSteps() : defaultMaxSteps)
+                .defaultTimeout(Duration.ofMillis(
+                        ruleTree.timeoutMillis() > 0 ? ruleTree.timeoutMillis() : defaultTimeoutMillis));
         try {
             return runTree(ruleTree, request, actualContext, recorder, start);
         } catch (RuntimeException ex) {
@@ -74,12 +95,7 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
         RuleResult<R> last = RuleResult.success(null);
         while (current != null) {
             if (context.isTimeout()) {
-                listener.onTimeout(tree.code(), context);
-                RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.TIMEOUT, null);
-                RuleResult<R> result = RuleResult.<R>timeout(RuleStatus.TIMEOUT.getMessage())
-                        .withTrace(trace)
-                        .withCostMillis(Duration.between(start, Instant.now()).toMillis());
-                return complete(tree.code(), context, result);
+                return timedOut(tree, context, recorder, start);
             }
             context.incrementStep();
             if (context.isExceededMaxSteps()) {
@@ -117,9 +133,12 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
                     nodeStart, nodeEnd, Duration.between(nodeStart, nodeEnd).toMillis(), route.routeTo(),
                     route.getReason(), last.getStatus(), null));
             if (!last.isSuccess() || context.isStopped() || route.isEnd()) {
+                if (last.isSuccess() && !context.isStopped() && context.isTimeout()) {
+                    return timedOut(tree, context, recorder, start);
+                }
                 RuleResult<R> result = context.isStopped() && last.isSuccess()
                         ? RuleResult.stop(RuleStatus.STOPPED.getCode(), RuleStatus.STOPPED.getMessage(), last.getData())
-                        : last;
+                        : applyEndData(last, route);
                 RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, result.getStatus(), null);
                 RuleResult<R> completed = result.withTrace(trace)
                         .withHitNode(current.code())
@@ -152,6 +171,28 @@ public class DefaultRuleTreeExecutor implements RuleTreeExecutor {
         }
         RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.NO_ROUTE, null);
         RuleResult<R> result = RuleResult.<R>noRoute(RuleStatus.NO_ROUTE.getMessage())
+                .withTrace(trace)
+                .withCostMillis(Duration.between(start, Instant.now()).toMillis());
+        return complete(tree.code(), context, result);
+    }
+
+    /**
+     * Carries the {@link RouteDecision#end(Object)} payload into the result. A null payload leaves
+     * the node's own result untouched, so {@code end()} without data keeps the previous behaviour.
+     */
+    @SuppressWarnings("unchecked")
+    private <R> RuleResult<R> applyEndData(RuleResult<R> result, RouteDecision route) {
+        if (!route.isEnd() || route.getEndData() == null || !result.isSuccess()) {
+            return result;
+        }
+        return result.withData((R) route.getEndData());
+    }
+
+    private <T, R> RuleResult<R> timedOut(RuleTree<T, R> tree, RuleContext context,
+                                          RuleTraceRecorder recorder, Instant start) {
+        listener.onTimeout(tree.code(), context);
+        RuleTrace trace = recorder.finish(tree.code(), tree.name(), "TREE", context, RuleStatus.TIMEOUT, null);
+        RuleResult<R> result = RuleResult.<R>timeout(RuleStatus.TIMEOUT.getMessage())
                 .withTrace(trace)
                 .withCostMillis(Duration.between(start, Instant.now()).toMillis());
         return complete(tree.code(), context, result);

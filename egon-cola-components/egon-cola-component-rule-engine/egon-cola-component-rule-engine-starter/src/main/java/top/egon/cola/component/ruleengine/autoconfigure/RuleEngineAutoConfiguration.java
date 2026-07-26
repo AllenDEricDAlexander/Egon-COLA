@@ -31,14 +31,16 @@ public class RuleEngineAutoConfiguration {
     @ConditionalOnMissingBean
     public RuleChainExecutor ruleChainExecutor(RuleEngineProperties properties,
                                                RuleExecutionListenerComposite listeners) {
-        return new DefaultRuleChainExecutor(properties.isTraceEnabled(), properties.isThrowException(), listeners);
+        return new DefaultRuleChainExecutor(properties.isTraceEnabled(), properties.isThrowException(), listeners,
+                properties.getDefaultMaxSteps(), properties.getDefaultTimeoutMillis());
     }
 
     @Bean
     @ConditionalOnMissingBean
     public RuleTreeExecutor ruleTreeExecutor(RuleEngineProperties properties,
                                              RuleExecutionListenerComposite listeners) {
-        return new DefaultRuleTreeExecutor(properties.isTraceEnabled(), properties.isThrowException(), listeners);
+        return new DefaultRuleTreeExecutor(properties.isTraceEnabled(), properties.isThrowException(), listeners,
+                properties.getDefaultMaxSteps(), properties.getDefaultTimeoutMillis());
     }
 
     @Bean

@@ -24,14 +24,31 @@ public class DefaultRuleChainExecutor implements RuleChainExecutor {
 
     private final RuleExecutionListener listener;
 
+    private final int defaultMaxSteps;
+
+    private final long defaultTimeoutMillis;
+
     public DefaultRuleChainExecutor(boolean traceEnabled, boolean throwException) {
         this(traceEnabled, throwException, new RuleExecutionListenerComposite(List.of(), true));
     }
 
     public DefaultRuleChainExecutor(boolean traceEnabled, boolean throwException, RuleExecutionListener listener) {
+        this(traceEnabled, throwException, listener,
+                DefaultRuleTreeExecutor.DEFAULT_MAX_STEPS, DefaultRuleTreeExecutor.DEFAULT_TIMEOUT_MILLIS);
+    }
+
+    /**
+     * @param defaultMaxSteps      applied when the chain declares no positive limit of its own
+     * @param defaultTimeoutMillis applied when the chain declares no positive timeout of its own
+     */
+    public DefaultRuleChainExecutor(boolean traceEnabled, boolean throwException, RuleExecutionListener listener,
+                                    int defaultMaxSteps, long defaultTimeoutMillis) {
         this.traceEnabled = traceEnabled;
         this.throwException = throwException;
         this.listener = listener == null ? new RuleExecutionListenerComposite(List.of(), true) : listener;
+        this.defaultMaxSteps = defaultMaxSteps > 0 ? defaultMaxSteps : DefaultRuleTreeExecutor.DEFAULT_MAX_STEPS;
+        this.defaultTimeoutMillis = defaultTimeoutMillis > 0
+                ? defaultTimeoutMillis : DefaultRuleTreeExecutor.DEFAULT_TIMEOUT_MILLIS;
     }
 
     @Override
@@ -48,7 +65,9 @@ public class DefaultRuleChainExecutor implements RuleChainExecutor {
                     .withCostMillis(Duration.between(start, Instant.now()).toMillis());
             return complete(ruleCode, actualContext, result);
         }
-        actualContext.maxSteps(ruleChain.maxSteps()).timeout(Duration.ofMillis(ruleChain.timeoutMillis()));
+        actualContext.defaultMaxSteps(ruleChain.maxSteps() > 0 ? ruleChain.maxSteps() : defaultMaxSteps)
+                .defaultTimeout(Duration.ofMillis(
+                        ruleChain.timeoutMillis() > 0 ? ruleChain.timeoutMillis() : defaultTimeoutMillis));
         try {
             return runHandlers(ruleChain, request, actualContext, recorder, start);
         } catch (RuntimeException ex) {
@@ -71,12 +90,7 @@ public class DefaultRuleChainExecutor implements RuleChainExecutor {
         List<ChainHandler<T, R>> handlers = ruleChain.handlers();
         for (int i = 0; i < handlers.size(); i++) {
             if (context.isTimeout()) {
-                listener.onTimeout(ruleChain.code(), context);
-                RuleTrace trace = recorder.finish(ruleChain.code(), ruleChain.name(), "CHAIN", context, RuleStatus.TIMEOUT, null);
-                RuleResult<R> result = RuleResult.<R>timeout(RuleStatus.TIMEOUT.getMessage())
-                        .withTrace(trace)
-                        .withCostMillis(Duration.between(start, Instant.now()).toMillis());
-                return complete(ruleChain.code(), context, result);
+                return timedOut(ruleChain, context, recorder, start);
             }
             context.incrementStep();
             if (context.isExceededMaxSteps()) {
@@ -102,6 +116,9 @@ public class DefaultRuleChainExecutor implements RuleChainExecutor {
             recorder.addNodeTrace(new NodeTrace(nodeCode, nodeCode, NodeType.BIZ, i + 1, 1, nodeStart, nodeEnd,
                     Duration.between(nodeStart, nodeEnd).toMillis(), null, null, last.getStatus(), null));
             if (!last.isSuccess() || context.isStopped() || !context.isProceed()) {
+                if (last.isSuccess() && !context.isStopped() && context.isTimeout()) {
+                    return timedOut(ruleChain, context, recorder, start);
+                }
                 RuleResult<R> result = context.isStopped() && last.isSuccess()
                         ? RuleResult.stop(RuleStatus.STOPPED.getCode(), RuleStatus.STOPPED.getMessage(), last.getData())
                         : last;
@@ -115,8 +132,21 @@ public class DefaultRuleChainExecutor implements RuleChainExecutor {
                 return complete(ruleChain.code(), context, completed);
             }
         }
+        if (last.isSuccess() && !context.isStopped() && context.isTimeout()) {
+            return timedOut(ruleChain, context, recorder, start);
+        }
         RuleTrace trace = recorder.finish(ruleChain.code(), ruleChain.name(), "CHAIN", context, last.getStatus(), null);
         RuleResult<R> result = last.withTrace(trace).withCostMillis(Duration.between(start, Instant.now()).toMillis());
+        return complete(ruleChain.code(), context, result);
+    }
+
+    private <T, R> RuleResult<R> timedOut(RuleChain<T, R> ruleChain, RuleContext context,
+                                          RuleTraceRecorder recorder, Instant start) {
+        listener.onTimeout(ruleChain.code(), context);
+        RuleTrace trace = recorder.finish(ruleChain.code(), ruleChain.name(), "CHAIN", context, RuleStatus.TIMEOUT, null);
+        RuleResult<R> result = RuleResult.<R>timeout(RuleStatus.TIMEOUT.getMessage())
+                .withTrace(trace)
+                .withCostMillis(Duration.between(start, Instant.now()).toMillis());
         return complete(ruleChain.code(), context, result);
     }
 

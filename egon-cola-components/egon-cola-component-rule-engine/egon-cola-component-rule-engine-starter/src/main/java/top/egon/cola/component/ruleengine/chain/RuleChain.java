@@ -27,9 +27,9 @@ public record RuleChain<T, R>(
 
         private String name;
 
-        private int maxSteps = 100;
+        private int maxSteps;
 
-        private long timeoutMillis = 3000L;
+        private long timeoutMillis;
 
         private Builder(String code) {
             this.code = code;

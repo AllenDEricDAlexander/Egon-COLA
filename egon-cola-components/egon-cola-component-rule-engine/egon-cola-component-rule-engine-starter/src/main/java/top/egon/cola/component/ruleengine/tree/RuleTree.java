@@ -34,9 +34,9 @@ public record RuleTree<T, R>(
 
         private String defaultEndNodeCode;
 
-        private int maxSteps = 100;
+        private int maxSteps;
 
-        private long timeoutMillis = 3000L;
+        private long timeoutMillis;
 
         private Builder(String code, RuleNode<T, R> root) {
             this.code = code;
