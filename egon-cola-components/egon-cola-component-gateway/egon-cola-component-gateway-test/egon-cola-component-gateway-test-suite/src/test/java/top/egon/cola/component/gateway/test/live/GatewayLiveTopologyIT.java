@@ -4,6 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.mock.env.MockEnvironment;
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.gateway.contract.definition.GatewayDefinitionIdentity;
+import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.gateway.test.http.HttpProviderRuntimeConfiguration;
 import top.egon.cola.component.gateway.test.process.GatewayProcessHarness;
 import top.egon.cola.component.gateway.test.process.GatewayProcessSpec;
 import top.egon.cola.component.gateway.test.process.GatewayTestInfrastructure;
@@ -26,8 +34,12 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
 class GatewayLiveTopologyIT {
 
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(2);
@@ -43,6 +55,8 @@ class GatewayLiveTopologyIT {
 
     private static final String APPLICATION_CODE =
             "gateway-test-http-provider";
+
+    private static final String SERVICE_VERSION = "1.0.0-live";
 
     private static final String RPC_APPLICATION_CODE =
             "gateway-test-rpc-provider";
@@ -70,6 +84,7 @@ class GatewayLiveTopologyIT {
             .build();
 
     @Test
+    @EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
     void reportsReleasesDiscoversForwardsAndProjectsTrace() throws Exception {
         try (GatewayTestInfrastructure infrastructure =
                      new GatewayTestInfrastructure();
@@ -140,6 +155,7 @@ class GatewayLiveTopologyIT {
             );
 
             var provider = processes.start(providerSpec(
+                    infrastructure,
                     ddcBase,
                     adminBase,
                     providerPort,
@@ -159,6 +175,7 @@ class GatewayLiveTopologyIT {
                     provider
             );
             var secondProvider = processes.start(providerSpec(
+                    infrastructure,
                     ddcBase,
                     adminBase,
                     secondProviderPort,
@@ -462,6 +479,7 @@ class GatewayLiveTopologyIT {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
     void reportsDiscoversAndForwardsRealRpcTopology() throws Exception {
         try (GatewayTestInfrastructure infrastructure =
                      new GatewayTestInfrastructure();
@@ -529,6 +547,7 @@ class GatewayLiveTopologyIT {
             );
 
             var provider = processes.start(rpcProviderSpec(
+                    infrastructure,
                     ddcBase,
                     adminBase,
                     providerManagementPort,
@@ -642,6 +661,7 @@ class GatewayLiveTopologyIT {
             awaitRpcProviderProjection(processes, adminBase);
 
             var consumer = processes.start(rpcConsumerSpec(
+                    infrastructure,
                     ddcBase,
                     consumerPort
             ));
@@ -718,6 +738,160 @@ class GatewayLiveTopologyIT {
                     "HTTP to RPC Kafka call event projection in Gateway Admin"
             );
         }
+    }
+
+    @Test
+    void everyDdcClientUsesInfrastructureRedisCoordinates() {
+        GatewayTestInfrastructure infrastructure = testInfrastructure();
+
+        URI ddcBase = URI.create("http://127.0.0.1:18070");
+        URI adminBase = URI.create("http://127.0.0.1:18080");
+        GatewayProcessSpec httpProvider = providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                18084,
+                "http-provider-one",
+                "http-provider-live-1",
+                true,
+                "access-key",
+                "secret-key"
+        );
+        List<GatewayProcessSpec> ddcClients = List.of(
+                httpProvider,
+                providerSpec(
+                        infrastructure,
+                        ddcBase,
+                        adminBase,
+                        18085,
+                        "http-provider-two",
+                        "http-provider-live-2",
+                        false,
+                        "access-key",
+                        "secret-key"
+                ),
+                rpcProviderSpec(
+                        infrastructure,
+                        ddcBase,
+                        adminBase,
+                        18086,
+                        19091,
+                        "access-key",
+                        "secret-key"
+                ),
+                rpcConsumerSpec(infrastructure, ddcBase, 18087),
+                engineSpec(
+                        infrastructure,
+                        ddcBase,
+                        18088,
+                        18089,
+                        18090,
+                        Path.of("target/engine-one")
+                ),
+                engineSpec(
+                        infrastructure,
+                        ddcBase,
+                        18091,
+                        18092,
+                        18093,
+                        Path.of("target/engine-two"),
+                        true,
+                        19092,
+                        "gateway-engine-live-2"
+                )
+        );
+
+        assertSoftly(softly -> {
+            ddcClients.forEach(spec -> softly.assertThat(spec.arguments())
+                    .as(spec.name())
+                    .contains(
+                            "--egon.cola.component.ddc.redis.host="
+                                    + infrastructure.ddcRedisHost(),
+                            "--egon.cola.component.ddc.redis.port="
+                                    + infrastructure.ddcRedisPort()
+                    ));
+        });
+    }
+
+    @Test
+    void httpProviderServiceVersionDrivesRegistrationAndReporting() {
+        GatewayTestInfrastructure infrastructure = testInfrastructure();
+        URI ddcBase = URI.create("http://127.0.0.1:18070");
+        URI adminBase = URI.create("http://127.0.0.1:18080");
+        GatewayProcessSpec httpProvider = providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                18084,
+                "http-provider-one",
+                "http-provider-live-1",
+                true,
+                "access-key",
+                "secret-key"
+        );
+
+        DdcServiceRegistryClient registry =
+                mock(DdcServiceRegistryClient.class);
+        when(registry.register(any())).thenReturn(null);
+        @SuppressWarnings("unchecked")
+        ObjectProvider<GatewayDefinitionIdentity> definitions =
+                mock(ObjectProvider.class);
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("gateway.test.service-version", "1.0.0-live");
+        HttpProviderLeaseRuntime runtime =
+                new HttpProviderRuntimeConfiguration()
+                        .httpProviderLeaseRuntime(
+                                registry,
+                                definitions,
+                                environment
+                        );
+        try {
+            runtime.onHttpServerReady(18084);
+            ArgumentCaptor<DdcServiceRegistration> registration =
+                    ArgumentCaptor.forClass(DdcServiceRegistration.class);
+            verify(registry).register(registration.capture());
+            assertSoftly(softly -> {
+                softly.assertThat(httpProvider.arguments())
+                        .contains("--gateway.test.service-version=1.0.0-live")
+                        .noneMatch(argument -> argument.startsWith(
+                                "--egon.cola.component.gateway.reporting."
+                                        + "artifact-version="
+                        ));
+                softly.assertThat(
+                                registration.getValue()
+                                        .serviceKey()
+                                        .version()
+                        )
+                        .isEqualTo("1.0.0-live");
+            });
+        } finally {
+            runtime.close();
+        }
+    }
+
+    private GatewayTestInfrastructure testInfrastructure() {
+        GatewayTestInfrastructure infrastructure =
+                mock(GatewayTestInfrastructure.class);
+        when(infrastructure.ddcRedisHost()).thenReturn("ddc-live-host");
+        when(infrastructure.ddcRedisPort()).thenReturn(16379);
+        when(infrastructure.rateLimitRedisHost()).thenReturn("rate-live-host");
+        when(infrastructure.rateLimitRedisPort()).thenReturn(26379);
+        when(infrastructure.kafkaBootstrapServers()).thenReturn("kafka:19092");
+        return infrastructure;
+    }
+
+    private GatewayProcessSpec.Builder ddcClient(
+            GatewayProcessSpec.Builder builder,
+            GatewayTestInfrastructure infrastructure) {
+        return builder
+                .argument(
+                        "egon.cola.component.ddc.redis.host",
+                        infrastructure.ddcRedisHost()
+                )
+                .argument(
+                        "egon.cola.component.ddc.redis.port",
+                        infrastructure.ddcRedisPort()
+                );
     }
 
     private GatewayProcessSpec ddcSpec(
@@ -827,6 +1001,7 @@ class GatewayLiveTopologyIT {
     }
 
     private GatewayProcessSpec providerSpec(
+            GatewayTestInfrastructure infrastructure,
             URI ddcBase,
             URI adminBase,
             int port,
@@ -835,11 +1010,14 @@ class GatewayLiveTopologyIT {
             boolean reportingEnabled,
             String accessKey,
             String secretKey) {
-        return GatewayProcessSpec.builder(
-                        processName,
-                        "top.egon.cola.component.gateway.test.http."
-                                + "GatewayHttpTestProviderApplication"
-                )
+        return ddcClient(
+                GatewayProcessSpec.builder(
+                                processName,
+                                "top.egon.cola.component.gateway.test.http."
+                                        + "GatewayHttpTestProviderApplication"
+                        ),
+                infrastructure
+        )
                 .argument("server.port", port)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(
@@ -876,6 +1054,7 @@ class GatewayLiveTopologyIT {
                 .argument("gateway.test.env", ENV)
                 .argument("gateway.test.namespace", NAMESPACE)
                 .argument("gateway.test.provider-id", providerId)
+                .argument("gateway.test.service-version", SERVICE_VERSION)
                 .argument("gateway.test.advertised-host", "127.0.0.1")
                 .argument("gateway.test.advertised-port", port)
                 .argument(
@@ -906,11 +1085,6 @@ class GatewayLiveTopologyIT {
                         NAMESPACE
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
-                                + "artifact-version",
-                        "1.0.0-live"
-                )
-                .argument(
                         "egon.cola.component.gateway.reporting.build-id",
                         "gateway-live-build"
                 )
@@ -931,17 +1105,22 @@ class GatewayLiveTopologyIT {
     }
 
     private GatewayProcessSpec rpcProviderSpec(
+            GatewayTestInfrastructure infrastructure,
             URI ddcBase,
             URI adminBase,
             int managementPort,
             int rpcPort,
             String accessKey,
             String secretKey) {
-        return GatewayProcessSpec.builder(
-                        "rpc-provider",
-                        "top.egon.cola.component.gateway.test.rpc.provider."
-                                + "GatewayRpcTestProviderApplication"
-                )
+        return ddcClient(
+                GatewayProcessSpec.builder(
+                                "rpc-provider",
+                                "top.egon.cola.component.gateway.test.rpc."
+                                        + "provider."
+                                        + "GatewayRpcTestProviderApplication"
+                        ),
+                infrastructure
+        )
                 .argument("server.port", managementPort)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(
@@ -1054,13 +1233,18 @@ class GatewayLiveTopologyIT {
     }
 
     private GatewayProcessSpec rpcConsumerSpec(
+            GatewayTestInfrastructure infrastructure,
             URI ddcBase,
             int port) {
-        return GatewayProcessSpec.builder(
-                        "rpc-consumer",
-                        "top.egon.cola.component.gateway.test.rpc.consumer."
-                                + "GatewayRpcTestConsumerApplication"
-                )
+        return ddcClient(
+                GatewayProcessSpec.builder(
+                                "rpc-consumer",
+                                "top.egon.cola.component.gateway.test.rpc."
+                                        + "consumer."
+                                        + "GatewayRpcTestConsumerApplication"
+                        ),
+                infrastructure
+        )
                 .argument("server.port", port)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(
@@ -1176,11 +1360,14 @@ class GatewayLiveTopologyIT {
             boolean rpcEnabled,
             int rpcPort,
             String instanceId) {
-        GatewayProcessSpec.Builder builder = GatewayProcessSpec.builder(
-                        "gateway-engine",
-                        "top.egon.cola.component.gateway.engine."
-                                + "GatewayEngineApplication"
-                )
+        GatewayProcessSpec.Builder builder = ddcClient(
+                GatewayProcessSpec.builder(
+                                "gateway-engine",
+                                "top.egon.cola.component.gateway.engine."
+                                        + "GatewayEngineApplication"
+                        ),
+                infrastructure
+        )
                 .argument("server.port", managementPort)
                 .argument("egon.cola.component.ddc.enabled", true)
                 .argument(

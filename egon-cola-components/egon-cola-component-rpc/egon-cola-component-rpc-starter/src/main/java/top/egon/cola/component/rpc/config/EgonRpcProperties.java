@@ -159,7 +159,7 @@ public class EgonRpcProperties {
 
         private long gatewayDiscoveryTimeoutMs = 5000;
 
-        private String gatewayServiceName = "egon-internal-rpc-gateway";
+        private String gatewayServiceName = "egon-gateway-rpc";
 
         private String gatewayGroup = "default";
 

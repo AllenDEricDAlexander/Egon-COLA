@@ -42,7 +42,11 @@ public class HttpProviderRuntimeConfiguration {
                         providerId,
                         "gateway-test-http-provider",
                         "default",
-                        "1.0.0",
+                        value(
+                                environment,
+                                "gateway.test.service-version",
+                                "1.0.0-live"
+                        ),
                         "http",
                         value(
                                 environment,
