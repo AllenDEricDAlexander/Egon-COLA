@@ -220,13 +220,12 @@ git commit -m "fix: isolate ddc and gateway redis clients"
 - Modify: `.../dynamic-config-center-admin/src/main/resources/application.yml`
 - Modify: `.../dynamic-config-center/docs/manifest.md`
 - Test: `.../dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManifestControllerTest.java`
-- Test: `.../dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/DdcExecutableJarContractTest.java`
 
 **Interfaces:**
 - Produces executable artifact `egon-cola-component-dynamic-config-center-admin-exec.jar` for Docker.
 - Produces manifest version from `${project.version}` filtered metadata, not source literals.
 
-- [ ] **Step 1: Add failing artifact/version contract tests**
+- [ ] **Step 1: Add the failing manifest version contract test**
 
 ```java
 @Test
@@ -235,38 +234,32 @@ void manifestUsesFilteredComponentVersion() {
 }
 ```
 
-The artifact test opens `target/*-exec.jar` and asserts `Main-Class` exists. Do not assert Dockerfile source
-text: the container contract is verified by actually building the image, which fails if the runtime artifact
-path is wrong.
+Do not open `target/*-exec.jar` from Surefire: the Boot repackage execution creates that artifact after the
+test phase. The executable artifact and image contract are verified after `package` in Step 4 so a clean build
+cannot accidentally inspect stale output. Do not assert Dockerfile source text: build the image instead.
 
-- [ ] **Step 2: Run admin tests and package**
+- [ ] **Step 2: Run the focused admin test**
 
 ```bash
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-dynamic-config-center/\
-egon-cola-component-dynamic-config-center-admin -am clean package
-
-docker build \
-  -f egon-cola-components/egon-cola-component-dynamic-config-center/\
-egon-cola-component-dynamic-config-center-admin/Dockerfile \
-  -t egon-cola-ddc-admin:contract-test .
+egon-cola-component-dynamic-config-center-admin \
+  -am -Dtest=DdcManifestControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-Expected: the new manifest/version contract or the real image build fails before the Dockerfile/version fix.
+Expected: the new manifest/version contract fails before the version fix.
 
 - [ ] **Step 3: Use the exec artifact and filtered version metadata**
 
-Dockerfile runtime copy must be:
+The module-scoped Dockerfile runtime copy must be:
 
 ```dockerfile
-COPY --from=builder /workspace/egon-cola-components/\
-egon-cola-component-dynamic-config-center/\
-egon-cola-component-dynamic-config-center-admin/target/\
-egon-cola-component-dynamic-config-center-admin-exec.jar app.jar
+COPY target/egon-cola-component-dynamic-config-center-admin-exec.jar app.jar
 ```
 
-Use the already filtered `META-INF/egon-cola-ddc.properties` or a `BuildProperties`/package implementation
-version fallback. Remove all `5.2.1` source and documentation defaults.
+Import the Starter's already filtered `META-INF/egon-cola-ddc.properties` and feed its `sdk.version` into the
+admin manifest property. Keep the explicit admin manifest property overridable, but remove all `5.2.1`
+source and documentation defaults.
 
 - [ ] **Step 4: Re-run package and inspect both manifests**
 
@@ -277,15 +270,22 @@ egon-cola-component-dynamic-config-center-admin -am clean package
 unzip -p egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin/target/\
 egon-cola-component-dynamic-config-center-admin-exec.jar META-INF/MANIFEST.MF
+unzip -p egon-cola-components/egon-cola-component-dynamic-config-center/\
+egon-cola-component-dynamic-config-center-starter/target/\
+egon-cola-component-dynamic-config-center-starter-5.2.3.jar \
+META-INF/egon-cola-ddc.properties
 
 docker build \
   -f egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin/Dockerfile \
-  -t egon-cola-ddc-admin:contract-test .
+  -t egon-cola-ddc-admin:contract-test \
+  egon-cola-components/egon-cola-component-dynamic-config-center/\
+egon-cola-component-dynamic-config-center-admin
 docker image inspect egon-cola-ddc-admin:contract-test --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}'
 ```
 
-Expected: package PASS; exec JAR contains Boot launcher Main-Class.
+Expected: package PASS; exec JAR contains the Boot launcher `Main-Class`; filtered metadata contains
+`sdk.version=5.2.3`; the image builds from the same module context used by Compose and executes the exec JAR.
 
 - [ ] **Step 5: Commit**
 
