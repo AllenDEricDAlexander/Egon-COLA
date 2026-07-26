@@ -6,6 +6,7 @@ public enum RpcGatewaySubsystemState {
     STARTING,
     LISTENING_NOT_REGISTERED,
     REGISTERED_READY,
+    RECOVERING,
     DRAINING,
     FAILED,
     STOPPED

@@ -6,12 +6,14 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class RpcGatewaySlotRuntime implements AutoCloseable {
@@ -24,9 +26,13 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
 
     private final AtomicReference<RpcGatewaySubsystemState> state;
 
+    private final AtomicBoolean heartbeatScheduled = new AtomicBoolean();
+
     private volatile DdcLeaseSession lease;
 
     private volatile DdcServiceRegistration registration;
+
+    private volatile RuntimeException lastFailure;
 
     public RpcGatewaySlotRuntime(
             DdcServiceRegistryClient registry,
@@ -90,24 +96,44 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
         if (registration == null) {
             throw new IllegalStateException("RPC listener is not started");
         }
-        register();
-        scheduler.scheduleWithFixedDelay(
-                this::heartbeatSafely,
-                properties.heartbeatIntervalSeconds(),
-                properties.heartbeatIntervalSeconds(),
-                TimeUnit.SECONDS
-        );
+        registerRecoverably();
+        scheduleHeartbeat();
     }
 
     public synchronized void heartbeatAndRecover() {
-        if (state.get() != RpcGatewaySubsystemState.REGISTERED_READY) {
+        RpcGatewaySubsystemState currentState = state.get();
+        if (registration == null
+                || currentState == RpcGatewaySubsystemState.DISABLED
+                || currentState == RpcGatewaySubsystemState.DRAINING
+                || currentState == RpcGatewaySubsystemState.STOPPED) {
             return;
         }
-        if (lease == null || !registry.heartbeat(
-                lease.instanceId(),
-                lease.leaseId()
-        ).renewed()) {
-            register();
+        if (lease == null
+                || currentState == RpcGatewaySubsystemState.RECOVERING) {
+            registerRecoverably();
+            return;
+        }
+        if (currentState != RpcGatewaySubsystemState.REGISTERED_READY) {
+            return;
+        }
+        try {
+            var result = Objects.requireNonNull(
+                    registry.heartbeat(
+                            lease.instanceId(),
+                            lease.leaseId()
+                    ),
+                    "heartbeat result"
+            );
+            if (!result.renewed()) {
+                enterRecovery(new IllegalStateException(
+                        "RPC Gateway slot lease was not renewed: "
+                                + result.status()
+                ));
+            } else if (result.leaseExpireAt() != null) {
+                renewLeaseExpiry(result.leaseExpireAt());
+            }
+        } catch (RuntimeException failure) {
+            enterRecovery(failure);
         }
     }
 
@@ -129,6 +155,10 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
         return Optional.ofNullable(lease);
     }
 
+    public Optional<RuntimeException> lastFailure() {
+        return Optional.ofNullable(lastFailure);
+    }
+
     @Override
     public synchronized void close() {
         beginDrain();
@@ -139,13 +169,59 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
         try {
             heartbeatAndRecover();
         } catch (RuntimeException failure) {
-            state.set(RpcGatewaySubsystemState.FAILED);
+            synchronized (this) {
+                enterRecovery(failure);
+            }
         }
     }
 
-    private void register() {
-        lease = registry.register(registration);
-        state.set(RpcGatewaySubsystemState.REGISTERED_READY);
+    private void scheduleHeartbeat() {
+        if (!heartbeatScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        scheduler.scheduleWithFixedDelay(
+                this::heartbeatSafely,
+                properties.heartbeatIntervalSeconds(),
+                properties.heartbeatIntervalSeconds(),
+                TimeUnit.SECONDS
+        );
+    }
+
+    private void registerRecoverably() {
+        try {
+            lease = Objects.requireNonNull(
+                    registry.register(registration),
+                    "registered lease"
+            );
+            state.set(RpcGatewaySubsystemState.REGISTERED_READY);
+        } catch (RuntimeException failure) {
+            enterRecovery(failure);
+        }
+    }
+
+    private void enterRecovery(RuntimeException failure) {
+        RpcGatewaySubsystemState currentState = state.get();
+        if (currentState == RpcGatewaySubsystemState.DRAINING
+                || currentState == RpcGatewaySubsystemState.STOPPED
+                || currentState == RpcGatewaySubsystemState.DISABLED) {
+            return;
+        }
+        lease = null;
+        lastFailure = failure;
+        state.set(RpcGatewaySubsystemState.RECOVERING);
+    }
+
+    private void renewLeaseExpiry(Instant leaseExpireAt) {
+        DdcLeaseSession current = lease;
+        lease = new DdcLeaseSession(
+                current.instanceId(),
+                current.leaseId(),
+                current.role(),
+                current.leaseSeconds(),
+                current.heartbeatIntervalSeconds(),
+                current.registeredAt(),
+                leaseExpireAt
+        );
     }
 
     private void deregister() {

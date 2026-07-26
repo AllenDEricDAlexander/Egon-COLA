@@ -602,7 +602,8 @@ public class GatewayEngineConfiguration {
     @Bean
     public HealthIndicator gatewayEngineHealthIndicator(
             GatewayEngineRuntime runtime,
-            GatewayRuleActivationApplier activation) {
+            GatewayRuleActivationApplier activation,
+            RpcGatewaySlotRuntime rpcSlot) {
         return () -> {
             Health.Builder health = runtime.running()
                     ? runtime.ready()
@@ -625,6 +626,12 @@ public class GatewayEngineConfiguration {
                     .withDetail(
                             "rpcState",
                             runtime.rpcState().name()
+                    )
+                    .withDetail(
+                            "rpcLastFailure",
+                            rpcSlot.lastFailure()
+                                    .map(Throwable::getMessage)
+                                    .orElse("")
                     )
                     .build();
         };

@@ -45,6 +45,9 @@ egon:
               enabled: false
               development-plaintext: true
           rpc:
+            service-name: egon-gateway-rpc
+            group: default
+            version: 1.0.0
             tls:
               enabled: false
               development-plaintext: true
