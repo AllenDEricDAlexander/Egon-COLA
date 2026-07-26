@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.rule;
 
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
+import top.egon.cola.component.ddc.management.model.DdcInstanceStatus;
 import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
@@ -9,6 +10,7 @@ import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleChunkRef;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -78,6 +80,22 @@ public final class GatewayDdcRulePublisher {
         return new GatewayRulePublishResult(chunkResults, activation);
     }
 
+    public DdcManagementPublishResult publish(
+            GatewayDdcPublicationCommand command) {
+        Objects.requireNonNull(command, "command");
+        return client.publish(new DdcManagementPublishRequest(
+                command.appCode(),
+                command.env(),
+                command.namespace(),
+                command.configKey(),
+                command.value(),
+                command.expectedVersion(),
+                command.changeId(),
+                command.timeout().toMillis(),
+                command.operator()
+        ));
+    }
+
     public static String appCode(String gatewayGroupCode) {
         if (gatewayGroupCode == null
                 || !gatewayGroupCode.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,63}")) {
@@ -88,7 +106,7 @@ public final class GatewayDdcRulePublisher {
         return "gateway-engine-" + gatewayGroupCode;
     }
 
-    private void ensureReadyTarget(
+    public void ensureReadyTarget(
             String appCode,
             String env,
             String namespace) {
@@ -98,7 +116,14 @@ public final class GatewayDdcRulePublisher {
                         env,
                         namespace
                 ));
-        if (targets == null || targets.isEmpty()) {
+        Instant now = Instant.now();
+        boolean ready = targets != null && targets.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(target -> target.normalizedStatus()
+                        == DdcInstanceStatus.ONLINE
+                        && target.expireAt() != null
+                        && target.expireAt().isAfter(now));
+        if (!ready) {
             throw new IllegalStateException(
                     "GATEWAY_RELEASE_NO_READY_TARGET"
             );
