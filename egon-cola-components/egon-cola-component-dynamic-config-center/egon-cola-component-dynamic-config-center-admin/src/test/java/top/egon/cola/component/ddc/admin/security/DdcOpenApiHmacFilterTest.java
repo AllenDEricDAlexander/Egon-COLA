@@ -233,7 +233,7 @@ class DdcOpenApiHmacFilterTest {
 
     private MockHttpServletRequest signedRequest(long timestamp, String nonce, byte[] body) {
         return signedRequest(
-                new RequestShape("POST", PATH, Map.of(), body),
+                new RequestShape("PUT", PATH, Map.of(), body),
                 timestamp,
                 nonce
         );

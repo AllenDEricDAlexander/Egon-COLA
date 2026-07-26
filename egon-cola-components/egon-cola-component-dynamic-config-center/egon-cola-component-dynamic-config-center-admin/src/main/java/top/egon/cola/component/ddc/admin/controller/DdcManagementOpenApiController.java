@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.admin.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.result.dto.ResultDto;
 import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.ddc.admin.security.DdcServicePrincipal;
 import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
@@ -58,7 +60,8 @@ public class DdcManagementOpenApiController {
             @PathVariable("env") String env,
             @PathVariable("namespace") String namespace,
             @PathVariable("configKey") String configKey,
-            @RequestBody DdcManagementConfigUpsertRequest request
+            @RequestBody DdcManagementConfigUpsertRequest request,
+            HttpServletRequest servletRequest
     ) {
         return ResultDtos.success(facade.upsert(new DdcManagementConfigUpsertRequest(
                 appCode,
@@ -69,7 +72,7 @@ public class DdcManagementOpenApiController {
                 request.valueType(),
                 request.description(),
                 request.expectedVersion(),
-                request.operator()
+                trustedOperator(servletRequest, request.operator())
         )));
     }
 
@@ -79,7 +82,8 @@ public class DdcManagementOpenApiController {
             @PathVariable("env") String env,
             @PathVariable("namespace") String namespace,
             @PathVariable("configKey") String configKey,
-            @RequestBody DdcManagementConfigDeleteRequest request
+            @RequestBody DdcManagementConfigDeleteRequest request,
+            HttpServletRequest servletRequest
     ) {
         facade.delete(new DdcManagementConfigDeleteRequest(
                 appCode,
@@ -87,7 +91,7 @@ public class DdcManagementOpenApiController {
                 namespace,
                 configKey,
                 request.expectedVersion(),
-                request.operator(),
+                trustedOperator(servletRequest, request.operator()),
                 request.reason()
         ));
         return ResultDtos.success();
@@ -99,7 +103,8 @@ public class DdcManagementOpenApiController {
             @PathVariable("env") String env,
             @PathVariable("namespace") String namespace,
             @PathVariable("configKey") String configKey,
-            @RequestBody DdcManagementPublishRequest request
+            @RequestBody DdcManagementPublishRequest request,
+            HttpServletRequest servletRequest
     ) {
         return ResultDtos.success(facade.publish(new DdcManagementPublishRequest(
                 appCode,
@@ -110,7 +115,7 @@ public class DdcManagementOpenApiController {
                 request.expectedVersion(),
                 request.changeId(),
                 request.timeoutMs(),
-                request.operator()
+                trustedOperator(servletRequest, request.operator())
         )));
     }
 
@@ -179,5 +184,17 @@ public class DdcManagementOpenApiController {
                 group,
                 version
         )));
+    }
+
+    private String trustedOperator(
+            HttpServletRequest request,
+            String requestedOperator) {
+        Object principal = request.getAttribute(
+                DdcServicePrincipal.REQUEST_ATTRIBUTE
+        );
+        if (principal instanceof DdcServicePrincipal servicePrincipal) {
+            return servicePrincipal.auditOperator(requestedOperator);
+        }
+        return requestedOperator;
     }
 }
