@@ -224,11 +224,12 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             if (state == RpcGatewayState.STOPPED) {
                 return;
             }
+            Instant now = Instant.now();
             List<RpcGatewayEndpoint> desired = snapshot.instances().stream()
-                    .filter(this::isUp)
+                    .filter(instance -> isUp(instance, now))
                     .map(this::validEndpoint)
                     .flatMap(Optional::stream)
-                    .filter(endpoint -> endpoint.activeAt(Instant.now()))
+                    .filter(endpoint -> endpoint.activeAt(now))
                     .sorted(Comparator
                             .comparing(RpcGatewayEndpoint::instanceId)
                             .thenComparing(RpcGatewayEndpoint::leaseId))
@@ -279,9 +280,9 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         return new ActiveGateway(endpoint, channel);
     }
 
-    private boolean isUp(DdcServiceInstance instance) {
+    private boolean isUp(DdcServiceInstance instance, Instant now) {
         return instance.normalizedStatus().isAvailable(
-                Instant.now(),
+                now,
                 instance.leaseExpireAt()
         );
     }

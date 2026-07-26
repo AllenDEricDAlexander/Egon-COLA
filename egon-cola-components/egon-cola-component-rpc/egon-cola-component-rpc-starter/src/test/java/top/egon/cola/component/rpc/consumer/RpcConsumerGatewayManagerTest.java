@@ -3,6 +3,8 @@ package top.egon.cola.component.rpc.consumer;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
@@ -22,6 +24,7 @@ import top.egon.cola.component.rpc.exception.EgonRpcException;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -119,6 +122,24 @@ class RpcConsumerGatewayManagerTest {
         registry.snapshot = snapshot(instance(
                 "gateway-1", "lease-1", 19090, null,
                 Instant.now().plusSeconds(30)
+        ));
+        RpcConsumerGatewayManager manager =
+                manager(registry, new StubChannelFactory());
+
+        assertThatThrownBy(manager::start)
+                .isInstanceOfSatisfying(EgonRpcException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo(
+                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                        )
+                );
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonCurrentLeaseExpireAts")
+    void shouldRejectOnlineGatewayWithoutCurrentLease(Instant leaseExpireAt) {
+        SnapshotRegistry registry = new SnapshotRegistry();
+        registry.snapshot = snapshot(instance(
+                "gateway-1", "lease-1", 19090, "ONLINE", leaseExpireAt
         ));
         RpcConsumerGatewayManager manager =
                 manager(registry, new StubChannelFactory());
@@ -239,6 +260,11 @@ class RpcConsumerGatewayManagerTest {
                 status,
                 1
         );
+    }
+
+    private static Stream<Instant> nonCurrentLeaseExpireAts() {
+        Instant now = Instant.now();
+        return Stream.of(now.minusSeconds(1), now);
     }
 
     private DdcServiceKey gatewayKey() {
