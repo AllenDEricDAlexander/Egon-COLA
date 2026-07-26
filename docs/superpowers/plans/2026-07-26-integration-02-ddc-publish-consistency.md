@@ -280,14 +280,17 @@ git commit -m "feat: add cluster-safe ddc redis keys"
 ### Task 4: 原子 Redis dispatch 与 published pointer 推进
 
 **Files:**
+- Create: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcAtomicPublishCommand.java`
 - Create: `.../admin/src/main/resources/redis/ddc_config_publish.lua`
 - Create: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPendingPublishDispatcher.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishService.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishStateTransitionService.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/PublishStartupRecovery.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`
 - Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcPublishDispatchConsistencyTest.java`
+- Test: existing Admin publish preparation, retry, failure and startup recovery tests
 
 **Interfaces:**
 - Produces `DdcRedisRepository.dispatch(DdcAtomicPublishCommand)`.
@@ -336,7 +339,9 @@ if (changed != 1) {
 ```
 
 Startup recovery claims stale PENDING/PUBLISHING/UNKNOWN tasks and replays the same command; it never creates
-a new config version.
+a new config version. The reconstructed message timestamp comes from the persisted task `createdAt`, so replay
+keeps the same event checksum and identity. The v2 idempotency key uses the same config hash tag as the value,
+version and topic keys.
 
 - [ ] **Step 4: Run admin suite and Redis integration tests**
 
