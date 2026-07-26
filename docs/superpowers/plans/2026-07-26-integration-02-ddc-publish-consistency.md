@@ -186,7 +186,9 @@ git commit -m "feat: separate ddc draft and published versions"
 **Files:**
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepository.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/service/DdcRedisChangeSubscription.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeSubscription.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigLeaseRedisRepository.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepository.java`
 - Modify: `.../admin/src/main/resources/redis/ddc_config_lease_register.lua`
@@ -230,6 +232,7 @@ egon-cola-component-dynamic-config-center-starter,\
 egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am test \
   -Dtest=DdcKeysTest,DdcRedisClusterSlotContractTest
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: current legacy keys occupy different slots.
@@ -246,8 +249,10 @@ private static String registryTag(String env, String namespace, DdcServiceKind k
 }
 ```
 
-Write legacy and v2 config value/version; publish both topics. New readers use v2 first and legacy only on
-absence. Registry scripts receive only v2 same-slot keys; legacy topic remains emitted for old subscribers.
+The Admin `DdcRedisRepository` writes legacy and v2 config value/version and publishes both topics; the Starter
+repository reads v2 first and legacy only on absence, while its subscription listens to both channels. Registry
+scripts receive only v2 same-slot keys; the legacy topic is passed as a Lua argument (not a script key) and is
+still emitted for old subscribers without reintroducing a cross-slot key.
 
 - [ ] **Step 4: Run unit tests, Sentinel failover and real three-node Redis Cluster IT**
 
