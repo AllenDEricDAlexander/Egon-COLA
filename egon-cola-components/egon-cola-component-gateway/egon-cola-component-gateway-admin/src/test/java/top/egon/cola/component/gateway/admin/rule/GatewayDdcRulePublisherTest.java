@@ -30,10 +30,8 @@ class GatewayDdcRulePublisherTest {
     @Test
     void publishesExactlyOneFullyResolvedArtifact() {
         RecordingClient client = new RecordingClient();
-        GatewayDdcRulePublisher publisher = new GatewayDdcRulePublisher(
-                client,
-                Duration.ofSeconds(10)
-        );
+        GatewayDdcRulePublisher publisher =
+                new GatewayDdcRulePublisher(client);
         String changeId = UuidV7.string();
         GatewayDdcPublicationCommand command =
                 new GatewayDdcPublicationCommand(
@@ -107,10 +105,8 @@ class GatewayDdcRulePublisherTest {
                 Instant.now().plusSeconds(30),
                 java.util.Map.of()
         ));
-        GatewayDdcRulePublisher publisher = new GatewayDdcRulePublisher(
-                client,
-                Duration.ofSeconds(10)
-        );
+        GatewayDdcRulePublisher publisher =
+                new GatewayDdcRulePublisher(client);
 
         assertThatThrownBy(() -> publisher.ensureReadyTarget(
                 "gateway-engine-default",

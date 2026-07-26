@@ -18,6 +18,8 @@ import top.egon.cola.component.gateway.admin.application.observability.GatewayOb
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityStore;
 import top.egon.cola.component.gateway.admin.application.projection.GatewayProjectionService;
 import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventCodec;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventConsumerHandler;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaCallEventConsumer;
@@ -85,7 +87,28 @@ public class GatewayAdminConfiguration {
     @ConditionalOnBean(DdcManagementClient.class)
     GatewayDdcRulePublisher gatewayDdcRulePublisher(
             DdcManagementClient client) {
-        return new GatewayDdcRulePublisher(client, Duration.ofSeconds(10));
+        return new GatewayDdcRulePublisher(client);
+    }
+
+    @Bean
+    @ConditionalOnBean({
+            DdcManagementClient.class,
+            GatewayDdcRulePublisher.class
+    })
+    GatewayReleasePublicationCoordinator
+            gatewayReleasePublicationCoordinator(
+            GatewayReleasePublicationStore journal,
+            DdcManagementClient client,
+            GatewayDdcRulePublisher publisher,
+            @Value("${gateway.admin.ddc.publish-timeout:PT30S}")
+            Duration timeout) {
+        return new GatewayReleasePublicationCoordinator(
+                journal,
+                client,
+                publisher,
+                Clock.systemUTC(),
+                timeout
+        );
     }
 
     @Bean
