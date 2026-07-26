@@ -7,6 +7,7 @@ import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
@@ -19,6 +20,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -166,6 +168,120 @@ class HttpDdcManagementClientTest {
         assertThat(snapshot.generation()).isEqualTo(7L);
         assertThat(snapshot.instances()).isEmpty();
         fixture.server().verify();
+    }
+
+    @Test
+    void exactConfigQueryReturnsManagementProjection() {
+        ClientFixture fixture = fixture("ak", "sk");
+        fixture.server().expect(requestTo(
+                        "http://ddc.test/api/v1/ddc/openapi/management/configs"
+                                + "/gateway-engine-default/test/default/gateway.rules.active"
+                ))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("""
+                        {
+                          "success": true,
+                          "code": 0,
+                          "status": "SUCCESS",
+                          "message": "success",
+                          "data": {
+                            "appCode": "gateway-engine-default",
+                            "env": "test",
+                            "namespace": "default",
+                            "configKey": "gateway.rules.active",
+                            "configValue": "{}",
+                            "valueType": "JSON",
+                            "version": 3,
+                            "enabled": true,
+                            "deleted": false,
+                            "updatedAt": "2026-07-26T00:00:00Z"
+                          }
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        Optional<DdcManagementConfig> response = fixture.client().findConfig(
+                new DdcManagementConfigQuery(
+                        "gateway-engine-default",
+                        "test",
+                        "default",
+                        "gateway.rules.active"
+                )
+        );
+
+        assertThat(response).contains(new DdcManagementConfig(
+                "gateway-engine-default",
+                "test",
+                "default",
+                "gateway.rules.active",
+                "{}",
+                "JSON",
+                3L,
+                true,
+                false,
+                Instant.parse("2026-07-26T00:00:00Z")
+        ));
+        fixture.server().verify();
+    }
+
+    @Test
+    void exactConfigQueryMapsOnlyConfigNotFoundToEmpty() {
+        ClientFixture fixture = fixture("ak", "sk");
+        fixture.server().expect(requestTo(
+                        "http://ddc.test/api/v1/ddc/openapi/management/configs"
+                                + "/gateway/test/default/gateway.rules.active"
+                ))
+                .andRespond(withSuccess("""
+                        {
+                          "success": false,
+                          "code": 56004,
+                          "status": "DDC_CONFIG_NOT_FOUND",
+                          "message": "config not found",
+                          "data": null
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(fixture.client().findConfig(new DdcManagementConfigQuery(
+                "gateway", "test", "default", "gateway.rules.active"
+        ))).isEmpty();
+        fixture.server().verify();
+    }
+
+    @Test
+    void exactConfigQueryPropagatesOtherManagementErrors() {
+        ClientFixture fixture = fixture("ak", "sk");
+        fixture.server().expect(requestTo(
+                        "http://ddc.test/api/v1/ddc/openapi/management/configs"
+                                + "/gateway/test/default/gateway.rules.active"
+                ))
+                .andRespond(withSuccess("""
+                        {
+                          "success": false,
+                          "code": 56014,
+                          "status": "DDC_PUBLISH_TASK_NOT_FOUND",
+                          "message": "publish task not found",
+                          "data": null
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> fixture.client().findConfig(
+                new DdcManagementConfigQuery(
+                        "gateway", "test", "default", "gateway.rules.active"
+                )
+        ))
+                .isInstanceOfSatisfying(DdcManagementClientException.class, exception -> {
+                    assertThat(exception.code()).isEqualTo(56014);
+                    assertThat(exception.status()).isEqualTo("DDC_PUBLISH_TASK_NOT_FOUND");
+                });
+        fixture.server().verify();
+    }
+
+    @Test
+    void exactConfigQueryRejectsBlankCoordinateBeforeTransport() {
+        assertThatThrownBy(() -> new DdcManagementConfigQuery(
+                "gateway", " ", "default", "gateway.rules.active"
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("env");
     }
 
     @Test

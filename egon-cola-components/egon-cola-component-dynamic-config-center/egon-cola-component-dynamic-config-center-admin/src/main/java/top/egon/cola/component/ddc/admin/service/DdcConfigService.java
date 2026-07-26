@@ -25,6 +25,7 @@ import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class DdcConfigService {
@@ -242,6 +243,20 @@ public class DdcConfigService {
 
     public DdcConfigVO get(String configId) {
         return DdcConfigVO.from(getConfig(configId));
+    }
+
+    public Optional<DdcConfigVO> find(
+            String appCode,
+            String env,
+            String namespace,
+            String configKey
+    ) {
+        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
+                appCode,
+                env,
+                namespace,
+                configKey
+        ).map(DdcConfigVO::from);
     }
 
     public List<DdcConfigValue> pull(String appCode, String env, String namespace) {

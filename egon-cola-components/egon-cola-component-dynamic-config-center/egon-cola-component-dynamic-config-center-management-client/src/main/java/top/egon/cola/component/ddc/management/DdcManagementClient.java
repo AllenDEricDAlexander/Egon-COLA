@@ -3,6 +3,7 @@ package top.egon.cola.component.ddc.management;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
@@ -13,8 +14,13 @@ import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface DdcManagementClient {
+
+    default Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query) {
+        throw new UnsupportedOperationException("Exact config lookup is not supported");
+    }
 
     DdcManagementConfig upsert(DdcManagementConfigUpsertRequest request);
 

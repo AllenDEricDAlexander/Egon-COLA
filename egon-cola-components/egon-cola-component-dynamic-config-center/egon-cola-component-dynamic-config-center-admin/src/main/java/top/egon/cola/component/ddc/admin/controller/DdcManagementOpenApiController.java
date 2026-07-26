@@ -15,6 +15,7 @@ import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
@@ -34,6 +35,21 @@ public class DdcManagementOpenApiController {
 
     public DdcManagementOpenApiController(DdcManagementFacade facade) {
         this.facade = facade;
+    }
+
+    @GetMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
+    public ResultDto<DdcManagementConfig> config(
+            @PathVariable("appCode") String appCode,
+            @PathVariable("env") String env,
+            @PathVariable("namespace") String namespace,
+            @PathVariable("configKey") String configKey
+    ) {
+        return ResultDtos.success(facade.findConfig(new DdcManagementConfigQuery(
+                appCode,
+                env,
+                namespace,
+                configKey
+        )));
     }
 
     @PutMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
