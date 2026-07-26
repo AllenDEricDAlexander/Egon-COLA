@@ -33,6 +33,8 @@ import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 
+import java.util.List;
+
 @AutoConfiguration
 @EnableScheduling
 @EnableConfigurationProperties(DdcProperties.class)
@@ -123,12 +125,27 @@ public class DdcAutoConfig {
         );
     }
 
+    @Bean("ddcRedisV2Topic")
+    @ConditionalOnBean(name = "ddcRedissonClient")
+    public RTopic ddcRedisV2Topic(
+            @Qualifier("ddcRedissonClient") RedissonClient redissonClient,
+            DdcProperties properties) {
+        return redissonClient.getTopic(
+                DdcKeys.v2Topic(
+                        properties.getAppCode(),
+                        properties.getEnv(),
+                        properties.getNamespace()
+                )
+        );
+    }
+
     @Bean
-    @ConditionalOnBean(name = "ddcRedisTopic")
+    @ConditionalOnBean(name = {"ddcRedisV2Topic", "ddcRedisTopic"})
     public DdcRedisChangeSubscription ddcRedisChangeSubscription(
+            @Qualifier("ddcRedisV2Topic") RTopic v2Topic,
             @Qualifier("ddcRedisTopic") RTopic topic,
             DdcRedisChangeListener listener) {
-        return new DdcRedisChangeSubscription(topic, listener);
+        return new DdcRedisChangeSubscription(List.of(v2Topic, topic), listener);
     }
 
     @Bean

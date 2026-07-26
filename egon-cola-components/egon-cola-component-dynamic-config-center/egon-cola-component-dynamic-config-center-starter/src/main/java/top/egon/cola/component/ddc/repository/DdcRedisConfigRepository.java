@@ -17,12 +17,28 @@ public class DdcRedisConfigRepository {
     }
 
     public String readValue(String key) {
-        RBucket<String> bucket = redissonClient.getBucket(DdcKeys.config(properties.getAppCode(), properties.getEnv(), properties.getNamespace(), key));
-        return bucket.get();
+        String value = redissonClient.<String>getBucket(DdcKeys.v2Config(
+                properties.getAppCode(), properties.getEnv(), properties.getNamespace(), key
+        )).get();
+        if (value != null) {
+            return value;
+        }
+        RBucket<String> legacy = redissonClient.getBucket(DdcKeys.config(
+                properties.getAppCode(), properties.getEnv(), properties.getNamespace(), key
+        ));
+        return legacy.get();
     }
 
     public Long readVersion(String key) {
-        RBucket<Long> bucket = redissonClient.getBucket(DdcKeys.version(properties.getAppCode(), properties.getEnv(), properties.getNamespace(), key));
-        return bucket.get();
+        Long version = redissonClient.<Long>getBucket(DdcKeys.v2Version(
+                properties.getAppCode(), properties.getEnv(), properties.getNamespace(), key
+        )).get();
+        if (version != null) {
+            return version;
+        }
+        RBucket<Long> legacy = redissonClient.getBucket(DdcKeys.version(
+                properties.getAppCode(), properties.getEnv(), properties.getNamespace(), key
+        ));
+        return legacy.get();
     }
 }

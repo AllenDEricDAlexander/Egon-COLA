@@ -5,6 +5,7 @@ import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.redisson.api.listener.MessageListener;
+import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -35,6 +36,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcRegistrySubscriptionManagerTest {
@@ -62,7 +64,19 @@ class DdcRegistrySubscriptionManagerTest {
         topic.listener().get().onMessage("topic", eventJson(2L));
 
         assertThat(refreshed.await(2, TimeUnit.SECONDS)).isTrue();
-        assertThat(order.subList(0, 2)).containsExactly("subscribe", "pull");
+        assertThat(order.subList(0, 3)).containsExactly("subscribe", "subscribe", "pull");
+        verify(topic.redisson()).getTopic(
+                DdcKeys.v2RegistryTopic(
+                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                ),
+                StringCodec.INSTANCE
+        );
+        verify(topic.redisson()).getTopic(
+                DdcKeys.registryTopic(
+                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                ),
+                StringCodec.INSTANCE
+        );
         assertThat(observed.get(1).instances())
                 .extracting(DdcServiceInstance::instanceId)
                 .containsExactly("instance-1");

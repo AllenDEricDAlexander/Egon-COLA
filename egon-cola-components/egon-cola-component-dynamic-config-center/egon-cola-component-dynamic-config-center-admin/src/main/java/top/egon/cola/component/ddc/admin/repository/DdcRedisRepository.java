@@ -20,21 +20,42 @@ public class DdcRedisRepository {
     }
 
     public void writeConfig(String appCode, String env, String namespace, String key, String value, Long version) {
+        redissonClient.<String>getBucket(DdcKeys.v2Config(appCode, env, namespace, key)).set(value);
+        redissonClient.<Long>getBucket(DdcKeys.v2Version(appCode, env, namespace, key)).set(version);
         redissonClient.<String>getBucket(DdcKeys.config(appCode, env, namespace, key)).set(value);
         redissonClient.<Long>getBucket(DdcKeys.version(appCode, env, namespace, key)).set(version);
     }
 
     public String readConfigValue(String appCode, String env, String namespace, String key) {
-        RBucket<String> bucket = redissonClient.getBucket(DdcKeys.config(appCode, env, namespace, key));
-        return bucket.get();
+        String value = redissonClient.<String>getBucket(
+                DdcKeys.v2Config(appCode, env, namespace, key)
+        ).get();
+        if (value != null) {
+            return value;
+        }
+        RBucket<String> legacy = redissonClient.getBucket(
+                DdcKeys.config(appCode, env, namespace, key)
+        );
+        return legacy.get();
     }
 
     public Long readConfigVersion(String appCode, String env, String namespace, String key) {
-        RBucket<Long> bucket = redissonClient.getBucket(DdcKeys.version(appCode, env, namespace, key));
-        return bucket.get();
+        Long version = redissonClient.<Long>getBucket(
+                DdcKeys.v2Version(appCode, env, namespace, key)
+        ).get();
+        if (version != null) {
+            return version;
+        }
+        RBucket<Long> legacy = redissonClient.getBucket(
+                DdcKeys.version(appCode, env, namespace, key)
+        );
+        return legacy.get();
     }
 
     public void publish(DdcPublishMessage message) {
+        redissonClient.getTopic(DdcKeys.v2Topic(
+                message.getAppCode(), message.getEnv(), message.getNamespace()
+        )).publish(message);
         redissonClient.getTopic(DdcKeys.topic(message.getAppCode(), message.getEnv(), message.getNamespace()))
                 .publish(message);
     }
