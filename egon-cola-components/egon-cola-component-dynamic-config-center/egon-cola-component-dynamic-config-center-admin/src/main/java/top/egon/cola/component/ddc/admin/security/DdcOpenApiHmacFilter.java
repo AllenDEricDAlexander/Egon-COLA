@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
@@ -103,7 +104,9 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             reject(response, DdcErrorStatus.SIGNATURE_EXPIRED);
             return;
         }
-        if (!signer.matches(openapi.getAccessKey(), headers.accessKey())) {
+        String accessKey = accessKey(openapi);
+        String secret = secret(openapi);
+        if (!signer.matches(accessKey, headers.accessKey())) {
             reject(response, DdcErrorStatus.SIGNATURE_INVALID);
             return;
         }
@@ -117,7 +120,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 cachedRequest.body()
         );
         if (!signer.matches(canonicalRequest.contentSha256(), headers.contentSha256())
-                || !signer.matches(signer.sign(canonicalRequest, openapi.getSecretKey()), headers.signature())) {
+                || !signer.matches(signer.sign(canonicalRequest, secret), headers.signature())) {
             reject(response, DdcErrorStatus.SIGNATURE_INVALID);
             return;
         }
@@ -146,11 +149,38 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             throw new IllegalStateException("DDC OpenAPI allowed clock skew must be positive");
         }
         if (openapi.isSignatureEnabled()
-                && (!hasText(openapi.getAccessKey()) || !hasText(openapi.getSecretKey()))) {
+                && (!hasText(accessKey(openapi))
+                || !hasText(secret(openapi)))) {
             throw new IllegalStateException(
                     "DDC OpenAPI access key and secret key are required when signatures are enabled"
             );
         }
+    }
+
+    private String accessKey(DdcAdminProperties.Openapi openapi) {
+        if (hasText(openapi.getAccessKey())) {
+            return openapi.getAccessKey();
+        }
+        return firstCredential(openapi)
+                .map(DdcAdminProperties.Credential::getAccessKey)
+                .orElse(null);
+    }
+
+    private String secret(DdcAdminProperties.Openapi openapi) {
+        if (hasText(openapi.getSecretKey())) {
+            return openapi.getSecretKey();
+        }
+        return firstCredential(openapi)
+                .map(DdcAdminProperties.Credential::getSecret)
+                .orElse(null);
+    }
+
+    private Optional<DdcAdminProperties.Credential> firstCredential(
+            DdcAdminProperties.Openapi openapi) {
+        return openapi.getCredentials() == null
+                || openapi.getCredentials().isEmpty()
+                ? Optional.empty()
+                : Optional.of(openapi.getCredentials().getFirst());
     }
 
     private Map<String, List<String>> query(HttpServletRequest request) {

@@ -25,6 +25,13 @@ egon:
       ddc:
         enabled: false
         admin:
+          security:
+            local-dev: ${DDC_ADMIN_SECURITY_LOCAL_DEV:false}
+            jwt:
+              issuer: ${DDC_ADMIN_JWT_ISSUER:}
+              audience: ${DDC_ADMIN_JWT_AUDIENCE:}
+              jwk-set-uri: ${DDC_ADMIN_JWT_JWK_SET_URI:}
+              hmac-secret-base64: ${DDC_ADMIN_JWT_HMAC_SECRET_BASE64:}
           manifest:
             version: ${sdk.version}
           transport-security:
@@ -38,9 +45,16 @@ egon:
             port: 6379
             database: 0
           openapi:
-            signature-enabled: false
-            access-key:
-            secret-key:
+            signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
+            credentials:
+              - credential-id: ${DDC_OPENAPI_CREDENTIAL_ID:default-service}
+                access-key: ${DDC_OPENAPI_ACCESS_KEY:}
+                secret: ${DDC_OPENAPI_SECRET:}
+                client-type: ${DDC_OPENAPI_CLIENT_TYPE:}
+                app-code-patterns: ${DDC_OPENAPI_APP_CODE_PATTERNS:}
+                env-patterns: ${DDC_OPENAPI_ENV_PATTERNS:}
+                namespace-patterns: ${DDC_OPENAPI_NAMESPACE_PATTERNS:}
+                allowed-operations: ${DDC_OPENAPI_ALLOWED_OPERATIONS:}
             allowed-clock-skew-seconds: 300
             nonce-cache-max-size: 10000
           publish:
