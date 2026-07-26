@@ -1,7 +1,10 @@
 package top.egon.cola.component.gateway.engine.rpc;
 
+import io.grpc.Channel;
+import io.grpc.ClientInterceptors;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.Server;
 import io.grpc.ServerServiceDefinition;
@@ -9,6 +12,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.ClientCalls;
+import io.grpc.stub.MetadataUtils;
 import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.core.provider.ProviderHealthState;
@@ -27,6 +31,8 @@ import top.egon.cola.component.gateway.engine.rule.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
+import top.egon.cola.component.rpc.context.RpcFailureStage;
+import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -45,6 +51,153 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RpcGatewayServerTest {
+
+    @Test
+    void marksGatewayGeneratedFailuresWithGatewayStage() throws Exception {
+        RpcProviderChannelCache channels = new RpcProviderChannelCache(
+                Duration.ofSeconds(1)
+        );
+        RpcGatewayForwarder forwarder = new RpcGatewayForwarder(
+                ignored -> {
+                    throw new AssertionError("provider must not be selected");
+                },
+                channels,
+                Duration.ofSeconds(5),
+                1024
+        );
+        RpcGatewayHandlerRegistry registry =
+                new RpcGatewayHandlerRegistry(forwarder);
+        registry.activate(new RpcMethodIndexCompiler().compile(
+                List.of(route())
+        ));
+        RpcGatewayServer gateway = new RpcGatewayServer(0, 1024, registry);
+        ManagedChannel consumer = null;
+        try {
+            gateway.start();
+            consumer = ManagedChannelBuilder.forAddress(
+                            "127.0.0.1",
+                            gateway.port()
+                    )
+                    .usePlaintext()
+                    .build();
+            Metadata headers = new Metadata();
+            headers.put(RpcMetadataKeys.SERVICE, "wrong-service");
+            Channel callChannel = ClientInterceptors.intercept(
+                    consumer,
+                    MetadataUtils.newAttachHeadersInterceptor(headers)
+            );
+
+            StatusRuntimeException failure = assertThrows(
+                    StatusRuntimeException.class,
+                    () -> ClientCalls.blockingUnaryCall(
+                            callChannel,
+                            RawByteMarshaller.INSTANCE.descriptor(
+                                    "test.Echo/Call"
+                            ),
+                            io.grpc.CallOptions.DEFAULT,
+                            new byte[]{1}
+                    )
+            );
+
+            assertEquals(
+                    RpcFailureStage.GATEWAY,
+                    RpcFailureStage.from(failure.getTrailers())
+                            .orElseThrow()
+            );
+        } finally {
+            if (consumer != null) {
+                consumer.shutdownNow().awaitTermination(
+                        1,
+                        TimeUnit.SECONDS
+                );
+            }
+            gateway.close();
+            channels.close();
+        }
+    }
+
+    @Test
+    void forcesProviderStageForProxiedProviderFailure() throws Exception {
+        MethodDescriptor<byte[], byte[]> method =
+                RawByteMarshaller.INSTANCE.descriptor("test.Echo/Call");
+        Metadata misleadingTrailers = new Metadata();
+        misleadingTrailers.put(RpcMetadataKeys.FAILURE_STAGE, "gateway");
+        Server providerServer = NettyServerBuilder.forPort(0)
+                .addService(ServerServiceDefinition.builder("test.Echo")
+                        .addMethod(
+                                method,
+                                ServerCalls.asyncUnaryCall(
+                                        (request, observer) -> observer.onError(
+                                                Status.UNAVAILABLE
+                                                        .asRuntimeException(
+                                                                misleadingTrailers
+                                                        )
+                                        )
+                                )
+                        )
+                        .build())
+                .build()
+                .start();
+        RpcProviderChannelCache channels = new RpcProviderChannelCache(
+                Duration.ofSeconds(1)
+        );
+        RpcGatewayForwarder forwarder = new RpcGatewayForwarder(
+                ignored -> new ProviderSelectionHandle(
+                        provider("lease-failure", providerServer.getPort()),
+                        () -> {
+                        }
+                ),
+                channels,
+                Duration.ofSeconds(5),
+                1024
+        );
+        RpcGatewayHandlerRegistry registry =
+                new RpcGatewayHandlerRegistry(forwarder);
+        registry.activate(new RpcMethodIndexCompiler().compile(
+                List.of(route())
+        ));
+        RpcGatewayServer gateway = new RpcGatewayServer(0, 1024, registry);
+        ManagedChannel consumer = null;
+        try {
+            gateway.start();
+            consumer = ManagedChannelBuilder.forAddress(
+                            "127.0.0.1",
+                            gateway.port()
+                    )
+                    .usePlaintext()
+                    .build();
+            ManagedChannel activeConsumer = consumer;
+
+            StatusRuntimeException failure = assertThrows(
+                    StatusRuntimeException.class,
+                    () -> ClientCalls.blockingUnaryCall(
+                            activeConsumer,
+                            method,
+                            io.grpc.CallOptions.DEFAULT,
+                            new byte[]{1}
+                    )
+            );
+
+            assertEquals(
+                    RpcFailureStage.PROVIDER,
+                    RpcFailureStage.from(failure.getTrailers())
+                            .orElseThrow()
+            );
+        } finally {
+            if (consumer != null) {
+                consumer.shutdownNow().awaitTermination(
+                        1,
+                        TimeUnit.SECONDS
+                );
+            }
+            gateway.close();
+            channels.close();
+            providerServer.shutdownNow().awaitTermination(
+                    1,
+                    TimeUnit.SECONDS
+            );
+        }
+    }
 
     @Test
     void forwardsRawUnaryBytesThroughRealGrpcServers() throws Exception {
