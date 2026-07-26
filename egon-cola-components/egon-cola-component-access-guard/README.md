@@ -151,8 +151,10 @@ egon:
       access-guard:
         enabled: true
         engine: AOP
-        storage: REDISSON
+        storage: LOCAL
         key-prefix: egon:access-guard
+        app: ""
+        env: ""
         fail-strategy: FAIL_OPEN
         key-resolve-failure-strategy: USE_ALL
         aop:
@@ -187,6 +189,11 @@ egon:
         local-fallback:
           enabled: true
 ```
+
+`storage` defaults to `LOCAL`, which needs no external infrastructure. Set it to
+`REDISSON` to share governance state across instances; the application must then supply a
+`RedissonClient` bean, selected by `redisson.client-bean-name` when several exist. The
+starter declares Redisson as an optional dependency and never creates a client itself.
 
 Specific rules can be overridden through configuration:
 

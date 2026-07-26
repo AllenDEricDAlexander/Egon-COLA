@@ -41,15 +41,22 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
         </dependency>
+        <!-- Backs the returnJson reject response; previously inherited via Redisson's starter. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!--
+            Optional and without redisson-spring-boot-starter: the guard runs on local
+            implementations by default, and the Spring Boot starter would auto-configure a
+            RedissonClient against redis://127.0.0.1:6379 and fail startup for applications that
+            have no Redis. Applications choosing storage=REDISSON supply the client themselves.
+        -->
         <dependency>
             <groupId>org.redisson</groupId>
-            <artifactId>redisson-spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-actuator</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>redisson</artifactId>
+            <version>${redisson.version}</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
