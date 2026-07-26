@@ -187,6 +187,7 @@ git commit -m "feat: separate ddc draft and published versions"
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepository.java`
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeSubscription.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscriptionManager.java`
 - Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigLeaseRedisRepository.java`
@@ -252,7 +253,9 @@ private static String registryTag(String env, String namespace, DdcServiceKind k
 The Admin `DdcRedisRepository` writes legacy and v2 config value/version and publishes both topics; the Starter
 repository reads v2 first and legacy only on absence, while its subscription listens to both channels. Registry
 scripts receive only v2 same-slot keys; the legacy topic is passed as a Lua argument (not a script key) and is
-still emitted for old subscribers without reintroducing a cross-slot key.
+still emitted for old subscribers without reintroducing a cross-slot key. New registry subscriptions listen to
+both v2 and legacy channels so every old/new Admin and Starter combination remains observable during the
+compatibility window.
 
 - [ ] **Step 4: Run unit tests, Sentinel failover and real three-node Redis Cluster IT**
 
