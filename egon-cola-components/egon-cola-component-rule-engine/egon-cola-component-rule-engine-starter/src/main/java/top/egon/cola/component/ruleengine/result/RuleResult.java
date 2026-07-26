@@ -78,6 +78,10 @@ public class RuleResult<R> implements Serializable {
         return new RuleResult<>(success, status, code, message, data, trace, exception, stoppedNode, hitNode, costMillis);
     }
 
+    public RuleResult<R> withData(R data) {
+        return new RuleResult<>(success, status, code, message, data, trace, exception, stoppedNode, hitNode, costMillis);
+    }
+
     public RuleResult<R> withStoppedNode(String stoppedNode) {
         return new RuleResult<>(success, status, code, message, data, trace, exception, stoppedNode, hitNode, costMillis);
     }

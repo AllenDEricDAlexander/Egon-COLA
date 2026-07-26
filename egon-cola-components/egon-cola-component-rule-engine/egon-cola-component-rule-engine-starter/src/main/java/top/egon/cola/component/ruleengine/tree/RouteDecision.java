@@ -48,6 +48,14 @@ public final class RouteDecision {
         return type.isInstance(endData) ? type.cast(endData) : null;
     }
 
+    /**
+     * The raw {@link #end(Object)} payload, used by the executors to carry it into the result.
+     * Callers that know the expected type should prefer {@link #endData(Class)}.
+     */
+    public Object getEndData() {
+        return endData;
+    }
+
     public String getTargetCode() {
         return targetCode;
     }

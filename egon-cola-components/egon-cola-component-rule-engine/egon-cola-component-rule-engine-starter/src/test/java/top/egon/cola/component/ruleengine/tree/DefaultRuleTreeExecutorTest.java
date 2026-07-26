@@ -53,6 +53,132 @@ class DefaultRuleTreeExecutorTest {
         assertThat(result.getMessage()).contains("missing branch");
     }
 
+    @Test
+    void shouldCarryEndDataWhenTheNodeDoesNotPopulateItItself() {
+        RuleNode<String, String> root = new PlainNode("root", RouteDecision.end("gold"));
+        RuleTree<String, String> tree = RuleTree.<String, String>builder("end-data-tree", root).build();
+
+        RuleResult<String> result = executor.execute(tree, "req", RuleContext.create());
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isEqualTo("gold");
+    }
+
+    @Test
+    void shouldKeepNodeResultWhenEndCarriesNoData() {
+        RuleNode<String, String> root = new PlainNode("root", RouteDecision.end(null), "from-node");
+        RuleTree<String, String> tree = RuleTree.<String, String>builder("end-null-tree", root).build();
+
+        RuleResult<String> result = executor.execute(tree, "req", RuleContext.create());
+
+        assertThat(result.getData()).isEqualTo("from-node");
+    }
+
+    @Test
+    void callerSuppliedMaxStepsWinsOverTheTreeDeclaration() {
+        RuleNode<String, String> loop = new PlainNode("loop", RouteDecision.toCode("loop"));
+        RuleTree<String, String> tree = RuleTree.<String, String>builder("loop-tree", loop)
+                .maxSteps(10)
+                .build();
+
+        RuleResult<String> result = executor.execute(tree, "req", RuleContext.create().maxSteps(2));
+
+        assertThat(result.getStatus()).isEqualTo(RuleStatus.MAX_STEPS_EXCEEDED);
+        assertThat(result.getTrace().nodeTraces()).hasSize(2);
+    }
+
+    @Test
+    void shouldReportTimeoutRaisedByTheFinalNode() {
+        RuleNode<String, String> slow = new SlowNode("slow", RouteDecision.end("late"), 60L);
+        RuleTree<String, String> tree = RuleTree.<String, String>builder("slow-tree", slow)
+                .timeoutMillis(20L)
+                .build();
+
+        RuleResult<String> result = executor.execute(tree, "req", RuleContext.create());
+
+        assertThat(result.getStatus()).isEqualTo(RuleStatus.TIMEOUT);
+    }
+
+    @Test
+    void shouldApplyEngineDefaultsWhenTheTreeDeclaresNone() {
+        DefaultRuleTreeExecutor configured = new DefaultRuleTreeExecutor(true, false, null, 2, 3000L);
+        RuleNode<String, String> loop = new PlainNode("loop", RouteDecision.toCode("loop"));
+        RuleTree<String, String> tree = RuleTree.<String, String>builder("loop-tree", loop).build();
+
+        RuleResult<String> result = configured.execute(tree, "req", RuleContext.create());
+
+        assertThat(result.getStatus()).isEqualTo(RuleStatus.MAX_STEPS_EXCEEDED);
+        assertThat(result.getTrace().nodeTraces()).hasSize(2);
+    }
+
+    /**
+     * Unlike {@link TestNode} this never reads the route decision, so the executor alone is
+     * responsible for carrying the end payload into the result.
+     */
+    private static class PlainNode implements RuleNode<String, String> {
+
+        private final String code;
+
+        private final RouteDecision routeDecision;
+
+        private final String data;
+
+        private PlainNode(String code, RouteDecision routeDecision) {
+            this(code, routeDecision, null);
+        }
+
+        private PlainNode(String code, RouteDecision routeDecision, String data) {
+            this.code = code;
+            this.routeDecision = routeDecision;
+            this.data = data;
+        }
+
+        @Override
+        public String code() {
+            return code;
+        }
+
+        @Override
+        public String name() {
+            return code;
+        }
+
+        @Override
+        public NodeType type() {
+            return NodeType.BIZ;
+        }
+
+        @Override
+        public RuleResult<String> execute(String request, RuleContext context) {
+            return RuleResult.success(data);
+        }
+
+        @Override
+        public RouteDecision route(String request, RuleContext context) {
+            return routeDecision;
+        }
+    }
+
+    private static final class SlowNode extends PlainNode {
+
+        private final long sleepMillis;
+
+        private SlowNode(String code, RouteDecision routeDecision, long sleepMillis) {
+            super(code, routeDecision);
+            this.sleepMillis = sleepMillis;
+        }
+
+        @Override
+        public RuleResult<String> execute(String request, RuleContext context) {
+            try {
+                Thread.sleep(sleepMillis);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            return super.execute(request, context);
+        }
+    }
+
     private static final class TestNode implements RuleNode<String, String> {
 
         private final String code;

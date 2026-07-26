@@ -39,6 +39,10 @@ public class RuleContext {
 
     private volatile Instant deadline;
 
+    private volatile boolean maxStepsSetByCaller;
+
+    private volatile boolean deadlineSetByCaller;
+
     private RuleContext(String requestId, String traceId) {
         this.requestId = normalize(requestId, "req-");
         this.traceId = normalize(traceId, "trace-");
@@ -55,11 +59,34 @@ public class RuleContext {
 
     public RuleContext maxSteps(int maxSteps) {
         this.maxSteps = maxSteps;
+        this.maxStepsSetByCaller = true;
         return this;
     }
 
     public RuleContext timeout(Duration timeout) {
         this.deadline = timeout == null ? null : Instant.now().plus(timeout);
+        this.deadlineSetByCaller = true;
+        return this;
+    }
+
+    /**
+     * Applies an engine or rule default. A limit the caller already set through
+     * {@link #maxSteps(int)} wins, so passing a context with explicit limits is not silently undone.
+     */
+    public RuleContext defaultMaxSteps(int maxSteps) {
+        if (!maxStepsSetByCaller) {
+            this.maxSteps = maxSteps;
+        }
+        return this;
+    }
+
+    /**
+     * Applies an engine or rule default, see {@link #defaultMaxSteps(int)}.
+     */
+    public RuleContext defaultTimeout(Duration timeout) {
+        if (!deadlineSetByCaller) {
+            this.deadline = timeout == null ? null : Instant.now().plus(timeout);
+        }
         return this;
     }
 
