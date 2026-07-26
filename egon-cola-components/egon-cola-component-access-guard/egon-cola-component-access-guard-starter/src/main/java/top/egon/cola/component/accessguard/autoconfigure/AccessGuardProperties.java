@@ -150,8 +150,6 @@ public class AccessGuardProperties {
     public static class LocalFallback {
 
         private boolean enabled = true;
-
-        private Duration expireAfterWrite = Duration.ofMinutes(10);
     }
 
     @Getter

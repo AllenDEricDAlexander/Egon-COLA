@@ -13,16 +13,32 @@ public class AccessGuardFailureHandler {
         this.properties = properties;
     }
 
+    /**
+     * Decides whether a stage that could not reach a decision should let the call continue.
+     *
+     * <p>The switch is deliberately exhaustive over {@link FailStrategy}: adding a constant must
+     * break the build here rather than silently fall through to rethrowing the infrastructure error.
+     */
     public boolean failOpen(AccessGuardRule rule, String stage, RuntimeException failure) {
-        FailStrategy strategy = effectiveStrategy(rule);
-        if (strategy == FailStrategy.FAIL_OPEN) {
+        return switch (effectiveStrategy(rule)) {
+            case FAIL_OPEN, GLOBAL_DEFAULT -> true;
+            case LOCAL_FALLBACK -> localFallback(stage, failure);
+            case FAIL_CLOSED -> throw new AccessGuardRejectedException(
+                    "Access Guard " + stage + " infrastructure failed", failure);
+        };
+    }
+
+    /**
+     * Degrades to the local decision path. Stages backed by a shared store carry their own local
+     * implementation (see {@code RedissonRateLimiterExecutor}); the remaining stages continue with
+     * their permissive local default.
+     */
+    private boolean localFallback(String stage, RuntimeException failure) {
+        if (properties.getLocalFallback().isEnabled()) {
             return true;
         }
-        if (strategy == FailStrategy.FAIL_CLOSED) {
-            throw new AccessGuardRejectedException(
-                    "Access Guard " + stage + " infrastructure failed", failure);
-        }
-        throw failure;
+        throw new AccessGuardRejectedException(
+                "Access Guard " + stage + " infrastructure failed and local fallback is disabled", failure);
     }
 
     public FailStrategy effectiveStrategy(AccessGuardRule rule) {

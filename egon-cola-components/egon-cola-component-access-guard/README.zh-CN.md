@@ -186,7 +186,6 @@ egon:
           provider-bean-name:
         local-fallback:
           enabled: true
-          expire-after-write: 10m
 ```
 
 可以通过配置覆盖指定规则：
