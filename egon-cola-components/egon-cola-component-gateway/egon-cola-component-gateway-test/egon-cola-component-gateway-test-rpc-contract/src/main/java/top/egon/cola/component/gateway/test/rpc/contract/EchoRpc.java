@@ -23,7 +23,7 @@ import top.egon.cola.component.rpc.annotation.EgonRpcService;
 )
 public interface EchoRpc {
 
-    @EgonRpcMethod(name = "Echo")
+    @EgonRpcMethod(name = "Echo", idempotent = true)
     @GatewayOperation(
             name = "RPC Echo",
             summary = "回显消息并返回调用元数据",
