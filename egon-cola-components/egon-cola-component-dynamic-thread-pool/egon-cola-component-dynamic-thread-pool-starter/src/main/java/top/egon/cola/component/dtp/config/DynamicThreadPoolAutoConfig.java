@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.springframework.util.StringUtils;
 import org.redisson.Redisson;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
@@ -148,22 +148,22 @@ public class DynamicThreadPoolAutoConfig {
     }
 
     String resolveAppName(ApplicationContext applicationContext, DynamicThreadPoolAutoProperties properties) {
-        if (StringUtils.isNotBlank(properties.getAppName())) {
+        if (StringUtils.hasText(properties.getAppName())) {
             return properties.getAppName();
         }
         String springApplicationName = applicationContext.getEnvironment().getProperty("spring.application.name");
-        if (StringUtils.isNotBlank(springApplicationName)) {
+        if (StringUtils.hasText(springApplicationName)) {
             return springApplicationName;
         }
         return "default-app";
     }
 
     String resolveInstanceId(ApplicationContext applicationContext, DynamicThreadPoolAutoProperties properties, String appName) {
-        if (StringUtils.isNotBlank(properties.getInstanceId())) {
+        if (StringUtils.hasText(properties.getInstanceId())) {
             return properties.getInstanceId();
         }
         String serverPort = applicationContext.getEnvironment().getProperty("server.port");
-        if (StringUtils.isNotBlank(serverPort)) {
+        if (StringUtils.hasText(serverPort)) {
             return appName + "-" + serverPort;
         }
         return appName + "-" + ManagementFactory.getRuntimeMXBean().getName();
