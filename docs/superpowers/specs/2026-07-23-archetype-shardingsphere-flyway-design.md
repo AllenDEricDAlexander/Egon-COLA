@@ -2,7 +2,7 @@
 
 ## 1. 文档状态
 
-- 状态：方案已确认，等待书面 Spec 审核。
+- 状态：方案与 Spec 已确认，等待实施。
 - 适用范围：`egon-cola-archetype-light`、`egon-cola-archetype-service`、`egon-cola-archetype-web`。
 - 目标版本：Apache ShardingSphere JDBC 5.5.3。
 - 本次修订取代本文此前关于“应用级 SINGLE mode”“!SINGLE 规则”和“在线数据迁移”的设计。
@@ -408,7 +408,34 @@ app:
 
 删除普通 `spring.datasource` 和默认 Flyway locations。
 
-### 13.2 application-test.yml
+### 13.2 数据源环境变量
+
+三类 archetype 的业务前缀分别是 `LIGHT`、`EVALUATION`、`ORGANIZATION`。
+
+SHARDING 使用统一凭证和三个物理 URL：
+
+```text
+<PREFIX>_SHARDING_MASTER_DATA_URL
+<PREFIX>_SHARDING_SHARD_0_URL
+<PREFIX>_SHARDING_SHARD_1_URL
+<PREFIX>_SHARDING_USERNAME
+<PREFIX>_SHARDING_PASSWORD
+```
+
+SHARDING_READWRITE 对每个 primary/replica 使用独立 URL 与凭证：
+
+```text
+<PREFIX>_MASTER_DATA_PRIMARY_URL/USERNAME/PASSWORD
+<PREFIX>_MASTER_DATA_REPLICA_0_URL/USERNAME/PASSWORD
+<PREFIX>_SHARD_0_PRIMARY_URL/USERNAME/PASSWORD
+<PREFIX>_SHARD_0_REPLICA_0_URL/USERNAME/PASSWORD
+<PREFIX>_SHARD_1_PRIMARY_URL/USERNAME/PASSWORD
+<PREFIX>_SHARD_1_REPLICA_0_URL/USERNAME/PASSWORD
+```
+
+删除所有带 `SHARDING_SINGLE` 或 `SINGLE_PRIMARY/REPLICA` 的环境变量名，避免把“主数据单库”和已删除的 SINGLE mode 混为一谈。
+
+### 13.3 application-test.yml
 
 测试配置必须提供完整 H2 SHARDING 拓扑，不能依赖普通单数据源：
 
@@ -421,7 +448,7 @@ app:
 
 读写分离测试通过测试参数提供独立的 primary/replica 拓扑，不写入默认测试配置。
 
-### 13.3 DataSourceModeProperties
+### 13.4 DataSourceModeProperties
 
 枚举仅包含：
 
@@ -432,7 +459,7 @@ SHARDING_READWRITE("sharding-readwrite")
 
 构造时 null 默认转换为 SHARDING。删除 `isShardingSphere()`，因为所有合法值都是 ShardingSphere mode。
 
-### 13.4 条件装配
+### 13.5 条件装配
 
 删除 `ShardingDataSourceModeCondition`。ShardingSphere 配置在所有合法运行模式下始终装配，mode 只负责选择 topology name。
 
