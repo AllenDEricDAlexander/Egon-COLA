@@ -20,6 +20,7 @@ import top.egon.cola.component.ddc.security.DdcRequestSigner;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,7 +36,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
 
     private final ObjectMapper objectMapper;
 
-    private final DdcNonceCache nonceCache;
+    private final DdcNonceStore nonceStore;
 
     private final Clock clock;
 
@@ -43,31 +44,25 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
 
     @Autowired
     public DdcOpenApiHmacFilter(ObjectMapper objectMapper,
-                                ObjectProvider<DdcAdminProperties> propertiesProvider) {
+                                ObjectProvider<DdcAdminProperties> propertiesProvider,
+                                ObjectProvider<DdcNonceStore> nonceStoreProvider) {
         this(
                 propertiesProvider.getIfAvailable(DdcAdminProperties::new),
                 objectMapper,
-                nonceCache(propertiesProvider),
+                nonceStoreProvider.getIfAvailable(),
                 Clock.systemUTC()
         );
     }
 
     DdcOpenApiHmacFilter(DdcAdminProperties properties,
                          ObjectMapper objectMapper,
-                         DdcNonceCache nonceCache,
+                         DdcNonceStore nonceStore,
                          Clock clock) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.nonceCache = nonceCache;
+        this.nonceStore = nonceStore;
         this.clock = clock;
         validateConfiguration(properties.getOpenapi());
-    }
-
-    private static DdcNonceCache nonceCache(
-            ObjectProvider<DdcAdminProperties> propertiesProvider) {
-        DdcAdminProperties properties =
-                propertiesProvider.getIfAvailable(DdcAdminProperties::new);
-        return new DdcNonceCache(properties.getOpenapi().getNonceCacheMaxSize());
     }
 
     @Override
@@ -125,10 +120,29 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             return;
         }
 
-        String replayKey = headers.accessKey() + ":" + headers.nonce();
-        if (!nonceCache.markIfAbsent(replayKey, now, allowedSkewMillis)) {
-            reject(response, DdcErrorStatus.SIGNATURE_REPLAY);
-            return;
+        try {
+            if (nonceStore == null) {
+                throw new IllegalStateException(
+                        "DDC nonce store is unavailable"
+                );
+            }
+            Duration nonceTtl = Duration.ofMillis(Math.max(
+                    1,
+                    timestamp + allowedSkewMillis - now
+            ));
+            if (!nonceStore.markIfAbsent(
+                    credentialId(openapi),
+                    headers.nonce(),
+                    nonceTtl
+            )) {
+                reject(response, DdcErrorStatus.SIGNATURE_REPLAY);
+                return;
+            }
+        } catch (RuntimeException unavailable) {
+            if (writeRequest(request.getMethod())) {
+                rejectNonceStoreUnavailable(response);
+                return;
+            }
         }
         filterChain.doFilter(cachedRequest, response);
     }
@@ -175,6 +189,13 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 .orElse(null);
     }
 
+    private String credentialId(DdcAdminProperties.Openapi openapi) {
+        return firstCredential(openapi)
+                .map(DdcAdminProperties.Credential::getCredentialId)
+                .filter(this::hasText)
+                .orElseGet(() -> accessKey(openapi));
+    }
+
     private Optional<DdcAdminProperties.Credential> firstCredential(
             DdcAdminProperties.Openapi openapi) {
         return openapi.getCredentials() == null
@@ -203,6 +224,23 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), ResultDtos.failure(status));
+    }
+
+    private void rejectNonceStoreUnavailable(HttpServletResponse response)
+            throws IOException {
+        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getOutputStream(), Map.of(
+                "code", "DDC_NONCE_STORE_UNAVAILABLE",
+                "message", "DDC nonce store is unavailable"
+        ));
+    }
+
+    private boolean writeRequest(String method) {
+        return !"GET".equalsIgnoreCase(method)
+                && !"HEAD".equalsIgnoreCase(method)
+                && !"OPTIONS".equalsIgnoreCase(method);
     }
 
     private boolean hasText(String value) {
