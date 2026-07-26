@@ -7,13 +7,14 @@
 `egon-cola-component-rpc` is a small Spring Boot RPC framework built on standard
 gRPC Java and Protobuf. A Provider exposes annotated Java beans and registers
 their generated Proto service identities in the Dynamic Config Center (DDC). A
-Consumer creates JDK proxies, discovers exactly one internal Gateway, and sends
-every call to that Gateway.
+Consumer creates JDK proxies, discovers active internal Gateways, keeps one
+channel per Gateway, and distributes calls across them within the overall deadline.
 
-The production Gateway is deliberately outside this component. The repository
-contains a Mock Gateway under test sources only, so the complete
-Consumer → Gateway → Provider path can be verified before the production
-Gateway is developed.
+The production Gateway is implemented by the sibling
+[Gateway component](../egon-cola-component-gateway/README.md). This component owns
+the Provider and Consumer contracts and lifecycle integration; it does not embed a
+Gateway data plane. The test sources still contain a Mock Gateway for isolated
+Consumer → Gateway → Provider verification.
 
 V1 supports unary methods whose request and response implement Protobuf
 `Message`. The `.proto` file is the only IDL. Java annotations bind generated
@@ -37,26 +38,26 @@ artifacts are never added to the public BOM.
 ## Runtime Topology
 
 ```text
-Consumer ── one gRPC channel ──> unique active internal Gateway
-                                      │
-                                      ├── discovers RPC_PROVIDER service groups
-                                      ├── selects an instance
-                                      └── forwards the unary call ──> Provider
+Consumer ── one channel per active Gateway ──> internal Gateway set
+                                                 │
+                                                 ├── discovers RPC_PROVIDER service groups
+                                                 ├── selects a Provider instance
+                                                 └── forwards the unary call ──> Provider
 
 Provider ── register/heartbeat/deregister ─┐
-Gateway  ── register/heartbeat/deregister ─┼──> one DDC Admin ──> one Redis
+Gateway  ── register/heartbeat/deregister ─┼──> DDC Admin set ──> shared Redis
 Consumer ── discover/subscribe Gateway ────┘
 ```
 
-DDC V1 is standalone: one Admin and one Redis single-server connection. Provider
-and Gateway registrations are temporary Redis leases. Every registration gets
-a new `leaseId`; heartbeat and deregistration atomically match
-`instanceId + leaseId`.
+DDC supplies the shared lease and service-registry boundary. Provider and Gateway
+registrations are temporary Redis leases. Every registration gets a new `leaseId`;
+heartbeat and deregistration atomically match `instanceId + leaseId`.
 
-The Consumer never queries `RPC_PROVIDER`, never opens a Provider channel, and
-contains no load-balancing algorithm. Zero active Gateways at the startup
-deadline, more than one active Gateway, or loss of the only active Gateway
-causes a fast failure.
+The Consumer never queries `RPC_PROVIDER` and never opens a Provider channel. It
+round-robins across active Gateway channels and can try another Gateway only for a
+Gateway-stage `UNAVAILABLE` within the same call deadline. Zero active Gateways at
+the startup deadline or loss of every active Gateway causes a fast failure; Provider
+failures are not retried by the Consumer.
 
 ## Dependency
 
@@ -311,6 +312,7 @@ egon:
           gateway-group: default
           gateway-version: 1.0.0
           channel-drain-timeout-ms: 5000
+          gateway-max-attempts: 2
 ```
 
 Consumer properties:
@@ -325,6 +327,7 @@ Consumer properties:
 | `consumer.gateway-group` | `default` | Exact Gateway group |
 | `consumer.gateway-version` | `1.0.0` | Exact Gateway version |
 | `consumer.channel-drain-timeout-ms` | `5000` | Replaced Channel drain timeout |
+| `consumer.gateway-max-attempts` | `2` | Maximum Gateway channels tried for one call |
 
 `@EgonRpcReference.timeoutMs` may shorten but never extend
 `default-timeout-ms`. Every production Consumer channel explicitly calls
@@ -359,18 +362,19 @@ Provider `UNAVAILABLE` status must add the framework failure-stage trailer.
 
 ## Gateway Boundary
 
-There is no production Gateway package in the Starter. The following
-capabilities exist only under `rpc-test-suite/src/test`:
+The Starter does not package the production Gateway. The sibling Gateway component
+owns Gateway registration, provider directory, route/rule execution, HTTP/RPC
+forwarding, health, and traffic governance. The following capabilities remain
+test-only fixtures under `rpc-test-suite/src/test`:
 
-- Gateway registration and heartbeat;
+- Mock Gateway registration and heartbeat;
 - Provider service-catalog and instance Directory;
 - Provider Channel cache;
 - dynamic byte-level Handler Registry;
 - deterministic round-robin test selector;
 - unary forwarder.
 
-They are reference fixtures, not reusable production APIs. The production
-Gateway will be developed after the DDC and RPC contracts are accepted.
+Use the Gateway README for the production data-plane and control-plane boundaries.
 
 ## Tests
 
@@ -384,8 +388,8 @@ They do not use gRPC in-process transports:
 ```
 
 The suite also verifies cancellation and multi-Provider Directory
-discovery/replacement/eviction. The instance-selection policy belongs to the
-Mock Gateway and is not a Starter capability.
+discovery/replacement/eviction. Gateway selection and Provider load balancing belong
+to the Gateway component; the Consumer only selects among active Gateway channels.
 
 An opt-in `verify` profile launches one Admin, one Provider, one Mock Gateway,
 and one Consumer in separate JVMs. It requires an externally managed Redis
@@ -414,8 +418,9 @@ V1 does not implement:
 - business retries;
 - streaming RPC;
 - non-Protobuf serialization;
-- a production Gateway, Provider Directory, Gateway Handler Registry, Provider
-  Channel Factory, instance selector, or Unary Forwarder.
+- Consumer-side Provider discovery or direct Provider channels;
+- Gateway rule administration, HTTP routing, Provider load balancing, or traffic governance;
+- a second serialization protocol or streaming RPC.
 
 These boundaries keep the Starter responsible for contracts, exposure,
 proxies, registration/discovery integration, metadata, timeout, cancellation,

@@ -43,10 +43,18 @@ Egon-COLA
 │   ├── egon-cola-archetype-web/
 │   ├── architecture-mermaid-diagrams.md
 │   └── code-style-abstract.md
-├── egon-cola-components/     # 基础组件、starter、BOM 与组件开发脚手架
+├── egon-cola-components/     # 可复用组件、starter、BOM 与组件测试
 │   ├── egon-cola-components-bom/
 │   ├── egon-cola-component-common/
-│   └── egon-cola-component-dynamic-thread-pool/
+│   ├── egon-cola-component-dynamic-config-center/
+│   ├── egon-cola-component-dynamic-thread-pool/
+│   ├── egon-cola-component-rpc/
+│   ├── egon-cola-component-rule-engine/
+│   ├── egon-cola-component-access-guard/
+│   ├── egon-cola-component-method-extension/
+│   ├── egon-cola-component-transactional-outbox/
+│   ├── egon-cola-component-bytecode/
+│   └── egon-cola-component-gateway/
 ├── scripts/                  # 本地验证、版本调整、发布说明
 ├── mvnw
 ├── mvnw.cmd
@@ -220,14 +228,22 @@ mvn -B archetype:generate \
 
 ## 组件体系
 
-`egon-cola-components` 用于沉淀可复用基础能力。
+`egon-cola-components` 包含可复用运行时能力、独立控制面应用、测试工程和公共
+Components BOM。各组件 README 是对应 API、配置、边界和专项验证命令的事实来源。
 
-| 组件 | 说明 |
-|---|---|
-| `egon-cola-component-common-*` | 可按需引入的纯 Jar 基础组件，提供通用错误、模型、响应、ID、加密、脱敏等稳定能力。 |
-| `egon-cola-component-dynamic-thread-pool-starter` | 业务系统按需引入的动态线程池 starter。 |
-| `egon-cola-component-dynamic-thread-pool-admin` | 独立部署的动态线程池管理服务，不进入 BOM。 |
-| `egon-cola-components-bom` | 只导出业务系统可直接依赖的 common 具体模块与 starter 版本。 |
+| 组件 | 主要入口 | 范围 |
+|---|---|---|
+| [Common](egon-cola-components/egon-cola-component-common/README.md) | `egon-cola-component-common-*` | 纯 Jar 错误、模型、结果、trace、ID、加密、脱敏和树结构契约。 |
+| [Dynamic Config Center](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | `...-management-client`、`...-starter` | 动态配置、Redis 租约/服务注册、同步发布和独立 Admin。 |
+| [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | `...-starter` | 执行器注册、快照、Redis 变更、扩缩容、虚拟线程并发限制和 MDC 传播。 |
+| [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | `...-starter` | Protobuf/gRPC Provider、Consumer、DDC 注册发现、Deadline 和 Gateway 通道。 |
+| [Rule Engine](egon-cola-components/egon-cola-component-rule-engine/README.md) | `...-starter` | Java 规则链、单例责任链、规则树、trace、限制和监听器。 |
+| [Access Guard](egon-cola-components/egon-cola-component-access-guard/README.md) | `...-starter` | 方法级白名单、黑名单、限流、超时和拒绝治理。 |
+| [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.md) | `...-starter` | 在注解方法前执行 AOP 或 Agent 业务决策 Handler。 |
+| [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | `...-starter` | 基于 PostgreSQL/JDBC 的至少一次 HTTP、RabbitMQ 或自定义 Handler 投递。 |
+| [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.md) | API、bridge、runtime、Agent、starter | 构建期架构检查，以及可选的 executor、观测、Method Extension 和 Access Guard 增强。 |
+| [Gateway](egon-cola-components/egon-cola-component-gateway/README.md) | Engine、Admin、Starter、Provider Runtime | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
+| [Components BOM](egon-cola-components/egon-cola-components-bom/README.md) | `egon-cola-components-bom` | 公共组件消费 Artifact 的集中版本管理。 |
 
 运行时 starter-style 组件推荐结构：
 
@@ -248,6 +264,9 @@ egon-cola-component-xxx
 - `admin` 可选，如果存在，应可以独立部署。
 - 组件工程不放 UI，UI 放到独立前端仓库统一维护。
 
+Gateway Admin Web 是 Maven 组件布局之外的例外：它是与 Gateway 源码同目录的私有
+React 应用，使用 npm 构建。Gateway 的部署、前端和性能说明均从 Gateway README 进入。
+
 ## BOM 使用
 
 业务系统可以通过 BOM 统一管理组件版本：
@@ -259,7 +278,7 @@ egon-cola-component-xxx
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.2.1</version>
+            <version>5.2.3</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -275,6 +294,10 @@ egon-cola-component-xxx
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-transactional-outbox-starter</artifactId>
     </dependency>
 </dependencies>
 ```
@@ -351,6 +374,11 @@ Egon-COLA 使用 Sonatype Central Portal 发布流程。发布前建议先本地
 | [egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md](egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md) | service archetype 架构说明。 |
 | [egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md](egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md) | web archetype 架构说明。 |
 | [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md) | 多组件工程结构规范。 |
+| [egon-cola-components/egon-cola-components-bom/README.md](egon-cola-components/egon-cola-components-bom/README.md) | 公共组件版本和导出边界。 |
+| [egon-cola-components/egon-cola-component-dynamic-config-center/README.md](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | 动态配置、租约、注册发现和发布协议。 |
+| [egon-cola-components/egon-cola-component-rpc/README.md](egon-cola-components/egon-cola-component-rpc/README.md) | Protobuf/gRPC Provider 与 Consumer 契约。 |
+| [egon-cola-components/egon-cola-component-gateway/README.md](egon-cola-components/egon-cola-component-gateway/README.md) | HTTP/RPC Gateway 平台和部署入口。 |
+| [egon-cola-components/egon-cola-component-transactional-outbox/README.md](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | PostgreSQL/JDBC 事务消息使用方式与保证。 |
 | [scripts/maven-deploy.md](scripts/maven-deploy.md) | Maven Central 发布操作说明。 |
 
 ## 项目来源

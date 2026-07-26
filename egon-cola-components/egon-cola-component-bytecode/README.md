@@ -4,6 +4,24 @@
 
 The bytecode component checks compiled classes against the standard Egon COLA architecture rules without loading or initializing application classes. Its public API is JDK-only; ASM, Maven, and JSON serialization remain implementation details.
 
+## Modules
+
+| Module | Responsibility | Published in the BOM |
+|---|---|---|
+| `egon-cola-component-bytecode-api` | JDK-only contracts for rules, runtime events, context carriers, and Agent capabilities | Yes |
+| `egon-cola-component-bytecode-bridge` | Small bridge between transformed application bytecode and the runtime | Yes |
+| `egon-cola-component-bytecode-core` | ASM-based class transformation and architecture rule engine | No |
+| `egon-cola-component-bytecode-runtime` | Runtime enhancement, metrics, sinks, and failure isolation | Yes |
+| `egon-cola-component-bytecode-agent` | Shaded `premain` Java Agent artifact | Yes |
+| `egon-cola-component-bytecode-starter` | Spring Boot configuration, actuator exposure, and optional Method Extension / Access Guard integration | Yes |
+| `egon-cola-component-bytecode-architecture-maven-plugin` | Build-time architecture verification goal | No |
+| `egon-cola-component-bytecode-test` | Generated-project and runtime verification | No |
+| `egon-cola-component-bytecode-benchmark` | JMH benchmark for architecture scanning | No |
+
+The Maven plugin, test, and benchmark modules are repository tooling. Business
+applications consume the BOM-managed API/runtime/Agent/starter artifacts and use the
+plugin only in their build when architecture checks are required.
+
 ## Runtime Agent Installation
 
 The runtime enhancement has two independently installed parts. Add the Spring starter to the application and pass the separately published shaded Agent JAR to the JVM before the application main class:

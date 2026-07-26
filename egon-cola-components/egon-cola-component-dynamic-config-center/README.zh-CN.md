@@ -5,32 +5,37 @@
 ## 范围
 
 `egon-cola-component-dynamic-config-center` 提供动态配置 SDK、可独立部署的
-Admin 应用，以及面向 RPC Provider 和内部 Gateway 的 Redis 服务注册中心。
+Admin 应用、类型化 management client，以及面向 RPC Provider 和内部 Gateway 的
+Redis 服务注册中心。
 
-V1 只支持一个 Admin 进程和一个 Redis 单节点连接。不实现多 Admin 协调、
-Raft、Leader 选举、Redis Sentinel、Redis Cluster 或任何分布式锁。
-PostgreSQL 是生产数据库，SQLite 仅保留给测试使用。服务注册信息是 Redis
-中的临时租约状态，不新增 JPA Entity 或数据库表。
+V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 Admin 进程可以服务
+同一个控制面：发布准备通过 PostgreSQL 行锁、版本条件更新和持久化发布任务完成，
+等待完成时则回退为轮询共享任务状态。不实现 Raft、Leader 选举、共识日志或分布式锁
+服务。Admin 和 SDK 的 Redis 客户端通过 Redisson 支持 `SINGLE`、`SENTINEL` 和
+`CLUSTER` 拓扑。PostgreSQL 是生产数据库，SQLite 仅保留给测试使用。服务注册信息
+是 Redis 中的临时租约状态，不新增 JPA Entity 或数据库表。
 
 ## 部署拓扑
 
 ```text
 配置客户端 ─────────HTTP/HMAC──┐
-RPC Provider ──────HTTP/HMAC──┼──> 单 DDC Admin ──> PostgreSQL
-内部 Gateway ──────HTTP/HMAC──┘         │
-                                        └──> 单 Redis
+RPC Provider ──────HTTP/HMAC──┼──> 一个或多个 DDC Admin ──> PostgreSQL
+内部 Gateway ──────HTTP/HMAC──┘             │
+                                             └──> 共享 Redis
 配置客户端 <──────── Redis Pub/Sub ────────┘
 注册订阅方 <──────── Redis Pub/Sub ────────┘
 ```
 
-Admin 是唯一的管理和租约 API 入口。Redis 保存配置缓存、发布通知、配置客户端
-当前租约和服务注册租约。PostgreSQL 保存配置、版本、发布、ACK、操作日志和
-配置客户端管理投影数据。
+Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL 和 Redis；已完成
+发布的事实不依赖某个 Admin 的本地状态。Redis 保存配置缓存、发布通知、配置客户端
+当前租约和服务注册租约。PostgreSQL 保存配置、版本、发布、ACK、操作日志和配置
+客户端管理投影数据。
 
 ## 模块
 
 | 模块 | 职责 |
 |---|---|
+| `egon-cola-component-dynamic-config-center-management-client` | 管理 API 的类型化 DTO 和同步客户端 |
 | `egon-cola-component-dynamic-config-center-starter` | `@DdcValue`、启动同步、刷新、ACK、配置客户端租约生命周期、HMAC 客户端和服务注册客户端 |
 | `egon-cola-component-dynamic-config-center-admin` | 独立 REST Admin、PostgreSQL 持久化、Redis 缓存与租约、注册中心 API 和同步发布状态机 |
 | `egon-cola-component-dynamic-config-center-test` | 跨模块生命周期、注册发现、刷新和同步发布验证 |
@@ -102,10 +107,12 @@ Pub/Sub 通知会触发校准，过期实例从快照中摘除。Redis 重启后
 
 V1 只有一种发布模式：`SYNC_ALL_ACK`。
 
-调用方传入 UUIDv7 `changeId`。准备事务更新配置版本，并将 Redis 当前配置客户端
-租约固化为精确的 `instanceId + leaseId` 目标集合。单 Admin 内以
-`appCode + env + namespace + configKey` 作为资源标识，同一资源只允许一个
-活跃发布。Waiter 按 `changeId` 管理，因此 ACK 处理不等待资源锁。
+调用方传入 UUIDv7 `changeId`。准备事务会对配置行加悲观锁，拒绝同一资源已有的
+活跃任务，更新配置版本，并将 Redis 当前配置客户端租约固化为精确的
+`instanceId + leaseId` 目标集合。数据库任务和行条件更新负责协调
+`appCode + env + namespace + configKey` 的并发 Admin；进程内 Waiter 只负责唤醒优化。
+完成轮询读取共享任务状态；Admin 启动恢复会把过期的 `PENDING` 或 `PUBLISHING`
+任务置为 `UNKNOWN`，之后由其他请求重试。
 
 ACK 只有同时匹配以下内容才会被接受：
 
@@ -191,6 +198,9 @@ egon:
           access-key: ${DDC_ACCESS_KEY}
           secret-key: ${DDC_SECRET_KEY}
         redis:
+          mode: SINGLE
+          nodes: []
+          master-name:
           enabled: true
           host: 127.0.0.1
           port: 6379
@@ -225,7 +235,12 @@ egon:
       ddc:
         enabled: false
         admin:
+          transport-security:
+            mode: DEVELOPMENT_PLAINTEXT
           redis:
+            mode: SINGLE
+            nodes: []
+            master-name:
             enabled: true
             host: 127.0.0.1
             port: 6379
@@ -242,6 +257,8 @@ egon:
             default-timeout-ms: 30000
             max-timeout-ms: 60000
             scan-interval-ms: 1000
+            completion-poll-interval-ms: 100
+            recovery-stale-ms: 120000
 ```
 
 `test` Profile 使用 SQLite `create-drop`，并关闭 Flyway 和 Admin Redis
@@ -261,9 +278,9 @@ egon:
 
 ## 明确边界
 
-- 不支持多 Admin 部署或写协调；
 - 不支持 Raft、Leader 选举、共识日志或成员协议；
-- 不支持 Redis Sentinel、Redis Cluster 或分布式锁；
+- 多 Admin 运行要求共享 PostgreSQL 和 Redis；组件不负责提供数据库或 Redis HA；
+- 不提供分布式共识或通用分布式锁服务；
 - 不内嵌 Redis，不使用数据库持久化服务注册信息；
 - 不包含 UI、账号系统、RBAC 或 MySQL 兼容目标；
 - V1 不支持异步、多数派或部分成功发布模式。

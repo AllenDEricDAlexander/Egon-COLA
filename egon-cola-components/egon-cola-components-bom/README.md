@@ -6,7 +6,10 @@
 
 `egon-cola-components-bom` is the Maven BOM for the Egon COLA component ecosystem. It provides no runtime code. Its only responsibility is to manage versions consistently for components under `egon-cola-components` that business applications can consume directly, avoiding repeated version declarations on every component dependency.
 
-The BOM exports stable consumption entry points: specific common submodules, business component starters, and the bytecode component's public API, bridge, runtime, Agent, and starter. Admin, test, and aggregator POM modules are not exported as business dependency entry points.
+The BOM exports stable consumption entry points: specific common submodules, the DDC
+management client and starter, business component starters, Gateway runtime entry points,
+and the bytecode component's public API, bridge, runtime, Agent, and starter. Admin, test,
+and aggregator POM modules are not exported as business dependency entry points.
 
 ## Features
 
@@ -27,10 +30,15 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common-mask` | Data masking |
 | `egon-cola-component-common-structure` | Tree construction |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
+| `egon-cola-component-dynamic-config-center-management-client` | Typed client for DDC management APIs |
 | `egon-cola-component-dynamic-config-center-starter` | Business-side dynamic configuration center starter |
 | `egon-cola-component-rule-engine-starter` | Rule engine starter |
 | `egon-cola-component-access-guard-starter` | Method access governance starter |
 | `egon-cola-component-method-extension-starter` | Method extension starter |
+| `egon-cola-component-transactional-outbox-starter` | PostgreSQL/JDBC transactional outbox starter |
+| `egon-cola-component-gateway-starter` | Provider interface reporting and Gateway integration starter |
+| `egon-cola-component-gateway-provider-runtime` | HTTP Provider lease runtime |
+| `egon-cola-component-rpc-starter` | Protobuf/gRPC Provider and Consumer starter |
 | `egon-cola-component-bytecode-api` | Public bytecode capability API |
 | `egon-cola-component-bytecode-bridge` | Bridge between business applications and the Agent |
 | `egon-cola-component-bytecode-runtime` | Bytecode runtime implementation |
@@ -44,7 +52,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common` | Aggregator POM, not a runtime JAR |
 | `*-admin` | Standalone services that should be deployed as applications, not used as business dependencies |
 | `*-test` | Component samples and verification modules that should not enter the business runtime |
-| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rule-engine` / `access-guard` / `method-extension` / `bytecode` | Component aggregator POMs, not business dependency entry points |
+| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `gateway` / `bytecode` | Component aggregator POMs, not business dependency entry points |
 
 ## Complete Usage Example
 
@@ -84,6 +92,14 @@ After a business application imports the BOM through `dependencyManagement`, sub
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-access-guard-starter</artifactId>
     </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-rpc-starter</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-gateway-starter</artifactId>
+    </dependency>
 </dependencies>
 ```
 
@@ -122,7 +138,7 @@ Child modules declare only the artifact:
 
 1. The BOM manages only runtime entry points that consumers actually need, preventing accidental business dependencies on admin, test, or aggregator modules.
 2. Common capabilities are exported at fine granularity so applications can choose only what they need instead of receiving a large transitive common package.
-3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. The bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
+3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. DDC exposes its typed management client separately, Gateway exposes its Provider Runtime separately, and the bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
 4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
 
 ### Implementation Details

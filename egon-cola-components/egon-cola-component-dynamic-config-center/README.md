@@ -5,27 +5,32 @@
 ## Scope
 
 `egon-cola-component-dynamic-config-center` provides a dynamic-configuration SDK,
-a standalone Admin application, and a Redis-backed service registry for RPC
-Providers and internal Gateways.
+a standalone Admin application, a typed management client, and a Redis-backed
+service registry for RPC Providers and internal Gateways.
 
-V1 supports one Admin process and one Redis single-server connection only.
-It does not implement multi-Admin coordination, Raft, leader election, Redis
-Sentinel, Redis Cluster, or any distributed lock. PostgreSQL is the production
-database; SQLite is retained for tests. Service registry entries are temporary
-lease state in Redis and never create JPA or database tables.
+V1 supports one logical control plane backed by shared PostgreSQL and Redis. Multiple
+Admin processes can serve the same control plane: publish preparation uses PostgreSQL
+row locks, conditional version updates, and persisted publish tasks, while completion
+waiters fall back to polling the shared task state. It does not implement Raft, leader
+election, consensus logs, or a distributed lock service. The Admin and SDK Redis clients
+support `SINGLE`, `SENTINEL`, and `CLUSTER` topologies through Redisson. PostgreSQL is
+the production database; SQLite is retained for tests. Service registry entries are
+temporary lease state in Redis and never create JPA or database tables.
 
 ## Deployment Topology
 
 ```text
 Configuration Clients ──HTTP/HMAC──┐
-RPC Providers ──────────HTTP/HMAC──┼──> one DDC Admin ──> PostgreSQL
-Internal Gateway ───────HTTP/HMAC──┘          │
-                                              └──> one Redis
+RPC Providers ──────────HTTP/HMAC──┼──> one or more DDC Admins ──> PostgreSQL
+Internal Gateway ───────HTTP/HMAC──┘              │
+                                                  └──> shared Redis
 Configuration Clients <──── Redis Pub/Sub ────────┘
 Registry Subscribers  <──── Redis Pub/Sub ────────┘
 ```
 
-The Admin is the only management and lease API endpoint. Redis contains
+The Admin processes are the only management and lease API endpoints. They share
+PostgreSQL and Redis; no Admin-local data is authoritative for a completed publish.
+Redis contains
 configuration cache, publish notifications, live configuration-client leases,
 and service-registry leases. PostgreSQL stores configuration, version, publish,
 ACK, operation, and configuration-client projection data.
@@ -34,6 +39,7 @@ ACK, operation, and configuration-client projection data.
 
 | Module | Responsibility |
 |---|---|
+| `egon-cola-component-dynamic-config-center-management-client` | Typed DTOs and synchronous client for management APIs |
 | `egon-cola-component-dynamic-config-center-starter` | `@DdcValue`, startup synchronization, refresh, ACK, configuration-client lease lifecycle, HMAC client, and service-registry client |
 | `egon-cola-component-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
 | `egon-cola-component-dynamic-config-center-test` | Cross-module lifecycle, registry, refresh, and synchronous-publish verification |
@@ -111,12 +117,14 @@ design, after which clients register again with new leases.
 
 V1 has one publish mode: `SYNC_ALL_ACK`.
 
-The caller supplies a UUIDv7 `changeId`. The preparation transaction updates the
-configuration version and freezes the current Redis lease targets as exact
-`instanceId + leaseId` pairs. A resource key
-`appCode + env + namespace + configKey` permits only one active publish in the
-single Admin. Waiters are keyed by `changeId`, so ACK handling does not wait on
-the resource lock.
+The caller supplies a UUIDv7 `changeId`. The preparation transaction takes a
+pessimistic lock on the configuration row, rejects another active task for the
+same resource, updates the configuration version, and freezes the current Redis
+lease targets as exact `instanceId + leaseId` pairs. The database task and row
+conditions coordinate concurrent Admin processes for
+`appCode + env + namespace + configKey`; the in-memory waiter is only a wake-up
+optimization. Completion polling reads the shared task state, and startup recovery
+marks stale `PENDING` or `PUBLISHING` tasks as `UNKNOWN` before another request retries.
 
 An ACK is accepted only when all of these match:
 
@@ -204,6 +212,9 @@ egon:
           access-key: ${DDC_ACCESS_KEY}
           secret-key: ${DDC_SECRET_KEY}
         redis:
+          mode: SINGLE
+          nodes: []
+          master-name:
           enabled: true
           host: 127.0.0.1
           port: 6379
@@ -238,7 +249,12 @@ egon:
       ddc:
         enabled: false
         admin:
+          transport-security:
+            mode: DEVELOPMENT_PLAINTEXT
           redis:
+            mode: SINGLE
+            nodes: []
+            master-name:
             enabled: true
             host: 127.0.0.1
             port: 6379
@@ -255,6 +271,8 @@ egon:
             default-timeout-ms: 30000
             max-timeout-ms: 60000
             scan-interval-ms: 1000
+            completion-poll-interval-ms: 100
+            recovery-stale-ms: 120000
 ```
 
 The `test` profile uses SQLite with `create-drop` and disables Flyway and the
@@ -274,9 +292,9 @@ Admin Redis connection. It is not the production storage topology.
 
 ## Explicit Boundaries
 
-- no multi-Admin deployment or write coordination;
 - no Raft, leader election, consensus log, or membership protocol;
-- no Redis Sentinel, Redis Cluster, or distributed lock;
+- multi-Admin operation requires shared PostgreSQL and Redis; the component does not provision database or Redis HA;
+- no distributed consensus or general-purpose distributed lock service;
 - no embedded Redis and no database-backed service registry;
 - no UI, account system, RBAC, or MySQL compatibility target;
 - no asynchronous, quorum, or partial-success publish mode in V1.

@@ -4,6 +4,23 @@
 
 字节码组件无需加载或初始化应用类，即可依据标准 Egon COLA 架构规则检查已编译的类。其公共 API 仅依赖 JDK；ASM、Maven 和 JSON 序列化均属于实现细节。
 
+## 模块
+
+| 模块 | 职责 | 是否加入 BOM |
+|---|---|---|
+| `egon-cola-component-bytecode-api` | 规则、运行时事件、上下文载体和 Agent 能力的 JDK-only 契约 | 是 |
+| `egon-cola-component-bytecode-bridge` | 转换后的应用字节码与运行时之间的轻量桥接 | 是 |
+| `egon-cola-component-bytecode-core` | 基于 ASM 的类转换和架构规则引擎 | 否 |
+| `egon-cola-component-bytecode-runtime` | 运行时增强、指标、Sink 和故障隔离 | 是 |
+| `egon-cola-component-bytecode-agent` | shaded `premain` Java Agent 产物 | 是 |
+| `egon-cola-component-bytecode-starter` | Spring Boot 配置、Actuator，以及可选的 Method Extension / Access Guard 集成 | 是 |
+| `egon-cola-component-bytecode-architecture-maven-plugin` | 构建期架构校验 goal | 否 |
+| `egon-cola-component-bytecode-test` | 生成工程和运行时验证 | 否 |
+| `egon-cola-component-bytecode-benchmark` | 架构扫描 JMH 基准测试 | 否 |
+
+Maven plugin、test 和 benchmark 模块属于仓库内工具。业务应用通过 BOM 引入
+API/runtime/Agent/starter；需要架构检查时，再在构建中单独使用 plugin。
+
 ## 运行时 Agent 安装
 
 运行时增强由两个需要独立安装的部分组成。请将 Spring starter 添加到应用，并在应用主类之前将单独发布的 shaded Agent JAR 传给 JVM：

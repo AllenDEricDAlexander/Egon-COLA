@@ -6,12 +6,12 @@
 
 `egon-cola-component-rpc` 是基于标准 gRPC Java 和 Protobuf 的轻量级
 Spring Boot RPC 框架。Provider 暴露带注解的 Java Bean，并将生成的 Proto
-服务身份注册到动态配置中心（DDC）；Consumer 创建 JDK Proxy，只发现唯一的
-内部 Gateway，并把所有调用统一发往 Gateway。
+服务身份注册到动态配置中心（DDC）；Consumer 创建 JDK Proxy，发现有效的内部
+Gateway，为每个 Gateway 保持一个通道，并在总 Deadline 内将调用分布到这些通道。
 
-生产 Gateway 有意不放在本组件中。仓库仅在测试源码下提供 Mock Gateway，
-用于在生产 Gateway 开发前验证完整的
-Consumer → Gateway → Provider 调用链。
+生产 Gateway 由同级的 [Gateway 组件](../egon-cola-component-gateway/README.md) 实现。
+本组件负责 Provider/Consumer 契约和生命周期集成，不内嵌 Gateway 数据面。测试源码
+仍保留 Mock Gateway，用于隔离验证 Consumer → Gateway → Provider 链路。
 
 V1 只支持请求和响应均实现 Protobuf `Message` 的 unary 方法。`.proto` 是唯一
 IDL。Java 注解只负责将生成的 Descriptor 绑定到 Java 接口，不重复定义服务、
@@ -34,24 +34,24 @@ BOM。
 ## 运行拓扑
 
 ```text
-Consumer ── 单条 gRPC Channel ──> 唯一活跃内部 Gateway
-                                      │
-                                      ├── 发现 RPC_PROVIDER 服务组
-                                      ├── 选择实例
-                                      └── 转发 unary 调用 ──> Provider
+Consumer ── 每个 Gateway 一个 Channel ──> 内部 Gateway 集合
+                                             │
+                                             ├── 发现 RPC_PROVIDER 服务组
+                                             ├── 选择 Provider 实例
+                                             └── 转发 unary 调用 ──> Provider
 
 Provider ── 注册/心跳/注销 ─┐
-Gateway  ── 注册/心跳/注销 ─┼──> 单 DDC Admin ──> 单 Redis
+Gateway  ── 注册/心跳/注销 ─┼──> DDC Admin 集合 ──> 共享 Redis
 Consumer ── 发现/订阅 Gateway ─┘
 ```
 
-DDC V1 是单机拓扑：一个 Admin 和一个 Redis 单节点连接。Provider 与 Gateway
-注册信息都是 Redis 临时租约。每次注册生成新的 `leaseId`；心跳和注销原子匹配
-`instanceId + leaseId`。
+DDC 提供共享的租约和服务注册边界。Provider 与 Gateway 注册信息都是 Redis 中的
+临时租约。每次注册生成新的 `leaseId`；心跳和注销原子匹配 `instanceId + leaseId`。
 
-Consumer 永不查询 `RPC_PROVIDER`，不创建 Provider Channel，也不包含负载均衡
-算法。启动截止时间内没有活跃 Gateway、发现多个活跃 Gateway，或运行中唯一
-Gateway 丢失时，Consumer 都会快速失败。
+Consumer 永不查询 `RPC_PROVIDER`，也不创建 Provider Channel。它在有效 Gateway
+Channel 间 Round Robin；只有 Gateway 阶段的 `UNAVAILABLE` 才会在同一个调用
+Deadline 内尝试其他 Gateway。启动截止时间内没有活跃 Gateway，或所有 Gateway
+都丢失时，Consumer 会快速失败；Provider 阶段失败不会由 Consumer 重试。
 
 ## 依赖
 
@@ -302,6 +302,7 @@ egon:
           gateway-group: default
           gateway-version: 1.0.0
           channel-drain-timeout-ms: 5000
+          gateway-max-attempts: 2
 ```
 
 Consumer 配置项：
@@ -316,6 +317,7 @@ Consumer 配置项：
 | `consumer.gateway-group` | `default` | 精确 Gateway 分组 |
 | `consumer.gateway-version` | `1.0.0` | 精确 Gateway 版本 |
 | `consumer.channel-drain-timeout-ms` | `5000` | 被替换 Channel 的排空超时 |
+| `consumer.gateway-max-attempts` | `2` | 一次调用最多尝试的 Gateway Channel 数 |
 
 `@EgonRpcReference.timeoutMs` 可以缩短但不能超过
 `default-timeout-ms`。所有生产 Consumer Channel 都显式调用 gRPC
@@ -348,18 +350,18 @@ failure-stage Trailer。
 
 ## Gateway 边界
 
-Starter 中不存在生产 Gateway package。下列能力只存在于
-`rpc-test-suite/src/test`：
+Starter 不打包生产 Gateway。Gateway 组件负责 Gateway 注册、Provider Directory、
+规则执行、HTTP/RPC 转发、健康检查和流量治理。下列能力仍是
+`rpc-test-suite/src/test` 下的测试夹具：
 
-- Gateway 注册和心跳；
+- Mock Gateway 注册和心跳；
 - Provider 服务目录与实例 Directory；
 - Provider Channel 缓存；
 - 动态字节级 Handler Registry；
 - 确定性的测试轮询 Selector；
 - unary Forwarder。
 
-它们是参考测试夹具，不是可复用的生产 API。生产 Gateway 会在 DDC 与 RPC
-Contract 验收后独立开发。
+生产数据面和控制面的边界请参阅 Gateway README。
 
 ## 测试
 
@@ -373,7 +375,8 @@ Consumer → Mock Gateway → Provider，不使用 gRPC In-Process Transport：
 ```
 
 套件同时覆盖 Cancellation，以及多 Provider 的 Directory
-发现、租约替换和摘除。实例选择策略属于 Mock Gateway，不构成 Starter 能力。
+发现、租约替换和摘除。Gateway 选择和 Provider 负载均衡属于 Gateway 组件；
+Consumer 只负责在有效 Gateway Channel 间选择。
 
 可选 `verify` Profile 会在四个独立 JVM 中启动一个 Admin、一个 Provider、
 一个 Mock Gateway 和一个 Consumer；它要求外部提供 Redis 单节点：
@@ -401,8 +404,9 @@ V1 不实现：
 - 业务重试；
 - streaming RPC；
 - 非 Protobuf 序列化；
-- 生产 Gateway、Provider Directory、Gateway Handler Registry、Provider
-  Channel Factory、实例 Selector 或 Unary Forwarder。
+- Consumer 侧 Provider 发现或直连 Provider Channel；
+- Gateway 规则管理、HTTP 路由、Provider 负载均衡或流量治理；
+- 第二种序列化协议或 streaming RPC。
 
 这些边界使 Starter 只负责 Contract、服务暴露、代理、注册发现接入、Metadata、
 超时、取消和异常语义，流量治理统一留给 Gateway。
