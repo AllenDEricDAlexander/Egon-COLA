@@ -99,7 +99,7 @@
 |---|---|---|
 | access-guard | `storage`、`key-prefix`、`redisson.*`、`dynamic.*`、`local-fallback.*`、`thread-pool.name/max-pool-size/queue-capacity`、全局 `circuit-breaker.*` / `rate-limiter.default-*` / `blacklist.default-*`，约 14 项 | confirmed |
 | dynamic-thread-pool | `trace.*`、`virtual.*`、`registry.type` | [未复核] |
-| rule-engine | `default-max-steps`、`default-timeout-millis`、`async-core-pool-size` | [未复核] |
+| rule-engine | `default-max-steps`、`default-timeout-millis`、`async-core-pool-size` | 已复核并修复 |
 | bytecode | `executor.include` / `executor.exclude`（已绑定并校验，无人读取） | confirmed |
 
 access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余默认值由
@@ -116,9 +116,9 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 | bytecode | `failure-policy=disable-feature` | `CompositeBytecodeTransformer.transform:54-67` 只特判 MARK_FATAL，disable-feature 走与默认完全相同的分支 | confirmed |
 | bytecode | `ObservationEvent.traceId` | `ObservationRuntime.java:132` 硬编码 `""` | confirmed |
 | bytecode | `executor.names` 别名重映射 | `ExecutorNameResolver.java:24-33` 先返回原始 bean 名，配置的映射键永不命中 | confirmed |
-| rule-engine | `RouteDecision.end(data)` | 树执行器从不返回该 payload | [未复核] |
-| rule-engine | 链 / 树最后一个节点的超时 | 超时判定在节点之间，末节点后不再判定 | [未复核] |
-| method-extension | `engine=AGENT` | 未引入 bytecode starter 时静默不拦截，README 宣称等价 | [未复核] |
+| rule-engine | `RouteDecision.end(data)` | 树执行器从不返回该 payload | 已复核并修复 |
+| rule-engine | 链 / 树最后一个节点的超时 | 超时判定在节点之间，末节点后不再判定 | 已复核并修复 |
+| method-extension | `engine=AGENT` | 未引入 bytecode starter 时静默不拦截，README 宣称等价 | 已复核并修复 |
 | gateway | 上游 HTTP TLS / mTLS | 仅按 `provider.secure()` 选 scheme，从不配置 SslContext / truststore / 客户端证书 | [未复核] |
 
 ### 2.3 M3 死脚手架
@@ -711,6 +711,25 @@ G4 与 G5 先行（成本最低、收益最直接），G1 次之，G2 / G3 随�
 | `b80d154e` | W1-06 | `executor.names` 改为按已解析名称优先匹配；`ObservationEvent.traceId` 由 starter 注入 MDC 供给器 | runtime 16/16、starter 29/29，隐私与依赖边界用例仍通过 |
 | `c5cce38c` | W0-02 | dtp starter/admin 换成裸 `org.redisson:redisson`；移除 fastjson2 与 commons-lang 2.6 | starter 70/70、admin 27/27，新增依赖边界用例 |
 | `41aa9748` | W0-01 | access-guard Redisson 改 optional，新增 `AccessGuardRedissonAutoConfiguration` 真正装配 REDISSON 存储；`Storage` 增加 `LOCAL` 并作为默认；显式声明 jackson-databind | starter 60/60、test 模块 7/7 |
+
+第二轮（分支 `worktree-components-wave2-hardening`，基线 `main@b12592ff`）：
+
+| 提交 | 任务 | 关键改动 | 验证 |
+|---|---|---|---|
+| `d5a70bba` | W1-07 | 树执行器返回 `end(data)` payload；`RuleContext` 区分调用方设定与引擎默认，不再被覆盖；链 / 树在末节点完成后补超时判定；`default-max-steps` / `default-timeout-millis` 经 builder 哨兵值接入执行器；`DefaultRuleAsyncExecutor` 改为 core→max 弹性池 + SynchronousQueue，使 `async-core-pool-size` 生效 | starter 21/21、test 模块 4/4 |
+| `b39de722` | W1-08 | `engine=AGENT` 且无 agent 集成时启动期失败并给出缺失依赖与 AOP 替代方案 | starter 58/58、bytecode starter 29/29 |
+
+第二轮复核发现的关键事实：
+
+```text
+rule-engine 的 endData 缺陷之所以长期存活，是因为它的测试夹具 TestNode.execute() 自己调用了
+routeDecision.endData(String.class) 并把结果塞进节点返回值，替执行器完成了本该由执行器完成的
+工作，断言因此恒为真。这是 M6 安慰剂测试如何掩盖 M2 声明能力缺实现的直接样本，也说明"测试
+数量"不能作为能力兑现的证据。新增用例改用不做任何补偿的节点。
+
+method-extension 的 shouldUseAgentEngineWithoutCreatingAopAdvisor 同样把静默无操作固化为预期
+行为，已改为相反断言。
+```
 
 实施过程中发现并修正的两处设计偏差，与本文原建议不同：
 
