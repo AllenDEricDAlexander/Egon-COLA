@@ -65,6 +65,18 @@ public final class DdcKeys {
         return v2(configTag(appCode, env, namespace), "topic");
     }
 
+    public static String v2PublishIdempotency(String appCode,
+                                              String env,
+                                              String namespace,
+                                              String changeId) {
+        return v2(
+                configTag(appCode, env, namespace),
+                "publish",
+                "idempotency",
+                changeId
+        );
+    }
+
     public static String v2ConfigLeaseInstance(String appCode,
                                                String env,
                                                String namespace,

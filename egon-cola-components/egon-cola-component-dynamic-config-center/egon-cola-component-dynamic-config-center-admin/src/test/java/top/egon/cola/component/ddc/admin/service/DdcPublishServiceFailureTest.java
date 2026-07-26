@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DataJpaTest
 @Import({
         DdcPublishService.class,
+        DdcPendingPublishDispatcher.class,
         DdcPublishStateTransitionService.class,
         PublishFailureRecorder.class,
         PublishResourceLockRegistry.class,

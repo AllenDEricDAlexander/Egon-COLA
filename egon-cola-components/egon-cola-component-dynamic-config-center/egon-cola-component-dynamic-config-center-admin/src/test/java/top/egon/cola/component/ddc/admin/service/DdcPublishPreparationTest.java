@@ -21,6 +21,8 @@ import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
+import top.egon.cola.component.ddc.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigResourceKey;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
@@ -53,6 +55,7 @@ import static org.mockito.Mockito.when;
 @DataJpaTest
 @Import({
         DdcPublishService.class,
+        DdcPendingPublishDispatcher.class,
         DdcPublishStateTransitionService.class,
         PublishFailureRecorder.class,
         PublishResourceLockRegistry.class,
@@ -116,7 +119,7 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).publish(any());
+        }).when(redisRepository).dispatch(any());
         DdcPublishRequest request = request("switch-all", "true");
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -124,15 +127,16 @@ class DdcPublishPreparationTest {
                     executor.submit(() -> publishService.publish(request, "tester"));
             assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
 
-            ArgumentCaptor<DdcPublishMessage> message =
-                    ArgumentCaptor.forClass(DdcPublishMessage.class);
-            verify(redisRepository).publish(message.capture());
-            assertThat(message.getValue().getTargets())
+            ArgumentCaptor<DdcAtomicPublishCommand> command =
+                    ArgumentCaptor.forClass(DdcAtomicPublishCommand.class);
+            verify(redisRepository).dispatch(command.capture());
+            DdcPublishMessage message = command.getValue().message();
+            assertThat(message.getTargets())
                     .containsExactly(
                             new DdcPublishTarget("instance-1", "lease-1"),
                             new DdcPublishTarget("instance-2", "lease-2")
                     );
-            assertThat(message.getValue().getContentChecksum())
+            assertThat(message.getContentChecksum())
                     .isEqualTo(DdcChecksum.content("true"));
             assertThat(ackRepository.findByChangeId(request.getChangeId()))
                     .extracting(target -> target.getInstanceId() + ":" + target.getLeaseId())
@@ -179,7 +183,7 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).publish(any());
+        }).when(redisRepository).dispatch(any());
         DdcPublishRequest first = request("switch-lock", "true");
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -239,7 +243,7 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).publish(any());
+        }).when(redisRepository).dispatch(any());
         DdcPublishRequest request = request("shared-admin-ack", "true");
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -273,7 +277,7 @@ class DdcPublishPreparationTest {
         doAnswer(invocation -> {
             published.countDown();
             return null;
-        }).when(redisRepository).publish(any());
+        }).when(redisRepository).dispatch(any());
         DdcPublishRequest first = request("parallel-a", "true");
         DdcPublishRequest second = request("parallel-b", "true");
 
@@ -295,23 +299,22 @@ class DdcPublishPreparationTest {
     }
 
     @Test
-    void dispatchFailurePersistsFailedTaskAndReleasesResource() {
+    void uncertainDispatchFailureKeepsRecoverableTaskAndReleasesResource() {
         saveConfig("dispatch-failure");
         when(leaseService.activeTargets("demo", "dev", "default"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         doThrow(new IllegalStateException("redis unavailable"))
                 .when(redisRepository)
-                .publish(any());
+                .dispatch(any());
         DdcPublishRequest request = request("dispatch-failure", "true");
 
-        assertThatThrownBy(() -> publishService.publish(request, "tester"))
-                .isInstanceOf(DdcAdminException.class)
-                .hasMessageContaining("publish dispatch failed");
+        assertThat(publishService.publish(request, "tester").getStatus())
+                .isEqualTo(PublishStatus.UNKNOWN.name());
 
         assertThat(taskRepository.findByChangeId(request.getChangeId()))
                 .get()
                 .extracting(task -> task.getStatus() + ":" + task.getFailureStage())
-                .isEqualTo("FAILED:REDIS_DISPATCH");
+                .isEqualTo("UNKNOWN:REDIS_DISPATCH");
         assertThat(resourceRegistry.owner(new DdcConfigResourceKey(
                 "demo", "dev", "default", "dispatch-failure"
         ))).isEmpty();
@@ -338,7 +341,7 @@ class DdcPublishPreparationTest {
                 .get()
                 .extracting(DdcConfigItemEntity::getConfigValue)
                 .isEqualTo("false");
-        verify(redisRepository, never()).publish(any());
+        verify(redisRepository, never()).dispatch(any());
     }
 
     private void saveConfig(String configKey) {

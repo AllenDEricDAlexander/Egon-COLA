@@ -37,6 +37,9 @@ class DdcRedisClusterSlotContractTest {
         List<String> projectionKeys = List.of(
                 DdcKeys.v2Config("demo", "dev", "default", "switch"),
                 DdcKeys.v2Version("demo", "dev", "default", "switch"),
+                DdcKeys.v2PublishIdempotency(
+                        "demo", "dev", "default", "change-1"
+                ),
                 DdcKeys.v2Topic("demo", "dev", "default")
         );
         AtomicReference<List<Object>> scriptKeys = new AtomicReference<>();

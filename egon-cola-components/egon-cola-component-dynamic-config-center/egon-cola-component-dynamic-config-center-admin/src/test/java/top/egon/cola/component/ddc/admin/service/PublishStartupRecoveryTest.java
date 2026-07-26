@@ -23,10 +23,11 @@ class PublishStartupRecoveryTest {
     void onlyClaimsStalePersistedTasksWithoutDisruptingAnotherLiveAdmin()
             throws Exception {
         DdcPublishTaskRepository repository = mock(DdcPublishTaskRepository.class);
-        DdcPublishStateTransitionService transitions =
-                mock(DdcPublishStateTransitionService.class);
+        DdcPendingPublishDispatcher dispatcher =
+                mock(DdcPendingPublishDispatcher.class);
         DdcPublishTaskEntity pending = task("pending", PublishStatus.PENDING);
         DdcPublishTaskEntity publishing = task("publishing", PublishStatus.PUBLISHING);
+        DdcPublishTaskEntity unknown = task("unknown", PublishStatus.UNKNOWN);
         Instant now = Instant.parse("2026-07-25T00:00:00Z");
         DdcAdminProperties properties = new DdcAdminProperties();
         properties.getPublish().setRecoveryStaleMs(120000);
@@ -36,26 +37,22 @@ class PublishStartupRecoveryTest {
         );
         when(repository.findByStatusInAndUpdatedAtBefore(List.of(
                 PublishStatus.PENDING.name(),
-                PublishStatus.PUBLISHING.name()
-        ), staleBefore)).thenReturn(List.of(pending, publishing));
+                PublishStatus.PUBLISHING.name(),
+                PublishStatus.UNKNOWN.name()
+        ), staleBefore)).thenReturn(List.of(pending, publishing, unknown));
         PublishStartupRecovery recovery =
                 new PublishStartupRecovery(
                         repository,
-                        transitions,
+                        dispatcher,
                         properties,
                         Clock.fixed(now, ZoneOffset.UTC)
                 );
 
         recovery.run(null);
 
-        verify(transitions).unknown(
-                "pending",
-                "publish owner did not complete before HA stale timeout"
-        );
-        verify(transitions).unknown(
-                "publishing",
-                "publish owner did not complete before HA stale timeout"
-        );
+        verify(dispatcher).dispatch("pending");
+        verify(dispatcher).dispatch("publishing");
+        verify(dispatcher).dispatch("unknown");
     }
 
     private DdcPublishTaskEntity task(String changeId, PublishStatus status) {

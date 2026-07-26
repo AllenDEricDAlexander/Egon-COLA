@@ -24,11 +24,9 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
 
@@ -53,7 +51,8 @@ public class DdcPublishService {
 
     private static final List<String> ACTIVE_STATUSES = List.of(
             PublishStatus.PENDING.name(),
-            PublishStatus.PUBLISHING.name()
+            PublishStatus.PUBLISHING.name(),
+            PublishStatus.UNKNOWN.name()
     );
 
     private final DdcConfigItemRepository configItemRepository;
@@ -66,7 +65,7 @@ public class DdcPublishService {
 
     private final DdcOperationLogRepository operationLogRepository;
 
-    private final DdcRedisRepository redisRepository;
+    private final DdcPendingPublishDispatcher dispatcher;
 
     private final DdcConfigLeaseService leaseService;
 
@@ -93,7 +92,7 @@ public class DdcPublishService {
             DdcPublishTaskRepository publishTaskRepository,
             DdcPublishAckRepository publishAckRepository,
             DdcOperationLogRepository operationLogRepository,
-            DdcRedisRepository redisRepository,
+            DdcPendingPublishDispatcher dispatcher,
             DdcConfigLeaseService leaseService,
             PublishResourceLockRegistry resourceRegistry,
             PublishCompletionWaiterRegistry waiterRegistry,
@@ -107,7 +106,7 @@ public class DdcPublishService {
                 publishTaskRepository,
                 publishAckRepository,
                 operationLogRepository,
-                redisRepository,
+                dispatcher,
                 leaseService,
                 resourceRegistry,
                 waiterRegistry,
@@ -125,7 +124,7 @@ public class DdcPublishService {
             DdcPublishTaskRepository publishTaskRepository,
             DdcPublishAckRepository publishAckRepository,
             DdcOperationLogRepository operationLogRepository,
-            DdcRedisRepository redisRepository,
+            DdcPendingPublishDispatcher dispatcher,
             DdcConfigLeaseService leaseService,
             PublishResourceLockRegistry resourceRegistry,
             PublishCompletionWaiterRegistry waiterRegistry,
@@ -139,7 +138,7 @@ public class DdcPublishService {
         this.publishTaskRepository = publishTaskRepository;
         this.publishAckRepository = publishAckRepository;
         this.operationLogRepository = operationLogRepository;
-        this.redisRepository = redisRepository;
+        this.dispatcher = dispatcher;
         this.leaseService = leaseService;
         this.resourceRegistry = resourceRegistry;
         this.waiterRegistry = waiterRegistry;
@@ -182,18 +181,16 @@ public class DdcPublishService {
         PublishCompletionWaiterRegistry.PublishWaiter waiter =
                 waiterRegistry.register(request.getChangeId());
         if (prepared.dispatchRequired()) {
+            DdcPublishTaskEntity dispatched;
             try {
-                dispatch(prepared.message());
+                dispatched = dispatcher.dispatch(request.getChangeId());
             } catch (RuntimeException exception) {
-                DdcPublishTaskEntity terminal = stateTransitions.fail(
-                        request.getChangeId(),
-                        "REDIS_DISPATCH",
-                        exception.getMessage()
-                );
-                if (!PublishStatus.SUCCESS.name().equals(terminal.getStatus())) {
-                    waiterRegistry.remove(request.getChangeId(), waiter);
-                    throw new DdcAdminException("publish dispatch failed", exception);
-                }
+                waiterRegistry.remove(request.getChangeId(), waiter);
+                throw exception;
+            }
+            if (stateTransitions.isTerminal(dispatched)) {
+                waiterRegistry.remove(request.getChangeId(), waiter);
+                return DdcPublishResultVO.from(dispatched);
             }
         }
         return await(request.getChangeId(), waiter);
@@ -225,18 +222,16 @@ public class DdcPublishService {
 
         PublishCompletionWaiterRegistry.PublishWaiter waiter =
                 waiterRegistry.register(changeId);
+        DdcPublishTaskEntity dispatched;
         try {
-            dispatch(prepared.message());
+            dispatched = dispatcher.dispatch(changeId);
         } catch (RuntimeException exception) {
-            DdcPublishTaskEntity terminal = stateTransitions.fail(
-                    changeId,
-                    "REDIS_DISPATCH",
-                    exception.getMessage()
-            );
-            if (!PublishStatus.SUCCESS.name().equals(terminal.getStatus())) {
-                waiterRegistry.remove(changeId, waiter);
-                throw new DdcAdminException("publish dispatch failed", exception);
-            }
+            waiterRegistry.remove(changeId, waiter);
+            throw exception;
+        }
+        if (stateTransitions.isTerminal(dispatched)) {
+            waiterRegistry.remove(changeId, waiter);
+            return DdcPublishResultVO.from(dispatched);
         }
         return await(changeId, waiter);
     }
@@ -264,7 +259,9 @@ public class DdcPublishService {
             throw new DdcAdminException("ACK version or content checksum does not match target");
         }
         if (target.getAckStatus() != null) {
-            return DdcPublishResultVO.from(task);
+            return DdcPublishResultVO.from(
+                    stateTransitions.refreshAfterAck(request.getChangeId())
+            );
         }
         target.setCurrentVersion(request.getCurrentVersion());
         target.setAckStatus(request.getStatus().name());
@@ -353,9 +350,6 @@ public class DdcPublishService {
             validateIdempotentRequest(concurrent, request, timeoutMs);
             return new PublishPrepareResult(
                     concurrent,
-                    message(concurrent, publishAckRepository.findByChangeId(
-                            concurrent.getChangeId()
-                    )),
                     false
             );
         }
@@ -420,7 +414,7 @@ public class DdcPublishService {
                 .toList();
         publishAckRepository.saveAll(targetRows);
         savePublishOperation(config, request.getChangeId(), operator);
-        return new PublishPrepareResult(task, message(task, targetRows), true);
+        return new PublishPrepareResult(task, true);
     }
 
     private RetryPrepareResult prepareRetry(String changeId) {
@@ -460,21 +454,7 @@ public class DdcPublishService {
             throw new DdcAdminException("publish task is not retryable");
         }
         publishAckRepository.resetTargets(changeId);
-        DdcPublishTaskEntity pending = requiredTask(changeId);
-        return RetryPrepareResult.ready(message(pending, targetRows));
-    }
-
-    private void dispatch(DdcPublishMessage message) {
-        redisRepository.writeConfig(
-                message.getAppCode(),
-                message.getEnv(),
-                message.getNamespace(),
-                message.getConfigKey(),
-                message.getConfigValue(),
-                message.getTargetVersion()
-        );
-        redisRepository.publish(message);
-        stateTransitions.markPublishing(message.getChangeId());
+        return RetryPrepareResult.ready();
     }
 
     private DdcPublishTaskEntity newTask(DdcPublishRequest request,
@@ -523,39 +503,6 @@ public class DdcPublishService {
         ack.setConfigKey(task.getConfigKey());
         ack.setTargetVersion(task.getTargetVersion());
         return ack;
-    }
-
-    private DdcPublishMessage message(DdcPublishTaskEntity task,
-                                      List<DdcPublishAckEntity> targets) {
-        DdcConfigVersionEntity version =
-                versionRepository.findByConfigIdAndVersion(
-                                task.getConfigId(),
-                                task.getTargetVersion()
-                        )
-                        .orElseThrow(() -> new DdcAdminException(
-                                "published config version not found"
-                        ));
-        DdcPublishMessage message = new DdcPublishMessage();
-        message.setChangeId(task.getChangeId());
-        message.setAppCode(task.getAppCode());
-        message.setEnv(task.getEnv());
-        message.setNamespace(task.getNamespace());
-        message.setConfigKey(task.getConfigKey());
-        message.setConfigValue(version.getNewValue());
-        message.setValueType(version.getValueType());
-        message.setTargetVersion(task.getTargetVersion());
-        message.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
-        message.setOperator(task.getOperator());
-        message.setTimestamp(clock.millis());
-        message.setContentChecksum(task.getContentChecksum());
-        message.setTargets(targets.stream()
-                .map(target -> new DdcPublishTarget(
-                        target.getInstanceId(),
-                        target.getLeaseId()
-                ))
-                .toList());
-        message.setChecksum(DdcChecksum.sha256(message));
-        return message;
     }
 
     private void saveVersion(DdcConfigItemEntity config,
@@ -770,22 +717,20 @@ public class DdcPublishService {
 
     private record PublishPrepareResult(
             DdcPublishTaskEntity task,
-            DdcPublishMessage message,
             boolean dispatchRequired
     ) {
     }
 
     private record RetryPrepareResult(
-            DdcPublishMessage message,
             boolean targetLeaseExpired
     ) {
 
-        private static RetryPrepareResult ready(DdcPublishMessage message) {
-            return new RetryPrepareResult(message, false);
+        private static RetryPrepareResult ready() {
+            return new RetryPrepareResult(false);
         }
 
         private static RetryPrepareResult expired() {
-            return new RetryPrepareResult(null, true);
+            return new RetryPrepareResult(true);
         }
     }
 }
