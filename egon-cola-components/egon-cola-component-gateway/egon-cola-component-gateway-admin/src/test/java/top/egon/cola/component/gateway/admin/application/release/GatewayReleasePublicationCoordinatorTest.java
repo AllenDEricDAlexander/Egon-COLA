@@ -413,6 +413,12 @@ class GatewayReleasePublicationCoordinatorTest {
         }
 
         @Override
+        public List<ChunkCleanupCandidate> findChunkCleanupCandidates(
+                Instant successorActivatedBefore) {
+            return List.of();
+        }
+
+        @Override
         public void resolveVersion(
                 String changeId,
                 long expectedVersion,
@@ -458,6 +464,11 @@ class GatewayReleasePublicationCoordinatorTest {
                     errorMessage,
                     now
             ));
+        }
+
+        @Override
+        public void markChunkCleaned(String changeId, Instant now) {
+            throw new UnsupportedOperationException();
         }
 
         private void update(

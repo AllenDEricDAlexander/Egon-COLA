@@ -51,6 +51,8 @@ class GatewayRuleActivationApplierTest {
         TestRelease release = release("release-1", "{}");
         GatewayRuleActivationApplier applier = applier();
 
+        assertEquals(100, applier.priority());
+
         applier.apply(
                 GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY,
                 release.activationJson(),
@@ -112,6 +114,7 @@ class GatewayRuleActivationApplierTest {
         );
 
         assertEquals("release-large", applier.active().snapshot().releaseId());
+        assertEquals(0, chunks.size());
         GatewayRuleActivationApplier restored = applier(
                 new GatewayRuleChunkStore()
         );
@@ -120,6 +123,42 @@ class GatewayRuleActivationApplierTest {
         assertEquals("release-large",
                 restored.active().snapshot().releaseId());
         assertTrue(restored.status().degraded());
+    }
+
+    @Test
+    void failedLkgWriteKeepsAssembledChunksForRetry() throws Exception {
+        TestRelease release = release(
+                "release-large",
+                "x".repeat(INLINE_LIMIT_BYTES + 10)
+        );
+        GatewayRuleChunkStore chunks = new GatewayRuleChunkStore();
+        release.activation().chunks().forEach(reference -> chunks.apply(
+                reference.configKey(),
+                release.chunkValues().get(reference.configKey()),
+                reference.index() + 1L
+        ));
+        Path invalidDataDirectory = dataDirectory.resolve("not-a-directory");
+        Files.writeString(invalidDataDirectory, "blocked");
+        Clock clock = Clock.systemUTC();
+        GatewayRuleActivationApplier applier =
+                new GatewayRuleActivationApplier(
+                        new GatewayRuleJsonCodec(),
+                        new EngineGatewayRuleCompiler(),
+                        chunks,
+                        new ProviderDirectory(new EmptyRegistry(), clock),
+                        new GatewayRuleLkgRepository(
+                                invalidDataDirectory,
+                                "orders"
+                        ),
+                        clock
+                );
+
+        assertThrows(IllegalStateException.class, () -> applier.apply(
+                GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY,
+                release.activationJson(),
+                7
+        ));
+        assertTrue(chunks.size() > 0);
     }
 
     private GatewayRuleActivationApplier applier() {

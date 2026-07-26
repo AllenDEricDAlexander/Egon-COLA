@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,7 @@ import top.egon.cola.component.gateway.admin.application.credential.GatewaySecre
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
+import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventCodec;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventConsumerHandler;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaCallEventConsumer;
@@ -36,6 +38,7 @@ import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
+@EnableConfigurationProperties(GatewayAdminProperties.class)
 public class GatewayAdminConfiguration {
 
     @Value("${gateway.admin.ddc.tls.enabled:false}")

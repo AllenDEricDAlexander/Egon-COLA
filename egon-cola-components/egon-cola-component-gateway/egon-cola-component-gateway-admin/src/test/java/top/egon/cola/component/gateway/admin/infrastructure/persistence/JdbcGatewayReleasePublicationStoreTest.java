@@ -143,6 +143,36 @@ class JdbcGatewayReleasePublicationStoreTest {
                 .hasMessageContaining("terminal");
     }
 
+    @Test
+    void cleanupCandidatesProtectActiveAndRetainPredecessor() {
+        JdbcTemplate jdbc = mock(JdbcTemplate.class);
+        GatewayReleasePublicationStore.ChunkCleanupCandidate candidate =
+                new GatewayReleasePublicationStore.ChunkCleanupCandidate(
+                        "change-1",
+                        "release-old",
+                        "gateway-engine-orders",
+                        "test",
+                        "default",
+                        "gateway.rules.chunk.release-old.0",
+                        3L
+                );
+        when(jdbc.query(
+                contains("active_draft"),
+                any(org.springframework.jdbc.core.RowMapper.class),
+                any(Object[].class)
+        )).thenReturn(List.of(candidate));
+        JdbcGatewayReleasePublicationStore store =
+                new JdbcGatewayReleasePublicationStore(jdbc);
+
+        assertThat(store.findChunkCleanupCandidates(NOW))
+                .containsExactly(candidate);
+        verify(jdbc).query(
+                contains("activation.updated_at <= ?"),
+                any(org.springframework.jdbc.core.RowMapper.class),
+                any(Object[].class)
+        );
+    }
+
     private GatewayReleasePublicationStore.PublicationRecord record(
             int phaseOrder,
             GatewayReleasePublicationStore.PhaseType phaseType,

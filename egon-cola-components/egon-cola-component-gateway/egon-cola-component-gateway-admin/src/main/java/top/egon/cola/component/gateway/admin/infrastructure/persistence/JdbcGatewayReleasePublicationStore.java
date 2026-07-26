@@ -70,6 +70,62 @@ public class JdbcGatewayReleasePublicationStore
     }
 
     @Override
+    public List<ChunkCleanupCandidate> findChunkCleanupCandidates(
+            Instant successorActivatedBefore) {
+        return jdbc.query("""
+                SELECT publication.change_id,
+                       publication.release_id,
+                       'gateway-engine-' || (
+                           content.canonical_snapshot
+                               -> 'content' ->> 'gatewayGroupCode'
+                       ) AS app_code,
+                       content.canonical_snapshot
+                           -> 'content' ->> 'env' AS env,
+                       content.canonical_snapshot
+                           -> 'content' ->> 'namespace' AS namespace,
+                       publication.config_key,
+                       publication.ddc_target_version
+                  FROM gateway_release_publication publication
+                  JOIN gateway_release old_release
+                    ON old_release.id = publication.release_id
+                  JOIN gateway_release_content content
+                    ON content.release_id = publication.release_id
+                 WHERE publication.phase_type = 'CHUNK'
+                   AND publication.ddc_status = 'SUCCESS'
+                   AND publication.ddc_target_version IS NOT NULL
+                   AND COALESCE(publication.error_code, '')
+                       <> 'CHUNK_GC_DELETED'
+                   AND NOT EXISTS (
+                       SELECT 1
+                         FROM gateway_draft active_draft
+                        WHERE active_draft.based_on_release_id =
+                              publication.release_id
+                   )
+                   AND EXISTS (
+                       SELECT 1
+                         FROM gateway_release successor
+                         JOIN gateway_release_publication activation
+                           ON activation.release_id = successor.id
+                          AND activation.phase_type = 'ACTIVATION'
+                          AND activation.ddc_status = 'SUCCESS'
+                        WHERE successor.gateway_group_id =
+                              old_release.gateway_group_id
+                          AND successor.created_at > old_release.created_at
+                          AND activation.updated_at <= ?
+                   )
+                 ORDER BY old_release.created_at, publication.phase_order
+                """, (result, row) -> new ChunkCleanupCandidate(
+                result.getString("change_id"),
+                result.getString("release_id"),
+                result.getString("app_code"),
+                result.getString("env"),
+                result.getString("namespace"),
+                result.getString("config_key"),
+                result.getLong("ddc_target_version")
+        ), successorActivatedBefore);
+    }
+
+    @Override
     public void resolveVersion(
             String changeId,
             long expectedVersion,
@@ -140,6 +196,19 @@ public class JdbcGatewayReleasePublicationStore
                 changeId
         );
         requireChanged(changed, "publication result cannot be recorded");
+    }
+
+    @Override
+    public void markChunkCleaned(String changeId, Instant now) {
+        int changed = jdbc.update("""
+                UPDATE gateway_release_publication
+                   SET error_code = 'CHUNK_GC_DELETED',
+                       error_message = NULL, updated_at = ?
+                 WHERE change_id = ? AND phase_type = 'CHUNK'
+                   AND ddc_status = 'SUCCESS'
+                   AND ddc_target_version IS NOT NULL
+                """, now, changeId);
+        requireChanged(changed, "cleaned chunk publication was not found");
     }
 
     private void insert(PublicationRecord operation) {

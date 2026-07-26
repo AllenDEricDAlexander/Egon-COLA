@@ -69,4 +69,19 @@ public final class GatewayRuleChunkStore implements DdcConfigApplier {
     public int size() {
         return chunks.size();
     }
+
+    public int removeRelease(String releaseId) {
+        if (releaseId == null || releaseId.isBlank()) {
+            throw new IllegalArgumentException("releaseId is required");
+        }
+        String prefix = "gateway.rules.chunk." + releaseId + ".";
+        int removed = 0;
+        for (Map.Entry<String, byte[]> entry : chunks.entrySet()) {
+            if (entry.getKey().startsWith(prefix)
+                    && chunks.remove(entry.getKey(), entry.getValue())) {
+                removed++;
+            }
+        }
+        return removed;
+    }
 }

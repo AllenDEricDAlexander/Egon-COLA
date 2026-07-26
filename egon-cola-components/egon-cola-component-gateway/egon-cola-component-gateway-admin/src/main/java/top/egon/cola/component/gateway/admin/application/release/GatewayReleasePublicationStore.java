@@ -14,6 +14,9 @@ public interface GatewayReleasePublicationStore {
             String releaseId,
             int attemptNo);
 
+    List<ChunkCleanupCandidate> findChunkCleanupCandidates(
+            Instant successorActivatedBefore);
+
     void resolveVersion(
             String changeId,
             long expectedVersion,
@@ -28,6 +31,8 @@ public interface GatewayReleasePublicationStore {
             String errorCode,
             String errorMessage,
             Instant now);
+
+    void markChunkCleaned(String changeId, Instant now);
 
     record PublicationRecord(
             String releaseId,
@@ -70,5 +75,16 @@ public interface GatewayReleasePublicationStore {
                 case PLANNED, RESOLVED, SUBMITTED -> false;
             };
         }
+    }
+
+    record ChunkCleanupCandidate(
+            String changeId,
+            String releaseId,
+            String appCode,
+            String env,
+            String namespace,
+            String configKey,
+            long targetVersion
+    ) {
     }
 }

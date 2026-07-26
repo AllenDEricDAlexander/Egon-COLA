@@ -124,6 +124,7 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
             updateStage(GatewayRuleApplyStage.ACTIVE_POINTER_WRITTEN, null);
             active.set(prepared);
             updateStage(GatewayRuleApplyStage.MEMORY_ACTIVATED, null);
+            chunks.removeRelease(activation.releaseId());
             if (previous != null) {
                 providerDirectory.release(difference(
                         previous.providerServices(),
@@ -153,6 +154,11 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
             ));
             throw failure;
         }
+    }
+
+    @Override
+    public int priority() {
+        return 100;
     }
 
     public synchronized boolean restoreLkg() {
