@@ -17,20 +17,27 @@ import org.junit.jupiter.api.Test;
 class LogicalSchemaParityTest {
 
     @Test
-    void shouldKeepDefaultAndShardingModesLogicallyEquivalent() throws Exception {
-        Map<String, List<String>> defaultSchema = migrateAndRead(
-                "light-parity-default", "classpath:db/migration/default");
-        Map<String, List<String>> singleSchema = migrateAndRead(
-                "light-parity-single", "classpath:db/migration/sharding/single");
+    void shouldBuildOneCompleteLogicalSchemaFromMasterDataAndShards() throws Exception {
+        Map<String, List<String>> masterDataSchema = migrateAndRead(
+                "light-parity-master-data",
+                "classpath:db/migration/sharding/master-data");
         Map<String, List<String>> shardZeroSchema = migrateAndRead(
                 "light-parity-shard-0", "classpath:db/migration/sharding/shard");
         Map<String, List<String>> shardOneSchema = migrateAndRead(
                 "light-parity-shard-1", "classpath:db/migration/sharding/shard");
 
         assertThat(shardOneSchema).isEqualTo(shardZeroSchema);
-        Map<String, List<String>> shardingSchema = new TreeMap<>(singleSchema);
+        Map<String, List<String>> shardingSchema = new TreeMap<>(masterDataSchema);
         mergeSchema(shardingSchema, shardZeroSchema);
-        assertThat(shardingSchema).isEqualTo(defaultSchema);
+        assertThat(shardingSchema.keySet()).containsExactly(
+                "class_course_schedules",
+                "courses",
+                "permissions",
+                "role_permissions",
+                "roles",
+                "school_classes",
+                "user_roles",
+                "users");
     }
 
     private static Map<String, List<String>> migrateAndRead(

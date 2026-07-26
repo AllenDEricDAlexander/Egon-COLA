@@ -241,7 +241,8 @@ assert developmentEnv.contains("POSTGRES_DB=student_management")
 assert developmentEnv.contains("EXTERNAL_HTTP_ENABLED=false")
 def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
-    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+    ["application:", "postgres-master-data:", "postgres-shard-0:",
+     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
      "healthcheck:", "networks:", "volumes:", "application_logs:"].each { token ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
@@ -250,9 +251,11 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("context: ../..")
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
-    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert text.contains('APP_DATASOURCE_MODE: "SHARDING"')
     assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
-    assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
+    assert text.contains('jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}')
+    assert text.contains('jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}')
+    assert text.contains('jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}')
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
     assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
     assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
@@ -276,7 +279,8 @@ developmentComposeFiles.each { fileName, engine ->
 }
 def assertProductionCompose = { fileName, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
-    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+    ["application:", "postgres-master-data:", "postgres-shard-0:",
+     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
      "healthcheck:", "networks:", "volumes:", "application_logs:",
      "read_only: true", "tmpfs:", "mem_limit:", "cpus:",
      "restart: unless-stopped"].each { token ->
@@ -285,7 +289,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
-    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert text.contains('APP_DATASOURCE_MODE: "SHARDING"')
     assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
@@ -536,11 +540,11 @@ def assertEncryptedPasswordDefault = { path, envName ->
     def text = assertFile(path).text
     assert text.contains('password: ${' + envName + ':ENC(v1:'): "Expected ${path} to use encrypted ${envName} default"
 }
-assertEncryptedPasswordDefault("src/main/resources/application-dev.yml", "DB_PASSWORD")
-assertEncryptedPasswordDefault("src/main/resources/application-prod.yml", "DB_PASSWORD")
 assertEncryptedPasswordDefault("src/main/resources/bootstrap-dev.yml", "NACOS_PASSWORD")
 assertEncryptedPasswordDefault("src/main/resources/bootstrap-prod.yml", "NACOS_PASSWORD")
-assert assertFile("src/main/resources/application-test.yml").text.contains('password: ${DB_PASSWORD:}')
+assert assertFile("src/main/resources/application-test.yml").text.contains(
+        'password: "${LIGHT_SHARDING_PASSWORD:}"')
+assertFile("src/test/resources/application-jpa-test.yml")
 assert !assertFile("src/main/resources/bootstrap-test.yml").text.contains('ENC(')
 
 def testConfig = assertFile("src/main/resources/application-test.yml").text
@@ -741,14 +745,13 @@ assertMissing("src/main/resources/application-readwrite.yml")
 assertFile("src/main/resources/sharding/shardingsphere-sharding.yml")
 assertFile("src/main/resources/sharding/shardingsphere-sharding-readwrite.yml")
 def lightApplication = assertFile("src/main/resources/application.yml").text
-assert lightApplication.contains('mode: ${APP_DATASOURCE_MODE:SINGLE}')
+assert lightApplication.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
 def lightShardingApplication = assertFile("src/main/resources/datasource/sharding.yml").text
-assert lightShardingApplication.contains('mapping-version: ${LIGHT_SHARDING_MAPPING_VERSION:1}')
 assert lightShardingApplication.contains('node-count: ${LIGHT_SHARDING_NODE_COUNT:4}')
 assert lightShardingApplication.contains(
         'node-map: ${LIGHT_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
 [
-    "classpath:db/migration/sharding/single",
+    "classpath:db/migration/sharding/master-data",
     "classpath:db/migration/sharding/shard"
 ].each { assert lightShardingApplication.contains(it) }
 def lightShardingRule = assertFile(
@@ -756,9 +759,19 @@ def lightShardingRule = assertFile(
 assert lightShardingRule.contains("shardingColumn: id")
 assert lightShardingRule.contains("shardingColumn: school_class_id")
 assert lightShardingRule.contains("school_classes,class_course_schedules")
+assert lightShardingRule.contains("actualDataNodes: master_data.public.users")
+assert lightShardingRule.count("none:") == 12
+assert lightShardingRule.contains("type: DML_SHARDING_CONDITIONS")
+assert lightShardingRule.contains("allowHintDisable: false")
+assert !lightShardingRule.contains("!SINGLE")
+assert !lightShardingRule.contains("defaultDataSource")
 def lightReadwriteRule = assertFile(
         "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
 assert lightReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
+assert lightReadwriteRule.contains("master_data_primary")
+assert lightReadwriteRule.contains("master_data_replica_0")
+assert lightReadwriteRule.contains("type: DML_SHARDING_CONDITIONS")
+assert !lightReadwriteRule.contains("!SINGLE")
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 [
@@ -864,9 +877,8 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
 }
 
 [
-    "default/V20260724_001__init_light_default_schema.sql",
-    "sharding/single/V20260724_002__init_light_single_schema.sql",
-    "sharding/shard/V20260724_003__init_light_sharding_schema.sql"
+    "sharding/master-data/V20260726_001__init_light_master_data_schema.sql",
+    "sharding/shard/V20260726_002__init_light_sharded_schema.sql"
 ].each { migration ->
     assertFile("src/main/resources/db/migration/${migration}")
 }
@@ -879,7 +891,7 @@ new File(generatedProjectDir, "src/main/resources/db/migration")
                 migrationFiles << file
             }
         }
-assert migrationFiles.size() == 3: "Expected exactly three migration SQL files"
+assert migrationFiles.size() == 2: "Expected exactly two migration SQL files"
 migrationFiles.each { migration ->
     def text = migration.getText("UTF-8")
     assert text.startsWith("-- 变更内容：")
@@ -888,14 +900,12 @@ migrationFiles.each { migration ->
 }
 [
     "DataSourceModeProperties",
-    "LogicalDataSourceFlywayMigrationStrategy",
     "ShardingNodeMap",
-    "ShardingNodeMapCompatibilityValidator",
     "UuidV7BucketShardingAlgorithm",
     "PhysicalDataSourceFlywayMigrator",
     "ShardingDataSourceBootstrapper",
-    "ShardingDataSourceModeCondition",
     "ShardingDataSourcePropertiesLoader",
+    "ShardingTopologyValidator",
     "ShardingSphereDataSourceConfiguration"
 ].each { typeName ->
     assertFile("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
@@ -904,14 +914,20 @@ migrationFiles.each { migration ->
     "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/LightDataSourceModeTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategyTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/ShardingTopologyValidatorTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
     "src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
 ].each { assertFile(it) }
+[
+    "LogicalDataSourceFlywayMigrationStrategy",
+    "ShardingDataSourceModeCondition",
+    "ShardingNodeMapCompatibilityValidator"
+].each { typeName ->
+    assertMissing("src/main/java/it/pkg/infrastructure/config/datasource/${typeName}.java")
+}
 [
     "user/repo/po/UserPO",
     "user/repo/jpa/UserJpaRepository",
@@ -1173,7 +1189,7 @@ assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeContro
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
 assert !new File(generatedProjectDir, "src/test/charge.http").exists()
 
-assert migrationFiles.size() == 3
+assert migrationFiles.size() == 2
 
 assertMissing("src/test/java/it/pkg/ArchitectureDependencyTest.java")
 def architecturePlugin = pomXml.build.plugins.plugin.find {
@@ -1207,11 +1223,12 @@ assert readme.contains("ConfigCipherCli")
     "primary targets",
     "36-character RFC",
     "VyyyyMMdd_NNN__description.sql",
-    "mapping-version: 1",
-    "N` to `2N",
+    "2N rule",
+    "databaseStrategy.none",
+    "DML_SHARDING_CONDITIONS",
     "local to one physical database",
-    "online dual writes, CDC",
-    "data movement"
+    "no historical data",
+    "no online migration"
 ].each { assert readme.contains(it) }
 def lightReadmeZh = assertFile("README.zh-CN.md").text
 [
@@ -1219,9 +1236,11 @@ def lightReadmeZh = assertFile("README.zh-CN.md").text
     "school_class_id",
     "36 位 RFC 字符串",
     "VyyyyMMdd_NNN__description.sql",
-    "单次扩容只能从 `N` 到 `2N`",
+    "容量按 2N 法扩展",
+    "databaseStrategy.none",
+    "DML_SHARDING_CONDITIONS",
     "事务只允许覆盖一个物理库",
-    "不内置在线双写、CDC 或自动搬数"
+    "没有历史数据"
 ].each { assert lightReadmeZh.contains(it) }
 assert !readme.contains("计费")
 assert !readme.contains("Charge")

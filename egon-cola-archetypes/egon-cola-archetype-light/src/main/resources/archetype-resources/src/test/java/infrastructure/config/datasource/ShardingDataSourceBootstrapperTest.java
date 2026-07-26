@@ -26,7 +26,7 @@ class ShardingDataSourceBootstrapperTest {
         PhysicalDataSourceFlywayMigrator migrator =
                 mock(PhysicalDataSourceFlywayMigrator.class);
         Map<String, DataSource> physical = new LinkedHashMap<>();
-        physical.put("single", mock(DataSource.class));
+        physical.put("master_data", mock(DataSource.class));
         byte[] yaml = "rules".getBytes();
         DataSource logical = mock(DataSource.class);
         when(physicalFactory.create(any())).thenReturn(physical);
@@ -65,7 +65,7 @@ class ShardingDataSourceBootstrapperTest {
         ShardingTopologyValidator validator = mock(ShardingTopologyValidator.class);
         PhysicalDataSourceFlywayMigrator migrator =
                 mock(PhysicalDataSourceFlywayMigrator.class);
-        Map<String, DataSource> physical = Map.of("single", mock(DataSource.class));
+        Map<String, DataSource> physical = Map.of("master_data", mock(DataSource.class));
         when(physicalFactory.create(any())).thenReturn(physical);
         when(loader.load(any())).thenReturn(new byte[0]);
         org.mockito.Mockito.doThrow(new IllegalStateException("migration failed"))

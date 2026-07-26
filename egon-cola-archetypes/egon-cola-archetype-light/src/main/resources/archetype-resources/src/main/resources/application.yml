@@ -116,7 +116,7 @@ logging:
 
 app:
   datasource:
-    mode: ${symbol_dollar}{APP_DATASOURCE_MODE:SINGLE}
+    mode: ${symbol_dollar}{APP_DATASOURCE_MODE:SHARDING}
   logging:
     instance-name: ${symbol_dollar}{INSTANCE_ID:${symbol_dollar}{HOSTNAME:local}}
     error-total-size-cap: ${symbol_dollar}{LOG_ERROR_TOTAL_SIZE_CAP:2GB}

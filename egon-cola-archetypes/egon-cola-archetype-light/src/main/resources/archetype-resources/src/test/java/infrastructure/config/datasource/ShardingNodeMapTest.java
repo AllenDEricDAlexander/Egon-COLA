@@ -16,9 +16,8 @@ class ShardingNodeMapTest {
 
     @Test
     void parsesInitialTwoByTwoTopologyExactly() {
-        ShardingNodeMap nodeMap = parse("1", "4", INITIAL_NODE_MAP);
+        ShardingNodeMap nodeMap = parse("4", INITIAL_NODE_MAP);
 
-        assertThat(nodeMap.mappingVersion()).isEqualTo(1);
         assertThat(nodeMap.nodeCount()).isEqualTo(4);
         assertThat(nodeMap.nodes()).containsExactlyInAnyOrderEntriesOf(Map.of(
                 0, new ShardingNodeMap.PhysicalNode("shard_0", 0),
@@ -29,7 +28,7 @@ class ShardingNodeMapTest {
 
     @Test
     void rejectsInvalidTopology() {
-        assertThatThrownBy(() -> parse("1", "3", "0=shard_0:0,1=shard_0:1,2=shard_1:0"))
+        assertThatThrownBy(() -> parse("3", "0=shard_0:0,1=shard_0:1,2=shard_1:0"))
                 .isInstanceOf(IllegalArgumentException.class);
 
         Map<Integer, ShardingNodeMap.PhysicalNode> discontinuous = new LinkedHashMap<>();
@@ -37,7 +36,7 @@ class ShardingNodeMapTest {
         discontinuous.put(1, new ShardingNodeMap.PhysicalNode("shard_0", 1));
         discontinuous.put(2, new ShardingNodeMap.PhysicalNode("shard_1", 0));
         discontinuous.put(4, new ShardingNodeMap.PhysicalNode("shard_1", 1));
-        assertThatThrownBy(() -> new ShardingNodeMap(1, 4, discontinuous))
+        assertThatThrownBy(() -> new ShardingNodeMap(4, discontinuous))
                 .isInstanceOf(IllegalArgumentException.class);
 
         Map<Integer, ShardingNodeMap.PhysicalNode> duplicated = new LinkedHashMap<>();
@@ -45,18 +44,18 @@ class ShardingNodeMapTest {
         duplicated.put(1, new ShardingNodeMap.PhysicalNode("shard_0", 0));
         duplicated.put(2, new ShardingNodeMap.PhysicalNode("shard_1", 0));
         duplicated.put(3, new ShardingNodeMap.PhysicalNode("shard_1", 1));
-        assertThatThrownBy(() -> new ShardingNodeMap(1, 4, duplicated))
+        assertThatThrownBy(() -> new ShardingNodeMap(4, duplicated))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        assertThatThrownBy(() -> parse("1", "4",
+        assertThatThrownBy(() -> parse("4",
                 "0=shard_0:0,1=shard_0:1,2=shard_0:2,3=shard_1:0"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    void doublesSlotsWithoutRemappingExistingBucket() {
-        ShardingNodeMap current = parse("1", "4", INITIAL_NODE_MAP);
-        ShardingNodeMap expanded = parse("2", "8",
+    void doublesSlotsWithoutMovingAKeyOutsideItsOriginalBucketPair() {
+        ShardingNodeMap current = parse("4", INITIAL_NODE_MAP);
+        ShardingNodeMap expanded = parse("8",
                 INITIAL_NODE_MAP
                         + ",4=shard_2:0,5=shard_2:1,6=shard_3:0,7=shard_3:1");
 
@@ -72,7 +71,7 @@ class ShardingNodeMapTest {
 
     @Test
     void acceptsOnlyUuidV7ShardingKeys() {
-        ShardingNodeMap nodeMap = parse("1", "4", INITIAL_NODE_MAP);
+        ShardingNodeMap nodeMap = parse("4", INITIAL_NODE_MAP);
 
         assertThatThrownBy(() -> nodeMap.route(null))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -85,9 +84,8 @@ class ShardingNodeMapTest {
                 .hasMessageContaining("UUIDv7");
     }
 
-    private static ShardingNodeMap parse(String mappingVersion, String nodeCount, String nodes) {
+    private static ShardingNodeMap parse(String nodeCount, String nodes) {
         Properties properties = new Properties();
-        properties.setProperty("mapping-version", mappingVersion);
         properties.setProperty("node-count", nodeCount);
         properties.setProperty("node-map", nodes);
         return ShardingNodeMap.parse(properties);

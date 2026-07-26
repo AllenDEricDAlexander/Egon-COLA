@@ -50,8 +50,8 @@ appropriate to the selected engine.
 
 ## Development Compose
 
-Development definitions build source and start application, PostgreSQL, Redis,
-RabbitMQ, and Nacos. Use the file matching the selected runtime:
+Development definitions build source and start the application, three PostgreSQL
+primaries, Redis, RabbitMQ, and Nacos. Use the file matching the selected runtime:
 
 ```bash
 docker compose --env-file deploy/env/.env.example \
@@ -62,10 +62,11 @@ nerdctl compose --env-file deploy/env/.env.example \
   --file deploy/compose/compose.nerdctl.yaml up -d --build
 ```
 
-The bundled Compose files intentionally set `APP_DATASOURCE_MODE=SINGLE` because
-they provision one PostgreSQL instance. Sharding modes require an external
-primary/replica topology and all variables declared by the selected
-`datasource/*.yml`; overriding only the mode is unsupported.
+The bundled Compose files set `APP_DATASOURCE_MODE=SHARDING` and provision
+`postgres-master-data`, `postgres-shard-0`, and `postgres-shard-1`. They do not
+pretend to provide replication. `SHARDING_READWRITE` requires operator-provided
+primary/replica endpoints for every logical group declared by
+`datasource/sharding-readwrite.yml`.
 
 The example credentials are development-only.
 
@@ -89,8 +90,8 @@ log data. No generated helper performs that deletion automatically.
 
 ## Health And Failure Behavior
 
-PostgreSQL, Redis, RabbitMQ, Nacos, and the Spring Boot readiness endpoint have
-health checks. Missing production variables fail Compose configuration. An enabled
+All three PostgreSQL primaries, Redis, RabbitMQ, Nacos, and the Spring Boot
+readiness endpoint have health checks. Missing production variables fail Compose configuration. An enabled
 but unavailable remote Facade retains the generated application's fail-fast
 behavior.
 

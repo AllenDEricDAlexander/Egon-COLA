@@ -2,20 +2,17 @@ package ${package}.infrastructure.config.datasource;
 
 import javax.sql.DataSource;
 import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
-import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 
 /**
- * Activates the ShardingSphere logical data source for sharding modes.
+ * Creates the application's only logical data source through ShardingSphere.
  */
 @Configuration(proxyBeanMethods = false)
-@Conditional(ShardingDataSourceModeCondition.class)
 @EnableConfigurationProperties({
     DataSourceModeProperties.class,
     FlywayProperties.class
@@ -33,11 +30,6 @@ public class ShardingSphereDataSourceConfiguration {
             ShardingDataSourcePropertiesLoader loader,
             DataSourceModeProperties modeProperties) {
         return loader.load(modeProperties);
-    }
-
-    @Bean
-    FlywayMigrationStrategy flywayMigrationStrategy() {
-        return new LogicalDataSourceFlywayMigrationStrategy();
     }
 
     @Bean

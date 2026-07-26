@@ -64,7 +64,6 @@ class UuidV7BucketShardingAlgorithmTest {
 
     private static Properties properties() {
         Properties properties = new Properties();
-        properties.setProperty("mapping-version", "1");
         properties.setProperty("node-count", "4");
         properties.setProperty(
                 "node-map",

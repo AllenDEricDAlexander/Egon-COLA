@@ -1,6 +1,6 @@
--- 变更内容：初始化 Light 默认单数据源模式的用户、权限、课程、班级和排课最终表结构。
--- 影响范围：users、roles、permissions、user_roles、role_permissions、courses、school_classes、class_course_schedules 表及其约束。
--- 兼容性说明：本文件仅用于未执行过迁移的新建脚手架项目，无历史数据兼容与回滚负担。
+-- 变更内容：初始化 Light 模板中通过 NoneShardingStrategy 路由的主数据表结构。
+-- 影响范围：master_data 逻辑数据源内的 users、roles、permissions、user_roles、role_permissions、courses 表及其约束。
+-- 兼容性说明：本脚手架尚未执行迁移，不涉及历史数据、在线迁移或回滚兼容。
 
 CREATE TABLE users (
     id VARCHAR(36) PRIMARY KEY,
@@ -53,26 +53,4 @@ CREATE TABLE courses (
     status VARCHAR(32) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     CONSTRAINT uk_courses_code UNIQUE (course_code)
-);
-
-CREATE TABLE school_classes (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(120) NOT NULL,
-    semester VARCHAR(32) NOT NULL,
-    status VARCHAR(32) NOT NULL,
-    created_at TIMESTAMP NOT NULL
-);
-
-CREATE TABLE class_course_schedules (
-    id VARCHAR(36) PRIMARY KEY,
-    school_class_id VARCHAR(36) NOT NULL,
-    course_id VARCHAR(36) NOT NULL,
-    starts_at TIMESTAMP NOT NULL,
-    ends_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    CONSTRAINT uk_class_course_start
-        UNIQUE (school_class_id, course_id, starts_at),
-    CONSTRAINT fk_schedule_class
-        FOREIGN KEY (school_class_id) REFERENCES school_classes (id),
-    CONSTRAINT fk_schedule_course FOREIGN KEY (course_id) REFERENCES courses (id)
 );

@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -11,7 +12,11 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "class_course_schedules")
+@Table(
+        name = "class_course_schedules",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_class_course_start",
+                columnNames = {"school_class_id", "course_id", "starts_at"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ClassCourseSchedulePO {
     @Id

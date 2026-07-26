@@ -74,43 +74,44 @@ Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支�
 
 ${symbol_pound}${symbol_pound} 分片、读写分离与 Flyway
 
-生成应用支持三种数据库运行模式：
+生成应用始终使用 ShardingSphere 逻辑数据源，支持两种路由模式：
 
 ```bash
-SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING ./mvnw spring-boot:run
 SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE ./mvnw spring-boot:run
 ```
 
 环境 profile 只使用 `dev`、`test`、`prod`。`APP_DATASOURCE_MODE` 可取
-`SINGLE`（默认）、`SHARDING`、`SHARDING_READWRITE`。默认模式沿用 Spring Boot
-的单 `DataSource` 与 Flyway 生命周期；两个 ShardingSphere 模式先逐个迁移物理
-primary，再创建逻辑 `DataSource`。读写分离模式下，普通查询走 replica，写操作
-走 primary，事务内查询固定走 primary。
+`SHARDING`（默认）或 `SHARDING_READWRITE`。两种模式都先逐个对物理 primary
+执行 Flyway，再创建逻辑 `DataSource`；逻辑数据源和 replica 永远不是 Flyway
+target。读写分离模式下，普通查询走 replica，写操作走 primary，事务内查询固定走
+primary。
 
 表拓扑如下：
 
-- `single` 上的 SINGLE 表：`users`、`roles`、`permissions`、`user_roles`、
-  `role_permissions`、`courses`。
+- `master_data` 上的主数据表：`users`、`roles`、`permissions`、`user_roles`、
+  `role_permissions`、`courses`。这些表在 `!SHARDING` 中显式配置
+  `databaseStrategy.none` 与 `tableStrategy.none`，不使用 `!SINGLE`，也不存在
+  应用级单数据源模式。
 - SHARDING 表：`school_classes` 按 `id` 分片，
   `class_course_schedules` 按 `school_class_id` 分片。两者是 binding tables；
   班级和其排课统一使用班级根键，因此共置在同一个物理库和表后缀。
+  `DML_SHARDING_CONDITIONS` 会拒绝未携带分片条件的更新或删除，且禁止 hint 绕过。
 
-仅分片模式配置 `LIGHT_SHARDING_SINGLE_URL`、`LIGHT_SHARDING_SHARD_0_URL`、
+仅分片模式配置 `LIGHT_SHARDING_MASTER_DATA_URL`、`LIGHT_SHARDING_SHARD_0_URL`、
 `LIGHT_SHARDING_SHARD_1_URL`、`LIGHT_SHARDING_USERNAME`、
 `LIGHT_SHARDING_PASSWORD`，并可选配置 `LIGHT_SHARDING_DRIVER_CLASS_NAME`。
-读写分离模式分别为 `LIGHT_SINGLE_PRIMARY`、`LIGHT_SINGLE_REPLICA_0`、
+读写分离模式分别为 `LIGHT_MASTER_DATA_PRIMARY`、`LIGHT_MASTER_DATA_REPLICA_0`、
 `LIGHT_SHARD_0_PRIMARY`、`LIGHT_SHARD_0_REPLICA_0`、
 `LIGHT_SHARD_1_PRIMARY`、`LIGHT_SHARD_1_REPLICA_0` 配置 URL、用户名和密码；
 例如 `LIGHT_SHARD_0_PRIMARY_URL`、`LIGHT_SHARD_0_PRIMARY_USERNAME`、
 `LIGHT_SHARD_0_PRIMARY_PASSWORD`。
 
-Flyway 使用 `db/migration/default`、`db/migration/sharding/single` 和
-`db/migration/sharding/shard` 三个 location。ShardingSphere 模式下，Flyway
-在逻辑数据源创建前按名称串行迁移已配置的 primary。replica 必须是 primary
-的数据库级复制节点，永远不能配置为 Flyway target。Spring Boot 的逻辑数据源
-Flyway 策略在 ShardingSphere 模式下不执行 migration，避免重复刷表；设置
-`FLYWAY_ENABLED=false` 时物理 migration 也会一并跳过。
+Flyway 使用 `db/migration/sharding/master-data` 和
+`db/migration/sharding/shard` 两个 location，在逻辑数据源创建前按名称串行迁移
+已配置的物理 primary。replica 必须是 primary 的数据库级复制节点，永远不能配置
+为 Flyway target。Spring Boot Flyway 自动配置被排除，避免任何 migration 误刷逻辑
+数据源；设置 `FLYWAY_ENABLED=false` 时跳过物理 migration。
 
 应用生成的代理主键统一使用 UUIDv7，并序列化为 36 位 RFC 字符串。迁移文件名
 必须符合 `VyyyyMMdd_NNN__description.sql`：日期使用文件创建日期，`NNN` 是当日
@@ -118,12 +119,9 @@ Flyway 策略在 ShardingSphere 模式下不执行 migration，避免重复刷�
 `兼容性说明` 三项注释。
 
 数据库数、每库物理表数和总物理节点数都必须是 2 的幂。初始映射为
-`2 库 × 每库 2 表 = 4 节点`，使用 `mapping-version: 1` 和只允许尾部追加的
-`node-map`。单次扩容只能从 `N` 到 `2N`；如果库数和每库表数都要翻倍，必须
-拆成两次连续扩容。扩容时保留全部旧槽位映射，新增 primary 并先执行 Flyway，
-追加 `N..2N-1` 槽位，仅搬迁和核对新槽位等于 `oldSlot + N` 的记录，最后原子
-发布递增后的映射版本。稳定槽位契约使理论上仅约一半分片键需要迁移，但脚手架
-不内置在线双写、CDC 或自动搬数。
+`2 库 × 每库 2 表 = 4 节点`。容量按 2N 法扩展：每次只将一个维度从 `N` 调整为
+`2N`，并整体发布完整的 `node-count` 与 `node-map`。当前是尚未执行过迁移的新脚手架，
+没有历史数据，也不提供在线迁移、双写、CDC 或自动搬数机制。
 
 事务只允许覆盖一个物理库，聚合操作必须使用同一个分片根键。跨分片流程通过
 业务幂等、显式状态、事件、对账和补偿解决；项目不引入 XA、BASE、Seata 或
@@ -165,10 +163,10 @@ nerdctl build --build-arg CONTAINER_ENGINE=nerdctl -f deploy/container/Dockerfil
 docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
 ```
 
-模板自带的 Compose 栈只创建一个 PostgreSQL 实例，因此固定使用
-`APP_DATASOURCE_MODE=SINGLE`。如需启用任一 ShardingSphere 模式，必须先部署文档
-约定的物理 primary/replica 拓扑，并通过目标部署平台完整传入拓扑变量，不能只覆盖
-Compose 中的 mode。
+模板自带的 Compose 栈默认使用 `APP_DATASOURCE_MODE=SHARDING`，创建
+`postgres-master-data`、`postgres-shard-0`、`postgres-shard-1` 三个 PostgreSQL
+primary。模板不创建 replica；`SHARDING_READWRITE` 是为具备对应 primary/replica
+端点的环境提供的代码与配置能力。
 
 Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`。生产环境使用匹配的 `.prod.yaml` 文件和由运维方持有的 `.env.prod`。关于 rootless 前置条件、持久化、生产边界和数据删除警告，请参见 `deploy/container/README.md`。
 

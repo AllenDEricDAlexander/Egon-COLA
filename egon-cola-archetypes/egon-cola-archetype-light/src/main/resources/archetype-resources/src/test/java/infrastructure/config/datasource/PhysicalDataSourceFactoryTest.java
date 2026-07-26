@@ -16,15 +16,15 @@ class PhysicalDataSourceFactoryTest {
         PhysicalDataSourceFactory factory = new PhysicalDataSourceFactory();
 
         Map<String, DataSource> result = factory.create(properties(List.of(
-                physical("single", "single"),
+                physical("master_data", "master_data"),
                 physical("shard_0", "shard_0"))));
 
-        assertThat(result.keySet()).containsExactly("single", "shard_0");
-        assertThat(result.get("single")).isInstanceOfSatisfying(
+        assertThat(result.keySet()).containsExactly("master_data", "shard_0");
+        assertThat(result.get("master_data")).isInstanceOfSatisfying(
                 HikariDataSource.class,
                 pool -> {
-                    assertThat(pool.getPoolName()).isEqualTo("sharding-single");
-                    assertThat(pool.getJdbcUrl()).isEqualTo("jdbc:h2:mem:single");
+                    assertThat(pool.getPoolName()).isEqualTo("sharding-master_data");
+                    assertThat(pool.getJdbcUrl()).isEqualTo("jdbc:h2:mem:master_data");
                 });
         factory.close(result.values());
     }
@@ -35,8 +35,8 @@ class PhysicalDataSourceFactoryTest {
         PhysicalDataSourceFactory factory = new PhysicalDataSourceFactory(properties -> first);
 
         assertThatThrownBy(() -> factory.create(properties(List.of(
-                        physical("single", "single"),
-                        physical("single", "shard_0")))))
+                        physical("master_data", "master_data"),
+                        physical("master_data", "shard_0")))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("duplicate");
 
@@ -47,8 +47,8 @@ class PhysicalDataSourceFactoryTest {
     void shouldRejectMissingConnectionPropertyWithoutLeakingPassword() {
         ShardingDataSourceProperties.PhysicalDataSourceProperties invalid =
                 new ShardingDataSourceProperties.PhysicalDataSourceProperties(
-                        "single",
-                        "single",
+                        "master_data",
+                        "master_data",
                         ShardingDataSourceProperties.DataSourceRole.PRIMARY,
                         "org.h2.Driver",
                         null,
@@ -58,7 +58,7 @@ class PhysicalDataSourceFactoryTest {
         assertThatThrownBy(() -> new PhysicalDataSourceFactory()
                         .create(properties(List.of(invalid))))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("single")
+                .hasMessageContaining("master_data")
                 .hasMessageNotContaining("top-secret");
     }
 
@@ -80,7 +80,6 @@ class PhysicalDataSourceFactoryTest {
         return new ShardingDataSourceProperties(
                 "classpath:rules.yml",
                 new ShardingDataSourceProperties.ShardingRoutingProperties(
-                        1,
                         4,
                         "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1"),
                 dataSources,

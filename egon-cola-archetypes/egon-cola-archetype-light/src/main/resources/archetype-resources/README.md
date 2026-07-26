@@ -74,47 +74,50 @@ JPA is the only persistence implementation. Flyway owns the H2/PostgreSQL schema
 
 ${symbol_pound}${symbol_pound} Sharding, Read/Write Splitting, And Flyway
 
-The generated application supports three database modes:
+The generated application always uses a ShardingSphere logical data source and
+supports two routing modes:
 
 ```bash
-SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING ./mvnw spring-boot:run
 SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE ./mvnw spring-boot:run
 ```
 
 Environment profiles are limited to `dev`, `test`, and `prod`.
-`APP_DATASOURCE_MODE` accepts `SINGLE` (the default), `SHARDING`, or
-`SHARDING_READWRITE`. Single mode keeps Spring Boot's `DataSource` and Flyway
-lifecycle. Both ShardingSphere modes migrate every physical primary before the
-logical `DataSource` is created. Read/write mode routes ordinary reads to
+`APP_DATASOURCE_MODE` accepts `SHARDING` (the default) or
+`SHARDING_READWRITE`. Both modes run Flyway against every configured physical
+primary before creating the logical `DataSource`; the logical data source and
+replicas are never Flyway targets. Read/write mode routes ordinary reads to
 replicas, writes to primaries, and transaction-bound reads to primaries.
 
 The table topology is:
 
-- SINGLE tables on `single`: `users`, `roles`, `permissions`, `user_roles`,
-  `role_permissions`, and `courses`.
+- Master-data tables on `master_data`: `users`, `roles`, `permissions`,
+  `user_roles`, `role_permissions`, and `courses`. They remain unsharded through
+  explicit `databaseStrategy.none` and `tableStrategy.none` rules inside
+  `!SHARDING`; `!SINGLE` and an application-wide single-data-source mode are not
+  used.
 - SHARDING tables: `school_classes`, sharded by `id`, and
   `class_course_schedules`, sharded by `school_class_id`. They are binding tables;
   a class and its schedules use the same root key and are colocated in one
-  database and table suffix.
+  database and table suffix. `DML_SHARDING_CONDITIONS` rejects updates or deletes
+  that omit a sharding condition, and hint bypass is disabled.
 
-For primary-only sharding, configure `LIGHT_SHARDING_SINGLE_URL`,
+For primary-only sharding, configure `LIGHT_SHARDING_MASTER_DATA_URL`,
 `LIGHT_SHARDING_SHARD_0_URL`, `LIGHT_SHARDING_SHARD_1_URL`,
 `LIGHT_SHARDING_USERNAME`, `LIGHT_SHARDING_PASSWORD`, and optionally
 `LIGHT_SHARDING_DRIVER_CLASS_NAME`. Read/write splitting uses URL, username, and
-password triples for `LIGHT_SINGLE_PRIMARY`, `LIGHT_SINGLE_REPLICA_0`,
+password triples for `LIGHT_MASTER_DATA_PRIMARY`, `LIGHT_MASTER_DATA_REPLICA_0`,
 `LIGHT_SHARD_0_PRIMARY`, `LIGHT_SHARD_0_REPLICA_0`,
 `LIGHT_SHARD_1_PRIMARY`, and `LIGHT_SHARD_1_REPLICA_0`; for example,
 `LIGHT_SHARD_0_PRIMARY_URL`, `LIGHT_SHARD_0_PRIMARY_USERNAME`, and
 `LIGHT_SHARD_0_PRIMARY_PASSWORD`.
 
-Flyway has three locations: `db/migration/default`,
-`db/migration/sharding/single`, and `db/migration/sharding/shard`. In
-ShardingSphere modes it runs serially against configured primary targets before
-the logical data source is created. Replicas must be database-level copies of
-their primaries and are never Flyway targets. Spring Boot's logical-data-source
-Flyway strategy is a no-op in ShardingSphere modes, preventing duplicate
-migrations. `FLYWAY_ENABLED=false` also skips all physical migrations.
+Flyway uses `db/migration/sharding/master-data` and
+`db/migration/sharding/shard`. It runs serially against configured physical
+primary targets before the logical data source is created. Replicas must be
+database-level copies of their primaries and are never Flyway targets. Spring
+Boot Flyway auto-configuration is excluded so no migration can accidentally run
+through the logical data source. `FLYWAY_ENABLED=false` skips physical migrations.
 
 Application-generated surrogate keys use UUIDv7 serialized as 36-character RFC
 strings. Migration names must follow `VyyyyMMdd_NNN__description.sql`, where the
@@ -122,15 +125,11 @@ date is the creation date and `NNN` is a three-digit daily sequence. Every SQL
 file starts with these three comments: `变更内容`, `影响范围`, and `兼容性说明`.
 
 Database count, table count per database, and total physical-node count must all
-be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`, with
-`mapping-version: 1` and an append-only `node-map`. One expansion may only move
-from `N` to `2N`; if both database and per-database table counts must double, use
-two consecutive expansions. Preserve every old slot mapping, add the new
-primaries and run Flyway, append slots `N..2N-1`, move and reconcile only records
-whose new slot is `oldSlot + N`, then atomically publish the incremented mapping
-version. The stable-slot contract limits remapping to approximately half the
-keys, but this scaffold does not provide online dual writes, CDC, or automatic
-data movement.
+be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`. Capacity
+is expanded by the 2N rule: change one dimension from `N` to `2N` at a time and
+publish the complete `node-count` and `node-map` together. This unused scaffold
+contains no historical data and intentionally provides no online migration,
+dual-write, CDC, or automatic data movement mechanism.
 
 Transactions are local to one physical database only. Keep every aggregate
 operation on the same sharding root key. Cross-shard workflows must use business
@@ -174,10 +173,11 @@ Start the complete Docker development stack with:
 docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
 ```
 
-The bundled Compose stack provisions one PostgreSQL instance and therefore fixes
-`APP_DATASOURCE_MODE=SINGLE`. To run either ShardingSphere mode, deploy the
-documented physical primary/replica topology and pass every required topology
-variable through the target platform instead of overriding only the Compose mode.
+The bundled Compose stack defaults to `APP_DATASOURCE_MODE=SHARDING` and
+provisions three PostgreSQL primaries: `postgres-master-data`,
+`postgres-shard-0`, and `postgres-shard-1`. It intentionally has no replicas;
+`SHARDING_READWRITE` is a code/configuration capability for environments that
+provide the corresponding primary/replica endpoints.
 
 Podman and nerdctl use `compose.podman.yaml` and `compose.nerdctl.yaml`. Production
 uses the matching `.prod.yaml` file and an operator-owned `.env.prod`. See

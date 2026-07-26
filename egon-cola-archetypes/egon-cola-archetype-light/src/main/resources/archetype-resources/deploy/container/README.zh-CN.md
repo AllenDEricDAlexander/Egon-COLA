@@ -36,7 +36,7 @@ nerdctl 需要可访问的 containerd 和 BuildKit 服务。请在命令或 Jenk
 
 ## 开发 Compose
 
-开发定义会构建源码并启动应用、PostgreSQL、Redis、RabbitMQ 和 Nacos。请使用与所选运行时匹配的文件：
+开发定义会构建源码并启动应用、三个 PostgreSQL primary、Redis、RabbitMQ 和 Nacos。请使用与所选运行时匹配的文件：
 
 ```bash
 docker compose --env-file deploy/env/.env.example \
@@ -46,6 +46,11 @@ podman compose --env-file deploy/env/.env.example \
 nerdctl compose --env-file deploy/env/.env.example \
   --file deploy/compose/compose.nerdctl.yaml up -d --build
 ```
+
+内置 Compose 固定使用 `APP_DATASOURCE_MODE=SHARDING`，创建
+`postgres-master-data`、`postgres-shard-0`、`postgres-shard-1`，不伪装提供复制能力。
+启用 `SHARDING_READWRITE` 时，运维环境必须为
+`datasource/sharding-readwrite.yml` 中的每个逻辑组提供完整 primary/replica 端点。
 
 示例凭据仅供开发使用。
 
@@ -61,7 +66,7 @@ nerdctl compose --env-file deploy/env/.env.example \
 
 ## 健康检查与失败行为
 
-PostgreSQL、Redis、RabbitMQ、Nacos 和 Spring Boot readiness endpoint 都配置了 health check。缺少生产变量会导致 Compose 配置失败。已启用但不可用的远程 Facade 会保留生成应用的 fail-fast 行为。
+三个 PostgreSQL primary、Redis、RabbitMQ、Nacos 和 Spring Boot readiness endpoint 都配置了 health check。缺少生产变量会导致 Compose 配置失败。已启用但不可用的远程 Facade 会保留生成应用的 fail-fast 行为。
 
 ## Jenkins
 
