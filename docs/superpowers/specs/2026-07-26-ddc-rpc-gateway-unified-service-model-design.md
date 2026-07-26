@@ -1,6 +1,51 @@
 # DDC / RPC / Gateway 统一服务模型与管理端优化设计
 
-状态：待确认
+状态：**部分实施（S1–S4 已合入）；S5 计划已被代码事实推翻，见下方勘误**
+
+---
+
+## 勘误（2026-07-26，实施阶段核对代码后）
+
+实施前逐条核对代码，本设计有 **三处结论与事实不符**，按事实修正：
+
+| # | 本文原结论 | 代码事实 | 处置 |
+|---|---|---|---|
+| E1 | §9 S5 要"新建 `LoadBalancerRegistry.java` 5 种策略" | **负载均衡已存在**：`engine/balance/LoadBalancerType`（`ROUND_ROBIN` / `SMOOTH_WEIGHTED_ROUND_ROBIN` / `RANDOM` / `LEAST_IN_FLIGHT`）+ `ProviderLoadBalancers` 工厂 | 改为扩展既有实现，不新建 |
+| E2 | §9 S5 要"新建 `HealthProbe.java` + Http/Grpc 实现" | **健康探活已存在**：`ProviderActiveHealthProbe` SPI + `HttpProviderActiveHealthProbe` / `RpcProviderActiveHealthProbe` + `ActiveHealthTracker` / `PassiveHealthTracker` | 同上 |
+| E3 | §3.2 用**新前缀** `egon.meta.*` 投影实例元数据 | **`gateway.*` 约定已在用**：`gateway.weight` / `zone` / `region` / `tags` / `protocol-version` / `definition-set-id` / `artifact-version` / `build-id` / `management-path`，写侧在 rpc-starter 的 `RpcProviderMetadataMerger` 校验，读侧在 gateway-core 的 `ProviderInstance` 解析 | **改用 `gateway.*`**。新前缀会让同一语义有两个事实源，违反本文自己的 P3 |
+
+另有三处细节修正：
+
+- §5.5 称"`GatewayError` 增加 `retryable`"—— `retryable` **字段已存在**，仅 `upstreamStatus` 缺失。
+- §5.5 称 `GatewayCallEventV1` 需加 `retryCount` / `selectedInstanceId` —— `Governance.retryCount`
+  与 `Attempt.providerInstanceId` **均已存在**。
+- §3.2 将 `tags` 设计为 `Set<String>`，但既有 `gateway.tags` 约定是**排序后的 `k=v` 键值对**
+  （`RpcProviderMetadataMerger.validateTags` 强制升序并校验模式），故实现取 `Map<String,String>`。
+
+**教训**：G1/G2 的"缺失"判断只核对了类型是否结构化，未核对约定是否已存在。
+"没有类型"不等于"没有约定"—— `gateway.*` 一直在用，只是以**跨模块重复的字面量**而非共享定义的
+形式存在，这才是 G1 的真实形态。
+
+### 实施状态
+
+| 阶段 | 状态 | 说明 |
+|---|---|---|
+| S1 | **已实施** | `ServiceInstanceMeta` / `ServiceInstanceMetaCodec` / `InstanceHealthState`（置于 ddc-management-client，是所有消费方都可见的唯一公共模块）；`RpcProviderMetadataMerger` 改为委派；保留键与业务额度分开计数 |
+| S2 | **已实施（范围调整）** | `ServiceCallPolicy` + `ServiceCallPolicyCodec` + `LoadBalanceStrategy`。定位为既有 TIMEOUT / RETRY / CIRCUIT_BREAKER / LOAD_BALANCE 策略的**类型化视图**（沿用其既有 key 名与默认值），而非新机制；仅 CACHE 为新增能力 |
+| S3 | **已实施** | `@EgonServiceMeta` / `LoadBalance` / `FailStrategy` / `@EgonHttpService`；三个 RPC 注解扩展，既有字段与默认值零改动 |
+| S4 | **已实施（形态调整）** | `MetadataResolver`（注解无关、含来源层级）+ `AnnotationValidationReport`。未按原文改写既有 contributor 上报链路 |
+| S5 | **未实施** | 按 E1/E2 须改为"扩展既有子系统"，范围与原文差异较大，需重新拆解 |
+| S6 | **未实施** | — |
+| S7 | **未实施** | — |
+
+已知遗留：`GatewayRuntimeOperation` 仍不携带 `parameters`（上报模型 `GatewayInterfaceDefinitionReport.Parameter`
+有，运行时模型丢弃），Admin 因此无法据运行时规则生成接口测试表单。这是 §6.1 接口测试功能的前置依赖。
+
+---
+
+以下为原设计正文，**内容未修改**，请对照上方勘误阅读。
+
+---
 
 编写日期：2026-07-26
 
