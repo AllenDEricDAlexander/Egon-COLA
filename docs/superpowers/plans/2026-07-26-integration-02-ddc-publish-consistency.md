@@ -231,7 +231,7 @@ Use Redisson/Redis CRC16 implementation or a deterministic test helper that hono
 egon-cola-component-dynamic-config-center-starter,\
 egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am test \
-  -Dtest=DdcKeysTest,DdcRedisClusterSlotContractTest
+  -Dtest=DdcKeysTest,DdcRedisClusterSlotContractTest \
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
