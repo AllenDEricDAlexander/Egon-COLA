@@ -26,7 +26,7 @@ public final class ShardingTopologyValidator {
         }
         ShardingNodeMap nodeMap = parseNodeMap(properties.routing());
         Set<String> expectedLogicalNames = new LinkedHashSet<>();
-        expectedLogicalNames.add("single");
+        expectedLogicalNames.add("master_data");
         nodeMap.nodes().values().stream()
                 .map(ShardingNodeMap.PhysicalNode::database)
                 .forEach(expectedLogicalNames::add);
@@ -57,7 +57,6 @@ public final class ShardingTopologyValidator {
     private static ShardingNodeMap parseNodeMap(
             ShardingDataSourceProperties.ShardingRoutingProperties routing) {
         Properties values = new Properties();
-        values.setProperty("mapping-version", Integer.toString(routing.mappingVersion()));
         values.setProperty("node-count", Integer.toString(routing.nodeCount()));
         if (routing.nodeMap() != null) {
             values.setProperty("node-map", routing.nodeMap());
@@ -152,14 +151,15 @@ public final class ShardingTopologyValidator {
             throw new IllegalArgumentException("ShardingSphere rule content must not be empty");
         }
         String content = new String(yaml, StandardCharsets.UTF_8);
+        if (content.contains("!SINGLE") || content.contains("defaultDataSource")) {
+            throw new IllegalArgumentException(
+                    "!SINGLE and defaultDataSource are not allowed; use none strategies");
+        }
         String shardingRule = uniqueRuleSection(content, "!SHARDING");
-        String singleRule = uniqueRuleSection(content, "!SINGLE");
-        requireTwice(shardingRule, "mapping-version", routing.mappingVersion());
         requireTwice(shardingRule, "node-count", routing.nodeCount());
         requireTwice(shardingRule, "node-map", routing.nodeMap());
         validateDataSourceRules(content, sourcesByLogicalName);
         validateActualDataNodes(shardingRule, nodeMap);
-        validateSingleRule(singleRule);
     }
 
     private static String uniqueRuleSection(String content, String ruleName) {
@@ -308,11 +308,40 @@ public final class ShardingTopologyValidator {
         Set<Integer> expectedTableSuffixes = nodeMap.nodes().values().stream()
                 .map(ShardingNodeMap.PhysicalNode::tableSuffix)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        Map<String, String> tableRules = parseShardingTableRules(shardingRule);
-        tableRules.forEach((logicalTable, expression) -> {
+        Map<String, TableRule> tableRules = parseShardingTableRules(shardingRule);
+        boolean shardedTablePresent = false;
+        for (Map.Entry<String, TableRule> entry : tableRules.entrySet()) {
+            String logicalTable = entry.getKey();
+            TableRule tableRule = entry.getValue();
+            String expression = tableRule.actualDataNodes();
             String[] segments = expression.split("\\.public\\.", 2);
-            if (segments.length != 2
-                    || !expectedDatabases.equals(expandNames(segments[0]))
+            if (segments.length != 2) {
+                throw new IllegalArgumentException(
+                        "actualDataNodes do not match stable node map: " + expression);
+            }
+
+            if (segments[0].equals("master_data")) {
+                if (!segments[1].equals(logicalTable)) {
+                    throw new IllegalArgumentException(
+                            "master-data physical table must match logical table: "
+                                    + logicalTable);
+                }
+                if (tableRule.databaseStrategy() != Strategy.NONE
+                        || tableRule.tableStrategy() != Strategy.NONE) {
+                    throw new IllegalArgumentException(
+                            "master-data table must use databaseStrategy.none and "
+                                    + "tableStrategy.none: " + logicalTable);
+                }
+                if (tableRule.shardingAuditRequired()) {
+                    throw new IllegalArgumentException(
+                            "master-data none table must not require sharding audit: "
+                                    + logicalTable);
+                }
+                continue;
+            }
+
+            shardedTablePresent = true;
+            if (!expectedDatabases.equals(expandNames(segments[0]))
                     || !expectedTableSuffixes.equals(expandNumericSuffixes(segments[1]))) {
                 throw new IllegalArgumentException(
                         "actualDataNodes do not match stable node map: " + expression);
@@ -322,13 +351,29 @@ public final class ShardingTopologyValidator {
                         "actualDataNodes physical table must match logical table: "
                                 + logicalTable);
             }
-        });
+            if (tableRule.databaseStrategy() != Strategy.STANDARD
+                    || tableRule.tableStrategy() != Strategy.STANDARD) {
+                throw new IllegalArgumentException(
+                        "sharded table must use standard database and table strategies: "
+                                + logicalTable);
+            }
+            if (!tableRule.shardingAuditRequired()) {
+                throw new IllegalArgumentException(
+                        "sharded table must declare DML sharding audit: " + logicalTable);
+            }
+            if (tableRule.hintDisableAllowed()) {
+                throw new IllegalArgumentException(
+                        "sharded table allowHintDisable must be false: " + logicalTable);
+            }
+        }
+        if (shardedTablePresent) {
+            validateDmlAuditor(shardingRule);
+        }
     }
 
-    private static Map<String, String> parseShardingTableRules(String shardingRule) {
-        Map<String, String> result = new LinkedHashMap<>();
-        Set<String> declaredTables = new LinkedHashSet<>();
-        String currentTable = null;
+    private static Map<String, TableRule> parseShardingTableRules(String shardingRule) {
+        Map<String, List<String>> blocks = new LinkedHashMap<>();
+        List<String> currentBlock = null;
         boolean insideTables = false;
         for (String line : shardingRule.lines().toList()) {
             String value = line.strip();
@@ -341,33 +386,106 @@ public final class ShardingTopologyValidator {
                 break;
             }
             if (insideTables && indentation == 6 && value.endsWith(":")) {
-                if (currentTable != null && !result.containsKey(currentTable)) {
+                String table = value.substring(0, value.length() - 1);
+                if (!table.matches("[a-zA-Z0-9_]+") || blocks.containsKey(table)) {
                     throw new IllegalArgumentException(
-                            "SHARDING logical table must define actualDataNodes: "
-                                    + currentTable);
+                            "invalid or duplicate SHARDING logical table: " + table);
                 }
-                currentTable = value.substring(0, value.length() - 1);
-                if (!currentTable.matches("[a-zA-Z0-9_]+")
-                        || !declaredTables.add(currentTable)) {
-                    throw new IllegalArgumentException(
-                            "invalid or duplicate SHARDING logical table: " + currentTable);
-                }
-            } else if (insideTables
-                    && currentTable != null
-                    && indentation == 8
-                    && value.startsWith("actualDataNodes:")) {
-                result.put(currentTable, scalar(value));
+                currentBlock = new java.util.ArrayList<>();
+                blocks.put(table, currentBlock);
+            } else if (insideTables && currentBlock != null) {
+                currentBlock.add(line);
             }
         }
-        if (currentTable != null && !result.containsKey(currentTable)) {
-            throw new IllegalArgumentException(
-                    "SHARDING logical table must define actualDataNodes: " + currentTable);
-        }
-        if (result.isEmpty()) {
+        if (blocks.isEmpty()) {
             throw new IllegalArgumentException(
                     "SHARDING rules must define actualDataNodes by logical table");
         }
-        return result;
+        return blocks.entrySet().stream().collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> parseTableRule(entry.getKey(), entry.getValue()),
+                (left, right) -> left,
+                LinkedHashMap::new));
+    }
+
+    private static TableRule parseTableRule(String table, List<String> lines) {
+        List<String> actualDataNodes = lines.stream()
+                .map(String::strip)
+                .filter(line -> line.startsWith("actualDataNodes:"))
+                .map(ShardingTopologyValidator::scalar)
+                .toList();
+        if (actualDataNodes.size() != 1) {
+            throw new IllegalArgumentException(
+                    "SHARDING logical table must define one actualDataNodes: " + table);
+        }
+        Strategy databaseStrategy = parseStrategy(lines, "databaseStrategy", table);
+        Strategy tableStrategy = parseStrategy(lines, "tableStrategy", table);
+        boolean auditRequired = lines.stream()
+                .map(String::strip)
+                .anyMatch("- sharding_key_required_auditor"::equals);
+        List<String> allowHintDisable = lines.stream()
+                .map(String::strip)
+                .filter(line -> line.startsWith("allowHintDisable:"))
+                .map(ShardingTopologyValidator::scalar)
+                .toList();
+        if (auditRequired && allowHintDisable.size() != 1) {
+            throw new IllegalArgumentException(
+                    "sharded table audit must declare allowHintDisable: " + table);
+        }
+        if (allowHintDisable.size() > 1
+                || (!allowHintDisable.isEmpty()
+                        && !Set.of("true", "false").contains(allowHintDisable.getFirst()))) {
+            throw new IllegalArgumentException(
+                    "allowHintDisable must be one boolean: " + table);
+        }
+        boolean hintDisableAllowed = !allowHintDisable.isEmpty()
+                && Boolean.parseBoolean(allowHintDisable.getFirst());
+        return new TableRule(
+                actualDataNodes.getFirst(),
+                databaseStrategy,
+                tableStrategy,
+                auditRequired,
+                hintDisableAllowed);
+    }
+
+    private static Strategy parseStrategy(
+            List<String> lines,
+            String strategyName,
+            String table) {
+        for (int index = 0; index < lines.size(); index++) {
+            String line = lines.get(index);
+            if (indentation(line) == 8 && line.strip().equals(strategyName + ":")) {
+                for (int nested = index + 1; nested < lines.size(); nested++) {
+                    String nestedLine = lines.get(nested);
+                    if (nestedLine.isBlank()) {
+                        continue;
+                    }
+                    if (indentation(nestedLine) != 10) {
+                        break;
+                    }
+                    return switch (nestedLine.strip()) {
+                        case "none:" -> Strategy.NONE;
+                        case "standard:" -> Strategy.STANDARD;
+                        default -> throw new IllegalArgumentException(
+                                "unsupported " + strategyName + " for table " + table);
+                    };
+                }
+            }
+        }
+        throw new IllegalArgumentException(
+                "table must declare " + strategyName + ": " + table);
+    }
+
+    private static void validateDmlAuditor(String shardingRule) {
+        long auditorTypes = shardingRule.lines()
+                .map(String::strip)
+                .filter("type: DML_SHARDING_CONDITIONS"::equals)
+                .count();
+        if (!shardingRule.contains("sharding_key_required_auditor:")
+                || auditorTypes != 1) {
+            throw new IllegalArgumentException(
+                    "sharded tables require one DML_SHARDING_CONDITIONS auditor");
+        }
     }
 
     private static String physicalTableBaseName(String expression) {
@@ -389,40 +507,6 @@ public final class ShardingTopologyValidator {
                     "actualDataNodes table must end with a numeric suffix: " + expression);
         }
         return expression.substring(0, separator);
-    }
-
-    private static void validateSingleRule(String singleRule) {
-        if (!"single".equals(uniqueScalar(singleRule, "defaultDataSource"))) {
-            throw new IllegalArgumentException(
-                    "SINGLE defaultDataSource must reference logical group single");
-        }
-        Set<String> tables = new LinkedHashSet<>();
-        boolean insideTables = false;
-        for (String line : singleRule.lines().toList()) {
-            String value = line.strip();
-            int indentation = indentation(line);
-            if (indentation == 4 && value.equals("tables:")) {
-                insideTables = true;
-                continue;
-            }
-            if (insideTables && indentation <= 4 && !value.isEmpty()) {
-                break;
-            }
-            if (insideTables && indentation == 6 && value.startsWith("- ")) {
-                String table = value.substring(2).trim();
-                if (!table.matches("single\\.public\\.[a-zA-Z0-9_]+")) {
-                    throw new IllegalArgumentException(
-                            "SINGLE table must reference the single logical data source: "
-                                    + table);
-                }
-                if (!tables.add(table)) {
-                    throw new IllegalArgumentException("duplicate SINGLE table: " + table);
-                }
-            }
-        }
-        if (tables.isEmpty()) {
-            throw new IllegalArgumentException("SINGLE rule must define tables");
-        }
     }
 
     private static Set<String> expandNames(String expression) {
@@ -475,19 +559,6 @@ public final class ShardingTopologyValidator {
         }
     }
 
-    private static String uniqueScalar(String content, String name) {
-        List<String> values = content.lines()
-                .map(String::strip)
-                .filter(line -> line.startsWith(name + ":"))
-                .map(ShardingTopologyValidator::scalar)
-                .toList();
-        if (values.size() != 1) {
-            throw new IllegalArgumentException(
-                    "rule must define exactly one " + name);
-        }
-        return values.getFirst();
-    }
-
     private static void requireTwice(String content, String name, Object expectedValue) {
         String expected = name + ": " + expectedValue;
         long occurrences = content.lines()
@@ -502,6 +573,19 @@ public final class ShardingTopologyValidator {
 
     private static int indentation(String line) {
         return line.length() - line.stripLeading().length();
+    }
+
+    private record TableRule(
+            String actualDataNodes,
+            Strategy databaseStrategy,
+            Strategy tableStrategy,
+            boolean shardingAuditRequired,
+            boolean hintDisableAllowed) {
+    }
+
+    private enum Strategy {
+        NONE,
+        STANDARD
     }
 
     private record ReadwriteGroup(

@@ -7,6 +7,8 @@ import ${package}.domain.user.vos.RoleCode;
 import ${package}.infrastructure.user.repo.converter.UserPOConverter;
 import ${package}.infrastructure.user.repo.impl.UserRepositoryImpl;
 import ${package}.infrastructure.user.repo.jpa.UserRoleJpaRepository;
+import ${package}.infrastructure.user.repo.jpa.RoleJpaRepository;
+import ${package}.infrastructure.user.repo.po.RolePO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -18,15 +20,15 @@ import org.springframework.test.context.ContextConfiguration;
 import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
     "spring.datasource.url=jdbc:h2:mem:user-repository;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
-    "spring.flyway.enabled=true",
-    "spring.flyway.locations=classpath:db/migration/default",
-    "spring.jpa.hibernate.ddl-auto=validate"
+    "spring.flyway.enabled=false",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @Import({UserRepositoryImpl.class, UserPOConverter.class, UuidV7Generator.class})
 @ContextConfiguration(classes = UserRepositoryImplTest.TestConfiguration.class)
@@ -36,9 +38,17 @@ class UserRepositoryImplTest {
     private UserRepositoryImpl repository;
     @Autowired
     private UserRoleJpaRepository userRoleJpaRepository;
+    @Autowired
+    private RoleJpaRepository roleJpaRepository;
 
     @Test
     void savesAndRestoresNormalizedUser() {
+        roleJpaRepository.save(new RolePO(
+            new UuidV7Generator().nextId(),
+            "STUDENT",
+            "Student",
+            "ACTIVE",
+            LocalDateTime.now()));
         User saved = repository.save(
             new User(
                     new UserId(new UuidV7Generator().nextId()),

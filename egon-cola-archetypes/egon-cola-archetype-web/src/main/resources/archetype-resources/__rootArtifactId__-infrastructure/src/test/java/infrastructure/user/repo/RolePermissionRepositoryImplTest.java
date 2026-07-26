@@ -6,6 +6,9 @@ import ${package}.domain.user.entities.Permission;
 import ${package}.domain.user.entities.Role;
 import ${package}.domain.user.entities.User;
 import ${package}.domain.user.enums.UserStatus;
+import ${package}.domain.user.enums.PermissionStatus;
+import ${package}.domain.user.enums.PermissionType;
+import ${package}.domain.user.enums.RoleStatus;
 import ${package}.domain.user.repos.PermissionRepository;
 import ${package}.domain.user.repos.RoleRepository;
 import ${package}.domain.user.repos.UserRepository;
@@ -36,9 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
     "spring.datasource.url=jdbc:h2:mem:role-permission-repository;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
-    "spring.flyway.enabled=true",
-    "spring.flyway.locations=classpath:db/migration/default",
-    "spring.jpa.hibernate.ddl-auto=validate"
+    "spring.flyway.enabled=false",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @Import({UserRepositoryImpl.class, RoleRepositoryImpl.class, PermissionRepositoryImpl.class,
     UserPOConverter.class, RolePOConverter.class, PermissionPOConverter.class,
@@ -53,11 +55,18 @@ class RolePermissionRepositoryImplTest {
 
     @Test
     void persistsRoleAssignmentAndPermissionGrantRelations() {
+        UuidV7Generator idGenerator = new UuidV7Generator();
         String userId = new UuidV7Generator().nextId();
         User user = userRepository.save(new User(
             new UserId(userId), "Mario", "role@example.com", UserStatus.ACTIVE, List.of()));
-        Role role = roleRepository.findByCode(new RoleCode("STUDENT")).orElseThrow();
-        Permission permission = permissionRepository.findByCode(new PermissionCode("CLASS_READ")).orElseThrow();
+        Role role = roleRepository.save(new Role(
+            idGenerator.nextId(), new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE));
+        Permission permission = permissionRepository.save(new Permission(
+            idGenerator.nextId(),
+            new PermissionCode("CLASS_READ"),
+            "Read school class",
+            PermissionType.API,
+            PermissionStatus.ACTIVE));
 
         UserAggregate userAggregate = new UserAggregate(user);
         userAggregate.assignRole(role);

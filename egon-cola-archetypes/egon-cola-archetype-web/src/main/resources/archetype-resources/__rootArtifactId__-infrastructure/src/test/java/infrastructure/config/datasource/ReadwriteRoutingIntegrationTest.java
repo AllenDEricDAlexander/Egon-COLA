@@ -2,6 +2,7 @@
 package ${package}.infrastructure.config.datasource;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.zaxxer.hikari.HikariDataSource;
 import java.lang.reflect.Field;
@@ -20,29 +21,39 @@ import org.apache.shardingsphere.driver.api.yaml.YamlShardingSphereDataSourceFac
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
 import org.apache.shardingsphere.mode.manager.ContextManager;
+import org.apache.shardingsphere.sharding.exception.audit.DMLWithoutShardingKeyException;
 import org.junit.jupiter.api.Test;
 
 class ReadwriteRoutingIntegrationTest {
 
     @Test
-    void shouldRouteQueriesAndWritesAccordingToTransactionBoundary() throws Exception {
-        DataSource primary = dataSource("organization-routing-primary");
-        DataSource replica = dataSource("organization-routing-replica");
-        initializeRouteProbe(primary, "primary");
-        initializeRouteProbe(replica, "replica");
+    void shouldKeepNoneTableOnMasterDataAndHonorTransactionReadRouting() throws Exception {
+        Map<String, DataSource> physical = new LinkedHashMap<>();
+        physical.put("master_data_primary", dataSource("organization-routing-master-primary"));
+        physical.put("master_data_replica_0", dataSource("organization-routing-master-replica"));
+        physical.put("shard_0_primary", dataSource("organization-routing-shard-0-primary"));
+        physical.put("shard_0_replica_0", dataSource("organization-routing-shard-0-replica"));
+        physical.put("shard_1_primary", dataSource("organization-routing-shard-1-primary"));
+        physical.put("shard_1_replica_0", dataSource("organization-routing-shard-1-replica"));
+        initializeUsers(physical.get("master_data_primary"), "primary");
+        initializeUsers(physical.get("master_data_replica_0"), "replica");
 
         DataSource logical = YamlShardingSphereDataSourceFactory.createDataSource(
-                Map.of("single_primary", primary, "single_replica_0", replica),
+                physical,
                 readwriteRule());
         try {
-            registerTables(logical, "organization_route_probe", routeProbeTable());
+            registerTables(logical, "organization_route_probe", usersTable());
 
             assertThat(queryMarker(logical)).isEqualTo("replica");
 
-            execute(logical, "INSERT INTO route_probe(id, marker) VALUES (2, 'write')");
-            assertThat(queryCount(primary, "SELECT COUNT(*) FROM route_probe WHERE id = 2"))
+            execute(logical, "INSERT INTO users(id, marker) VALUES (2, 'write')");
+            assertThat(queryCount(
+                    physical.get("master_data_primary"),
+                    "SELECT COUNT(*) FROM users WHERE id = 2"))
                     .isOne();
-            assertThat(queryCount(replica, "SELECT COUNT(*) FROM route_probe WHERE id = 2"))
+            assertThat(queryCount(
+                    physical.get("master_data_replica_0"),
+                    "SELECT COUNT(*) FROM users WHERE id = 2"))
                     .isZero();
 
             try (Connection connection = logical.getConnection()) {
@@ -50,6 +61,33 @@ class ReadwriteRoutingIntegrationTest {
                 assertThat(queryMarker(connection)).isEqualTo("primary");
                 connection.rollback();
             }
+        } finally {
+            close(logical);
+        }
+    }
+
+    @Test
+    void shouldRejectShardedUpdateWithoutShardingCondition() throws Exception {
+        Map<String, DataSource> physical = new LinkedHashMap<>();
+        physical.put("shard_0", dataSource("organization-audit-shard-0"));
+        physical.put("shard_1", dataSource("organization-audit-shard-1"));
+        physical.values().forEach(ReadwriteRoutingIntegrationTest::initializeClassTables);
+
+        DataSource logical = YamlShardingSphereDataSourceFactory.createDataSource(
+                physical, classShardingRule());
+        try {
+            registerTables(
+                    logical,
+                    "organization_local_tx",
+                    schoolClassTable(),
+                    schoolClassUserTable());
+
+                    assertThatThrownBy(() -> execute(
+                            logical,
+                            "UPDATE school_classes SET id = id"))
+                    .isInstanceOf(DMLWithoutShardingKeyException.class)
+                    .satisfies(failure -> assertThat(failure.getMessage())
+                            .containsIgnoringCase("sharding"));
         } finally {
             close(logical);
         }
@@ -64,9 +102,9 @@ class ReadwriteRoutingIntegrationTest {
 
         DataSource logical = YamlShardingSphereDataSourceFactory.createDataSource(
                 physical, classShardingRule());
-        String gradeId = "019ba346-0000-7000-8000-000000000201";
-        String schoolClassId = "019ba346-0000-7000-8000-000000000202";
-        String membershipId = "019ba346-0000-7000-8000-000000000203";
+        String gradeId = "019ba346-0000-7000-8000-000000000101";
+        String schoolClassId = "019ba346-0000-7000-8000-000000000102";
+        String membershipId = "019ba346-0000-7000-8000-000000000103";
         try {
             registerTables(
                     logical,
@@ -103,13 +141,13 @@ class ReadwriteRoutingIntegrationTest {
         return dataSource;
     }
 
-    private static void initializeRouteProbe(DataSource dataSource, String marker) {
+    private static void initializeUsers(DataSource dataSource, String marker) {
         executeUnchecked(
                 dataSource,
-                "CREATE TABLE route_probe(id INTEGER PRIMARY KEY, marker VARCHAR(32))");
+                "CREATE TABLE users(id INTEGER PRIMARY KEY, marker VARCHAR(32))");
         executeUnchecked(
                 dataSource,
-                "INSERT INTO route_probe(id, marker) VALUES (1, '" + marker + "')");
+                "INSERT INTO users(id, marker) VALUES (1, '" + marker + "')");
     }
 
     private static void initializeClassTables(DataSource dataSource) {
@@ -146,9 +184,9 @@ class ReadwriteRoutingIntegrationTest {
         }
     }
 
-    private static ShardingSphereTable routeProbeTable() {
+    private static ShardingSphereTable usersTable() {
         return table(
-                "route_probe",
+                "users",
                 column("id", Types.INTEGER, true, false),
                 column("marker", Types.VARCHAR, false, true));
     }
@@ -226,7 +264,7 @@ class ReadwriteRoutingIntegrationTest {
     private static String queryMarker(Connection connection) throws SQLException {
         try (var statement = connection.createStatement();
                 ResultSet result = statement.executeQuery(
-                        "SELECT marker FROM route_probe WHERE id = 1")) {
+                        "SELECT marker FROM users WHERE id = 1")) {
             assertThat(result.next()).isTrue();
             return result.getString(1);
         }
@@ -267,19 +305,35 @@ class ReadwriteRoutingIntegrationTest {
                 rules:
                   - !READWRITE_SPLITTING
                     dataSourceGroups:
-                      single:
-                        writeDataSourceName: single_primary
+                      master_data:
+                        writeDataSourceName: master_data_primary
                         readDataSourceNames:
-                          - single_replica_0
+                          - master_data_replica_0
+                        transactionalReadQueryStrategy: PRIMARY
+                        loadBalancerName: round_robin
+                      shard_0:
+                        writeDataSourceName: shard_0_primary
+                        readDataSourceNames:
+                          - shard_0_replica_0
+                        transactionalReadQueryStrategy: PRIMARY
+                        loadBalancerName: round_robin
+                      shard_1:
+                        writeDataSourceName: shard_1_primary
+                        readDataSourceNames:
+                          - shard_1_replica_0
                         transactionalReadQueryStrategy: PRIMARY
                         loadBalancerName: round_robin
                     loadBalancers:
                       round_robin:
                         type: ROUND_ROBIN
-                  - !SINGLE
+                  - !SHARDING
                     tables:
-                      - single.route_probe
-                    defaultDataSource: single
+                      users:
+                        actualDataNodes: master_data.users
+                        databaseStrategy:
+                          none:
+                        tableStrategy:
+                          none:
                 props:
                   sql-show: false
                 """.getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -301,6 +355,10 @@ class ReadwriteRoutingIntegrationTest {
                           standard:
                             shardingColumn: grade_id
                             shardingAlgorithmName: uuid_v7_table_bucket
+                        auditStrategy:
+                          auditorNames:
+                            - sharding_key_required_auditor
+                          allowHintDisable: false
                       school_class_users:
                         actualDataNodes: shard_$->{0..1}.school_class_users_$->{0..1}
                         databaseStrategy:
@@ -311,6 +369,10 @@ class ReadwriteRoutingIntegrationTest {
                           standard:
                             shardingColumn: grade_id
                             shardingAlgorithmName: uuid_v7_table_bucket
+                        auditStrategy:
+                          auditorNames:
+                            - sharding_key_required_auditor
+                          allowHintDisable: false
                     bindingTables:
                       - school_classes,school_class_users
                     shardingAlgorithms:
@@ -320,7 +382,6 @@ class ReadwriteRoutingIntegrationTest {
                           strategy: STANDARD
                           algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
                           target: database
-                          mapping-version: 1
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
                       uuid_v7_table_bucket:
@@ -329,9 +390,11 @@ class ReadwriteRoutingIntegrationTest {
                           strategy: STANDARD
                           algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
                           target: table
-                          mapping-version: 1
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
+                    auditors:
+                      sharding_key_required_auditor:
+                        type: DML_SHARDING_CONDITIONS
                 props:
                   sql-show: false
                 """.getBytes(java.nio.charset.StandardCharsets.UTF_8);

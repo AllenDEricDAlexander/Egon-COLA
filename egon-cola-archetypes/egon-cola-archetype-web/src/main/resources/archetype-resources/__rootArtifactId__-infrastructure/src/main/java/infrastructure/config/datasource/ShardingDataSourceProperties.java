@@ -42,7 +42,6 @@ public record ShardingDataSourceProperties(
     }
 
     public record ShardingRoutingProperties(
-            int mappingVersion,
             int nodeCount,
             String nodeMap) {
     }

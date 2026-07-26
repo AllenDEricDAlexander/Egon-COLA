@@ -418,9 +418,8 @@ def requiredFiles = [
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserPO.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/UserRolePO.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/po/package-info.java",
-    "student-management-organization-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_organization_default_schema.sql",
-    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/single/V20260724_002__init_organization_single_schema.sql",
-    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/shard/V20260724_003__init_organization_sharding_schema.sql",
+    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_organization_master_data_schema.sql",
+    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_organization_sharded_schema.sql",
     "student-management-organization-infrastructure/src/test/java/it/pkg/.gitkeep",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/OrganizationCacheTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/OrganizationFlywayMigrationTest.java",
@@ -574,6 +573,7 @@ def assertPortableDockerfile = { jarFile, exposedPorts, readinessPort ->
     assert text.contains("ARG APP_UID=10001")
     assert text.contains("ARG APP_GID=10001")
     assert text.contains("org.opencontainers.image.build.engine")
+    assert text.contains("APP_DATASOURCE_MODE=SHARDING")
     assert text.contains("USER app")
     assert text.contains("EXPOSE ${exposedPorts}")
     assert text.contains("http://127.0.0.1:${readinessPort}/actuator/health/readiness")
@@ -821,11 +821,15 @@ assert productionEnv.contains("IMAGE_TAG=")
 assert developmentEnv.contains("IMAGE_NAME=student-management-organization")
 assert developmentEnv.contains("POSTGRES_DB=student_management_organization")
 assert developmentEnv.contains("APPLICATION_PORT=8080")
+assert developmentEnv.contains("POSTGRES_MASTER_DATA_PORT=5432")
+assert developmentEnv.contains("POSTGRES_SHARD_0_PORT=5433")
+assert developmentEnv.contains("POSTGRES_SHARD_1_PORT=5434")
 assert developmentEnv.contains("EVALUATION_FACADE_ENABLED=false")
 assert productionEnv.readLines().contains("EVALUATION_FACADE_ENABLED=")
 def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
-    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+    ["application:", "postgres-master-data:", "postgres-shard-0:",
+     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
      "healthcheck:", "networks:", "volumes:", "application_logs:"].each { token ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
@@ -834,9 +838,12 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("context: ../..")
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
-    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert text.contains('APP_DATASOURCE_MODE: "SHARDING"')
     assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
-    assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
+    assert text.contains('ORGANIZATION_SHARDING_MASTER_DATA_URL: jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}')
+    assert text.contains('ORGANIZATION_SHARDING_SHARD_0_URL: jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}')
+    assert text.contains('ORGANIZATION_SHARDING_SHARD_1_URL: jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}')
+    assert !text.contains("DB_URL:")
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
     assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
     assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
@@ -860,7 +867,8 @@ developmentComposeFiles.each { fileName, engine ->
 }
 def assertProductionCompose = { fileName, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
-    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+    ["application:", "postgres-master-data:", "postgres-shard-0:",
+     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
      "healthcheck:", "networks:", "volumes:", "application_logs:",
      "read_only: true", "tmpfs:", "mem_limit:", "cpus:",
      "restart: unless-stopped"].each { token ->
@@ -869,10 +877,14 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
-    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert text.contains('APP_DATASOURCE_MODE: "SHARDING"')
     assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
+    assert text.contains('ORGANIZATION_SHARDING_MASTER_DATA_URL: jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}')
+    assert text.contains('ORGANIZATION_SHARDING_SHARD_0_URL: jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}')
+    assert text.contains('ORGANIZATION_SHARDING_SHARD_1_URL: jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}')
+    assert !text.contains("DB_URL:")
     assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
     assert text.contains('${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}')
     assert text.contains('${NACOS_AUTH_TOKEN:?Set NACOS_AUTH_TOKEN}')
@@ -1184,11 +1196,15 @@ def webBootstrapDevYaml = assertFile("student-management-organization-starter/sr
 def webBootstrapProdYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-prod.yml").text
 def webApplicationTestYaml = assertFile("student-management-organization-starter/src/main/resources/application-test.yml").text
 def webBootstrapTestYaml = assertFile("student-management-organization-starter/src/main/resources/bootstrap-test.yml").text
-assert webApplicationDevYaml.contains('password: ${DB_PASSWORD:ENC(')
-assert webApplicationProdYaml.contains('password: ${DB_PASSWORD:ENC(')
+assert !webApplicationDevYaml.contains("\n  datasource:")
+assert !webApplicationDevYaml.contains("\n  flyway:")
+assert !webApplicationProdYaml.contains("\n  datasource:")
+assert !webApplicationProdYaml.contains("\n  flyway:")
 assert webBootstrapDevYaml.contains('password: ${NACOS_PASSWORD:ENC(')
 assert webBootstrapProdYaml.contains('password: ${NACOS_PASSWORD:ENC(')
-assert webApplicationTestYaml.contains('password: ${DB_PASSWORD:}')
+assert !webApplicationTestYaml.contains("\n  datasource:")
+assert !webApplicationTestYaml.contains("\n  flyway:")
+assert webApplicationTestYaml.contains("ddl-auto: none")
 assert !webBootstrapTestYaml.contains('ENC(')
 assert webApplicationTestYaml.contains("evaluation:\n      enabled: false")
 assert webApplicationDevYaml.contains('EVALUATION_FACADE_ENABLED:true')
@@ -1431,7 +1447,7 @@ assertFile("student-management-organization-application/src/main/java/it/pkg/app
 assertFile("student-management-organization-application/src/main/java/it/pkg/application/teaching/manage/GradeManage.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/user/UserClientImpl.java")
 assertMissing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/client/impl/teaching/SchoolClassClientImpl.java")
-assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_organization_default_schema.sql")
+assertFile("student-management-organization-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_organization_master_data_schema.sql")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/UserController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/RoleController.java")
 assertFile("student-management-organization-adapter/src/main/java/it/pkg/adapter/user/controller/PermissionController.java")
@@ -1567,11 +1583,12 @@ def migrationFiles = []
 migrationDir.traverse(type: FileType.FILES) { file ->
     if (file.name.endsWith(".sql")) migrationFiles << file
 }
-assert migrationFiles.size() == 3
-assert migrationFiles*.name.sort() == [
-    "V20260724_001__init_organization_default_schema.sql",
-    "V20260724_002__init_organization_single_schema.sql",
-    "V20260724_003__init_organization_sharding_schema.sql"
+assert migrationFiles.size() == 2
+assert migrationFiles.collect {
+    migrationDir.toPath().relativize(it.toPath()).toString().replace(File.separator, "/")
+}.sort() == [
+    "sharding/master-data/V20260726_001__init_organization_master_data_schema.sql",
+    "sharding/shard/V20260726_002__init_organization_sharded_schema.sql"
 ]
 migrationFiles.each {
     assert it.text.startsWith("-- 变更内容：")
@@ -1581,53 +1598,80 @@ migrationFiles.each {
 assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/V1__init_student_management_organization.sql")
 assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/V2__complete_organization_domains.sql")
 assertMissing("student-management-organization-infrastructure/src/test/resources/db/migration")
+assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/default")
+assertMissing("student-management-organization-infrastructure/src/main/resources/db/migration/sharding/single")
+def masterDataMigration = assertFile(
+    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_organization_master_data_schema.sql").text
+def shardMigration = assertFile(
+    "student-management-organization-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_organization_sharded_schema.sql").text
+assert masterDataMigration.contains("CREATE TABLE users")
+assert masterDataMigration.contains("CREATE TABLE grades")
+assert !masterDataMigration.contains("CREATE TABLE school_classes")
+assert shardMigration.contains("CREATE TABLE school_classes_0")
+assert shardMigration.contains("CREATE TABLE school_class_users_0")
 
 def shardingApplication = assertFile(
     "student-management-organization-starter/src/main/resources/datasource/sharding.yml").text
 def organizationApplication = assertFile(
     "student-management-organization-starter/src/main/resources/application.yml").text
-assert organizationApplication.contains('mode: ${APP_DATASOURCE_MODE:SINGLE}')
-assert shardingApplication.contains(
-        'mapping-version: ${ORGANIZATION_SHARDING_MAPPING_VERSION:1}')
+assert organizationApplication.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
+assert !shardingApplication.contains("mapping-version")
 assert shardingApplication.contains('node-count: ${ORGANIZATION_SHARDING_NODE_COUNT:4}')
 assert shardingApplication.contains(
         'node-map: ${ORGANIZATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
-assert shardingApplication.contains("classpath:db/migration/sharding/single")
+assert shardingApplication.contains("ORGANIZATION_SHARDING_MASTER_DATA_URL")
+assert shardingApplication.contains("classpath:db/migration/sharding/master-data")
 assert shardingApplication.contains("classpath:db/migration/sharding/shard")
 def shardingRule = assertFile(
     "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
 assert shardingRule.contains("shardingColumn: grade_id")
 assert shardingRule.contains("school_classes,school_class_users")
-assert shardingRule.contains("single.public.grades")
+assert shardingRule.contains("master_data.public.grades")
+assert shardingRule.count("none:") == 12
+assert shardingRule.count("auditStrategy:") == 2
+assert shardingRule.count("allowHintDisable: false") == 2
+assert shardingRule.contains("DML_SHARDING_CONDITIONS")
+assert !shardingRule.contains("!SINGLE")
 assert shardingRule.count("node-map:") == 2
 def readwriteRule = assertFile(
     "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
 assert readwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
 assert readwriteRule.contains("school_classes,school_class_users")
+assert readwriteRule.contains("master_data_primary")
+assert readwriteRule.contains("master_data_replica_0")
+assert readwriteRule.count("auditStrategy:") == 2
+assert !readwriteRule.contains("!SINGLE")
 assertMissing("student-management-organization-common/src/main/java/it/pkg/common/utils/IdGenerator.java")
 assertNoJavaText("student-management-organization-application/src/main/java", "@Transactional(readOnly = true)")
 [
     "student-management-organization-application/src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/DataSourceModeProperties.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategy.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigrator.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceBootstrapper.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceModeCondition.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoader.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMap.java",
-    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidator.java",
     "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithm.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategyTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
-    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
     "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
 ].each { assertFile(it) }
+[
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategy.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceModeCondition.java",
+    "student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidator.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategyTest.java",
+    "student-management-organization-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java"
+].each { assertMissing(it) }
 assertMissing("student-management-organization-starter/src/main/resources/application-sharding.yml")
 assertMissing("student-management-organization-starter/src/main/resources/application-readwrite.yml")
+assertMissing("student-management-organization-starter/src/main/resources/application-local.yml")
+assertMissing("student-management-organization-starter/src/main/resources/bootstrap-local.yml")
+def starterApplication = assertFile(
+    "student-management-organization-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
+assert starterApplication.contains("exclude = FlywayAutoConfiguration.class")
 
 def readme = assertFile("README.md").text
 assert readme.contains("Student Management Organization")
@@ -1650,13 +1694,13 @@ assert readme.contains("Evaluation Facade")
     "APP_DATASOURCE_MODE=SHARDING_READWRITE",
     "school_class_users",
     "grade_id",
-    "primary targets",
+    "physical primary",
     "36-character RFC",
     "VyyyyMMdd_NNN__description.sql",
-    "mapping-version: 1",
-    "N` to `2N",
-    "local transactions within one physical database",
-    "online dual writes, CDC, or automatic data movement"
+    "DML_SHARDING_CONDITIONS",
+    "double one dimension from `N` to `2N`",
+    "Only local transactions within one physical database",
+    "no historical data"
 ].each { assert readme.contains(it) }
 def webReadmeZh = assertFile("README.zh-CN.md").text
 [
@@ -1664,9 +1708,10 @@ def webReadmeZh = assertFile("README.zh-CN.md").text
     "grade_id",
     "36 位 RFC 字符串",
     "VyyyyMMdd_NNN__description.sql",
-    "单次只允许从 `N` 扩成",
-    "一个物理库内的本地事务",
-    "不包含在线双写、CDC 或自动搬数"
+    "DML_SHARDING_CONDITIONS",
+    "调整为 `2N`",
+    "事务只允许覆盖一个物理库",
+    "没有历史数据"
 ].each { assert webReadmeZh.contains(it) }
 assert !readme.contains("adapter/controller/user")
 assert !readme.contains("application/manage/teaching")

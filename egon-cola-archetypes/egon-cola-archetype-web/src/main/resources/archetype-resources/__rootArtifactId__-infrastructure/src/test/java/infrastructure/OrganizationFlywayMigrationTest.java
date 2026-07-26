@@ -14,15 +14,17 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 class OrganizationFlywayMigrationTest {
 
     @Test
-    void migratesFreshDefaultSchema() throws Exception {
-        DataSource dataSource = TestDataSources.h2PostgreSqlMode("organization-default");
+    void migratesFreshMasterDataSchemaWithoutShardedTables() throws Exception {
+        DataSource dataSource = TestDataSources.h2PostgreSqlMode("organization-master-data");
 
-        migrate(dataSource, "classpath:db/migration/default");
+        migrate(dataSource, "classpath:db/migration/sharding/master-data");
 
         try (Connection connection = dataSource.getConnection()) {
             assertThat(existingTables(connection)).contains(
                 "users", "roles", "permissions", "user_roles", "role_permissions",
-                "grades", "school_classes", "school_class_users", "flyway_schema_history");
+                "grades", "flyway_schema_history");
+            assertThat(existingTables(connection))
+                .doesNotContain("school_classes", "school_class_users");
             assertThat(count(connection, "roles")).isEqualTo(1);
             assertThat(count(connection, "permissions")).isEqualTo(1);
             assertUuidV7(singleValue(connection, "SELECT id FROM roles"));
@@ -31,22 +33,7 @@ class OrganizationFlywayMigrationTest {
     }
 
     @Test
-    void migratesFreshSingleSchemaWithoutShardedTables() throws Exception {
-        DataSource dataSource = TestDataSources.h2PostgreSqlMode("organization-single");
-
-        migrate(dataSource, "classpath:db/migration/sharding/single");
-
-        try (Connection connection = dataSource.getConnection()) {
-            assertThat(existingTables(connection)).contains(
-                "users", "roles", "permissions", "user_roles", "role_permissions",
-                "grades", "flyway_schema_history");
-            assertThat(existingTables(connection))
-                .doesNotContain("school_classes", "school_class_users");
-        }
-    }
-
-    @Test
-    void migratesFreshShardSchemaWithoutSingleTables() throws Exception {
+    void migratesFreshShardSchemaWithoutMasterDataTables() throws Exception {
         DataSource dataSource = TestDataSources.h2PostgreSqlMode("organization-shard");
 
         migrate(dataSource, "classpath:db/migration/sharding/shard");

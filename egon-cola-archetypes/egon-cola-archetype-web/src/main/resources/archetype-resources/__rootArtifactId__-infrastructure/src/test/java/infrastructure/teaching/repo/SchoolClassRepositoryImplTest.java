@@ -31,9 +31,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
-    "spring.flyway.enabled=true",
-    "spring.flyway.locations=classpath:db/migration/default",
-    "spring.jpa.hibernate.ddl-auto=validate",
+    "spring.flyway.enabled=false",
+    "spring.jpa.hibernate.ddl-auto=create-drop",
     "spring.jpa.properties.hibernate.session_factory.statement_inspector="
         + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector"
 })

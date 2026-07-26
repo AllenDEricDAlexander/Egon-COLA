@@ -4,10 +4,10 @@ databaseName: organization
 rules:
   - !READWRITE_SPLITTING
     dataSourceGroups:
-      single:
-        writeDataSourceName: single_primary
+      master_data:
+        writeDataSourceName: master_data_primary
         readDataSourceNames:
-          - single_replica_0
+          - master_data_replica_0
         transactionalReadQueryStrategy: PRIMARY
         loadBalancerName: round_robin
       shard_0:
@@ -28,6 +28,42 @@ rules:
 
   - !SHARDING
     tables:
+      users:
+        actualDataNodes: master_data.public.users
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      roles:
+        actualDataNodes: master_data.public.roles
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      permissions:
+        actualDataNodes: master_data.public.permissions
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      user_roles:
+        actualDataNodes: master_data.public.user_roles
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      role_permissions:
+        actualDataNodes: master_data.public.role_permissions
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      grades:
+        actualDataNodes: master_data.public.grades
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
       school_classes:
         actualDataNodes: shard_${symbol_dollar}->{0..1}.public.school_classes_${symbol_dollar}->{0..1}
         databaseStrategy:
@@ -38,6 +74,10 @@ rules:
           standard:
             shardingColumn: grade_id
             shardingAlgorithmName: uuid_v7_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
       school_class_users:
         actualDataNodes: shard_${symbol_dollar}->{0..1}.public.school_class_users_${symbol_dollar}->{0..1}
         databaseStrategy:
@@ -48,6 +88,10 @@ rules:
           standard:
             shardingColumn: grade_id
             shardingAlgorithmName: uuid_v7_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
     bindingTables:
       - school_classes,school_class_users
     shardingAlgorithms:
@@ -57,7 +101,6 @@ rules:
           strategy: STANDARD
           algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
           target: database
-          mapping-version: ${symbol_dollar}{app.sharding.routing.mapping-version}
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}
       uuid_v7_table_bucket:
@@ -66,19 +109,11 @@ rules:
           strategy: STANDARD
           algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
           target: table
-          mapping-version: ${symbol_dollar}{app.sharding.routing.mapping-version}
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}
-
-  - !SINGLE
-    tables:
-      - single.public.users
-      - single.public.roles
-      - single.public.permissions
-      - single.public.user_roles
-      - single.public.role_permissions
-      - single.public.grades
-    defaultDataSource: single
+    auditors:
+      sharding_key_required_auditor:
+        type: DML_SHARDING_CONDITIONS
 
 props:
   proxy-frontend-database-protocol-type: PostgreSQL

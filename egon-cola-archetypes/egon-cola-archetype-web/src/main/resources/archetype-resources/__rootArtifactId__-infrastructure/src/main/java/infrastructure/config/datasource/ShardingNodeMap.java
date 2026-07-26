@@ -14,14 +14,10 @@ import java.util.UUID;
  * Immutable stable-slot mapping used by UUIDv7 sharding.
  */
 public record ShardingNodeMap(
-        int mappingVersion,
         int nodeCount,
         Map<Integer, PhysicalNode> nodes) {
 
     public ShardingNodeMap {
-        if (mappingVersion < 1) {
-            throw new IllegalArgumentException("mapping version must be positive");
-        }
         if (nodeCount < 2 || !isPowerOfTwo(nodeCount)) {
             throw new IllegalArgumentException("node count must be a power of two and at least 2");
         }
@@ -47,13 +43,11 @@ public record ShardingNodeMap(
             throw new IllegalArgumentException("sharding properties must not be null");
         }
         return parse(
-                properties.getProperty("mapping-version"),
                 properties.getProperty("node-count"),
                 properties.getProperty("node-map"));
     }
 
-    static ShardingNodeMap parse(String mappingVersion, String nodeCount, String nodeMap) {
-        int parsedMappingVersion = parseInteger(mappingVersion, "mapping version");
+    static ShardingNodeMap parse(String nodeCount, String nodeMap) {
         int parsedNodeCount = parseInteger(nodeCount, "node count");
         if (nodeMap == null || nodeMap.isBlank()) {
             throw new IllegalArgumentException("node map must not be blank");
@@ -80,7 +74,7 @@ public record ShardingNodeMap(
                 throw new IllegalArgumentException("node map slots must be unique");
             }
         }
-        return new ShardingNodeMap(parsedMappingVersion, parsedNodeCount, nodes);
+        return new ShardingNodeMap(parsedNodeCount, nodes);
     }
 
     public PhysicalNode route(String shardingKey) {

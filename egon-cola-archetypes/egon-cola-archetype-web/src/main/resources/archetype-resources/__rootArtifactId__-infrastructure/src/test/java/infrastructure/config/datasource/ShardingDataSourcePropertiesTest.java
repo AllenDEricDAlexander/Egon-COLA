@@ -14,28 +14,27 @@ class ShardingDataSourcePropertiesTest {
     void shouldBindPhysicalDataSourcesRoutingAndFlywayTargets() {
         Map<String, Object> values = Map.ofEntries(
                 Map.entry("app.sharding.config", "classpath:sharding/rules.yml"),
-                Map.entry("app.sharding.routing.mapping-version", "1"),
                 Map.entry("app.sharding.routing.node-count", "4"),
                 Map.entry(
                         "app.sharding.routing.node-map",
                         "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1"),
-                Map.entry("app.sharding.physical-data-sources[0].name", "single"),
-                Map.entry("app.sharding.physical-data-sources[0].logical-name", "single"),
+                Map.entry("app.sharding.physical-data-sources[0].name", "master_data"),
+                Map.entry("app.sharding.physical-data-sources[0].logical-name", "master_data"),
                 Map.entry("app.sharding.physical-data-sources[0].role", "PRIMARY"),
                 Map.entry(
                         "app.sharding.physical-data-sources[0].driver-class-name",
                         "org.h2.Driver"),
                 Map.entry(
                         "app.sharding.physical-data-sources[0].jdbc-url",
-                        "jdbc:h2:mem:single"),
+                        "jdbc:h2:mem:master-data"),
                 Map.entry("app.sharding.physical-data-sources[0].username", "sa"),
                 Map.entry("app.sharding.physical-data-sources[0].password", "secret"),
                 Map.entry(
                         "app.sharding.flyway.targets[0].data-source-name",
-                        "single"),
+                        "master_data"),
                 Map.entry(
                         "app.sharding.flyway.targets[0].locations[0]",
-                        "classpath:db/migration/sharding/single"));
+                        "classpath:db/migration/sharding/master-data"));
 
         ShardingDataSourceProperties properties = new Binder(
                         new MapConfigurationPropertySource(values))
@@ -46,13 +45,13 @@ class ShardingDataSourcePropertiesTest {
         assertThat(properties.routing().nodeCount()).isEqualTo(4);
         assertThat(properties.physicalDataSources()).singleElement()
                 .satisfies(dataSource -> {
-                    assertThat(dataSource.name()).isEqualTo("single");
+                    assertThat(dataSource.name()).isEqualTo("master_data");
                     assertThat(dataSource.role())
                             .isEqualTo(ShardingDataSourceProperties.DataSourceRole.PRIMARY);
                     assertThat(dataSource.toString()).doesNotContain("secret");
                 });
         assertThat(properties.flyway().targets()).singleElement()
                 .satisfies(target -> assertThat(target.locations())
-                        .containsExactly("classpath:db/migration/sharding/single"));
+                        .containsExactly("classpath:db/migration/sharding/master-data"));
     }
 }

@@ -23,21 +23,21 @@ class PhysicalDataSourceFlywayMigratorTest {
         Map<String, DataSource> dataSources = new LinkedHashMap<>();
         dataSources.put("shard_1_replica_0", mock(DataSource.class));
         dataSources.put("shard_1_primary", mock(DataSource.class));
-        dataSources.put("single_replica_0", mock(DataSource.class));
-        dataSources.put("single_primary", mock(DataSource.class));
+        dataSources.put("master_data_replica_0", mock(DataSource.class));
+        dataSources.put("master_data_primary", mock(DataSource.class));
         dataSources.put("shard_0_replica_0", mock(DataSource.class));
         dataSources.put("shard_0_primary", mock(DataSource.class));
 
         migrator.migrate(
                 dataSources,
                 List.of(
-                        target("single_primary"),
+                        target("master_data_primary"),
                         target("shard_1_primary"),
                         target("shard_0_primary")),
                 new FlywayProperties());
 
         assertThat(migrated).containsExactly(
-                "shard_0_primary", "shard_1_primary", "single_primary");
+                "master_data_primary", "shard_0_primary", "shard_1_primary");
     }
 
     @Test
@@ -54,18 +54,18 @@ class PhysicalDataSourceFlywayMigratorTest {
         Map<String, DataSource> dataSources = Map.of(
                 "shard_0", mock(DataSource.class),
                 "shard_1", mock(DataSource.class),
-                "single", mock(DataSource.class));
+                "master_data", mock(DataSource.class));
 
         assertThatThrownBy(() -> migrator.migrate(
                         dataSources,
-                        List.of(target("single"), target("shard_1"), target("shard_0")),
+                        List.of(target("master_data"), target("shard_1"), target("shard_0")),
                         new FlywayProperties()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("shard_1")
                 .hasMessageContaining("classpath:db/shard_1")
                 .hasMessageNotContaining("password")
                 .satisfies(failure -> assertThat(failure.getCause()).isSameAs(rootCause));
-        assertThat(migrated).containsExactly("shard_0", "shard_1");
+        assertThat(migrated).containsExactly("master_data", "shard_0", "shard_1");
     }
 
     @Test
@@ -78,8 +78,8 @@ class PhysicalDataSourceFlywayMigratorTest {
         properties.setEnabled(false);
 
         migrator.migrate(
-                Map.of("single", mock(DataSource.class)),
-                List.of(target("single")),
+                Map.of("master_data", mock(DataSource.class)),
+                List.of(target("master_data")),
                 properties);
 
         assertThat(migrated).isEmpty();

@@ -25,9 +25,8 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
-    "spring.flyway.enabled=true",
-    "spring.flyway.locations=classpath:db/migration/default",
-    "spring.jpa.hibernate.ddl-auto=validate"
+    "spring.flyway.enabled=false",
+    "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @Import({GradeRepositoryImpl.class, GradePOConverter.class, GradePOMapperImpl.class})
 @ContextConfiguration(classes = GradeRepositoryImplTest.TestConfiguration.class)
