@@ -50,6 +50,8 @@ public final class GatewayReleasePublicationCoordinator {
 
     private final GatewayReleasePublicationStore journal;
 
+    private final GatewayReleaseStore releases;
+
     private final DdcManagementClient client;
 
     private final GatewayDdcRulePublisher publisher;
@@ -60,15 +62,26 @@ public final class GatewayReleasePublicationCoordinator {
 
     public GatewayReleasePublicationCoordinator(
             GatewayReleasePublicationStore journal,
+            GatewayReleaseStore releases,
             DdcManagementClient client,
             GatewayDdcRulePublisher publisher,
             Clock clock,
             Duration timeout) {
         this.journal = Objects.requireNonNull(journal, "journal");
+        this.releases = Objects.requireNonNull(releases, "releases");
         this.client = Objects.requireNonNull(client, "client");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.timeout = positive(timeout);
+    }
+
+    public PublicationOutcome resume(String releaseId, int attemptNo) {
+        return execute(
+                releaseId,
+                attemptNo,
+                releases.loadCompiled(releaseId),
+                "gateway_release_reconciler"
+        );
     }
 
     public PublicationOutcome execute(
@@ -81,11 +94,14 @@ public final class GatewayReleasePublicationCoordinator {
         Scope scope = scope(compiled);
         List<GatewayReleasePublicationStore.PublicationRecord> operations =
                 initialize(releaseId, attemptNo, compiled);
-        publisher.ensureReadyTarget(
-                scope.appCode(),
-                scope.env(),
-                scope.namespace()
-        );
+        if (operations.stream().anyMatch(operation ->
+                operation.status() != SUCCESS)) {
+            publisher.ensureReadyTarget(
+                    scope.appCode(),
+                    scope.env(),
+                    scope.namespace()
+            );
+        }
         int successfulPhases = 0;
         DdcManagementPublishResult latestResult = null;
         for (GatewayReleasePublicationStore.PublicationRecord original

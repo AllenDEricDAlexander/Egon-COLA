@@ -1,6 +1,8 @@
 package top.egon.cola.component.gateway.admin.application.release;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.client.DdcManagementClientException;
 import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;
@@ -38,6 +40,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static top.egon.cola.component.gateway.admin.application.release
         .GatewayReleasePublicationStore.PublicationStatus.FAILED;
 import static top.egon.cola.component.gateway.admin.application.release
@@ -67,7 +71,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 coordinator.execute(
                         "release-1",
                         1,
-                        compiledWithChunks(),
+                        compiledWithChunks(2),
                         "admin"
                 );
 
@@ -175,22 +179,60 @@ class GatewayReleasePublicationCoordinatorTest {
     }
 
     @Test
-    void unknownWithoutRemoteTaskRepublishesTheSameOperation() {
+    void resumeCompletesReleaseAfterJournalSuccessWithoutAReadyTarget() {
         InMemoryPublicationStore journal = new InMemoryPublicationStore();
         RecordingClient client = new RecordingClient(journal);
-        client.failBeforeTask = true;
         CompiledGatewayRelease compiled = compiledInline();
+        coordinator(journal, client).execute(
+                "release-inline",
+                1,
+                compiled,
+                "admin"
+        );
+        GatewayReleaseStore releases = mock(GatewayReleaseStore.class);
+        when(releases.loadCompiled("release-inline")).thenReturn(compiled);
+        client.ready = false;
+        GatewayReleasePublicationCoordinator resumedCoordinator =
+                new GatewayReleasePublicationCoordinator(
+                        journal,
+                        releases,
+                        client,
+                        new GatewayDdcRulePublisher(client),
+                        Clock.fixed(NOW, ZoneOffset.UTC),
+                        Duration.ofSeconds(30)
+                );
+
+        GatewayReleasePublicationCoordinator.PublicationOutcome outcome =
+                resumedCoordinator.resume("release-inline", 1);
+
+        assertThat(outcome.successful()).isTrue();
+        assertThat(client.publishRequests).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2, 3})
+    void crashAtEveryPhaseReusesIdentityAndSkipsCompletedPhases(
+            int crashPhase) {
+        InMemoryPublicationStore journal = new InMemoryPublicationStore();
+        RecordingClient client = new RecordingClient(journal);
+        client.failBeforeTaskAt = crashPhase;
+        CompiledGatewayRelease compiled = compiledWithChunks(3);
 
         GatewayReleasePublicationCoordinator.PublicationOutcome first =
                 coordinator(journal, client).execute(
-                        "release-inline",
+                        "release-1",
                         1,
                         compiled,
                         "admin"
                 );
+        List<String> identities = journal.findAttempt("release-1", 1)
+                .stream()
+                .map(GatewayReleasePublicationStore.PublicationRecord
+                        ::changeId)
+                .toList();
         GatewayReleasePublicationCoordinator.PublicationOutcome resumed =
                 coordinator(journal, client).execute(
-                        "release-inline",
+                        "release-1",
                         1,
                         compiled,
                         "admin"
@@ -200,12 +242,24 @@ class GatewayReleasePublicationCoordinatorTest {
                 .isEqualTo(GatewayReleasePublicationStore
                         .PublicationStatus.UNKNOWN);
         assertThat(resumed.successful()).isTrue();
+        assertThat(journal.insertCount).isEqualTo(1);
+        assertThat(journal.findAttempt("release-1", 1))
+                .extracting(GatewayReleasePublicationStore.PublicationRecord
+                        ::changeId)
+                .containsExactlyElementsOf(identities);
         assertThat(client.publishRequests)
-                .extracting(DdcManagementPublishRequest::changeId)
-                .containsExactly(
-                        client.publishRequests.getFirst().changeId(),
-                        client.publishRequests.getFirst().changeId()
-                );
+                .filteredOn(request -> request.changeId().equals(
+                        identities.get(crashPhase)
+                )).hasSize(2);
+        for (int phase = 0; phase < identities.size(); phase++) {
+            if (phase != crashPhase) {
+                String changeId = identities.get(phase);
+                assertThat(client.publishRequests)
+                        .filteredOn(request -> request.changeId().equals(
+                                changeId
+                        )).hasSize(1);
+            }
+        }
     }
 
     private GatewayReleasePublicationCoordinator coordinator(
@@ -213,6 +267,7 @@ class GatewayReleasePublicationCoordinatorTest {
             RecordingClient client) {
         return new GatewayReleasePublicationCoordinator(
                 journal,
+                mock(GatewayReleaseStore.class),
                 client,
                 new GatewayDdcRulePublisher(client),
                 Clock.fixed(NOW, ZoneOffset.UTC),
@@ -220,29 +275,27 @@ class GatewayReleasePublicationCoordinatorTest {
         );
     }
 
-    private CompiledGatewayRelease compiledWithChunks() {
+    private CompiledGatewayRelease compiledWithChunks(int chunkCount) {
         GatewayRuleContent content = content();
         GatewayRuleSnapshot snapshot = snapshot("release-1", content);
-        List<GatewayRuleChunkRef> chunks = List.of(
-                new GatewayRuleChunkRef(
-                        "gateway.rules.chunk.release-1.0",
-                        0,
-                        7,
-                        "1".repeat(64)
-                ),
-                new GatewayRuleChunkRef(
-                        "gateway.rules.chunk.release-1.1",
-                        1,
-                        7,
-                        "2".repeat(64)
-                )
-        );
+        List<GatewayRuleChunkRef> chunks = new ArrayList<>();
+        Map<String, String> chunkValues = new LinkedHashMap<>();
+        for (int index = 0; index < chunkCount; index++) {
+            String configKey = "gateway.rules.chunk.release-1." + index;
+            chunks.add(new GatewayRuleChunkRef(
+                    configKey,
+                    index,
+                    7,
+                    Integer.toString(index + 1).repeat(64)
+            ));
+            chunkValues.put(configKey, "chunk-" + index);
+        }
         GatewayRuleActivation activation = new GatewayRuleActivation(
                 "v1",
                 "release-1",
                 GatewayRuleActivationMode.CHUNKED,
                 "v1",
-                14,
+                chunkCount * 7,
                 "a".repeat(64),
                 "b".repeat(64),
                 null,
@@ -253,10 +306,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 "{}",
                 activation,
                 "{\"releaseId\":\"release-1\"}",
-                Map.of(
-                        "gateway.rules.chunk.release-1.0", "chunk-0",
-                        "gateway.rules.chunk.release-1.1", "chunk-1"
-                )
+                chunkValues
         );
     }
 
@@ -472,7 +522,11 @@ class GatewayReleasePublicationCoordinatorTest {
 
         private boolean loseResponse;
 
-        private boolean failBeforeTask;
+        private boolean ready = true;
+
+        private int failBeforeTaskAt = -1;
+
+        private int publishInvocation;
 
         private RecordingClient(InMemoryPublicationStore journal) {
             this.journal = journal;
@@ -517,8 +571,7 @@ class GatewayReleasePublicationCoordinatorTest {
             )).isNotEmpty();
             publishedKeys.add(request.configKey());
             publishRequests.add(request);
-            if (failBeforeTask) {
-                failBeforeTask = false;
+            if (publishInvocation++ == failBeforeTaskAt) {
                 throw new IllegalStateException("request not sent");
             }
             DdcManagementPublishStatus status = ddcStatus(
@@ -575,6 +628,9 @@ class GatewayReleasePublicationCoordinatorTest {
         @Override
         public List<DdcManagementConfigClientInstance> getConfigClients(
                 DdcManagementInstanceQuery query) {
+            if (!ready) {
+                return List.of();
+            }
             return List.of(new DdcManagementConfigClientInstance(
                     query.appCode(),
                     query.env(),

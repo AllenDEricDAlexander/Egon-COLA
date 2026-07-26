@@ -19,7 +19,7 @@ public interface GatewayReleaseStore {
 
     List<ReleaseRecord> history(String gatewayGroupId);
 
-    List<ReleaseRecord> recoverable();
+    List<RecoverableAttempt> recoverable();
 
     List<AttemptRecord> attempts(String releaseId);
 
@@ -82,6 +82,13 @@ public interface GatewayReleaseStore {
             String errorCode,
             String errorMessage,
             List<TargetRecord> targets
+    ) {
+    }
+
+    record RecoverableAttempt(
+            String releaseId,
+            String gatewayGroupId,
+            int attemptNo
     ) {
     }
 }

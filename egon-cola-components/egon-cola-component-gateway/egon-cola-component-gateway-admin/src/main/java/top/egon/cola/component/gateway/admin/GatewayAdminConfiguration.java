@@ -20,6 +20,7 @@ import top.egon.cola.component.gateway.admin.application.projection.GatewayProje
 import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
+import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventCodec;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventConsumerHandler;
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaCallEventConsumer;
@@ -98,12 +99,14 @@ public class GatewayAdminConfiguration {
     GatewayReleasePublicationCoordinator
             gatewayReleasePublicationCoordinator(
             GatewayReleasePublicationStore journal,
+            GatewayReleaseStore releases,
             DdcManagementClient client,
             GatewayDdcRulePublisher publisher,
             @Value("${gateway.admin.ddc.publish-timeout:PT30S}")
             Duration timeout) {
         return new GatewayReleasePublicationCoordinator(
                 journal,
+                releases,
                 client,
                 publisher,
                 Clock.systemUTC(),

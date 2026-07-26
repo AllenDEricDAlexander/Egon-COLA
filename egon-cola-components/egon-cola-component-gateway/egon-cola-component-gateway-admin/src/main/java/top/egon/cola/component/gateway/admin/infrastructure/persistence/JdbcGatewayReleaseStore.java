@@ -129,21 +129,30 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
     }
 
     @Override
-    public List<ReleaseRecord> recoverable() {
+    public List<RecoverableAttempt> recoverable() {
         return jdbc.query("""
-                SELECT id, gateway_group_id, draft_revision,
-                       based_on_release_id, rollback_of_release_id, status,
-                       partial_applied, change_id,
-                       validation_report::text AS validation_report,
-                       structured_diff::text AS structured_diff,
-                       change_reason, created_at, created_by, updated_at
-                  FROM gateway_release
-                 WHERE status IN (
-                       'PUBLISHING', 'TIMEOUT', 'UNKNOWN'
+                SELECT r.id AS release_id,
+                       r.gateway_group_id,
+                       p.attempt_no
+                  FROM gateway_release r
+                  JOIN gateway_release_publication p
+                    ON p.release_id = r.id
+                 WHERE r.status IN (
+                       'PUBLISHING', 'FAILED', 'TIMEOUT', 'UNKNOWN'
                  )
-                   AND change_id IS NOT NULL
-                 ORDER BY updated_at
-                """, (result, row) -> release(result));
+                   AND p.attempt_no = (
+                       SELECT MAX(candidate.attempt_no)
+                         FROM gateway_release_publication candidate
+                        WHERE candidate.release_id = r.id
+                   )
+                 GROUP BY r.id, r.gateway_group_id,
+                          p.attempt_no, r.updated_at
+                 ORDER BY r.updated_at
+                """, (result, row) -> new RecoverableAttempt(
+                result.getString("release_id"),
+                result.getString("gateway_group_id"),
+                result.getInt("attempt_no")
+        ));
     }
 
     @Override
