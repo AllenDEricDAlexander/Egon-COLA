@@ -1,17 +1,17 @@
 #set( $symbol_dollar = '$' )
-databaseName: evaluation
+databaseName: ${symbol_dollar}{app.sharding.database-name:${symbol_dollar}{EVALUATION_SHARDING_DATABASE_NAME:evaluation}}
 
 rules:
   - !SHARDING
     tables:
       course:
-        actualDataNodes: master_data.public.course
+        actualDataNodes: master_data.course
         databaseStrategy:
           none:
         tableStrategy:
           none:
       course_schedule:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.course_schedule_${symbol_dollar}->{0..1}
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.course_schedule_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
             shardingColumn: course_id
@@ -25,7 +25,7 @@ rules:
             - sharding_key_required_auditor
           allowHintDisable: false
       exam:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.exam_${symbol_dollar}->{0..1}
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.exam_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
             shardingColumn: id
@@ -39,7 +39,7 @@ rules:
             - sharding_key_required_auditor
           allowHintDisable: false
       exam_paper:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.exam_paper_${symbol_dollar}->{0..1}
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.exam_paper_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
             shardingColumn: exam_id
@@ -53,7 +53,7 @@ rules:
             - sharding_key_required_auditor
           allowHintDisable: false
       score:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.public.score_${symbol_dollar}->{0..1}
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.score_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
             shardingColumn: exam_id
@@ -92,5 +92,4 @@ rules:
         type: DML_SHARDING_CONDITIONS
 
 props:
-  proxy-frontend-database-protocol-type: PostgreSQL
   sql-show: ${symbol_dollar}{SHARDING_SQL_SHOW:false}

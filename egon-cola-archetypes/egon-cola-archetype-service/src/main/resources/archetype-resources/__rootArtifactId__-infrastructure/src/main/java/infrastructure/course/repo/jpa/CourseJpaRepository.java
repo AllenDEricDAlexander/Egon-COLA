@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface CourseJpaRepository extends JpaRepository<CoursePo, String> {
 
-    boolean existsByCode(String code);
+    long countByCode(String code);
 
     Optional<CoursePo> findByCode(String code);
 }

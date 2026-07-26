@@ -52,11 +52,11 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public boolean existsByEmail(String normalizedEmail) {
-        return userJpaRepository.existsByEmail(normalizedEmail);
+        return userJpaRepository.countByEmail(normalizedEmail) > 0;
     }
 
     private void saveRoleIfMissing(String userId, String roleId) {
-        if (!userRoleJpaRepository.existsByUserIdAndRoleId(userId, roleId)) {
+        if (userRoleJpaRepository.countByUserIdAndRoleId(userId, roleId) == 0) {
             userRoleJpaRepository.save(
                     new UserRolePO(idGenerator.nextId(), userId, roleId, LocalDateTime.now()));
         }

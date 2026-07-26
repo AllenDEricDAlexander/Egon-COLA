@@ -35,8 +35,14 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@DataJpaTest
-@ActiveProfiles({"test", "jpa-test"})
+@DataJpaTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:light-user-repository;"
+                + "MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
+        "app.test.jpa.enabled=true",
+        "spring.flyway.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
+@ActiveProfiles("test")
 @ContextConfiguration(classes = JpaTestApplication.class)
 @Import({
         UserRepositoryImpl.class,

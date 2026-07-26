@@ -88,6 +88,7 @@ class EvaluationDataSourceModeTest {
         String shardZeroUrl = h2Url(topology + "-shard-0");
         String shardOneUrl = h2Url(topology + "-shard-1");
         return Map.ofEntries(
+                Map.entry("app.sharding.database-name", "PUBLIC"),
                 Map.entry("EVALUATION_SHARDING_DRIVER_CLASS_NAME", "org.h2.Driver"),
                 Map.entry("EVALUATION_SHARDING_MASTER_DATA_URL", masterDataUrl),
                 Map.entry("EVALUATION_SHARDING_SHARD_0_URL", shardZeroUrl),
@@ -120,7 +121,7 @@ class EvaluationDataSourceModeTest {
 
     private static String h2Url(String database) {
         return "jdbc:h2:mem:" + database
-                + ";MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;"
+                + ";MODE=PostgreSQL;"
                 + "DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1";
     }
 }

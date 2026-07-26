@@ -17,26 +17,27 @@ app:
   datasource:
     mode: ${symbol_dollar}{APP_DATASOURCE_MODE:SHARDING}
   sharding:
+    database-name: PUBLIC
     physical-data-sources:
       - name: master_data
         logical-name: master_data
         role: PRIMARY
         driver-class-name: org.h2.Driver
-        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_MASTER_DATA_URL:jdbc:h2:mem:${rootArtifactId}-test-master-data;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_MASTER_DATA_URL:jdbc:h2:mem:${rootArtifactId}-test-master-data;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
         username: ${symbol_dollar}{EVALUATION_SHARDING_USERNAME:sa}
         password: "${symbol_dollar}{EVALUATION_SHARDING_PASSWORD:}"
       - name: shard_0
         logical-name: shard_0
         role: PRIMARY
         driver-class-name: org.h2.Driver
-        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_SHARD_0_URL:jdbc:h2:mem:${rootArtifactId}-test-shard-0;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_SHARD_0_URL:jdbc:h2:mem:${rootArtifactId}-test-shard-0;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
         username: ${symbol_dollar}{EVALUATION_SHARDING_USERNAME:sa}
         password: "${symbol_dollar}{EVALUATION_SHARDING_PASSWORD:}"
       - name: shard_1
         logical-name: shard_1
         role: PRIMARY
         driver-class-name: org.h2.Driver
-        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_SHARD_1_URL:jdbc:h2:mem:${rootArtifactId}-test-shard-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_SHARD_1_URL:jdbc:h2:mem:${rootArtifactId}-test-shard-1;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
         username: ${symbol_dollar}{EVALUATION_SHARDING_USERNAME:sa}
         password: "${symbol_dollar}{EVALUATION_SHARDING_PASSWORD:}"
     flyway:

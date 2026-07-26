@@ -41,7 +41,7 @@ public class ScoreRepositoryImpl implements ScoreRepository {
         return repository.findByExamIdAndId(examId.value(), id).map(converter::toDomain);
     }
     public boolean existsByExamIdAndStudentId(ExamId id, String studentId) {
-        return repository.existsByExamIdAndStudentId(id.value(), studentId);
+        return repository.countByExamIdAndStudentId(id.value(), studentId) > 0;
     }
     public Page<Score> findPageByExamId(ExamId id, int currentPage, int pageSize) {
         var pageable = PageRequest.of(Math.max(1, currentPage) - 1, pageSize,

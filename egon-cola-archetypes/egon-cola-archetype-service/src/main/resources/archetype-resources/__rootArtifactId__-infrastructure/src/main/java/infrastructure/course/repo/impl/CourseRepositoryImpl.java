@@ -78,7 +78,7 @@ public class CourseRepositoryImpl implements CourseRepository {
 
     @Override
     public boolean existsByCode(CourseCode courseCode) {
-        return courseJpaRepository.existsByCode(courseCode.value());
+        return courseJpaRepository.countByCode(courseCode.value()) > 0;
     }
 
 }

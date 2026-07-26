@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserJpaRepository extends JpaRepository<UserPO, String> {
 
-    boolean existsByEmail(String email);
+    long countByEmail(String email);
 }

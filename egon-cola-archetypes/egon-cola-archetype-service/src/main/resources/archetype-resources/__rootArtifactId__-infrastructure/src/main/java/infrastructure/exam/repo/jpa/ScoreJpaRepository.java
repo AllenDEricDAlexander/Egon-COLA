@@ -8,6 +8,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 public interface ScoreJpaRepository extends JpaRepository<ScorePo, String> {
     java.util.Optional<ScorePo> findByExamIdAndId(String examId, String id);
-    boolean existsByExamIdAndStudentId(String examId, String studentId);
+    long countByExamIdAndStudentId(String examId, String studentId);
     Page<ScorePo> findByExamId(String examId, Pageable pageable);
 }

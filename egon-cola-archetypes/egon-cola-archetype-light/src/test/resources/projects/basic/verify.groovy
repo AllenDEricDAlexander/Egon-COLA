@@ -160,6 +160,18 @@ def assertRuntimeConfigFiles = { resourcesDir ->
     ].each {
         assertFile("${resourcesDir}/${it}")
     }
+    def profileConfigNames = new File(generatedProjectDir, resourcesDir).listFiles()
+            .findAll { it.isFile() && it.name ==~ /(?:application|bootstrap)-.+\.yml/ }
+            .collect { it.name }
+            .sort()
+    assert profileConfigNames == [
+        "application-dev.yml",
+        "application-prod.yml",
+        "application-test.yml",
+        "bootstrap-dev.yml",
+        "bootstrap-prod.yml",
+        "bootstrap-test.yml"
+    ]: "Only dev, test and prod profile configuration files are allowed"
     assertMissing("${resourcesDir}/bootstrap-local.yml")
     assertMissing("${resourcesDir}/application-local.yml")
 }
@@ -544,10 +556,17 @@ assertEncryptedPasswordDefault("src/main/resources/bootstrap-dev.yml", "NACOS_PA
 assertEncryptedPasswordDefault("src/main/resources/bootstrap-prod.yml", "NACOS_PASSWORD")
 assert assertFile("src/main/resources/application-test.yml").text.contains(
         'password: "${LIGHT_SHARDING_PASSWORD:}"')
-assertFile("src/test/resources/application-jpa-test.yml")
+assertMissing("src/test/resources/application-jpa-test.yml")
+def jpaTestApplication = assertFile("src/test/java/it/pkg/infrastructure/JpaTestApplication.java").text
+assert jpaTestApplication.contains("@SpringBootConfiguration(proxyBeanMethods = false)")
+assert jpaTestApplication.contains(
+        '@ConditionalOnProperty(name = "app.test.jpa.enabled", havingValue = "true")')
+assert !jpaTestApplication.contains("@Profile")
 assert !assertFile("src/main/resources/bootstrap-test.yml").text.contains('ENC(')
 
 def testConfig = assertFile("src/main/resources/application-test.yml").text
+assert testConfig.contains("database-name: PUBLIC")
+assert !testConfig.contains("DATABASE_TO_LOWER")
 assert testConfig.contains("rabbitmq:\n      enabled: false")
 assert testConfig.contains("redis:\n      enabled: false")
 assert testConfig.contains("external-http:\n      enabled: false")
@@ -756,10 +775,14 @@ assert lightShardingApplication.contains(
 ].each { assert lightShardingApplication.contains(it) }
 def lightShardingRule = assertFile(
         "src/main/resources/sharding/shardingsphere-sharding.yml").text
+assert lightShardingRule.contains(
+        '${app.sharding.database-name:${LIGHT_SHARDING_DATABASE_NAME:student_management}}')
 assert lightShardingRule.contains("shardingColumn: id")
 assert lightShardingRule.contains("shardingColumn: school_class_id")
 assert lightShardingRule.contains("school_classes,class_course_schedules")
-assert lightShardingRule.contains("actualDataNodes: master_data.public.users")
+assert lightShardingRule.contains("actualDataNodes: master_data.users")
+assert !lightShardingRule.contains(".public.")
+assert !lightShardingRule.contains("proxy-frontend-database-protocol-type")
 assert lightShardingRule.count("none:") == 12
 assert lightShardingRule.contains("type: DML_SHARDING_CONDITIONS")
 assert lightShardingRule.contains("allowHintDisable: false")
@@ -767,10 +790,14 @@ assert !lightShardingRule.contains("!SINGLE")
 assert !lightShardingRule.contains("defaultDataSource")
 def lightReadwriteRule = assertFile(
         "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
+assert lightReadwriteRule.contains(
+        '${app.sharding.database-name:${LIGHT_SHARDING_DATABASE_NAME:student_management}}')
 assert lightReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
 assert lightReadwriteRule.contains("master_data_primary")
 assert lightReadwriteRule.contains("master_data_replica_0")
 assert lightReadwriteRule.contains("type: DML_SHARDING_CONDITIONS")
+assert !lightReadwriteRule.contains(".public.")
+assert !lightReadwriteRule.contains("proxy-frontend-database-protocol-type")
 assert !lightReadwriteRule.contains("!SINGLE")
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")

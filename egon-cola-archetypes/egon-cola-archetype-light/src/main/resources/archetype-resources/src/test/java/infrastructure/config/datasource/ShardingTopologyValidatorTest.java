@@ -91,6 +91,19 @@ class ShardingTopologyValidatorTest {
     }
 
     @Test
+    void shouldRejectSchemaQualifiedActualDataNodes() {
+        byte[] invalid = replace(
+                validYaml(),
+                "master_data.users",
+                "master_data.public.users");
+
+        assertThatThrownBy(() -> new ShardingTopologyValidator()
+                        .validate(validProperties(), invalid))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("actualDataNodes");
+    }
+
+    @Test
     void shouldRejectActualDataNodesWhosePhysicalTableDoesNotMatchLogicalTable() {
         byte[] invalid = replace(
                 validYaml(),
@@ -207,13 +220,13 @@ class ShardingTopologyValidatorTest {
                   - !SHARDING
                     tables:
                       users:
-                        actualDataNodes: master_data.public.users
+                        actualDataNodes: master_data.users
                         databaseStrategy:
                           none:
                         tableStrategy:
                           none:
                       sample:
-                        actualDataNodes: shard_$->{0..1}.public.sample_$->{0..1}
+                        actualDataNodes: shard_$->{0..1}.sample_$->{0..1}
                         databaseStrategy:
                           standard:
                             shardingColumn: id

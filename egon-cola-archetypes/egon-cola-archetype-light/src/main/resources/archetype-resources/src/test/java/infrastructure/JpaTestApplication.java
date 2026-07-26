@@ -1,13 +1,13 @@
 package ${package}.infrastructure;
 
-import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootConfiguration
-@Profile("jpa-test")
+@SpringBootConfiguration(proxyBeanMethods = false)
+@ConditionalOnProperty(name = "app.test.jpa.enabled", havingValue = "true")
 @EnableAutoConfiguration
 @EnableJpaRepositories(basePackages = {
         "${package}.infrastructure.user.repo.jpa",

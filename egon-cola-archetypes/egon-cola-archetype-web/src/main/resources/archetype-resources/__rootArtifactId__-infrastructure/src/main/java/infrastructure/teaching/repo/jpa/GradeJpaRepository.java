@@ -9,5 +9,5 @@ import java.util.Optional;
 @Repository("gradeJpaRepository")
 public interface GradeJpaRepository extends JpaRepository<GradePO, String> {
     Optional<GradePO> findByCode(String code);
-    boolean existsByCode(String code);
+    long countByCode(String code);
 }

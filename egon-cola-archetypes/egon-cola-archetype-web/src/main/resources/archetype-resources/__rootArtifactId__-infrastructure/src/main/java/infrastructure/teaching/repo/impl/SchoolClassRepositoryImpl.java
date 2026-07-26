@@ -57,7 +57,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     }
 
     @Override public boolean existsByGradeIdAndNameIgnoreCase(String gradeId, String name) {
-        return schoolClassJpaRepository.existsByGradeIdAndNameIgnoreCase(gradeId, name);
+        return schoolClassJpaRepository.countByGradeIdAndNameIgnoreCase(gradeId, name) > 0;
     }
 
     @Override
@@ -83,8 +83,8 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
             String gradeId,
             SchoolClassId schoolClassId,
             UserId userId) {
-        return schoolClassUserJpaRepository.existsByGradeIdAndSchoolClassIdAndUserId(
-            gradeId, schoolClassId.value(), userId.value());
+        return schoolClassUserJpaRepository.countByGradeIdAndSchoolClassIdAndUserId(
+            gradeId, schoolClassId.value(), userId.value()) > 0;
     }
 
     private SchoolClass restore(SchoolClassPO schoolClassPO) {

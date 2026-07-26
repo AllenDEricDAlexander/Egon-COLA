@@ -28,7 +28,7 @@ public class GradeRepositoryImpl implements GradeRepository {
     }
 
     @Override public boolean existsByCode(GradeCode code) {
-        return gradeJpaRepository.existsByCode(code.value());
+        return gradeJpaRepository.countByCode(code.value()) > 0;
     }
 
     @Override public Grade save(Grade grade) {

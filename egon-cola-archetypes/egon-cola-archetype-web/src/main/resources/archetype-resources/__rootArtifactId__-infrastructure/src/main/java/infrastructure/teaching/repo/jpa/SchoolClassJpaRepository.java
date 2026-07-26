@@ -8,5 +8,5 @@ import java.util.Optional;
 public interface SchoolClassJpaRepository extends JpaRepository<SchoolClassPO, String> {
     Optional<SchoolClassPO> findByGradeIdAndId(String gradeId, String id);
 
-    boolean existsByGradeIdAndNameIgnoreCase(String gradeId, String name);
+    long countByGradeIdAndNameIgnoreCase(String gradeId, String name);
 }

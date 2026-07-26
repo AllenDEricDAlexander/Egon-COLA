@@ -38,10 +38,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@DataJpaTest(properties =
+@DataJpaTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:light-school-class-repository;"
+                + "MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
+        "app.test.jpa.enabled=true",
+        "spring.flyway.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.properties.hibernate.session_factory.statement_inspector="
-                + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector")
-@ActiveProfiles({"test", "jpa-test"})
+                + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector"
+})
+@ActiveProfiles("test")
 @ContextConfiguration(classes = JpaTestApplication.class)
 @Import({
         SchoolClassRepositoryImpl.class,

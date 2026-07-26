@@ -503,6 +503,18 @@ def assertRuntimeConfigFiles = { resourcesDir ->
     ].each {
         assertFile("${resourcesDir}/${it}")
     }
+    def profileConfigNames = new File(projectDir, resourcesDir).listFiles()
+            .findAll { it.isFile() && it.name ==~ /(?:application|bootstrap)-.+\.yml/ }
+            .collect { it.name }
+            .sort()
+    assert profileConfigNames == [
+        "application-dev.yml",
+        "application-prod.yml",
+        "application-test.yml",
+        "bootstrap-dev.yml",
+        "bootstrap-prod.yml",
+        "bootstrap-test.yml"
+    ]: "Only dev, test and prod profile configuration files are allowed"
     assert !new File(projectDir, "${resourcesDir}/bootstrap-local.yml").exists()
     assert !new File(projectDir, "${resourcesDir}/application-local.yml").exists()
 }
@@ -1202,9 +1214,17 @@ assert !webApplicationProdYaml.contains("\n  datasource:")
 assert !webApplicationProdYaml.contains("\n  flyway:")
 assert webBootstrapDevYaml.contains('password: ${NACOS_PASSWORD:ENC(')
 assert webBootstrapProdYaml.contains('password: ${NACOS_PASSWORD:ENC(')
-assert !webApplicationTestYaml.contains("\n  datasource:")
-assert !webApplicationTestYaml.contains("\n  flyway:")
+assert !webApplicationTestYaml.contains("spring:\n  datasource:")
+assert webApplicationTestYaml.contains("\n  flyway:")
 assert webApplicationTestYaml.contains("ddl-auto: none")
+assert webApplicationTestYaml.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
+assert webApplicationTestYaml.contains("database-name: PUBLIC")
+assert !webApplicationTestYaml.contains("DATABASE_TO_LOWER")
+assert webApplicationTestYaml.contains("driver-class-name: org.h2.Driver")
+assert webApplicationTestYaml.contains('ORGANIZATION_SHARDING_MASTER_DATA_URL:jdbc:h2:mem:')
+assert webApplicationTestYaml.contains('password: "${ORGANIZATION_SHARDING_PASSWORD:}"')
+assert webApplicationTestYaml.contains("classpath:db/migration/sharding/master-data")
+assert webApplicationTestYaml.contains("classpath:db/migration/sharding/shard")
 assert !webBootstrapTestYaml.contains('ENC(')
 assert webApplicationTestYaml.contains("evaluation:\n      enabled: false")
 assert webApplicationDevYaml.contains('EVALUATION_FACADE_ENABLED:true')
@@ -1624,9 +1644,13 @@ assert shardingApplication.contains("classpath:db/migration/sharding/master-data
 assert shardingApplication.contains("classpath:db/migration/sharding/shard")
 def shardingRule = assertFile(
     "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
+assert shardingRule.contains(
+    '${app.sharding.database-name:${ORGANIZATION_SHARDING_DATABASE_NAME:organization}}')
 assert shardingRule.contains("shardingColumn: grade_id")
 assert shardingRule.contains("school_classes,school_class_users")
-assert shardingRule.contains("master_data.public.grades")
+assert shardingRule.contains("master_data.grades")
+assert !shardingRule.contains(".public.")
+assert !shardingRule.contains("proxy-frontend-database-protocol-type")
 assert shardingRule.count("none:") == 12
 assert shardingRule.count("auditStrategy:") == 2
 assert shardingRule.count("allowHintDisable: false") == 2
@@ -1635,11 +1659,15 @@ assert !shardingRule.contains("!SINGLE")
 assert shardingRule.count("node-map:") == 2
 def readwriteRule = assertFile(
     "student-management-organization-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
+assert readwriteRule.contains(
+    '${app.sharding.database-name:${ORGANIZATION_SHARDING_DATABASE_NAME:organization}}')
 assert readwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
 assert readwriteRule.contains("school_classes,school_class_users")
 assert readwriteRule.contains("master_data_primary")
 assert readwriteRule.contains("master_data_replica_0")
 assert readwriteRule.count("auditStrategy:") == 2
+assert !readwriteRule.contains(".public.")
+assert !readwriteRule.contains("proxy-frontend-database-protocol-type")
 assert !readwriteRule.contains("!SINGLE")
 assertMissing("student-management-organization-common/src/main/java/it/pkg/common/utils/IdGenerator.java")
 assertNoJavaText("student-management-organization-application/src/main/java", "@Transactional(readOnly = true)")

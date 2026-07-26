@@ -59,7 +59,7 @@ public class RoleRepositoryImpl implements RoleRepository {
     }
 
     private void saveRelationIfMissing(String roleId, String permissionId) {
-        if (!rolePermissionJpaRepository.existsByRoleIdAndPermissionId(roleId, permissionId)) {
+        if (rolePermissionJpaRepository.countByRoleIdAndPermissionId(roleId, permissionId) == 0) {
             rolePermissionJpaRepository.save(new RolePermissionPO(
                     idGenerator.nextId(), roleId, permissionId, LocalDateTime.now()));
         }

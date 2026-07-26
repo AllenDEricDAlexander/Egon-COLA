@@ -639,6 +639,8 @@ assertLoggingContract(
         "student-management-evaluation-starter/src/main/resources/application.yml")
 def testYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application-test.yml").text
+assert testYaml.contains("database-name: PUBLIC")
+assert !testYaml.contains("DATABASE_TO_LOWER")
 assert applicationYaml.contains("default: dev")
 assert applicationYaml.contains("shutdown: graceful")
 assert applicationYaml.contains("scheduling:")
@@ -671,6 +673,20 @@ assert tripleTest.contains("examReference.get().createExam")
 ].each { name ->
     assertFile("student-management-evaluation-starter/src/main/resources/${name}")
 }
+def serviceProfileConfigNames = new File(
+        projectDir,
+        "student-management-evaluation-starter/src/main/resources").listFiles()
+        .findAll { it.isFile() && it.name ==~ /(?:application|bootstrap)-.+\.yml/ }
+        .collect { it.name }
+        .sort()
+assert serviceProfileConfigNames == [
+    "application-dev.yml",
+    "application-prod.yml",
+    "application-test.yml",
+    "bootstrap-dev.yml",
+    "bootstrap-prod.yml",
+    "bootstrap-test.yml"
+]: "Only dev, test and prod profile configuration files are allowed"
 def serviceShardingApplication = assertFile(
         "student-management-evaluation-starter/src/main/resources/datasource/sharding.yml").text
 def serviceApplicationYaml = assertFile(
@@ -685,10 +701,14 @@ assert serviceShardingApplication.contains("classpath:db/migration/sharding/mast
 assert serviceShardingApplication.contains("classpath:db/migration/sharding/shard")
 def serviceShardingRule = assertFile(
         "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
+assert serviceShardingRule.contains(
+        '${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}')
 assert serviceShardingRule.contains("shardingColumn: course_id")
 assert serviceShardingRule.contains("shardingColumn: exam_id")
 assert serviceShardingRule.contains("exam,exam_paper,score")
-assert serviceShardingRule.contains("actualDataNodes: master_data.public.course")
+assert serviceShardingRule.contains("actualDataNodes: master_data.course")
+assert !serviceShardingRule.contains(".public.")
+assert !serviceShardingRule.contains("proxy-frontend-database-protocol-type")
 assert serviceShardingRule.count("none:") == 2
 assert serviceShardingRule.count("auditStrategy:") == 4
 assert serviceShardingRule.count("allowHintDisable: false") == 4
@@ -696,11 +716,15 @@ assert serviceShardingRule.contains("DML_SHARDING_CONDITIONS")
 assert !serviceShardingRule.contains("!SINGLE")
 def serviceReadwriteRule = assertFile(
         "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
+assert serviceReadwriteRule.contains(
+        '${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}')
 assert serviceReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
 assert serviceReadwriteRule.contains("exam,exam_paper,score")
 assert serviceReadwriteRule.contains("master_data_primary")
 assert serviceReadwriteRule.contains("master_data_replica_0")
 assert serviceReadwriteRule.count("auditStrategy:") == 4
+assert !serviceReadwriteRule.contains(".public.")
+assert !serviceReadwriteRule.contains("proxy-frontend-database-protocol-type")
 assert !serviceReadwriteRule.contains("!SINGLE")
 [
     "student-management-evaluation-application/src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",

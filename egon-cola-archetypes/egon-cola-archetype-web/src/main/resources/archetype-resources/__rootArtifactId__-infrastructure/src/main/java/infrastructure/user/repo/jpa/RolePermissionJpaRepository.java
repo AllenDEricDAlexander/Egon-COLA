@@ -8,5 +8,5 @@ import java.util.List;
 public interface RolePermissionJpaRepository extends JpaRepository<RolePermissionPO, String> {
     List<RolePermissionPO> findByRoleId(String roleId);
     List<RolePermissionPO> findByRoleIdIn(List<String> roleIds);
-    boolean existsByRoleIdAndPermissionId(String roleId, String permissionId);
+    long countByRoleIdAndPermissionId(String roleId, String permissionId);
 }

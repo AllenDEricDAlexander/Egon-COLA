@@ -10,7 +10,7 @@ public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassU
             String gradeId,
             String schoolClassId);
 
-    boolean existsByGradeIdAndSchoolClassIdAndUserId(
+    long countByGradeIdAndSchoolClassIdAndUserId(
             String gradeId,
             String schoolClassId,
             String userId);

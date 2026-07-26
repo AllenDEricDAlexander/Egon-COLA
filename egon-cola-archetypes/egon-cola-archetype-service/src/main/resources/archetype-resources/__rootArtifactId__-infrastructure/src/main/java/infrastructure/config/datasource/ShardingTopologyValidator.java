@@ -314,11 +314,7 @@ public final class ShardingTopologyValidator {
             String logicalTable = entry.getKey();
             TableRule tableRule = entry.getValue();
             String expression = tableRule.actualDataNodes();
-            String[] segments = expression.split("\\.public\\.", 2);
-            if (segments.length != 2) {
-                throw new IllegalArgumentException(
-                        "actualDataNodes do not match stable node map: " + expression);
-            }
+            String[] segments = splitActualDataNode(expression);
 
             if (segments[0].equals("master_data")) {
                 if (!segments[1].equals(logicalTable)) {
@@ -529,6 +525,35 @@ public final class ShardingTopologyValidator {
             values.add(matcher.group(1) + value);
         }
         return values;
+    }
+
+    private static String[] splitActualDataNode(String expression) {
+        int braceDepth = 0;
+        int separator = -1;
+        for (int index = 0; index < expression.length(); index++) {
+            char current = expression.charAt(index);
+            if (current == '{') {
+                braceDepth++;
+            } else if (current == '}') {
+                braceDepth--;
+                if (braceDepth < 0) {
+                    break;
+                }
+            } else if (current == '.' && braceDepth == 0) {
+                if (separator >= 0) {
+                    separator = -1;
+                    break;
+                }
+                separator = index;
+            }
+        }
+        if (braceDepth != 0 || separator <= 0 || separator == expression.length() - 1) {
+            throw new IllegalArgumentException(
+                    "actualDataNodes do not match stable node map: " + expression);
+        }
+        return new String[] {
+            expression.substring(0, separator), expression.substring(separator + 1)
+        };
     }
 
     private static Set<Integer> expandNumericSuffixes(String expression) {
