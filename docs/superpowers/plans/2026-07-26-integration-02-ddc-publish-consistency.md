@@ -105,9 +105,11 @@ git commit -m "feat: query exact ddc management config"
 - Create: `.../admin/src/main/resources/db/sqlite/V4__add_published_config_pointer.sql`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcConfigItemEntity.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcCacheService.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/migration/DdcV4MigrationTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV4MigrationTest.java`
 - Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcConfigServiceTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcCacheServiceTest.java`
 
 **Interfaces:**
 - Produces `DdcConfigItemEntity.publishedVersion`.
@@ -132,7 +134,9 @@ void pullReturnsPublishedVersionInsteadOfNewerDraft() {
 }
 ```
 
-Migration test upgrades V1-V3 data and asserts `published_version=current_version` for both dialects.
+Migration test executes a SQLite V1-V4 upgrade with existing data and asserts
+`published_version=current_version`. It also checks the PostgreSQL V4 contract; a real PostgreSQL migration run
+is required when Docker or an external PostgreSQL test endpoint is available.
 
 - [ ] **Step 2: Run tests and observe missing column/old pull behavior**
 
@@ -140,7 +144,8 @@ Migration test upgrades V1-V3 data and asserts `published_version=current_versio
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am test \
-  -Dtest=DdcV4MigrationTest,DdcConfigServiceTest
+  -Dtest=DdcV4MigrationTest,DdcConfigServiceTest,DdcCacheServiceTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 - [ ] **Step 3: Add both V4 files and published snapshot mapping**
@@ -162,7 +167,8 @@ update ddc_config_item set published_version = current_version;
 
 New configs initialize `current_version=1` and `published_version=NULL`. Pull skips a null published pointer,
 resolves non-null pointers through the immutable version row, and never reads a newer `config_value` as runtime
-state.
+state. Cache rebuild/check use the same published snapshot and do not leak draft values through an operations
+endpoint.
 
 - [ ] **Step 4: Run admin tests for both database profiles**
 
