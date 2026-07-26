@@ -27,8 +27,10 @@
 - Modify: `.../management-client/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`
 - Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacade.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`
 - Test: `.../management-client/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
 - Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiControllerTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacadeTest.java`
 
 **Interfaces:**
 - Produces `Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query)`.
@@ -58,7 +60,8 @@ Add a 404/empty response case that returns `Optional.empty()` and a validation c
 egon-cola-component-dynamic-config-center-management-client,\
 egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am test \
-  -Dtest=HttpDdcManagementClientTest,DdcManagementOpenApiControllerTest
+  -Dtest=HttpDdcManagementClientTest,DdcManagementOpenApiControllerTest,DdcManagementFacadeTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 Expected: missing method/endpoint failure.
@@ -78,7 +81,9 @@ public record DdcManagementConfigQuery(
 }
 ```
 
-The HTTP client catches only `DdcManagementClientException` with code `CONFIG_NOT_FOUND` and returns empty;
+`DdcConfigService` adds a repository-level exact lookup that preserves disabled/deleted management state; it
+must not reuse fuzzy list filtering or the runtime `value` method. The HTTP client catches only
+`DdcManagementClientException` with code `CONFIG_NOT_FOUND` and returns empty;
 authentication, `PUBLISH_TASK_NOT_FOUND`, signature and network failures propagate unchanged. The Admin facade
 uses the stable not-found codes instead of message matching.
 
