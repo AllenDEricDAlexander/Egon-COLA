@@ -62,10 +62,11 @@ nerdctl compose --env-file deploy/env/.env.example \
   --file deploy/compose/compose.nerdctl.yaml up -d --build
 ```
 
-The bundled Compose files intentionally set `APP_DATASOURCE_MODE=SINGLE` because
-they provision one PostgreSQL instance. Sharding modes require an external
-primary/replica topology and all variables declared by the selected
-`datasource/*.yml`; overriding only the mode is unsupported.
+The bundled Compose files set `APP_DATASOURCE_MODE=SHARDING` and provision three
+PostgreSQL primaries for `master_data`, `shard_0`, and `shard_1`. They do not
+emulate replicas. `SHARDING_READWRITE` is supported by the application when the
+deployment supplies every primary and replica endpoint declared in
+`datasource/sharding-readwrite.yml`.
 
 The example credentials are development-only.
 
@@ -89,7 +90,7 @@ log data. No generated helper performs that deletion automatically.
 
 ## Health And Failure Behavior
 
-PostgreSQL, Redis, RabbitMQ, Nacos, and the Spring Boot readiness endpoint have
+All three PostgreSQL primaries, Redis, RabbitMQ, Nacos, and the Spring Boot readiness endpoint have
 health checks. Missing production variables fail Compose configuration. An enabled
 but unavailable remote Facade retains the generated application's fail-fast
 behavior.

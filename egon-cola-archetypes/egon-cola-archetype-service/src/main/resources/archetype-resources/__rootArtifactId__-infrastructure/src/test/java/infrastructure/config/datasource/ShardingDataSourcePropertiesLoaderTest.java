@@ -14,28 +14,27 @@ class ShardingDataSourcePropertiesLoaderTest {
     void shouldBindOnlyTheTopologySelectedByMode() {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("app.sharding.config", "classpath:sharding/primary.yml");
-        values.put("app.sharding.routing.mapping-version", "1");
         values.put("app.sharding.routing.node-count", "4");
         values.put(
                 "app.sharding.routing.node-map",
                 "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1");
-        values.put("app.sharding.physical-data-sources[0].name", "single");
-        values.put("app.sharding.physical-data-sources[0].logical-name", "single");
+        values.put("app.sharding.physical-data-sources[0].name", "master_data");
+        values.put("app.sharding.physical-data-sources[0].logical-name", "master_data");
         values.put("app.sharding.physical-data-sources[0].role", "PRIMARY");
         values.put(
                 "app.sharding.physical-data-sources[0].driver-class-name",
                 "org.h2.Driver");
         values.put(
                 "app.sharding.physical-data-sources[0].jdbc-url",
-                "jdbc:h2:mem:single");
+                "jdbc:h2:mem:master-data");
         values.put("app.sharding.physical-data-sources[0].username", "sa");
         values.put("app.sharding.physical-data-sources[0].password", "");
         values.put(
                 "app.sharding.flyway.targets[0].data-source-name",
-                "single");
+                "master_data");
         values.put(
                 "app.sharding.flyway.targets[0].locations[0]",
-                "classpath:db/migration/sharding/single");
+                "classpath:db/migration/sharding/master-data");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].jdbc-url",
                 "${MISSING_READWRITE_URL}");
@@ -54,14 +53,13 @@ class ShardingDataSourcePropertiesLoaderTest {
         assertThat(properties.physicalDataSources()).singleElement()
                 .extracting(ShardingDataSourceProperties
                         .PhysicalDataSourceProperties::name)
-                .isEqualTo("single");
+                .isEqualTo("master_data");
     }
 
     @Test
     void shouldBindReadwriteTopologyWithoutResolvingInactiveShardingTopology() {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("app.sharding.config", "${MISSING_SHARDING_CONFIG}");
-        values.put("app.sharding.routing.mapping-version", "1");
         values.put("app.sharding.routing.node-count", "4");
         values.put(
                 "app.sharding.routing.node-map",
@@ -71,10 +69,10 @@ class ShardingDataSourcePropertiesLoaderTest {
                 "classpath:sharding/readwrite.yml");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].name",
-                "single_primary");
+                "master_data_primary");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].logical-name",
-                "single");
+                "master_data");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].role",
                 "PRIMARY");
@@ -83,7 +81,7 @@ class ShardingDataSourcePropertiesLoaderTest {
                 "org.h2.Driver");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].jdbc-url",
-                "jdbc:h2:mem:single-primary");
+                "jdbc:h2:mem:master-data-primary");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].username",
                 "sa");
@@ -92,10 +90,10 @@ class ShardingDataSourcePropertiesLoaderTest {
                 "");
         values.put(
                 "app.sharding-readwrite.flyway.targets[0].data-source-name",
-                "single_primary");
+                "master_data_primary");
         values.put(
                 "app.sharding-readwrite.flyway.targets[0].locations[0]",
-                "classpath:db/migration/sharding/single");
+                "classpath:db/migration/sharding/master-data");
         StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addFirst(
                 new MapPropertySource("test", values));
@@ -112,6 +110,6 @@ class ShardingDataSourcePropertiesLoaderTest {
         assertThat(properties.physicalDataSources()).singleElement()
                 .extracting(ShardingDataSourceProperties
                         .PhysicalDataSourceProperties::name)
-                .isEqualTo("single_primary");
+                .isEqualTo("master_data_primary");
     }
 }

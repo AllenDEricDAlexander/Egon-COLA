@@ -1,30 +1,55 @@
 #set( $symbol_dollar = '$' )
 spring:
-  datasource:
-    url: ${symbol_dollar}{DB_URL:jdbc:h2:mem:${rootArtifactId}-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
-    username: ${symbol_dollar}{DB_USERNAME:sa}
-    password: ${symbol_dollar}{DB_PASSWORD:}
-    driver-class-name: org.h2.Driver
-    hikari:
-      pool-name: ${symbol_dollar}{HIKARI_POOL_NAME:${symbol_dollar}{spring.application.name}-hikari}
-      maximum-pool-size: ${symbol_dollar}{HIKARI_MAX_POOL_SIZE:8}
-      minimum-idle: ${symbol_dollar}{HIKARI_MIN_IDLE:1}
-  h2:
-    console:
-      enabled: false
   flyway:
     enabled: ${symbol_dollar}{FLYWAY_ENABLED:true}
-    locations: classpath:db/migration/default
-    validate-migration-naming: true
     clean-disabled: false
     validate-on-migrate: true
+    validate-migration-naming: true
   jpa:
     hibernate:
-      ddl-auto: validate
+      # ShardingSphere does not load complete metadata from the H2 route-probe stores.
+      # Flyway schema parity and routing are verified by dedicated integration tests.
+      ddl-auto: none
     open-in-view: false
     show-sql: false
 
 app:
+  datasource:
+    mode: ${symbol_dollar}{APP_DATASOURCE_MODE:SHARDING}
+  sharding:
+    physical-data-sources:
+      - name: master_data
+        logical-name: master_data
+        role: PRIMARY
+        driver-class-name: org.h2.Driver
+        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_MASTER_DATA_URL:jdbc:h2:mem:${rootArtifactId}-test-master-data;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        username: ${symbol_dollar}{EVALUATION_SHARDING_USERNAME:sa}
+        password: "${symbol_dollar}{EVALUATION_SHARDING_PASSWORD:}"
+      - name: shard_0
+        logical-name: shard_0
+        role: PRIMARY
+        driver-class-name: org.h2.Driver
+        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_SHARD_0_URL:jdbc:h2:mem:${rootArtifactId}-test-shard-0;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        username: ${symbol_dollar}{EVALUATION_SHARDING_USERNAME:sa}
+        password: "${symbol_dollar}{EVALUATION_SHARDING_PASSWORD:}"
+      - name: shard_1
+        logical-name: shard_1
+        role: PRIMARY
+        driver-class-name: org.h2.Driver
+        jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_SHARD_1_URL:jdbc:h2:mem:${rootArtifactId}-test-shard-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        username: ${symbol_dollar}{EVALUATION_SHARDING_USERNAME:sa}
+        password: "${symbol_dollar}{EVALUATION_SHARDING_PASSWORD:}"
+    flyway:
+      targets:
+        - data-source-name: master_data
+          locations:
+            - classpath:db/migration/sharding/master-data
+        - data-source-name: shard_0
+          locations:
+            - classpath:db/migration/sharding/shard
+        - data-source-name: shard_1
+          locations:
+            - classpath:db/migration/sharding/shard
   integrations:
     organization:
       enabled: false

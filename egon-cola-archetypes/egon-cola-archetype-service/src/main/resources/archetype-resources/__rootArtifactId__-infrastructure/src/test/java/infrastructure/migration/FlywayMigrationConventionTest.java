@@ -1,6 +1,3 @@
-#set( $symbol_pound = '#' )
-#set( $symbol_dollar = '$' )
-#set( $symbol_escape = '\\' )
 package ${package}.infrastructure.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +26,11 @@ class FlywayMigrationConventionTest {
         List<Path> migrations = migrationFiles();
         Set<String> dailySequences = new HashSet<>();
 
-        assertThat(migrations).isNotEmpty();
+        assertThat(migrations)
+                .extracting(path -> path.getFileName().toString())
+                .containsExactlyInAnyOrder(
+                        "V20260726_001__init_evaluation_master_data_schema.sql",
+                        "V20260726_002__init_evaluation_sharded_schema.sql");
         for (Path migration : migrations) {
             String fileName = migration.getFileName().toString();
             Matcher matcher = VERSIONED_MIGRATION.matcher(fileName);
@@ -55,6 +56,10 @@ class FlywayMigrationConventionTest {
                     .doesNotStartWith("V1__")
                     .doesNotStartWith("V2__");
         }
+
+        assertThat(migrations)
+                .noneMatch(path -> path.toString().contains("/migration/default/"))
+                .noneMatch(path -> path.toString().contains("/sharding/single/"));
     }
 
     private static List<Path> migrationFiles() throws Exception {

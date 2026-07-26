@@ -13,12 +13,14 @@ services:
     environment:
       APPLICATION_PORT: ${APPLICATION_PORT:-8081}
       SPRING_PROFILES_ACTIVE: prod
-      APP_DATASOURCE_MODE: "SINGLE"
+      APP_DATASOURCE_MODE: "SHARDING"
       MANAGEMENT_SERVER_PORT: ${APPLICATION_PORT:-8081}
       DUBBO_PORT: ${DUBBO_PORT:-50051}
-      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DB_USERNAME: ${POSTGRES_USER:?Set POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      EVALUATION_SHARDING_MASTER_DATA_URL: jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}
+      EVALUATION_SHARDING_SHARD_0_URL: jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}
+      EVALUATION_SHARDING_SHARD_1_URL: jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}
+      EVALUATION_SHARDING_USERNAME: ${POSTGRES_USER:?Set POSTGRES_USER}
+      EVALUATION_SHARDING_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
@@ -43,7 +45,11 @@ services:
     volumes:
       - application_logs:/app/logs
     depends_on:
-      postgres:
+      postgres-master-data:
+        condition: service_healthy
+      postgres-shard-0:
+        condition: service_healthy
+      postgres-shard-1:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -63,14 +69,48 @@ services:
     logging: *default-logging
     networks: [application]
 
-  postgres:
+  postgres-master-data:
     image: ${POSTGRES_IMAGE:?Set POSTGRES_IMAGE}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_master_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *default-logging
+    networks: [application]
+
+  postgres-shard-0:
+    image: ${POSTGRES_IMAGE:?Set POSTGRES_IMAGE}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_shard_0:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging: *default-logging
+    networks: [application]
+
+  postgres-shard-1:
+    image: ${POSTGRES_IMAGE:?Set POSTGRES_IMAGE}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_shard_1:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 10s
@@ -140,7 +180,9 @@ networks:
 
 volumes:
   application_logs:
-  postgres_data:
+  postgres_master_data:
+  postgres_shard_0:
+  postgres_shard_1:
   redis_data:
   rabbitmq_data:
   nacos_data:

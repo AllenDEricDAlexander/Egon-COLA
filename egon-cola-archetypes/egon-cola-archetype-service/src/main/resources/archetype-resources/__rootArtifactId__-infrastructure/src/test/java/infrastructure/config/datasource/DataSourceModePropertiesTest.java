@@ -12,9 +12,14 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 class DataSourceModePropertiesTest {
 
     @Test
-    void shouldDefaultToSingleAndBindEverySupportedMode() {
+    void shouldDefaultToShardingAndBindEverySupportedMode() {
         assertThat(new DataSourceModeProperties(null).mode())
-                .isEqualTo(DataSourceModeProperties.DataSourceMode.SINGLE);
+                .isEqualTo(DataSourceModeProperties.DataSourceMode.SHARDING);
+
+        assertThat(DataSourceModeProperties.DataSourceMode.values())
+                .containsExactly(
+                        DataSourceModeProperties.DataSourceMode.SHARDING,
+                        DataSourceModeProperties.DataSourceMode.SHARDING_READWRITE);
 
         for (DataSourceModeProperties.DataSourceMode mode
                 : DataSourceModeProperties.DataSourceMode.values()) {
@@ -24,7 +29,9 @@ class DataSourceModePropertiesTest {
     }
 
     @Test
-    void shouldRejectUnknownMode() {
+    void shouldRejectRemovedSingleAndUnknownModes() {
+        assertThatThrownBy(() -> bind("SINGLE"))
+                .hasMessageContaining("app.datasource.mode");
         assertThatThrownBy(() -> bind("READWRITE"))
                 .hasMessageContaining("app.datasource.mode");
     }

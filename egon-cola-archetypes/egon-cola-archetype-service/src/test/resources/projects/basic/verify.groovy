@@ -325,6 +325,7 @@ assert serviceApplication.contains('"it.pkg.adapter.course.facade.impl"')
 assert serviceApplication.contains('"it.pkg.adapter.exam.facade.impl"')
 assert serviceApplication.contains("enableDefaultTransactions = false")
 assert serviceApplication.contains("UuidV7Generator")
+assert serviceApplication.contains("exclude = FlywayAutoConfiguration.class")
 assert !serviceApplication.contains('"it.pkg.adapter.facade"')
 
 
@@ -597,35 +598,32 @@ migrationDir.eachFileRecurse(FileType.FILES) { file ->
     }
 }
 assert migrations.sort() == [
-    "default/V20260724_001__init_evaluation_default_schema.sql",
-    "sharding/shard/V20260724_003__init_evaluation_sharding_schema.sql",
-    "sharding/single/V20260724_002__init_evaluation_single_schema.sql"
+    "sharding/master-data/V20260726_001__init_evaluation_master_data_schema.sql",
+    "sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql"
 ]
 assertMissing(
         "student-management-evaluation-infrastructure/src/main/resources/db/migration/V1__init_student_management_evaluation.sql")
 assertMissing(
         "student-management-evaluation-infrastructure/src/main/resources/db/migration/V2__align_evaluation_course_exam_domain.sql")
 assertMissing("student-management-evaluation-common/src/main/java/it/pkg/common/utils/EvaluationIdUtils.java")
-def defaultMigration = assertFile(
-        "student-management-evaluation-infrastructure/src/main/resources/db/migration/default/V20260724_001__init_evaluation_default_schema.sql").text
-def singleMigration = assertFile(
-        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/single/V20260724_002__init_evaluation_single_schema.sql").text
+assertMissing(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/default")
+assertMissing(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/single")
+def masterDataMigration = assertFile(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_evaluation_master_data_schema.sql").text
 def shardMigration = assertFile(
-        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/shard/V20260724_003__init_evaluation_sharding_schema.sql").text
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql").text
 [
-    defaultMigration,
-    singleMigration,
+    masterDataMigration,
     shardMigration
 ].each { migration ->
     assert migration.startsWith("-- 变更内容：")
     assert migration.contains("\n-- 影响范围：")
     assert migration.contains("\n-- 兼容性说明：")
 }
-assert defaultMigration.contains("CREATE TABLE course_schedule")
-assert defaultMigration.contains("CREATE TABLE exam_paper")
-assert defaultMigration.contains("CREATE TABLE score")
-assert singleMigration.contains("CREATE TABLE course")
-assert !singleMigration.contains("CREATE TABLE exam")
+assert masterDataMigration.contains("CREATE TABLE course")
+assert !masterDataMigration.contains("CREATE TABLE exam")
 assert shardMigration.contains("CREATE TABLE course_schedule_0")
 assert shardMigration.contains("CREATE TABLE exam_0")
 assert shardMigration.contains("CREATE TABLE exam_paper_0")
@@ -677,43 +675,55 @@ def serviceShardingApplication = assertFile(
         "student-management-evaluation-starter/src/main/resources/datasource/sharding.yml").text
 def serviceApplicationYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application.yml").text
-assert serviceApplicationYaml.contains('mode: ${APP_DATASOURCE_MODE:SINGLE}')
-assert serviceShardingApplication.contains(
-        'mapping-version: ${EVALUATION_SHARDING_MAPPING_VERSION:1}')
+assert serviceApplicationYaml.contains('mode: ${APP_DATASOURCE_MODE:SHARDING}')
+assert !serviceShardingApplication.contains("mapping-version")
 assert serviceShardingApplication.contains('node-count: ${EVALUATION_SHARDING_NODE_COUNT:4}')
 assert serviceShardingApplication.contains(
         'node-map: ${EVALUATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
-assert serviceShardingApplication.contains("classpath:db/migration/sharding/single")
+assert serviceShardingApplication.contains("EVALUATION_SHARDING_MASTER_DATA_URL")
+assert serviceShardingApplication.contains("classpath:db/migration/sharding/master-data")
 assert serviceShardingApplication.contains("classpath:db/migration/sharding/shard")
 def serviceShardingRule = assertFile(
         "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
 assert serviceShardingRule.contains("shardingColumn: course_id")
 assert serviceShardingRule.contains("shardingColumn: exam_id")
 assert serviceShardingRule.contains("exam,exam_paper,score")
+assert serviceShardingRule.contains("actualDataNodes: master_data.public.course")
+assert serviceShardingRule.count("none:") == 2
+assert serviceShardingRule.count("auditStrategy:") == 4
+assert serviceShardingRule.count("allowHintDisable: false") == 4
+assert serviceShardingRule.contains("DML_SHARDING_CONDITIONS")
+assert !serviceShardingRule.contains("!SINGLE")
 def serviceReadwriteRule = assertFile(
         "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
 assert serviceReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
 assert serviceReadwriteRule.contains("exam,exam_paper,score")
+assert serviceReadwriteRule.contains("master_data_primary")
+assert serviceReadwriteRule.contains("master_data_replica_0")
+assert serviceReadwriteRule.count("auditStrategy:") == 4
+assert !serviceReadwriteRule.contains("!SINGLE")
 [
     "student-management-evaluation-application/src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/DataSourceModeProperties.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategy.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigrator.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceBootstrapper.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceModeCondition.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoader.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMap.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidator.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithm.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategyTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
 ].each { assertFile(it) }
+[
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategy.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceModeCondition.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidator.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LogicalDataSourceFlywayMigrationStrategyTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingNodeMapCompatibilityValidatorTest.java"
+].each { assertMissing(it) }
 assertMissing("student-management-evaluation-starter/src/main/resources/bootstrap-local.yml")
 assertMissing("student-management-evaluation-starter/src/main/resources/application-local.yml")
 assertMissing("student-management-evaluation-starter/src/main/resources/application-sharding.yml")
@@ -749,13 +759,13 @@ assert readme.contains("Organization Facade client is an unused infrastructure f
     "APP_DATASOURCE_MODE=SHARDING_READWRITE",
     "course_schedule",
     "exam_id",
-    "primary targets",
+    "physical primary",
     "36-character RFC",
     "VyyyyMMdd_NNN__description.sql",
-    "mapping-version: 1",
-    "N` to `2N",
-    "local transactions within one physical database",
-    "online dual writes, CDC, or automatic data movement"
+    "DML_SHARDING_CONDITIONS",
+    "from `N` to `2N`",
+    "local to one physical database",
+    "no online migration, dual-write,"
 ].each { assert readme.contains(it) }
 def serviceReadmeZh = assertFile("README.zh-CN.md").text
 [
@@ -763,9 +773,10 @@ def serviceReadmeZh = assertFile("README.zh-CN.md").text
     "exam_id",
     "36 位 RFC 字符串",
     "VyyyyMMdd_NNN__description.sql",
-    "单次只允许从 `N` 扩成",
-    "一个物理库内的本地事务",
-    "不包含在线双写、CDC 或自动搬数"
+    "DML_SHARDING_CONDITIONS",
+    "调整为 `2N`",
+    "事务只允许覆盖一个物理库",
+    "不提供在线迁移、双写、CDC 或自动搬数"
 ].each { assert serviceReadmeZh.contains(it) }
 assert readme.contains("service-only")
 assert !readme.contains("facade/api")
@@ -810,12 +821,17 @@ assert productionEnv.contains("IMAGE_TAG=")
 assert developmentEnv.contains("IMAGE_NAME=student-management-evaluation")
 assert developmentEnv.contains("POSTGRES_DB=student_management_evaluation")
 assert developmentEnv.contains("APPLICATION_PORT=8081")
+assert developmentEnv.contains("POSTGRES_MASTER_DATA_PORT=5432")
+assert developmentEnv.contains("POSTGRES_SHARD_0_PORT=5433")
+assert developmentEnv.contains("POSTGRES_SHARD_1_PORT=5434")
 assert developmentEnv.contains("ORGANIZATION_FACADE_ENABLED=false")
 assert productionEnv.readLines().contains("ORGANIZATION_FACADE_ENABLED=")
 def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
-    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
-     "healthcheck:", "networks:", "volumes:", "application_logs:"].each { token ->
+    ["application:", "postgres-master-data:", "postgres-shard-0:",
+     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
+     "healthcheck:", "networks:", "volumes:", "application_logs:",
+     "postgres_master_data:", "postgres_shard_0:", "postgres_shard_1:"].each { token ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
     assert text.contains("CONTAINER_ENGINE: ${engine}")
@@ -823,9 +839,14 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains("context: ../..")
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains('SPRING_PROFILES_ACTIVE: dev')
-    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert text.contains('APP_DATASOURCE_MODE: "SHARDING"')
     assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
-    assert text.contains('jdbc:postgresql://postgres:5432/${POSTGRES_DB}')
+    assert text.contains('EVALUATION_SHARDING_MASTER_DATA_URL: jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}')
+    assert text.contains('EVALUATION_SHARDING_SHARD_0_URL: jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}')
+    assert text.contains('EVALUATION_SHARDING_SHARD_1_URL: jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}')
+    assert text.contains('EVALUATION_SHARDING_USERNAME: ${POSTGRES_USER}')
+    assert text.contains('EVALUATION_SHARDING_PASSWORD: ${POSTGRES_PASSWORD}')
+    assert !text.contains("replica")
     assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
     assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
     assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
@@ -849,8 +870,10 @@ developmentComposeFiles.each { fileName, engine ->
 }
 def assertProductionCompose = { fileName, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
-    ["application:", "postgres:", "redis:", "rabbitmq:", "nacos:",
+    ["application:", "postgres-master-data:", "postgres-shard-0:",
+     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
      "healthcheck:", "networks:", "volumes:", "application_logs:",
+     "postgres_master_data:", "postgres_shard_0:", "postgres_shard_1:",
      "read_only: true", "tmpfs:", "mem_limit:", "cpus:",
      "restart: unless-stopped"].each { token ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
@@ -858,10 +881,14 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
     assert text.contains('${REGISTRY:?Set REGISTRY}/${REGISTRY_NAMESPACE:?Set REGISTRY_NAMESPACE}/${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:?Set IMAGE_TAG}')
     assert text.contains('stop_grace_period: ${STOP_GRACE_PERIOD:-40s}')
     assert text.contains("SPRING_PROFILES_ACTIVE: prod")
-    assert text.contains('APP_DATASOURCE_MODE: "SINGLE"')
+    assert text.contains('APP_DATASOURCE_MODE: "SHARDING"')
     assert !text.contains('APP_DATASOURCE_MODE: ${APP_DATASOURCE_MODE')
     assert text.contains('${POSTGRES_USER:?Set POSTGRES_USER}')
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
+    assert text.contains('EVALUATION_SHARDING_MASTER_DATA_URL: jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}')
+    assert text.contains('EVALUATION_SHARDING_SHARD_0_URL: jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}')
+    assert text.contains('EVALUATION_SHARDING_SHARD_1_URL: jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}')
+    assert !text.contains("replica")
     assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
     assert text.contains('${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}')
     assert text.contains('${NACOS_AUTH_TOKEN:?Set NACOS_AUTH_TOKEN}')

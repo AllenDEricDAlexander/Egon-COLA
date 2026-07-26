@@ -3,20 +3,20 @@ app:
   sharding-readwrite:
     config: classpath:sharding/shardingsphere-sharding-readwrite.yml
     physical-data-sources:
-      - name: single_primary
-        logical-name: single
+      - name: master_data_primary
+        logical-name: master_data
         role: PRIMARY
         driver-class-name: ${symbol_dollar}{EVALUATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
-        jdbc-url: ${symbol_dollar}{EVALUATION_SINGLE_PRIMARY_URL}
-        username: ${symbol_dollar}{EVALUATION_SINGLE_PRIMARY_USERNAME}
-        password: "${symbol_dollar}{EVALUATION_SINGLE_PRIMARY_PASSWORD:}"
-      - name: single_replica_0
-        logical-name: single
+        jdbc-url: ${symbol_dollar}{EVALUATION_MASTER_DATA_PRIMARY_URL}
+        username: ${symbol_dollar}{EVALUATION_MASTER_DATA_PRIMARY_USERNAME}
+        password: "${symbol_dollar}{EVALUATION_MASTER_DATA_PRIMARY_PASSWORD:}"
+      - name: master_data_replica_0
+        logical-name: master_data
         role: REPLICA
         driver-class-name: ${symbol_dollar}{EVALUATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
-        jdbc-url: ${symbol_dollar}{EVALUATION_SINGLE_REPLICA_0_URL}
-        username: ${symbol_dollar}{EVALUATION_SINGLE_REPLICA_0_USERNAME}
-        password: "${symbol_dollar}{EVALUATION_SINGLE_REPLICA_0_PASSWORD:}"
+        jdbc-url: ${symbol_dollar}{EVALUATION_MASTER_DATA_REPLICA_0_URL}
+        username: ${symbol_dollar}{EVALUATION_MASTER_DATA_REPLICA_0_USERNAME}
+        password: "${symbol_dollar}{EVALUATION_MASTER_DATA_REPLICA_0_PASSWORD:}"
       - name: shard_0_primary
         logical-name: shard_0
         role: PRIMARY
@@ -47,9 +47,9 @@ app:
         password: "${symbol_dollar}{EVALUATION_SHARD_1_REPLICA_0_PASSWORD:}"
     flyway:
       targets:
-        - data-source-name: single_primary
+        - data-source-name: master_data_primary
           locations:
-            - classpath:db/migration/sharding/single
+            - classpath:db/migration/sharding/master-data
         - data-source-name: shard_0_primary
           locations:
             - classpath:db/migration/sharding/shard

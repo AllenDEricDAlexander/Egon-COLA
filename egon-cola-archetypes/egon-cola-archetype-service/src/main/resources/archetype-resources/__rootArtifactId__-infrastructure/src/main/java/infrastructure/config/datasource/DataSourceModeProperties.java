@@ -9,11 +9,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record DataSourceModeProperties(DataSourceMode mode) {
 
     public DataSourceModeProperties {
-        mode = mode == null ? DataSourceMode.SINGLE : mode;
+        mode = mode == null ? DataSourceMode.SHARDING : mode;
     }
 
     public enum DataSourceMode {
-        SINGLE(null),
         SHARDING("sharding"),
         SHARDING_READWRITE("sharding-readwrite");
 
@@ -23,15 +22,7 @@ public record DataSourceModeProperties(DataSourceMode mode) {
             this.topologyName = topologyName;
         }
 
-        public boolean isShardingSphere() {
-            return this != SINGLE;
-        }
-
         public String topologyName() {
-            if (topologyName == null) {
-                throw new IllegalStateException(
-                        "SINGLE mode does not have a ShardingSphere topology");
-            }
             return topologyName;
         }
     }

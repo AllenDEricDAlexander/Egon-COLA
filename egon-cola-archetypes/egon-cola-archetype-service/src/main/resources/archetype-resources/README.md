@@ -57,7 +57,7 @@ The Organization Facade client is an unused infrastructure foundation; no curren
 
 `prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization Dubbo client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
 
-- Database: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DRIVER_CLASS_NAME`.
+- Database: configure the `master_data`, `shard_0`, and `shard_1` physical data sources described below.
 - Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_GROUP`, `NACOS_USERNAME`, `NACOS_PASSWORD`.
 - Dubbo: `DUBBO_REGISTRY_ADDRESS`, `DUBBO_PORT`, `DUBBO_CONSUMER_TIMEOUT`.
 - Organization Facade: `ORGANIZATION_FACADE_ENABLED`, `ORGANIZATION_FACADE_GROUP`, `ORGANIZATION_FACADE_SERVICE_VERSION`.
@@ -66,69 +66,66 @@ The Organization Facade client is an unused infrastructure foundation; no curren
 
 ${symbol_pound}${symbol_pound} Sharding, Read/Write Splitting, And Flyway
 
-Run the starter in default, sharding, or sharding plus read/write mode:
+The generated application always uses a ShardingSphere logical data source and
+supports two routing modes:
 
 ```bash
-SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
 SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
 SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
 ```
 
 Environment profiles are limited to `dev`, `test`, and `prod`.
-`APP_DATASOURCE_MODE` accepts `SINGLE` (the default), `SHARDING`, or
-`SHARDING_READWRITE`. Single mode uses Spring Boot's `DataSource` and Flyway
-lifecycle. Both ShardingSphere modes migrate physical primaries before creating
-the logical `DataSource`. Read/write mode routes ordinary queries to replicas,
-writes to primaries, and transaction-bound reads to primaries.
+`APP_DATASOURCE_MODE` accepts `SHARDING` (the default) or
+`SHARDING_READWRITE`. Both modes migrate each configured physical primary
+before creating the logical `DataSource`; replicas and the logical data source
+are never Flyway targets. Read/write mode sends ordinary reads to replicas,
+writes to primaries, and transaction-bound reads to primaries. Bundled Compose
+does not emulate replicas and defaults to `SHARDING`.
 
 The table topology is:
 
-- SINGLE table on `single`: `course`.
-- SHARDING table `course_schedule`, sharded by `course_id`.
-- SHARDING binding tables `exam`, `exam_paper`, and `score`. `exam` is sharded by
-  `id`; its paper and scores copy that root into `exam_id`, so the exam aggregate
-  is colocated in one physical database and table suffix.
+- Master table `course` stays on `master_data` through explicit
+  `databaseStrategy.none` and `tableStrategy.none` rules inside
+  `!SHARDING.tables`. Neither `!SINGLE` nor an application-wide single data
+  source mode is used.
+- `course_schedule` is sharded by `course_id`.
+- Binding tables `exam`, `exam_paper`, and `score` are sharded by `id`,
+  `exam_id`, and `exam_id`. One exam aggregate uses the same `examId`, so
+  all three tables are colocated in one physical database and table suffix.
+- All four sharded tables enable `DML_SHARDING_CONDITIONS`; DML without a
+  sharding condition is rejected and `allowHintDisable=false` prevents bypass.
 
-Primary-only sharding uses `EVALUATION_SHARDING_SINGLE_URL`,
+Primary-only sharding uses `EVALUATION_SHARDING_MASTER_DATA_URL`,
 `EVALUATION_SHARDING_SHARD_0_URL`, `EVALUATION_SHARDING_SHARD_1_URL`,
 `EVALUATION_SHARDING_USERNAME`, `EVALUATION_SHARDING_PASSWORD`, and optionally
-`EVALUATION_SHARDING_DRIVER_CLASS_NAME`. Read/write mode provides URL, username,
-and password triples for `EVALUATION_SINGLE_PRIMARY`,
-`EVALUATION_SINGLE_REPLICA_0`, `EVALUATION_SHARD_0_PRIMARY`,
+`EVALUATION_SHARDING_DRIVER_CLASS_NAME`. Read/write splitting uses URL,
+username, and password triples for `EVALUATION_MASTER_DATA_PRIMARY`,
+`EVALUATION_MASTER_DATA_REPLICA_0`, `EVALUATION_SHARD_0_PRIMARY`,
 `EVALUATION_SHARD_0_REPLICA_0`, `EVALUATION_SHARD_1_PRIMARY`, and
-`EVALUATION_SHARD_1_REPLICA_0`; for example,
-`EVALUATION_SHARD_1_PRIMARY_URL`, `EVALUATION_SHARD_1_PRIMARY_USERNAME`, and
-`EVALUATION_SHARD_1_PRIMARY_PASSWORD`.
+`EVALUATION_SHARD_1_REPLICA_0`.
 
-Flyway owns `db/migration/default`, `db/migration/sharding/single`, and
-`db/migration/sharding/shard`. In ShardingSphere modes it runs serially against
-configured primary targets before logical-data-source startup. A replica must
-be a database-level copy of its primary and is never a migration target. Spring
-Boot does not migrate the logical data source in ShardingSphere modes;
-`FLYWAY_ENABLED=false` also skips physical migrations.
+Flyway uses only `db/migration/sharding/master-data` and
+`db/migration/sharding/shard`. It runs serially against physical primaries
+before the logical data source is created. Spring Boot Flyway auto-configuration
+is excluded, so replicas and the logical data source are never migrated.
+`FLYWAY_ENABLED=false` skips physical migrations.
 
-Surrogate keys are generated by the application as UUIDv7 and persisted as
-36-character RFC strings. Migration files use
-`VyyyyMMdd_NNN__description.sql`, with their creation date and a three-digit
-daily sequence. Each SQL file begins with `变更内容`, `影响范围`, and
-`兼容性说明` comments. This is a fresh scaffold with no migration history, so
-the generated files directly initialize the final model; after a generated
-project has applied a migration, add a new version instead of editing it.
+Application-generated surrogate keys use UUIDv7 serialized as 36-character RFC
+strings. Migration files follow `VyyyyMMdd_NNN__description.sql` and begin with
+`变更内容`, `影响范围`, and `兼容性说明` comments.
 
-Database count, tables per database, and total physical-node count must be powers
-of two. The initial append-only map is `2 databases × 2 tables = 4 nodes` with
-`mapping-version: 1`. Expand only from `N` to `2N`; doubling both dimensions
-requires two expansions. Preserve all old slots, migrate new primaries first,
-append slots `N..2N-1`, move and reconcile only records whose new slot is
-`oldSlot + N`, and atomically publish the incremented mapping version. This
-stable-slot contract limits remapping to approximately half the keys; it does
-not include online dual writes, CDC, or automatic data movement.
+Database count, table count per database, and total physical-node count must all
+be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`.
+Capacity follows the 2N rule: change one dimension from `N` to `2N` at a time
+and publish the complete `node-count` and `node-map` together. This unused
+scaffold has no historical data and provides no online migration, dual-write,
+CDC, or automatic data movement mechanism.
 
-Only local transactions within one physical database are supported. Exam,
-paper, and score changes in one aggregate must use the same `examId`; schedule
-changes must retain their `courseId`. Cross-shard workflows use business
-idempotency, explicit states, events, reconciliation, and compensation. No XA,
-BASE, Seata, or other distributed transaction coordinator is included.
+Transactions are local to one physical database only. An exam, its paper, and
+scores must use the same `examId`; schedules retain their `courseId`.
+Cross-shard workflows use business idempotency, explicit states, events,
+reconciliation, and compensation. No XA, BASE, Seata, or other distributed
+transaction coordinator is included.
 
 ${symbol_pound}${symbol_pound} Verification And Packaging
 
@@ -158,10 +155,10 @@ Start the complete Docker development stack with:
 docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
 ```
 
-The bundled Compose stack provisions one PostgreSQL instance and therefore fixes
-`APP_DATASOURCE_MODE=SINGLE`. To run either ShardingSphere mode, deploy the
-documented physical primary/replica topology and pass every required topology
-variable through the target platform instead of overriding only the Compose mode.
+Bundled Compose defaults to `APP_DATASOURCE_MODE=SHARDING` and provisions three
+PostgreSQL primaries: `postgres-master-data`, `postgres-shard-0`, and
+`postgres-shard-1`. It does not create replicas; `SHARDING_READWRITE` is code and
+configuration support for environments that supply matching primary/replica endpoints.
 
 Podman and nerdctl use `compose.podman.yaml` and `compose.nerdctl.yaml`. Production
 uses the matching `.prod.yaml` file and an operator-owned `.env.prod`. See

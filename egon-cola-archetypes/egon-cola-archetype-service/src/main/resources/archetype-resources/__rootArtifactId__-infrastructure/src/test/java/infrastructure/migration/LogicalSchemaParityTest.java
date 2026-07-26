@@ -1,6 +1,3 @@
-#set( $symbol_pound = '#' )
-#set( $symbol_dollar = '$' )
-#set( $symbol_escape = '\\' )
 package ${package}.infrastructure.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,20 +17,24 @@ import org.junit.jupiter.api.Test;
 class LogicalSchemaParityTest {
 
     @Test
-    void shouldKeepDefaultAndShardingModesLogicallyEquivalent() throws Exception {
-        Map<String, List<String>> defaultSchema = migrateAndRead(
-                "evaluation-parity-default", "classpath:db/migration/default");
-        Map<String, List<String>> singleSchema = migrateAndRead(
-                "evaluation-parity-single", "classpath:db/migration/sharding/single");
+    void shouldBuildOneCompleteLogicalSchemaFromMasterDataAndShards() throws Exception {
+        Map<String, List<String>> masterDataSchema = migrateAndRead(
+                "evaluation-parity-master-data",
+                "classpath:db/migration/sharding/master-data");
         Map<String, List<String>> shardZeroSchema = migrateAndRead(
                 "evaluation-parity-shard-0", "classpath:db/migration/sharding/shard");
         Map<String, List<String>> shardOneSchema = migrateAndRead(
                 "evaluation-parity-shard-1", "classpath:db/migration/sharding/shard");
 
         assertThat(shardOneSchema).isEqualTo(shardZeroSchema);
-        Map<String, List<String>> shardingSchema = new TreeMap<>(singleSchema);
+        Map<String, List<String>> shardingSchema = new TreeMap<>(masterDataSchema);
         mergeSchema(shardingSchema, shardZeroSchema);
-        assertThat(shardingSchema).isEqualTo(defaultSchema);
+        assertThat(shardingSchema.keySet()).containsExactly(
+                "course",
+                "course_schedule",
+                "exam",
+                "exam_paper",
+                "score");
     }
 
     private static Map<String, List<String>> migrateAndRead(

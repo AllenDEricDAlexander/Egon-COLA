@@ -15,29 +15,14 @@ import org.junit.jupiter.api.Test;
 class EvaluationMigrationTest {
 
     @Test
-    void shouldInitializeCompleteDefaultSchema() throws Exception {
-        String url = h2Url("evaluation-default-migration");
-
-        Flyway flyway = Flyway.configure()
-                .dataSource(url, "sa", "")
-                .locations("classpath:db/migration/default")
-                .validateMigrationNaming(true)
-                .load();
-        flyway.migrate();
-        flyway.validate();
-
-        assertEquals(5, countBusinessTables(url));
-    }
-
-    @Test
-    void shouldInitializeSingleAndShardSchemasIndependently() throws Exception {
-        String singleUrl = h2Url("evaluation-single-migration");
+    void shouldInitializeMasterDataAndShardSchemasIndependently() throws Exception {
+        String masterDataUrl = h2Url("evaluation-master-data-migration");
         String shardUrl = h2Url("evaluation-shard-migration");
 
-        migrate(singleUrl, "classpath:db/migration/sharding/single");
+        migrate(masterDataUrl, "classpath:db/migration/sharding/master-data");
         migrate(shardUrl, "classpath:db/migration/sharding/shard");
 
-        assertEquals(1, countBusinessTables(singleUrl));
+        assertEquals(1, countBusinessTables(masterDataUrl));
         assertEquals(8, countBusinessTables(shardUrl));
     }
 

@@ -61,7 +61,7 @@ nerdctl compose --env-file deploy/env/.env.example \
 
 ## 健康检查与失败行为
 
-PostgreSQL、Redis、RabbitMQ、Nacos 和 Spring Boot readiness endpoint 都配置了 health check。缺少生产变量会导致 Compose 配置失败。已启用但不可用的远程 Facade 会保留生成应用的 fail-fast 行为。
+三个 PostgreSQL primary、Redis、RabbitMQ、Nacos 和 Spring Boot readiness endpoint 都配置了 health check。缺少生产变量会导致 Compose 配置失败。已启用但不可用的远程 Facade 会保留生成应用的 fail-fast 行为。
 
 ## Jenkins
 
