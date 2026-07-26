@@ -16,7 +16,7 @@ public class GatewayHttpProviderProperties {
 
     private String env;
 
-    private String namespace = "default";
+    private String namespace;
 
     private String instanceId;
 
