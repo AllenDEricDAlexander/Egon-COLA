@@ -392,6 +392,21 @@ egon:
 日志和持久化错误摘要不会记录 payload、凭证、`Authorization`、`Cookie`、响应体或
 完整 URL。
 
+## PostgreSQL 集成测试
+
+默认 Maven Reactor 不连接开发机上的 PostgreSQL。需要验证真实 PostgreSQL 事务、租约、
+并发恢复和查询计划时，确保 Docker 可用并执行：
+
+```bash
+EGON_OUTBOX_TEST_POSTGRES_ENABLED=true ./mvnw -B -ntp \
+  -pl :egon-cola-component-transactional-outbox-test \
+  -am clean verify
+```
+
+测试使用隔离的 PostgreSQL 16.6 Testcontainer，不读取本机 PostgreSQL 用户名或密码。
+GitHub CI 的 `Outbox PostgreSQL` 任务会始终开启这组测试；Docker 或数据库启动失败会使
+任务失败，不会静默跳过。
+
 ## 明确的支持边界
 
 支持：Java 21、Spring Boot 3.5.x、PostgreSQL、命令式 JDBC 事务、HTTP 投递、

@@ -421,6 +421,23 @@ message IDs, destinations, or error text. Logs and stored error summaries omit
 payloads, credentials, `Authorization`, `Cookie`, response bodies, and full
 URLs.
 
+## PostgreSQL Integration Tests
+
+The default Maven reactor does not connect to PostgreSQL on the developer
+machine. To verify real PostgreSQL transaction, lease, concurrent recovery,
+and query-plan behavior, make Docker available and run:
+
+```bash
+EGON_OUTBOX_TEST_POSTGRES_ENABLED=true ./mvnw -B -ntp \
+  -pl :egon-cola-component-transactional-outbox-test \
+  -am clean verify
+```
+
+The suite uses an isolated PostgreSQL 16.6 Testcontainer and does not read local
+PostgreSQL usernames or passwords. The GitHub CI `Outbox PostgreSQL` job always
+enables this suite; Docker or database startup failures fail the job instead of
+silently skipping it.
+
 ## Explicit Scope
 
 Supported: Java 21, Spring Boot 3.5.x, PostgreSQL, imperative JDBC transactions,

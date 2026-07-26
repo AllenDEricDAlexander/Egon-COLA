@@ -142,3 +142,39 @@ jobs:
             "$HOME/.m2/repository/top/egon" \
             "$HOME/.m2/repository/com/alibaba/cola" \
             "$HOME/.m2/repository/com/alibaba/craftsman"
+
+  outbox-postgresql:
+    name: Outbox PostgreSQL / JDK 21
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    env:
+      EGON_OUTBOX_TEST_POSTGRES_ENABLED: "true"
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "21"
+          cache: maven
+
+      - name: Verify Docker service
+        run: docker info
+
+      - name: Test Outbox with isolated PostgreSQL
+        run: |
+          ./mvnw -B -ntp \
+            -pl :egon-cola-component-transactional-outbox-test \
+            -am \
+            clean verify

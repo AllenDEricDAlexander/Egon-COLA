@@ -4,7 +4,7 @@
 
 **Goal:** Make the Transactional Outbox PostgreSQL integration tests independent of local database credentials while preserving real PostgreSQL coverage.
 
-**Architecture:** Restore the approved Testcontainers-based test boundary. A singleton PostgreSQL 16.6 container supplies JDBC coordinates to the existing schema-per-test-class support; JUnit disables only these database tests when Docker is unavailable, while a dedicated GitHub Actions job runs them on a Docker-capable host.
+**Architecture:** Restore the approved Testcontainers-based test boundary. A singleton PostgreSQL 16.6 container supplies JDBC coordinates to the existing schema-per-test-class support; an explicit environment switch enables these database tests, while a dedicated GitHub Actions job always runs them on a Docker-capable host.
 
 **Tech Stack:** Java 21, JUnit Jupiter, Testcontainers 1.21.4, PostgreSQL 16.6, Maven, GitHub Actions.
 
@@ -42,17 +42,17 @@ Expected before the fix: the PostgreSQL-backed tests fail from `PostgresqlOutbox
 
 - [ ] **Step 2: Restore test-scoped Testcontainers dependencies**
 
-Add `testcontainers.version` with value `1.21.4`, plus test-scoped `org.testcontainers:junit-jupiter` and `org.testcontainers:postgresql` dependencies.
+Add `testcontainers.version` with value `1.21.4` and the test-scoped `org.testcontainers:postgresql` dependency.
 
 - [ ] **Step 3: Replace local connection defaults with the isolated container**
 
-Annotate the abstract support with `@Testcontainers(disabledWithoutDocker = true)`. Add a static `PostgreSQLContainer<?>` using `postgres:16.6-alpine`, start it once from `@BeforeAll` when necessary, and configure `PGSimpleDataSource` from `getJdbcUrl()`, `getUsername()`, and `getPassword()`. Remove the local host, port, database, user, password, and environment-property fallback logic.
+At the start of the inherited `@BeforeAll` method, abort the PostgreSQL test class with a JUnit assumption unless `EGON_OUTBOX_TEST_POSTGRES_ENABLED=true`. Add a static `PostgreSQLContainer<?>` using `postgres:16.6-alpine`, start it once when necessary, and configure `PGSimpleDataSource` from `getJdbcUrl()`, `getUsername()`, and `getPassword()`. Remove the local host, port, database, user, password, and environment-property fallback logic.
 
 - [ ] **Step 4: Verify the focused module**
 
 Run the same Maven command from Step 1.
 
-Expected with Docker: all 31 integration tests pass against the container. Expected without Docker: the nine PostgreSQL-backed test classes are explicitly skipped and all remaining tests pass.
+Expected by default: the nine PostgreSQL-backed test classes are explicitly skipped and all remaining tests pass without Docker discovery. Expected with `EGON_OUTBOX_TEST_POSTGRES_ENABLED=true`: all 31 tests run, and the build fails if Docker or PostgreSQL cannot start.
 
 - [ ] **Step 5: Verify the starter dependency boundary**
 
@@ -80,6 +80,8 @@ git commit -m "test(outbox): isolate PostgreSQL integration tests"
 
 **Files:**
 - Modify: `.github/workflows/ci.yaml`
+- Modify: `egon-cola-components/egon-cola-component-transactional-outbox/README.md`
+- Modify: `egon-cola-components/egon-cola-component-transactional-outbox/README.zh-CN.md`
 
 **Interfaces:**
 - Consumes: the Testcontainers-enabled Outbox test module from Task 1 and the Docker service available on `ubuntu-24.04` runners.
@@ -95,16 +97,23 @@ Add a Java 21 job that checks out the repository, configures Maven caching, veri
   -am clean verify
 ```
 
-Set `TESTCONTAINERS_CHECKS_DISABLE=false` so Docker discovery failures remain visible in this dedicated job.
+Set `EGON_OUTBOX_TEST_POSTGRES_ENABLED=true` so Docker discovery and PostgreSQL startup failures remain visible in this dedicated job.
 
 - [ ] **Step 2: Validate workflow syntax and focused tests**
 
 Parse `.github/workflows/ci.yaml` with the repository's available YAML parser, then rerun the focused Outbox Maven verification.
 
-- [ ] **Step 3: Commit the CI coverage**
+- [ ] **Step 3: Document the integration-test switch**
+
+Document that the default reactor does not require a developer database, and that setting `EGON_OUTBOX_TEST_POSTGRES_ENABLED=true` runs the real PostgreSQL suite through Testcontainers and requires Docker.
+
+- [ ] **Step 4: Commit the CI coverage and documentation**
 
 ```bash
-git add .github/workflows/ci.yaml
+git add \
+  .github/workflows/ci.yaml \
+  egon-cola-components/egon-cola-component-transactional-outbox/README.md \
+  egon-cola-components/egon-cola-component-transactional-outbox/README.zh-CN.md
 git commit -m "ci: verify outbox against PostgreSQL"
 ```
 
