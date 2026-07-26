@@ -4,7 +4,15 @@
 
 编写日期：2026-07-26
 
-代码基线：`main@bff002cd4e1d`
+审计基线：`main@bff002cd4e1d`
+
+实施基线：`main@a58d7645`（`Merge branch 'codex/gateway-ddc-rpc-integration'`）
+
+> 基线变更说明：审计执行期间 `codex/gateway-ddc-rpc-integration` 被合入 main。本文第 4 章原
+> 将该分支范围记为"已确认待实施"并排除，该判断在合入后已过期——相关联调闭环工作现已落地。
+> 第 17 章的实施均基于合入后的 `a58d7645`，components 类结论不受影响（合入内容集中在
+> gateway/DDC/RPC 联调，未触及本文所列的 M1–M4 缺陷点）。
+> 姊妹规格 `2026-07-26-architecture-audit-rectification-spec.md` 负责合入后的 gateway 类审计。
 
 审计方式：12 个只读审计 Agent 并行执行（10 个组件各 1 个，跨组件结构 1 个，文档覆盖 1 个），
 共 1194 次工具调用。对结论执行对抗式复核（要求复核方尽力证伪）：22 条完成复核，其中
@@ -223,7 +231,8 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 
 ```text
 1. Gateway / DDC / RPC 三方联调闭环合同问题 —— 由 2026-07-26 联调闭环设计及其 7 份
-   integration 计划负责，该设计已确认待实施。
+   integration 计划负责。该工作已于 a58d7645 合入 main，合入后的复核由姊妹规格
+   2026-07-26-architecture-audit-rectification-spec.md 负责。
 2. Gateway 17 项差距修复 —— 由 2026-07-25 对应设计负责，状态为实施中。
 3. Gateway 16 份子 Spec 的功能范围 —— 状态为"已实现，待用户验收"，本设计只针对其中
    审计新发现的实现缺口（上游 TLS、安全 SPI 投递、admin 持久层验证）。
