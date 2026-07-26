@@ -1,0 +1,22 @@
+[
+  {
+    "routeId": "demo-provider-identity",
+    "applicationCode": "gateway-test-http-provider",
+    "methodIdentity": "GET /api/providers/{requestId}",
+    "host": "providers.gateway.demo",
+    "httpMethod": "GET",
+    "pathPattern": "/api/providers/{requestId}",
+    "accessZones": ["PUBLIC", "INTERNAL"],
+    "priority": 0
+  },
+  {
+    "routeId": "demo-rpc-echo",
+    "applicationCode": "gateway-test-rpc-provider",
+    "methodIdentity": "egon.gateway.test.v1.EchoService/Echo",
+    "host": "rpc.gateway.demo",
+    "httpMethod": "POST",
+    "pathPattern": "/rpc/echo",
+    "accessZones": ["INTERNAL"],
+    "priority": 0
+  }
+]

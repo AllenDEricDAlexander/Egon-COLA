@@ -1,0 +1,12 @@
+[
+  {
+    "applicationCode": "gateway-test-http-provider",
+    "displayName": "Gateway Demo HTTP Providers",
+    "description": "MVC and WebFlux demo providers"
+  },
+  {
+    "applicationCode": "gateway-test-rpc-provider",
+    "displayName": "Gateway Demo RPC Provider",
+    "description": "Egon RPC demo provider"
+  }
+]

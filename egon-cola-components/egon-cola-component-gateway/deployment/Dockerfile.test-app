@@ -1,0 +1,8 @@
+FROM eclipse-temurin:21-jre-jammy
+
+ARG APP_JAR
+WORKDIR /opt/egon-cola
+COPY ${APP_JAR} application.jar
+
+EXPOSE 18080
+ENTRYPOINT ["java", "-jar", "/opt/egon-cola/application.jar"]

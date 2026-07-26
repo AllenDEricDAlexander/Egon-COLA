@@ -1,0 +1,14 @@
+[
+  {
+    "policyId": "demo-provider-rate",
+    "policyType": "RATE_LIMIT",
+    "policyScope": "OPERATION",
+    "operationMethodIdentity": "GET /api/providers/{requestId}",
+    "keyExpression": "${operationId}",
+    "capacity": 20,
+    "initialTokens": 20,
+    "refillTokens": 20,
+    "refillPeriod": "PT1M",
+    "mode": "DISTRIBUTED"
+  }
+]
