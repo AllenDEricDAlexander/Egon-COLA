@@ -19,4 +19,8 @@ public record DdcManagementServiceInstance(
     public DdcManagementServiceInstance {
         metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     }
+
+    public DdcInstanceStatus normalizedStatus() {
+        return DdcInstanceStatus.fromWire(status);
+    }
 }

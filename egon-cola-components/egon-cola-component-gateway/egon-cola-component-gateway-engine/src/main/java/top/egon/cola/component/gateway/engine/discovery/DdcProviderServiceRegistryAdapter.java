@@ -19,6 +19,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceRegistry;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceSnapshot;
 import top.egon.cola.component.gateway.core.provider.ProviderSubscription;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -116,19 +117,21 @@ public final class DdcProviderServiceRegistryAdapter
 
     private ProviderServiceSnapshot snapshot(DdcServiceSnapshot value) {
         ProviderServiceKey key = serviceKey(value.serviceKey());
+        Instant now = Instant.now();
         return new ProviderServiceSnapshot(
                 key,
                 value.revision(),
                 value.observedAt(),
                 value.instances().stream()
-                        .map(instance -> instance(key, instance))
+                        .map(instance -> instance(key, instance, now))
                         .toList()
         );
     }
 
     private ProviderInstance instance(
             ProviderServiceKey key,
-            DdcServiceInstance value) {
+            DdcServiceInstance value,
+            Instant now) {
         return new ProviderInstance(
                 key,
                 value.instanceId(),
@@ -138,7 +141,10 @@ public final class DdcProviderServiceRegistryAdapter
                 value.secure(),
                 value.metadata(),
                 value.leaseExpireAt(),
-                "REGISTERED".equalsIgnoreCase(value.status())
+                value.normalizedStatus().isAvailable(
+                        now,
+                        value.leaseExpireAt()
+                )
                         ? ProviderRegistryState.REGISTERED
                         : ProviderRegistryState.EXPIRED,
                 ProviderHealthState.UNKNOWN,

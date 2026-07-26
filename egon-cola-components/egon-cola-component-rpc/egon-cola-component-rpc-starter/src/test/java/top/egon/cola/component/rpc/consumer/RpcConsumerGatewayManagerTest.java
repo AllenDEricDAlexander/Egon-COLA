@@ -98,6 +98,40 @@ class RpcConsumerGatewayManagerTest {
     }
 
     @Test
+    void shouldAcceptOnlineGatewayStatus() {
+        SnapshotRegistry registry = new SnapshotRegistry();
+        registry.snapshot = snapshot(instance(
+                "gateway-1", "lease-1", 19090, "ONLINE",
+                Instant.now().plusSeconds(30)
+        ));
+        RpcConsumerGatewayManager manager =
+                manager(registry, new StubChannelFactory());
+
+        manager.start();
+
+        assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
+        manager.stop();
+    }
+
+    @Test
+    void shouldTreatMissingGatewayStatusAsUnavailable() {
+        SnapshotRegistry registry = new SnapshotRegistry();
+        registry.snapshot = snapshot(instance(
+                "gateway-1", "lease-1", 19090, null,
+                Instant.now().plusSeconds(30)
+        ));
+        RpcConsumerGatewayManager manager =
+                manager(registry, new StubChannelFactory());
+
+        assertThatThrownBy(manager::start)
+                .isInstanceOfSatisfying(EgonRpcException.class, exception ->
+                        assertThat(exception.getCode()).isEqualTo(
+                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                        )
+                );
+    }
+
+    @Test
     void shouldCloseDrainingChannelsAndRestartCleanly() {
         SnapshotRegistry registry = new SnapshotRegistry();
         StubChannelFactory channels = new StubChannelFactory();
@@ -180,6 +214,15 @@ class RpcConsumerGatewayManagerTest {
             String leaseId,
             int port) {
         Instant now = Instant.now();
+        return instance(instanceId, leaseId, port, "UP", now.plusSeconds(30));
+    }
+
+    private DdcServiceInstance instance(
+            String instanceId,
+            String leaseId,
+            int port,
+            String status,
+            Instant leaseExpireAt) {
         return new DdcServiceInstance(
                 instanceId,
                 leaseId,
@@ -190,10 +233,10 @@ class RpcConsumerGatewayManagerTest {
                 java.util.Map.of(),
                 30,
                 10,
-                now,
-                now,
-                now.plusSeconds(30),
-                "UP",
+                leaseExpireAt.minusSeconds(30),
+                leaseExpireAt.minusSeconds(10),
+                leaseExpireAt,
+                status,
                 1
         );
     }

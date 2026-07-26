@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import top.egon.cola.component.ddc.management.model.DdcInstanceStatus;
+
 import java.time.Instant;
 import java.util.Map;
 
@@ -31,6 +33,10 @@ public record DdcServiceInstance(
             throw new IllegalArgumentException("serviceKey is required");
         }
         metadata = DdcServiceRegistration.validatedMetadata(metadata);
+    }
+
+    public DdcInstanceStatus normalizedStatus() {
+        return DdcInstanceStatus.fromWire(status);
     }
 
     @Override

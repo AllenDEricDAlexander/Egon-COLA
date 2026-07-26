@@ -1,6 +1,17 @@
 package top.egon.cola.component.gateway.engine.discovery;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.gateway.core.provider.ProviderCatalogSnapshot;
 import top.egon.cola.component.gateway.core.provider.ProviderHealthState;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
@@ -52,6 +63,53 @@ class ProviderDirectoryTest {
         assertTrue(registry.closed.get());
     }
 
+    @Test
+    void exposesOnlyOnlineDdcInstancesWithCurrentLeasesAsRegistered() {
+        ProviderServiceKey providerKey = key();
+        DdcServiceKey ddcKey = new DdcServiceKey(
+                "local", "default", DdcServiceKind.HTTP_PROVIDER,
+                "orders", "default", "v1", "http"
+        );
+        Instant now = Instant.now();
+        DdcSnapshotRegistry registry = new DdcSnapshotRegistry(
+                new DdcServiceSnapshot(
+                        ddcKey,
+                        1,
+                        List.of(
+                                ddcInstance(ddcKey, "online", "ONLINE",
+                                        now.plusSeconds(60)),
+                                ddcInstance(ddcKey, "legacy", "REGISTERED",
+                                        now.plusSeconds(60)),
+                                ddcInstance(ddcKey, "expired", "ONLINE",
+                                        now.minusSeconds(1)),
+                                ddcInstance(ddcKey, "unknown", null,
+                                        now.plusSeconds(60))
+                        ),
+                        now
+                )
+        );
+
+        ProviderServiceSnapshot snapshot = new DdcProviderServiceRegistryAdapter(registry)
+                .getInstances(providerKey);
+
+        assertEquals(
+                ProviderRegistryState.REGISTERED,
+                state(snapshot, "online")
+        );
+        assertEquals(
+                ProviderRegistryState.REGISTERED,
+                state(snapshot, "legacy")
+        );
+        assertEquals(
+                ProviderRegistryState.EXPIRED,
+                state(snapshot, "expired")
+        );
+        assertEquals(
+                ProviderRegistryState.EXPIRED,
+                state(snapshot, "unknown")
+        );
+    }
+
     private ProviderServiceKey key() {
         return new ProviderServiceKey(
                 "local",
@@ -62,6 +120,39 @@ class ProviderDirectoryTest {
                 "v1",
                 "http"
         );
+    }
+
+    private DdcServiceInstance ddcInstance(
+            DdcServiceKey key,
+            String instanceId,
+            String status,
+            Instant leaseExpireAt) {
+        return new DdcServiceInstance(
+                instanceId,
+                "lease-" + instanceId,
+                key,
+                "127.0.0.1",
+                8080,
+                false,
+                java.util.Map.of(),
+                30,
+                10,
+                leaseExpireAt.minusSeconds(30),
+                leaseExpireAt.minusSeconds(10),
+                leaseExpireAt,
+                status,
+                1
+        );
+    }
+
+    private ProviderRegistryState state(
+            ProviderServiceSnapshot snapshot,
+            String instanceId) {
+        return snapshot.instances().stream()
+                .filter(instance -> instance.instanceId().equals(instanceId))
+                .findFirst()
+                .orElseThrow()
+                .registryState();
     }
 
     private static final class FakeRegistry
@@ -124,6 +215,59 @@ class ProviderDirectoryTest {
                     closed.set(true);
                 }
             };
+        }
+    }
+
+    private static final class DdcSnapshotRegistry
+            implements DdcServiceRegistryClient {
+
+        private final DdcServiceSnapshot snapshot;
+
+        private DdcSnapshotRegistry(DdcServiceSnapshot snapshot) {
+            this.snapshot = snapshot;
+        }
+
+        @Override
+        public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey) {
+            return snapshot;
+        }
+
+        @Override
+        public DdcRegistrySubscription subscribe(
+                DdcServiceKey serviceKey,
+                java.util.function.Consumer<DdcServiceSnapshot> listener) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DdcLeaseSession register(DdcServiceRegistration registration) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DdcLeaseOperationResult heartbeat(
+                String instanceId,
+                String leaseId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DdcLeaseOperationResult deregister(
+                String instanceId,
+                String leaseId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DdcRegistrySubscription subscribeServices(
+                DdcServiceQuery query,
+                java.util.function.Consumer<DdcServiceCatalogSnapshot> listener) {
+            throw new UnsupportedOperationException();
         }
     }
 }

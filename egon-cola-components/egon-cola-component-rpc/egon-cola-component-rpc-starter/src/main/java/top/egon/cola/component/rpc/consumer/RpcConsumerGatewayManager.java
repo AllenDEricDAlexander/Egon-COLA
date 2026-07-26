@@ -280,8 +280,10 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     }
 
     private boolean isUp(DdcServiceInstance instance) {
-        return instance.status() == null
-                || "UP".equalsIgnoreCase(instance.status());
+        return instance.normalizedStatus().isAvailable(
+                Instant.now(),
+                instance.leaseExpireAt()
+        );
     }
 
     private Optional<RpcGatewayEndpoint> validEndpoint(
