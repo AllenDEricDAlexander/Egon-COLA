@@ -395,6 +395,9 @@ Redis 需要鉴权时设置 `DDC_TEST_REDIS_PASSWORD`。进程测试使用临时
 
 ## V1 非目标
 
+生产 Gateway 拓扑、双 Engine 调用和故障演练见
+[Gateway + DDC + RPC 联调 Runbook](../egon-cola-component-gateway/docs/developer-integration.zh-CN.md)。
+
 V1 不实现：
 
 - Consumer 直连 Provider；

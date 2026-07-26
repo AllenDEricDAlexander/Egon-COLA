@@ -25,6 +25,11 @@ docker compose --env-file .env -f compose.yml up -d
 
 本次代码交付不会自动执行上述启动命令。
 
+包含 MVC、WebFlux、RPC Provider、RPC Consumer 和双 Engine 的完整 Demo 见
+[开发联调 Runbook](../docs/developer-integration.zh-CN.md)。命令入口为
+`./scripts/demo.sh`；`down` 保留数据，显式破坏性的 `purge` 只允许用于带本地标记的
+Demo project。
+
 ## 端口与持久化
 
 | 服务 | 本机端口 | 用途 |

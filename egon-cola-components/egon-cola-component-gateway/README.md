@@ -84,6 +84,7 @@ and requires a working Docker daemon:
 
 | Document | Purpose |
 |---|---|
+| [Gateway + DDC + RPC integration](docs/developer-integration.md) | End-to-end demo commands, success criteria, fault drills, and evidence boundaries |
 | [Local deployment](deployment/README.md) | Compose build, ports, readiness, HA sample, TLS/mTLS, and startup/shutdown order |
 | [Performance and fault drills](performance/README.md) | k6 smoke/baseline, long soak, resource sampling, and fixed fault scenarios |
 | [Admin Web](egon-cola-component-gateway-admin-web/README.md) | React build, tests, browser authentication, and API origin settings |

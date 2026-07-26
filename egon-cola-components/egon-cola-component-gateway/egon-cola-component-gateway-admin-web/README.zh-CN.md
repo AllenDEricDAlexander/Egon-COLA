@@ -37,8 +37,8 @@ npm run build
 ## 运行时配置
 
 浏览器调用 Gateway Admin。设置 `VITE_GATEWAY_ADMIN_API_BASE_URL` 可使用不同的 API
-Origin；留空时使用当前 Origin。IAM 尚未由宿主平台提供时，
-`VITE_GATEWAY_ADMIN_ACTOR_ID` 用于提供占位管理 Actor。
+Origin；留空时使用当前 Origin。Actor 与 capabilities 由已鉴权的 Session API 提供，
+浏览器不配置占位 Actor。
 
 不要把凭据写入并提交的 `.env` 文件。身份提供方、浏览器 CORS/PKCE 配置、TLS 终止以及
 Gateway Admin 授权策略仍由部署平台负责。

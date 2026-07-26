@@ -409,6 +409,9 @@ under `target/rpc-process-it`, and stops children in reverse order.
 
 ## V1 Non-goals
 
+Use the [Gateway + DDC + RPC integration runbook](../egon-cola-component-gateway/docs/developer-integration.md)
+for the production Gateway topology, dual-Engine calls, and fault drills.
+
 V1 does not implement:
 
 - Consumer direct connection to a Provider;

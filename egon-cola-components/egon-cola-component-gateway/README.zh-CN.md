@@ -79,6 +79,7 @@ live Profile 会由测试 Harness 启动真实 Provider/Consumer 拓扑，需要
 
 | 文档 | 用途 |
 |---|---|
+| [Gateway + DDC + RPC 联调](docs/developer-integration.zh-CN.md) | 端到端 Demo 命令、成功判据、故障演练和证据边界 |
 | [本地部署](deployment/README.md) | Compose 构建、端口、Ready、HA 样例、TLS/mTLS 和启停顺序 |
 | [性能和故障演练](performance/README.md) | k6 smoke/baseline、长稳、资源采样和固定故障场景 |
 | [Admin Web](egon-cola-component-gateway-admin-web/README.md) | React 构建、测试、浏览器鉴权和 API Origin 配置 |

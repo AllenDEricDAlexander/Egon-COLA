@@ -26,6 +26,11 @@ docker compose --env-file .env -f compose.yml up -d
 
 This documentation update does not start the stack automatically.
 
+For the complete MVC, WebFlux, RPC Provider, RPC Consumer, and dual-Engine demo,
+use the [developer integration runbook](../docs/developer-integration.md). The command
+facade is `./scripts/demo.sh`; `down` preserves data and the explicitly destructive
+`purge` command is restricted to a marked local demo project.
+
 ## Ports and persistence
 
 | Service | Local port | Purpose |
