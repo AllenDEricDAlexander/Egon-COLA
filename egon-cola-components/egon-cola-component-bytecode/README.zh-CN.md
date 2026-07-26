@@ -277,7 +277,7 @@ explicit module mapping > package mapping > module-name suffix > UNKNOWN
 | `frameworkAllowlist` | 空 | 在应用拒绝列表前允许指定技术前缀。 |
 | `facadeImplementationPackages` | `..adapter..` | 定义 Facade 实现允许所在的包。 |
 | `failurePolicy` / `egonArchitecture.failurePolicy` | `FAIL` | 选择 `FAIL`、`WARN` 或 `REPORT_ONLY`。 |
-| `unknownLayerPolicy` / `egonArchitecture.unknownLayerPolicy` | `WARN` | 选择 `FAIL`、`WARN` 或 `IGNORE`。 |
+| `unknownLayerPolicy` / `egonArchitecture.unknownLayerPolicy` | `WARN` | 选择 `FAIL`、`WARN` 或 `IGNORE`。`package-info` 与 `module-info` 不参与该校验：它们不声明任何依赖，因此不可能违反分层规则。 |
 | `cacheEnabled` / `egonArchitecture.cache.enabled` | `true` | 启用已解析类元数据缓存。 |
 
 ## 标准规则

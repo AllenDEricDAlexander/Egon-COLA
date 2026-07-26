@@ -756,7 +756,7 @@ assert assertFile("pom.xml").text.contains("<spring.profiles.active>test</spring
 
 def generatedWorkflow = assertFile(".github/workflows/ci.yml").text
 def normalizedGeneratedWorkflow = generatedWorkflow.replaceAll(/\s+/, " ")
-assert normalizedGeneratedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test")
+assert normalizedGeneratedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify")
 assert normalizedGeneratedWorkflow.contains("SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package")
 assert normalizedGeneratedWorkflow.contains("docker build --build-arg CONTAINER_ENGINE=docker")
 assert normalizedGeneratedWorkflow.contains("--file deploy/container/Dockerfile")

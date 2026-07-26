@@ -17,7 +17,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - run: SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test
+      # `verify` runs the architecture-governance plugin, which is bound to that phase.
+      - run: SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify
       - run: SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
       - run: >-
           docker build

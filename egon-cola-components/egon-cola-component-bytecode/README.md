@@ -278,7 +278,7 @@ Supported layers are `DOMAIN`, `APPLICATION`, `INFRASTRUCTURE`, `ADAPTER`, `FACA
 | `frameworkAllowlist` | empty | Allow specific technical prefixes before applying the denylist. |
 | `facadeImplementationPackages` | `..adapter..` | Define allowed packages for Facade implementations. |
 | `failurePolicy` / `egonArchitecture.failurePolicy` | `FAIL` | Choose `FAIL`, `WARN`, or `REPORT_ONLY`. |
-| `unknownLayerPolicy` / `egonArchitecture.unknownLayerPolicy` | `WARN` | Choose `FAIL`, `WARN`, or `IGNORE`. |
+| `unknownLayerPolicy` / `egonArchitecture.unknownLayerPolicy` | `WARN` | Choose `FAIL`, `WARN`, or `IGNORE`. `package-info` and `module-info` are exempt: they declare no dependencies and so cannot violate a layer rule. |
 | `cacheEnabled` / `egonArchitecture.cache.enabled` | `true` | Enable parsed-class metadata caching. |
 
 ## Standard Rules

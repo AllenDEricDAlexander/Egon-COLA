@@ -58,11 +58,11 @@ The Organization Facade client is an unused infrastructure foundation; no curren
 `prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization Dubbo client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
 
 - Database: configure the `master_data`, `shard_0`, and `shard_1` physical data sources described below.
-- Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_GROUP`, `NACOS_USERNAME`, `NACOS_PASSWORD`.
+- Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_USERNAME`, `NACOS_PASSWORD`. Config and discovery carry separate groups — `NACOS_CONFIG_GROUP` and `NACOS_DISCOVERY_GROUP` — and separate switches: `NACOS_CONFIG_ENABLED`, `NACOS_DISCOVERY_ENABLED`, `NACOS_CONFIG_REFRESH_ENABLED`, and `DISCOVERY_ENABLED`.
 - Dubbo: `DUBBO_REGISTRY_ADDRESS`, `DUBBO_PORT`, `DUBBO_CONSUMER_TIMEOUT`.
 - Organization Facade: `ORGANIZATION_FACADE_ENABLED`, `ORGANIZATION_FACADE_GROUP`, `ORGANIZATION_FACADE_SERVICE_VERSION`.
-- RabbitMQ: `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `RABBITMQ_ENABLED`, `RABBITMQ_LISTENER_AUTO_STARTUP`.
-- Configuration decryption: `CONFIG_DECRYPT_KEY` or the documented config-tree secret source.
+- RabbitMQ: connection settings bind through Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are this application's own switches.
+- Configuration decryption: `EGON_CONFIG_DECRYPT_KEY`, `EGON_CONFIG_DECRYPT_KEY_FILE`, or the documented config-tree secret source.
 
 ${symbol_pound}${symbol_pound} Sharding, Read/Write Splitting, And Flyway
 
@@ -115,7 +115,10 @@ strings. Migration files follow `VyyyyMMdd_NNN__description.sql` and begin with
 `变更内容`, `影响范围`, and `兼容性说明` comments.
 
 Database count, table count per database, and total physical-node count must all
-be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`.
+be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`, held in
+`EVALUATION_SHARDING_NODE_COUNT` (default `4`) and `EVALUATION_SHARDING_NODE_MAP`
+(default `0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`);
+`EVALUATION_SHARDING_DATABASE_NAME` names the logical database.
 Capacity follows the 2N rule: change one dimension from `N` to `2N` at a time
 and publish the complete `node-count` and `node-map` together. This unused
 scaffold has no historical data and provides no online migration, dual-write,
@@ -130,7 +133,7 @@ transaction coordinator is included.
 ${symbol_pound}${symbol_pound} Verification And Packaging
 
 ```bash
-SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean test
+SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify
 SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 ```
 
@@ -138,6 +141,23 @@ The test suite includes Domain rules, Application orchestration, JPA adapters,
 date-sequence Flyway migration contracts, broker-free MQ adapters, an actual
 Dubbo Triple proxy call, external-free Spring context assembly, and architecture
 dependency checks. Building the image does not start the service.
+
+Use `verify`, not `test`. The architecture-governance plugin is bound to the `verify`
+phase and runs with `unknownLayerPolicy=FAIL`, so `clean test` would run every unit test
+while performing no layer check at all. The generated `.github/workflows/ci.yml` and the
+root `Jenkinsfile` both use `verify` for this reason.
+
+Encrypt a configuration value with a 32-byte key supplied through
+`EGON_CONFIG_DECRYPT_KEY` or `EGON_CONFIG_DECRYPT_KEY_FILE`:
+
+```bash
+printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-key' \
+  bash ./mvnw -q -pl ${rootArtifactId}-starter -am -DskipTests compile exec:java \
+  -Dexec.mainClass=${package}.starter.config.encryption.ConfigCipherCli
+```
+
+`ConfigCipherCli` takes no arguments and reads the plaintext from standard input.
+Use the emitted `ENC(v1:...)` value in configuration.
 
 ${symbol_pound}${symbol_pound} Container Delivery
 

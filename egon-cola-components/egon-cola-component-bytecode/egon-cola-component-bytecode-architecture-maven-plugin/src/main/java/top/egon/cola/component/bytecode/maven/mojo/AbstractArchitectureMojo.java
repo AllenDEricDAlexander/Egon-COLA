@@ -213,8 +213,12 @@ public abstract class AbstractArchitectureMojo extends AbstractMojo {
             ArchitectureScanResult scanResult,
             UnknownLayerPolicy policy
     ) throws MojoFailureException {
+        // `package-info` and `module-info` are synthetic descriptors: they declare no
+        // dependencies, so they can never violate a layer rule. A layer-less root
+        // package-info (common in single-module projects) must not fail the build.
         List<String> unknown = scanResult.graph().types().stream()
                 .filter(type -> type.layer() == ArchitectureLayer.UNKNOWN)
+                .filter(type -> !isSyntheticDescriptor(type.className()))
                 .map(type -> type.module() + ":" + type.className())
                 .toList();
         if (unknown.isEmpty() || policy == UnknownLayerPolicy.IGNORE) {
@@ -225,6 +229,13 @@ public abstract class AbstractArchitectureMojo extends AbstractMojo {
             throw new MojoFailureException(message);
         }
         getLog().warn(message);
+    }
+
+    private static boolean isSyntheticDescriptor(String className) {
+        return className.equals("package-info")
+                || className.equals("module-info")
+                || className.endsWith(".package-info")
+                || className.endsWith(".module-info");
     }
 
     private void check(
