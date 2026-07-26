@@ -89,6 +89,9 @@ class HttpProviderContractTest {
         assertNotNull(BehaviorController.class.getAnnotation(
                 GatewayInterfaceGroup.class
         ));
+        assertNotNull(ProviderIdentityController.class.getAnnotation(
+                GatewayInterfaceGroup.class
+        ));
     }
 
     @Test
@@ -105,6 +108,16 @@ class HttpProviderContractTest {
         byte[] body = {0, 1, 2, 127};
 
         assertArrayEquals(body, new BehaviorController().echo(body));
+    }
+
+    @Test
+    void sharedProviderEndpointIdentifiesMvcRuntime() {
+        var response = new ProviderIdentityController("mvc-provider")
+                .identity("request-1");
+
+        assertEquals("request-1", response.requestId());
+        assertEquals("mvc-provider", response.providerId());
+        assertEquals("mvc", response.framework());
     }
 
     @TestConfiguration(proxyBeanMethods = false)

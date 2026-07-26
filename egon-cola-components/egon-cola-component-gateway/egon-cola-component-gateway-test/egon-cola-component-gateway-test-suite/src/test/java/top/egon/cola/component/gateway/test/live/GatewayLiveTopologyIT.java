@@ -72,9 +72,7 @@ class GatewayLiveTopologyIT {
             .connectTimeout(Duration.ofSeconds(3))
             .build();
 
-    @Test
-    @EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
-    void reportsReleasesDiscoversForwardsAndProjectsTrace() throws Exception {
+    void verifyHttpProvidersLifecycle() throws Exception {
         try (GatewayLiveEnvironment environment =
                      new GatewayLiveEnvironment("http-topology")) {
             environment.startInfrastructure();
@@ -156,27 +154,6 @@ class GatewayLiveTopologyIT {
                     STARTUP_TIMEOUT,
                     provider
             );
-            var secondProvider = processes.start(providerSpec(
-                    infrastructure,
-                    ddcBase,
-                    adminBase,
-                    secondProviderPort,
-                    "http-provider-two",
-                    "http-provider-live-2",
-                    false,
-                    credential.required("accessKey").asText(),
-                    credential.required("secret").asText()
-            ));
-            processes.awaitHttp(
-                    URI.create(
-                            "http://127.0.0.1:"
-                                    + secondProviderPort
-                                    + "/actuator/health/readiness"
-                    ),
-                    STARTUP_TIMEOUT,
-                    secondProvider
-            );
-
             Path engineData = environment.dataDirectory(
                     "gateway-engine-1"
             );
@@ -213,6 +190,12 @@ class GatewayLiveTopologyIT {
                     adminClient,
                     applicationId,
                     "GET /api/internal/inventory/{sku}"
+            );
+            String providerIdentityOperationId = awaitOperation(
+                    processes,
+                    adminClient,
+                    applicationId,
+                    "GET /api/providers/{requestId}"
             );
             JsonNode group = adminClient.createGroup(
                     Map.of(
@@ -276,6 +259,31 @@ class GatewayLiveTopologyIT {
                             "live-http-inventory-route",
                             "changeReason",
                             "GWS-13 live internal route"
+                    )
+            );
+            revision = mutation.required("revision").asLong();
+            mutation = adminClient.putRoute(
+                    groupId,
+                    "live-http-provider-identity",
+                    Map.of(
+                            "operationId", providerIdentityOperationId,
+                            "content", Map.of(
+                                    "host", "providers.gateway.test",
+                                    "httpMethod", "GET",
+                                    "pathPattern",
+                                    "/api/providers/{requestId}",
+                                    "accessZones", List.of(
+                                            "PUBLIC",
+                                            "INTERNAL"
+                                    ),
+                                    "priority", 0
+                            ),
+                            "enabled", true,
+                            "expectedRevision", revision,
+                            "idempotencyKey",
+                            "live-http-provider-identity-route",
+                            "changeReason",
+                            "GWS-13 shared Provider identity route"
                     )
             );
             revision = mutation.required("revision").asLong();
@@ -387,22 +395,54 @@ class GatewayLiveTopologyIT {
             );
             assertThat(publicInternal.statusCode()).isEqualTo(404);
 
-            Set<String> selectedProviders = new LinkedHashSet<>();
-            for (int invocation = 0; invocation < 6; invocation++) {
-                HttpResponse<String> internal = inventory(
-                        engineInternalPort,
-                        "sku-" + invocation
-                );
-                assertThat(internal.statusCode()).isEqualTo(200);
-                selectedProviders.add(objectMapper
-                        .readTree(internal.body())
-                        .required("providerId")
-                        .asText());
-            }
-            assertThat(selectedProviders).containsExactlyInAnyOrder(
+            HttpResponse<String> internal = inventory(
+                    engineInternalPort,
+                    "sku-live"
+            );
+            assertThat(internal.statusCode()).isEqualTo(200);
+            assertThat(objectMapper.readTree(internal.body())
+                    .required("providerId").asText())
+                    .isEqualTo("http-provider-live-1");
+
+            var secondProvider = processes.start(webFluxProviderSpec(
+                    infrastructure,
+                    ddcBase,
+                    adminBase,
+                    secondProviderPort,
+                    "webflux-http-provider",
+                    "http-provider-live-2",
+                    false,
+                    credential.required("accessKey").asText(),
+                    credential.required("secret").asText()
+            ));
+            URI secondProviderReadiness = URI.create(
+                    "http://127.0.0.1:"
+                            + secondProviderPort
+                            + "/actuator/health/readiness"
+            );
+            processes.awaitHttp(
+                    secondProviderReadiness,
+                    STARTUP_TIMEOUT,
+                    secondProvider
+            );
+            processes.awaitCondition(
+                    () -> httpProviderIds(adminClient).containsAll(Set.of(
+                            "http-provider-live-1",
+                            "http-provider-live-2"
+                    )),
+                    Duration.ofSeconds(30),
+                    "MVC and WebFlux Provider projection"
+            );
+            Map<String, String> initialLeases = providerLeases(adminClient);
+            assertThat(initialLeases).containsKeys(
                     "http-provider-live-1",
                     "http-provider-live-2"
             );
+            assertThat(awaitProviderFrameworks(
+                    processes,
+                    enginePublicPort,
+                    Set.of("mvc", "webflux")
+            )).containsExactlyInAnyOrder("mvc", "webflux");
 
             processes.stop(provider);
             processes.awaitCondition(
@@ -412,22 +452,69 @@ class GatewayLiveTopologyIT {
                     Duration.ofSeconds(30),
                     "stopped HTTP Provider removal"
             );
-            processes.awaitCondition(
-                    () -> {
-                        HttpResponse<String> recovered = inventory(
-                                engineInternalPort,
-                                "sku-recovered"
-                        );
-                        return recovered.statusCode() == 200
-                                && "http-provider-live-2".equals(
-                                objectMapper.readTree(recovered.body())
-                                        .path("providerId")
-                                        .asText()
-                        );
-                    },
-                    Duration.ofSeconds(30),
-                    "HTTP Provider failure recovery"
+            awaitOnlyProviderFramework(
+                    processes,
+                    enginePublicPort,
+                    "webflux"
             );
+
+            provider = processes.restart(provider);
+            processes.awaitHttp(
+                    URI.create(
+                            "http://127.0.0.1:"
+                                    + providerPort
+                                    + "/actuator/health/readiness"
+                    ),
+                    STARTUP_TIMEOUT,
+                    provider
+            );
+            processes.awaitCondition(
+                    () -> !initialLeases.get("http-provider-live-1")
+                            .equals(providerLeases(adminClient).get(
+                                    "http-provider-live-1"
+                            )),
+                    Duration.ofSeconds(30),
+                    "restarted MVC Provider lease replacement"
+            );
+            assertThat(awaitProviderFrameworks(
+                    processes,
+                    enginePublicPort,
+                    Set.of("mvc", "webflux")
+            )).containsExactlyInAnyOrder("mvc", "webflux");
+
+            processes.kill(secondProvider);
+            processes.awaitCondition(
+                    () -> !httpProviderIds(adminClient).contains(
+                            "http-provider-live-2"
+                    ),
+                    Duration.ofSeconds(45),
+                    "force-killed WebFlux Provider lease expiry"
+            );
+            awaitOnlyProviderFramework(
+                    processes,
+                    enginePublicPort,
+                    "mvc"
+            );
+
+            secondProvider = processes.restart(secondProvider);
+            processes.awaitHttp(
+                    secondProviderReadiness,
+                    STARTUP_TIMEOUT,
+                    secondProvider
+            );
+            processes.awaitCondition(
+                    () -> !initialLeases.get("http-provider-live-2")
+                            .equals(providerLeases(adminClient).get(
+                                    "http-provider-live-2"
+                            )),
+                    Duration.ofSeconds(30),
+                    "restarted WebFlux Provider lease replacement"
+            );
+            assertThat(awaitProviderFrameworks(
+                    processes,
+                    enginePublicPort,
+                    Set.of("mvc", "webflux")
+            )).containsExactlyInAnyOrder("mvc", "webflux");
 
             processes.awaitCondition(
                     () -> traceCount(adminClient, traceId) == 1,
@@ -914,11 +1001,61 @@ class GatewayLiveTopologyIT {
             boolean reportingEnabled,
             String accessKey,
             String secretKey) {
+        return providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                port,
+                processName,
+                providerId,
+                reportingEnabled,
+                accessKey,
+                secretKey,
+                "top.egon.cola.component.gateway.test.http."
+                        + "GatewayHttpTestProviderApplication"
+        );
+    }
+
+    private GatewayProcessSpec webFluxProviderSpec(
+            GatewayTestInfrastructure infrastructure,
+            URI ddcBase,
+            URI adminBase,
+            int port,
+            String processName,
+            String providerId,
+            boolean reportingEnabled,
+            String accessKey,
+            String secretKey) {
+        return providerSpec(
+                infrastructure,
+                ddcBase,
+                adminBase,
+                port,
+                processName,
+                providerId,
+                reportingEnabled,
+                accessKey,
+                secretKey,
+                "top.egon.cola.component.gateway.test.webflux."
+                        + "GatewayWebFluxHttpTestProviderApplication"
+        );
+    }
+
+    private GatewayProcessSpec providerSpec(
+            GatewayTestInfrastructure infrastructure,
+            URI ddcBase,
+            URI adminBase,
+            int port,
+            String processName,
+            String providerId,
+            boolean reportingEnabled,
+            String accessKey,
+            String secretKey,
+            String mainClass) {
         return ddcClient(
                 GatewayProcessSpec.builder(
                                 processName,
-                                "top.egon.cola.component.gateway.test.http."
-                                        + "GatewayHttpTestProviderApplication"
+                                mainClass
                         ),
                 infrastructure
         )
@@ -1529,13 +1666,18 @@ class GatewayLiveTopologyIT {
 
     private Set<String> httpProviderIds(
             GatewayAdminTestClient adminClient) throws Exception {
+        return providerLeases(adminClient).keySet();
+    }
+
+    private Map<String, String> providerLeases(
+            GatewayAdminTestClient adminClient) throws Exception {
         JsonNode projection = adminClient.providerInstances(
                 ENV,
                 NAMESPACE,
                 "HTTP",
                 APPLICATION_CODE
         );
-        Set<String> providerIds = new LinkedHashSet<>();
+        Map<String, String> providerLeases = new java.util.LinkedHashMap<>();
         JsonNode instances = projection.path("value").path("instances");
         if (!instances.isArray()) {
             instances = projection.path("value");
@@ -1543,10 +1685,77 @@ class GatewayLiveTopologyIT {
         for (JsonNode instance : instances) {
             String instanceId = instance.path("instanceId").asText();
             if (!instanceId.isBlank()) {
-                providerIds.add(instanceId);
+                providerLeases.put(
+                        instanceId,
+                        instance.path("leaseId").asText()
+                );
             }
         }
-        return Set.copyOf(providerIds);
+        return Map.copyOf(providerLeases);
+    }
+
+    private Set<String> awaitProviderFrameworks(
+            GatewayProcessHarness processes,
+            int listenerPort,
+            Set<String> expected) {
+        Set<String> observed = new LinkedHashSet<>();
+        int[] invocation = {0};
+        processes.awaitCondition(
+                () -> {
+                    HttpResponse<String> response = providerIdentity(
+                            listenerPort,
+                            "request-" + invocation[0]++
+                    );
+                    if (response.statusCode() == 200) {
+                        observed.add(objectMapper.readTree(response.body())
+                                .path("framework").asText());
+                    }
+                    return observed.containsAll(expected);
+                },
+                Duration.ofSeconds(30),
+                "shared Provider route selections " + expected
+        );
+        return Set.copyOf(observed);
+    }
+
+    private void awaitOnlyProviderFramework(
+            GatewayProcessHarness processes,
+            int listenerPort,
+            String expected) {
+        int[] invocation = {0};
+        processes.awaitCondition(
+                () -> {
+                    HttpResponse<String> response = providerIdentity(
+                            listenerPort,
+                            "single-" + invocation[0]++
+                    );
+                    return response.statusCode() == 200
+                            && expected.equals(objectMapper
+                            .readTree(response.body())
+                            .path("framework")
+                            .asText());
+                },
+                Duration.ofSeconds(30),
+                "shared Provider route selection " + expected
+        );
+    }
+
+    private HttpResponse<String> providerIdentity(
+            int listenerPort,
+            String requestId) throws Exception {
+        return httpClient.send(
+                HttpRequest.newBuilder(URI.create(
+                                "http://127.0.0.1:"
+                                        + listenerPort
+                                        + "/api/providers/"
+                                        + requestId
+                        ))
+                        .header("Host", "providers.gateway.test")
+                        .timeout(Duration.ofSeconds(10))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString()
+        );
     }
 
     private int engineNodeCount(

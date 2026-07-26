@@ -125,6 +125,16 @@ class WebFluxHttpProviderContractTest {
                 .jsonPath("$.providerId")
                 .isEqualTo("webflux-http-provider-default")
                 .jsonPath("$.framework").isEqualTo("webflux");
+
+        webTestClient.get()
+                .uri("/api/providers/request-1")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.requestId").isEqualTo("request-1")
+                .jsonPath("$.providerId")
+                .isEqualTo("webflux-http-provider-default")
+                .jsonPath("$.framework").isEqualTo("webflux");
     }
 
     @TestConfiguration(proxyBeanMethods = false)
