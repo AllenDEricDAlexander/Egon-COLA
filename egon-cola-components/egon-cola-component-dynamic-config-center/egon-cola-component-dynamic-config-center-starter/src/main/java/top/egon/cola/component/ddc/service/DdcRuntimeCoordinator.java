@@ -174,7 +174,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
             return;
         }
         try {
-            adminClient.pull().forEach(refreshService::applySnapshot);
+            refreshService.applySnapshots(adminClient.pull());
         } catch (RuntimeException exception) {
             LOGGER.warn("DDC config reconciliation failed", exception);
         }
@@ -183,7 +183,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     private void initialize() {
         instanceService.register();
         adminClient.reportDefaults(defaultReport());
-        adminClient.pull().forEach(refreshService::applySnapshot);
+        refreshService.applySnapshots(adminClient.pull());
     }
 
     private void recover() {

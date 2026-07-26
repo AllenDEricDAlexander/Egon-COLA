@@ -11,8 +11,12 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.DdcAckDelivery;
+import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
 import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,6 +41,7 @@ class DdcAutoConfigTest {
 
     @Test
     void createsCoreBeansWhenEnabled() {
+        AtomicReference<DdcAckDelivery> delivery = new AtomicReference<>();
         contextRunner.withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=false",
@@ -47,11 +52,18 @@ class DdcAutoConfigTest {
                                 + "development-plaintext=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcProperties.class);
+                    assertThat(context).hasSingleBean(DdcAckDeliveryProperties.class);
+                    assertThat(context).hasSingleBean(DdcAckDelivery.class);
                     assertThat(context).hasSingleBean(DdcFieldBindingService.class);
                     assertThat(context).hasSingleBean(DdcConfigApplierRegistry.class);
                     assertThat(context).hasSingleBean(DdcAdminClient.class);
+                    assertThat(context.getBean(DdcAckDelivery.class).isRunning())
+                            .isTrue();
+                    delivery.set(context.getBean(DdcAckDelivery.class));
                     assertThat(context.getBean(DefaultDdcConfigApplierRegistry.class).frozen()).isTrue();
                 });
+        assertThat(delivery.get().isRunning()).isFalse();
+        assertThat(delivery.get().isWorkerTerminated()).isTrue();
     }
 
     @Test

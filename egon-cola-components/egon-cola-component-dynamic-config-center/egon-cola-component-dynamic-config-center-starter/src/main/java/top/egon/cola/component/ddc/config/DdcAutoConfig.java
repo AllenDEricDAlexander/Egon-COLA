@@ -24,6 +24,8 @@ import top.egon.cola.component.ddc.processor.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.DdcAckDelivery;
+import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
 import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcInstanceIdentityFactory;
@@ -37,7 +39,10 @@ import java.util.List;
 
 @AutoConfiguration
 @EnableScheduling
-@EnableConfigurationProperties(DdcProperties.class)
+@EnableConfigurationProperties({
+        DdcProperties.class,
+        DdcAckDeliveryProperties.class
+})
 @ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DdcAutoConfig {
 
@@ -75,11 +80,19 @@ public class DdcAutoConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
+    public DdcAckDelivery ddcAckDelivery(
+            DdcAdminClient adminClient,
+            DdcAckDeliveryProperties properties) {
+        return new DdcAckDelivery(adminClient, properties);
+    }
+
+    @Bean
     public DdcRefreshService ddcRefreshService(DdcLocalConfigRepository repository,
                                                DdcConfigApplierRegistry applierRegistry,
-                                               DdcAdminClient adminClient,
+                                               DdcAckDelivery ackDelivery,
                                                DdcLeaseSessionHolder sessionHolder) {
-        return new DdcRefreshService(repository, applierRegistry, adminClient, sessionHolder);
+        return new DdcRefreshService(repository, applierRegistry, ackDelivery, sessionHolder);
     }
 
     @Bean

@@ -4,4 +4,8 @@ package top.egon.cola.component.ddc.service;
 public interface DdcConfigApplier {
 
     void apply(String key, String value, long version);
+
+    default int priority() {
+        return 0;
+    }
 }
