@@ -71,6 +71,61 @@ class CompositeBytecodeTransformerTest {
         assertEquals(AgentState.FAILED, stateStore.state());
     }
 
+    @Test
+    void disableFeatureStopsTransformingWithoutFailingTheAgent() throws Exception {
+        AgentConfiguration configuration = new AgentConfigurationLoader().load(
+                "enabled=true,features=executor,include=application.*," +
+                        "failure-policy=disable-feature");
+        AgentStateStore stateStore = new AgentStateStore("test", 4);
+        stateStore.start(configuration);
+        stateStore.active();
+        AtomicInteger attempts = new AtomicInteger();
+        CompositeBytecodeTransformer transformer = new CompositeBytecodeTransformer(
+                new ClassNameFilter(configuration),
+                configuration,
+                stateStore,
+                (loader, name, bytes) -> {
+                    attempts.incrementAndGet();
+                    throw new IllegalArgumentException("unsupported-target");
+                }
+        );
+        ClassLoader loader = new ClassLoader(getClass().getClassLoader()) { };
+
+        assertNull(transformer.transform(
+                null, loader, "application/ExecutorCaller", null, null, fixture()));
+        assertNull(transformer.transform(
+                null, loader, "application/ExecutorCaller", null, null, fixture()));
+
+        assertEquals(1, attempts.get(), "the enhancement must not be retried once disabled");
+        assertEquals(AgentState.DEGRADED, stateStore.state());
+    }
+
+    @Test
+    void skipClassKeepsTryingLaterClasses() throws Exception {
+        AgentConfiguration configuration = new AgentConfigurationLoader().load(
+                "enabled=true,features=executor,include=application.*," +
+                        "failure-policy=skip-class");
+        AgentStateStore stateStore = new AgentStateStore("test", 4);
+        stateStore.start(configuration);
+        stateStore.active();
+        AtomicInteger attempts = new AtomicInteger();
+        CompositeBytecodeTransformer transformer = new CompositeBytecodeTransformer(
+                new ClassNameFilter(configuration),
+                configuration,
+                stateStore,
+                (loader, name, bytes) -> {
+                    attempts.incrementAndGet();
+                    throw new IllegalArgumentException("unsupported-target");
+                }
+        );
+        ClassLoader loader = new ClassLoader(getClass().getClassLoader()) { };
+
+        transformer.transform(null, loader, "application/ExecutorCaller", null, null, fixture());
+        transformer.transform(null, loader, "application/ExecutorCaller", null, null, fixture());
+
+        assertEquals(2, attempts.get());
+    }
+
     private byte[] fixture() {
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, "application/ExecutorCaller",
