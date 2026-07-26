@@ -65,6 +65,11 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-gateway-test-webflux-http-provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-gateway-test-rpc-contract</artifactId>
                 <version>${project.version}</version>
             </dependency>

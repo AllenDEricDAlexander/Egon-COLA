@@ -155,7 +155,9 @@ final class GatewayHttpOperationMapper {
                 ),
                 parameters,
                 requestSchema,
-                schema(handler.getMethod().getGenericReturnType(), 0),
+                schema(responseBodyType(
+                        handler.getMethod().getGenericReturnType()
+                ), 0),
                 List.of(),
                 null,
                 attributes,
@@ -381,6 +383,16 @@ final class GatewayHttpOperationMapper {
                 "javaType", raw.getName(),
                 "properties", properties
         );
+    }
+
+    private Type responseBodyType(Type type) {
+        if (type instanceof ParameterizedType parameterized
+                && raw(type).getName().equals(
+                "reactor.core.publisher.Mono"
+        )) {
+            return parameterized.getActualTypeArguments()[0];
+        }
+        return type;
     }
 
     private boolean simple(Class<?> type) {
