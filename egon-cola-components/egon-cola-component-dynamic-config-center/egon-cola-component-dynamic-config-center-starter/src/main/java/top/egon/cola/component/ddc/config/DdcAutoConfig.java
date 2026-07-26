@@ -86,7 +86,7 @@ public class DdcAutoConfig {
     }
 
     @Bean(name = "ddcRedissonClient", destroyMethod = "shutdown")
-    @ConditionalOnMissingBean(RedissonClient.class)
+    @ConditionalOnMissingBean(name = "ddcRedissonClient")
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcRedissonClient(DdcProperties properties) {
         DdcProperties.Redis redis = properties.getRedis();
@@ -102,7 +102,7 @@ public class DdcAutoConfig {
     }
 
     @Bean
-    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnBean(name = "ddcRedissonClient")
     public DdcRedisConfigRepository ddcRedisConfigRepository(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
                                                             DdcProperties properties) {
         return new DdcRedisConfigRepository(redissonClient, properties);
@@ -115,7 +115,7 @@ public class DdcAutoConfig {
     }
 
     @Bean("ddcRedisTopic")
-    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnBean(name = "ddcRedissonClient")
     public RTopic ddcRedisTopic(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
                                 DdcProperties properties) {
         return redissonClient.getTopic(

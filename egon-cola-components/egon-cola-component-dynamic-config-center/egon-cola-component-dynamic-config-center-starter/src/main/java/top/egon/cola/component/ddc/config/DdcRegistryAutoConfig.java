@@ -2,7 +2,7 @@ package top.egon.cola.component.ddc.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
-import org.redisson.config.Config;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -23,24 +23,26 @@ import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 public class DdcRegistryAutoConfig {
 
     @Bean(name = "ddcRegistryRedissonClient", destroyMethod = "shutdown")
-    @ConditionalOnMissingBean(RedissonClient.class)
+    @ConditionalOnMissingBean(name = "ddcRegistryRedissonClient")
     public RedissonClient ddcRegistryRedissonClient(DdcProperties properties) {
-        Config config = new Config();
         DdcProperties.Redis redis = properties.getRedis();
-        config.useSingleServer()
-                .setAddress("redis://" + redis.getHost() + ":" + redis.getPort())
-                .setDatabase(redis.getDatabase());
-        if (redis.getPassword() != null && !redis.getPassword().isBlank()) {
-            config.useSingleServer().setPassword(redis.getPassword());
-        }
-        return Redisson.create(config);
+        return Redisson.create(DdcRedisTopology.create(
+                redis.getMode(),
+                redis.getNodes(),
+                redis.getMasterName(),
+                redis.getHost(),
+                redis.getPort(),
+                redis.getPassword(),
+                redis.getDatabase()
+        ));
     }
 
     @Bean(destroyMethod = "close")
-    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnBean(name = "ddcRegistryRedissonClient")
     @ConditionalOnMissingBean(DdcServiceRegistryClient.class)
     public DdcServiceRegistryClient ddcServiceRegistryClient(
             DdcProperties properties,
+            @Qualifier("ddcRegistryRedissonClient")
             RedissonClient redissonClient) {
         return new DdcOpenApiServiceRegistryClient(properties, redissonClient);
     }

@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -232,6 +234,7 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean(name = "gatewayRateLimitRedissonClient", destroyMethod = "shutdown")
+    @ConditionalOnMissingBean(name = "gatewayRateLimitRedissonClient")
     @ConditionalOnProperty(
             prefix = "egon.cola.component.gateway.engine.traffic.redis",
             name = "enabled",
@@ -260,6 +263,7 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(name = "gatewayRateLimitRedissonClient")
     @ConditionalOnProperty(
             prefix = "egon.cola.component.gateway.engine.traffic.redis",
             name = "enabled",
