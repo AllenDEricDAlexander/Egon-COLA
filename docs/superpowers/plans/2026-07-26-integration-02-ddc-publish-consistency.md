@@ -338,10 +338,11 @@ if (changed != 1) {
 }
 ```
 
-Startup recovery claims stale PENDING/PUBLISHING/UNKNOWN tasks and replays the same command; it never creates
-a new config version. The reconstructed message timestamp comes from the persisted task `createdAt`, so replay
-keeps the same event checksum and identity. The v2 idempotency key uses the same config hash tag as the value,
-version and topic keys.
+Startup and periodic recovery claim stale PENDING/PUBLISHING/UNKNOWN tasks and replay the same command; they
+never create a new config version. The reconstructed message timestamp comes from the persisted task
+`createdAt`, so replay keeps the same event checksum and identity. The v2 idempotency key uses the same config
+hash tag as the value, version and topic keys. ACK aggregation may persist an early ACK, but cannot transition
+the task to SUCCESS until the published pointer reaches the target version.
 
 - [ ] **Step 4: Run admin suite and Redis integration tests**
 
