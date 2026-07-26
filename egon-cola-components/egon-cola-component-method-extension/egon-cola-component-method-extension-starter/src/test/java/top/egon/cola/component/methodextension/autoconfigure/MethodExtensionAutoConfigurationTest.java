@@ -40,12 +40,14 @@ class MethodExtensionAutoConfigurationTest {
                         .doesNotHaveBean(MethodExtensionExecutionService.class));
     }
 
+    /**
+     * The agent adapter ships in the bytecode starter, which is absent here. Starting in that state
+     * would leave nothing intercepting, so the engine choice is rejected rather than honoured.
+     */
     @Test
-    void shouldUseAgentEngineWithoutCreatingAopAdvisor() {
+    void shouldRejectAgentEngineWhenTheAgentIntegrationIsAbsent() {
         contextRunner.withPropertyValues("egon.cola.component.method-extension.engine=agent")
-                .run(context -> assertThat(context)
-                        .hasSingleBean(MethodExtensionExecutionService.class)
-                        .doesNotHaveBean(MethodExtensionAop.class));
+                .run(context -> assertThat(context).hasFailed());
     }
 
     @Test

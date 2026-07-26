@@ -23,6 +23,14 @@ public class MethodExtensionAutoConfiguration {
     @Bean
     @Conditional(MethodExtensionActiveCondition.class)
     @ConditionalOnMissingBean
+    public MethodExtensionAgentEngineValidator methodExtensionAgentEngineValidator(
+            MethodExtensionProperties properties) {
+        return new MethodExtensionAgentEngineValidator(properties);
+    }
+
+    @Bean
+    @Conditional(MethodExtensionActiveCondition.class)
+    @ConditionalOnMissingBean
     public MethodExtensionMethodResolver methodExtensionMethodResolver() {
         return new MethodExtensionMethodResolver();
     }
