@@ -23,4 +23,20 @@ public record GatewayTestScope(
                 baseDirectory.resolve("engine-" + suffix)
         );
     }
+
+    public Path dataDirectory(String processName) {
+        if (processName == null
+                || !processName.matches("[A-Za-z0-9][A-Za-z0-9._-]*")) {
+            throw new IllegalArgumentException(
+                    "processName must be a safe path segment"
+            );
+        }
+        return dataDirectory.resolveSibling(
+                processName + "-" + suffix
+        );
+    }
+
+    public Path processOutputDirectory() {
+        return dataDirectory.resolveSibling("processes-" + suffix);
+    }
 }

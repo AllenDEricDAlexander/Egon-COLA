@@ -12,7 +12,7 @@ class GatewayLiveTopologyContractTest {
     }
 
     @Test
-    void httpProviderServiceVersionDrivesRegistrationAndReporting() {
-        topology.httpProviderServiceVersionDrivesRegistrationAndReporting();
+    void httpProviderSpecUsesSingleServiceVersionSource() {
+        topology.httpProviderSpecUsesSingleServiceVersionSource();
     }
 }

@@ -21,6 +21,10 @@ management:
       probes:
         enabled: true
 
+gateway:
+  test:
+    service-version: ${GATEWAY_TEST_SERVICE_VERSION:1.0.0-live}
+
 egon:
   cola:
     component:
@@ -37,7 +41,7 @@ egon:
           application-name: Gateway Test HTTP Provider
           env: test
           namespace: gateway-test
-          artifact-version: ${GATEWAY_TEST_SERVICE_VERSION:1.0.0-live}
+          artifact-version: ${gateway.test.service-version}
           build-id: ${GATEWAY_TEST_BUILD_ID:local-webflux}
         provider:
           http:

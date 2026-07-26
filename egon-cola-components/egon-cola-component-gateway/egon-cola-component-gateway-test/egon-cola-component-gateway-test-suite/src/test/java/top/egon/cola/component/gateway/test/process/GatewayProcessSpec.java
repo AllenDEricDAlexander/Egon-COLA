@@ -25,6 +25,11 @@ public record GatewayProcessSpec(
 
     public GatewayProcessSpec {
         name = required(name, "name");
+        if (!name.matches("[A-Za-z0-9][A-Za-z0-9._-]*")) {
+            throw new IllegalArgumentException(
+                    "name must be a safe path segment"
+            );
+        }
         mainClass = required(mainClass, "mainClass");
         arguments = List.copyOf(arguments);
         environment = Map.copyOf(environment);

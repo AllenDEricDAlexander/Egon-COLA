@@ -43,6 +43,17 @@ class GatewayComposeConfigurationTest {
             "application.yml"
     );
 
+    private static final Path WEBFLUX_PROVIDER_APPLICATION = Path.of(
+            "egon-cola-components",
+            "egon-cola-component-gateway",
+            "egon-cola-component-gateway-test",
+            "egon-cola-component-gateway-test-webflux-http-provider",
+            "src",
+            "main",
+            "resources",
+            "application.yml"
+    );
+
     @Test
     void enginesUseComposeResolvableDdcAndRpcCoordinates() throws IOException {
         Map<String, Object> compose = compose();
@@ -76,6 +87,16 @@ class GatewayComposeConfigurationTest {
     @Test
     void httpProviderReportingVersionFollowsServiceVersion()
             throws IOException {
+        assertReportingVersionFollowsServiceVersion(
+                HTTP_PROVIDER_APPLICATION
+        );
+        assertReportingVersionFollowsServiceVersion(
+                WEBFLUX_PROVIDER_APPLICATION
+        );
+    }
+
+    private void assertReportingVersionFollowsServiceVersion(
+            Path application) throws IOException {
         MutablePropertySources sources = new MutablePropertySources();
         sources.addFirst(new MapPropertySource(
                 "test-override",
@@ -85,7 +106,7 @@ class GatewayComposeConfigurationTest {
                 .load(
                         "http-provider",
                         new FileSystemResource(projectFile(
-                                HTTP_PROVIDER_APPLICATION
+                                application
                         ))
                 )
                 .forEach(sources::addLast);

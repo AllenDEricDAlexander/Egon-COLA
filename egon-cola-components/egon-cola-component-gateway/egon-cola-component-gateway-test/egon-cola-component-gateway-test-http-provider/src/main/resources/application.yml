@@ -19,6 +19,10 @@ management:
       probes:
         enabled: true
 
+gateway:
+  test:
+    service-version: ${GATEWAY_TEST_SERVICE_VERSION:1.0.0-live}
+
 egon:
   cola:
     component:
@@ -31,7 +35,7 @@ egon:
       gateway:
         reporting:
           enabled: false
-          artifact-version: ${GATEWAY_TEST_SERVICE_VERSION:1.0.0-live}
+          artifact-version: ${gateway.test.service-version}
         provider:
           http:
             enabled: true
