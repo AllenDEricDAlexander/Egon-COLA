@@ -235,8 +235,9 @@ void manifestUsesFilteredComponentVersion() {
 }
 ```
 
-The artifact test opens `target/*-exec.jar` and asserts `Main-Class` exists; it also asserts Dockerfile
-contains `-exec.jar` and no command copies the thin JAR as the runtime artifact.
+The artifact test opens `target/*-exec.jar` and asserts `Main-Class` exists. Do not assert Dockerfile source
+text: the container contract is verified by actually building the image, which fails if the runtime artifact
+path is wrong.
 
 - [ ] **Step 2: Run admin tests and package**
 
@@ -244,9 +245,14 @@ contains `-exec.jar` and no command copies the thin JAR as the runtime artifact.
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin -am clean package
+
+docker build \
+  -f egon-cola-components/egon-cola-component-dynamic-config-center/\
+egon-cola-component-dynamic-config-center-admin/Dockerfile \
+  -t egon-cola-ddc-admin:contract-test .
 ```
 
-Expected: new Docker/runtime artifact contract fails before the Dockerfile/version fix.
+Expected: the new manifest/version contract or the real image build fails before the Dockerfile/version fix.
 
 - [ ] **Step 3: Use the exec artifact and filtered version metadata**
 
@@ -271,6 +277,12 @@ egon-cola-component-dynamic-config-center-admin -am clean package
 unzip -p egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-admin/target/\
 egon-cola-component-dynamic-config-center-admin-exec.jar META-INF/MANIFEST.MF
+
+docker build \
+  -f egon-cola-components/egon-cola-component-dynamic-config-center/\
+egon-cola-component-dynamic-config-center-admin/Dockerfile \
+  -t egon-cola-ddc-admin:contract-test .
+docker image inspect egon-cola-ddc-admin:contract-test --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}'
 ```
 
 Expected: package PASS; exec JAR contains Boot launcher Main-Class.
