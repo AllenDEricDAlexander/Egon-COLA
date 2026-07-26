@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import top.egon.cola.component.ddc.management.model.ServiceInstanceMetaCodec;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 
 import java.util.Collections;
@@ -44,12 +45,30 @@ public record DdcServiceRegistration(
         }
     }
 
+    /** Entries an instance may use for its own metadata, excluding the reserved namespace. */
+    public static final int MAX_BUSINESS_METADATA_ENTRIES = 32;
+
     static Map<String, String> validatedMetadata(Map<String, String> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return Map.of();
         }
-        if (metadata.size() > 32) {
-            throw new IllegalArgumentException("metadata must contain at most 32 entries");
+        // Structured gateway.* keys are counted separately. Folding them into the same budget
+        // would mean adopting typed instance metadata silently shrinks the caller's allowance,
+        // so a registration that fits today could start failing purely because the platform
+        // began reporting health and warm-up. The business allowance stays at 32 either way.
+        long businessEntries = metadata.keySet().stream()
+                .filter(key -> !ServiceInstanceMetaCodec.isReservedKey(key))
+                .count();
+        if (businessEntries > MAX_BUSINESS_METADATA_ENTRIES) {
+            throw new IllegalArgumentException(
+                    "metadata must contain at most " + MAX_BUSINESS_METADATA_ENTRIES
+                            + " non-reserved entries");
+        }
+        long reservedEntries = metadata.size() - businessEntries;
+        if (reservedEntries > ServiceInstanceMetaCodec.RESERVED_KEY_COUNT) {
+            throw new IllegalArgumentException(
+                    "metadata must contain at most " + ServiceInstanceMetaCodec.RESERVED_KEY_COUNT
+                            + " reserved " + ServiceInstanceMetaCodec.PREFIX + "* entries");
         }
         TreeMap<String, String> copy = new TreeMap<>();
         metadata.forEach((key, value) -> {
