@@ -1,17 +1,24 @@
 package top.egon.cola.component.gateway.test.deployment;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySourcesPropertyResolver;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.core.io.FileSystemResource;
 import org.yaml.snakeyaml.Yaml;
+import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.gateway.engine.GatewayEngineRuntimeProperties;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -58,12 +65,7 @@ class GatewayComposeConfigurationTest {
 
     @Test
     void envProvidesStableRpcServiceIdentityDefaults() throws IOException {
-        Properties environment = new Properties();
-        try (InputStream input = Files.newInputStream(
-                deploymentFile(".env.example")
-        )) {
-            environment.load(input);
-        }
+        Properties environment = deploymentEnvironment();
 
         assertThat(environment)
                 .containsEntry("GATEWAY_RPC_SERVICE_NAME", "egon-gateway-rpc")
@@ -97,7 +99,7 @@ class GatewayComposeConfigurationTest {
 
     private void assertEngineCoordinates(
             Map<String, Object> service,
-            String advertisedHost) {
+            String advertisedHost) throws IOException {
         Map<String, Object> environment = map(service.get("environment"));
         assertThat(environment)
                 .containsEntry("EGON_COLA_COMPONENT_DDC_REDIS_HOST", "ddc-redis")
@@ -118,6 +120,72 @@ class GatewayComposeConfigurationTest {
                         "EGON_COLA_COMPONENT_GATEWAY_ENGINE_RPC_VERSION",
                         "${GATEWAY_RPC_VERSION}"
                 );
+
+        StandardEnvironment springEnvironment = new StandardEnvironment();
+        springEnvironment.getPropertySources().replace(
+                StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                new SystemEnvironmentPropertySource(
+                        StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                        resolvedEnvironment(environment)
+                )
+        );
+        ConfigurationPropertySources.attach(springEnvironment);
+        DdcProperties ddc = Binder.get(springEnvironment)
+                .bind(
+                        "egon.cola.component.ddc",
+                        DdcProperties.class
+                )
+                .orElseThrow(() -> new IllegalStateException(
+                        "DDC Compose environment did not bind"
+                ));
+        GatewayEngineRuntimeProperties engine = Binder.get(springEnvironment)
+                .bind(
+                        "egon.cola.component.gateway.engine",
+                        GatewayEngineRuntimeProperties.class
+                )
+                .orElseThrow(() -> new IllegalStateException(
+                        "Gateway Engine Compose environment did not bind"
+                ));
+
+        assertThat(ddc.getRedis().getHost()).isEqualTo("ddc-redis");
+        assertThat(ddc.getRedis().getPort()).isEqualTo(6379);
+        assertThat(engine.getRpc().getAdvertisedHost())
+                .isEqualTo(advertisedHost);
+        assertThat(engine.getRpc().getServiceName())
+                .isEqualTo("egon-gateway-rpc");
+        assertThat(engine.getRpc().getGroup()).isEqualTo("default");
+        assertThat(engine.getRpc().getVersion()).isEqualTo("1.0.0");
+    }
+
+    private Map<String, Object> resolvedEnvironment(
+            Map<String, Object> environment) throws IOException {
+        Properties defaults = deploymentEnvironment();
+        Map<String, Object> resolved = new LinkedHashMap<>();
+        environment.forEach((key, value) -> resolved.put(
+                key,
+                resolve(value, defaults)
+        ));
+        return resolved;
+    }
+
+    private Object resolve(Object value, Properties defaults) {
+        if (!(value instanceof String text)
+                || !text.startsWith("${")
+                || !text.endsWith("}")) {
+            return value;
+        }
+        String key = text.substring(2, text.length() - 1);
+        return defaults.getProperty(key, text);
+    }
+
+    private Properties deploymentEnvironment() throws IOException {
+        Properties environment = new Properties();
+        try (InputStream input = Files.newInputStream(
+                deploymentFile(".env.example")
+        )) {
+            environment.load(input);
+        }
+        return environment;
     }
 
     private Map<String, Object> compose() throws IOException {

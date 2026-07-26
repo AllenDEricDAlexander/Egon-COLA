@@ -308,7 +308,7 @@ egon:
           enabled: true
           default-timeout-ms: 3000
           gateway-discovery-timeout-ms: 5000
-          gateway-service-name: egon-internal-rpc-gateway
+          gateway-service-name: egon-gateway-rpc
           gateway-group: default
           gateway-version: 1.0.0
           channel-drain-timeout-ms: 5000
@@ -323,7 +323,7 @@ Consumer properties:
 | `consumer.enabled` | `false` | Enables Gateway discovery and Consumer proxies |
 | `consumer.default-timeout-ms` | `3000` | Maximum default unary deadline |
 | `consumer.gateway-discovery-timeout-ms` | `5000` | Startup discovery and Channel-ready timeout |
-| `consumer.gateway-service-name` | `egon-internal-rpc-gateway` | Exact Gateway service name |
+| `consumer.gateway-service-name` | `egon-gateway-rpc` | Exact Gateway service name |
 | `consumer.gateway-group` | `default` | Exact Gateway group |
 | `consumer.gateway-version` | `1.0.0` | Exact Gateway version |
 | `consumer.channel-drain-timeout-ms` | `5000` | Replaced Channel drain timeout |

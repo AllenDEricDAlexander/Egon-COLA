@@ -304,7 +304,10 @@ git commit -m "fix: package executable ddc admin image"
 - Modify: `.../gateway-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/HttpProviderRuntimeConfiguration.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcProperties.java`
 - Create: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
+- Create: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyContractTest.java`
 - Create: `.../rpc-starter/src/test/java/top/egon/cola/component/rpc/config/EgonRpcPropertiesTest.java`
+- Modify: `.../rpc/README.md`
+- Modify: `.../rpc/README.zh-CN.md`
 
 **Interfaces:**
 - Produces default RPC Gateway service name `egon-gateway-rpc`.
@@ -322,7 +325,9 @@ assertThat(new EgonRpcProperties().getConsumer().getGatewayServiceName())
         .isEqualTo("egon-gateway-rpc");
 ```
 
-Add a live fixture assertion that every child process receives the Testcontainers DDC Redis mapped port.
+Add a default-Surefire contract test for the live fixture so every child-process spec is checked for the
+Testcontainers DDC Redis mapped port without starting the gated `*IT` topology. Bind the Compose environment
+through Spring's relaxed-binding path instead of asserting only raw YAML keys.
 
 - [ ] **Step 2: Run deployment/default tests**
 
@@ -366,6 +371,8 @@ egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
 ```
 
 Expected: both commands PASS. This does not yet claim real processes started.
+The default test run must execute the live-fixture contract; an explicit `-Dtest=GatewayLiveTopologyIT`
+must not be the only way to cover it. Update the RPC README defaults together with the code default.
 
 - [ ] **Step 5: Commit**
 
