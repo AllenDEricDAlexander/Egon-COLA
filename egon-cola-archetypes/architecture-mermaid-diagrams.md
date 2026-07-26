@@ -3,16 +3,28 @@
 > 本文用于补充《大型单体轻量领域分层架构 Code Style》中的架构图。  
 > 所有图均使用 Mermaid 编写，可直接复制到支持 Mermaid 的 Markdown 编辑器、GitLab、GitHub、语雀、Typora、Obsidian 或文档平台中渲染。
 
+> **规范效力说明**
+>
+> 本文所有图描述的是 `egon-cola-archetype-light`、`egon-cola-archetype-web`、`egon-cola-archetype-service`
+> 三个骨架**实际落地并强制执行**的架构。
+>
+> 其中的分层依赖约束由 `egon-cola-component-bytecode-architecture-maven-plugin` 自动校验：
+> 该插件绑定在 Maven 的 `verify` 阶段，并以 `unknownLayerPolicy=FAIL` 运行，任何越界依赖和未登记的包都会直接导致构建失败。
+>
+> 当本文与骨架代码不一致时，**以骨架为准**，并回头修正本文。
+>
+> 两条最容易记错的边：`infrastructure` 只依赖 `domain`（不依赖 `application`），全部端口接口都定义在 `domain`。
+
 ---
 
 ## 1. 总体分层依赖图
 
 ```mermaid
 flowchart TD
-    STARTER["starter<br/>启动装配层"]
+    STARTER["starter<br/>启动装配层<br/>light 骨架中包名为 start"]
     ADAPTER["adapter<br/>入站适配层"]
     APPLICATION["application<br/>应用编排层"]
-    DOMAIN["domain<br/>领域核心层"]
+    DOMAIN["domain<br/>领域核心层<br/>持有全部端口接口"]
     INFRA["infrastructure<br/>基础设施层"]
     FACADE["facade<br/>对外契约层<br/>自包含 dto / enums / exceptions / utils"]
     COMMON["common<br/>通用基础层"]
@@ -22,9 +34,9 @@ flowchart TD
     ADAPTER --> FACADE
     APPLICATION --> DOMAIN
     DOMAIN --> COMMON
-    INFRA --> APPLICATION
-    FACADE -. " 不依赖 common " . - FACADE 
- COMMON - . " 不依赖其他模块 " . - COMMON
+    INFRA --> DOMAIN
+    FACADE -. " 不依赖 common " .- FACADE
+    COMMON -. " 不依赖其他模块 " .- COMMON
 ```
 
 ---
@@ -47,6 +59,9 @@ flowchart TD
     APPLICATION -. " 禁止 " .-> INFRA
     APPLICATION -. " 禁止 " .-> ADAPTER
     APPLICATION -. " 禁止实现 " .-> FACADE
+    INFRA -. " 禁止 " .-> APPLICATION
+    INFRA -. " 禁止 " .-> ADAPTER
+    INFRA -. " 禁止 " .-> FACADE
     FACADE -. " 禁止 " .-> APPLICATION
     FACADE -. " 禁止 " .-> DOMAIN
     FACADE -. " 禁止 " .-> INFRA
@@ -82,19 +97,21 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph ADAPTER["adapter 入站适配层"]
-        CONTROLLER["controller<br/>HTTP 入站"]
-        MQC["mq<br/>仅入站 Consumer"]
-        RPC["rpc<br/>RPC Provider"]
-        GRAPHQL["graphql<br/>Resolver"]
-        FACADE_IMPL["facade.impl<br/>Facade 实现唯一位置"]
-        DTO["dto<br/>入站请求对象"]
-        VO["vo<br/>HTTP 响应对象"]
-        CONVERTOR["convertor<br/>入站对象转换"]
-        HANDLER["handler<br/>异常处理 / 响应包装"]
-        FILTER["filter<br/>Web Filter / TraceId / 上下文"]
+        subgraph ADAPTER_BIZ["adapter.{business}.* 领域优先分包"]
+            CONTROLLER["controller<br/>HTTP 入站"]
+            MQC["mq<br/>仅入站 Consumer"]
+            RPC["rpc<br/>RPC Provider"]
+            GRAPHQL["graphql<br/>Resolver"]
+            FACADE_IMPL["facade.impl<br/>Facade 实现唯一位置"]
+            DTO["dto<br/>入站请求对象"]
+            VO["vo<br/>HTTP 响应对象"]
+            CONVERTOR["convertor<br/>入站对象转换"]
+        end
+        HANDLER["handler<br/>异常处理 / 响应包装<br/>跨领域，留在分层根目录"]
+        FILTER["filter<br/>Web Filter / TraceId / 上下文<br/>跨领域，留在分层根目录"]
     end
 
-    APP["application.manage.*"]
+    APP["application.{business}.manage.*"]
     CONTROLLER --> CONVERTOR
     MQC --> CONVERTOR
     RPC --> CONVERTOR
@@ -115,20 +132,23 @@ flowchart LR
 ```mermaid
 flowchart TD
     subgraph FACADE["facade 对外契约层"]
-        API["api<br/>XxxFacade.java"]
-        DTO["dto<br/>XxxDTO.java / XxxQueryDTO.java"]
-        ENUMS["enums<br/>FacadeResultCode.java"]
-        EXCEPTIONS["exceptions<br/>FacadeException.java"]
-        UTILS["utils<br/>FacadeAssert.java"]
+        subgraph FACADE_BIZ["facade.{business} 领域优先分包，无 api 子包"]
+            API["facade.user.UserFacade<br/>facade.teaching.CourseFacade"]
+            DTO["dto<br/>CreateUserDTO.java / UserDetailDTO.java"]
+            ENUMS["enums<br/>UserFacadeStatus.java"]
+            EXCEPTIONS["exceptions<br/>UserFacadeException.java"]
+            UTILS["utils<br/>UserFacadeAssert.java"]
+        end
     end
 
     OUTER["外部系统 / 其他模块"] --> API
+    IMPL["adapter.{business}.facade.impl<br/>实现唯一位置"] -.-> API
     API --> DTO
     API --> ENUMS
     API --> EXCEPTIONS
     API --> UTILS
-    FACADE -. " 不写实现 " .-> FACADE
-    FACADE -. " 不依赖 common " .-> FACADE
+    FACADE -. " 不写实现 " .- FACADE
+    FACADE -. " 不依赖 common " .- FACADE
 ```
 
 ---
@@ -137,23 +157,26 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    ADAPTER["adapter"] --> MANAGE["application.manage.{domain}.*"]
+    ADAPTER["adapter"] --> MANAGE
 
-    subgraph APPLICATION["application 应用编排层"]
-        MANAGE["manage.user.UserManage<br/>manage.teaching.TeachingManage"]
-        MANAGE_IMPL["manage.user.impl.UserManageImpl<br/>manage.teaching.impl.TeachingManageImpl"]
+    subgraph APPLICATION["application 应用编排层，领域优先分包"]
+        MANAGE["user.manage.UserManage<br/>teaching.manage.CourseManage"]
+        MANAGE_IMPL["user.manage.impl.UserManageImpl<br/>teaching.manage.impl.CourseManageImpl"]
+        COMMAND["command / query<br/>用例入参"]
+        RESULT["result<br/>用例出参"]
         VALIDATOR["validators<br/>应用级校验"]
         ASSEMBLER["assemblers<br/>对象装配"]
         CONVERTOR["convertor<br/>对象转换"]
-        CLIENT["client<br/>外部能力接口"]
     end
 
     MANAGE --> MANAGE_IMPL
+    COMMAND --> MANAGE_IMPL
     MANAGE_IMPL --> VALIDATOR
     MANAGE_IMPL --> ASSEMBLER
     MANAGE_IMPL --> CONVERTOR
-    MANAGE_IMPL --> CLIENT
-    MANAGE_IMPL --> DOMAIN["domain<br/>领域服务 / 仓储接口"]
+    MANAGE_IMPL --> RESULT
+    MANAGE_IMPL --> DOMAIN["domain<br/>领域服务端口 / 仓储端口 / client 端口"]
+    APPLICATION -. " 不定义任何端口接口 " .- APPLICATION
 ```
 
 ---
@@ -162,15 +185,19 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph DOMAIN["domain 领域核心层"]
-        ENTITIES["entities<br/>User.java / Role.java / SchoolClass.java"]
-        AGGREGATES["aggregates<br/>UserAggregate.java / CourseAggregate.java"]
-        VOS["vos<br/>UserId.java / CourseCode.java"]
-        SERVICE["service<br/>XxxDomainService.java"]
-        SERVICE_IMPL["service.impl<br/>XxxDomainServiceImpl.java"]
-        REPOS["repos<br/>XxxRepository.java<br/>只定义接口"]
-        VALIDATORS["validators<br/>领域不变量校验"]
-        ENUMS["enums<br/>领域状态 / 类型"]
+    subgraph DOMAIN["domain 领域核心层，持有全部端口接口"]
+        subgraph DOMAIN_BIZ["domain.{business}.* 领域优先分包"]
+            ENTITIES["entities<br/>User.java / Course.java"]
+            AGGREGATES["aggregates<br/>UserAggregate.java / CourseAggregate.java"]
+            VOS["vos<br/>UserId.java / CourseCode.java"]
+            SERVICE["service<br/>XxxDomainService.java<br/>XxxCacheService.java / XxxEventPublisher.java<br/>领域服务与技术端口"]
+            SERVICE_IMPL["service.impl<br/>XxxDomainServiceImpl.java<br/>仅纯业务规则实现"]
+            REPOS["repos<br/>XxxRepository.java<br/>仓储端口，只定义接口"]
+            VALIDATORS["validators<br/>领域不变量校验"]
+            ENUMS["enums<br/>领域状态 / 类型"]
+            EXCEPTIONS["exceptions<br/>领域异常"]
+        end
+        CLIENT["domain.client.{external}<br/>EvaluationQueryPort.java<br/>出站端口，按外部系统分包"]
     end
 
     SERVICE --> SERVICE_IMPL
@@ -179,8 +206,13 @@ flowchart TD
     SERVICE_IMPL --> VOS
     SERVICE_IMPL --> VALIDATORS
     SERVICE_IMPL --> REPOS
+    SERVICE_IMPL --> CLIENT
     ENTITIES --> ENUMS
     AGGREGATES --> ENUMS
+    VALIDATORS --> EXCEPTIONS
+    INFRA["infrastructure<br/>实现全部端口"] -.-> SERVICE
+    INFRA -.-> REPOS
+    INFRA -.-> CLIENT
 ```
 
 ---
@@ -189,24 +221,32 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph INFRA["infrastructure 基础设施层"]
-        REPO["repo<br/>按领域分包"]
-        CLIENT_IMPL["client.impl<br/>application client 实现"]
-        MQ["mq<br/>仅出站 Producer"]
-        CACHE["cache<br/>Redis / Caffeine 封装"]
-        AOP["aop<br/>基础设施切面"]
-        CONFIG["config<br/>MP / JPA / Redis / MQ 配置"]
-        VALIDATORS["validators<br/>外部响应 / 技术适配校验"]
+    subgraph INFRA["infrastructure 基础设施层，只依赖 domain"]
+        subgraph INFRA_BIZ["infrastructure.{business}.* 领域优先分包"]
+            REPO["repo<br/>impl / jpa / po / converter"]
+            MQ["mq<br/>仅出站 Publisher"]
+            CACHE["cache<br/>Redis / 本地缓存实现"]
+            SERVICE_IMPL["service.impl<br/>领域服务端口实现"]
+            VALIDATORS["validators<br/>外部响应 / 技术适配校验"]
+        end
+        CLIENT_IMPL["client.{external}<br/>出站端口实现<br/>按外部系统分包"]
+        AOP["aop<br/>基础设施切面<br/>跨领域，留在分层根目录"]
+        CONFIG["config<br/>datasource / JPA / Redis / MQ 配置<br/>跨领域，留在分层根目录"]
     end
 
-    APP_CLIENT["application.client.*"] --> CLIENT_IMPL
-    DOMAIN_REPO["domain.repos.*"] --> REPO
+    DOMAIN_CLIENT["domain.client.{external}.*"] --> CLIENT_IMPL
+    DOMAIN_REPO["domain.{business}.repos.*"] --> REPO
+    DOMAIN_SERVICE["domain.{business}.service.*"] --> SERVICE_IMPL
+    DOMAIN_SERVICE --> CACHE
+    DOMAIN_SERVICE --> MQ
+    REPO --> DB[(Database)]
     CLIENT_IMPL --> OUTER["外部 Facade / HTTP / RPC / SDK"]
     MQ --> BROKER["Kafka / RabbitMQ / RocketMQ"]
     CACHE --> REDIS["Redis / Local Cache"]
     CONFIG --> REPO
     AOP --> CLIENT_IMPL
     VALIDATORS --> CLIENT_IMPL
+    INFRA -. " 禁止依赖 application / adapter / facade " .- INFRA
 ```
 
 ---
@@ -216,103 +256,87 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant Adapter as adapter
-    participant App as application.manage
-    participant DomainRepo as domain.repos.XxxRepository
-    participant RepoImpl as infrastructure.repo.{domain}.impl.XxxRepositoryImpl
-    participant MpService as infrastructure.repo.{domain}.mp.service.XxxMpService
-    participant Mapper as infrastructure.repo.{domain}.mp.mapper.XxxMapper
-    participant JpaRepo as infrastructure.repo.{domain}.jpa.XxxJpaRepository
+    participant App as application.{business}.manage
+    participant DomainRepo as domain.{business}.repos.XxxRepository
+    participant RepoImpl as infrastructure.{business}.repo.impl.XxxRepositoryImpl
+    participant Converter as infrastructure.{business}.repo.converter.XxxPOConverter
+    participant JpaRepo as infrastructure.{business}.repo.jpa.XxxJpaRepository
     participant DB as Database
     Adapter ->> App: 调用业务用例
-    App ->> DomainRepo: 调用仓储接口
-    DomainRepo ->> RepoImpl: Spring 注入具体实现
-
-    alt 使用 MyBatis-Plus
-        RepoImpl ->> MpService: 调用 MP Service
-        MpService ->> Mapper: 调用 Mapper
-        Mapper ->> DB: 执行 SQL
-        DB -->> Mapper: 返回 PO 数据
-        Mapper -->> MpService: 返回 PO
-        MpService -->> RepoImpl: 返回 PO
-    else 使用 JPA
-        RepoImpl ->> JpaRepo: 调用 JPA Repository
-        JpaRepo ->> DB: 执行 ORM 查询
-        DB -->> JpaRepo: 返回 Entity / PO
-        JpaRepo -->> RepoImpl: 返回数据
-    end
-
-    RepoImpl -->> DomainRepo: 转换为领域对象
+    App ->> DomainRepo: 调用仓储端口
+    DomainRepo ->> RepoImpl: Spring 注入唯一实现
+    RepoImpl ->> Converter: 领域对象 -> XxxPO
+    RepoImpl ->> JpaRepo: 调用 JPA Repository
+    JpaRepo ->> DB: 执行 ORM 查询
+    DB -->> JpaRepo: 返回 XxxPO
+    JpaRepo -->> RepoImpl: 返回 XxxPO
+    RepoImpl ->> Converter: XxxPO -> 领域对象
+    RepoImpl -->> DomainRepo: 返回领域对象
     DomainRepo -->> App: 返回领域对象
     App -->> Adapter: 返回应用结果
 ```
 
----
-
-## 10. MyBatis-Plus 仓储实现链路图
-
-```mermaid
-flowchart TD
-    APP["application"] --> DOMAIN_REPO["domain.repos.UserRepository"]
-    DOMAIN_REPO --> REPO_IMPL["infrastructure.repo.user.impl.UserRepositoryImpl"]
-    REPO_IMPL --> CONVERTER["infrastructure.repo.user.converter.UserPOConverter"]
-    REPO_IMPL --> MP_SERVICE["infrastructure.repo.user.mp.service.UserMpService"]
-    MP_SERVICE --> MP_SERVICE_IMPL["infrastructure.repo.user.mp.service.impl.UserMpServiceImpl"]
-    MP_SERVICE_IMPL --> MAPPER["infrastructure.repo.user.mp.mapper.UserMapper"]
-    MAPPER --> DB[(Database)]
-    APP -. " 禁止直调 " .-> MAPPER
-    APP -. " 禁止直调 " .-> MP_SERVICE
-```
+> 持久化只有 JPA 一条链路，不存在 MyBatis-Plus 分支。
 
 ---
 
-## 11. JPA 仓储实现链路图
+## 10. JPA 仓储实现链路图
 
 ```mermaid
 flowchart TD
-    APP["application"] --> DOMAIN_REPO["domain.repos.SchoolClassRepository"]
-    DOMAIN_REPO --> REPO_IMPL["infrastructure.repo.teaching.impl.SchoolClassRepositoryImpl"]
-    REPO_IMPL --> CONVERTER["infrastructure.repo.teaching.converter.SchoolClassPOConverter"]
-    REPO_IMPL --> JPA_REPO["infrastructure.repo.teaching.jpa.SchoolClassJpaRepository"]
+    APP["application"] --> DOMAIN_REPO["domain.user.repos.UserRepository"]
+    DOMAIN_REPO --> REPO_IMPL["infrastructure.user.repo.impl.UserRepositoryImpl"]
+    REPO_IMPL --> CONVERTER["infrastructure.user.repo.converter.UserPOConverter"]
+    REPO_IMPL --> JPA_REPO["infrastructure.user.repo.jpa.UserJpaRepository"]
+    CONVERTER --> PO["infrastructure.user.repo.po.UserPO"]
+    JPA_REPO --> PO
     JPA_REPO --> DB[(Database)]
     APP -. " 禁止直调 " .-> JPA_REPO
+    APP -. " 禁止感知 PO " .-> PO
 ```
+
+> 这是**唯一**的仓储实现链路：`application` -> `domain.{business}.repos` -> `infrastructure.{business}.repo.impl`
+> -> `converter` + `jpa` -> `po`。
 
 ---
 
-## 12. 外部 Client 防腐层图
+## 11. 外部 Client 防腐层图
 
 ```mermaid
 flowchart LR
-    APP["application.manage.*"] --> CLIENT["application.client.UserClient"]
-    CLIENT --> CLIENT_IMPL["infrastructure.client.impl.UserClientImpl"]
-    CLIENT_IMPL --> CONVERTOR["infrastructure client converter / validator"]
+    APP["application.{business}.manage.*"] --> CLIENT["domain.client.evaluation.EvaluationQueryPort"]
+    CLIENT --> CLIENT_IMPL["infrastructure.client.evaluation.DubboEvaluationQueryClient"]
+    CLIENT_IMPL --> CONVERTOR["infrastructure.client.evaluation<br/>失败映射 / 校验"]
     CONVERTOR --> OUTER_FACADE["外部 Facade"]
     CONVERTOR --> HTTP["外部 HTTP API"]
     CONVERTOR --> RPC["外部 RPC / gRPC"]
     CONVERTOR --> SDK["第三方 SDK"]
-    APP -. " 不感知外部协议 " .-> APP
-    CLIENT_IMPL -. " 隐藏外部系统细节 " .-> CLIENT_IMPL
+    APP -. " 不感知外部协议 " .- APP
+    CLIENT_IMPL -. " 隐藏外部系统细节 " .- CLIENT_IMPL
 ```
+
+> 出站端口定义在 `domain.client.{external}`，实现唯一放在 `infrastructure.client.{external}`。
+> 不存在 `application.client` 包，也不使用 `infrastructure.client.impl` 这种技术优先分包。
 
 ---
 
-## 13. MQ 入站与出站隔离图
+## 12. MQ 入站与出站隔离图
 
 ```mermaid
 flowchart TD
-    BROKER_IN["MQ Broker<br/>入站消息"] --> CONSUMER["adapter.mq.XxxConsumer<br/>仅入站消费"]
-    CONSUMER --> APP["application.manage.*"]
+    BROKER_IN["MQ Broker<br/>入站消息"] --> CONSUMER["adapter.{business}.mq.XxxConsumer<br/>仅入站消费"]
+    CONSUMER --> APP["application.{business}.manage.*"]
     APP --> DOMAIN["domain"]
-    APP --> EVENT_PORT["application client / event publisher interface"]
-    EVENT_PORT --> PRODUCER["infrastructure.mq.XxxProducer<br/>仅出站发送"]
+    APP --> EVENT_PORT["domain.{business}.service.XxxEventPublisher<br/>出站事件端口"]
+    EVENT_PORT --> PRODUCER["infrastructure.{business}.mq.RabbitXxxEventPublisher<br/>仅出站发送"]
     PRODUCER --> BROKER_OUT["MQ Broker<br/>出站消息"]
-    CONSUMER -. " 不发送 MQ " .-> CONSUMER
-    PRODUCER -. " 不消费 MQ " .-> PRODUCER
+    CONSUMER -. " 不发送 MQ " .- CONSUMER
+    PRODUCER -. " 不消费 MQ " .- PRODUCER
 ```
 
 ---
 
-## 14. Validator 分层职责图
+## 13. Validator 分层职责图
 
 ```mermaid
 flowchart TD
@@ -328,21 +352,21 @@ flowchart TD
 
 ---
 
-## 15. 单体内两个领域示例图
+## 14. 单体内两个领域示例图
 
 ```mermaid
 flowchart TD
     subgraph PROJECT["student-management 单体工程"]
-        subgraph USER["user 领域"]
-            USER_ENTITY["User / Role / Permission"]
-            USER_SERVICE["UserDomainService"]
-            USER_REPO["UserRepository"]
+        subgraph USER["domain.user 领域"]
+            USER_ENTITY["entities<br/>User / Role / Permission"]
+            USER_SERVICE["service<br/>UserDomainService"]
+            USER_REPO["repos<br/>UserRepository"]
         end
 
-        subgraph TEACHING["teaching 领域"]
-            TEACHING_ENTITY["SchoolClass / Course"]
-            TEACHING_SERVICE["SchoolClassDomainService / CourseDomainService"]
-            TEACHING_REPO["SchoolClassRepository / CourseRepository"]
+        subgraph TEACHING["domain.teaching 领域"]
+            TEACHING_ENTITY["entities<br/>SchoolClass / Course"]
+            TEACHING_SERVICE["service<br/>SchoolClassDomainService / CourseDomainService"]
+            TEACHING_REPO["repos<br/>SchoolClassRepository / CourseRepository"]
         end
 
         APP["application<br/>跨领域业务编排"]
@@ -354,23 +378,23 @@ flowchart TD
     TEACHING_SERVICE --> TEACHING_ENTITY
     USER_SERVICE --> USER_REPO
     TEACHING_SERVICE --> TEACHING_REPO
-    USER -. " 领域之间不直接依赖 " . - TEACHING 
+    USER -. " 领域之间不直接依赖 " .- TEACHING
 ```
 
 ---
 
-## 16. 典型 HTTP 请求时序图
+## 15. 典型 HTTP 请求时序图
 
 ```mermaid
 sequenceDiagram
     participant Client as Client
     participant Filter as adapter.filter.TraceIdFilter
-    participant Controller as adapter.controller.UserController
-    participant Convertor as adapter.convertor.UserAdapterConvertor
-    participant Manage as application.manage.user.UserManage
-    participant DomainService as domain.service.UserDomainService
-    participant Repository as domain.repos.UserRepository
-    participant RepoImpl as infrastructure.repo.user.impl.UserRepositoryImpl
+    participant Controller as adapter.user.controller.UserController
+    participant Convertor as adapter.user.convertor.UserAdapterConvertor
+    participant Manage as application.user.manage.UserManage
+    participant DomainService as domain.user.service.UserDomainService
+    participant Repository as domain.user.repos.UserRepository
+    participant RepoImpl as infrastructure.user.repo.impl.UserRepositoryImpl
     participant DB as Database
     Client ->> Filter: HTTP Request
     Filter ->> Controller: 传递 TraceId / RequestContext
@@ -391,17 +415,17 @@ sequenceDiagram
 
 ---
 
-## 17. 典型 RPC 请求时序图
+## 16. 典型 RPC 请求时序图
 
 ```mermaid
 sequenceDiagram
     participant Caller as 外部调用方
-    participant Facade as facade.api.UserFacade
-    participant Impl as adapter.facade.impl.UserFacadeImpl
-    participant Convertor as adapter.convertor.UserAdapterConvertor
-    participant Manage as application.manage.user.UserManage
-    participant Domain as domain.service.UserDomainService
-    participant Repository as domain.repos.UserRepository
+    participant Facade as facade.user.UserFacade
+    participant Impl as adapter.user.facade.impl.UserFacadeImpl
+    participant Convertor as adapter.user.convertor.UserAdapterConvertor
+    participant Manage as application.user.manage.UserManage
+    participant Domain as domain.user.service.UserDomainService
+    participant Repository as domain.user.repos.UserRepository
     Caller ->> Facade: RPC 调用
     Facade ->> Impl: 路由到 FacadeImpl
     Impl ->> Convertor: Facade DTO -> Application 入参
@@ -417,16 +441,16 @@ sequenceDiagram
 
 ---
 
-## 18. 典型 MQ 入站时序图
+## 17. 典型 MQ 入站时序图
 
 ```mermaid
 sequenceDiagram
     participant Broker as MQ Broker
-    participant Consumer as adapter.mq.UserCreatedConsumer
-    participant Convertor as adapter.convertor.UserAdapterConvertor
-    participant Manage as application.manage.user.UserManage
-    participant Domain as domain.service.UserDomainService
-    participant Repo as domain.repos.UserRepository
+    participant Consumer as adapter.user.mq.UserImportedConsumer
+    participant Convertor as adapter.user.convertor.UserAdapterConvertor
+    participant Manage as application.user.manage.UserManage
+    participant Domain as domain.user.service.UserDomainService
+    participant Repo as domain.user.repos.UserRepository
     Broker ->> Consumer: 投递消息
     Consumer ->> Convertor: Message -> Command
     Convertor ->> Manage: 调用应用用例
@@ -440,36 +464,37 @@ sequenceDiagram
 
 ---
 
-## 19. 包结构关系图
+## 18. 包结构关系图
 
 ```mermaid
 flowchart TD
     ROOT["com.xxx.project"]
-    ROOT --> STARTER["starter"]
+    ROOT --> STARTER["starter<br/>light 骨架为 start"]
     ROOT --> ADAPTER["adapter"]
     ROOT --> FACADE["facade"]
     ROOT --> APPLICATION["application"]
     ROOT --> DOMAIN["domain"]
     ROOT --> INFRA["infrastructure"]
     ROOT --> COMMON["common"]
-    ADAPTER --> ADAPTER_CONTROLLER["controller"]
-    ADAPTER --> ADAPTER_MQ["mq 仅入站"]
-    ADAPTER --> ADAPTER_RPC["rpc"]
-    ADAPTER --> ADAPTER_FACADE_IMPL["facade.impl"]
-    APPLICATION --> APP_MANAGE_USER["manage.user.impl"]
-    APPLICATION --> APP_MANAGE_TEACHING["manage.teaching.impl"]
-    APPLICATION --> APP_CLIENT["client"]
-    DOMAIN --> DOMAIN_SERVICE["service.impl"]
-    DOMAIN --> DOMAIN_REPOS["repos"]
-    INFRA --> INFRA_REPO_USER["repo.user.impl"]
-    INFRA --> INFRA_REPO_TEACHING["repo.teaching.impl"]
-    INFRA --> INFRA_CLIENT_IMPL["client.impl"]
-    INFRA --> INFRA_MQ["mq 仅出站"]
+    ADAPTER --> ADAPTER_USER["user.controller / user.rpc<br/>user.mq 仅入站 / user.facade.impl"]
+    ADAPTER --> ADAPTER_TEACHING["teaching.controller / teaching.rpc<br/>teaching.mq 仅入站 / teaching.facade.impl"]
+    ADAPTER --> ADAPTER_SHARED["handler / filter<br/>跨领域，留在分层根目录"]
+    FACADE --> FACADE_USER["user<br/>UserFacade + dto / enums / exceptions / utils"]
+    FACADE --> FACADE_TEACHING["teaching<br/>CourseFacade + dto / enums / exceptions / utils"]
+    APPLICATION --> APP_USER["user.manage.impl<br/>user.command / query / result"]
+    APPLICATION --> APP_TEACHING["teaching.manage.impl<br/>teaching.command / query / result"]
+    DOMAIN --> DOMAIN_USER["user.entities / user.service<br/>user.repos"]
+    DOMAIN --> DOMAIN_TEACHING["teaching.entities / teaching.service<br/>teaching.repos"]
+    DOMAIN --> DOMAIN_CLIENT["client.evaluation<br/>出站端口，按外部系统分包"]
+    INFRA --> INFRA_USER["user.repo.impl / user.repo.jpa<br/>user.service.impl / user.cache / user.mq 仅出站"]
+    INFRA --> INFRA_TEACHING["teaching.repo.impl / teaching.repo.jpa<br/>teaching.service.impl / teaching.cache / teaching.mq 仅出站"]
+    INFRA --> INFRA_SHARED["client.evaluation / aop / config<br/>跨领域，留在分层根目录"]
+    COMMON --> COMMON_PKG["constants / utils / enums / exceptions"]
 ```
 
 ---
 
-## 20. 架构边界总览图
+## 19. 架构边界总览图
 
 ```mermaid
 flowchart LR
@@ -498,8 +523,8 @@ flowchart LR
     GRAPHQL --> ADAPTER
     ADAPTER --> APP
     APP --> DOMAIN
-    DOMAIN --> REPO_IF["domain.repos 接口"]
-    REPO_IF --> INFRA["infrastructure"]
+    DOMAIN --> PORTS["domain 端口<br/>{business}.repos / {business}.service / client.{external}"]
+    PORTS --> INFRA["infrastructure<br/>只依赖 domain"]
     INFRA --> DB
     INFRA --> CACHE
     INFRA --> MQ_OUT

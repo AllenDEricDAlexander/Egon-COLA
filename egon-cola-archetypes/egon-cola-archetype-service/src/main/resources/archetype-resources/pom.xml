@@ -31,6 +31,7 @@
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
         <shardingsphere.version>5.5.3</shardingsphere.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
+        <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
         <organization-facade.group-id>top.egon</organization-facade.group-id>
         <organization-facade.artifact-id>egon-cola-organization-facade</organization-facade.artifact-id>
         <organization-facade.version>${egon-cola.version}</organization-facade.version>

@@ -1,9 +1,9 @@
 #set( $symbol_pound = '#' )
-${symbol_pound} 学生管理
+${symbol_pound} ${artifactId}
 
-[English](README.md) | 中文
+[English](README.md) | [中文](README.zh-CN.md)
 
-Student Management 是由 `egon-cola-archetype-light` 生成的单 Maven 模块项目。它是一个可部署的单体应用，其 Java 包结构约束大型单体轻量领域架构；这些分层不是 Maven 子模块。
+`${artifactId}` 是由 `egon-cola-archetype-light` 生成的单 Maven 模块项目。它是一个可部署的单体应用，其 Java 包结构约束大型单体轻量领域架构；这些分层不是 Maven 子模块。
 
 ${symbol_pound}${symbol_pound} 领域优先结构
 
@@ -50,7 +50,9 @@ facade         -> no internal layer
 common         -> no business layer
 ```
 
-Domain Service 接口位于 `domain.<business>.service`，实现位于 `infrastructure.<business>.service.impl`。Application service 编排这些端口。ArchUnit 测试会强制检查该依赖图，并拒绝 `adapter.controller` 或 `infrastructure.repo` 这类技术优先的根包。
+Domain Service 接口位于 `domain.<business>.service`，实现位于 `infrastructure.<business>.service.impl`。Application service 编排这些端口。
+
+依赖图由 `egon-cola-component-bytecode-architecture-maven-plugin` 强制检查。它绑定在 `verify` 阶段，把每个 `${package}.<layer>` 包映射到对应分层，并以 `unknownLayerPolicy=FAIL` 运行；因此落在映射之外的类会让构建失败，而不是只留下一条警告。`adapter.controller`、`infrastructure.repo` 这类技术优先的根包因为无法解析到任何分层而被拒绝。该检查只在 `verify` 阶段执行，单独运行 `./mvnw test` 不会触发它。
 
 ${symbol_pound}${symbol_pound} 主要业务流程
 
@@ -70,7 +72,7 @@ JPA 是唯一的持久化实现。Flyway 负责 H2/PostgreSQL schema。RabbitMQ�
 
 Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 H2、内存 adapter 和确定性 stub，并关闭 RabbitMQ、Redis、Nacos、Dubbo registry 和外部 HTTP 调用。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`NACOS_CONFIG_ENABLED=true`、`NACOS_DISCOVERY_ENABLED=true` 和 `DUBBO_REGISTRY_ADDRESS=nacos://host:8848` 等环境变量配置真实 adapter。
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`NACOS_CONFIG_ENABLED=true`、`NACOS_DISCOVERY_ENABLED=true`、`DISCOVERY_ENABLED=true` 和 `DUBBO_REGISTRY_ADDRESS=nacos://host:8848` 等环境变量配置真实 adapter。消息代理凭据使用 Spring 自身的变量名 `SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`，而 `RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 是应用自身的开关。
 
 ${symbol_pound}${symbol_pound} 分片、读写分离与 Flyway
 
@@ -119,7 +121,9 @@ Flyway 使用 `db/migration/sharding/master-data` 和
 `兼容性说明` 三项注释。
 
 数据库数、每库物理表数和总物理节点数都必须是 2 的幂。初始映射为
-`2 库 × 每库 2 表 = 4 节点`。容量按 2N 法扩展：每次只将一个维度从 `N` 调整为
+`2 库 × 每库 2 表 = 4 节点`，由 `LIGHT_SHARDING_NODE_COUNT`（默认 `4`）与
+`LIGHT_SHARDING_NODE_MAP`（默认 `0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`）承载，
+逻辑库名由 `LIGHT_SHARDING_DATABASE_NAME` 指定。容量按 2N 法扩展：每次只将一个维度从 `N` 调整为
 `2N`，并整体发布完整的 `node-count` 与 `node-map`。当前是尚未执行过迁移的新脚手架，
 没有历史数据，也不提供在线迁移、双写、CDC 或自动搬数机制。
 
@@ -132,8 +136,10 @@ ${symbol_pound}${symbol_pound} 命令
 运行全部测试和架构检查：
 
 ```bash
-./mvnw -B -ntp test
+./mvnw -B -ntp verify
 ```
+
+必须使用 `verify`。架构治理插件绑定在该阶段，`./mvnw test` 只会跑测试，不做任何分层检查。
 
 打包应用：
 
@@ -176,9 +182,11 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 
 ```bash
 printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-key' \
-  ./mvnw -q -DskipTests \
-  -Dspring-boot.run.main-class=${package}.start.config.encryption.ConfigCipherCli \
-  spring-boot:run
+  ./mvnw -q -DskipTests compile exec:java \
+  -Dexec.mainClass=${package}.start.config.encryption.ConfigCipherCli
 ```
+
+`ConfigCipherCli` 不接受任何参数，明文从标准输入读取。`exec:java` 在 Maven 自身的 JVM 中运行，
+上面的管道才能送达；`spring-boot:run` 这类会派生子进程的运行方式无法给该 CLI 提供可用的标准输入。
 
 将输出的 `ENC(v1:...)` 值写入配置。请通过环境变量、挂载文件、`config/application-secrets.yml` 或 `configtree:/run/secrets/` 提供真实密钥；不要提交凭据或解密密钥。
