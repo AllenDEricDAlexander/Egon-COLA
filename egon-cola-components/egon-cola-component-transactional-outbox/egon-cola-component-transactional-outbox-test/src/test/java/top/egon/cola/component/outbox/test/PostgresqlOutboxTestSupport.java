@@ -2,6 +2,7 @@ package top.egon.cola.component.outbox.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.postgresql.ds.PGSimpleDataSource;
@@ -10,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.testcontainers.containers.PostgreSQLContainer;
 import top.egon.cola.component.outbox.store.NewOutboxRecord;
 import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
 
@@ -28,12 +30,23 @@ abstract class PostgresqlOutboxTestSupport {
     private static JdbcTemplate administrativeJdbcTemplate;
 
     @BeforeAll
-    static void initializePostgresql() throws Exception {
-        PGSimpleDataSource administrativeDataSource = localDataSource();
+    static synchronized void initializePostgresql() throws Exception {
+        Assumptions.assumeTrue(
+                Boolean.parseBoolean(System.getenv(
+                        "EGON_OUTBOX_TEST_POSTGRES_ENABLED"
+                )),
+                "Set EGON_OUTBOX_TEST_POSTGRES_ENABLED=true "
+                        + "to run PostgreSQL integration tests"
+        );
+        PostgreSQLContainer<?> postgresql = postgresql();
+        if (!postgresql.isRunning()) {
+            postgresql.start();
+        }
+        PGSimpleDataSource administrativeDataSource = containerDataSource();
         administrativeJdbcTemplate = new JdbcTemplate(administrativeDataSource);
         administrativeJdbcTemplate.execute("create schema " + TEST_SCHEMA);
 
-        dataSource = localDataSource();
+        dataSource = containerDataSource();
         dataSource.setCurrentSchema(TEST_SCHEMA);
         jdbcTemplate = new JdbcTemplate(dataSource);
         transactionManager = new DataSourceTransactionManager(dataSource);
@@ -92,45 +105,25 @@ abstract class PostgresqlOutboxTestSupport {
         );
     }
 
-    private static PGSimpleDataSource localDataSource() {
-        String host = property("egon.outbox.test.postgresql.host", "EGON_OUTBOX_TEST_POSTGRES_HOST",
-                "127.0.0.1");
-        int port = Integer.parseInt(property(
-                "egon.outbox.test.postgresql.port",
-                "EGON_OUTBOX_TEST_POSTGRES_PORT",
-                "5432"
-        ));
-        String database = property(
-                "egon.outbox.test.postgresql.database",
-                "EGON_OUTBOX_TEST_POSTGRES_DATABASE",
-                "postgres"
-        );
-        String user = property(
-                "egon.outbox.test.postgresql.user",
-                "EGON_OUTBOX_TEST_POSTGRES_USER",
-                "postgres"
-        );
-        String password = property(
-                "egon.outbox.test.postgresql.password",
-                "EGON_OUTBOX_TEST_POSTGRES_PASSWORD",
-                System.getenv().getOrDefault("PGPASSWORD", "")
-        );
-
-        PGSimpleDataSource localDataSource = new PGSimpleDataSource();
-        localDataSource.setServerNames(new String[]{host});
-        localDataSource.setPortNumbers(new int[]{port});
-        localDataSource.setDatabaseName(database);
-        localDataSource.setUser(user);
-        localDataSource.setPassword(password);
-        return localDataSource;
+    private static PGSimpleDataSource containerDataSource() {
+        PostgreSQLContainer<?> postgresql = postgresql();
+        PGSimpleDataSource containerDataSource = new PGSimpleDataSource();
+        containerDataSource.setURL(postgresql.getJdbcUrl());
+        containerDataSource.setUser(postgresql.getUsername());
+        containerDataSource.setPassword(postgresql.getPassword());
+        return containerDataSource;
     }
 
-    private static String property(String systemProperty, String environmentVariable, String fallback) {
-        String configured = System.getProperty(systemProperty);
-        if (configured != null && !configured.isBlank()) {
-            return configured;
+    private static PostgreSQLContainer<?> postgresql() {
+        return PostgresqlContainerHolder.INSTANCE;
+    }
+
+    private static final class PostgresqlContainerHolder {
+
+        private static final PostgreSQLContainer<?> INSTANCE =
+                new PostgreSQLContainer<>("postgres:16.6-alpine");
+
+        private PostgresqlContainerHolder() {
         }
-        configured = System.getenv(environmentVariable);
-        return configured == null || configured.isBlank() ? fallback : configured;
     }
 }
