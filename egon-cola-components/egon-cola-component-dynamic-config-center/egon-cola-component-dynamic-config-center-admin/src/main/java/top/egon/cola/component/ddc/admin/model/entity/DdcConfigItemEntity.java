@@ -43,6 +43,9 @@ public class DdcConfigItemEntity {
     @Column(name = "current_version", nullable = false)
     private Long currentVersion;
 
+    @Column(name = "published_version")
+    private Long publishedVersion;
+
     private String description;
 
     private Boolean enabled;

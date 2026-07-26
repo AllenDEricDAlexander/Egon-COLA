@@ -8,7 +8,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigUpdateRequest;
+import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
+import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 
@@ -37,6 +39,9 @@ class DdcConfigServiceTest {
 
     @Autowired
     private DdcOperationLogRepository operationLogRepository;
+
+    @Autowired
+    private DdcConfigItemRepository configItemRepository;
 
     @Test
     void updateCreatesNewVersion() {
@@ -117,5 +122,105 @@ class DdcConfigServiceTest {
         assertThat(operationLogRepository.findAll())
                 .extracting(log -> log.getOperationType())
                 .containsExactlyInAnyOrder("CREATE", "UPDATE", "DELETE");
+    }
+
+    @Test
+    void pullReturnsPublishedVersionInsteadOfNewerDraft() {
+        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
+                "orders",
+                "test",
+                "default",
+                "feature.rules",
+                "{\"version\":1}",
+                null,
+                "JSON",
+                "rules"
+        ), "tester");
+        configService.upsert(new DdcConfigCreateRequest(
+                "orders",
+                "test",
+                "default",
+                "feature.rules",
+                "version: 2",
+                null,
+                "YAML",
+                "rules"
+        ), created.getCurrentVersion(), "tester");
+        DdcConfigItemEntity item = configItemRepository.findById(created.getId())
+                .orElseThrow();
+        item.setPublishedVersion(1L);
+        configItemRepository.saveAndFlush(item);
+
+        assertThat(configService.pull("orders", "test", "default"))
+                .singleElement()
+                .satisfies(value -> {
+                    assertThat(value.getConfigValue()).isEqualTo("{\"version\":1}");
+                    assertThat(value.getValueType()).isEqualTo("JSON");
+                    assertThat(value.getVersion()).isEqualTo(1L);
+                });
+        assertThat(configService.value(
+                "orders", "test", "default", "feature.rules"
+        )).satisfies(value -> {
+            assertThat(value.getConfigValue()).isEqualTo("{\"version\":1}");
+            assertThat(value.getVersion()).isEqualTo(1L);
+        });
+    }
+
+    @Test
+    void newDraftIsNotVisibleToRuntimeReadsBeforePublish() {
+        configService.create(new DdcConfigCreateRequest(
+                "orders",
+                "test",
+                "default",
+                "new.draft",
+                "draft",
+                null,
+                "STRING",
+                "new draft"
+        ), "tester");
+
+        assertThat(configService.pull("orders", "test", "default")).isEmpty();
+        assertThat(configService.value(
+                "orders", "test", "default", "new.draft"
+        )).isNull();
+    }
+
+    @Test
+    void draftDeleteDoesNotHidePreviouslyPublishedValue() {
+        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
+                "orders",
+                "test",
+                "default",
+                "stable.value",
+                "published",
+                null,
+                "STRING",
+                "stable value"
+        ), "tester");
+        DdcConfigItemEntity item = configItemRepository.findById(created.getId())
+                .orElseThrow();
+        item.setPublishedVersion(1L);
+        configItemRepository.saveAndFlush(item);
+
+        DdcConfigVO deleted = configService.delete(
+                created.getId(), "tester", "draft delete"
+        );
+
+        assertThat(deleted.getDeleted()).isTrue();
+        assertThat(configService.value(
+                "orders", "test", "default", "stable.value"
+        )).satisfies(value -> {
+            assertThat(value.getConfigValue()).isEqualTo("published");
+            assertThat(value.getVersion()).isEqualTo(1L);
+        });
+        assertThat(configService.pull("orders", "test", "default"))
+                .singleElement()
+                .satisfies(value -> assertThat(value.getConfigKey())
+                        .isEqualTo("stable.value"));
+
+        item = configItemRepository.findById(created.getId()).orElseThrow();
+        item.setPublishedVersion(2L);
+        configItemRepository.saveAndFlush(item);
+        assertThat(configService.pull("orders", "test", "default")).isEmpty();
     }
 }
