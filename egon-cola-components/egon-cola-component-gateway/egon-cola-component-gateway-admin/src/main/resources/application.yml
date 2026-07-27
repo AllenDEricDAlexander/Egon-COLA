@@ -45,5 +45,5 @@ gateway:
       retention: 168h
       kafka:
         enabled: false
-        topic: gateway-call-events-v1
+        topic: egon.gateway.call.v1
         group-id: gateway-admin-call-events-v1

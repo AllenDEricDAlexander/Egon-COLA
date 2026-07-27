@@ -1,5 +1,7 @@
 package top.egon.cola.component.rpc.annotation;
 
+import org.springframework.stereotype.Component;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -21,6 +23,7 @@ import java.lang.annotation.Target;
  * interface; a bean that does not is rejected at startup rather than being
  * silently exported with no callable methods.
  */
+@Component
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface EgonRpcProvider {

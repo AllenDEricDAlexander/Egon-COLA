@@ -11,8 +11,25 @@ import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class KafkaGatewayCallEventSinkTest {
+
+    @Test
+    void acceptsDeliveryTimeoutShorterThanKafkaDefaultRequestTimeout() {
+        assertDoesNotThrow(() -> {
+            KafkaGatewayCallEventSink sink = new KafkaGatewayCallEventSink(
+                    new KafkaGatewayCallEventSink.Settings(
+                            "127.0.0.1:1",
+                            "gateway-calls",
+                            Duration.ofSeconds(1),
+                            Duration.ZERO,
+                            Map.of()
+                    )
+            );
+            sink.close();
+        });
+    }
 
     @Test
     void usesGroupPartitionKeyAndRequiredHeaders() {

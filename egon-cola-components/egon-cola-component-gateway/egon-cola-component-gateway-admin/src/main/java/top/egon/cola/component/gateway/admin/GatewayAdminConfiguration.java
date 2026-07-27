@@ -203,7 +203,7 @@ public class GatewayAdminConfiguration {
             ) String bootstrapServers,
             @Value(
                     "${gateway.admin.observability.kafka.topic:"
-                            + "gateway-call-events-v1}"
+                            + "egon.gateway.call.v1}"
             ) String topic,
             @Value(
                     "${gateway.admin.observability.kafka.group-id:"

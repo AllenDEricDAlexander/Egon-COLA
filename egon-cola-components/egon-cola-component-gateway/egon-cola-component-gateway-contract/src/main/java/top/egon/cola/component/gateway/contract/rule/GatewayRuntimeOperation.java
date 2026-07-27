@@ -2,7 +2,9 @@ package top.egon.cola.component.gateway.contract.rule;
 
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,7 +49,15 @@ public record GatewayRuntimeOperation(
                 "providerService"
         );
         responseMode = required(responseMode, "responseMode");
-        policyRefs = Set.copyOf(Objects.requireNonNull(policyRefs, "policyRefs"));
+        LinkedHashSet<String> sortedPolicyRefs = Objects.requireNonNull(
+                        policyRefs,
+                        "policyRefs"
+                ).stream()
+                .sorted()
+                .collect(java.util.stream.Collectors.toCollection(
+                        LinkedHashSet::new
+                ));
+        policyRefs = Collections.unmodifiableSet(sortedPolicyRefs);
         attributes = Map.copyOf(Objects.requireNonNull(
                 attributes,
                 "attributes"

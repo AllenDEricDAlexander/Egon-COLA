@@ -36,7 +36,7 @@ public class InventoryController {
             externalAccessible = false,
             tags = {"internal", "query"}
     )
-    public InventoryView inventory(@PathVariable String sku) {
+    public InventoryView inventory(@PathVariable("sku") String sku) {
         return new InventoryView(sku, 100, providerId);
     }
 

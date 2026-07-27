@@ -2,6 +2,9 @@ package top.egon.cola.component.gateway.contract.rule;
 
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -27,10 +30,15 @@ public record GatewayRuntimeRoute(
         if (!pathPattern.startsWith("/")) {
             throw new IllegalArgumentException("pathPattern must start with /");
         }
-        accessZones = Set.copyOf(Objects.requireNonNull(
-                accessZones,
-                "accessZones"
-        ));
+        LinkedHashSet<AccessZone> sortedAccessZones = Objects.requireNonNull(
+                        accessZones,
+                        "accessZones"
+                ).stream()
+                .sorted(Comparator.comparing(Enum::name))
+                .collect(java.util.stream.Collectors.toCollection(
+                        LinkedHashSet::new
+                ));
+        accessZones = Collections.unmodifiableSet(sortedAccessZones);
         if (accessZones.isEmpty()) {
             throw new IllegalArgumentException("accessZones must not be empty");
         }

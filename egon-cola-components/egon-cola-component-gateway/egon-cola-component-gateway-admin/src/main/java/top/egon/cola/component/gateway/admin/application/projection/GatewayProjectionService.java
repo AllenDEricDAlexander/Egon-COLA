@@ -1,9 +1,11 @@
 package top.egon.cola.component.gateway.admin.application.projection;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
+import top.egon.cola.component.ddc.management.model.DdcInstanceStatus;
 import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceInstance;
@@ -21,6 +23,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +43,7 @@ public class GatewayProjectionService {
 
     private final Clock clock;
 
+    @Autowired
     public GatewayProjectionService(
             GatewayGroupRepository groups,
             GatewayReleaseService releases,
@@ -399,7 +403,7 @@ public class GatewayProjectionService {
                 integer(metadata.get("gateway.weight")),
                 metadata,
                 definitionSetId(metadata),
-                instance.status(),
+                instance.normalizedStatus().name(),
                 instance.expireAt(),
                 observedAt
         );
@@ -428,15 +432,17 @@ public class GatewayProjectionService {
     }
 
     private boolean online(DdcManagementConfigClientInstance instance) {
-        return "ONLINE".equals(instance.status())
-                && instance.expireAt() != null
-                && instance.expireAt().isAfter(clock.instant());
+        return instance.normalizedStatus().isAvailable(
+                clock.instant(),
+                instance.expireAt()
+        );
     }
 
     private boolean online(ProviderInstanceProjection instance) {
-        return "ONLINE".equals(instance.status())
-                && instance.expireAt() != null
-                && instance.expireAt().isAfter(clock.instant());
+        return DdcInstanceStatus.fromWire(instance.status()).isAvailable(
+                clock.instant(),
+                instance.expireAt()
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -497,11 +503,29 @@ public class GatewayProjectionService {
     ) {
 
         private DdcManagementServiceQuery ddc() {
+            String ddcProtocol = protocol.trim().toLowerCase(Locale.ROOT);
+            if ("rpc".equals(ddcProtocol)) {
+                ddcProtocol = "grpc";
+            }
+            String ddcServiceKind = serviceKind;
+            if (ddcServiceKind == null || ddcServiceKind.isBlank()) {
+                ddcServiceKind = switch (ddcProtocol) {
+                    case "http", "https" -> "HTTP_PROVIDER";
+                    case "grpc" -> "RPC_PROVIDER";
+                    default -> throw new IllegalArgumentException(
+                            "serviceKind is required for protocol "
+                                    + protocol
+                    );
+                };
+            } else {
+                ddcServiceKind = ddcServiceKind.trim()
+                        .toUpperCase(Locale.ROOT);
+            }
             return new DdcManagementServiceQuery(
                     env,
                     namespace,
-                    serviceKind,
-                    protocol,
+                    ddcServiceKind,
+                    ddcProtocol,
                     serviceName,
                     group,
                     version

@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -59,6 +60,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
 
     private final DdcRequestSigner signer = new DdcRequestSigner();
 
+    @Autowired
     public GatewayReportHmacFilter(
             GatewayCredentialStore credentials,
             GatewayApplicationRepository applications,

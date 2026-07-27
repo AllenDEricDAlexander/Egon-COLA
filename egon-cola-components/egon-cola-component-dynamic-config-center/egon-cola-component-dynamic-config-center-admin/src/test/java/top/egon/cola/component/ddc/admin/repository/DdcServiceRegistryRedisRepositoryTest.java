@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
@@ -36,7 +37,7 @@ class DdcServiceRegistryRedisRepositoryTest {
         RedissonClient redisson = mock(RedissonClient.class);
         RScript script = mock(RScript.class);
         AtomicReference<Object[]> arguments = new AtomicReference<>();
-        when(redisson.getScript()).thenReturn(script);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
         when(script.eval(
                 eq(RScript.Mode.READ_WRITE),
                 anyString(),
@@ -78,7 +79,7 @@ class DdcServiceRegistryRedisRepositoryTest {
     void heartbeatAndDeregisterPreserveStrictLeaseOutcomes() {
         RedissonClient redisson = mock(RedissonClient.class);
         RScript script = mock(RScript.class);
-        when(redisson.getScript()).thenReturn(script);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
         when(script.eval(
                 eq(RScript.Mode.READ_WRITE),
                 anyString(),

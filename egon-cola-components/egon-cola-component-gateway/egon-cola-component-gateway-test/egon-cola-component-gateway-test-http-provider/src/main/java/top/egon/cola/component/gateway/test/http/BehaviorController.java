@@ -28,7 +28,7 @@ public class BehaviorController {
             externalAccessible = true,
             tags = {"failure-test"}
     )
-    public DelayView slow(@PathVariable long millis)
+    public DelayView slow(@PathVariable("millis") long millis)
             throws InterruptedException {
         long bounded = Math.max(0, Math.min(millis, 10_000));
         Thread.sleep(bounded);
@@ -41,7 +41,8 @@ public class BehaviorController {
             externalAccessible = true,
             tags = {"failure-test"}
     )
-    public ResponseEntity<FailureView> fail(@PathVariable int status) {
+    public ResponseEntity<FailureView> fail(
+            @PathVariable("status") int status) {
         int bounded = status >= 400 && status <= 599 ? status : 500;
         return ResponseEntity.status(bounded)
                 .body(new FailureView("HTTP_PROVIDER_FAILURE", bounded));

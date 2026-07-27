@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.engine.rule;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.service.DdcConfigApplier;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
@@ -16,6 +18,10 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class GatewayRuleActivationApplier implements DdcConfigApplier {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            GatewayRuleActivationApplier.class
+    );
 
     public static final String ACTIVE_CONFIG_KEY = "gateway.rules.active";
 
@@ -135,6 +141,12 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
             operation.success();
         } catch (RuntimeException failure) {
             operation.failure(failure);
+            LOGGER.warn(
+                    "Gateway rule application failed for key={} version={}",
+                    key,
+                    version,
+                    failure
+            );
             GatewayRuleRuntimeStatus current = status.get();
             status.set(new GatewayRuleRuntimeStatus(
                     current.activeReleaseId(),

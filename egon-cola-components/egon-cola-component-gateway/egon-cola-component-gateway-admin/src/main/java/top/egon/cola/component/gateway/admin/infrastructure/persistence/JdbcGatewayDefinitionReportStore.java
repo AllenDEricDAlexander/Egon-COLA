@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcGatewayDefinitionReportStore
         implements GatewayDefinitionReportStore {
@@ -101,8 +104,8 @@ public class JdbcGatewayDefinitionReportStore
                 report.complete(),
                 operationCount,
                 operationCount,
-                now,
-                now
+                timestamp(now),
+                timestamp(now)
         );
         MutableStored stored = new MutableStored();
         for (GatewayInterfaceDefinitionReport.BusinessDomain business
@@ -173,7 +176,7 @@ public class JdbcGatewayDefinitionReportStore
                             + "updated_at = ? WHERE id = ?",
                     name,
                     description,
-                    now,
+                    timestamp(now),
                     existing.getFirst()
             );
             return existing.getFirst();
@@ -192,8 +195,8 @@ public class JdbcGatewayDefinitionReportStore
                 code,
                 name,
                 description,
-                now,
-                now
+                timestamp(now),
+                timestamp(now)
         );
         return id;
     }
@@ -228,7 +231,7 @@ public class JdbcGatewayDefinitionReportStore
                     group.name(),
                     group.className(),
                     group.description(),
-                    now,
+                    timestamp(now),
                     row.id
             );
             return row.id;
@@ -246,8 +249,8 @@ public class JdbcGatewayDefinitionReportStore
                 group.name(),
                 group.className(),
                 group.description(),
-                now,
-                now
+                timestamp(now),
+                timestamp(now)
         );
         return id;
     }
@@ -301,8 +304,8 @@ public class JdbcGatewayDefinitionReportStore
                     operation.methodIdentity(),
                     operation.externalAccessible(),
                     json(operation.providerService()),
-                    now,
-                    now
+                    timestamp(now),
+                    timestamp(now)
             );
             String definitionId = appendDefinition(
                     operationId,
@@ -401,7 +404,7 @@ public class JdbcGatewayDefinitionReportStore
                         : json(operation.descriptorSnapshot()),
                 json(attributes(operation)),
                 operation.externalAccessible(),
-                now
+                timestamp(now)
         );
         return id;
     }
@@ -439,7 +442,7 @@ public class JdbcGatewayDefinitionReportStore
                 json(operation.providerService()),
                 operation.externalAccessible(),
                 operation.deprecated(),
-                now
+                timestamp(now)
         );
     }
 
@@ -465,7 +468,7 @@ public class JdbcGatewayDefinitionReportStore
                 operation.methodIdentity(),
                 operation.externalAccessible(),
                 json(operation.providerService()),
-                now,
+                timestamp(now),
                 operationId
         );
     }

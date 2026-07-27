@@ -12,6 +12,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcGatewayReleasePublicationStore
         implements GatewayReleasePublicationStore {
@@ -122,7 +125,7 @@ public class JdbcGatewayReleasePublicationStore
                 result.getString("namespace"),
                 result.getString("config_key"),
                 result.getLong("ddc_target_version")
-        ), successorActivatedBefore);
+        ), timestamp(successorActivatedBefore));
     }
 
     @Override
@@ -140,7 +143,7 @@ public class JdbcGatewayReleasePublicationStore
                    SET expected_version = ?, ddc_status = 'RESOLVED',
                        updated_at = ?
                  WHERE change_id = ? AND ddc_status = 'PLANNED'
-                """, expectedVersion, now, changeId);
+                """, expectedVersion, timestamp(now), changeId);
         requireChanged(
                 changed,
                 "publication must be PLANNED before version resolution"
@@ -154,7 +157,7 @@ public class JdbcGatewayReleasePublicationStore
                    SET ddc_status = 'SUBMITTED', updated_at = ?
                  WHERE change_id = ? AND ddc_status = 'RESOLVED'
                    AND expected_version IS NOT NULL
-                """, now, changeId);
+                """, timestamp(now), changeId);
         requireChanged(
                 changed,
                 "publication must be RESOLVED before submission"
@@ -192,7 +195,7 @@ public class JdbcGatewayReleasePublicationStore
                 status.name(),
                 errorCode,
                 errorMessage,
-                now,
+                timestamp(now),
                 changeId
         );
         requireChanged(changed, "publication result cannot be recorded");
@@ -207,7 +210,7 @@ public class JdbcGatewayReleasePublicationStore
                  WHERE change_id = ? AND phase_type = 'CHUNK'
                    AND ddc_status = 'SUCCESS'
                    AND ddc_target_version IS NOT NULL
-                """, now, changeId);
+                """, timestamp(now), changeId);
         requireChanged(changed, "cleaned chunk publication was not found");
     }
 
@@ -239,8 +242,8 @@ public class JdbcGatewayReleasePublicationStore
                 operation.status().name(),
                 operation.errorCode(),
                 operation.errorMessage(),
-                operation.createdAt(),
-                operation.updatedAt()
+                timestamp(operation.createdAt()),
+                timestamp(operation.updatedAt())
         );
     }
 

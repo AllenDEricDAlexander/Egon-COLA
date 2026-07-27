@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.admin.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
@@ -19,6 +20,23 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcPublishTimeoutScannerTest {
+
+    @Test
+    void springSelectsTheProductionConstructor() {
+        new ApplicationContextRunner()
+                .withBean(
+                        DdcPublishTaskRepository.class,
+                        () -> mock(DdcPublishTaskRepository.class)
+                )
+                .withBean(
+                        DdcPublishStateTransitionService.class,
+                        () -> mock(DdcPublishStateTransitionService.class)
+                )
+                .withBean(DdcAdminProperties.class)
+                .withBean(PublishTimeoutScanner.class)
+                .run(context -> assertThat(context)
+                        .hasSingleBean(PublishTimeoutScanner.class));
+    }
 
     @Test
     void routesExpiredPendingAndPublishingTasksThroughSharedTransitions() {

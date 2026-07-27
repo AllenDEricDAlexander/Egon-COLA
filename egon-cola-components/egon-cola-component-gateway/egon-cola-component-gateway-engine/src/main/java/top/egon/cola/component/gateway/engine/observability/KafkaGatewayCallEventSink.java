@@ -124,9 +124,16 @@ public final class KafkaGatewayCallEventSink
         properties.put(ProducerConfig.ACKS_CONFIG, "all");
         properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
         properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
+        int deliveryTimeoutMillis = Math.toIntExact(
+                settings.deliveryTimeout().toMillis()
+        );
         properties.put(
                 ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG,
-                Math.toIntExact(settings.deliveryTimeout().toMillis())
+                deliveryTimeoutMillis
+        );
+        properties.put(
+                ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,
+                deliveryTimeoutMillis
         );
         properties.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
         properties.putAll(settings.additionalProperties());

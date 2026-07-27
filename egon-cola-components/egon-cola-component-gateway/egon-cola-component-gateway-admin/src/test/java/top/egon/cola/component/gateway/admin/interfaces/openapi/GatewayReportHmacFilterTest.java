@@ -1,8 +1,11 @@
 package top.egon.cola.component.gateway.admin.interfaces.openapi;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
@@ -31,6 +34,37 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GatewayReportHmacFilterTest {
+
+    @Test
+    void springSelectsTheProductionConstructor() {
+        new ApplicationContextRunner()
+                .withInitializer(context -> context.getBeanFactory()
+                        .setConversionService(
+                                ApplicationConversionService
+                                        .getSharedInstance()
+                        ))
+                .withBean(
+                        GatewayCredentialStore.class,
+                        () -> mock(GatewayCredentialStore.class)
+                )
+                .withBean(
+                        GatewayApplicationRepository.class,
+                        () -> mock(GatewayApplicationRepository.class)
+                )
+                .withBean(
+                        GatewayHmacNonceStore.class,
+                        () -> mock(GatewayHmacNonceStore.class)
+                )
+                .withBean(
+                        ObjectMapper.class,
+                        () -> JsonMapper.builder()
+                                .findAndAddModules()
+                                .build()
+                )
+                .withBean(GatewayReportHmacFilter.class)
+                .run(context -> assertThat(context)
+                        .hasSingleBean(GatewayReportHmacFilter.class));
+    }
 
     @Test
     void authenticatesScopeAndRejectsNonceReplay() throws Exception {

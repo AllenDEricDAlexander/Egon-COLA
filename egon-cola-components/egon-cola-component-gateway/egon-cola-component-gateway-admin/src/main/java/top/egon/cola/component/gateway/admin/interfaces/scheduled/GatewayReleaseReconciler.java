@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.interfaces.scheduled;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -28,6 +29,7 @@ public class GatewayReleaseReconciler {
 
     private final Clock clock;
 
+    @Autowired
     public GatewayReleaseReconciler(
             GatewayReleaseStore releases,
             ObjectProvider<GatewayReleasePublicationCoordinator>

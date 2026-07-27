@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.admin.application;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -24,6 +25,7 @@ public class GatewayApplicationService {
 
     private final Clock clock;
 
+    @Autowired
     public GatewayApplicationService(
             GatewayApplicationRepository applications,
             GatewayAuditLogRepository audits) {

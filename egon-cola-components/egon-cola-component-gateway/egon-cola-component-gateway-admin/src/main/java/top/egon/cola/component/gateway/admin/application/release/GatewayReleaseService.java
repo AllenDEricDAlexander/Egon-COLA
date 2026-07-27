@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.application.release;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -69,6 +70,7 @@ public class GatewayReleaseService {
 
     private final Clock clock;
 
+    @Autowired
     public GatewayReleaseService(
             GatewayGroupRepository groups,
             GatewayDraftRepository drafts,

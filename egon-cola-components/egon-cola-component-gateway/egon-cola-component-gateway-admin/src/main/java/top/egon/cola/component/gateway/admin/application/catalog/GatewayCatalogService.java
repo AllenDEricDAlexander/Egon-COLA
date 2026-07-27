@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.application.catalog;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -30,6 +31,7 @@ public class GatewayCatalogService {
 
     private final Clock clock;
 
+    @Autowired
     public GatewayCatalogService(
             GatewayCatalogStore store,
             GatewayAuditLogRepository audits,

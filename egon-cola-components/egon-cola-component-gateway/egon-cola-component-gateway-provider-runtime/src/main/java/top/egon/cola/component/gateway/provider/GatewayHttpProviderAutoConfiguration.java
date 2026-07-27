@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.provider;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -37,34 +38,30 @@ public class GatewayHttpProviderAutoConfiguration {
             "egon.cola.component.gateway.reporting.application-code";
 
     @Bean(destroyMethod = "close")
-    @ConditionalOnBean({
-            DdcServiceRegistryClient.class,
-            GatewayDefinitionIdentity.class
-    })
+    @ConditionalOnBean(DdcServiceRegistryClient.class)
     @ConditionalOnMissingBean(HttpProviderLeaseRuntime.class)
     public HttpProviderLeaseRuntime httpProviderLeaseRuntime(
             DdcServiceRegistryClient registry,
-            GatewayDefinitionIdentity definitionIdentity,
+            ObjectProvider<GatewayDefinitionIdentity> definitionIdentity,
             GatewayHttpProviderProperties properties,
             DdcProperties ddcProperties,
             Environment environment) {
+        GatewayDefinitionIdentity identity =
+                definitionIdentity.getIfAvailable();
         applyDefaults(
                 properties,
                 ddcProperties,
-                definitionIdentity,
+                identity,
                 environment
         );
         return new HttpProviderLeaseRuntime(
                 registry,
-                properties.toRuntime(definitionIdentity, 0)
+                properties.toRuntime(identity, 0)
         );
     }
 
     @Bean
-    @ConditionalOnBean({
-            DdcServiceRegistryClient.class,
-            GatewayDefinitionIdentity.class
-    })
+    @ConditionalOnBean(DdcServiceRegistryClient.class)
     @ConditionalOnMissingBean(name = "gatewayHttpProviderServerReadyListener")
     public ApplicationListener<WebServerInitializedEvent>
             gatewayHttpProviderServerReadyListener(
@@ -96,7 +93,9 @@ public class GatewayHttpProviderAutoConfiguration {
             ));
         }
         if (blank(properties.getVersion())) {
-            properties.setVersion(definitionIdentity.artifactVersion());
+            properties.setVersion(definitionIdentity == null
+                    ? null
+                    : definitionIdentity.artifactVersion());
         }
     }
 
@@ -106,10 +105,7 @@ public class GatewayHttpProviderAutoConfiguration {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(HealthIndicator.class)
-    @ConditionalOnBean({
-            DdcServiceRegistryClient.class,
-            GatewayDefinitionIdentity.class
-    })
+    @ConditionalOnBean(DdcServiceRegistryClient.class)
     static class HealthConfiguration {
 
         @Bean

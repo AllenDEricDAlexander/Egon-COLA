@@ -37,7 +37,7 @@ public class OrderController {
             tags = {"query", "idempotent"}
     )
     public OrderView get(
-            @PathVariable String id,
+            @PathVariable("id") String id,
             @RequestHeader(value = "X-Request-Source",
                     defaultValue = "unknown") String source) {
         return new OrderView(id, "CREATED", source);
@@ -68,8 +68,8 @@ public class OrderController {
             tags = {"query", "idempotent"}
     )
     public Map<String, Object> search(
-            @RequestParam String customerId,
-            @RequestParam(defaultValue = "10") int limit) {
+            @RequestParam("customerId") String customerId,
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
         return Map.of(
                 "customerId", customerId,
                 "limit", limit,
@@ -84,7 +84,7 @@ public class OrderController {
             tags = {"command", "idempotent"}
     )
     public OrderView cancel(
-            @PathVariable String id,
+            @PathVariable("id") String id,
             @RequestHeader(value = "Idempotency-Key",
                     defaultValue = "") String idempotencyKey) {
         return new OrderView(id, "CANCELLED", idempotencyKey);

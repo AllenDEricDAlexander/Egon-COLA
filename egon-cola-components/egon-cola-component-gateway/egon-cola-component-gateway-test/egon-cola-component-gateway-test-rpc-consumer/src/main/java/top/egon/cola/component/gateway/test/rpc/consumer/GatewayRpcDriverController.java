@@ -26,7 +26,7 @@ public class GatewayRpcDriverController {
 
     @GetMapping("/echo")
     public EchoView echo(
-            @RequestParam String message,
+            @RequestParam("message") String message,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
         return traced(traceId, () -> EchoView.from(client.echo(message)));
@@ -34,7 +34,7 @@ public class GatewayRpcDriverController {
 
     @GetMapping("/orders")
     public OrderView order(
-            @RequestParam String orderId,
+            @RequestParam("orderId") String orderId,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
         return traced(traceId, () -> OrderView.from(client.order(orderId)));
@@ -56,8 +56,8 @@ public class GatewayRpcDriverController {
 
     @GetMapping("/slow")
     public OrderView slow(
-            @RequestParam String orderId,
-            @RequestParam long delayMillis,
+            @RequestParam("orderId") String orderId,
+            @RequestParam("delayMillis") long delayMillis,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
         return traced(
@@ -68,7 +68,7 @@ public class GatewayRpcDriverController {
 
     @GetMapping("/fail")
     public OrderView fail(
-            @RequestParam String code,
+            @RequestParam("code") String code,
             @RequestHeader(value = "X-Trace-Id", required = false)
             String traceId) {
         return traced(

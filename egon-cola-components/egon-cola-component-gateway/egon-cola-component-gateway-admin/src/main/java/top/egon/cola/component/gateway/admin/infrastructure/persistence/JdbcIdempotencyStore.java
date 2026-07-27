@@ -10,6 +10,9 @@ import top.egon.cola.component.gateway.admin.application.IdempotencyStore;
 import java.util.Map;
 import java.util.Optional;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcIdempotencyStore implements IdempotencyStore {
 
@@ -64,8 +67,8 @@ public class JdbcIdempotencyStore implements IdempotencyStore {
                 record.payloadSha256(),
                 record.resourceId(),
                 json(record.response()),
-                record.createdAt(),
-                record.expiresAt()
+                timestamp(record.createdAt()),
+                timestamp(record.expiresAt())
         );
     }
 

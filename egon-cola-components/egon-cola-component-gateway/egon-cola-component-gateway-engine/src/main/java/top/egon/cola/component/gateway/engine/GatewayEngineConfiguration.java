@@ -332,6 +332,7 @@ public class GatewayEngineConfiguration {
             DirectoryProviderSelector providerSelector,
             ReactorNettyHttpUpstreamAdapter upstream,
             GatewaySecurityCapabilityRegistry capabilities,
+            @Qualifier("gatewayCallCompletionListener")
             GatewayCallCompletionListener completionListener,
             GatewayTrafficGovernance trafficGovernance,
             HttpRpcUpstreamAdapter httpRpcUpstream,
@@ -444,6 +445,7 @@ public class GatewayEngineConfiguration {
             DirectoryProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             GatewaySecurityCapabilityRegistry capabilities,
+            @Qualifier("gatewayCallCompletionListener")
             GatewayCallCompletionListener completionListener,
             GatewayTrafficGovernance trafficGovernance,
             PassiveHealthTracker passiveHealth,

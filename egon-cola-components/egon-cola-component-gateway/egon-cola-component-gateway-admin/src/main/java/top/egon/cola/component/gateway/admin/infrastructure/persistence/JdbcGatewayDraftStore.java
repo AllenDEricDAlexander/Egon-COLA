@@ -11,6 +11,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcGatewayDraftStore implements GatewayDraftStore {
 
@@ -85,7 +88,7 @@ public class JdbcGatewayDraftStore implements GatewayDraftStore {
                 route.operationId(),
                 json(route.content()),
                 route.enabled(),
-                route.updatedAt(),
+                timestamp(route.updatedAt()),
                 route.updatedBy()
         );
     }
@@ -119,7 +122,7 @@ public class JdbcGatewayDraftStore implements GatewayDraftStore {
                 policy.policyScope(),
                 json(policy.content()),
                 policy.enabled(),
-                policy.updatedAt(),
+                timestamp(policy.updatedAt()),
                 policy.updatedBy()
         );
     }

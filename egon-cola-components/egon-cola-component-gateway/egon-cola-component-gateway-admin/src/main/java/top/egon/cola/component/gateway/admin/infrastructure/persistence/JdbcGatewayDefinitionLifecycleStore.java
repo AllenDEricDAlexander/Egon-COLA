@@ -124,7 +124,8 @@ public class JdbcGatewayDefinitionLifecycleStore
                                ELSE 'ACTIVE'
                            END,
                            deprecated_at = CASE
-                               WHEN selected.deprecated THEN :now
+                               WHEN selected.deprecated
+                                   THEN CAST(:now AS TIMESTAMP WITH TIME ZONE)
                                ELSE NULL
                            END,
                            revision = operation.revision + 1,

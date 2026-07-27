@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.application.credential;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -34,6 +35,7 @@ public class GatewayCredentialService {
 
     private final Clock clock;
 
+    @Autowired
     public GatewayCredentialService(
             GatewayApplicationRepository applications,
             GatewayCredentialStore credentials,

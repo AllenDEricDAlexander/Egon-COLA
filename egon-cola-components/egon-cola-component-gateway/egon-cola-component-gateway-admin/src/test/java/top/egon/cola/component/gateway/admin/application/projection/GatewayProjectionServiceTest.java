@@ -27,11 +27,48 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GatewayProjectionServiceTest {
+
+    @Test
+    void adaptsAdminProtocolToDdcProviderQuery() {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        DdcManagementClient client = mock(DdcManagementClient.class);
+        when(client.getInstances(any())).thenReturn(
+                new DdcManagementServiceSnapshot(null, 0, now, List.of())
+        );
+        GatewayProjectionService service = new GatewayProjectionService(
+                mock(GatewayGroupRepository.class),
+                mock(GatewayReleaseService.class),
+                client,
+                Clock.fixed(now, ZoneOffset.UTC)
+        );
+
+        service.instances(new GatewayProjectionService.ProviderQuery(
+                "test",
+                "gateway",
+                null,
+                "RPC",
+                "orders-rpc",
+                null,
+                null
+        ));
+
+        verify(client).getInstances(new DdcManagementServiceQuery(
+                "test",
+                "gateway",
+                "RPC_PROVIDER",
+                "grpc",
+                "orders-rpc",
+                null,
+                null
+        ));
+    }
 
     @Test
     void flattensHttpAndRpcRegistryInstancesForAdminProjection() {
@@ -81,6 +118,9 @@ class GatewayProjectionServiceTest {
         assertThat(projection.value()).extracting(
                 GatewayProjectionService.ProviderInstanceProjection::protocol
         ).containsExactly("http", "grpc");
+        assertThat(projection.value()).extracting(
+                GatewayProjectionService.ProviderInstanceProjection::status
+        ).containsOnly("ONLINE");
         assertThat(projection.value().getFirst().weight()).isEqualTo(80);
         assertThat(projection.value().getFirst().definitionSetId())
                 .isEqualTo("definition-http");
@@ -402,7 +442,7 @@ class GatewayProjectionServiceTest {
                                     "gateway.definition-set-id",
                                     "definition-" + query.protocol()
                             ),
-                            "ONLINE",
+                            "UP",
                             now.minusSeconds(10),
                             now.minusSeconds(1),
                             now.plusSeconds(30)

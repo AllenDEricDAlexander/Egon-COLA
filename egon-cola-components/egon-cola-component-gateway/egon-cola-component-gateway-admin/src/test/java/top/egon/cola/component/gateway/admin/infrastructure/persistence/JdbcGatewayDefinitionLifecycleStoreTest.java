@@ -62,5 +62,11 @@ class JdbcGatewayDefinitionLifecycleStoreTest {
                 any(MapSqlParameterSource.class),
                 any(RowCallbackHandler.class)
         );
+        verify(jdbc).update(
+                contains(
+                        "THEN CAST(:now AS TIMESTAMP WITH TIME ZONE)"
+                ),
+                any(MapSqlParameterSource.class)
+        );
     }
 }

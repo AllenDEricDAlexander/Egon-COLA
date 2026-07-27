@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -23,6 +24,7 @@ import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordin
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingStateStore;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
+import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
 import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
 
 import java.nio.file.Path;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 @AutoConfiguration
+@AutoConfigureAfter(EgonRpcAutoConfig.class)
 @EnableConfigurationProperties(GatewayReportingProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.component.gateway.reporting",
@@ -130,6 +133,7 @@ public class GatewayReportingAutoConfiguration {
                         .RequestMappingHandlerMapping.class
         )
         GatewayDefinitionContributor mvcGatewayDefinitionContributor(
+                @Qualifier("requestMappingHandlerMapping")
                 org.springframework.web.servlet.mvc.method.annotation
                         .RequestMappingHandlerMapping mappings,
                 GatewayReportingProperties properties,

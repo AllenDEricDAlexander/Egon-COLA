@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Configuration;
@@ -12,13 +13,47 @@ import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
 import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketExecutor;
 
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayEngineConfigurationTest {
+
+    @Test
+    void qualifiesCompositeCompletionListenerAtDataPlaneInjectionPoints() {
+        for (String methodName : List.of(
+                "gatewayHttpServer",
+                "gatewayRpcHandlerRegistry"
+        )) {
+            var method = Arrays.stream(
+                            GatewayEngineConfiguration.class
+                                    .getDeclaredMethods()
+                    )
+                    .filter(candidate -> candidate.getName().equals(
+                            methodName
+                    ))
+                    .findFirst()
+                    .orElseThrow();
+            var parameter = Arrays.stream(method.getParameters())
+                    .filter(candidate -> candidate.getType().equals(
+                            top.egon.cola.component.gateway.engine
+                                    .observability
+                                    .GatewayCallCompletionListener.class
+                    ))
+                    .findFirst()
+                    .orElseThrow();
+            Qualifier qualifier = parameter.getAnnotation(Qualifier.class);
+
+            assertNotNull(qualifier);
+            assertEquals("gatewayCallCompletionListener", qualifier.value());
+        }
+    }
 
     @Test
     void createsDedicatedRateLimitClientWhenApplicationClientExists() {

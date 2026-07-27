@@ -1,6 +1,9 @@
 spring:
   application:
     name: gateway-test-rpc-consumer
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
 
 server:
   port: 0

@@ -94,6 +94,36 @@ class GatewayHttpProviderAutoConfigurationTest {
     }
 
     @Test
+    void registersWithoutDefinitionReportingWhenVersionIsExplicit() {
+        FakeRegistry registry = new FakeRegistry();
+
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        GatewayHttpProviderAutoConfiguration.class
+                ))
+                .withPropertyValues(requiredProperties())
+                .withPropertyValues(
+                        "egon.cola.component.gateway.provider.http.version=1.0.0"
+                )
+                .withBean(DdcServiceRegistryClient.class, () -> registry)
+                .run(context -> {
+                    assertThat(context).hasSingleBean(
+                            HttpProviderLeaseRuntime.class
+                    );
+
+                    context.publishEvent(webServerEvent(18101, null));
+
+                    assertThat(registry.registration.serviceKey().version())
+                            .isEqualTo("1.0.0");
+                    assertThat(registry.registration.metadata())
+                            .doesNotContainKeys(
+                                    "gateway.definition-set-id",
+                                    "gateway.build-id"
+                            );
+                });
+    }
+
+    @Test
     void backsOffWhenDisabledOrRegistryIsMissing() {
         contextRunner.withPropertyValues(
                 "egon.cola.component.gateway.provider.http.enabled=false"

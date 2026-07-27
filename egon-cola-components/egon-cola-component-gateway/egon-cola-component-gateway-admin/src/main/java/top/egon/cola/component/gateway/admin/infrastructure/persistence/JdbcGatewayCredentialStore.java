@@ -8,6 +8,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
 
@@ -32,10 +35,10 @@ public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
                 credential.secretCiphertext(),
                 credential.keyVersion(),
                 credential.status(),
-                credential.validFrom(),
-                credential.validUntil(),
-                credential.createdAt(),
-                credential.updatedAt()
+                timestamp(credential.validFrom()),
+                timestamp(credential.validUntil()),
+                timestamp(credential.createdAt()),
+                timestamp(credential.updatedAt())
         );
     }
 
@@ -107,7 +110,7 @@ public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
                 UPDATE gateway_application_credential
                    SET status = 'ROTATING', valid_until = ?, updated_at = ?
                  WHERE id = ? AND status IN ('ACTIVE', 'ROTATING')
-                """, validUntil, now, id);
+                """, timestamp(validUntil), timestamp(now), id);
     }
 
     @Override
@@ -116,6 +119,6 @@ public class JdbcGatewayCredentialStore implements GatewayCredentialStore {
                 UPDATE gateway_application_credential
                    SET status = 'REVOKED', valid_until = ?, updated_at = ?
                  WHERE id = ?
-                """, now, now, id);
+                """, timestamp(now), timestamp(now), id);
     }
 }

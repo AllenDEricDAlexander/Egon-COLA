@@ -101,7 +101,10 @@ public class DdcPublishStateTransitionService {
 
     @Transactional
     public DdcPublishTaskEntity refreshAfterAck(String changeId) {
-        DdcPublishTaskEntity task = requiredTask(changeId);
+        DdcPublishTaskEntity task = taskRepository.findForUpdateByChangeId(changeId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "publish task not found: " + changeId
+                ));
         if (isTerminal(task)) {
             return task;
         }

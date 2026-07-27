@@ -1,6 +1,9 @@
 spring:
   application:
     name: egon-cola-gateway-engine
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
   lifecycle:
     timeout-per-shutdown-phase: 20s
 

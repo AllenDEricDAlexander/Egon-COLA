@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
 
@@ -54,9 +57,9 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 json(release.validationReport()),
                 json(release.structuredDiff()),
                 release.changeReason(),
-                release.createdAt(),
+                timestamp(release.createdAt()),
                 release.createdBy(),
-                release.updatedAt()
+                timestamp(release.updatedAt())
         );
         jdbc.update("""
                 INSERT INTO gateway_release_content(
@@ -74,7 +77,7 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 compiled.snapshotJson().getBytes(
                         java.nio.charset.StandardCharsets.UTF_8
                 ).length,
-                release.createdAt()
+                timestamp(release.createdAt())
         );
         insertAttempt(
                 release.id(),
@@ -267,12 +270,12 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                        completed_at = NULL, error_code = NULL,
                        error_message = NULL
                  WHERE release_id = ? AND attempt_no = ?
-                """, now, releaseId, attemptNo);
+                """, timestamp(now), releaseId, attemptNo);
         jdbc.update("""
                 UPDATE gateway_release
                    SET status = 'PUBLISHING', updated_at = ?
                  WHERE id = ?
-                """, now, releaseId);
+                """, timestamp(now), releaseId);
     }
 
     @Override
@@ -294,7 +297,7 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 """,
                 status.name(),
                 changeId,
-                now,
+                timestamp(now),
                 errorCode,
                 errorMessage,
                 releaseId,
@@ -309,7 +312,7 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 status.name(),
                 partialApplied,
                 changeId,
-                now,
+                timestamp(now),
                 releaseId
         );
         targets.forEach(target -> jdbc.update("""
@@ -335,7 +338,7 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 target.appliedVersion(),
                 target.appliedArtifactSha256(),
                 target.errorCode(),
-                target.observedAt()
+                timestamp(target.observedAt())
         ));
     }
 
@@ -360,7 +363,7 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 INSERT INTO gateway_release_attempt(
                     release_id, attempt_no, status, started_at
                 ) VALUES (?, ?, ?, ?)
-                """, releaseId, attemptNo, status, now);
+                """, releaseId, attemptNo, status, timestamp(now));
     }
 
     private ReleaseRecord release(java.sql.ResultSet result)

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
@@ -52,7 +53,7 @@ public class DdcServiceRegistryRedisRepository {
 
     public void register(DdcServiceInstance instance) {
         DdcServiceKey serviceKey = instance.serviceKey();
-        List<?> result = redissonClient.getScript().eval(
+        List<?> result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 REGISTER_SCRIPT,
                 RScript.ReturnType.MULTI,
@@ -79,7 +80,7 @@ public class DdcServiceRegistryRedisRepository {
     public DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request,
                                              Instant heartbeatAt) {
         DdcServiceKey serviceKey = request.getServiceKey();
-        List<?> result = redissonClient.getScript().eval(
+        List<?> result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 HEARTBEAT_SCRIPT,
                 RScript.ReturnType.MULTI,
@@ -109,7 +110,7 @@ public class DdcServiceRegistryRedisRepository {
     public DdcLeaseOperationResult deregister(DdcServiceLeaseRequest request,
                                               Instant deregisteredAt) {
         DdcServiceKey serviceKey = request.getServiceKey();
-        List<?> result = redissonClient.getScript().eval(
+        List<?> result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 DEREGISTER_SCRIPT,
                 RScript.ReturnType.MULTI,
@@ -135,17 +136,17 @@ public class DdcServiceRegistryRedisRepository {
     public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey, Instant now) {
         knownServiceKeys.add(serviceKey);
         Collection<String> expired = redissonClient.<String>getScoredSortedSet(
-                        DdcKeys.v2RegistryService(serviceKey))
+                        DdcKeys.v2RegistryService(serviceKey), StringCodec.INSTANCE)
                 .valueRange(Double.NEGATIVE_INFINITY, true, now.toEpochMilli(), true);
         expired.forEach(instanceId -> expire(serviceKey, instanceId, now));
 
         Collection<String> members = redissonClient.<String>getScoredSortedSet(
-                        DdcKeys.v2RegistryService(serviceKey))
+                        DdcKeys.v2RegistryService(serviceKey), StringCodec.INSTANCE)
                 .valueRange(now.toEpochMilli(), false, Double.POSITIVE_INFINITY, true);
         List<DdcServiceInstance> instances = new ArrayList<>();
         for (String instanceId : members) {
             String value = redissonClient.<String>getBucket(
-                    DdcKeys.v2RegistryInstance(serviceKey, instanceId)
+                    DdcKeys.v2RegistryInstance(serviceKey, instanceId), StringCodec.INSTANCE
             ).get();
             if (value == null) {
                 expire(serviceKey, instanceId, now);
@@ -170,12 +171,15 @@ public class DdcServiceRegistryRedisRepository {
 
     public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query,
                                                     Instant now) {
-        Set<String> members = redissonClient.<String>getSet(DdcKeys.v2RegistryCatalog(
-                query.env(),
-                query.namespace(),
-                query.serviceKind(),
-                query.protocol()
-        )).readAll();
+        Set<String> members = redissonClient.<String>getSet(
+                DdcKeys.v2RegistryCatalog(
+                        query.env(),
+                        query.namespace(),
+                        query.serviceKind(),
+                        query.protocol()
+                ),
+                StringCodec.INSTANCE
+        ).readAll();
         List<DdcServiceKey> serviceKeys = new ArrayList<>();
         for (String member : members) {
             DdcServiceKey serviceKey = DdcServiceKey.parse(member);
@@ -200,11 +204,11 @@ public class DdcServiceRegistryRedisRepository {
         int removed = 0;
         for (DdcServiceKey serviceKey : List.copyOf(knownServiceKeys)) {
             int before = redissonClient.<String>getScoredSortedSet(
-                    DdcKeys.v2RegistryService(serviceKey)
+                    DdcKeys.v2RegistryService(serviceKey), StringCodec.INSTANCE
             ).size();
             getInstances(serviceKey, now);
             int after = redissonClient.<String>getScoredSortedSet(
-                    DdcKeys.v2RegistryService(serviceKey)
+                    DdcKeys.v2RegistryService(serviceKey), StringCodec.INSTANCE
             ).size();
             removed += Math.max(0, before - after);
             if (after == 0) {
@@ -215,7 +219,7 @@ public class DdcServiceRegistryRedisRepository {
     }
 
     private void expire(DdcServiceKey serviceKey, String instanceId, Instant now) {
-        redissonClient.getScript().eval(
+        redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 EXPIRE_SCRIPT,
                 RScript.ReturnType.MULTI,

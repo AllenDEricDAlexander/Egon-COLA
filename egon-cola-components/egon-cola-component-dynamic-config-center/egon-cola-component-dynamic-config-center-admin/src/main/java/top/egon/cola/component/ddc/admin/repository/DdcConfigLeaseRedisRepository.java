@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
@@ -47,7 +48,7 @@ public class DdcConfigLeaseRedisRepository {
     public void register(DdcInstanceIdentity identity,
                          DdcLeaseSession session,
                          Instant lastHeartbeatAt) {
-        Number result = redissonClient.getScript().eval(
+        Number result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 REGISTER_SCRIPT,
                 RScript.ReturnType.INTEGER,
@@ -62,7 +63,7 @@ public class DdcConfigLeaseRedisRepository {
     }
 
     public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request, Instant heartbeatAt) {
-        List<?> result = redissonClient.getScript().eval(
+        List<?> result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 HEARTBEAT_SCRIPT,
                 RScript.ReturnType.MULTI,
@@ -88,7 +89,7 @@ public class DdcConfigLeaseRedisRepository {
     }
 
     public DdcLeaseOperationResult deregister(DdcHeartbeatRequest request) {
-        Number result = redissonClient.getScript().eval(
+        Number result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 DEREGISTER_SCRIPT,
                 RScript.ReturnType.INTEGER,
@@ -114,7 +115,7 @@ public class DdcConfigLeaseRedisRepository {
                                            String instanceId,
                                            String leaseId,
                                            Instant now) {
-        Number result = redissonClient.getScript().eval(
+        Number result = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 EXPIRE_SCRIPT,
                 RScript.ReturnType.INTEGER,
@@ -135,7 +136,8 @@ public class DdcConfigLeaseRedisRepository {
                                                 Instant now) {
         Set<String> instanceIds =
                 redissonClient.<String>getSet(
-                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace)
+                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace),
+                                StringCodec.INSTANCE
                         )
                         .readAll();
         List<DdcPublishTarget> targets = new ArrayList<>();
@@ -143,7 +145,8 @@ public class DdcConfigLeaseRedisRepository {
             JsonNode lease = currentLease(appCode, env, namespace, instanceId);
             if (!isActive(lease, appCode, env, namespace, now)) {
                 redissonClient.<String>getSet(
-                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace)
+                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace),
+                                StringCodec.INSTANCE
                         )
                         .remove(instanceId);
                 continue;
@@ -215,7 +218,8 @@ public class DdcConfigLeaseRedisRepository {
                                   String namespace,
                                   String instanceId) {
         String value = redissonClient.<String>getBucket(
-                DdcKeys.v2ConfigLeaseInstance(appCode, env, namespace, instanceId)
+                DdcKeys.v2ConfigLeaseInstance(appCode, env, namespace, instanceId),
+                StringCodec.INSTANCE
         ).get();
         if (value == null) {
             return null;

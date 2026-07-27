@@ -11,8 +11,9 @@ import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -35,7 +36,7 @@ public class DdcInstanceAdminService {
                 .orElseGet(() -> newInstance(request));
         fillInstance(instance, request);
         instance.setLeaseId(session.leaseId());
-        instance.setLeaseExpireAt(LocalDateTime.ofInstant(session.leaseExpireAt(), ZoneOffset.UTC));
+        instance.setLeaseExpireAt(localTime(session.leaseExpireAt()));
         instance.setStatus(InstanceStatus.ONLINE.name());
         instance.setLastHeartbeatAt(LocalDateTime.now());
         instance.setUpdatedAt(LocalDateTime.now());
@@ -53,7 +54,7 @@ public class DdcInstanceAdminService {
                 }
                 instance.setStatus(InstanceStatus.ONLINE.name());
                 instance.setLastHeartbeatAt(LocalDateTime.now());
-                instance.setLeaseExpireAt(LocalDateTime.ofInstant(result.leaseExpireAt(), ZoneOffset.UTC));
+                instance.setLeaseExpireAt(localTime(result.leaseExpireAt()));
                 instance.setRuntimeMetadata(request.getMetadata());
                 instance.setUpdatedAt(LocalDateTime.now());
                 instanceRepository.save(instance);
@@ -78,6 +79,10 @@ public class DdcInstanceAdminService {
 
     public List<DdcInstanceEntity> list(String appCode, String env, String namespace) {
         return instanceRepository.findByAppCodeAndEnvAndNamespace(appCode, env, namespace);
+    }
+
+    private LocalDateTime localTime(Instant value) {
+        return LocalDateTime.ofInstant(value, ZoneId.systemDefault());
     }
 
     private DdcInstanceEntity newInstance(DdcInstanceRegisterRequest request) {

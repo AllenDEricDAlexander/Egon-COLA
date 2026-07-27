@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.provider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
@@ -16,6 +18,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class HttpProviderLeaseRuntime implements AutoCloseable {
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(HttpProviderLeaseRuntime.class);
 
     private final DdcServiceRegistryClient registry;
 
@@ -116,6 +121,11 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
             }
         } catch (RuntimeException failure) {
             lease = null;
+            LOGGER.warn(
+                    "HTTP Provider heartbeat failed for {}",
+                    properties.instanceId(),
+                    failure
+            );
             recover();
         }
     }
@@ -193,6 +203,13 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
         } catch (RuntimeException failure) {
             if (properties.failFast()) {
                 state.set(HttpProviderRuntimeState.FAILED);
+            }
+            LOGGER.warn(
+                    "HTTP Provider lease recovery failed for {}",
+                    properties.instanceId(),
+                    failure
+            );
+            if (properties.failFast()) {
                 throw failure;
             }
         }

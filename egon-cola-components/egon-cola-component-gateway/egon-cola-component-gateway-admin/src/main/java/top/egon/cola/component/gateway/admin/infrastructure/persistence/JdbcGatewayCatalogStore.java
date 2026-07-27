@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
 
@@ -105,8 +108,8 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                 hierarchy.interfaceGroupName(),
                 hierarchy.className(),
                 hierarchy.description(),
-                now,
-                now
+                timestamp(now),
+                timestamp(now)
         );
         return interfaceGroupId;
     }
@@ -203,8 +206,8 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                 json(operation.providerServiceIdentity()),
                 operation.sourceType(),
                 operation.lifecycleStatus(),
-                operation.createdAt(),
-                operation.updatedAt()
+                timestamp(operation.createdAt()),
+                timestamp(operation.updatedAt())
         );
     }
 
@@ -233,7 +236,7 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                         : json(definition.descriptorSnapshot()),
                 json(definition.attributes()),
                 definition.externalAccessible(),
-                definition.createdAt(),
+                timestamp(definition.createdAt()),
                 definition.createdBy()
         );
     }
@@ -252,7 +255,8 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                        lifecycle_status = 'ACTIVE',
                        updated_at = ?
                  WHERE id = ?
-                """, definitionId, externalAccessible, now, operationId);
+                """, definitionId, externalAccessible, timestamp(now),
+                operationId);
         if (updated == 0) {
             throw new GatewayAdminNotFoundException(
                     "gateway operation " + operationId + " was not found"
@@ -269,7 +273,7 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                        revision = revision + 1,
                        updated_at = ?
                  WHERE id = ?
-                """, now, now, operationId);
+                """, timestamp(now), timestamp(now), operationId);
         if (updated == 0) {
             throw new GatewayAdminNotFoundException(
                     "gateway operation " + operationId + " was not found"
@@ -389,7 +393,7 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                     deleted, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, NULL, FALSE, ?, ?)
                 """, id, applicationId, hierarchy.businessCode(),
-                hierarchy.businessName(), now, now);
+                hierarchy.businessName(), timestamp(now), timestamp(now));
         return id;
     }
 
@@ -412,7 +416,7 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                     deleted, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, NULL, FALSE, ?, ?)
                 """, id, businessId, hierarchy.entityCode(),
-                hierarchy.entityName(), now, now);
+                hierarchy.entityName(), timestamp(now), timestamp(now));
         return id;
     }
 

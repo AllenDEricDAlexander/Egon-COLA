@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.engine.traffic;
 
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +21,7 @@ public final class RedissonRedisTokenBucketExecutor
             String script,
             List<String> keys,
             List<String> arguments) {
-        List<?> result = redisson.getScript().eval(
+        List<?> result = redisson.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE,
                 script,
                 RScript.ReturnType.MULTI,

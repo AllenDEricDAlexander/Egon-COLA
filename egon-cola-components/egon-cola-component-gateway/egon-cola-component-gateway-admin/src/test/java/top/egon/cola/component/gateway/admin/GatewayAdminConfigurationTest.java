@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,5 +37,26 @@ class GatewayAdminConfigurationTest {
                 .allSatisfy(parameter ->
                         assertThat(parameter.getAnnotation(Value.class))
                                 .isNotNull());
+    }
+
+    @Test
+    void consumesTheGatewayEngineDefaultCallEventTopic() {
+        Method consumerFactory = Arrays.stream(
+                        GatewayAdminConfiguration.class.getDeclaredMethods()
+                )
+                .filter(method -> method.getName().equals(
+                        "gatewayKafkaCallEventConsumer"
+                ))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(Arrays.stream(consumerFactory.getParameters())
+                .map(parameter -> parameter.getAnnotation(Value.class))
+                .filter(java.util.Objects::nonNull)
+                .map(Value::value))
+                .contains(
+                        "${gateway.admin.observability.kafka.topic:"
+                                + "egon.gateway.call.v1}"
+                );
     }
 }

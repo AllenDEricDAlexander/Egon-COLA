@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 import org.redisson.connection.CRC16;
 import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
@@ -100,7 +101,7 @@ class DdcRedisClusterSlotContractTest {
                                             AtomicReference<Object[]> arguments) {
         RedissonClient redisson = mock(RedissonClient.class);
         RScript script = mock(RScript.class);
-        when(redisson.getScript()).thenReturn(script);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
         when(script.eval(
                 eq(RScript.Mode.READ_WRITE),
                 anyString(),

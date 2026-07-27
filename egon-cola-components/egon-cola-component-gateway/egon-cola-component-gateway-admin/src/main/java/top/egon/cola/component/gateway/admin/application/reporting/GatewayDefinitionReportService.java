@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.application.reporting;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminIdempotencyConflictException;
@@ -34,6 +35,7 @@ public class GatewayDefinitionReportService {
 
     private final Clock clock;
 
+    @Autowired
     public GatewayDefinitionReportService(
             GatewayDefinitionReportStore reports,
             IdempotencyStore idempotency,

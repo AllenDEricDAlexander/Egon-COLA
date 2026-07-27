@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.admin.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
@@ -29,6 +30,7 @@ public class PublishTimeoutScanner {
 
     private final Clock clock;
 
+    @Autowired
     public PublishTimeoutScanner(
             DdcPublishTaskRepository taskRepository,
             DdcPublishStateTransitionService stateTransitions,

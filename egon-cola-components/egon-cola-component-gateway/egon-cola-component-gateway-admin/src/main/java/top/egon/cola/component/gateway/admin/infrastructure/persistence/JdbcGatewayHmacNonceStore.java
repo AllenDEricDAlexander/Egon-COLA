@@ -7,6 +7,9 @@ import top.egon.cola.component.gateway.admin.application.reporting.GatewayHmacNo
 
 import java.time.Instant;
 
+import static top.egon.cola.component.gateway.admin.infrastructure.persistence
+        .JdbcGatewayParameters.timestamp;
+
 @Repository
 public class JdbcGatewayHmacNonceStore implements GatewayHmacNonceStore {
 
@@ -27,7 +30,8 @@ public class JdbcGatewayHmacNonceStore implements GatewayHmacNonceStore {
                     INSERT INTO gateway_hmac_nonce(
                         access_key, nonce, expires_at, created_at
                     ) VALUES (?, ?, ?, ?)
-                    """, accessKey, nonce, expiresAt, now);
+                    """, accessKey, nonce, timestamp(expiresAt),
+                    timestamp(now));
             return true;
         } catch (DataIntegrityViolationException replay) {
             return false;
@@ -38,7 +42,7 @@ public class JdbcGatewayHmacNonceStore implements GatewayHmacNonceStore {
     public int deleteExpired(Instant now) {
         return jdbc.update(
                 "DELETE FROM gateway_hmac_nonce WHERE expires_at < ?",
-                now
+                timestamp(now)
         );
     }
 }
