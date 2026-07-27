@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.test;
+package top.egon.cola.component.ddc.admin.integration;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

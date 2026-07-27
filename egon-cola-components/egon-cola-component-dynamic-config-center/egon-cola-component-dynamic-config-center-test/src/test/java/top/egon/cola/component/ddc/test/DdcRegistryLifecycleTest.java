@@ -1,9 +1,6 @@
 package top.egon.cola.component.ddc.test;
 
-import jakarta.persistence.Entity;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
-import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -17,8 +14,6 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -43,21 +38,6 @@ class DdcRegistryLifecycleTest {
                 registry,
                 registration("gateway-1", DdcServiceKind.INTERNAL_GATEWAY, 19090)
         );
-    }
-
-    @Test
-    void serviceRegistryIsRedisOnlyAndDoesNotIntroduceJpaTables() throws IOException {
-        assertThat(DdcServiceInstance.class.isAnnotationPresent(Entity.class)).isFalse();
-        assertThat(DdcServiceRegistryRedisRepository.class.isAnnotationPresent(Entity.class))
-                .isFalse();
-
-        for (String dialect : List.of("postgresql", "sqlite")) {
-            String v1 = resource("db/" + dialect + "/V1__create_ddc_schema.sql");
-            String v2 = resource("db/" + dialect + "/V2__add_lease_and_sync_publish.sql");
-            assertThat(v1 + v2)
-                    .doesNotContain("ddc_service_instance")
-                    .doesNotContain("ddc_service_registry");
-        }
     }
 
     private void verifyLifecycle(InMemoryRegistry registry,
@@ -106,11 +86,6 @@ class DdcRegistryLifecycleTest {
                 kind == DdcServiceKind.RPC_PROVIDER ? 30 : 15,
                 kind == DdcServiceKind.RPC_PROVIDER ? 10 : 5
         );
-    }
-
-    private String resource(String path) throws IOException {
-        return new ClassPathResource(path)
-                .getContentAsString(StandardCharsets.UTF_8);
     }
 
     private static final class InMemoryRegistry implements DdcServiceRegistryClient {

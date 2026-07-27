@@ -16,21 +16,11 @@
     <name>egon-cola-component-dynamic-config-center-test</name>
     <description>Sample and integration tests for Egon COLA dynamic config center.</description>
 
-    <properties>
-        <testcontainers.version>1.21.4</testcontainers.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-dynamic-config-center-admin</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -41,68 +31,10 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <finalName>egon-cola-component-dynamic-config-center-test</finalName>
     </build>
 
-    <profiles>
-        <profile>
-            <id>ddc-redis-sentinel</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>ddc-redis-sentinel-it</id>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <includes>
-                                        <include>**/DdcRedisSentinelIT.java</include>
-                                    </includes>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>ddc-redis-cluster</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>ddc-redis-cluster-it</id>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <includes>
-                                        <include>**/DdcRedisClusterIT.java</include>
-                                    </includes>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

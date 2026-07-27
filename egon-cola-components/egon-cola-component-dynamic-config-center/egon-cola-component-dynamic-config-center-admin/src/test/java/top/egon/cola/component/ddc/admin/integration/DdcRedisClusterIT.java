@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.test;
+package top.egon.cola.component.ddc.admin.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
