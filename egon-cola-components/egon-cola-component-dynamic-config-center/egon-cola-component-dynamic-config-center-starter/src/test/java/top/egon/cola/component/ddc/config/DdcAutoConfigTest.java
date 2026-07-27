@@ -143,6 +143,21 @@ class DdcAutoConfigTest {
                         .isSameAs(dedicatedClient));
     }
 
+    @Test
+    void retainsUserProvidedAdminClient() {
+        DdcAdminClient client = mock(DdcAdminClient.class);
+
+        contextRunner
+                .withBean(DdcAdminClient.class, () -> client)
+                .withPropertyValues(
+                        "egon.cola.component.ddc.enabled=true",
+                        "egon.cola.component.ddc.redis.enabled=false",
+                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test"
+                )
+                .run(context -> assertThat(context.getBean(DdcAdminClient.class))
+                        .isSameAs(client));
+    }
+
     private RedissonClient dedicatedClient() {
         RedissonClient client = mock(RedissonClient.class);
         RTopic topic = mock(RTopic.class);

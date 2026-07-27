@@ -67,6 +67,7 @@ public class DdcAutoConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean(DdcAdminClient.class)
     public DdcAdminClient ddcAdminClient(DdcProperties properties) {
         return new HttpDdcAdminClient(properties);
     }

@@ -1,8 +1,10 @@
 package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -12,6 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
         "egon.cola.component.ddc.app-code=demo-app",
         "egon.cola.component.ddc.env=dev",
         "egon.cola.component.ddc.namespace=default",
+        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
+        "egon.cola.component.ddc.admin.signature-enabled=false",
+        "egon.cola.component.ddc.admin.tls.development-plaintext=true",
         "egon.cola.component.ddc.redis.enabled=false",
         "egon.cola.component.ddc.consistency.fail-fast=false",
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
@@ -24,8 +29,12 @@ class DdcSampleInjectionTest {
     @Autowired
     private SampleConfigService sampleConfigService;
 
+    @Autowired
+    private ObjectProvider<DdcRuntimeCoordinator> runtimeCoordinator;
+
     @Test
-    void sampleBeanKeepsAnnotationDefaultsWhenAdminUnavailableAndFailFastDisabled() {
+    void offlineModeKeepsAnnotationDefaultsWithoutRegisteringOrPulling() {
+        assertThat(runtimeCoordinator.getIfAvailable()).isNull();
         assertThat(sampleConfigService.getDowngradeSwitch()).isFalse();
         assertThat(sampleConfigService.getRateLimit()).isEqualTo(100);
     }
