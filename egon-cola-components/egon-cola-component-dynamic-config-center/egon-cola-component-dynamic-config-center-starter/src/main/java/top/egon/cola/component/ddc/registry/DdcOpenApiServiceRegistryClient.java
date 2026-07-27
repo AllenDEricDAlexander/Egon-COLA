@@ -70,6 +70,8 @@ public final class DdcOpenApiServiceRegistryClient
         this.properties = properties;
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         DdcProperties.Admin admin = properties.getAdmin();
+        String endpoint = admin.requireEndpoint();
+        admin.validateCredentials();
         DdcProperties.Tls tls = admin.getTls();
         DdcClientTransportSecurity transportSecurity =
                 new DdcClientTransportSecurity(
@@ -80,13 +82,13 @@ public final class DdcOpenApiServiceRegistryClient
                         tls.getTrustCertificateCollectionPath()
                 );
         if (transportSecurity.enabled()
-                && !admin.getEndpoint().startsWith("https://")) {
+                && !endpoint.startsWith("https://")) {
             throw new IllegalArgumentException(
                     "DDC mTLS endpoint must use HTTPS"
             );
         }
         if (!transportSecurity.enabled()
-                && !admin.getEndpoint().startsWith("http://")) {
+                && !endpoint.startsWith("http://")) {
             throw new IllegalArgumentException(
                     "DDC HTTPS endpoint requires configured mTLS"
             );
@@ -96,7 +98,7 @@ public final class DdcOpenApiServiceRegistryClient
                         admin.getReadTimeout(),
                         transportSecurity
                 )
-                .baseUrl(properties.getAdmin().getEndpoint())
+                .baseUrl(endpoint)
                 .messageConverters(converters -> {
                     converters.removeIf(MappingJackson2HttpMessageConverter.class::isInstance);
                     converters.add(new MappingJackson2HttpMessageConverter(objectMapper));

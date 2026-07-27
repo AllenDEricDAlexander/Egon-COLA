@@ -48,6 +48,8 @@ public class HttpDdcAdminClient implements DdcAdminClient {
     private static RestClient.Builder restClientBuilder(
             DdcProperties properties) {
         DdcProperties.Admin admin = properties.getAdmin();
+        String endpoint = admin.requireEndpoint();
+        admin.validateCredentials();
         DdcProperties.Tls tls = admin.getTls();
         DdcClientTransportSecurity security =
                 new DdcClientTransportSecurity(
@@ -58,13 +60,13 @@ public class HttpDdcAdminClient implements DdcAdminClient {
                         tls.getTrustCertificateCollectionPath()
                 );
         if (security.enabled()
-                && !admin.getEndpoint().startsWith("https://")) {
+                && !endpoint.startsWith("https://")) {
             throw new IllegalArgumentException(
                     "DDC mTLS endpoint must use HTTPS"
             );
         }
         if (!security.enabled()
-                && !admin.getEndpoint().startsWith("http://")) {
+                && !endpoint.startsWith("http://")) {
             throw new IllegalArgumentException(
                     "DDC HTTPS endpoint requires configured mTLS"
             );
@@ -78,10 +80,13 @@ public class HttpDdcAdminClient implements DdcAdminClient {
 
     HttpDdcAdminClient(DdcProperties properties, RestClient.Builder restClientBuilder) {
         this.properties = properties;
+        DdcProperties.Admin admin = properties.getAdmin();
+        String endpoint = admin.requireEndpoint();
+        admin.validateCredentials();
         this.objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         this.restClient = restClientBuilder
-                .baseUrl(properties.getAdmin().getEndpoint())
+                .baseUrl(endpoint)
                 .messageConverters(converters -> {
                     converters.removeIf(MappingJackson2HttpMessageConverter.class::isInstance);
                     converters.add(new MappingJackson2HttpMessageConverter(objectMapper));

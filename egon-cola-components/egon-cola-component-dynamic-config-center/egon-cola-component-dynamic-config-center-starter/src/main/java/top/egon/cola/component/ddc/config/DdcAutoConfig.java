@@ -3,6 +3,8 @@ package top.egon.cola.component.ddc.config;
 import org.redisson.Redisson;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.ObjectProvider;
@@ -43,8 +45,10 @@ import java.util.List;
         DdcProperties.class,
         DdcAckDeliveryProperties.class
 })
-@ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class DdcAutoConfig {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DdcAutoConfig.class);
 
     @Bean
     public DdcValueConverter ddcValueConverter() {
@@ -77,6 +81,20 @@ public class DdcAutoConfig {
     public SmartInitializingSingleton ddcConfigApplierRegistryFreezer(
             DefaultDdcConfigApplierRegistry registry) {
         return registry::freeze;
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc.redis",
+            name = "enabled",
+            havingValue = "false"
+    )
+    public SmartInitializingSingleton ddcOfflineModeWarning() {
+        return () -> LOGGER.warn(
+                "DDC remote lifecycle is disabled because "
+                        + "egon.cola.component.ddc.redis.enabled=false; "
+                        + "no registration, pull, subscription, heartbeat, or ACK will run"
+        );
     }
 
     @Bean

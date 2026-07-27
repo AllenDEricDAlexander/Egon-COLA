@@ -266,6 +266,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         requireText(properties.getAppCode(), "appCode");
         requireText(properties.getEnv(), "env");
         requireText(properties.getNamespace(), "namespace");
+        properties.getInstance().validate();
         if (properties.getConsistency().isReconcileEnabled()
                 && properties.getConsistency().getReconcileIntervalSeconds() <= 0) {
             throw new DdcException("reconcileIntervalSeconds must be positive");

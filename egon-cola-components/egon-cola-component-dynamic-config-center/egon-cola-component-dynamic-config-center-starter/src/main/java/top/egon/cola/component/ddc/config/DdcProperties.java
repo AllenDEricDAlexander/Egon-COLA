@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "egon.cola.component.ddc", ignoreInvalidFields = true)
 public class DdcProperties {
 
-    private boolean enabled = true;
+    private boolean enabled;
 
     private String appCode = "default-app";
 
@@ -101,7 +102,7 @@ public class DdcProperties {
 
     public static class Admin {
 
-        private String endpoint = "http://localhost:18080";
+        private String endpoint;
 
         private String accessKey;
 
@@ -121,6 +122,45 @@ public class DdcProperties {
 
         public void setEndpoint(String endpoint) {
             this.endpoint = endpoint;
+        }
+
+        public String requireEndpoint() {
+            if (endpoint == null || endpoint.isBlank()) {
+                throw new IllegalArgumentException(
+                        "egon.cola.component.ddc.admin.endpoint is required"
+                );
+            }
+            URI uri;
+            try {
+                uri = URI.create(endpoint.trim());
+            } catch (IllegalArgumentException exception) {
+                throw invalidEndpoint(exception);
+            }
+            boolean rootPath = uri.getPath() == null
+                    || uri.getPath().isBlank()
+                    || "/".equals(uri.getPath());
+            if (!(("http".equalsIgnoreCase(uri.getScheme())
+                    || "https".equalsIgnoreCase(uri.getScheme()))
+                    && uri.getHost() != null
+                    && rootPath
+                    && uri.getRawQuery() == null
+                    && uri.getRawFragment() == null
+                    && uri.getUserInfo() == null)) {
+                throw invalidEndpoint(null);
+            }
+            String normalized = endpoint.trim();
+            return normalized.endsWith("/")
+                    ? normalized.substring(0, normalized.length() - 1)
+                    : normalized;
+        }
+
+        private IllegalArgumentException invalidEndpoint(Throwable cause) {
+            String message =
+                    "egon.cola.component.ddc.admin.endpoint "
+                            + "must be an HTTP or HTTPS root URI";
+            return cause == null
+                    ? new IllegalArgumentException(message)
+                    : new IllegalArgumentException(message, cause);
         }
 
         public String getAccessKey() {
@@ -145,6 +185,24 @@ public class DdcProperties {
 
         public void setSignatureEnabled(boolean signatureEnabled) {
             this.signatureEnabled = signatureEnabled;
+        }
+
+        public void validateCredentials() {
+            if (!signatureEnabled) {
+                return;
+            }
+            if (accessKey == null || accessKey.isBlank()) {
+                throw new IllegalArgumentException(
+                        "egon.cola.component.ddc.admin.access-key "
+                                + "is required when signature is enabled"
+                );
+            }
+            if (secretKey == null || secretKey.isBlank()) {
+                throw new IllegalArgumentException(
+                        "egon.cola.component.ddc.admin.secret-key "
+                                + "is required when signature is enabled"
+                );
+            }
         }
 
         public Duration getConnectTimeout() {
@@ -330,6 +388,16 @@ public class DdcProperties {
 
         public void setLeaseSeconds(int leaseSeconds) {
             this.leaseSeconds = leaseSeconds;
+        }
+
+        public void validate() {
+            if (heartbeatIntervalSeconds <= 0
+                    || heartbeatIntervalSeconds >= leaseSeconds) {
+                throw new IllegalArgumentException(
+                        "egon.cola.component.ddc.instance.heartbeat-interval-seconds "
+                                + "must be positive and less than lease-seconds"
+                );
+            }
         }
 
         /**

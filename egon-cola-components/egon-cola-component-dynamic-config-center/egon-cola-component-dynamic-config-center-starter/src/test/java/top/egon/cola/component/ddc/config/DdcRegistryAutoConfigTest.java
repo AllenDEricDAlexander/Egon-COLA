@@ -25,6 +25,7 @@ class DdcRegistryAutoConfigTest {
                     .withPropertyValues(
                             "egon.cola.component.ddc.enabled=false",
                             "egon.cola.component.ddc.registry.enabled=true",
+                            "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
                             "egon.cola.component.ddc.admin.tls."
                                     + "development-plaintext=true"
                     );
@@ -40,6 +41,25 @@ class DdcRegistryAutoConfigTest {
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcServiceRegistryClient.class);
                     assertThat(context).doesNotHaveBean(DdcAdminClient.class);
+                });
+    }
+
+    @Test
+    void registryFailsBeforeNetworkAccessWhenEndpointIsMissing() {
+        contextRunner
+                .withBean(
+                        "ddcRegistryRedissonClient",
+                        RedissonClient.class,
+                        () -> mock(RedissonClient.class)
+                )
+                .withPropertyValues("egon.cola.component.ddc.admin.endpoint=")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseInstanceOf(IllegalArgumentException.class)
+                            .hasRootCauseMessage(
+                                    "egon.cola.component.ddc.admin.endpoint is required"
+                            );
                 });
     }
 
@@ -88,6 +108,7 @@ class DdcRegistryAutoConfigTest {
                         "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=false",
                         "egon.cola.component.ddc.registry.enabled=false",
+                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
                         "egon.cola.component.ddc.admin.tls."
                                 + "development-plaintext=true"
                 )

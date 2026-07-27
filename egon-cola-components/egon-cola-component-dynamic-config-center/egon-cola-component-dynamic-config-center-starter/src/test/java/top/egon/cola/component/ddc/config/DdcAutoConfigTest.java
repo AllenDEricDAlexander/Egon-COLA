@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.config;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.redisson.Redisson;
 import org.redisson.api.RTopic;
@@ -8,6 +9,8 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
@@ -24,6 +27,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(OutputCaptureExtension.class)
 class DdcAutoConfigTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
@@ -40,6 +44,27 @@ class DdcAutoConfigTest {
     }
 
     @Test
+    void doesNotCreateBeansWhenEnableFlagIsMissing() {
+        contextRunner.run(context ->
+                assertThat(context).doesNotHaveBean(DdcAdminClient.class));
+    }
+
+    @Test
+    void warnsWhenRemoteLifecycleIsDisabled(CapturedOutput output) {
+        contextRunner.withPropertyValues(
+                        "egon.cola.component.ddc.enabled=true",
+                        "egon.cola.component.ddc.redis.enabled=false",
+                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
+                        "egon.cola.component.ddc.admin.tls.development-plaintext=true"
+                )
+                .run(context -> assertThat(output).contains(
+                        "DDC remote lifecycle is disabled because "
+                                + "egon.cola.component.ddc.redis.enabled=false; "
+                                + "no registration, pull, subscription, heartbeat, or ACK will run"
+                ));
+    }
+
+    @Test
     void createsCoreBeansWhenEnabled() {
         AtomicReference<DdcAckDelivery> delivery = new AtomicReference<>();
         contextRunner.withPropertyValues(
@@ -48,6 +73,7 @@ class DdcAutoConfigTest {
                         "egon.cola.component.ddc.app-code=demo",
                         "egon.cola.component.ddc.env=dev",
                         "egon.cola.component.ddc.namespace=default",
+                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
                         "egon.cola.component.ddc.admin.tls."
                                 + "development-plaintext=true")
                 .run(context -> {
@@ -80,7 +106,9 @@ class DdcAutoConfigTest {
                             () -> applicationClient
                     )
                     .withPropertyValues(
+                            "egon.cola.component.ddc.enabled=true",
                             "egon.cola.component.ddc.redis.enabled=true",
+                            "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
                             "egon.cola.component.ddc.admin.tls."
                                     + "development-plaintext=true"
                     )
@@ -105,7 +133,9 @@ class DdcAutoConfigTest {
                         () -> dedicatedClient
                 )
                 .withPropertyValues(
+                        "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=true",
+                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
                         "egon.cola.component.ddc.admin.tls."
                                 + "development-plaintext=true"
                 )

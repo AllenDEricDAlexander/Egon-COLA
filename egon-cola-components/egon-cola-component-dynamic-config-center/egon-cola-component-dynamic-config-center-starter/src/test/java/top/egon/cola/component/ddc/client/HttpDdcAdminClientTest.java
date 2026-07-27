@@ -29,6 +29,15 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class HttpDdcAdminClientTest {
 
     @Test
+    void rejectsMissingEndpointBeforeCreatingTransport() {
+        DdcProperties properties = new DdcProperties();
+
+        assertThatThrownBy(() -> new HttpDdcAdminClient(properties))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("egon.cola.component.ddc.admin.endpoint is required");
+    }
+
+    @Test
     void signedPostHashesAndSignsTheExactTransmittedJsonBytes() {
         DdcProperties properties = new DdcProperties();
         properties.getAdmin().setEndpoint("http://ddc.test");

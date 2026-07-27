@@ -235,6 +235,28 @@ class DdcRuntimeCoordinatorTest {
         assertThat(adminClient.registerCount).isZero();
     }
 
+    @Test
+    void invalidHeartbeatIntervalFailsBeforeRegistration() {
+        RecordingAdminClient adminClient = new RecordingAdminClient(new ArrayList<>());
+        DdcProperties properties = properties(true);
+        properties.getInstance().setHeartbeatIntervalSeconds(30);
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                mock(DdcRefreshService.class),
+                subscription(new ArrayList<>()),
+                properties
+        );
+
+        assertThatThrownBy(coordinator::start)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "egon.cola.component.ddc.instance.heartbeat-interval-seconds "
+                                + "must be positive and less than lease-seconds"
+                );
+        assertThat(coordinator.isRunning()).isFalse();
+        assertThat(adminClient.registerCount).isZero();
+    }
+
     private DdcRuntimeCoordinator coordinator(RecordingAdminClient adminClient,
                                               DdcRefreshService refreshService,
                                               DdcRedisChangeSubscription subscription,
