@@ -4,9 +4,8 @@
 
 ## 范围
 
-`egon-cola-component-dynamic-config-center` 提供动态配置 SDK、可独立部署的
-Admin 应用、类型化 management client，以及面向 RPC Provider 和内部 Gateway 的
-Redis 服务注册中心。
+`egon-cola-component-dynamic-config-center` 提供包含类型化管理 API 的动态配置 SDK、
+可独立部署的 Admin 应用，以及面向 RPC Provider 和内部 Gateway 的 Redis 服务注册中心。
 
 V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 Admin 进程可以服务
 同一个控制面：发布准备通过 PostgreSQL 行锁、版本条件更新和持久化发布任务完成，
@@ -35,10 +34,24 @@ Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL
 
 | 模块 | 职责 |
 |---|---|
-| `egon-cola-component-dynamic-config-center-management-client` | 管理 API 的类型化 DTO 和同步客户端 |
-| `egon-cola-component-dynamic-config-center-starter` | `@DdcValue`、启动同步、刷新、ACK、配置客户端租约生命周期、HMAC 客户端和服务注册客户端 |
+| `egon-cola-component-dynamic-config-center-starter` | 唯一业务侧 SDK：`@DdcValue`、类型化管理 API、启动同步、刷新、ACK、CONFIG_CLIENT 租约、HMAC 和服务注册契约 |
 | `egon-cola-component-dynamic-config-center-admin` | 独立 REST Admin、PostgreSQL 持久化、Redis 缓存与租约、注册中心 API 和同步发布状态机 |
-| `egon-cola-component-dynamic-config-center-test` | 跨模块生命周期、注册发现、刷新和同步发布验证 |
+| `egon-cola-component-dynamic-config-center-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
+
+业务应用只引入 Starter。`egon.cola.component.ddc.enabled=true` 会显式启动
+`CONFIG_CLIENT` 注册、默认值上报、配置拉取、Redis 订阅、心跳和停机下线闭环；
+`egon.cola.component.ddc.registry.enabled=true` 独立启用 RPC/Gateway 服务注册，
+其中 `RPC_PROVIDER`、`HTTP_PROVIDER` 和 `INTERNAL_GATEWAY` 租约不是配置客户端注册。启用任一远程
+路径时都必须显式配置 Admin Endpoint、匹配的 HMAC 凭据和 Redis 拓扑。
+`redis.enabled=false` 时不会执行注册、拉取、订阅、心跳或 ACK。生产多 Admin
+入口由外部 DNS、VIP 或负载均衡提供，Starter 不负责发现 Admin 进程。
+
+```xml
+<dependency>
+    <groupId>top.egon</groupId>
+    <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+</dependency>
+```
 
 ## 配置客户端生命周期
 

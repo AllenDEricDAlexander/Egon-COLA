@@ -4,8 +4,8 @@
 
 ## Scope
 
-`egon-cola-component-dynamic-config-center` provides a dynamic-configuration SDK,
-a standalone Admin application, a typed management client, and a Redis-backed
+`egon-cola-component-dynamic-config-center` provides a dynamic-configuration SDK
+with typed management APIs, a standalone Admin application, and a Redis-backed
 service registry for RPC Providers and internal Gateways.
 
 V1 supports one logical control plane backed by shared PostgreSQL and Redis. Multiple
@@ -39,10 +39,26 @@ ACK, operation, and configuration-client projection data.
 
 | Module | Responsibility |
 |---|---|
-| `egon-cola-component-dynamic-config-center-management-client` | Typed DTOs and synchronous client for management APIs |
-| `egon-cola-component-dynamic-config-center-starter` | `@DdcValue`, startup synchronization, refresh, ACK, configuration-client lease lifecycle, HMAC client, and service-registry client |
+| `egon-cola-component-dynamic-config-center-starter` | The only consumer SDK: `@DdcValue`, typed management APIs, startup synchronization, refresh, ACK, CONFIG_CLIENT leases, HMAC, and service-registry contracts |
 | `egon-cola-component-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
-| `egon-cola-component-dynamic-config-center-test` | Cross-module lifecycle, registry, refresh, and synchronous-publish verification |
+| `egon-cola-component-dynamic-config-center-test` | Starter-only sample and black-box consumer verification; it has no Admin dependency |
+
+Applications add only the Starter. `egon.cola.component.ddc.enabled=true` explicitly
+starts the `CONFIG_CLIENT` registration, default-report, pull, Redis subscription,
+heartbeat, and shutdown-offline lifecycle. `egon.cola.component.ddc.registry.enabled=true`
+independently enables RPC/Gateway service registration; those `RPC_PROVIDER`,
+`HTTP_PROVIDER`, and `INTERNAL_GATEWAY` leases are not configuration-client registrations. Every enabled
+remote path must explicitly configure the Admin Endpoint, matching HMAC credentials,
+and Redis topology. With `redis.enabled=false`, no registration, pull, subscription,
+heartbeat, or ACK runs. Production multi-Admin access must use an external DNS name,
+VIP, or load balancer; Starter does not discover Admin processes.
+
+```xml
+<dependency>
+    <groupId>top.egon</groupId>
+    <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+</dependency>
+```
 
 ## Configuration Client Lifecycle
 

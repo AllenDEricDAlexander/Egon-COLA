@@ -7,9 +7,9 @@
 `egon-cola-components-bom` is the Maven BOM for the Egon COLA component ecosystem. It provides no runtime code. Its only responsibility is to manage versions consistently for components under `egon-cola-components` that business applications can consume directly, avoiding repeated version declarations on every component dependency.
 
 The BOM exports stable consumption entry points: specific common submodules, the DDC
-management client and starter, business component starters, Gateway runtime entry points,
-and the bytecode component's public API, bridge, runtime, Agent, and starter. Admin, test,
-and aggregator POM modules are not exported as business dependency entry points.
+Starter including its typed management API, business component starters, Gateway runtime
+entry points, and the bytecode component's public API, bridge, runtime, Agent, and starter.
+Admin, test, and aggregator POM modules are not exported as business dependency entry points.
 
 ## Features
 
@@ -30,7 +30,6 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common-mask` | Data masking |
 | `egon-cola-component-common-structure` | Tree construction |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
-| `egon-cola-component-dynamic-config-center-management-client` | Typed client for DDC management APIs |
 | `egon-cola-component-dynamic-config-center-starter` | Business-side dynamic configuration center starter |
 | `egon-cola-component-rule-engine-starter` | Rule engine starter |
 | `egon-cola-component-access-guard-starter` | Method access governance starter |
@@ -138,7 +137,7 @@ Child modules declare only the artifact:
 
 1. The BOM manages only runtime entry points that consumers actually need, preventing accidental business dependencies on admin, test, or aggregator modules.
 2. Common capabilities are exported at fine granularity so applications can choose only what they need instead of receiving a large transitive common package.
-3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. DDC exposes its typed management client separately, Gateway exposes its Provider Runtime separately, and the bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
+3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. DDC includes its typed management API in Starter, Gateway exposes its Provider Runtime separately, and the bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
 4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
 
 ### Implementation Details
