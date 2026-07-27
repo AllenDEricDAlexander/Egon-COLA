@@ -38,8 +38,25 @@
 | S6 | **未实施** | — |
 | S7 | **未实施** | — |
 
-已知遗留：`GatewayRuntimeOperation` 仍不携带 `parameters`（上报模型 `GatewayInterfaceDefinitionReport.Parameter`
-有，运行时模型丢弃），Admin 因此无法据运行时规则生成接口测试表单。这是 §6.1 接口测试功能的前置依赖。
+原已知遗留（`GatewayRuntimeOperation` 不携带 `parameters`，Admin 无法据运行时规则生成接口测试表单）
+**已解除**，§6.1 接口测试功能的前置依赖就位：
+
+- 新增 `GatewayRuntimeParameter`（`contract/rule`），字段为
+  `name / location / required / typeDisplay / defaultValue / description`，
+  即 §3.3 `ParameterDescriptor` 的形态。上报模型的 `schema` 与 `constraints` **不下发**——
+  operation 已带 `requestSchema`，且规则内容有体积上限（分片阈值 512KB）。
+- `GatewayRuntimeOperation` 增加 `parameters` 组件，并保留原 12 参构造器供既有调用方使用。
+- Admin 侧 `GatewayRuntimeParameterMapper` 完成上报模型 -> 运行时模型的映射，数据源是
+  operation definition 的 `parameters` 属性（由 `JdbcGatewayDefinitionReportStore` 写入）。
+  该属性不再以 `toString()` 形式混入运行时 `attributes`。
+
+**wire 兼容要点**：`parameters` 标注 `@JsonInclude(NON_EMPTY)`，这是必需项而非优化。
+引擎 `GatewayRuleActivationApplier` 会重新序列化快照并与 `ruleContentSha256` 比对，
+若无参数的 operation 多出一个 `"parameters":[]`，老快照将以
+`GATEWAY_RULE_CHECKSUM_MISMATCH` 失败——**仅让紧凑构造器容忍 null 不足以兑现兼容**。
+
+**灰度顺序**：`GatewayRuleJsonCodec` 未关闭 `FAIL_ON_UNKNOWN_PROPERTIES`，
+故带参数的新快照会被老引擎拒绝。升级须**先引擎、后 Admin**。
 
 ---
 

@@ -9,21 +9,41 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 
 public final class GatewayRuleJsonCodec {
 
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .addModule(new JavaTimeModule())
+            .addMixIn(GatewayRuntimeOperation.class, OperationWireShape.class)
             .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .serializationInclusion(JsonInclude.Include.NON_NULL)
             .build();
+
+    /**
+     * Drops an empty parameter list from the wire form, so that an operation
+     * without parameters serializes exactly as it did before the component
+     * existed and still matches its published {@code ruleContentSha256}.
+     *
+     * <p>The contract module is serializer-free by design, so this lives with
+     * the mapper. {@code GatewayRuleCanonicalizer} on the publishing side
+     * declares the same mix-in: the two configurations must stay in step or
+     * published and recomputed checksums diverge.
+     */
+    private abstract static class OperationWireShape {
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public abstract List<GatewayRuntimeParameter> parameters();
+    }
 
     public GatewayRuleActivation readActivation(String json) {
         return read(json.getBytes(java.nio.charset.StandardCharsets.UTF_8),
