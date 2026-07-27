@@ -15,15 +15,16 @@ class DdcManagementContractBoundaryTest {
 
     @Test
     void publicContractsDoNotExposeAdminPersistenceOrRuntimeInfrastructure() throws IOException {
-        Path sourceRoot = Path.of("src/main/java");
-        String sources;
-        try (var paths = Files.walk(sourceRoot)) {
-            sources = paths.filter(path -> path.toString().endsWith(".java"))
-                    .map(this::read)
-                    .reduce("", (left, right) -> left + "\n" + right);
+        StringBuilder sources = new StringBuilder();
+        for (Path sourceRoot : contractRoots("src/main/java")) {
+            try (var paths = Files.walk(sourceRoot)) {
+                paths.filter(path -> path.toString().endsWith(".java"))
+                        .map(this::read)
+                        .forEach(source -> sources.append('\n').append(source));
+            }
         }
 
-        assertThat(sources)
+        assertThat(sources.toString())
                 .doesNotContain("component.ddc.admin")
                 .doesNotContain("jakarta.persistence")
                 .doesNotContain("org.redisson")
@@ -47,15 +48,25 @@ class DdcManagementContractBoundaryTest {
                 "DdcPublishAckEntity"
         );
 
-        try (var paths = Files.walk(Path.of("target/classes"))) {
-            for (Path path : paths.filter(candidate ->
-                    candidate.toString().endsWith(".class")).toList()) {
-                String constantPool = new String(Files.readAllBytes(path));
-                assertThat(constantPool)
-                        .as("compiled contract %s", path)
-                        .doesNotContain(forbidden);
+        for (Path classesRoot : contractRoots("target/classes")) {
+            try (var paths = Files.walk(classesRoot)) {
+                for (Path path : paths.filter(candidate ->
+                        candidate.toString().endsWith(".class")).toList()) {
+                    String constantPool = new String(Files.readAllBytes(path));
+                    assertThat(constantPool)
+                            .as("compiled contract %s", path)
+                            .doesNotContain(forbidden);
+                }
             }
         }
+    }
+
+    private List<Path> contractRoots(String root) {
+        Path packageRoot = Path.of(root, "top/egon/cola/component/ddc");
+        return List.of(
+                packageRoot.resolve("management"),
+                packageRoot.resolve("security")
+        );
     }
 
     private String read(Path path) {

@@ -28,11 +28,23 @@ egon:
   cola:
     component:
       ddc:
+        enabled: true
         app-code: egon-cola-gateway-engine
         admin:
+          endpoint: ${DDC_ADMIN_ENDPOINT:http://127.0.0.1:18080}
+          signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
+          access-key: ${DDC_OPENAPI_ACCESS_KEY:}
+          secret-key: ${DDC_OPENAPI_SECRET:}
           tls:
             enabled: false
             development-plaintext: true
+        redis:
+          enabled: true
+          mode: ${DDC_REDIS_MODE:SINGLE}
+          host: ${DDC_REDIS_HOST:127.0.0.1}
+          port: ${DDC_REDIS_PORT:6379}
+          password: ${DDC_REDIS_PASSWORD:}
+          database: ${DDC_REDIS_DATABASE:0}
         registry:
           enabled: true
       gateway:

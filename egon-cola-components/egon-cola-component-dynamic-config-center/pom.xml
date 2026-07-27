@@ -45,11 +45,6 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-dynamic-config-center-management-client</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -57,7 +52,6 @@
     </dependencyManagement>
 
     <modules>
-        <module>egon-cola-component-dynamic-config-center-management-client</module>
         <module>egon-cola-component-dynamic-config-center-starter</module>
         <module>egon-cola-component-dynamic-config-center-admin</module>
         <module>egon-cola-component-dynamic-config-center-test</module>

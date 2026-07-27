@@ -31,11 +31,6 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-dynamic-config-center-management-client</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
             <version>${project.version}</version>
         </dependency>

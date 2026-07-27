@@ -20,4 +20,17 @@ class DdcComponentBoundaryTest {
         assertThat(classFiles).noneMatch(path -> path.contains("/admin/"));
         assertThat(classFiles).noneMatch(path -> path.contains("/test/"));
     }
+
+    @Test
+    void managementContractsArePackagedByStarter() {
+        String location = top.egon.cola.component.ddc.management.DdcManagementClient.class
+                .getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .toString();
+
+        assertThat(location)
+                .contains("egon-cola-component-dynamic-config-center-starter")
+                .doesNotContain("management-client");
+    }
 }
