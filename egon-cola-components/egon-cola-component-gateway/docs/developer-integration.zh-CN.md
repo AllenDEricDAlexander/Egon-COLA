@@ -122,6 +122,15 @@ runtime-consistency、Provider/Engine 投影和 Actuator readiness。不要用�
   -am -Pgateway-live verify
 ```
 
+纯本机真实拓扑门禁（要求 `PATH` 中存在 `initdb`、`postgres` 和 `redis-server`；
+会启动隔离的临时基础设施与多个 JVM）：
+
+```bash
+./mvnw -B -ntp -f egon-cola-components/pom.xml \
+  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
+```
+
 基础 Demo 不验证 Redis Sentinel/Cluster、PostgreSQL/Kafka HA、控制面多实例故障转移、
 生产 TLS/mTLS、证书轮换、外部负载均衡或 Kubernetes。对应 overlay 只能证明配置可渲染，
 实际运行前仍需在目标环境验证。

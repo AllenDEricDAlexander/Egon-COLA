@@ -30,6 +30,7 @@
             <id>gateway-live</id>
             <properties>
                 <gateway.live.test>true</gateway.live.test>
+                <gateway.live.infrastructure>testcontainers</gateway.live.infrastructure>
             </properties>
             <build>
                 <plugins>
@@ -45,6 +46,8 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <gateway.live.test>${gateway.live.test}</gateway.live.test>
+                                        <gateway.live.infrastructure>${gateway.live.infrastructure}</gateway.live.infrastructure>
+                                        <jdk.httpclient.allowRestrictedHeaders>host</jdk.httpclient.allowRestrictedHeaders>
                                     </systemPropertyVariables>
                                 </configuration>
                             </execution>

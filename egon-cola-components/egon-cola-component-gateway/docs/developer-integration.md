@@ -107,6 +107,15 @@ Opt-in real topology (starts containers and child JVMs):
   -am -Pgateway-live verify
 ```
 
+Host-only real topology (requires `initdb`, `postgres`, and `redis-server` on
+`PATH`; starts isolated temporary infrastructure and child JVMs):
+
+```bash
+./mvnw -B -ntp -f egon-cola-components/pom.xml \
+  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
+```
+
 The base demo does not verify Redis Sentinel/Cluster, PostgreSQL or Kafka HA, multi-Admin
 failover, production TLS/mTLS and rotation, external load balancing, or Kubernetes. A
 renderable overlay is not runtime evidence; validate those paths in the target environment.

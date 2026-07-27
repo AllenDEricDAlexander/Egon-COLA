@@ -2,9 +2,11 @@ package top.egon.cola.component.gateway.test.process;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -17,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -106,9 +109,18 @@ public final class GatewayProcessHarness implements AutoCloseable {
                 "bin",
                 "java"
         ).toString());
-        command.add("-cp");
-        command.add(testClassPath());
-        command.add(spec.mainClass());
+        Path applicationArchive = applicationArchive(spec.mainClass());
+        Optional<Path> executableArchive = executableArchive(
+                applicationArchive
+        );
+        if (executableArchive.isPresent()) {
+            command.add("-jar");
+            command.add(executableArchive.orElseThrow().toString());
+        } else {
+            command.add("-cp");
+            command.add(testClassPath(applicationArchive));
+            command.add(spec.mainClass());
+        }
         command.addAll(spec.arguments());
         ProcessBuilder builder = new ProcessBuilder(command)
                 .redirectErrorStream(true)
@@ -226,7 +238,7 @@ public final class GatewayProcessHarness implements AutoCloseable {
         reverse.forEach(this::stop);
     }
 
-    private void awaitCondition(
+    public void awaitCondition(
             CheckedBooleanSupplier condition,
             Duration timeout,
             String description,
@@ -265,11 +277,80 @@ public final class GatewayProcessHarness implements AutoCloseable {
         throw timeoutFailure;
     }
 
-    private String testClassPath() {
-        return System.getProperty(
+    private Path applicationArchive(String mainClass) {
+        try {
+            Class<?> application = Class.forName(
+                    mainClass,
+                    false,
+                    Thread.currentThread().getContextClassLoader()
+            );
+            var codeSource = application.getProtectionDomain()
+                    .getCodeSource();
+            if (codeSource == null) {
+                throw new IllegalStateException(
+                        "child application has no code source: " + mainClass
+                );
+            }
+            return Path.of(codeSource.getLocation().toURI());
+        } catch (ClassNotFoundException | URISyntaxException failure) {
+            throw new IllegalStateException(
+                    "cannot resolve child application archive for "
+                            + mainClass,
+                    failure
+            );
+        }
+    }
+
+    private String testClassPath(Path applicationArchive) {
+        String classPath = System.getProperty(
                 "surefire.test.class.path",
                 System.getProperty("java.class.path")
         );
+        return prioritizeClassPath(classPath, applicationArchive);
+    }
+
+    static Optional<Path> executableArchive(Path applicationArchive) {
+        Path fileName = applicationArchive.getFileName();
+        if (fileName == null || !Files.isRegularFile(applicationArchive)) {
+            return Optional.empty();
+        }
+        String name = fileName.toString();
+        if (!name.endsWith(".jar")) {
+            return Optional.empty();
+        }
+        Path executable = applicationArchive.resolveSibling(
+                name.substring(0, name.length() - ".jar".length())
+                        + "-exec.jar"
+        );
+        return Files.isRegularFile(executable)
+                ? Optional.of(executable)
+                : Optional.empty();
+    }
+
+    static String prioritizeClassPath(
+            String classPath,
+            Path preferredEntry) {
+        List<String> entries = new ArrayList<>(List.of(classPath.split(
+                java.util.regex.Pattern.quote(File.pathSeparator)
+        )));
+        Path normalizedPreferred = preferredEntry.toAbsolutePath()
+                .normalize();
+        int preferredIndex = -1;
+        for (int index = 0; index < entries.size(); index++) {
+            Path candidate = Path.of(entries.get(index))
+                    .toAbsolutePath()
+                    .normalize();
+            if (candidate.equals(normalizedPreferred)) {
+                preferredIndex = index;
+                break;
+            }
+        }
+        if (preferredIndex <= 0) {
+            return classPath;
+        }
+        String preferred = entries.remove(preferredIndex);
+        entries.addFirst(preferred);
+        return String.join(File.pathSeparator, entries);
     }
 
     private void awaitPollInterval() {

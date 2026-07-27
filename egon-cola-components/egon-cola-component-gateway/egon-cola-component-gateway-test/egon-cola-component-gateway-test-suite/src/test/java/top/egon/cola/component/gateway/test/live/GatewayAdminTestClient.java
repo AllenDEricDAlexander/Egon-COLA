@@ -86,6 +86,11 @@ public final class GatewayAdminTestClient {
         return put(draft(groupId) + "/routes/" + segment(routeId), request);
     }
 
+    public JsonNode getDraft(String groupId)
+            throws IOException, InterruptedException {
+        return get(draft(groupId));
+    }
+
     public JsonNode putPolicy(
             String groupId,
             String policyId,
@@ -134,10 +139,31 @@ public final class GatewayAdminTestClient {
             String namespace,
             String protocol,
             String serviceName) throws IOException, InterruptedException {
+        return providerInstances(
+                env,
+                namespace,
+                protocol,
+                serviceName,
+                null,
+                null
+        );
+    }
+
+    public JsonNode providerInstances(
+            String env,
+            String namespace,
+            String protocol,
+            String serviceName,
+            String group,
+            String version) throws IOException, InterruptedException {
+        String scope = group == null || version == null
+                ? ""
+                : "&group=" + query(group) + "&version=" + query(version);
         return get(API + "/providers/instances?env=" + query(env)
                 + "&namespace=" + query(namespace)
                 + "&protocol=" + query(protocol)
-                + "&serviceName=" + query(serviceName));
+                + "&serviceName=" + query(serviceName)
+                + scope);
     }
 
     public JsonNode traces(

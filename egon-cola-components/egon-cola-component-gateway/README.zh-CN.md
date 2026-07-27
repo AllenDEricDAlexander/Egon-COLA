@@ -66,13 +66,18 @@ test 属于平台模块，应通过仓库的 Gateway 拓扑构建或部署，不
   -am test
 ```
 
-live Profile 会由测试 Harness 启动真实 Provider/Consumer 拓扑，需要本机 Docker
-可用：
+live Profile 会由测试 Harness 启动真实 Provider/Consumer 拓扑。默认使用
+Testcontainers；当 `PATH` 中存在 `initdb`、`postgres` 和 `redis-server` 时，也可使用
+隔离的本机临时进程：
 
 ```bash
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
   -am -Pgateway-live verify
+
+./mvnw -B -ntp \
+  -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
 ```
 
 ## 运维文档

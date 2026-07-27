@@ -55,6 +55,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <classifier>exec</classifier>
                     <mainClass>top.egon.cola.component.gateway.test.webflux.GatewayWebFluxHttpTestProviderApplication</mainClass>
                 </configuration>
             </plugin>

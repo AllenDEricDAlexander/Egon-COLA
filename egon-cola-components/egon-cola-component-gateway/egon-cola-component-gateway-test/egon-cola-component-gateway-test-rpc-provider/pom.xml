@@ -59,6 +59,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <classifier>exec</classifier>
                     <mainClass>top.egon.cola.component.gateway.test.rpc.provider.GatewayRpcTestProviderApplication</mainClass>
                 </configuration>
             </plugin>

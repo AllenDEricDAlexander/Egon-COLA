@@ -70,9 +70,8 @@ Engine 进程存活不代表业务 Ready。首次部署必须先启动 DDC/Admin
 ## 自动化验收
 
 快速门禁不启动外部进程，覆盖 Java 单元/组件测试、Admin Web 类型检查、Vitest、
-ESLint 与生产构建。真实拓扑门禁通过 Testcontainers 启动 PostgreSQL、两个 Redis
-和 Kafka，并由进程 Harness 启动真实 DDC、Admin、两个 Engine、HTTP Provider、
-RPC Provider 与 RPC Consumer：
+ESLint 与生产构建。真实拓扑门禁由进程 Harness 启动真实 DDC、Admin、两个 Engine、
+HTTP Provider、RPC Provider 与 RPC Consumer；基础设施默认使用 Testcontainers：
 
 ```bash
 ./mvnw -B -ntp \
@@ -80,7 +79,17 @@ RPC Provider 与 RPC Consumer：
   -am -Pgateway-live verify
 ```
 
-该命令要求本机 Docker 可用。测试会验证接口定义上报、规则发布、双 Engine 注册与
+如需完全使用本机进程，请确保 `PATH` 中存在 `initdb`、`postgres` 和 `redis-server`，
+并选择 local 后端。该模式会在随机端口启动测试专属的临时 PostgreSQL、两个 Redis，
+以及单节点内嵌 KRaft，不会使用现有数据库或 Redis 数据：
+
+```bash
+./mvnw -B -ntp \
+  -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
+```
+
+测试会验证接口定义上报、规则发布、双 Engine 注册与
 Ready、HTTP/RPC 转发、双 Provider 负载均衡、Provider 摘除、限流和 Kafka Trace
 投影；日志及脱敏后的进程参数写入 `target/gateway-process-it`。
 

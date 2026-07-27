@@ -55,6 +55,26 @@ class GatewayAdminTestClientTest {
                 "/api/v1/gateway/admin/gateway-groups/group%2Fone/"
                         + "runtime-consistency"
         );
+
+        client.getDraft("group/one");
+        assertThat(request.get().method()).isEqualTo("GET");
+        assertThat(request.get().path()).isEqualTo(
+                "/api/v1/gateway/admin/gateway-groups/group%2Fone/draft"
+        );
+
+        client.providerInstances(
+                "test",
+                "gateway-live",
+                "HTTP",
+                "orders",
+                "default",
+                "1.0.0-live"
+        );
+        assertThat(request.get().query()).isEqualTo(
+                "env=test&namespace=gateway-live&protocol=HTTP"
+                        + "&serviceName=orders&group=default"
+                        + "&version=1.0.0-live"
+        );
     }
 
     @Test
@@ -91,6 +111,7 @@ class GatewayAdminTestClientTest {
         capture.set(new RequestCapture(
                 exchange.getRequestMethod(),
                 exchange.getRequestURI().getRawPath(),
+                exchange.getRequestURI().getRawQuery(),
                 exchange.getRequestHeaders().getFirst("Authorization"),
                 new String(
                         exchange.getRequestBody().readAllBytes(),
@@ -112,6 +133,7 @@ class GatewayAdminTestClientTest {
     private record RequestCapture(
             String method,
             String path,
+            String query,
             String authorization,
             String body
     ) {

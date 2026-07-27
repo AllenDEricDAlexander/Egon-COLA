@@ -72,9 +72,9 @@ valid rules, and required Providers are ready.
 ## Automated acceptance
 
 The fast gate does not start external processes; it covers Java unit/component tests, Admin Web
-type checking, Vitest, ESLint, and the production build. The real-topology gate uses
-Testcontainers for PostgreSQL, two Redis instances, and Kafka, then starts real DDC, Admin, two
-Engines, an HTTP Provider, an RPC Provider, and an RPC Consumer through the process harness:
+type checking, Vitest, ESLint, and the production build. The real-topology gate starts real DDC,
+Admin, two Engines, an HTTP Provider, an RPC Provider, and an RPC Consumer through the process
+harness. Infrastructure uses Testcontainers by default:
 
 ```bash
 ./mvnw -B -ntp \
@@ -82,7 +82,17 @@ Engines, an HTTP Provider, an RPC Provider, and an RPC Consumer through the proc
   -am -Pgateway-live verify
 ```
 
-Docker must be available locally. The test verifies interface-definition reporting, rule
+For a host-only run, put `initdb`, `postgres`, and `redis-server` on `PATH` and select the local
+backend. It creates temporary PostgreSQL and Redis instances on random ports and embeds a
+single-node KRaft broker; it does not use existing database or Redis state:
+
+```bash
+./mvnw -B -ntp \
+  -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
+```
+
+The test verifies interface-definition reporting, rule
 publication, registration and readiness of both Engines, HTTP/RPC forwarding, load balancing
 across two Providers, Provider removal, rate limiting, and Kafka Trace projection. Logs and
 redacted process parameters are written to `target/gateway-process-it`.

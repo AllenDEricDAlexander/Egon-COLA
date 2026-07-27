@@ -15,4 +15,19 @@ class GatewayLiveTopologyContractTest {
     void httpProviderSpecUsesSingleServiceVersionSource() {
         topology.httpProviderSpecUsesSingleServiceVersionSource();
     }
+
+    @Test
+    void ddcAdminSpecUsesExplicitLocalDevelopmentSecurityMode() {
+        topology.ddcAdminSpecUsesExplicitLocalDevelopmentSecurityMode();
+    }
+
+    @Test
+    void gatewayAdminUsesInfrastructureRedisCoordinates() {
+        topology.gatewayAdminUsesInfrastructureRedisCoordinates();
+    }
+
+    @Test
+    void rpcConsumerEnablesDdcServiceRegistry() {
+        topology.rpcConsumerEnablesDdcServiceRegistry();
+    }
 }

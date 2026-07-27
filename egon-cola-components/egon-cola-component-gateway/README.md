@@ -71,13 +71,18 @@ Run focused JVM verification:
   -am test
 ```
 
-The live profile starts the real provider/consumer topology through the test harness
-and requires a working Docker daemon:
+The live profile starts the real provider/consumer topology through the test harness.
+It uses Testcontainers by default, or isolated host-local processes when `initdb`,
+`postgres`, and `redis-server` are available on `PATH`:
 
 ```bash
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
   -am -Pgateway-live verify
+
+./mvnw -B -ntp \
+  -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
 ```
 
 ## Operational Documentation

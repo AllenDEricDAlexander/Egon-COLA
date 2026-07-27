@@ -3,6 +3,7 @@ package top.egon.cola.component.gateway.test.process;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -51,6 +52,35 @@ class GatewayProcessHarnessTest {
     }
 
     @Test
+    void prioritizesTheMainApplicationClasspathEntry() {
+        Path gatewayEngine = temporaryDirectory.resolve("gateway-engine.jar");
+        Path ddcAdmin = temporaryDirectory.resolve("ddc-admin.jar");
+        String classPath = String.join(
+                File.pathSeparator,
+                gatewayEngine.toString(),
+                ddcAdmin.toString()
+        );
+
+        assertThat(GatewayProcessHarness.prioritizeClassPath(
+                classPath,
+                ddcAdmin
+        )).startsWith(ddcAdmin + File.pathSeparator);
+    }
+
+    @Test
+    void resolvesAnAttachedExecutableArchive() throws Exception {
+        Path thinArchive = temporaryDirectory.resolve("gateway-admin.jar");
+        Path executableArchive = temporaryDirectory.resolve(
+                "gateway-admin-exec.jar"
+        );
+        Files.createFile(thinArchive);
+        Files.createFile(executableArchive);
+
+        assertThat(GatewayProcessHarness.executableArchive(thinArchive))
+                .contains(executableArchive);
+    }
+
+    @Test
     void isolatesArtifactsAndRestartsAStoppedProcess() throws Exception {
         try (GatewayProcessHarness harness = new GatewayProcessHarness(
                 temporaryDirectory.resolve("restart"),
@@ -93,7 +123,7 @@ class GatewayProcessHarnessTest {
         Path shutdownLog = temporaryDirectory.resolve("shutdown-order.log");
         GatewayProcessHarness harness = new GatewayProcessHarness(
                 temporaryDirectory.resolve("close"),
-                Duration.ofMillis(250),
+                Duration.ofSeconds(2),
                 Duration.ofSeconds(2)
         );
         GatewayProcessHarness.ChildProcess first = harness.start(
