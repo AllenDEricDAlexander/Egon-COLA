@@ -21,12 +21,14 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayG
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCompiler;
+import top.egon.cola.component.gateway.admin.rule.GatewayRuntimeParameterMapper;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
 import top.egon.cola.component.gateway.contract.rule.GatewayRpcDescriptor;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 
@@ -481,9 +483,17 @@ public class GatewayReleaseService {
                                 "operation has no definition: "
                                         + operation.id()
                         ));
+        Map<String, Object> reported = definition.attributes();
+        List<GatewayRuntimeParameter> parameters =
+                GatewayRuntimeParameterMapper.map(
+                        reported.get(GatewayRuntimeParameterMapper.ATTRIBUTE_KEY)
+                );
         Map<String, String> attributes = new LinkedHashMap<>();
-        definition.attributes().forEach((key, value) -> {
-            if (value != null) {
+        reported.forEach((key, value) -> {
+            // Parameters travel as a typed component now, not as a
+            // stringified collection inside the flat attribute map.
+            if (value != null
+                    && !key.equals(GatewayRuntimeParameterMapper.ATTRIBUTE_KEY)) {
                 attributes.put(key, value.toString());
             }
         });
@@ -513,6 +523,7 @@ public class GatewayReleaseService {
                 operation.methodIdentity(),
                 requestSchema,
                 responseSchema,
+                parameters,
                 operation.externalAccessible(),
                 new GatewayProviderServiceRef(
                         text(provider, "env"),
