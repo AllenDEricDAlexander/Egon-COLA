@@ -5,6 +5,7 @@ import { gatewayApi } from '../../api/gatewayApi'
 import { JsonPanel } from '../../components/JsonPanel'
 import { LoadingBlock, QueryFailure } from '../../components/QueryState'
 import { StatusTag } from '../../components/StatusTag'
+import { SchemaPanel } from './SchemaPanel'
 
 export const OperationPage = () => {
   const { operationId = '' } = useParams()
@@ -43,8 +44,8 @@ export const OperationPage = () => {
       {current && (
         <Space direction="vertical" className="full-width section-row">
           <JsonPanel title="Provider Service Identity" value={operation.providerServiceIdentity} />
-          <JsonPanel title="Request Schema" value={current.requestSchema} />
-          <JsonPanel title="Response Schema" value={current.responseSchema} />
+          <SchemaPanel title="Request Schema" schema={current.requestSchema} />
+          <SchemaPanel title="Response Schema" schema={current.responseSchema} />
           <JsonPanel title="Error Schema" value={current.errorSchema} />
           {current.descriptorSnapshot && (
             <JsonPanel title="RPC Descriptor Snapshot" value={{
