@@ -122,6 +122,10 @@ The layout and epoch are protocol constants and cannot be configured:
 - Machine ID: 10 bits, up to 1,024 nodes (`0..1023`).
 - Sequence: 12 bits, up to 4,096 IDs per millisecond per node (`0..4095`).
 
+The all-zero encoding is reserved so the generator never returns `0`. Consequently,
+only machine `0` at the exact Epoch millisecond starts at sequence `1`; every normal
+operating millisecond retains the full 4,096-ID sequence capacity.
+
 One generator instance is thread-safe, duplicate-free, and strictly increasing at its successful CAS linearization point. Correctly configured nodes with normal clocks produce globally unique IDs that are ordered by time trend. Without central coordination, IDs from different nodes do not guarantee the strict global order of real business events.
 
 ## Parsing
