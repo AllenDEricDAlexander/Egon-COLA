@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +42,32 @@ class HttpProviderLeaseRuntimeTest {
         runtime.heartbeatAndRecover();
         assertEquals(2, registry.registrations.get());
         assertEquals(HttpProviderRuntimeState.REGISTERED, runtime.state());
+
+        runtime.close();
+        assertEquals(1, registry.deregistrations.get());
+    }
+
+    @Test
+    void retriesRuntimeRecoveryAfterTransientRegistrationFailure() {
+        FakeRegistry registry = new FakeRegistry();
+        HttpProviderLeaseRuntime runtime = new HttpProviderLeaseRuntime(
+                registry,
+                properties()
+        );
+
+        runtime.onHttpServerReady(18080);
+        registry.renewed = false;
+        registry.registrationFailures.set(2);
+
+        assertDoesNotThrow(runtime::heartbeatAndRecover);
+        assertEquals(HttpProviderRuntimeState.RECOVERING, runtime.state());
+
+        runtime.heartbeatAndRecover();
+        assertEquals(HttpProviderRuntimeState.RECOVERING, runtime.state());
+
+        runtime.heartbeatAndRecover();
+        assertEquals(HttpProviderRuntimeState.REGISTERED, runtime.state());
+        assertEquals(4, registry.registrations.get());
 
         runtime.close();
         assertEquals(1, registry.deregistrations.get());
@@ -101,6 +128,8 @@ class HttpProviderLeaseRuntimeTest {
 
         private final AtomicInteger deregistrations = new AtomicInteger();
 
+        private final AtomicInteger registrationFailures = new AtomicInteger();
+
         private volatile boolean renewed = true;
 
         private volatile DdcServiceRegistration registration;
@@ -109,6 +138,11 @@ class HttpProviderLeaseRuntimeTest {
         public DdcLeaseSession register(DdcServiceRegistration registration) {
             this.registration = registration;
             int sequence = registrations.incrementAndGet();
+            if (registrationFailures.getAndUpdate(
+                    value -> Math.max(0, value - 1)
+            ) > 0) {
+                throw new IllegalStateException("transient registration failure");
+            }
             return new DdcLeaseSession(
                     registration.instanceId(),
                     "lease-" + sequence,

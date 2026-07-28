@@ -201,17 +201,11 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
         try {
             register();
         } catch (RuntimeException failure) {
-            if (properties.failFast()) {
-                state.set(HttpProviderRuntimeState.FAILED);
-            }
             LOGGER.warn(
                     "HTTP Provider lease recovery failed for {}",
                     properties.instanceId(),
                     failure
             );
-            if (properties.failFast()) {
-                throw failure;
-            }
         }
     }
 
