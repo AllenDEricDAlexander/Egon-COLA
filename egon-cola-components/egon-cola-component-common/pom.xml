@@ -18,7 +18,7 @@
 
     <modules>
         <module>egon-cola-component-common-core</module>
-        <module>egon-cola-component-common-id</module>
+        <module>egon-cola-component-common-id-starter</module>
         <module>egon-cola-component-common-crypto</module>
         <module>egon-cola-component-common-mask</module>
         <module>egon-cola-component-common-test</module>

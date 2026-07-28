@@ -4,7 +4,7 @@
 
 ## Overview
 
-This Starter provides the Spring Boot 3 entry point for Egon COLA's stateful, pure-JDK Snowflake ID generator. The algorithm remains in `egon-cola-component-common-id` without Spring dependencies; this module only binds configuration and creates the default bean.
+This is the single Egon COLA ID module. It contains the stateful, pure-JDK Snowflake interfaces and algorithm together with the Spring Boot 3 configuration binding and default bean. The core algorithm packages do not import Spring APIs, while applications consume one Starter artifact.
 
 Use `LongIdGenerator.nextLongId()` for database `BIGINT` primary keys. The inherited `IdGenerator.nextId()` method returns the same value as a decimal string for compatibility.
 
@@ -19,14 +19,7 @@ Import `egon-cola-components-bom`, then add the Starter without a version:
 </dependency>
 ```
 
-For a non-Spring application, depend directly on the pure-Java module instead:
-
-```xml
-<dependency>
-    <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-common-id</artifactId>
-</dependency>
-```
+Non-Spring applications use the same artifact and instantiate `SnowflakeIdGenerator` directly; Spring auto-configuration is only activated by a Spring Boot application context.
 
 ## Configuration
 
@@ -181,7 +174,7 @@ Confirm that the cluster supplies the pod-index label, that ordinals are not reu
 
 ## UUIDv7 Compatibility and Boundaries
 
-`UuidV7` and `UuidV7Generator` remain temporarily available in `egon-cola-component-common-id` as pure-JDK RFC 9562 compatibility APIs. They are deprecated for removal and no longer depend on `uuid-creator`. The Starter never auto-configures UUIDv7 and Snowflake is the default database-key strategy.
+`UuidV7` and `UuidV7Generator` remain temporarily available in this Starter as pure-JDK RFC 9562 compatibility APIs. They are deprecated for removal and no longer depend on `uuid-creator`. The Starter never auto-configures UUIDv7 and Snowflake is the default database-key strategy.
 
 Do not mechanically replace UUID values that are part of a UUIDv7 wire contract, a `VARCHAR(36)` schema, or UUID-specific sharding/validation. Migrate those consumers only with an explicit contract and data migration.
 
@@ -190,5 +183,6 @@ This component intentionally does not provide automatic node discovery, Redis le
 ## Validation
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common-id-starter -am clean test
+./mvnw -B -ntp -f egon-cola-components/pom.xml \
+  -pl egon-cola-component-common/egon-cola-component-common-id-starter -am clean test
 ```

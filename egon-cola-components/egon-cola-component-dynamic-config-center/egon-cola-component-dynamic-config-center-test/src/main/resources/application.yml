@@ -1,6 +1,8 @@
 egon:
   cola:
     component:
+      id:
+        enabled: false
       ddc:
         enabled: ${DDC_ENABLED:false}
         app-code: ${DDC_APP_CODE:demo-app}

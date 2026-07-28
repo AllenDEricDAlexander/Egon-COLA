@@ -474,7 +474,7 @@ assert pomXml.properties.'java.version'.text() == "21"
 assert pomXml.properties.'shardingsphere.version'.text() == "5.5.3"
 assert pom.contains("<artifactId>shardingsphere-jdbc</artifactId>")
 assert pom.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
-assert pom.contains("<artifactId>egon-cola-component-common-id</artifactId>")
+assert pom.contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",

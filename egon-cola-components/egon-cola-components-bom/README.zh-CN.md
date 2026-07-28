@@ -19,8 +19,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 | Artifact | 用途 |
 |---|---|
 | `egon-cola-component-common-core` | 错误状态、异常、枚举契约、请求/结果模型、链路上下文和树结构构建 |
-| `egon-cola-component-common-id` | 纯 Java Snowflake 契约和已废弃的 UUIDv7 兼容 API |
-| `egon-cola-component-common-id-starter` | 面向数据库 `BIGINT` ID 的 Spring Boot Snowflake 自动配置 |
+| `egon-cola-component-common-id-starter` | 纯 JDK Snowflake 契约与算法、已废弃的 UUIDv7 兼容 API，以及面向数据库 `BIGINT` ID 的 Spring Boot 自动配置 |
 | `egon-cola-component-common-crypto` | 摘要、HMAC、Base64、Hex |
 | `egon-cola-component-common-mask` | 数据脱敏 |
 | `egon-cola-component-dynamic-thread-pool-starter` | 动态线程池业务侧 starter |
@@ -130,7 +129,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 ### 设计思想
 
 1. BOM 只管理消费者真正需要的运行时入口，避免 admin/test/聚合模块被业务误依赖。
-2. 稳定 common 契约通过 `common-core` 导出；ID 算法保持纯 Java，Spring Boot 消费入口通过 `common-id-starter` 导出。
+2. 稳定 common 契约通过 `common-core` 导出；ID 算法和 Spring Boot 入口统一由唯一的 `common-id-starter` Artifact 导出，算法包本身保持纯 JDK。
 3. 常规业务组件只导出 starter，保持 Spring Boot 自动配置入口明确；DDC 的类型化管理 API 合并在 Starter 中，Gateway 单独导出 Provider Runtime，字节码组件按公开的 API、桥接、运行时、Agent 和 starter 边界分别管理版本。
 4. 版本统一跟随 BOM 自身版本，降低组件组合使用时的版本漂移风险。
 

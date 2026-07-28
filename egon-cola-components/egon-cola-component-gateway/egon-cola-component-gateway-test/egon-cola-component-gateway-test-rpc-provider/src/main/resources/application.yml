@@ -18,6 +18,8 @@ management:
 egon:
   cola:
     component:
+      id:
+        enabled: false
       ddc:
         enabled: false
         registry:

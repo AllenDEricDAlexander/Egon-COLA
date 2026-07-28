@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the `uuid-creator`-backed default ID capability with a pure-JDK, CAS-based Snowflake generator and one directly aggregated `egon-cola-component-common-id-starter` module while retaining deprecated pure-JDK UUIDv7 compatibility APIs.
+**Goal:** Replace the `uuid-creator`-backed default ID capability with a pure-JDK, CAS-based Snowflake generator and one common-aggregated `egon-cola-component-common-id-starter` module while retaining deprecated pure-JDK UUIDv7 compatibility APIs.
 
-**Architecture:** `egon-cola-component-common-id` owns all Spring-free contracts, fixed bit layout, parsing, stateful generation, time abstraction, and compatibility UUIDv7 code. A single direct child module, `egon-cola-component-common-id-starter`, owns Boot 3 properties, validation, conditional auto-configuration, registration metadata, module-local tests, and bilingual consumer documentation.
+**Architecture:** The single `egon-cola-component-common-id-starter` child of the common aggregator owns Spring-free core packages, Boot 3 properties, validation, conditional auto-configuration, registration metadata, all ID tests, and bilingual consumer documentation.
 
 **Tech Stack:** Java 21, JDK `AtomicLong`/`Duration`/`Instant`/`LockSupport`/`SecureRandom`, JUnit Jupiter, AssertJ, Spring Boot 3.5.x `ApplicationContextRunner`, Maven reactor/BOM/Central Publishing profiles.
 
@@ -17,10 +17,10 @@
 - One generator instance must be thread-safe, duplicate-free, and strictly increasing at the successful CAS linearization point.
 - Across correctly configured nodes, promise global uniqueness and time trend ordering only; never promise globally strict real-business ordering.
 - Use one `AtomicLong` for timestamp-and-sequence state; do not add a global lock or static generator.
-- Do not add any third-party ID algorithm dependency or Spring dependency to `egon-cola-component-common-id`.
+- Do not add any third-party ID algorithm dependency; core ID packages must not import Spring APIs.
 - Keep `IdGenerator.nextId(): String`; add `LongIdGenerator.nextLongId(): long` and default string adaptation.
 - Keep `UuidV7` and `UuidV7Generator` source-compatible, implement them with the JDK, and mark them `@Deprecated(forRemoval = true)`.
-- Add exactly one Spring module: `egon-cola-component-common-id-starter`; keep all its tests in its own `src/test`.
+- Keep exactly one ID module: `egon-cola-component-common-id-starter` under common; keep all ID tests in its own `src/test`.
 - Use prefix `egon.cola.component.id`; `enabled=true`, explicit `machine-id`, and `max-clock-backward=5ms` defaults/requirements.
 - Do not infer machine ID from host, network, process, random, or hash data.
 - Do not modify existing Flyway migrations, UUID wire protocols, nonce/trace/event identities, or archetype UUIDv7 sharding contracts.
@@ -32,14 +32,14 @@
 ### Task 1: Add Long ID contracts and a fixed-layout parser
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/generator/IdGenerator.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/generator/LongIdGenerator.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/time/TimeSource.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdLayout.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeId.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdParser.java`
-- Test: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/test/java/top/egon/cola/component/common/id/generator/LongIdGeneratorTest.java`
-- Test: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/test/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdParserTest.java`
+- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/generator/IdGenerator.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/generator/LongIdGenerator.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/time/TimeSource.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdLayout.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeId.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdParser.java`
+- Test: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/test/java/top/egon/cola/component/common/id/generator/LongIdGeneratorTest.java`
+- Test: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/test/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdParserTest.java`
 
 **Interfaces:**
 - Consumes: Existing `IdGenerator.nextId(): String`.
@@ -75,7 +75,7 @@ void parseRejectsNegativeId() {
 Run:
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am \
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am \
   -Dtest=LongIdGeneratorTest,SnowflakeIdParserTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -109,7 +109,7 @@ Add English Javadoc that defines the fixed Epoch and “single-instance strict /
 - [ ] **Step 4: Run focused tests and the common-id suite for GREEN**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am test
 ```
 
 Expected: all common-core and common-id tests pass.
@@ -117,7 +117,7 @@ Expected: all common-core and common-id tests pass.
 - [ ] **Step 5: Commit Task 1**
 
 ```bash
-git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src
+git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src
 git diff --cached --check
 git commit -m "feat(id): add long ID contracts and parser"
 ```
@@ -127,8 +127,8 @@ git commit -m "feat(id): add long ID contracts and parser"
 ### Task 2: Implement basic stateful Snowflake generation
 
 **Files:**
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGenerator.java`
-- Test: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/test/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGeneratorTest.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGenerator.java`
+- Test: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/test/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGeneratorTest.java`
 
 **Interfaces:**
 - Consumes: Task 1 `LongIdGenerator`, `TimeSource`, `SnowflakeIdLayout`, and parser.
@@ -170,7 +170,7 @@ Also test different machines in the same millisecond, positive ID at exact Epoch
 - [ ] **Step 2: Run `SnowflakeIdGeneratorTest` and verify RED**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am \
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am \
   -Dtest=SnowflakeIdGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -194,7 +194,7 @@ Define public `DEFAULT_MAX_CLOCK_BACKWARD = Duration.ofMillis(5)` and the three 
 - [ ] **Step 4: Run generator and parser suites for GREEN**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am test
 ```
 
 Expected: all current tests pass; sequence-overflow and clock-recovery behavior remain for Task 3.
@@ -202,7 +202,7 @@ Expected: all current tests pass; sequence-overflow and clock-recovery behavior 
 - [ ] **Step 5: Commit Task 2**
 
 ```bash
-git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src
+git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src
 git diff --cached --check
 git commit -m "feat(id): implement CAS Snowflake generator"
 ```
@@ -212,11 +212,11 @@ git commit -m "feat(id): implement CAS Snowflake generator"
 ### Task 3: Add sequence exhaustion, rollback, interruption, and concurrency guarantees
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGenerator.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/exception/ClockMovedBackwardException.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/exception/IdGenerationInterruptedException.java`
-- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/exception/SnowflakeTimestampOutOfRangeException.java`
-- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/test/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGeneratorTest.java`
+- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGenerator.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/exception/ClockMovedBackwardException.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/exception/IdGenerationInterruptedException.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/exception/SnowflakeTimestampOutOfRangeException.java`
+- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/test/java/top/egon/cola/component/common/id/snowflake/SnowflakeIdGeneratorTest.java`
 
 **Interfaces:**
 - Consumes: Task 2 generator CAS loop.
@@ -256,7 +256,7 @@ Add tests for all 4096 sequences then next-millisecond rollover, stalled small r
 - [ ] **Step 2: Run generator tests and verify RED**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am \
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am \
   -Dtest=SnowflakeIdGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -273,8 +273,8 @@ For sequence 4095, park in short intervals until a later source millisecond appe
 - [ ] **Step 4: Run all common-id tests repeatedly for GREEN and stability**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am test
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id \
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter \
   -Dtest=SnowflakeIdGeneratorTest -Dsurefire.rerunFailingTestsCount=0 test
 ```
 
@@ -283,7 +283,7 @@ Expected: every deterministic temporal and stress test passes twice with no slee
 - [ ] **Step 5: Commit Task 3**
 
 ```bash
-git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src
+git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src
 git diff --cached --check
 git commit -m "feat(id): harden Snowflake time handling"
 ```
@@ -293,10 +293,10 @@ git commit -m "feat(id): harden Snowflake time handling"
 ### Task 4: Replace uuid-creator with deprecated pure-JDK UUIDv7 compatibility
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/pom.xml`
-- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/uuid/UuidV7.java`
-- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/main/java/top/egon/cola/component/common/id/generator/UuidV7Generator.java`
-- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id/src/test/java/top/egon/cola/component/common/id/uuid/UuidV7Test.java`
+- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml`
+- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/uuid/UuidV7.java`
+- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/generator/UuidV7Generator.java`
+- Modify: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/test/java/top/egon/cola/component/common/id/uuid/UuidV7Test.java`
 
 **Interfaces:**
 - Consumes: Existing UUIDv7 signatures and Task 2 Snowflake migration target.
@@ -324,7 +324,7 @@ void uuidV7UsesRfcVersionVariantAndCurrentTimestamp() {
 Remove the dependency from the module POM only, then run:
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am clean test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am clean test
 ```
 
 Expected: production compilation fails at the existing `UuidCreator` import, proving the module depended on the removed library.
@@ -346,8 +346,8 @@ Remove the unused `common-core` dependency too, making common-id a zero-runtime-
 - [ ] **Step 4: Run clean tests and dependency tree for GREEN**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id -am clean test
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id dependency:tree
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am clean test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter dependency:tree
 ```
 
 Expected: tests pass and the common-id dependency tree contains no `uuid-creator` or `common-core` runtime dependency.
@@ -355,7 +355,7 @@ Expected: tests pass and the common-id dependency tree contains no `uuid-creator
 - [ ] **Step 5: Commit Task 4**
 
 ```bash
-git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id
+git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter
 git diff --cached --check
 git commit -m "refactor(id): replace uuid-creator with JDK UUIDv7"
 ```
@@ -366,13 +366,14 @@ git commit -m "refactor(id): replace uuid-creator with JDK UUIDv7"
 
 **Files:**
 - Modify: `egon-cola-components/pom.xml`
+- Modify: `egon-cola-components/egon-cola-component-common/pom.xml`
 - Modify: `egon-cola-components/egon-cola-components-bom/pom.xml`
-- Create: `egon-cola-components/egon-cola-component-common-id-starter/pom.xml`
-- Create: `egon-cola-components/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorProperties.java`
-- Create: `egon-cola-components/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorPropertiesValidator.java`
-- Create: `egon-cola-components/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorAutoConfiguration.java`
-- Create: `egon-cola-components/egon-cola-component-common-id-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-- Test: `egon-cola-components/egon-cola-component-common-id-starter/src/test/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorAutoConfigurationTest.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/pom.xml`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorProperties.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorPropertiesValidator.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorAutoConfiguration.java`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- Test: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/src/test/java/top/egon/cola/component/common/id/autoconfigure/IdGeneratorAutoConfigurationTest.java`
 
 **Interfaces:**
 - Consumes: Task 2/3 `SnowflakeIdGenerator`, `LongIdGenerator`, and existing `IdGenerator`.
@@ -380,7 +381,7 @@ git commit -m "refactor(id): replace uuid-creator with JDK UUIDv7"
 
 - [ ] **Step 1: Add module scaffolding and failing ApplicationContextRunner tests**
 
-Add only `egon-cola-component-common-id-starter` to the components reactor. Its POM directly inherits `egon-cola-components-parent`, depends on common-id `${project.version}`, Spring Boot starter/autoconfigure, optional configuration processor, and test-scoped starter-test.
+Add only `egon-cola-component-common-id-starter` to the common reactor. Its POM inherits `egon-cola-component-common` and directly declares Spring Boot starter/autoconfigure, optional configuration processor, and test-scoped starter-test. The pure-JDK core packages remain in this same Artifact and do not import Spring APIs.
 
 Write tests such as:
 
@@ -412,7 +413,7 @@ Also cover machine `0/1023`, `-1/1024`, `enabled=false`, custom `IdGenerator`, c
 - [ ] **Step 2: Run the Starter test and verify RED**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common-id-starter -am test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am test
 ```
 
 Expected: test compilation fails because properties and auto-configuration classes do not exist.
@@ -450,7 +451,7 @@ Register exactly that class in `AutoConfiguration.imports`; do not use component
 - [ ] **Step 4: Run Starter and components metadata tests for GREEN**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common-id-starter -am clean test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am clean test
 ./mvnw -B -ntp -f egon-cola-components/pom.xml validate
 ```
 
@@ -461,7 +462,7 @@ Expected: all auto-configuration cases pass and the new reactor/BOM coordinates 
 ```bash
 git add egon-cola-components/pom.xml \
   egon-cola-components/egon-cola-components-bom/pom.xml \
-  egon-cola-components/egon-cola-component-common-id-starter
+  egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter
 git diff --cached --check
 git commit -m "feat(id): add common ID Spring Boot starter"
 ```
@@ -477,8 +478,8 @@ git commit -m "feat(id): add common ID Spring Boot starter"
 - Modify: `egon-cola-components/egon-cola-component-common/README.zh-CN.md`
 - Modify: `egon-cola-components/egon-cola-components-bom/README.md`
 - Modify: `egon-cola-components/egon-cola-components-bom/README.zh-CN.md`
-- Create: `egon-cola-components/egon-cola-component-common-id-starter/README.md`
-- Create: `egon-cola-components/egon-cola-component-common-id-starter/README.zh-CN.md`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md`
+- Create: `egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.zh-CN.md`
 - Modify only if it enumerates consumer modules: `egon-cola-components/egon-cola-components-architecture.md`
 
 **Interfaces:**
@@ -525,8 +526,8 @@ git add README.md README.zh-CN.md \
   egon-cola-components/egon-cola-component-common/README.zh-CN.md \
   egon-cola-components/egon-cola-components-bom/README.md \
   egon-cola-components/egon-cola-components-bom/README.zh-CN.md \
-  egon-cola-components/egon-cola-component-common-id-starter/README.md \
-  egon-cola-components/egon-cola-component-common-id-starter/README.zh-CN.md \
+  egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md \
+  egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.zh-CN.md \
   egon-cola-components/egon-cola-components-architecture.md
 git diff --cached --check
 git commit -m "docs(id): document Snowflake ID integration"
@@ -546,9 +547,8 @@ git commit -m "docs(id): document Snowflake ID integration"
 - [ ] **Step 1: Run focused clean tests**
 
 ```bash
-./mvnw -B -ntp -pl \
-  egon-cola-components/egon-cola-component-common/egon-cola-component-common-id,\
-egon-cola-components/egon-cola-component-common-id-starter -am clean test
+./mvnw -B -ntp -f egon-cola-components/pom.xml \
+  -pl egon-cola-component-common/egon-cola-component-common-id-starter -am clean test
 ```
 
 - [ ] **Step 2: Run all common component tests**
@@ -560,12 +560,12 @@ egon-cola-components/egon-cola-component-common-id-starter -am clean test
 - [ ] **Step 3: Prove dependency and BOM boundaries**
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common-id-starter -am dependency:tree
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter -am dependency:tree
 ./mvnw -B -ntp -f egon-cola-components/egon-cola-components-bom/pom.xml validate
 rg -n "com\.github\.f4b6a3|uuid-creator" --glob 'pom.xml' --glob '!**/target/**' .
 ```
 
-Expected: Starter depends on common-id and Boot only as designed; no POM references `uuid-creator`; BOM validates.
+Expected: Starter contains the pure-JDK core and depends only on Boot integration libraries as designed; no POM references `uuid-creator` or the removed `common-id` Artifact; BOM validates.
 
 - [ ] **Step 4: Verify Javadoc/source/Central release shape without publishing**
 
@@ -574,7 +574,7 @@ Expected: Starter depends on common-id and Boot only as designed; no POM referen
   -Prelease -Dgpg.skip=true -DskipTests verify
 ```
 
-Expected: source and Javadoc artifacts build for common-id and Starter, and Central Publishing configuration resolves without deployment.
+Expected: source and Javadoc artifacts build for the Starter, and Central Publishing configuration resolves without deployment.
 
 - [ ] **Step 5: Run components and root integration verification**
 
@@ -596,14 +596,14 @@ Review the final diff against these concrete mutations:
 - Default machine ID to zero: missing-property context test must fail.
 - Claim cross-node strict ordering: README boundary review must reject the text.
 
-Request a code-reviewer subagent against the design and commit range; independently inspect every Important/Critical finding before accepting it.
+Perform a final code review against the design and commit range; independently inspect every Important/Critical finding before accepting it. Honor an explicit inline-execution constraint and do not dispatch subagents when one is in force.
 
 - [ ] **Step 7: Apply verified fixes and create one final fix commit if needed**
 
 ```bash
-git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id \
-  egon-cola-components/egon-cola-component-common-id-starter \
+git add egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter \
   egon-cola-components/pom.xml \
+  egon-cola-components/egon-cola-component-common/pom.xml \
   egon-cola-components/egon-cola-components-bom/pom.xml \
   README.md README.zh-CN.md \
   egon-cola-components/egon-cola-component-common/README.md \

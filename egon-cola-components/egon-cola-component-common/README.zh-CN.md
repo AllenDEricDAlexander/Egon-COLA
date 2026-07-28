@@ -6,14 +6,14 @@
 
 `egon-cola-component-common` 是 Egon COLA 组件体系的通用能力聚合模块，提供结果 record、分页元数据、请求/查询 PO、枚举错误码、异常、链路上下文、树结构构建、转换器契约、ID、加密、脱敏和源码边界断言等基础能力。
 
-这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，ID、加密和脱敏能力继续作为独立工具模块保留。
+这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，ID Starter、加密和脱敏能力继续作为独立工具模块保留。
 
 ## 模块结构
 
 | Module | 说明 |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record、链路上下文和树结构构建 |
-| `egon-cola-component-common-id` | 纯 Java Snowflake 接口、生成器、解析器及已废弃的 UUIDv7 兼容 API |
+| `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器、已废弃的 UUIDv7 兼容 API 和 Spring Boot 自动配置；全部测试位于本模块 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
 | `egon-cola-component-common-mask` | 手机号、邮箱、首尾保留等稳定脱敏规则 |
 | `egon-cola-component-common-test` | 组件内部使用的源码依赖边界测试工具 |
@@ -211,7 +211,7 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 
 旧的 `util` 聚合包、拆分的 `model/result/structure` 包、独立结果工厂、`BaseEntity` 和 `AuditableModel` 已被有意移除。
 
-Snowflake 位布局、配置、时钟回拨、Kubernetes 机器 ID 分配和 UUIDv7 迁移边界见 [common ID Starter 中文文档](../egon-cola-component-common-id-starter/README.zh-CN.md)。
+Snowflake 位布局、配置、时钟回拨、Kubernetes 机器 ID 分配和 UUIDv7 迁移边界见 [common ID Starter 中文文档](egon-cola-component-common-id-starter/README.zh-CN.md)。
 
 ## 验证命令
 

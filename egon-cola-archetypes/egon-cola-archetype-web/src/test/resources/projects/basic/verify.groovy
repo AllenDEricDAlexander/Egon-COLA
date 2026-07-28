@@ -1096,7 +1096,7 @@ assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
 assert rootPomText.contains("<artifactId>shardingsphere-jdbc</artifactId>")
 assert rootPomText.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert assertFile("student-management-organization-common/pom.xml").text
-        .contains("<artifactId>egon-cola-component-common-id</artifactId>")
+        .contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
@@ -1360,7 +1360,7 @@ assertModuleDependencies(starterDependencies, [
 ])
 
 assertExactExternalDependencies("common", dependencies(commonPom), [
-    "egon-cola-component-common-core", "egon-cola-component-common-id", "junit-jupiter"
+    "egon-cola-component-common-core", "egon-cola-component-common-id-starter", "junit-jupiter"
 ])
 assertExactExternalDependencies("domain", domainDependencies, ["junit-jupiter"])
 assertExactExternalDependencies("application", applicationDependencies, [

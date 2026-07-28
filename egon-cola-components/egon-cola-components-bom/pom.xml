@@ -66,11 +66,6 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-common-id</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-common-id-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>

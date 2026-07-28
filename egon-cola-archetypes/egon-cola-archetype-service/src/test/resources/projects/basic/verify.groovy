@@ -185,7 +185,7 @@ assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
 assert rootPomText.contains("<artifactId>shardingsphere-jdbc</artifactId>")
 assert rootPomText.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert assertFile("student-management-evaluation-common/pom.xml").text
-        .contains("<artifactId>egon-cola-component-common-id</artifactId>")
+        .contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",

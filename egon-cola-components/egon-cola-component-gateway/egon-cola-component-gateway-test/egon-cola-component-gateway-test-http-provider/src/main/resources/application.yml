@@ -26,6 +26,8 @@ gateway:
 egon:
   cola:
     component:
+      id:
+        enabled: false
       ddc:
         enabled: false
         env: test

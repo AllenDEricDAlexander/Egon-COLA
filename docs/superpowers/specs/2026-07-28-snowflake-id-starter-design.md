@@ -2,16 +2,17 @@
 
 ## 1. 背景与目标
 
-`egon-cola-component-common-id` 当前只提供 `IdGenerator`、`UuidV7` 和
-`UuidV7Generator`，并通过 `com.github.f4b6a3:uuid-creator` 生成 UUIDv7。
-本次改造将默认数据库主键方案切换为纯 JDK 的 64 位 Snowflake 变体，同时保持
-现有 UUIDv7 公共 API 的兼容周期。
+原 ID 实现只提供 `IdGenerator`、`UuidV7` 和 `UuidV7Generator`，并通过
+`com.github.f4b6a3:uuid-creator` 生成 UUIDv7。本次改造将默认数据库主键方案切换为
+纯 JDK 的 64 位 Snowflake 变体，同时保持现有 UUIDv7 公共 API 的兼容周期，并将全部
+ID 能力收敛到 common 下唯一的 Starter 模块。
 
 目标如下：
 
-- `egon-cola-component-common-id` 保持纯 Java、无 Spring、无第三方 ID 算法依赖。
-- 新增唯一一个 Spring Boot 模块
-  `egon-cola-component-common-id-starter`；不新增组件聚合层或独立 test 模块。
+- common 下只保留 `egon-cola-component-common-id-starter` 一个 ID 模块，不保留独立
+  `common-id` 或 test 模块。
+- 核心接口、算法、解析器和异常保持纯 JDK 实现，不导入 Spring API，也不引入第三方
+  ID 算法依赖；Spring Boot 自动配置与它们发布在同一个 Starter Artifact 中。
 - 新增 `LongIdGenerator` 和默认 `SnowflakeIdGenerator`，面向数据库 `BIGINT`
   主键。
 - 保持 `IdGenerator.nextId()` 的字符串兼容契约。
@@ -39,22 +40,19 @@
 
 ```text
 egon-cola-components/
-├── egon-cola-component-common/
-│   └── egon-cola-component-common-id/
-│       ├── 纯 Java 接口、算法、解析器、异常
-│       └── Snowflake 与 UUIDv7 兼容测试
-└── egon-cola-component-common-id-starter/
-    ├── Spring Boot 3 自动配置与配置属性
-    ├── AutoConfiguration.imports
-    ├── src/test 中的 ApplicationContextRunner 单元测试
-    ├── README.md
-    └── README.zh-CN.md
+└── egon-cola-component-common/
+    └── egon-cola-component-common-id-starter/
+        ├── 纯 JDK 接口、算法、解析器、异常
+        ├── Spring Boot 3 自动配置与配置属性
+        ├── AutoConfiguration.imports
+        ├── src/test 中的算法、兼容与 ApplicationContextRunner 单元测试
+        ├── README.md
+        └── README.zh-CN.md
 ```
 
-`egon-cola-component-common-id-starter` 直接继承
-`egon-cola-components-parent`，由 `egon-cola-components/pom.xml` 聚合。BOM 同时管理
-已有的 `egon-cola-component-common-id` 和新增 Starter，但业务应用采用 Spring 时只需
-直接引入 Starter。Starter 依赖 common-id；common-id 不反向依赖 Spring。
+`egon-cola-component-common-id-starter` 继承 `egon-cola-component-common`，由 common
+聚合 POM 管理。BOM 只管理该 Starter；Spring 和非 Spring 消费者都使用同一 Artifact，
+非 Spring 场景直接实例化核心类。
 
 发布继续继承 components parent 的 source、Javadoc、GPG 和 Central Publishing
 配置，不复制发布插件，也不修改发布工作流目标列表。
@@ -290,7 +288,7 @@ Starter 不使用 `@ComponentScan`，不推导 machine ID，不注册静态全�
 
 ## 11. 测试设计
 
-### 11.1 common-id
+### 11.1 核心算法与兼容 API
 
 测试全部使用可控 `TimeSource`，不依赖 `Thread.sleep`：
 
@@ -315,7 +313,7 @@ Starter 不使用 `@ComponentScan`，不推导 machine ID，不注册静态全�
 并发压力测试使用确定性分段时间源：每个模拟毫秒允许一批生成请求后前进，既制造 CAS
 竞争和同毫秒序列竞争，又避免真实时钟导致偶发失败。
 
-### 11.2 common-id-starter
+### 11.2 Spring Boot 自动配置
 
 使用 `ApplicationContextRunner`：
 
@@ -329,14 +327,15 @@ Starter 不使用 `@ComponentScan`，不推导 machine ID，不注册静态全�
 - `Duration` 绑定和 `5ms` 默认值正确。
 - `AutoConfiguration.imports` 能由 Boot 加载，无 `@ComponentScan`。
 
-所有 Starter 测试位于该模块自己的 `src/test`，不创建 test artifact。
+算法、兼容 API 和自动配置测试全部位于 Starter 自己的 `src/test`，不创建独立 test
+Artifact。
 
 ## 12. 文档与迁移说明
 
 更新范围：
 
-- common-id POM 描述和 common 中英文 README。
-- 新 Starter 的中英文 README。
+- 唯一 Starter 的 POM 描述和中英文 README。
+- common 中英文 README。
 - components 聚合 POM、BOM POM和 BOM 中英文 README。
 - 仓库中英文 README 中的组件入口清单。
 - 任何当前架构清单中直接枚举可消费模块的位置。
@@ -369,11 +368,11 @@ Starter README 必须包含：
 
 分层执行：
 
-1. common-id TDD 单测。
+1. Starter 内的核心算法与兼容 API 单测。
 2. Starter 自动配置单测。
 3. common 全组件测试。
 4. components reactor 测试。
-5. common-id 与 Starter dependency tree，确认不存在 `uuid-creator`。
+5. Starter dependency tree，确认不存在 `uuid-creator` 或已删除的 `common-id` Artifact。
 6. `rg` 检查所有 POM/源码不再引用 `uuid-creator`。
 7. BOM effective POM和依赖解析。
 8. `-Prelease -Dgpg.skip=true -DskipTests verify` 检查 source/Javadoc/Central 发布形状。

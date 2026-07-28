@@ -6,14 +6,14 @@
 
 `egon-cola-component-common` is the common-capability aggregator for the Egon COLA component ecosystem. It provides stable common contracts for result records, page metadata, request/query POJOs, enum codes, exceptions, trace context, tree construction, converter contracts, IDs, crypto, masking, and source boundary assertions.
 
-This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include the runtime module they need. `common-core` owns the stable common contracts, while ID, crypto, and masking remain separate utility modules.
+This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include the runtime module they need. `common-core` owns the stable common contracts, while the ID Starter, crypto, and masking remain separate utility modules.
 
 ## Module Layout
 
 | Module | Description |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`, common exceptions, converter contracts, POJO records, trace context, and tree construction |
-| `egon-cola-component-common-id` | Pure-Java Snowflake interfaces, generator, parser, and deprecated UUIDv7 compatibility APIs |
+| `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration; all tests live in this module |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
 | `egon-cola-component-common-mask` | Stable masking rules for mobile numbers, email addresses, and prefix/suffix retention |
 | `egon-cola-component-common-test` | Source dependency boundary test utilities used internally by components |
@@ -211,7 +211,7 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 
 The legacy aggregated `util` package, split `model/result/structure` packages, separate result factories, `BaseEntity`, and `AuditableModel` were intentionally removed.
 
-For Snowflake layout, configuration, rollback behavior, Kubernetes machine-ID allocation, and UUIDv7 migration boundaries, see the [common ID Starter README](../egon-cola-component-common-id-starter/README.md).
+For Snowflake layout, configuration, rollback behavior, Kubernetes machine-ID allocation, and UUIDv7 migration boundaries, see the [common ID Starter README](egon-cola-component-common-id-starter/README.md).
 
 ## Validation Command
 

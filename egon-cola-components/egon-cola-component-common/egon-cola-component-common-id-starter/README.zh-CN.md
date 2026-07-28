@@ -4,7 +4,7 @@
 
 ## 简要介绍
 
-该 Starter 是 Egon COLA 有状态、纯 JDK Snowflake ID 生成器的 Spring Boot 3 接入层。算法仍位于不依赖 Spring 的 `egon-cola-component-common-id`；本模块只负责配置绑定和默认 Bean 装配。
+这是 Egon COLA 唯一的 ID 模块，在同一个 Starter 中同时提供有状态、纯 JDK 的 Snowflake 接口与算法，以及 Spring Boot 3 配置绑定和默认 Bean。核心算法包不导入 Spring API，应用统一依赖该 Starter Artifact。
 
 数据库 `BIGINT` 主键应调用 `LongIdGenerator.nextLongId()`。为降低升级破坏性，继承的 `IdGenerator.nextId()` 会返回同一个 long ID 的十进制字符串。
 
@@ -19,14 +19,7 @@
 </dependency>
 ```
 
-非 Spring 应用直接依赖纯 Java 算法模块：
-
-```xml
-<dependency>
-    <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-common-id</artifactId>
-</dependency>
-```
+非 Spring 应用同样依赖该 Artifact，并直接创建 `SnowflakeIdGenerator`；只有 Spring Boot 应用上下文会激活自动配置。
 
 ## 配置
 
@@ -180,7 +173,7 @@ spec:
 
 ## UUIDv7 兼容和能力边界
 
-`UuidV7` 与 `UuidV7Generator` 暂时以纯 JDK RFC 9562 兼容 API 保留在 `egon-cola-component-common-id`，已标记待删除，并且不再依赖 `uuid-creator`。Starter 不会自动装配 UUIDv7，默认数据库主键方案是 Snowflake。
+`UuidV7` 与 `UuidV7Generator` 暂时以纯 JDK RFC 9562 兼容 API 保留在本 Starter，已标记待删除，并且不再依赖 `uuid-creator`。Starter 不会自动装配 UUIDv7，默认数据库主键方案是 Snowflake。
 
 对于 UUIDv7 线协议、`VARCHAR(36)` 字段或 UUID 专用分片/校验规则，不要机械替换为 long；只有在明确修改契约和迁移数据后才能迁移。
 
@@ -189,5 +182,6 @@ spec:
 ## 验证
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-common-id-starter -am clean test
+./mvnw -B -ntp -f egon-cola-components/pom.xml \
+  -pl egon-cola-component-common/egon-cola-component-common-id-starter -am clean test
 ```
