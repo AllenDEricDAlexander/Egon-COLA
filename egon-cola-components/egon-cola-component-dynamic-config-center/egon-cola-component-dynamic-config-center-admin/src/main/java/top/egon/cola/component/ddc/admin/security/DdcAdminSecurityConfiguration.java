@@ -48,6 +48,8 @@ public class DdcAdminSecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/api/v1/ddc/manifest",
+                                "/ddc-admin",
+                                "/ddc-admin/**",
                                 "/actuator/health/**",
                                 "/actuator/info"
                         ).permitAll()
@@ -73,6 +75,7 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/apps",
                                 "/api/v1/ddc/namespaces",
                                 "/api/v1/ddc/instances",
+                                "/api/v1/ddc/registry/**",
                                 "/api/v1/ddc/publish-tasks",
                                 "/api/v1/ddc/publish-tasks/*"
                         ).hasAnyAuthority(

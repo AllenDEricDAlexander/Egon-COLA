@@ -13,6 +13,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.ddc.admin.controller.DdcCacheController;
 import top.egon.cola.component.ddc.admin.controller.DdcConfigController;
@@ -48,7 +49,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DdcPublishTaskController.class,
         DdcCacheController.class,
         DdcOpenApiController.class,
-        DdcAdminSecurityIntegrationTest.HealthInfoController.class
+        DdcAdminSecurityIntegrationTest.HealthInfoController.class,
+        DdcAdminSecurityIntegrationTest.RegistryInfoController.class
 })
 @Import({
         DdcAdminSecurityConfiguration.class,
@@ -100,6 +102,21 @@ class DdcAdminSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code")
                         .value("DDC_ADMIN_AUTHENTICATION_REQUIRED"));
+    }
+
+    @Test
+    void protectsRegistryAdminReadsWithReadCapability() throws Exception {
+        mockMvc.perform(get("/api/v1/ddc/registry/services"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/ddc/registry/services")
+                        .with(authority("CAP_DDC_READ")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void permitsDdcAdminPageWithoutBearerToken() throws Exception {
+        mockMvc.perform(get("/ddc-admin/index.html"))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -259,6 +276,16 @@ class DdcAdminSecurityIntegrationTest {
         @GetMapping({"/actuator/health", "/actuator/info"})
         Map<String, String> status() {
             return Map.of("status", "UP");
+        }
+    }
+
+    @RestController
+    @RequestMapping("/api/v1/ddc/registry")
+    static class RegistryInfoController {
+
+        @GetMapping("/services")
+        Map<String, Object> services() {
+            return Map.of("services", List.of());
         }
     }
 
