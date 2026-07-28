@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.test.rpc.contract;
 
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.CreateOrderRequest;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.FailRequest;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.GetOrderRequest;
@@ -38,7 +39,43 @@ public interface OrderRpc {
     @GatewayOperation(
             name = "RPC 创建订单",
             externalAccessible = false,
-            tags = {"rpc", "command", "non-idempotent"}
+            tags = {"rpc", "command", "non-idempotent"},
+            requestSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "customerId",
+                            description = "客户编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "sku",
+                            description = "商品 SKU 列表"
+                    ),
+                    @GatewaySchemaField(
+                            path = "deliveryAddress",
+                            description = "配送地址"
+                    ),
+                    @GatewaySchemaField(
+                            path = "deliveryAddress.province",
+                            description = "配送省份"
+                    ),
+                    @GatewaySchemaField(
+                            path = "deliveryAddress.city",
+                            description = "配送城市"
+                    )
+            },
+            responseSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "orderId",
+                            description = "订单编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "status",
+                            description = "订单状态"
+                    ),
+                    @GatewaySchemaField(
+                            path = "providerId",
+                            description = "服务提供者实例编号"
+                    )
+            }
     )
     OrderResponse createOrder(CreateOrderRequest request);
 
