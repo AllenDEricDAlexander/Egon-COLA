@@ -35,4 +35,13 @@ class SnowflakeIdParserTest {
         assertEquals(123L, SnowflakeIdLayout.stateElapsedMillis(state));
         assertEquals(4095, SnowflakeIdLayout.stateSequence(state));
     }
+
+    @Test
+    void parseSupportsAllFieldMaximums() {
+        SnowflakeId parsed = SnowflakeIdParser.parse(Long.MAX_VALUE);
+
+        assertEquals(SnowflakeIdLayout.MAX_ELAPSED_MILLIS, parsed.elapsedMillis());
+        assertEquals(SnowflakeIdLayout.MAX_MACHINE_ID, parsed.machineId());
+        assertEquals(SnowflakeIdLayout.MAX_SEQUENCE, parsed.sequence());
+    }
 }
