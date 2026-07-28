@@ -6,20 +6,16 @@
 
 `egon-cola-component-common` is the enterprise-grade common-capability aggregator for the Egon COLA component ecosystem. It provides foundational capabilities including error codes, exceptions, request models, pagination models, response models, trace context, IDs, cryptographic encoding, data masking, tree construction, and test boundary assertions.
 
-This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include only the specific submodules they need, avoiding unnecessary foundational capabilities in the application.
+This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include the runtime module they need. `common-core` now owns the stable common contracts, while ID, crypto, and masking remain separate utility modules.
 
 ## Module Layout
 
 | Module | Description |
 |---|---|
-| `egon-cola-component-common-core` | Common `int code` error statuses, exception base classes, business/system/validation/authorization exception types, and enum contracts |
-| `egon-cola-component-common-model` | Request and pagination models such as `PageQuery`, `SortQuery`, `TimeRangeQuery`, `BaseRequest`, `OperatorContext`, `PageModel`, and `PageSlice` |
-| `egon-cola-component-common-trace` | SLF4J MDC-based `traceId` context and snapshots |
-| `egon-cola-component-common-result` | External response DTOs, internal service result Models, and their factory methods |
+| `egon-cola-component-common-core` | Error statuses, exceptions, enum contracts, request/page models, result DTO/Model contracts, trace context, and tree construction |
 | `egon-cola-component-common-id` | UUIDv7 utilities and the `IdGenerator` abstraction |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
 | `egon-cola-component-common-mask` | Stable masking rules for mobile numbers, email addresses, and prefix/suffix retention |
-| `egon-cola-component-common-structure` | General-purpose parent-child tree builder |
 | `egon-cola-component-common-test` | Source dependency boundary test utilities used internally by components |
 
 ## Features
@@ -30,7 +26,7 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 
 ### Request, Query, and Pagination Models
 
-The primary contracts in `common-model` use Java records with stable JSON field names and ordering:
+The primary model contracts in `common-core` use Java records with stable JSON field names and ordering:
 
 | Contract | Purpose |
 |---|---|
@@ -43,7 +39,7 @@ The primary contracts in `common-model` use Java records with stable JSON field 
 
 ### Separate External DTOs and Internal Models
 
-`common-result` distinguishes external API responses from internal application/service results:
+The result contracts in `common-core` distinguish external API responses from internal application/service results:
 
 | Scenario | Types |
 |---|---|
@@ -56,7 +52,7 @@ The primary contracts in `common-model` use Java records with stable JSON field 
 
 ### Foundational Utilities
 
-`common-id` provides UUIDv7 for generating roughly time-ordered business IDs. `common-crypto` provides stable UTF-8 encoding and digest methods. `common-mask` handles common field masking. `TreeBuilder` in `common-structure` converts flat nodes into parent-child trees.
+`common-id` provides UUIDv7 for generating roughly time-ordered business IDs. `common-crypto` provides stable UTF-8 encoding and digest methods. `common-mask` handles common field masking. `TreeBuilder` in `common-core` converts flat nodes into parent-child trees.
 
 ## Dependency Setup
 
@@ -86,18 +82,6 @@ Then include the specific modules you need:
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-model</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-result</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-trace</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-id</artifactId>
     </dependency>
     <dependency>
@@ -107,10 +91,6 @@ Then include the specific modules you need:
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-mask</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-structure</artifactId>
     </dependency>
 </dependencies>
 ```
@@ -232,10 +212,10 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 
 ### Design Principles
 
-1. Split by capability instead of creating an all-inclusive common JAR. Applications include only the modules they need.
+1. Keep stable common contracts in `common-core` so consumers do not compose several tiny semantic JARs for basic request/result/trace/tree usage.
 2. Separate external DTOs from internal Models so that Controller response formats do not constrain internal call results.
 3. Prefer Java records for common contracts to preserve immutability, serializability, and stable field ordering.
-4. Keep `common-core` free of Spring and Jackson dependencies to reduce the cost of sharing foundational error codes and exceptions.
+4. Keep `common-core` free of Spring runtime dependencies; Jackson annotations and SLF4J are explicit lightweight dependencies because core owns JSON contracts and trace context.
 5. Retain only stable, explicit, low-intrusion utility functions without introducing business semantics.
 
 ### Implementation Details

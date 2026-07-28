@@ -28,6 +28,6 @@ class ResultDependencyBoundaryTest {
                     .toList();
         }
 
-        assertTrue(badImports.isEmpty(), "common-result production code must not import jackson-databind");
+        assertTrue(badImports.isEmpty(), "common-core result production code must not import jackson-databind");
     }
 }

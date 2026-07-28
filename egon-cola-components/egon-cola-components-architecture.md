@@ -28,7 +28,7 @@ component
 8. test 用于组件自测、集成测试、示例启动和回归验证。
 ```
 
-`egon-cola-component-common` 是明确的纯基础组件例外，它不采用 starter / admin / test 结构，而是作为 common 聚合 POM 管理多个可按需依赖的基础语义 Jar。业务系统不直接依赖 `egon-cola-component-common` 聚合 POM，而是按需依赖 `egon-cola-component-common-core`、`egon-cola-component-common-result`、`egon-cola-component-common-id` 等具体模块。
+`egon-cola-component-common` 是明确的纯基础组件例外，它不采用 starter / admin / test 结构，而是作为 common 聚合 POM 管理 core 契约 Jar 与少量工具 Jar。业务系统不直接依赖 `egon-cola-component-common` 聚合 POM，而是按需依赖 `egon-cola-component-common-core`、`egon-cola-component-common-id`、`egon-cola-component-common-crypto` 等具体模块。
 
 ---
 
@@ -147,13 +147,10 @@ Egon-COLA/
     ├── egon-cola-component-common/                               # common 聚合 POM，内部管理基础语义 Jar
     │   ├── pom.xml
     │   ├── egon-cola-component-common-core/
-    │   ├── egon-cola-component-common-model/
-    │   ├── egon-cola-component-common-result/
     │   ├── egon-cola-component-common-id/
     │   ├── egon-cola-component-common-crypto/
-    │   ├── egon-cola-component-common-trace/
     │   ├── egon-cola-component-common-mask/
-    │   └── egon-cola-component-common-structure/
+    │   └── egon-cola-component-common-test/
     │
     ├── egon-cola-component-dynamic-thread-pool/                  # 动态线程池组件
     │   ├── pom.xml                                               # 动态线程池组件聚合 POM
@@ -695,13 +692,9 @@ egon-cola-component-dynamic-thread-pool-test/
 egon-cola-component-common/
 ├── pom.xml
 ├── egon-cola-component-common-core/
-├── egon-cola-component-common-model/
-├── egon-cola-component-common-trace/
-├── egon-cola-component-common-result/
 ├── egon-cola-component-common-id/
 ├── egon-cola-component-common-crypto/
 ├── egon-cola-component-common-mask/
-├── egon-cola-component-common-structure/
 └── egon-cola-component-common-test/
 ```
 
@@ -780,7 +773,7 @@ graph LR
 
 `egon-cola-components-bom` 用于统一管理对业务系统开放的组件版本。
 
-当前 BOM 只导出业务系统可直接依赖的 common 具体 Jar 与 starter，不导出 common 聚合 POM、admin 和 test。
+当前 BOM 只导出业务系统可直接依赖的 common core/工具 Jar 与 starter，不导出 common 聚合 POM、admin 和 test。
 
 admin 是否导出取决于部署方式：
 
@@ -799,11 +792,6 @@ BOM 示例：
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-common-result</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -835,7 +823,7 @@ BOM 示例：
 <dependencies>
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-common-result</artifactId>
+    <artifactId>egon-cola-component-common-core</artifactId>
 </dependency>
 </dependencies>
 ```

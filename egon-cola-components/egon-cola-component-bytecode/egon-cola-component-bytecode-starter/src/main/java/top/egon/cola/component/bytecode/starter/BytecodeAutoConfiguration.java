@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 public class BytecodeAutoConfiguration {
 
     /**
-     * Matches the MDC key written by {@code common-trace} TraceContext.
+     * Matches the MDC key written by {@code common-core} TraceContext.
      */
     private static final String TRACE_ID_KEY = "traceId";
 

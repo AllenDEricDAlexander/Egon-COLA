@@ -23,10 +23,6 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-common-result</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-id</artifactId>
         </dependency>
         <dependency>

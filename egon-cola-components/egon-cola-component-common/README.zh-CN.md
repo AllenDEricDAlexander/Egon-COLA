@@ -6,20 +6,16 @@
 
 `egon-cola-component-common` 是 Egon COLA 组件体系的企业级通用能力聚合模块，提供错误码、异常、请求模型、分页模型、响应模型、链路追踪、ID、加密编码、数据脱敏、树结构构建和测试边界断言等基础能力。
 
-这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后按需引入具体子模块，避免把不需要的基础能力一起带入业务工程。
+这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 现在承载稳定通用契约，ID、加密和脱敏能力继续作为独立工具模块保留。
 
 ## 模块结构
 
 | Module | 说明 |
 |---|---|
-| `egon-cola-component-common-core` | 通用 `int code` 错误状态、异常基类、业务/系统/校验/权限等异常类型、枚举契约 |
-| `egon-cola-component-common-model` | `PageQuery`、`SortQuery`、`TimeRangeQuery`、`BaseRequest`、`OperatorContext`、`PageModel`、`PageSlice` 等请求和分页模型 |
-| `egon-cola-component-common-trace` | 基于 SLF4J MDC 的 `traceId` 上下文与快照 |
-| `egon-cola-component-common-result` | 对外响应 DTO 与内部服务返回 Model，以及对应工厂方法 |
+| `egon-cola-component-common-core` | 错误状态、异常、枚举契约、请求/分页模型、结果 DTO/Model、链路上下文和树结构构建 |
 | `egon-cola-component-common-id` | UUIDv7 生成工具与 `IdGenerator` 抽象 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
 | `egon-cola-component-common-mask` | 手机号、邮箱、首尾保留等稳定脱敏规则 |
-| `egon-cola-component-common-structure` | 通用父子节点树构建器 |
 | `egon-cola-component-common-test` | 组件内部使用的源码依赖边界测试工具 |
 
 ## 功能说明
@@ -30,7 +26,7 @@
 
 ### 请求、查询和分页模型
 
-`common-model` 的主要契约使用 Java record，并带有稳定 JSON 字段名和字段顺序：
+`common-core` 中的主要模型契约使用 Java record，并带有稳定 JSON 字段名和字段顺序：
 
 | 契约 | 用途 |
 |---|---|
@@ -43,7 +39,7 @@
 
 ### 对外 DTO 与内部 Model 分离
 
-`common-result` 区分对外 API 响应和内部应用/服务结果：
+`common-core` 中的结果契约区分对外 API 响应和内部应用/服务结果：
 
 | 场景 | 类型 |
 |---|---|
@@ -56,7 +52,7 @@
 
 ### 基础工具能力
 
-`common-id` 提供 UUIDv7，适合生成趋势递增的业务 ID。`common-crypto` 提供稳定的 UTF-8 编码/摘要方法。`common-mask` 负责常用字段脱敏。`common-structure` 的 `TreeBuilder` 可以把平铺节点构造成父子树。
+`common-id` 提供 UUIDv7，适合生成趋势递增的业务 ID。`common-crypto` 提供稳定的 UTF-8 编码/摘要方法。`common-mask` 负责常用字段脱敏。`common-core` 中的 `TreeBuilder` 可以把平铺节点构造成父子树。
 
 ## 依赖方式
 
@@ -86,18 +82,6 @@
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-model</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-result</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-trace</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-id</artifactId>
     </dependency>
     <dependency>
@@ -107,10 +91,6 @@
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-mask</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-structure</artifactId>
     </dependency>
 </dependencies>
 ```
@@ -232,10 +212,10 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 
 ### 设计思想
 
-1. 按能力拆分，不做大而全的 common Jar。业务方只引入自己需要的模块。
+1. 稳定通用契约收敛进 `common-core`，业务方不需要为请求/结果/trace/tree 这类基础语义组合多个小 Jar。
 2. 对外 DTO 与内部 Model 分离，避免内部调用结果被 Controller 响应格式绑死。
 3. 公共契约优先使用 Java record，保持不可变、可序列化、字段顺序稳定。
-4. `common-core` 保持无 Spring、无 Jackson 依赖，减少基础错误码和异常的传递成本。
+4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 与 SLF4J 是显式轻量依赖，因为 core 现在承载 JSON 契约和链路上下文。
 5. 工具能力只保留稳定、明确、低侵入的函数，不引入业务语义。
 
 ### 实现细节
