@@ -22,7 +22,8 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | Artifact | Purpose |
 |---|---|
 | `egon-cola-component-common-core` | Error statuses, exceptions, enum contracts, request/result models, trace context, and tree construction |
-| `egon-cola-component-common-id` | UUIDv7 and ID generation |
+| `egon-cola-component-common-id` | Pure-Java Snowflake contracts and deprecated UUIDv7 compatibility APIs |
+| `egon-cola-component-common-id-starter` | Spring Boot Snowflake auto-configuration for database `BIGINT` IDs |
 | `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
 | `egon-cola-component-common-mask` | Data masking |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
@@ -77,6 +78,10 @@ After a business application imports the BOM through `dependencyManagement`, sub
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-id-starter</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-rule-engine-starter</artifactId>
     </dependency>
     <dependency>
@@ -128,7 +133,7 @@ Child modules declare only the artifact:
 ### Design Principles
 
 1. The BOM manages only runtime entry points that consumers actually need, preventing accidental business dependencies on admin, test, or aggregator modules.
-2. Stable common contracts are exported through `common-core`, while ID, crypto, and masking remain separate utility modules.
+2. Stable common contracts are exported through `common-core`; the ID algorithm remains a pure-Java module and its Spring Boot entry point is exported as `common-id-starter`.
 3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. DDC includes its typed management API in Starter, Gateway exposes its Provider Runtime separately, and the bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
 4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
 

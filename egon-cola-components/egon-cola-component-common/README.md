@@ -13,7 +13,7 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 | Module | Description |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`, common exceptions, converter contracts, POJO records, trace context, and tree construction |
-| `egon-cola-component-common-id` | UUIDv7 utilities and the `IdGenerator` abstraction |
+| `egon-cola-component-common-id` | Pure-Java Snowflake interfaces, generator, parser, and deprecated UUIDv7 compatibility APIs |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
 | `egon-cola-component-common-mask` | Stable masking rules for mobile numbers, email addresses, and prefix/suffix retention |
 | `egon-cola-component-common-test` | Source dependency boundary test utilities used internally by components |
@@ -76,7 +76,7 @@ Then include the specific modules you need:
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-id</artifactId>
+        <artifactId>egon-cola-component-common-id-starter</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
@@ -91,7 +91,7 @@ Then include the specific modules you need:
 
 ## Usage Example
 
-The following example shows a Controller that queries a list of orders. It uses `PageQuery` to normalize pagination, `PageResultRecord` and `ResultRecord` for responses, `TraceContext` for response trace IDs, `UuidV7` for business IDs, and `Masking` plus `Hmacs` for display and signing:
+The following example shows a Controller that queries a list of orders. It uses `PageQuery` to normalize pagination, `PageResultRecord` and `ResultRecord` for responses, `TraceContext` for response trace IDs, an injected `LongIdGenerator` for database IDs, and `Masking` plus `Hmacs` for display and signing:
 
 ```java
 package demo.order;
@@ -101,7 +101,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.crypto.hmac.Hmacs;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mask.Masking;
 import top.egon.cola.component.common.pojo.PageQuery;
 import top.egon.cola.component.common.pojo.PageResultRecord;
@@ -115,9 +115,11 @@ import java.util.List;
 public class OrderController {
 
     private final OrderQueryService queryService;
+    private final LongIdGenerator idGenerator;
 
-    public OrderController(OrderQueryService queryService) {
+    public OrderController(OrderQueryService queryService, LongIdGenerator idGenerator) {
         this.queryService = queryService;
+        this.idGenerator = idGenerator;
     }
 
     @GetMapping
@@ -135,8 +137,8 @@ public class OrderController {
 
     @GetMapping("/new-id")
     public ResultRecord<NewOrderIdView> newOrderId() {
-        String orderId = UuidV7.simpleString();
-        String signature = Hmacs.sha256Hex(orderId, "demo-secret");
+        long orderId = idGenerator.nextLongId();
+        String signature = Hmacs.sha256Hex(Long.toString(orderId), "demo-secret");
         return ResultRecord.success(new NewOrderIdView(orderId, signature));
     }
 
@@ -149,7 +151,7 @@ public class OrderController {
         }
     }
 
-    public record NewOrderIdView(String orderId, String signature) {
+    public record NewOrderIdView(long orderId, String signature) {
     }
 }
 ```
@@ -203,11 +205,13 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | `top.egon.cola.component.common.model.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.result.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
-| `top.egon.cola.component.common.util.IdUtils` | `UuidV7` or `UuidV7Generator` |
+| `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator`; use deprecated `UuidV7` only for UUID compatibility contracts |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`, `Hmacs`, `Base64s`, `Hexes` |
 | `top.egon.cola.component.common.util.MaskingUtils` | `Masking` |
 
 The legacy aggregated `util` package, split `model/result/structure` packages, separate result factories, `BaseEntity`, and `AuditableModel` were intentionally removed.
+
+For Snowflake layout, configuration, rollback behavior, Kubernetes machine-ID allocation, and UUIDv7 migration boundaries, see the [common ID Starter README](../egon-cola-component-common-id-starter/README.md).
 
 ## Validation Command
 

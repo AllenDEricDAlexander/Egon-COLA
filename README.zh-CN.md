@@ -46,6 +46,7 @@ Egon-COLA
 ├── egon-cola-components/     # 可复用组件、starter、BOM 与组件测试
 │   ├── egon-cola-components-bom/
 │   ├── egon-cola-component-common/
+│   ├── egon-cola-component-common-id-starter/
 │   ├── egon-cola-component-dynamic-config-center/
 │   ├── egon-cola-component-dynamic-thread-pool/
 │   ├── egon-cola-component-rpc/
@@ -233,7 +234,7 @@ Components BOM。各组件 README 是对应 API、配置、边界和专项验证
 
 | 组件 | 主要入口 | 范围 |
 |---|---|---|
-| [Common](egon-cola-components/egon-cola-component-common/README.md) | `egon-cola-component-common-*` | 纯 Jar 错误、模型、结果、trace、ID、加密、脱敏和树结构契约。 |
+| [Common](egon-cola-components/egon-cola-component-common/README.md) | `egon-cola-component-common-*`、[`...-id-starter`](egon-cola-components/egon-cola-component-common-id-starter/README.zh-CN.md) | 纯 Jar 通用契约及 Spring Boot Snowflake ID 自动配置。 |
 | [Dynamic Config Center](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | `...-management-client`、`...-starter` | 动态配置、Redis 租约/服务注册、同步发布和独立 Admin。 |
 | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | `...-starter` | 执行器注册、快照、Redis 变更、扩缩容、虚拟线程并发限制和 MDC 传播。 |
 | [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | `...-starter` | Protobuf/gRPC Provider、Consumer、DDC 注册发现、Deadline 和 Gateway 通道。 |
@@ -257,7 +258,7 @@ egon-cola-component-xxx
 
 组件约束：
 
-- `egon-cola-component-common` 是 common 聚合 POM，业务系统按需依赖 `egon-cola-component-common-core`、`egon-cola-component-common-result` 等具体 Jar。
+- `egon-cola-component-common` 是 common 聚合 POM，业务系统按需依赖 `egon-cola-component-common-core` 等具体 Jar，或直接依赖 Spring Boot 入口 `egon-cola-component-common-id-starter`。
 - 除 `common` 这类纯 Jar 基础组件外，运行时 starter-style 组件应由业务系统直接引入 `starter`。
 - `starter` 不反向依赖 `admin`、`test`、`ui`。
 - `test` 只用于组件自测、集成测试和示例启动。
@@ -294,6 +295,10 @@ React 应用，使用 npm 构建。Gateway 的部署、前端和性能说明均�
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-id-starter</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
@@ -375,6 +380,7 @@ Egon-COLA 使用 Sonatype Central Portal 发布流程。发布前建议先本地
 | [egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md](egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md) | web archetype 架构说明。 |
 | [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md) | 多组件工程结构规范。 |
 | [egon-cola-components/egon-cola-components-bom/README.md](egon-cola-components/egon-cola-components-bom/README.md) | 公共组件版本和导出边界。 |
+| [egon-cola-components/egon-cola-component-common-id-starter/README.zh-CN.md](egon-cola-components/egon-cola-component-common-id-starter/README.zh-CN.md) | Snowflake ID 配置、保证范围和运行边界。 |
 | [egon-cola-components/egon-cola-component-dynamic-config-center/README.md](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | 动态配置、租约、注册发现和发布协议。 |
 | [egon-cola-components/egon-cola-component-rpc/README.md](egon-cola-components/egon-cola-component-rpc/README.md) | Protobuf/gRPC Provider 与 Consumer 契约。 |
 | [egon-cola-components/egon-cola-component-gateway/README.md](egon-cola-components/egon-cola-component-gateway/README.md) | HTTP/RPC Gateway 平台和部署入口。 |

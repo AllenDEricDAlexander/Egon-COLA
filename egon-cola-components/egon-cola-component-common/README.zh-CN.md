@@ -13,7 +13,7 @@
 | Module | 说明 |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record、链路上下文和树结构构建 |
-| `egon-cola-component-common-id` | UUIDv7 生成工具与 `IdGenerator` 抽象 |
+| `egon-cola-component-common-id` | 纯 Java Snowflake 接口、生成器、解析器及已废弃的 UUIDv7 兼容 API |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
 | `egon-cola-component-common-mask` | 手机号、邮箱、首尾保留等稳定脱敏规则 |
 | `egon-cola-component-common-test` | 组件内部使用的源码依赖边界测试工具 |
@@ -76,7 +76,7 @@ common-core 的异常类名不再使用 `Egon` 前缀。
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-id</artifactId>
+        <artifactId>egon-cola-component-common-id-starter</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
@@ -91,7 +91,7 @@ common-core 的异常类名不再使用 `Egon` 前缀。
 
 ## 使用示例
 
-下面示例展示一个查询订单列表的 Controller：它使用 `PageQuery` 归一化分页参数，用 `PageResultRecord` 和 `ResultRecord` 输出响应，用 `TraceContext` 注入响应链路 ID，用 `UuidV7` 生成业务 ID，用 `Masking` 和 `Hmacs` 处理展示和签名。
+下面示例展示一个查询订单列表的 Controller：它使用 `PageQuery` 归一化分页参数，用 `PageResultRecord` 和 `ResultRecord` 输出响应，用 `TraceContext` 注入响应链路 ID，注入 `LongIdGenerator` 生成数据库 ID，并用 `Masking` 和 `Hmacs` 处理展示和签名。
 
 ```java
 package demo.order;
@@ -101,7 +101,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.crypto.hmac.Hmacs;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mask.Masking;
 import top.egon.cola.component.common.pojo.PageQuery;
 import top.egon.cola.component.common.pojo.PageResultRecord;
@@ -115,9 +115,11 @@ import java.util.List;
 public class OrderController {
 
     private final OrderQueryService queryService;
+    private final LongIdGenerator idGenerator;
 
-    public OrderController(OrderQueryService queryService) {
+    public OrderController(OrderQueryService queryService, LongIdGenerator idGenerator) {
         this.queryService = queryService;
+        this.idGenerator = idGenerator;
     }
 
     @GetMapping
@@ -135,8 +137,8 @@ public class OrderController {
 
     @GetMapping("/new-id")
     public ResultRecord<NewOrderIdView> newOrderId() {
-        String orderId = UuidV7.simpleString();
-        String signature = Hmacs.sha256Hex(orderId, "demo-secret");
+        long orderId = idGenerator.nextLongId();
+        String signature = Hmacs.sha256Hex(Long.toString(orderId), "demo-secret");
         return ResultRecord.success(new NewOrderIdView(orderId, signature));
     }
 
@@ -149,7 +151,7 @@ public class OrderController {
         }
     }
 
-    public record NewOrderIdView(String orderId, String signature) {
+    public record NewOrderIdView(long orderId, String signature) {
     }
 }
 ```
@@ -203,11 +205,13 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | `top.egon.cola.component.common.model.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.result.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
-| `top.egon.cola.component.common.util.IdUtils` | `UuidV7` 或 `UuidV7Generator` |
+| `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator`；仅在 UUID 兼容契约中继续使用已废弃的 `UuidV7` |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`、`Hmacs`、`Base64s`、`Hexes` |
 | `top.egon.cola.component.common.util.MaskingUtils` | `Masking` |
 
 旧的 `util` 聚合包、拆分的 `model/result/structure` 包、独立结果工厂、`BaseEntity` 和 `AuditableModel` 已被有意移除。
+
+Snowflake 位布局、配置、时钟回拨、Kubernetes 机器 ID 分配和 UUIDv7 迁移边界见 [common ID Starter 中文文档](../egon-cola-component-common-id-starter/README.zh-CN.md)。
 
 ## 验证命令
 

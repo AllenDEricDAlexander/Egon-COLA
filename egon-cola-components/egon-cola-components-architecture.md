@@ -4,7 +4,7 @@
 
 本文档用于规范 `egon-cola-components` 下的组件工程组织方式。
 
-运行时 starter-style 组件应该是可以独立维护、独立测试、独立发布的 Maven 多模块组件工程。`egon-cola-component-common` 这类纯基础组件不采用 starter / admin / test 结构，而是通过 common 聚合 POM 管理多个可按需依赖的基础语义 Jar。组件内部不再混放 UI，UI 统一抽离到独立前端工程中维护。
+运行时 starter-style 组件应该是可以独立维护、独立测试、独立发布的 Maven 组件工程。`egon-cola-component-common` 通过 common 聚合 POM 管理多个可按需依赖的纯 Java 基础语义 Jar；只负责 Spring Boot 自动配置的轻量接入层可以作为 components 父工程下的扁平 starter，例如 `egon-cola-component-common-id-starter`。组件内部不再混放 UI，UI 统一抽离到独立前端工程中维护。
 
 运行时 starter-style 组件整体形态参考动态线程池组件的拆分方式：
 
@@ -20,7 +20,7 @@ component
 ```text
 1. 组件统一收敛到 egon-cola-components 父工程下。
 2. 每个组件根工程继承 egon-cola-components-parent。
-3. 运行时 starter-style 组件内部至少包含 starter 和 test。
+3. 常规运行时组件内部至少包含 starter 和 test；轻量扁平 starter 的测试可放在本模块 `src/test`。
 4. 如果组件需要管理后台，则增加 admin 模块。
 5. 组件内部不包含 UI，UI 统一放到独立前端工程。
 6. admin 是后端管理服务，可以提供 REST / RPC / MQ 管理能力。
@@ -28,7 +28,7 @@ component
 8. test 用于组件自测、集成测试、示例启动和回归验证。
 ```
 
-`egon-cola-component-common` 是明确的纯基础组件例外，它不采用 starter / admin / test 结构，而是作为 common 聚合 POM 管理 core 契约 Jar 与少量工具 Jar。业务系统不直接依赖 `egon-cola-component-common` 聚合 POM，而是按需依赖 `egon-cola-component-common-core`、`egon-cola-component-common-id`、`egon-cola-component-common-crypto` 等具体模块。
+`egon-cola-component-common` 是明确的纯基础组件例外，它不采用 starter / admin / test 结构，而是作为 common 聚合 POM 管理 core 契约 Jar 与少量工具 Jar。业务系统不直接依赖该聚合 POM，而是按需依赖具体纯 Java 模块；需要 ID 的 Spring Boot 自动配置时，直接依赖同级扁平模块 `egon-cola-component-common-id-starter`。
 
 ---
 
@@ -152,6 +152,8 @@ Egon-COLA/
     │   ├── egon-cola-component-common-mask/
     │   └── egon-cola-component-common-test/
     │
+    ├── egon-cola-component-common-id-starter/                    # common ID 的轻量 Spring Boot 自动配置与模块内测试
+    │
     ├── egon-cola-component-dynamic-thread-pool/                  # 动态线程池组件
     │   ├── pom.xml                                               # 动态线程池组件聚合 POM
     │   ├── egon-cola-component-dynamic-thread-pool-starter/      # 业务应用引入的 starter
@@ -170,6 +172,7 @@ Egon-COLA/
 <modules>
     <module>egon-cola-components-bom</module>
     <module>egon-cola-component-common</module>
+    <module>egon-cola-component-common-id-starter</module>
     <module>egon-cola-component-dynamic-thread-pool</module>
 </modules>
 ```
@@ -686,7 +689,7 @@ egon-cola-component-dynamic-thread-pool-test/
 
 并不是所有组件都需要 admin，也不是所有组件都必须拆成 starter / test / admin。
 
-`egon-cola-component-common` 是当前基础能力组件聚合 POM，不提供 starter、admin，也不进入独立运行流程。业务系统不直接依赖该聚合 POM，而是按需依赖具体基础语义 Jar：
+`egon-cola-component-common` 是当前基础能力组件聚合 POM，本身不提供 starter、admin，也不进入独立运行流程。业务系统按需依赖具体基础语义 Jar；如果需要 common ID 的 Spring Boot 自动配置，则依赖同级的扁平 starter，其测试直接位于 starter 的 `src/test`：
 
 ```text
 egon-cola-component-common/
@@ -696,6 +699,12 @@ egon-cola-component-common/
 ├── egon-cola-component-common-crypto/
 ├── egon-cola-component-common-mask/
 └── egon-cola-component-common-test/
+
+egon-cola-component-common-id-starter/
+├── pom.xml
+└── src/
+    ├── main/
+    └── test/
 ```
 
 ---
