@@ -14,6 +14,8 @@ export const TracesPage = () => {
   const query = useQuery({
     queryKey: ['traces', scope, search.toString()],
     queryFn: ({ signal }) => gatewayApi.traces(scope, search, signal),
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: true,
   })
   return (
     <section>

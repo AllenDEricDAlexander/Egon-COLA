@@ -15,6 +15,7 @@ import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useScope } from '../hooks/useScope'
+import { scopeOptions } from '../hooks/scopeDefaults'
 import { useAuth } from '../auth/AuthContext'
 import { useCapability, type Capability } from '../app/capabilities'
 
@@ -103,19 +104,20 @@ export const AdminLayout = () => {
             <Select
               aria-label="环境"
               value={scope.env}
-              options={['dev', 'test', 'staging', 'prod'].map((value) => ({
-                value,
-                label: `Env: ${value}`,
-              }))}
+              options={scopeOptions(
+                scope.env,
+                ['dev', 'test', 'staging', 'prod'],
+                'Env',
+              )}
               onChange={(value) => changeScope('env', value)}
             />
             <Select
               aria-label="命名空间"
               value={scope.namespace}
-              options={['default', 'public', 'internal'].map((value) => ({
-                value,
-                label: `Namespace: ${value}`,
-              }))}
+              options={scopeOptions(
+                scope.namespace,
+                ['default', 'public', 'internal'],
+              )}
               onChange={(value) => changeScope('namespace', value)}
             />
           </Space>

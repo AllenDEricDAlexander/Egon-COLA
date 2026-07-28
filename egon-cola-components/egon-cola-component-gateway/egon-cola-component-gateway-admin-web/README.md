@@ -41,5 +41,13 @@ The browser calls Gateway Admin. Set `VITE_GATEWAY_ADMIN_API_BASE_URL` to use a 
 origin; an empty value uses the current origin. The authenticated session endpoint supplies
 the actor and capabilities; the browser does not configure a placeholder actor.
 
+The deployment can set the scope selected when the admin page first opens. The configured
+values are also added to the scope selectors in the page header:
+
+```text
+VITE_GATEWAY_ADMIN_DEFAULT_ENV=dev
+VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE=default
+```
+
 Keep credentials out of committed `.env` files. The identity provider, browser CORS/PKCE setup,
 TLS termination, and the Gateway Admin authorization policy remain deployment responsibilities.
