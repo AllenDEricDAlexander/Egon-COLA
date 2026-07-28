@@ -15,12 +15,12 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-bytecode-starter</artifactId>
-            <version>5.2.3</version>
+            <version>${egon.bytecode.project.version}</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-bytecode-agent</artifactId>
-            <version>5.2.3</version>
+            <version>${egon.bytecode.project.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -46,7 +46,7 @@
                                 <artifactItem>
                                     <groupId>top.egon</groupId>
                                     <artifactId>egon-cola-component-bytecode-agent</artifactId>
-                                    <version>5.2.3</version>
+                                    <version>${egon.bytecode.project.version}</version>
                                     <outputDirectory>${project.build.directory}/agent</outputDirectory>
                                     <destFileName>egon-bytecode-agent.jar</destFileName>
                                 </artifactItem>

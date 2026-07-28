@@ -69,7 +69,7 @@ flowchart TD
 统一使用脚本修改全仓库 Maven 版本：
 
 ```bash
-./scripts/bump_cola_version 5.x.y
+./scripts/bump_cola_version.sh 5.x.y
 ```
 
 脚本会执行两件事：

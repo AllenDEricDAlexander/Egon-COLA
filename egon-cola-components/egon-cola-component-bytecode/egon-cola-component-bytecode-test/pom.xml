@@ -100,6 +100,9 @@
                     <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
                     <localRepositoryPath>${project.build.directory}/it-repo</localRepositoryPath>
                     <settingsFile>${project.basedir}/src/it/settings.xml</settingsFile>
+                    <properties>
+                        <egon.bytecode.project.version>${project.version}</egon.bytecode.project.version>
+                    </properties>
                     <streamLogs>true</streamLogs>
                 </configuration>
             </plugin>

@@ -12,7 +12,7 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-method-extension-starter</artifactId>
-            <version>5.2.3</version>
+            <version>${egon.bytecode.project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

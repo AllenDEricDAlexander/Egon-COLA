@@ -16,7 +16,7 @@
             <plugin>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
-                <version>5.2.3</version>
+                <version>${egon.bytecode.project.version}</version>
                 <configuration>
                     <unknownLayerPolicy>WARN</unknownLayerPolicy>
                     <packageMappings>
