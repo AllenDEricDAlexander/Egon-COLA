@@ -12,8 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-
-import java.util.Map;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -34,7 +33,31 @@ public class OrderController {
             summary = "按订单 ID 查询",
             owner = "gateway-test",
             externalAccessible = true,
-            tags = {"query", "idempotent"}
+            tags = {"query", "idempotent"},
+            requestSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "id",
+                            description = "订单编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "X-Request-Source",
+                            description = "请求来源"
+                    )
+            },
+            responseSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "id",
+                            description = "订单编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "status",
+                            description = "订单状态"
+                    ),
+                    @GatewaySchemaField(
+                            path = "source",
+                            description = "请求来源或业务渠道"
+                    )
+            }
     )
     public OrderView get(
             @PathVariable("id") String id,
@@ -49,7 +72,31 @@ public class OrderController {
             summary = "创建新的测试订单",
             owner = "gateway-test",
             externalAccessible = true,
-            tags = {"command", "non-idempotent"}
+            tags = {"command", "non-idempotent"},
+            requestSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "customerId",
+                            description = "客户编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "channel",
+                            description = "下单渠道"
+                    )
+            },
+            responseSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "id",
+                            description = "订单编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "status",
+                            description = "订单状态"
+                    ),
+                    @GatewaySchemaField(
+                            path = "source",
+                            description = "请求来源或业务渠道"
+                    )
+            }
     )
     public ResponseEntity<OrderView> create(
             @RequestBody CreateOrder command) {
@@ -65,23 +112,67 @@ public class OrderController {
     @GatewayOperation(
             name = "搜索订单",
             externalAccessible = true,
-            tags = {"query", "idempotent"}
+            tags = {"query", "idempotent"},
+            requestSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "customerId",
+                            description = "客户编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "limit",
+                            description = "返回数量上限"
+                    )
+            },
+            responseSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "customerId",
+                            description = "客户编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "limit",
+                            description = "实际查询上限"
+                    ),
+                    @GatewaySchemaField(
+                            path = "count",
+                            description = "匹配订单数量"
+                    )
+            }
     )
-    public Map<String, Object> search(
+    public SearchResult search(
             @RequestParam("customerId") String customerId,
             @RequestParam(value = "limit", defaultValue = "10") int limit) {
-        return Map.of(
-                "customerId", customerId,
-                "limit", limit,
-                "count", Math.min(limit, 2)
-        );
+        return new SearchResult(customerId, limit, Math.min(limit, 2));
     }
 
     @PostMapping("/{id}/cancel")
     @GatewayOperation(
             name = "取消订单",
             externalAccessible = true,
-            tags = {"command", "idempotent"}
+            tags = {"command", "idempotent"},
+            requestSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "id",
+                            description = "订单编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "Idempotency-Key",
+                            description = "幂等键"
+                    )
+            },
+            responseSchemaFields = {
+                    @GatewaySchemaField(
+                            path = "id",
+                            description = "订单编号"
+                    ),
+                    @GatewaySchemaField(
+                            path = "status",
+                            description = "订单状态"
+                    ),
+                    @GatewaySchemaField(
+                            path = "source",
+                            description = "请求来源或业务渠道"
+                    )
+            }
     )
     public OrderView cancel(
             @PathVariable("id") String id,
@@ -94,5 +185,8 @@ public class OrderController {
     }
 
     public record OrderView(String id, String status, String source) {
+    }
+
+    public record SearchResult(String customerId, int limit, int count) {
     }
 }

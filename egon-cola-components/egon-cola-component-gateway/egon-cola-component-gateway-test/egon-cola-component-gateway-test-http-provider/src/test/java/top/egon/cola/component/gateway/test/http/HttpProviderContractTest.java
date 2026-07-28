@@ -1,13 +1,17 @@
 package top.egon.cola.component.gateway.test.http;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.web.servlet.mvc.method.annotation
+        .RequestMappingHandlerMapping;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -21,14 +25,24 @@ import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.gateway.contract.definition
         .GatewayDefinitionIdentity;
+import top.egon.cola.component.gateway.contract.reporting
+        .GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.discovery
+        .GatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery
+        .MvcGatewayDefinitionContributor;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,6 +68,13 @@ class HttpProviderContractTest {
 
     @Autowired
     private GatewayReportingProperties reportingProperties;
+
+    @Autowired
+    @Qualifier("requestMappingHandlerMapping")
+    private RequestMappingHandlerMapping handlerMappings;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void consumesProviderAutoConfigurationAndOneVersionSource() {
@@ -118,6 +139,92 @@ class HttpProviderContractTest {
         assertEquals("request-1", response.requestId());
         assertEquals("mvc-provider", response.providerId());
         assertEquals("mvc", response.framework());
+    }
+
+    @Test
+    void orderSchemasExposeEveryFieldTypeAndDescription() {
+        GatewayReportingProperties properties = new GatewayReportingProperties();
+        properties.setApplicationCode("gateway-test-http-provider");
+        properties.setEnv("test");
+        properties.setNamespace("gateway-test");
+        properties.setArtifactVersion("1.0.0-live");
+        List<GatewayDefinitionContributor.DiscoveredInterfaceGroup> groups =
+                new MvcGatewayDefinitionContributor(
+                        handlerMappings,
+                        properties,
+                        objectMapper
+                ).discover();
+        Map<String, GatewayInterfaceDefinitionReport.Operation> operations =
+                groups.stream()
+                        .filter(group -> OrderController.class.getName().equals(
+                                group.interfaceGroup().className()
+                        ))
+                        .flatMap(group -> group.interfaceGroup()
+                                .operations().stream())
+                        .collect(Collectors.toMap(
+                                GatewayInterfaceDefinitionReport.Operation
+                                        ::methodIdentity,
+                                operation -> operation
+                        ));
+
+        Map<String, SchemaExpectation> expected = Map.of(
+                "GET /api/orders/{id}", new SchemaExpectation(
+                        Set.of("id", "X-Request-Source"),
+                        Set.of("id", "status", "source")
+                ),
+                "POST /api/orders", new SchemaExpectation(
+                        Set.of("customerId", "channel"),
+                        Set.of("id", "status", "source")
+                ),
+                "GET /api/orders/search", new SchemaExpectation(
+                        Set.of("customerId", "limit"),
+                        Set.of("customerId", "limit", "count")
+                ),
+                "POST /api/orders/{id}/cancel", new SchemaExpectation(
+                        Set.of("id", "Idempotency-Key"),
+                        Set.of("id", "status", "source")
+                )
+        );
+
+        assertEquals(expected.keySet(), operations.keySet());
+        expected.forEach((method, expectation) -> {
+            GatewayInterfaceDefinitionReport.Operation operation =
+                    operations.get(method);
+            assertSchemaFields(
+                    method + " request",
+                    operation.requestSchema(),
+                    expectation.requestFields()
+            );
+            assertSchemaFields(
+                    method + " response",
+                    operation.responseSchema(),
+                    expectation.responseFields()
+            );
+        });
+    }
+
+    private void assertSchemaFields(
+            String schemaName,
+            Map<String, Object> schema,
+            Set<String> expectedNames) {
+        Object value = schema.get("properties");
+        assertTrue(value instanceof Map<?, ?>, schemaName);
+        Map<?, ?> fields = (Map<?, ?>) value;
+        assertEquals(expectedNames, fields.keySet(), schemaName);
+        fields.forEach((name, field) -> {
+            assertTrue(field instanceof Map<?, ?>, schemaName + "." + name);
+            Map<?, ?> details = (Map<?, ?>) field;
+            assertTrue(details.get("type") instanceof String, schemaName
+                    + "." + name + " type");
+            assertTrue(details.get("description") instanceof String description
+                            && !description.isBlank(),
+                    schemaName + "." + name + " description");
+        });
+    }
+
+    private record SchemaExpectation(
+            Set<String> requestFields,
+            Set<String> responseFields) {
     }
 
     @TestConfiguration(proxyBeanMethods = false)

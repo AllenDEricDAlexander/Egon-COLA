@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.http.HttpEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -334,12 +335,40 @@ final class GatewayHttpOperationMapper {
 
     private Map<String, Object> bodySchema(
             List<GatewayInterfaceDefinitionReport.Parameter> parameters) {
-        return parameters.stream()
+        Map<String, Object> body = parameters.stream()
                 .filter(parameter -> Set.of("BODY", "PART")
                         .contains(parameter.location()))
                 .findFirst()
                 .map(GatewayInterfaceDefinitionReport.Parameter::schema)
-                .orElseGet(Map::of);
+                .orElse(null);
+        if (body != null) {
+            return body;
+        }
+        if (parameters.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> properties = new LinkedHashMap<>();
+        List<String> required = new ArrayList<>();
+        parameters.forEach(parameter -> {
+            Map<String, Object> field = new LinkedHashMap<>(
+                    parameter.schema()
+            );
+            field.put("location", parameter.location());
+            if (parameter.defaultValue() != null) {
+                field.put("default", parameter.defaultValue());
+            }
+            properties.put(parameter.name(), field);
+            if (parameter.required()) {
+                required.add(parameter.name());
+            }
+        });
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", properties);
+        if (!required.isEmpty()) {
+            schema.put("required", required);
+        }
+        return schema;
     }
 
     private Map<String, Object> schema(Type type, int depth) {
@@ -402,11 +431,12 @@ final class GatewayHttpOperationMapper {
     }
 
     private Type responseBodyType(Type type) {
-        if (type instanceof ParameterizedType parameterized
-                && raw(type).getName().equals(
-                "reactor.core.publisher.Mono"
-        )) {
-            return parameterized.getActualTypeArguments()[0];
+        if (type instanceof ParameterizedType parameterized) {
+            Class<?> raw = raw(type);
+            if (raw.getName().equals("reactor.core.publisher.Mono")
+                    || HttpEntity.class.isAssignableFrom(raw)) {
+                return parameterized.getActualTypeArguments()[0];
+            }
         }
         return type;
     }
