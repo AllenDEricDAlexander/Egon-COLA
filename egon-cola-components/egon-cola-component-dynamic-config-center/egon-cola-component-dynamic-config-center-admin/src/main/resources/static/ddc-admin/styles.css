@@ -93,6 +93,25 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(48, 217, 200, 0.12);
 }
 textarea { resize: vertical; }
+.config-editor {
+  min-height: 300px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.58;
+  tab-size: 2;
+  white-space: pre;
+}
+.config-editor-small { min-height: 108px; }
+.editor-notice {
+  margin: -5px 0 0;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 8px 8px 0;
+  color: #b7d7e5;
+  background: rgba(48, 217, 200, 0.07);
+  padding: 9px 11px;
+  font-size: 12px;
+  line-height: 1.5;
+}
 
 .button, .icon-button {
   border: 0;
@@ -164,10 +183,12 @@ tbody tr.clickable { cursor: pointer; }
 .badge { display: inline-flex; border-radius: 999px; padding: 4px 8px; font-size: 10px; font-weight: 850; letter-spacing: 0.04em; }
 .badge-online { color: var(--color-green); background: rgba(101, 230, 168, 0.13); }
 .badge-neutral { color: #b9cbd9; background: rgba(143, 169, 191, 0.12); }
+.badge-format { color: var(--color-primary); background: rgba(48, 217, 200, 0.12); }
+.config-preview { min-width: 260px; max-width: 560px; color: #d8eaf5; }
 .actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .empty { margin: 0; padding: 28px; color: var(--color-muted); text-align: center; }
 
-dialog { width: min(720px, calc(100% - 32px)); max-height: calc(100vh - 48px); overflow: auto; border: 1px solid var(--color-border); border-radius: 18px; color: var(--color-text); background: #0c1d31; box-shadow: var(--shadow); padding: 0; }
+dialog { width: min(860px, calc(100% - 32px)); max-height: calc(100vh - 48px); overflow: auto; border: 1px solid var(--color-border); border-radius: 18px; color: var(--color-text); background: #0c1d31; box-shadow: var(--shadow); padding: 0; }
 dialog::backdrop { background: rgba(1, 8, 15, 0.78); backdrop-filter: blur(7px); }
 .dialog-form { padding: 25px; }
 .dialog-heading h2 { margin-bottom: 0; }

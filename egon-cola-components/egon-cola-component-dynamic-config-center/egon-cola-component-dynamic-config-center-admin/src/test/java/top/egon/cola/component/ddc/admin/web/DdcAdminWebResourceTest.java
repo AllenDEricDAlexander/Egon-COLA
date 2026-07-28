@@ -16,6 +16,7 @@ class DdcAdminWebResourceTest {
         String script = resource("static/ddc-admin/app.js");
         String styles = resource("static/ddc-admin/styles.css");
         String uuid = resource("static/ddc-admin/uuid.mjs");
+        String configFormat = resource("static/ddc-admin/config-format.mjs");
 
         assertThat(html)
                 .contains("DDC Admin")
@@ -30,6 +31,7 @@ class DdcAdminWebResourceTest {
                 .contains("sessionStorage");
         assertThat(styles).contains("--color-primary");
         assertThat(uuid).contains("export const uuidV7");
+        assertThat(configFormat).isNotBlank();
     }
 
     private String resource(String path) throws IOException {

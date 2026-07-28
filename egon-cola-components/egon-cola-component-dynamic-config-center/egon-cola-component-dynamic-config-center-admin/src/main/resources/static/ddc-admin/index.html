@@ -119,7 +119,7 @@
           </div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>配置键</th><th>类型</th><th>当前值</th><th>版本</th><th>更新时间</th><th>操作</th></tr></thead>
+              <thead><tr><th>配置键</th><th>值类型</th><th>文件类型</th><th>配置内容</th><th>版本</th><th>更新时间</th><th>操作</th></tr></thead>
               <tbody id="config-table"></tbody>
             </table>
           </div>
@@ -147,10 +147,12 @@
             <option>LONG</option><option>DOUBLE</option><option>JSON</option>
           </select>
         </label>
+        <label>文件类型<input id="editor-format" value="TXT" readonly></label>
         <label>当前版本<input id="editor-version" type="number" readonly></label>
       </div>
-      <label>配置值<textarea id="editor-value" rows="7" required></textarea></label>
-      <label>默认值<textarea id="editor-default" rows="3"></textarea></label>
+      <label>配置内容<textarea id="editor-value" class="config-editor" rows="14" spellcheck="false" required></textarea></label>
+      <p id="editor-format-notice" class="editor-notice"></p>
+      <label>默认值<textarea id="editor-default" class="config-editor config-editor-small" rows="4" spellcheck="false"></textarea></label>
       <label>说明<input id="editor-description"></label>
       <label id="change-reason-field" class="hidden">变更原因<input id="editor-change-reason" value="DDC Admin Web update"></label>
       <div class="dialog-actions">

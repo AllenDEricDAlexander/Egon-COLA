@@ -1,4 +1,8 @@
 import { uuidV7 } from './uuid.mjs'
+import {
+  prepareConfigEditor,
+  serializeConfigEditor,
+} from './config-format.mjs'
 
 const tokenKey = 'egon.ddc.admin.token'
 
@@ -8,6 +12,8 @@ const state = {
   instances: [],
   configs: [],
   selectedService: null,
+  configEditor: null,
+  defaultEditor: null,
 }
 
 const element = (id) => document.getElementById(id)
@@ -232,8 +238,9 @@ const loadConfigs = async () => {
 const renderConfigs = () => {
   const rows = state.configs.map((config) => {
     const row = document.createElement('tr')
-    const value = config.configValue ?? ''
-    const valueCell = textCell(value.length > 80 ? `${value.slice(0, 80)}…` : value, 'mono')
+    const editor = prepareConfigEditor(config)
+    const value = editor.content.replace(/\s+/g, ' ').trim()
+    const valueCell = textCell(value.length > 96 ? `${value.slice(0, 96)}…` : value, 'mono config-preview')
     if (config.description) {
       const description = document.createElement('span')
       description.className = 'subtle'
@@ -247,9 +254,15 @@ const renderConfigs = () => {
     const publish = actionButton('发布', 'button-primary', () => publishConfig(config).catch(handleError))
     actions.append(edit, publish)
     actionCell.append(actions)
+    const formatCell = document.createElement('td')
+    const formatBadge = document.createElement('span')
+    formatBadge.className = 'badge badge-format'
+    formatBadge.textContent = editor.format
+    formatCell.append(formatBadge)
     row.append(
       textCell(config.configKey, 'mono'),
       textCell(config.valueType),
+      formatCell,
       valueCell,
       textCell(config.currentVersion),
       textCell(formatTime(config.updatedAt)),
@@ -309,6 +322,16 @@ const ensureScope = async (requestedScope = scope()) => {
 const openConfigDialog = (config = null) => {
   const current = config ?? scope()
   const editing = Boolean(config?.id)
+  state.configEditor = prepareConfigEditor({
+    ...current,
+    configValue: config?.configValue ?? '',
+    valueType: config?.valueType ?? 'STRING',
+  })
+  state.defaultEditor = prepareConfigEditor({
+    ...current,
+    configValue: config?.defaultValue ?? '',
+    valueType: config?.valueType ?? 'STRING',
+  })
   element('config-dialog-title').textContent = editing ? '编辑配置' : '新建配置'
   element('config-id').value = config?.id ?? ''
   element('editor-app').value = current.appCode ?? ''
@@ -317,23 +340,43 @@ const openConfigDialog = (config = null) => {
   element('editor-key').value = config?.configKey ?? ''
   element('editor-type').value = config?.valueType ?? 'STRING'
   element('editor-version').value = config?.currentVersion ?? ''
-  element('editor-value').value = config?.configValue ?? ''
-  element('editor-default').value = config?.defaultValue ?? ''
+  element('editor-value').value = state.configEditor.content
+  element('editor-default').value = state.defaultEditor.content
   element('editor-description').value = config?.description ?? ''
   ;['editor-app', 'editor-env', 'editor-namespace', 'editor-key'].forEach((id) => {
     element(id).readOnly = editing
   })
   element('change-reason-field').classList.toggle('hidden', !editing)
+  renderEditorFormat()
   configDialog.showModal()
+}
+
+const currentEditorConfig = () => ({
+  configKey: element('editor-key').value.trim(),
+  valueType: element('editor-type').value,
+  configValue: element('editor-value').value,
+})
+
+const renderEditorFormat = () => {
+  if (!state.configEditor || state.configEditor.adapter === 'PLAIN') {
+    state.configEditor = prepareConfigEditor(currentEditorConfig())
+  }
+  element('editor-format').value = state.configEditor.format
+  element('editor-format-notice').textContent = state.configEditor.notice
+  element('editor-value').dataset.format = state.configEditor.format.toLowerCase()
 }
 
 const saveConfig = async () => {
   const id = element('config-id').value
+  const configValue = await serializeConfigEditor(
+    state.configEditor ?? prepareConfigEditor(currentEditorConfig()),
+    element('editor-value').value,
+  )
   if (id) {
     await api(`/api/v1/ddc/configs/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify({
-        configValue: element('editor-value').value,
+        configValue,
         changeReason: element('editor-change-reason').value || 'DDC Admin Web update',
         currentVersion: Number(element('editor-version').value),
       }),
@@ -345,13 +388,23 @@ const saveConfig = async () => {
       namespace: element('editor-namespace').value.trim(),
     }
     await ensureScope(editorScope)
+    const defaultContent = element('editor-default').value
+    const defaultValue = defaultContent.trim() === ''
+      ? ''
+      : await serializeConfigEditor(
+        prepareConfigEditor({
+          ...currentEditorConfig(),
+          configValue: defaultContent,
+        }),
+        defaultContent,
+      )
     await api('/api/v1/ddc/configs', {
       method: 'POST',
       body: JSON.stringify({
         ...editorScope,
         configKey: element('editor-key').value.trim(),
-        configValue: element('editor-value').value,
-        defaultValue: element('editor-default').value,
+        configValue,
+        defaultValue,
         valueType: element('editor-type').value,
         description: element('editor-description').value,
       }),
@@ -400,6 +453,9 @@ element('ensure-scope').addEventListener('click', () => ensureScope().catch(hand
 element('new-config').addEventListener('click', () => openConfigDialog())
 element('close-config-dialog').addEventListener('click', () => configDialog.close())
 element('cancel-config').addEventListener('click', () => configDialog.close())
+;['editor-key', 'editor-type', 'editor-value'].forEach((id) => {
+  element(id).addEventListener('input', renderEditorFormat)
+})
 
 element('config-filter').addEventListener('submit', (event) => {
   event.preventDefault()
