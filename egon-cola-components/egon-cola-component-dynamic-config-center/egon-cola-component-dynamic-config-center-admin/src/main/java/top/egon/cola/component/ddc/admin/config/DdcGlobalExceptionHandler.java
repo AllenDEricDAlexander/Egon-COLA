@@ -4,9 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import top.egon.cola.component.common.core.exception.EgonException;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.exception.CommonException;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 
 @RestControllerAdvice
@@ -16,14 +15,14 @@ public class DdcGlobalExceptionHandler {
             DdcGlobalExceptionHandler.class
     );
 
-    @ExceptionHandler(EgonException.class)
-    public ResultDto<Void> handleEgon(EgonException exception) {
-        return ResultDtos.failure(exception);
+    @ExceptionHandler(CommonException.class)
+    public ResultRecord<Void> handleCommon(CommonException exception) {
+        return ResultRecord.failure(exception);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResultDto<Void> handleUnexpected(Exception exception) {
+    public ResultRecord<Void> handleUnexpected(Exception exception) {
         log.error("Unexpected DDC request failure", exception);
-        return ResultDtos.failure(DdcErrorStatus.INTERNAL_FAILURE);
+        return ResultRecord.failure(DdcErrorStatus.INTERNAL_FAILURE);
     }
 }

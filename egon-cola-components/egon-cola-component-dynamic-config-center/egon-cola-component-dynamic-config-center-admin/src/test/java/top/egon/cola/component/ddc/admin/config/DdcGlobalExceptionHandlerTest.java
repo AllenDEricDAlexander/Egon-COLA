@@ -1,7 +1,7 @@
 package top.egon.cola.component.ddc.admin.config;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.result.dto.ResultDto;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 
@@ -14,7 +14,7 @@ class DdcGlobalExceptionHandlerTest {
 
     @Test
     void preservesAdminExceptionStatus() {
-        ResultDto<Void> result = handler.handleEgon(
+        ResultRecord<Void> result = handler.handleCommon(
                 new DdcAdminException("service registration is invalid")
         );
 

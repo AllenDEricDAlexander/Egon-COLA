@@ -5,8 +5,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.ddc.admin.service.DdcAppService;
 
@@ -23,12 +22,12 @@ public class DdcAppController {
     }
 
     @GetMapping
-    public ResultDto<List<DdcAppEntity>> list() {
-        return ResultDtos.success(appService.list());
+    public ResultRecord<List<DdcAppEntity>> list() {
+        return ResultRecord.success(appService.list());
     }
 
     @PostMapping
-    public ResultDto<DdcAppEntity> save(@RequestBody DdcAppEntity request) {
-        return ResultDtos.success(appService.save(request));
+    public ResultRecord<DdcAppEntity> save(@RequestBody DdcAppEntity request) {
+        return ResultRecord.success(appService.save(request));
     }
 }

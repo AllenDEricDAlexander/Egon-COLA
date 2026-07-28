@@ -1,11 +1,11 @@
 package top.egon.cola.component.ddc.common;
 
-import top.egon.cola.component.common.core.code.ErrorStatus;
-import top.egon.cola.component.common.core.exception.EgonException;
+import top.egon.cola.component.common.enums.ErrorStatus;
+import top.egon.cola.component.common.exception.CommonException;
 
 import java.io.Serial;
 
-public class DdcException extends EgonException {
+public class DdcException extends CommonException {
 
     @Serial
     private static final long serialVersionUID = 1L;

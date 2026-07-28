@@ -14,7 +14,12 @@
     <artifactId>egon-cola-component-common-core</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-component-common-core</name>
-    <description>Core status, exception, model, result, trace, and structure contracts for Egon COLA.</description>
+    <description>Core enums, exception, pojo, trace, and converter contracts for Egon COLA.</description>
+
+    <properties>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <mapstruct-plus.version>1.5.1</mapstruct-plus.version>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -35,5 +40,39 @@
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.linpeilie</groupId>
+            <artifactId>mapstruct-plus</artifactId>
+            <version>${mapstruct-plus.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                        <path>
+                            <groupId>io.github.linpeilie</groupId>
+                            <artifactId>mapstruct-plus-processor</artifactId>
+                            <version>${mapstruct-plus.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

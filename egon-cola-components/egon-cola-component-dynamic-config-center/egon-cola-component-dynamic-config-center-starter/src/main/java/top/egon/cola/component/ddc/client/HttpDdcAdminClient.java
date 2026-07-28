@@ -8,7 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.component.common.result.dto.ResultDto;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
@@ -135,7 +135,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
         query.put("env", List.of(properties.getEnv()));
         query.put("namespace", List.of(properties.getNamespace()));
         DdcCanonicalRequest canonicalRequest = canonicalRequest("GET", path, query, new byte[0]);
-        ResultDto<List<DdcConfigValue>> result = restClient.get()
+        ResultRecord<List<DdcConfigValue>> result = restClient.get()
                 .uri(URI.create(path + "?" + canonicalRequest.canonicalQuery()))
                 .headers(headers -> sign(headers, canonicalRequest))
                 .retrieve()
@@ -150,7 +150,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
         post(
                 "/api/v1/ddc/openapi/defaults/report",
                 request,
-                new ParameterizedTypeReference<ResultDto<Void>>() {
+                new ParameterizedTypeReference<ResultRecord<Void>>() {
                 },
                 false
         );
@@ -161,7 +161,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
         post(
                 "/api/v1/ddc/openapi/publish/ack",
                 request,
-                new ParameterizedTypeReference<ResultDto<Void>>() {
+                new ParameterizedTypeReference<ResultRecord<Void>>() {
                 },
                 false
         );
@@ -169,11 +169,11 @@ public class HttpDdcAdminClient implements DdcAdminClient {
 
     private <T> T post(String path,
                        Object request,
-                       ParameterizedTypeReference<ResultDto<T>> responseType,
+                       ParameterizedTypeReference<ResultRecord<T>> responseType,
                        boolean required) {
         byte[] body = serialize(request);
         DdcCanonicalRequest canonicalRequest = canonicalRequest("POST", path, Map.of(), body);
-        ResultDto<T> result = restClient.post()
+        ResultRecord<T> result = restClient.post()
                 .uri(path)
                 .contentType(MediaType.APPLICATION_JSON)
                 .headers(headers -> sign(headers, canonicalRequest))
@@ -183,7 +183,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
         return data(result, required);
     }
 
-    private <T> T data(ResultDto<T> result, boolean required) {
+    private <T> T data(ResultRecord<T> result, boolean required) {
         if (result == null) {
             throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE);
         }

@@ -4,8 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.manifest.DdcComponentManifest;
 
 @RestController
@@ -16,8 +15,8 @@ public class DdcManifestController {
     private String version;
 
     @GetMapping("/manifest")
-    public ResultDto<DdcComponentManifest> manifest() {
-        return ResultDtos.success(DdcComponentManifest.builder()
+    public ResultRecord<DdcComponentManifest> manifest() {
+        return ResultRecord.success(DdcComponentManifest.builder()
                 .component("dynamic-config-center")
                 .displayName("Dynamic Config Center")
                 .version(version)

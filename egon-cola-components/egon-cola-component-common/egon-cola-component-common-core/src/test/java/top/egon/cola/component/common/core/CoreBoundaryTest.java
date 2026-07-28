@@ -12,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class CoreBoundaryTest {
 
     @Test
-    void coreSourceDoesNotImportRuntimeFrameworksOrOtherCommonModules() throws Exception {
-        Path sourceRoot = Path.of("src/main/java/top/egon/cola/component/common/core");
+    void commonCoreSourceDoesNotImportRuntimeFrameworksOrOldSplitPackages() throws Exception {
+        Path sourceRoot = Path.of("src/main/java/top/egon/cola/component/common");
         try (Stream<Path> files = Files.walk(sourceRoot)) {
-            List<String> badImports = files
+            List<String> badLines = files
                     .filter(path -> path.toString().endsWith(".java"))
                     .flatMap(path -> {
                         try {
@@ -29,14 +29,18 @@ class CoreBoundaryTest {
                             || line.startsWith("import javax.servlet.")
                             || line.startsWith("import org.redisson.")
                             || line.startsWith("import redis.")
-                            || line.startsWith("import com.fasterxml.jackson.")
                             || line.startsWith("import lombok.")
                             || line.startsWith("import com.alibaba.cola.")
+                            || line.startsWith("package top.egon.cola.component.common.core.")
+                            || line.startsWith("package top.egon.cola.component.common.model.")
+                            || line.startsWith("package top.egon.cola.component.common.result.")
+                            || line.startsWith("package top.egon.cola.component.common.structure.")
+                            || line.startsWith("import top.egon.cola.component.common.core.")
                             || line.startsWith("import top.egon.cola.component.common.model.")
                             || line.startsWith("import top.egon.cola.component.common.result.")
-                            || line.startsWith("import top.egon.cola.component.common.trace."))
+                            || line.startsWith("import top.egon.cola.component.common.structure."))
                     .toList();
-            assertEquals(List.of(), badImports);
+            assertEquals(List.of(), badLines);
         }
     }
 }

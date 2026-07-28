@@ -9,7 +9,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriUtils;
-import top.egon.cola.component.common.result.dto.ResultDto;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
@@ -131,7 +131,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
                 ),
                 Map.of(),
                 request,
-                new ParameterizedTypeReference<ResultDto<Void>>() {
+                new ParameterizedTypeReference<ResultRecord<Void>>() {
                 },
                 false
         );
@@ -231,7 +231,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
             String path,
             Map<String, List<String>> query,
             Object request,
-            ParameterizedTypeReference<ResultDto<T>> responseType,
+            ParameterizedTypeReference<ResultRecord<T>> responseType,
             boolean required
     ) {
         DdcManagementRequestFactory.SignedRequest signedRequest =
@@ -243,7 +243,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
             if (signedRequest.hasBody()) {
                 spec.contentType(MediaType.APPLICATION_JSON).body(signedRequest.body());
             }
-            ResultDto<T> result = spec.retrieve().body(responseType);
+            ResultRecord<T> result = spec.retrieve().body(responseType);
             return data(result, required);
         } catch (DdcManagementClientException exception) {
             throw exception;
@@ -256,7 +256,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
         }
     }
 
-    private <T> T data(ResultDto<T> result, boolean required) {
+    private <T> T data(ResultRecord<T> result, boolean required) {
         if (result == null) {
             throw new DdcManagementClientException(
                     "DDC_MANAGEMENT_EMPTY_RESPONSE",

@@ -4,15 +4,15 @@
 
 ## 简要介绍
 
-`egon-cola-component-common` 是 Egon COLA 组件体系的企业级通用能力聚合模块，提供错误码、异常、请求模型、分页模型、响应模型、链路追踪、ID、加密编码、数据脱敏、树结构构建和测试边界断言等基础能力。
+`egon-cola-component-common` 是 Egon COLA 组件体系的通用能力聚合模块，提供结果 record、分页元数据、请求/查询 PO、枚举错误码、异常、链路上下文、树结构构建、转换器契约、ID、加密、脱敏和源码边界断言等基础能力。
 
-这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 现在承载稳定通用契约，ID、加密和脱敏能力继续作为独立工具模块保留。
+这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，ID、加密和脱敏能力继续作为独立工具模块保留。
 
 ## 模块结构
 
 | Module | 说明 |
 |---|---|
-| `egon-cola-component-common-core` | 错误状态、异常、枚举契约、请求/分页模型、结果 DTO/Model、链路上下文和树结构构建 |
+| `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record、链路上下文和树结构构建 |
 | `egon-cola-component-common-id` | UUIDv7 生成工具与 `IdGenerator` 抽象 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
 | `egon-cola-component-common-mask` | 手机号、邮箱、首尾保留等稳定脱敏规则 |
@@ -20,39 +20,33 @@
 
 ## 功能说明
 
-### 统一错误状态和异常
+### 统一错误码和异常
 
-`common-core` 以 `CommonStatus` 作为默认错误状态集合，所有状态使用 `int code`，适合 API 响应、日志检索和跨系统传递。业务可以直接使用 `EgonBusinessException`、`EgonValidationException`、`EgonRemoteCallException` 等异常类型，也可以实现 `ErrorStatus` 扩展自己的错误状态。
+`common-core` 以 `ResultCode` 作为默认结果码集合。所有结果码都是 `int`，并实现 `ErrorStatus`，适合 API 响应、日志检索和跨系统传递。业务可以直接使用 `BusinessException`、`ValidationException`、`RemoteCallException` 等异常类型，也可以实现 `ErrorStatus` 扩展自己的错误状态。
 
-### 请求、查询和分页模型
+common-core 的异常类名不再使用 `Egon` 前缀。
 
-`common-core` 中的主要模型契约使用 Java record，并带有稳定 JSON 字段名和字段顺序：
+### POJO Record
+
+`common-core` 中的主要契约使用 Java record，并保留稳定 Jackson 字段名和字段顺序：
 
 | 契约 | 用途 |
 |---|---|
+| `ResultRecord<T>` | 单对象统一响应，包含 `success`、`code`、`status`、`message`、`data`、`traceId`、`timestamp` |
+| `PageResultRecord<T>` | 分页统一响应，包含 `records`，并组合 `PageMetaRecord` |
+| `PageMetaRecord` | 分页元数据：`total`、`pageNo`、`pageSize`、`pages`、`hasNext`、`hasPrevious` |
 | `PageQuery` | 归一化页码和页大小，页码从 1 开始，默认页大小 10，最大页大小 500 |
 | `SortQuery` | 可选排序字段和 `ASC` / `DESC` 排序方向 |
-| `TimeRangeQuery` | 可选开始/结束时间范围 |
 | `BaseRequest` | 请求元数据容器 |
 | `OperatorContext` | 操作人身份上下文 |
-| `PageModel` / `PageSlice` | 内部分页数据结构，记录集合会被防御性复制为不可变列表 |
+| `PageSlice<T>` | 不带总数的切片分页 |
+| `TreeBuilder`、`TreeNode`、`TreeOptions` | 平铺节点到父子树结构构建 |
 
-### 对外 DTO 与内部 Model 分离
+`ResultRecord` 和 `PageResultRecord` 直接提供静态工厂方法，不再额外提供结果工厂类。
 
-`common-core` 中的结果契约区分对外 API 响应和内部应用/服务结果：
+### Converter 契约
 
-| 场景 | 类型 |
-|---|---|
-| Controller 对外返回 | `ResultDto`、`PageResultDto`、`ErrorResultDto` |
-| 应用服务/领域服务内部返回 | `ResultModel`、`PageResultModel`、`ErrorResultModel` |
-| 对外响应工厂 | `ResultDtos` |
-| 内部结果工厂 | `ResultModels` |
-
-`ResultDtos` 会读取 `TraceContext.getTraceId()`，把当前 MDC 中的 `traceId` 写入响应，便于日志和接口结果关联。
-
-### 基础工具能力
-
-`common-id` 提供 UUIDv7，适合生成趋势递增的业务 ID。`common-crypto` 提供稳定的 UTF-8 编码/摘要方法。`common-mask` 负责常用字段脱敏。`common-core` 中的 `TreeBuilder` 可以把平铺节点构造成父子树。
+`BaseConverter<S, T>` 定义 `toTarget`、`toSource`、列表转换，以及简单的 `Date` / `String` 默认转换。MapStruct 和 MapStruct Plus 示例放在 `common-core` 的 test 包下，生产代码只暴露轻量契约。
 
 ## 依赖方式
 
@@ -95,9 +89,9 @@
 </dependencies>
 ```
 
-## 完整的使用示例
+## 使用示例
 
-下面示例展示一个查询订单列表的 Controller：它使用 `PageQuery` 归一化分页参数，用 `ResultDtos` 输出对外响应，用 `TraceContext` 注入响应链路 ID，用 `UuidV7` 生成业务 ID，用 `Masking` 和 `Hmacs` 处理展示和签名。
+下面示例展示一个查询订单列表的 Controller：它使用 `PageQuery` 归一化分页参数，用 `PageResultRecord` 和 `ResultRecord` 输出响应，用 `TraceContext` 注入响应链路 ID，用 `UuidV7` 生成业务 ID，用 `Masking` 和 `Hmacs` 处理展示和签名。
 
 ```java
 package demo.order;
@@ -109,10 +103,9 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.crypto.hmac.Hmacs;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.common.mask.Masking;
-import top.egon.cola.component.common.model.query.PageQuery;
-import top.egon.cola.component.common.result.dto.PageResultDto;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.PageQuery;
+import top.egon.cola.component.common.pojo.PageResultRecord;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.List;
@@ -128,7 +121,7 @@ public class OrderController {
     }
 
     @GetMapping
-    public PageResultDto<OrderView> list(OrderListQuery query) {
+    public PageResultRecord<OrderView> list(OrderListQuery query) {
         TraceContext.setTraceId(MDC.get("traceId"));
         PageQuery page = new PageQuery(query.pageNo(), query.pageSize());
 
@@ -137,14 +130,14 @@ public class OrderController {
                 .map(OrderView::from)
                 .toList();
 
-        return ResultDtos.page(records, queryService.count(), page.pageNo(), page.pageSize());
+        return PageResultRecord.success(records, queryService.count(), page.pageNo(), page.pageSize());
     }
 
     @GetMapping("/new-id")
-    public ResultDto<NewOrderIdView> newOrderId() {
+    public ResultRecord<NewOrderIdView> newOrderId() {
         String orderId = UuidV7.simpleString();
         String signature = Hmacs.sha256Hex(orderId, "demo-secret");
-        return ResultDtos.success(new NewOrderIdView(orderId, signature));
+        return ResultRecord.success(new NewOrderIdView(orderId, signature));
     }
 
     public record OrderListQuery(int pageNo, int pageSize) {
@@ -161,41 +154,11 @@ public class OrderController {
 }
 ```
 
-配套服务可以返回内部模型，Controller 再决定是否转换为 DTO：
-
-```java
-package demo.order;
-
-import top.egon.cola.component.common.result.factory.ResultModels;
-import top.egon.cola.component.common.result.model.PageResultModel;
-
-import java.util.List;
-
-public class OrderQueryService {
-
-    public List<OrderRecord> list(int offset, int pageSize) {
-        return List.of(new OrderRecord("O-1001", "13800138000"));
-    }
-
-    public long count() {
-        return 1L;
-    }
-
-    public PageResultModel<OrderRecord> page(int pageNo, int pageSize) {
-        List<OrderRecord> records = list(Math.max(pageNo - 1, 0) * pageSize, pageSize);
-        return ResultModels.page(records, count(), pageNo, pageSize);
-    }
-}
-
-record OrderRecord(String orderId, String buyerMobile) {
-}
-```
-
 树结构构建示例：
 
 ```java
-import top.egon.cola.component.common.structure.tree.TreeBuilder;
-import top.egon.cola.component.common.structure.tree.TreeNode;
+import top.egon.cola.component.common.pojo.TreeBuilder;
+import top.egon.cola.component.common.pojo.TreeNode;
 
 import java.util.List;
 
@@ -208,23 +171,21 @@ List<TreeNode<Long, String>> nodes = List.of(
 List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 ```
 
-## 设计思想和实现细节
+## 设计思想
 
-### 设计思想
+1. 稳定通用契约收敛进 `common-core`，业务方不需要为 result/page/query/trace/tree 这类基础语义组合多个小 Jar。
+2. 公共 PO 契约优先使用 Java record，保持不可变、可序列化、JSON 字段顺序稳定。
+3. 用 record 自身的静态工厂方法替代独立的 `ResultDtos` 或 `ResultModels` 工厂类。
+4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 与 SLF4J 是显式轻量依赖，因为 core 负责 JSON 契约和链路上下文。
+5. 只暴露 converter 契约，不在生产代码里提供生成式 converter 实现。MapStruct 和 MapStruct Plus 实现由业务侧或测试示例承载。
 
-1. 稳定通用契约收敛进 `common-core`，业务方不需要为请求/结果/trace/tree 这类基础语义组合多个小 Jar。
-2. 对外 DTO 与内部 Model 分离，避免内部调用结果被 Controller 响应格式绑死。
-3. 公共契约优先使用 Java record，保持不可变、可序列化、字段顺序稳定。
-4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 与 SLF4J 是显式轻量依赖，因为 core 现在承载 JSON 契约和链路上下文。
-5. 工具能力只保留稳定、明确、低侵入的函数，不引入业务语义。
+## 实现细节
 
-### 实现细节
-
+- `ResultRecord.success` 和 `PageResultRecord.success` 会读取 `TraceContext` 并带上当前 `traceId`。
+- `ResultRecord` 和 `PageResultRecord` 保留稳定的 `status` 字段，默认由 `ResultCode` 提供 `code`、`status` 和 `message`。
+- `PageResultRecord` 组合 `PageMetaRecord`，分页元数据不再平铺进结果 record。
+- `PageResultRecord` 和 `PageSlice` 会防御性复制 records，并暴露不可变列表。
 - `PageQuery` 在构造时完成页码和页大小归一化，`offset()` 根据归一化后的值计算数据库偏移量。
-- `PageModel` 会复制传入 records 并包装为不可变列表，避免分页结果被外部修改。
-- `ResultDtos.success`、`ResultDtos.page` 会读取 `TraceContext`，把 MDC `traceId` 写入响应。
-- `UuidV7` 基于 time-ordered epoch UUID，适合日志排序和索引局部性更好的 ID 场景。
-- `Masking.mobile` 对标准手机号保留前三后四，短字符串走首尾保留规则。
 - `TreeBuilder` 使用 `LinkedHashMap` 保持输入顺序，默认把孤儿节点作为根节点保留。
 - `SourceBoundaryAssert` 位于 `common-test`，用于组件内部测试源码边界，不应作为业务运行时依赖。
 
@@ -232,17 +193,21 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 
 | 旧 API | 新 API |
 |---|---|
-| `top.egon.cola.component.common.result.Result` | `ResultDto` 或 `ResultModel` |
-| `top.egon.cola.component.common.result.PageResult` | `PageResultDto` 或 `PageResultModel` |
-| `top.egon.cola.component.common.exception.BusinessException` | `EgonBusinessException` |
-| `top.egon.cola.component.common.exception.SystemException` | `EgonSystemException` |
-| `top.egon.cola.component.common.exception.ErrorCodes` | `CommonStatus` |
+| `CommonStatus` | `ResultCode` |
+| 旧前缀通用异常 | `BusinessException`、`ValidationException`、`RemoteCallException` |
+| `ResultDto`、`ResultModel` | `ResultRecord` |
+| `PageResultDto`、`PageResultModel` | `PageResultRecord` |
+| `ResultDtos`、`ResultModels` | `ResultRecord` 和 `PageResultRecord` 自身的静态工厂方法 |
+| `PageMeta` | `PageMetaRecord` |
+| `PageModel` | 响应分页用 `PageResultRecord`，切片数据用 `PageSlice` |
+| `top.egon.cola.component.common.model.*` | `top.egon.cola.component.common.pojo.*` |
+| `top.egon.cola.component.common.result.*` | `top.egon.cola.component.common.pojo.*` |
+| `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.util.IdUtils` | `UuidV7` 或 `UuidV7Generator` |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`、`Hmacs`、`Base64s`、`Hexes` |
 | `top.egon.cola.component.common.util.MaskingUtils` | `Masking` |
-| `top.egon.cola.component.common.util.TreeUtils` | `TreeBuilder` |
 
-旧的 `util` 聚合包、JavaBean 风格通用契约、`BaseEntity` 和 `AuditableModel` 已被有意移除。
+旧的 `util` 聚合包、拆分的 `model/result/structure` 包、独立结果工厂、`BaseEntity` 和 `AuditableModel` 已被有意移除。
 
 ## 验证命令
 

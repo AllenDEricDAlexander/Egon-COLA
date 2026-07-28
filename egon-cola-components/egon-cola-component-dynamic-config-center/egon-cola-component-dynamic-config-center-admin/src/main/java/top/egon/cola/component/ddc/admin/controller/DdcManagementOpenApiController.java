@@ -10,8 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.security.DdcServicePrincipal;
 import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
@@ -40,13 +39,13 @@ public class DdcManagementOpenApiController {
     }
 
     @GetMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
-    public ResultDto<DdcManagementConfig> config(
+    public ResultRecord<DdcManagementConfig> config(
             @PathVariable("appCode") String appCode,
             @PathVariable("env") String env,
             @PathVariable("namespace") String namespace,
             @PathVariable("configKey") String configKey
     ) {
-        return ResultDtos.success(facade.findConfig(new DdcManagementConfigQuery(
+        return ResultRecord.success(facade.findConfig(new DdcManagementConfigQuery(
                 appCode,
                 env,
                 namespace,
@@ -55,7 +54,7 @@ public class DdcManagementOpenApiController {
     }
 
     @PutMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
-    public ResultDto<DdcManagementConfig> upsert(
+    public ResultRecord<DdcManagementConfig> upsert(
             @PathVariable("appCode") String appCode,
             @PathVariable("env") String env,
             @PathVariable("namespace") String namespace,
@@ -63,7 +62,7 @@ public class DdcManagementOpenApiController {
             @RequestBody DdcManagementConfigUpsertRequest request,
             HttpServletRequest servletRequest
     ) {
-        return ResultDtos.success(facade.upsert(new DdcManagementConfigUpsertRequest(
+        return ResultRecord.success(facade.upsert(new DdcManagementConfigUpsertRequest(
                 appCode,
                 env,
                 namespace,
@@ -77,7 +76,7 @@ public class DdcManagementOpenApiController {
     }
 
     @DeleteMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
-    public ResultDto<Void> delete(
+    public ResultRecord<Void> delete(
             @PathVariable("appCode") String appCode,
             @PathVariable("env") String env,
             @PathVariable("namespace") String namespace,
@@ -94,11 +93,11 @@ public class DdcManagementOpenApiController {
                 trustedOperator(servletRequest, request.operator()),
                 request.reason()
         ));
-        return ResultDtos.success();
+        return ResultRecord.success(null);
     }
 
     @PostMapping("/configs/{appCode}/{env}/{namespace}/{configKey}/publish")
-    public ResultDto<DdcManagementPublishResult> publish(
+    public ResultRecord<DdcManagementPublishResult> publish(
             @PathVariable("appCode") String appCode,
             @PathVariable("env") String env,
             @PathVariable("namespace") String namespace,
@@ -106,7 +105,7 @@ public class DdcManagementOpenApiController {
             @RequestBody DdcManagementPublishRequest request,
             HttpServletRequest servletRequest
     ) {
-        return ResultDtos.success(facade.publish(new DdcManagementPublishRequest(
+        return ResultRecord.success(facade.publish(new DdcManagementPublishRequest(
                 appCode,
                 env,
                 namespace,
@@ -120,32 +119,32 @@ public class DdcManagementOpenApiController {
     }
 
     @GetMapping("/publish-tasks/{changeId}")
-    public ResultDto<DdcManagementPublishTask> task(
+    public ResultRecord<DdcManagementPublishTask> task(
             @PathVariable("changeId") String changeId
     ) {
-        return ResultDtos.success(facade.getPublishTask(changeId));
+        return ResultRecord.success(facade.getPublishTask(changeId));
     }
 
     @PostMapping("/publish-tasks/{changeId}/retry")
-    public ResultDto<DdcManagementPublishResult> retry(
+    public ResultRecord<DdcManagementPublishResult> retry(
             @PathVariable("changeId") String changeId
     ) {
-        return ResultDtos.success(facade.retry(changeId));
+        return ResultRecord.success(facade.retry(changeId));
     }
 
     @GetMapping("/instances")
-    public ResultDto<List<DdcManagementConfigClientInstance>> configClients(
+    public ResultRecord<List<DdcManagementConfigClientInstance>> configClients(
             @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace
     ) {
-        return ResultDtos.success(facade.getConfigClients(
+        return ResultRecord.success(facade.getConfigClients(
                 new DdcManagementInstanceQuery(appCode, env, namespace)
         ));
     }
 
     @GetMapping("/registry/services")
-    public ResultDto<DdcManagementServiceCatalog> services(
+    public ResultRecord<DdcManagementServiceCatalog> services(
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -154,7 +153,7 @@ public class DdcManagementOpenApiController {
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version
     ) {
-        return ResultDtos.success(facade.getServiceKeys(new DdcManagementServiceQuery(
+        return ResultRecord.success(facade.getServiceKeys(new DdcManagementServiceQuery(
                 env,
                 namespace,
                 serviceKind,
@@ -166,7 +165,7 @@ public class DdcManagementOpenApiController {
     }
 
     @GetMapping("/registry/instances")
-    public ResultDto<DdcManagementServiceSnapshot> serviceInstances(
+    public ResultRecord<DdcManagementServiceSnapshot> serviceInstances(
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -175,7 +174,7 @@ public class DdcManagementOpenApiController {
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version
     ) {
-        return ResultDtos.success(facade.getInstances(new DdcManagementServiceQuery(
+        return ResultRecord.success(facade.getInstances(new DdcManagementServiceQuery(
                 env,
                 namespace,
                 serviceKind,

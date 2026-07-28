@@ -5,8 +5,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
@@ -30,18 +29,18 @@ public class DdcPublishTaskController {
     }
 
     @GetMapping
-    public ResultDto<List<DdcPublishTaskEntity>> list() {
-        return ResultDtos.success(publishTaskRepository.findAll());
+    public ResultRecord<List<DdcPublishTaskEntity>> list() {
+        return ResultRecord.success(publishTaskRepository.findAll());
     }
 
     @GetMapping("/{changeId}")
-    public ResultDto<DdcPublishTaskEntity> detail(@PathVariable("changeId") String changeId) {
-        return ResultDtos.success(publishTaskRepository.findByChangeId(changeId).orElse(null));
+    public ResultRecord<DdcPublishTaskEntity> detail(@PathVariable("changeId") String changeId) {
+        return ResultRecord.success(publishTaskRepository.findByChangeId(changeId).orElse(null));
     }
 
     @PostMapping("/{changeId}/retry")
-    public ResultDto<DdcPublishResultVO> retry(
+    public ResultRecord<DdcPublishResultVO> retry(
             @PathVariable("changeId") String changeId) {
-        return ResultDtos.success(publishService.retry(changeId));
+        return ResultRecord.success(publishService.retry(changeId));
     }
 }

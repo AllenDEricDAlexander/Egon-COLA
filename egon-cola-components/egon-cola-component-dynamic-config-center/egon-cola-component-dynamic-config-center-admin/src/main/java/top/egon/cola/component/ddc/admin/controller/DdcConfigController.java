@@ -10,8 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigRollbackRequest;
@@ -39,38 +38,38 @@ public class DdcConfigController {
     }
 
     @GetMapping
-    public ResultDto<List<DdcConfigVO>> list(DdcConfigQueryRequest request) {
-        return ResultDtos.success(configService.list(request));
+    public ResultRecord<List<DdcConfigVO>> list(DdcConfigQueryRequest request) {
+        return ResultRecord.success(configService.list(request));
     }
 
     @PostMapping
-    public ResultDto<DdcConfigVO> create(@RequestBody DdcConfigCreateRequest request,
+    public ResultRecord<DdcConfigVO> create(@RequestBody DdcConfigCreateRequest request,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
                                       Authentication authentication) {
-        return ResultDtos.success(configService.create(
+        return ResultRecord.success(configService.create(
                 request,
                 trustedOperator(authentication, operator)
         ));
     }
 
     @PutMapping("/{id}")
-    public ResultDto<DdcConfigVO> update(@PathVariable("id") String id,
+    public ResultRecord<DdcConfigVO> update(@PathVariable("id") String id,
                                       @RequestBody DdcConfigUpdateRequest request,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
                                       Authentication authentication) {
         request.setId(id);
-        return ResultDtos.success(configService.update(
+        return ResultRecord.success(configService.update(
                 request,
                 trustedOperator(authentication, operator)
         ));
     }
 
     @DeleteMapping("/{id}")
-    public ResultDto<DdcConfigVO> delete(@PathVariable("id") String id,
+    public ResultRecord<DdcConfigVO> delete(@PathVariable("id") String id,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
                                       @RequestParam(name = "reason", defaultValue = "delete config") String reason,
                                       Authentication authentication) {
-        return ResultDtos.success(configService.delete(
+        return ResultRecord.success(configService.delete(
                 id,
                 trustedOperator(authentication, operator),
                 reason
@@ -78,7 +77,7 @@ public class DdcConfigController {
     }
 
     @PostMapping("/{id}/publish")
-    public ResultDto<DdcPublishResultVO> publish(@PathVariable("id") String id,
+    public ResultRecord<DdcPublishResultVO> publish(@PathVariable("id") String id,
                                               @RequestBody DdcPublishRequest request,
                                               @RequestParam(name = "operator", defaultValue = "system") String operator,
                                               Authentication authentication) {
@@ -87,24 +86,24 @@ public class DdcConfigController {
         request.setEnv(config.getEnv());
         request.setNamespace(config.getNamespace());
         request.setConfigKey(config.getConfigKey());
-        return ResultDtos.success(publishService.publish(
+        return ResultRecord.success(publishService.publish(
                 request,
                 trustedOperator(authentication, operator)
         ));
     }
 
     @GetMapping("/{id}/versions")
-    public ResultDto<List<DdcConfigVersionVO>> versions(@PathVariable("id") String id) {
-        return ResultDtos.success(configService.versions(id));
+    public ResultRecord<List<DdcConfigVersionVO>> versions(@PathVariable("id") String id) {
+        return ResultRecord.success(configService.versions(id));
     }
 
     @PostMapping("/{id}/rollback")
-    public ResultDto<DdcConfigVO> rollback(@PathVariable("id") String id,
+    public ResultRecord<DdcConfigVO> rollback(@PathVariable("id") String id,
                                         @RequestBody DdcConfigRollbackRequest request,
                                         @RequestParam(name = "operator", defaultValue = "system") String operator,
                                         Authentication authentication) {
         request.setConfigId(id);
-        return ResultDtos.success(configService.rollback(
+        return ResultRecord.success(configService.rollback(
                 request,
                 trustedOperator(authentication, operator)
         ));

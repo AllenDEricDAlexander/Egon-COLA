@@ -4,8 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
@@ -22,7 +21,7 @@ public class DdcRegistryAdminController {
     }
 
     @GetMapping("/services")
-    public ResultDto<DdcManagementServiceCatalog> services(
+    public ResultRecord<DdcManagementServiceCatalog> services(
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -32,7 +31,7 @@ public class DdcRegistryAdminController {
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version
     ) {
-        return ResultDtos.success(facade.getServiceKeys(query(
+        return ResultRecord.success(facade.getServiceKeys(query(
                 env,
                 namespace,
                 serviceKind,
@@ -44,7 +43,7 @@ public class DdcRegistryAdminController {
     }
 
     @GetMapping("/instances")
-    public ResultDto<DdcManagementServiceSnapshot> instances(
+    public ResultRecord<DdcManagementServiceSnapshot> instances(
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -53,7 +52,7 @@ public class DdcRegistryAdminController {
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version
     ) {
-        return ResultDtos.success(facade.getInstances(query(
+        return ResultRecord.success(facade.getInstances(query(
                 env,
                 namespace,
                 serviceKind,

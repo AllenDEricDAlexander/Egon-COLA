@@ -16,7 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
@@ -518,7 +518,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        objectMapper.writeValue(response.getOutputStream(), ResultDtos.failure(status));
+        objectMapper.writeValue(response.getOutputStream(), ResultRecord.failure(status));
     }
 
     private void rejectNonceStoreUnavailable(HttpServletResponse response)

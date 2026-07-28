@@ -6,8 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.result.dto.ResultDto;
-import top.egon.cola.component.common.result.factory.ResultDtos;
+import top.egon.cola.component.common.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.service.DdcServiceRegistryService;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
@@ -30,25 +29,25 @@ public class DdcRegistryOpenApiController {
     }
 
     @PostMapping("/instances/register")
-    public ResultDto<DdcLeaseSession> register(
+    public ResultRecord<DdcLeaseSession> register(
             @RequestBody DdcServiceRegistration registration) {
-        return ResultDtos.success(registryService.register(registration));
+        return ResultRecord.success(registryService.register(registration));
     }
 
     @PostMapping("/instances/heartbeat")
-    public ResultDto<DdcLeaseOperationResult> heartbeat(
+    public ResultRecord<DdcLeaseOperationResult> heartbeat(
             @RequestBody DdcServiceLeaseRequest request) {
-        return ResultDtos.success(registryService.heartbeat(request));
+        return ResultRecord.success(registryService.heartbeat(request));
     }
 
     @PostMapping("/instances/deregister")
-    public ResultDto<DdcLeaseOperationResult> deregister(
+    public ResultRecord<DdcLeaseOperationResult> deregister(
             @RequestBody DdcServiceLeaseRequest request) {
-        return ResultDtos.success(registryService.deregister(request));
+        return ResultRecord.success(registryService.deregister(request));
     }
 
     @GetMapping("/instances")
-    public ResultDto<DdcServiceSnapshot> instances(
+    public ResultRecord<DdcServiceSnapshot> instances(
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") DdcServiceKind serviceKind,
@@ -56,7 +55,7 @@ public class DdcRegistryOpenApiController {
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version,
             @RequestParam("protocol") String protocol) {
-        return ResultDtos.success(registryService.getInstances(new DdcServiceKey(
+        return ResultRecord.success(registryService.getInstances(new DdcServiceKey(
                 env,
                 namespace,
                 serviceKind,
@@ -68,7 +67,7 @@ public class DdcRegistryOpenApiController {
     }
 
     @GetMapping("/services")
-    public ResultDto<DdcServiceCatalogSnapshot> services(
+    public ResultRecord<DdcServiceCatalogSnapshot> services(
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") DdcServiceKind serviceKind,
@@ -76,7 +75,7 @@ public class DdcRegistryOpenApiController {
             @RequestParam(value = "serviceName", required = false) String serviceName,
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version) {
-        return ResultDtos.success(registryService.getServiceKeys(new DdcServiceQuery(
+        return ResultRecord.success(registryService.getServiceKeys(new DdcServiceQuery(
                 env,
                 namespace,
                 serviceKind,
