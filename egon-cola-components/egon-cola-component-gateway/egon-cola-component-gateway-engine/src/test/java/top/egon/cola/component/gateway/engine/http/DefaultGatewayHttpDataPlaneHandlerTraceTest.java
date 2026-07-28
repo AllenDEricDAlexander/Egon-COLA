@@ -42,7 +42,9 @@ class DefaultGatewayHttpDataPlaneHandlerTraceTest {
                                                 .anonymous()
                                 ),
                         events::add,
-                        "engine-1"
+                        "engine-1",
+                        "dev",
+                        "codex-local"
                 );
         String traceId = "0123456789abcdef0123456789abcdef";
         GatewayOutboundHttpResponse response = handler.handle(
@@ -62,6 +64,11 @@ class DefaultGatewayHttpDataPlaneHandlerTraceTest {
         assertEquals(List.of(traceId), response.headers().get("x-trace-id"));
         assertEquals(1, events.size());
         assertEquals(traceId, events.getFirst().trace().traceId());
+        assertEquals("dev", events.getFirst().routing().env());
+        assertEquals(
+                "codex-local",
+                events.getFirst().routing().namespace()
+        );
         assertEquals(
                 "GATEWAY_ROUTE_NOT_FOUND",
                 events.getFirst().result().gatewayErrorCode()

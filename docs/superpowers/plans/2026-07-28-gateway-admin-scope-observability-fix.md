@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让 Gateway Admin Web 使用部署配置的默认作用域，并在用户重新发起 curl 后自动展示新调用记录。
+**Goal:** 让 Gateway Admin Web 使用部署配置的默认作用域，并让成功调用和路由未命中的 curl 都能在当前作用域自动展示。
 
-**Architecture:** 保持 Gateway Admin 与 DDC 的现有投影接口不变，在 Web 边界增加一个纯函数解析 Vite 默认作用域，并让作用域选择器包含该部署值。调用观测继续使用 React Query，只增加定时重新获取；两个问题共享现有 `ScopeProvider`，不新增后端状态或依赖。
+**Architecture:** 保持 Gateway Admin 与 DDC 的现有投影接口不变，在 Web 边界增加一个纯函数解析 Vite 默认作用域，并让作用域选择器包含该部署值。调用观测继续使用 React Query 定时重新获取；Engine 在路由匹配前先给事件写入自身作用域，匹配成功后仍由路由上游作用域覆盖，因此未命中事件也能被作用域查询看到。
 
-**Tech Stack:** React 19、TypeScript 6、Ant Design、TanStack Query、Vitest、Testing Library、Vite。
+**Tech Stack:** Java 21、Spring Boot、Reactor、JUnit 5、React 19、TypeScript 6、Ant Design、TanStack Query、Vitest、Testing Library、Vite。
 
 ## Global Constraints
 
@@ -67,7 +67,32 @@
 
   Run: `git add <本任务文件> && git commit -m "fix: align gateway admin runtime scope"`
 
-### Task 2: 装载并验证本机修复
+### Task 2: 给路由未命中事件补齐 Engine 作用域
+
+**Files:**
+- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
+- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerTraceTest.java`
+
+**Interfaces:**
+- Consumes: `GatewayEngineRuntimeProperties.env`、`GatewayEngineRuntimeProperties.namespace` 和现有 `GatewayCallObservation.scope`。
+- Produces: 未匹配路由的 `GatewayCallEventV1.routing.env/namespace` 使用 Engine 配置值；匹配路由仍使用发布规则中的上游作用域。
+
+- [ ] **Step 1: 扩展现有路由未命中测试并确认 RED**
+
+  断言 `GATEWAY_ROUTE_NOT_FOUND` 事件携带 `dev/codex-local`；先运行测试确认构造器或作用域断言失败。
+
+- [ ] **Step 2: 实现最小作用域注入**
+
+  Handler 创建 Observation 后立即写入 Engine 作用域；Spring 配置传入现有 `properties.getEnv()` 与 `properties.getNamespace()`，不改变匹配路由覆盖逻辑。
+
+- [ ] **Step 3: 运行 Engine 验证并提交**
+
+  Run: `./mvnw -B -ntp -f egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/pom.xml test`
+
+  Run: `git add <本任务文件> && git commit -m "fix: scope unmatched gateway traffic"`
+
+### Task 3: 装载并验证本机修复
 
 **Files:**
 - Modify locally only: `target/local-dev-run/start-local-stack.zsh`
@@ -80,13 +105,13 @@
 
   设置 `VITE_GATEWAY_ADMIN_DEFAULT_ENV=dev` 与 `VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE=codex-local`，不提交 `target/` 运行文件。
 
-- [ ] **Step 2: 仅重启 Gateway Admin Web**
+- [ ] **Step 2: 重启 Gateway Admin Web 与 Gateway Engine**
 
-  保持 DDC、Gateway Admin、Engine、Provider、Consumer 与数据不变。
+  保持 DDC、Gateway Admin、Provider、Consumer 与数据不变；Engine 使用原环境变量和数据目录重启。
 
 - [ ] **Step 3: 验证 Provider 与流量闭环**
 
-  验证 Web 为 200，Gateway Provider API 在 `dev/codex-local` 返回 HTTP/RPC Provider；无用户指定 Trace ID 的 curl 成功路由，随后调用观测 API 出现新增记录。
+  验证 Web 为 200，Gateway Provider API 在 `dev/codex-local` 返回 HTTP/RPC Provider；成功路由和 `GATEWAY_ROUTE_NOT_FOUND` curl 都在该作用域出现新增调用记录。
 
 - [ ] **Step 4: 最终检查**
 

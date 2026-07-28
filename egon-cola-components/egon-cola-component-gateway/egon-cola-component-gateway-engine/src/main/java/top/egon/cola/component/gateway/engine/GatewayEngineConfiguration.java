@@ -391,7 +391,9 @@ public class GatewayEngineConfiguration {
                 () -> activation.active() == null
                         ? Map.of()
                         : activation.active().corsPolicies(),
-                telemetry
+                telemetry,
+                properties.getEnv(),
+                properties.getNamespace()
         );
         return new GatewayHttpServer(engineProperties, handler);
     }

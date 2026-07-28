@@ -85,6 +85,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private final String engineNodeId;
 
+    private final String engineEnv;
+
+    private final String engineNamespace;
+
     private final TrustedIdentitySanitizer identitySanitizer =
             new TrustedIdentitySanitizer();
 
@@ -165,6 +169,38 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 GatewayTrafficGovernance.noop(),
                 null,
                 ProviderCallOutcomeRecorder.noop()
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            String engineEnv,
+            String engineNamespace) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                GatewayTrafficGovernance.noop(),
+                null,
+                ProviderCallOutcomeRecorder.noop(),
+                Map::of,
+                GatewayTelemetry.noop(),
+                engineEnv,
+                engineNamespace
         );
     }
 
@@ -300,6 +336,43 @@ public final class DefaultGatewayHttpDataPlaneHandler
             ProviderCallOutcomeRecorder outcomeRecorder,
             Supplier<Map<String, RuntimeCorsPolicy>> corsPolicies,
             GatewayTelemetry telemetry) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                httpRpcUpstream,
+                outcomeRecorder,
+                corsPolicies,
+                telemetry,
+                "",
+                ""
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            HttpRpcUpstreamAdapter httpRpcUpstream,
+            ProviderCallOutcomeRecorder outcomeRecorder,
+            Supplier<Map<String, RuntimeCorsPolicy>> corsPolicies,
+            GatewayTelemetry telemetry,
+            String engineEnv,
+            String engineNamespace) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -327,6 +400,11 @@ public final class DefaultGatewayHttpDataPlaneHandler
         this.engineNodeId = Objects.requireNonNull(
                 engineNodeId,
                 "engineNodeId"
+        );
+        this.engineEnv = Objects.requireNonNull(engineEnv, "engineEnv");
+        this.engineNamespace = Objects.requireNonNull(
+                engineNamespace,
+                "engineNamespace"
         );
         this.trafficGovernance = Objects.requireNonNull(
                 trafficGovernance,
@@ -365,6 +443,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 engineNodeId,
                 telemetry
         );
+        observation.scope(engineEnv, engineNamespace);
         GatewayTraceContext trace = observation.trace();
         try {
             NormalizedHttpRequest normalized = normalizer.normalize(
