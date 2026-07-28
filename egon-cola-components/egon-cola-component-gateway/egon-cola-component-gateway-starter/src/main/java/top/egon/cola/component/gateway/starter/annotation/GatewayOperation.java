@@ -20,4 +20,8 @@ public @interface GatewayOperation {
     boolean externalAccessible() default false;
 
     String[] tags() default {};
+
+    GatewaySchemaField[] requestSchemaFields() default {};
+
+    GatewaySchemaField[] responseSchemaFields() default {};
 }

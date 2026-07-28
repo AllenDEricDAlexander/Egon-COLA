@@ -5,6 +5,7 @@ import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefini
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.RpcContractSnapshot;
@@ -19,6 +20,9 @@ import java.util.Map;
 
 public final class RpcGatewayDefinitionContributor
         implements GatewayDefinitionContributor {
+
+    private final ProtobufSchemaMapper schemaMapper =
+            new ProtobufSchemaMapper();
 
     private final RpcContractCatalog catalog;
 
@@ -144,13 +148,17 @@ public final class RpcGatewayDefinitionContributor
                         "GRPC"
                 ),
                 List.of(),
-                Map.of(
-                        "type", "protobuf",
-                        "messageType", method.requestType()
+                schemaMapper.schema(
+                        descriptor.protoMethod().getInputType(),
+                        annotation == null
+                                ? new GatewaySchemaField[0]
+                                : annotation.requestSchemaFields()
                 ),
-                Map.of(
-                        "type", "protobuf",
-                        "messageType", method.responseType()
+                schemaMapper.schema(
+                        descriptor.protoMethod().getOutputType(),
+                        annotation == null
+                                ? new GatewaySchemaField[0]
+                                : annotation.responseSchemaFields()
                 ),
                 List.of(),
                 descriptorSnapshot,

@@ -17,6 +17,7 @@ import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefini
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -119,7 +120,24 @@ final class GatewayHttpOperationMapper {
         ).value();
         List<GatewayInterfaceDefinitionReport.Parameter> parameters =
                 parameters(handler);
-        Map<String, Object> requestSchema = bodySchema(parameters);
+        GatewaySchemaField[] requestDocumentation = annotation == null
+                ? new GatewaySchemaField[0]
+                : annotation.requestSchemaFields();
+        GatewaySchemaField[] responseDocumentation = annotation == null
+                ? new GatewaySchemaField[0]
+                : annotation.responseSchemaFields();
+        Map<String, Object> requestSchema = GatewaySchemaDescriptions.apply(
+                bodySchema(parameters),
+                requestDocumentation,
+                handler.getMethod().getName() + " request"
+        );
+        Map<String, Object> responseSchema = GatewaySchemaDescriptions.apply(
+                schema(responseBodyType(
+                        handler.getMethod().getGenericReturnType()
+                ), 0),
+                responseDocumentation,
+                handler.getMethod().getName() + " response"
+        );
         Map<String, Object> attributes = new LinkedHashMap<>();
         attributes.put("httpMethod", httpMethod);
         attributes.put("path", path);
@@ -155,9 +173,7 @@ final class GatewayHttpOperationMapper {
                 ),
                 parameters,
                 requestSchema,
-                schema(responseBodyType(
-                        handler.getMethod().getGenericReturnType()
-                ), 0),
+                responseSchema,
                 List.of(),
                 null,
                 attributes,
