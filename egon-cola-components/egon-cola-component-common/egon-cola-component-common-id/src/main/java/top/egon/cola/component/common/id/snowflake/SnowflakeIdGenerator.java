@@ -1,11 +1,15 @@
 package top.egon.cola.component.common.id.snowflake;
 
+import top.egon.cola.component.common.id.exception.ClockMovedBackwardException;
+import top.egon.cola.component.common.id.exception.IdGenerationInterruptedException;
+import top.egon.cola.component.common.id.exception.SnowflakeTimestampOutOfRangeException;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.time.TimeSource;
 
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Stateful, thread-safe generator for the fixed 41/10/12-bit Snowflake layout.
@@ -20,6 +24,8 @@ public final class SnowflakeIdGenerator implements LongIdGenerator {
     public static final Duration DEFAULT_MAX_CLOCK_BACKWARD = Duration.ofMillis(5);
 
     private static final long UNINITIALIZED_STATE = -1L;
+    private static final long WAIT_PARK_NANOS = 100_000L;
+    private static final long CLOCK_WAIT_MARGIN_NANOS = 1_000_000L;
 
     private final int machineId;
     private final long maxClockBackwardMillis;
@@ -62,13 +68,13 @@ public final class SnowflakeIdGenerator implements LongIdGenerator {
             throw new IllegalArgumentException("maxClockBackward must not be negative: " + maxClockBackward);
         }
 
-        this.machineId = (int) machineId;
-        this.maxClockBackwardMillis = maxClockBackward.toMillis();
         try {
+            this.maxClockBackwardMillis = maxClockBackward.toMillis();
             this.maxClockBackwardNanos = maxClockBackward.toNanos();
         } catch (ArithmeticException exception) {
             throw new IllegalArgumentException("maxClockBackward is too large: " + maxClockBackward, exception);
         }
+        this.machineId = (int) machineId;
         this.timeSource = Objects.requireNonNull(timeSource, "timeSource must not be null");
     }
 
@@ -81,9 +87,30 @@ public final class SnowflakeIdGenerator implements LongIdGenerator {
     @Override
     public long nextLongId() {
         while (true) {
-            long elapsedMillis = elapsedMillis(timeSource.currentTimeMillis());
             long previous = state.get();
-            int sequence = nextSequence(previous, elapsedMillis);
+            long currentTimeMillis = timeSource.currentTimeMillis();
+            long elapsedMillis = elapsedMillis(currentTimeMillis);
+            int sequence;
+            if (previous == UNINITIALIZED_STATE) {
+                sequence = elapsedMillis == 0L && machineId == 0 ? 1 : 0;
+            } else {
+                long lastElapsedMillis = SnowflakeIdLayout.stateElapsedMillis(previous);
+                long lastTimeMillis = SnowflakeIdLayout.EPOCH_MILLIS + lastElapsedMillis;
+                if (elapsedMillis < lastElapsedMillis) {
+                    waitForClockRecovery(currentTimeMillis, lastTimeMillis);
+                    continue;
+                }
+                if (elapsedMillis > lastElapsedMillis) {
+                    sequence = 0;
+                } else {
+                    int lastSequence = SnowflakeIdLayout.stateSequence(previous);
+                    if (lastSequence == SnowflakeIdLayout.MAX_SEQUENCE) {
+                        waitForNextMillis(lastTimeMillis);
+                        continue;
+                    }
+                    sequence = lastSequence + 1;
+                }
+            }
             long candidate = SnowflakeIdLayout.packState(elapsedMillis, sequence);
             if (state.compareAndSet(previous, candidate)) {
                 return SnowflakeIdLayout.compose(elapsedMillis, machineId, sequence);
@@ -91,32 +118,56 @@ public final class SnowflakeIdGenerator implements LongIdGenerator {
         }
     }
 
-    private int nextSequence(long previous, long elapsedMillis) {
-        if (previous == UNINITIALIZED_STATE) {
-            return elapsedMillis == 0L && machineId == 0 ? 1 : 0;
+    private long elapsedMillis(long currentTimeMillis) {
+        if (currentTimeMillis < SnowflakeIdLayout.EPOCH_MILLIS
+                || currentTimeMillis > SnowflakeIdLayout.MAX_TIMESTAMP_MILLIS) {
+            throw new SnowflakeTimestampOutOfRangeException(currentTimeMillis,
+                    SnowflakeIdLayout.EPOCH_MILLIS, SnowflakeIdLayout.MAX_TIMESTAMP_MILLIS);
         }
-
-        long lastElapsedMillis = SnowflakeIdLayout.stateElapsedMillis(previous);
-        if (elapsedMillis < lastElapsedMillis) {
-            throw new IllegalStateException("Clock moved backward");
-        }
-        if (elapsedMillis > lastElapsedMillis) {
-            return 0;
-        }
-
-        int lastSequence = SnowflakeIdLayout.stateSequence(previous);
-        if (lastSequence == SnowflakeIdLayout.MAX_SEQUENCE) {
-            throw new IllegalStateException("Sequence exhausted for current millisecond");
-        }
-        return lastSequence + 1;
+        return currentTimeMillis - SnowflakeIdLayout.EPOCH_MILLIS;
     }
 
-    private long elapsedMillis(long currentTimeMillis) {
-        long elapsedMillis = currentTimeMillis - SnowflakeIdLayout.EPOCH_MILLIS;
-        if (elapsedMillis < 0L || elapsedMillis > SnowflakeIdLayout.MAX_ELAPSED_MILLIS) {
-            throw new IllegalStateException("Current time is outside the Snowflake timestamp range: "
-                    + currentTimeMillis);
+    private void waitForClockRecovery(long currentTimeMillis, long lastTimeMillis) {
+        long observedTimeMillis = currentTimeMillis;
+        long waitBudgetNanos = saturatedAdd(maxClockBackwardNanos, CLOCK_WAIT_MARGIN_NANOS);
+        long startedNanos = System.nanoTime();
+        while (observedTimeMillis < lastTimeMillis) {
+            long backwardMillis = lastTimeMillis - observedTimeMillis;
+            if (backwardMillis > maxClockBackwardMillis
+                    || System.nanoTime() - startedNanos >= waitBudgetNanos) {
+                throw new ClockMovedBackwardException(observedTimeMillis, lastTimeMillis,
+                        backwardMillis, machineId);
+            }
+            checkInterrupted();
+            LockSupport.parkNanos(WAIT_PARK_NANOS);
+            checkInterrupted();
+            observedTimeMillis = timeSource.currentTimeMillis();
         }
-        return elapsedMillis;
+    }
+
+    private void waitForNextMillis(long lastTimeMillis) {
+        while (true) {
+            checkInterrupted();
+            long currentTimeMillis = timeSource.currentTimeMillis();
+            if (currentTimeMillis > lastTimeMillis) {
+                elapsedMillis(currentTimeMillis);
+                return;
+            }
+            if (currentTimeMillis < lastTimeMillis) {
+                waitForClockRecovery(currentTimeMillis, lastTimeMillis);
+                continue;
+            }
+            LockSupport.parkNanos(WAIT_PARK_NANOS);
+        }
+    }
+
+    private void checkInterrupted() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new IdGenerationInterruptedException(machineId);
+        }
+    }
+
+    private long saturatedAdd(long left, long right) {
+        return left > Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right;
     }
 }

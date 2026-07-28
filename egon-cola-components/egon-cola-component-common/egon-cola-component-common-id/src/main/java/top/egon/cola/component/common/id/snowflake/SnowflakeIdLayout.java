@@ -19,6 +19,7 @@ final class SnowflakeIdLayout {
     static final long SEQUENCE_MASK = (1L << SEQUENCE_BITS) - 1L;
 
     static final long MAX_ELAPSED_MILLIS = ELAPSED_MILLIS_MASK;
+    static final long MAX_TIMESTAMP_MILLIS = EPOCH_MILLIS + MAX_ELAPSED_MILLIS;
     static final int MAX_MACHINE_ID = (int) MACHINE_ID_MASK;
     static final int MAX_SEQUENCE = (int) SEQUENCE_MASK;
 
