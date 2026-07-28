@@ -14,18 +14,5 @@
     <artifactId>egon-cola-component-common-id</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-component-common-id</name>
-    <description>UUIDv7 and ID generation contracts for Egon COLA.</description>
-
-    <dependencies>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-common-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.f4b6a3</groupId>
-            <artifactId>uuid-creator</artifactId>
-            <version>6.1.1</version>
-        </dependency>
-    </dependencies>
+    <description>Pure Java Snowflake ID generation with UUIDv7 compatibility for Egon COLA.</description>
 </project>

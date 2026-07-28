@@ -10,13 +10,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+@SuppressWarnings("removal")
 class UuidV7Test {
 
     @Test
     void uuidV7GeneratesVersion7Uuid() {
+        long before = System.currentTimeMillis();
         UUID uuid = UuidV7.generate();
+        long after = System.currentTimeMillis();
+        long encodedMillis = uuid.getMostSignificantBits() >>> 16;
 
         assertEquals(7, uuid.version());
+        assertEquals(2, uuid.variant());
+        assertFalse(encodedMillis < before);
+        assertFalse(encodedMillis > after);
     }
 
     @Test
