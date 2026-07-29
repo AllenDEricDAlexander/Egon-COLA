@@ -59,7 +59,9 @@ public final class PropertiesGuardPlanSource implements GuardPlanSource {
         KeyConfig key = new KeyConfig(
                 contributors,
                 properties.getKey().getTrustedProxies(),
-                properties.getKey().getHmacSecret());
+                properties.getKey().getHmacSecret(),
+                properties.getKey().getHeaders(),
+                properties.getKey().getMaxPartLength());
         AdmissionConfig admission = new AdmissionConfig(
                 new AdmissionConfig.DenyListConfig(rule.getDenyList().isEnabled()),
                 new AdmissionConfig.AllowListConfig(

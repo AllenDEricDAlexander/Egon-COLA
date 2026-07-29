@@ -62,7 +62,7 @@ public class GuardPlanProperties {
     @Setter
     public static class Key {
 
-        private List<String> contributors = new ArrayList<>();
+        private List<String> contributors = new ArrayList<>(List.of("ARGUMENT"));
 
         private List<String> trustedProxies = new ArrayList<>();
 
