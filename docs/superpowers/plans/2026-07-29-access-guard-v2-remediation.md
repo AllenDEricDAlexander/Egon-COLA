@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild the single Access Guard Starter around one AspectJ-free `GuardEngine` shared by Spring AOP, Bytecode Agent, and programmatic callers while enforcing the approved V2 policy, storage, failure, execution, privacy, and observability contracts.
 
-**Architecture:** The Starter owns immutable API/core types, versioned plans, key contributors, a fixed admission chain, local and optional Redisson stores, execution protection, adapters, and observability. The existing Bytecode JDK-only bridge remains generic; only Bytecode Starter adapts bridge invocations into Access Guard core calls. The breaking public/configuration migration is released on the repository-wide 6.0.0 line.
+**Architecture:** The Starter owns immutable API/core types, versioned plans, key contributors, a fixed admission chain, local and optional Redisson stores, execution protection, adapters, and observability. The existing Bytecode JDK-only bridge remains generic; only Bytecode Starter adapts bridge invocations into Access Guard core calls. The public/configuration migration is released on the repository-wide 5.3.2 line.
 
 **Tech Stack:** Java 21, Spring Boot 3.5.16, Spring AOP, Jackson, Redisson, Micrometer, optional Reactor, optional Actuator, JUnit Jupiter, AssertJ, Mockito, ApplicationContextRunner, Testcontainers Redis, Maven Wrapper.
 
@@ -1462,7 +1462,7 @@ git commit -m "refactor(access-guard): remove v1 compatibility surface"
 
 ---
 
-### Task 14: Move the complete reactor to the 6.0.0 release line and run release gates
+### Task 14: Move the complete reactor to the 5.3.2 release line and run release gates
 
 **Files:**
 - Modify mechanically: every tracked `pom.xml` containing the exact current reactor version `5.3.1` (baseline inventory count: 66)
@@ -1472,8 +1472,8 @@ git commit -m "refactor(access-guard): remove v1 compatibility surface"
 - Modify: `egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/pom.xml`
 
 **Interfaces:**
-- Consumes: Tasks 1-13 fully green V2 source and the approved breaking-release decision.
-- Produces: one consistent `6.0.0` reactor/BOM/archetype consumer version and root release verification. This task is deliberately isolated because it changes repository-wide release metadata, not Access Guard behavior.
+- Consumes: Tasks 1-13 fully green V2 source and the approved release decision.
+- Produces: one consistent `5.3.2` reactor/BOM/archetype consumer version and root release verification. This task is deliberately isolated because it changes repository-wide release metadata, not Access Guard behavior.
 
 - [ ] **Step 1: Verify the precondition and exact mechanical inventory**
 
@@ -1489,7 +1489,7 @@ Expected: version is 5.3.1, inventory is 66 POMs, and the worktree is clean afte
 
 ```bash
 ./mvnw -B -ntp versions:set \
-  -DnewVersion=6.0.0 \
+  -DnewVersion=5.3.2 \
   -DprocessAllModules=true \
   -DgenerateBackupPoms=false
 ```
@@ -1498,7 +1498,7 @@ Expected: root and every reactor parent/dependency reference moves together; no 
 
 - [ ] **Step 3: Update non-reactor consumer examples and archetype templates**
 
-Replace root README `archetypeVersion='5.3.1'` examples with `6.0.0`. Change the three archetype resource properties from:
+Replace root README `archetypeVersion='5.3.1'` examples with `5.3.2`. Change the three archetype resource properties from:
 
 ```xml
 <egon-cola.version>5.3.1</egon-cola.version>
@@ -1507,7 +1507,7 @@ Replace root README `archetypeVersion='5.3.1'` examples with `6.0.0`. Change the
 to:
 
 ```xml
-<egon-cola.version>6.0.0</egon-cola.version>
+<egon-cola.version>5.3.2</egon-cola.version>
 ```
 
 Do not rewrite historical specs/plans or `@Deprecated(since = "5.3.1")` declarations.
@@ -1515,7 +1515,7 @@ Do not rewrite historical specs/plans or `@Deprecated(since = "5.3.1")` declarat
 - [ ] **Step 4: Run version, release-shape, and root verification**
 
 ```bash
-test "$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)" = "6.0.0"
+test "$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -N)" = "5.3.2"
 test -z "$(rg -l '<version>5\.3\.1</version>' --glob 'pom.xml')"
 test -z "$(rg -n "archetypeVersion='5\.3\.1'" README.md)"
 test -z "$(rg -n '<egon-cola.version>5\.3\.1</egon-cola.version>' \
@@ -1544,7 +1544,7 @@ Expected: no whitespace error and no current V1 reference. Check all 28 acceptan
 ```bash
 git add pom.xml README.md egon-cola-archetypes egon-cola-components
 git diff --cached --check
-git commit -m "chore(release): prepare 6.0.0"
+git commit -m "chore(release): prepare 5.3.2"
 ```
 
 ---

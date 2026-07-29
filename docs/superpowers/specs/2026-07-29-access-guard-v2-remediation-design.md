@@ -92,7 +92,7 @@ V2 必须实现：
 
 ## 5. 方案比较与结论
 
-### 5.1 方案 A：单 Starter 原位重构，6.0.0 一次切换
+### 5.1 方案 A：单 Starter 原位重构，5.3.2 一次切换
 
 在现有 Starter 内重构内部包和执行模型；Bytecode 适配仍由现有 Bytecode Starter 承担；删除旧
 公开 API，不保留双执行链。
@@ -116,7 +116,7 @@ V2 必须实现：
 
 采用方案 A。
 
-V2 作为破坏性发布进入仓库 `6.0.0` 发布线。仓库当前所有模块共用 `5.3.1` 版本，因此版本升级
+V2 随仓库 `5.3.2` 发布线一次切换。仓库当前所有模块共用 `5.3.1` 版本，因此版本升级
 必须作为仓库级发布动作统一处理，不能只给 Access Guard 单独改版本。具体版本提交在实施计划中
 单独安排，本次 Spec 不改版本。
 
@@ -849,7 +849,7 @@ AOP 与 AGENT 互斥，避免同一方法重复治理。程序化 `AccessGuardCl
 
 构造器可能在 Spring Engine 注册前执行。V2 不保留已被删除注解中的 failStrategy 提示，因此
 Bridge 未 ready 时必须 fail-closed，由增强代码抛稳定的构造器拒绝异常，禁止静默放行。应用若有
-早于 Spring 初始化的受保护构造器，应改为方法治理或调整初始化顺序。这是 6.0.0 的明确安全行为
+早于 Spring 初始化的受保护构造器，应改为方法治理或调整初始化顺序。这是 5.3.2 的明确安全行为
 变化，必须有 Agent 集成测试覆盖。
 
 ## 18. 自动配置与配置校验
@@ -1072,7 +1072,7 @@ decision / resolution / type
 7. 完成 Event/Metrics/Logging/Actuator；
 8. 删除旧 API、旧配置和死实现，迁移 README/示例；
 9. 完成跨入口契约、并发、Redis 与 Reactor 验证；
-10. 进行仓库级 6.0.0 发布面检查。
+10. 进行仓库级 5.3.2 发布面检查。
 
 每阶段的精确文件、测试命令和提交边界在审核通过后的实施计划中确定，本文不提前授权代码改动。
 
@@ -1113,7 +1113,7 @@ decision / resolution / type
 
 | 风险 | 控制措施 |
 | --- | --- |
-| 公开注解和配置破坏性变化 | 进入 6.0.0，提供明确迁移表，旧配置启动失败而非静默忽略 |
+| 公开注解和配置破坏性变化 | 随 5.3.2 一次切换，提供明确迁移表，旧配置启动失败而非静默忽略 |
 | Agent 与 AOP 结果漂移 | 单 Engine + 三入口契约测试 |
 | 构造器早于 Spring 初始化 | Bridge 未 ready 固定 fail-closed，文档提示调整初始化顺序 |
 | Redis 与 Local 时间边界不同 | 注入时钟、共享契约用例、Redis 原子脚本 |
@@ -1130,7 +1130,7 @@ decision / resolution / type
 请统一确认以下决策；回复“通过”即视为全部通过，有调整可一次列出：
 
 1. 采用单 Starter 原位重构，不新增 Access Guard 聚合/core/store/test 模块；
-2. V2 进入仓库 6.0.0 发布线，不保留三个 `Do*` 兼容转发；
+2. V2 进入仓库 5.3.2 发布线，不保留三个 `Do*` 兼容转发；
 3. `@AccessGuard` 只绑定 ruleId/key；现有三种专用注解迁移为
    `AllowListGuard`、`RateLimitGuard`、`TimeLimitGuard` 薄入口；
 4. 固定 `DenyList -> AllowList -> PenaltyBox -> RateLimit`，删除 `BYPASS_GUARD`；
