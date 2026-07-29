@@ -1,6 +1,5 @@
 package top.egon.cola.component.bytecode.starter;
 
-import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -26,6 +25,7 @@ import top.egon.cola.component.bytecode.starter.context.MdcContextCarrier;
 import top.egon.cola.component.bytecode.starter.dtp.DtpTaskDetector;
 import top.egon.cola.component.bytecode.starter.accessguard.CombinedPolicyDispatcher;
 import top.egon.cola.component.bytecode.bridge.BytecodeRuntimeDispatcher;
+import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -39,11 +39,6 @@ import java.util.concurrent.TimeUnit;
         matchIfMissing = true
 )
 public class BytecodeAutoConfiguration {
-
-    /**
-     * Matches the MDC key written by {@code common-core} TraceContext.
-     */
-    private static final String TRACE_ID_KEY = "traceId";
 
     @Bean
     @ConditionalOnMissingBean
@@ -127,7 +122,7 @@ public class BytecodeAutoConfiguration {
                 slowThresholdNanos,
                 sinks.orderedStream().toList(),
                 failureStore,
-                () -> MDC.get(TRACE_ID_KEY)
+                TraceContext::getTraceId
         );
     }
 
