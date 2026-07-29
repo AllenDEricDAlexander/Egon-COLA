@@ -48,23 +48,24 @@ public final class ReactorGuardExecutor implements ReactiveGuardExecutor {
         } catch (Throwable throwable) {
             return Mono.error(throwable);
         }
+        prepared.stage("admission", prepared.admission());
         if (!prepared.admitted()) {
-            return withCancellation(prepared, resolveMono(() -> prepared.resolveAdmission()));
+            return withCancellation(prepared, resolveMono(prepared, prepared::resolveAdmission));
         }
         Object value;
         try {
             value = invocation.continuation().execute();
         } catch (Throwable throwable) {
-            return withCancellation(prepared, resolveMono(() -> prepared.resolveFailure(
+            return withCancellation(prepared, resolveMono(prepared, () -> prepared.resolveFailure(
                     GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION")));
         }
         if (!(value instanceof Mono<?> source)) {
-            return withCancellation(prepared, resolveMono(() -> prepared.resolveFailure(
+            return withCancellation(prepared, resolveMono(prepared, () -> prepared.resolveFailure(
                     GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION")));
         }
         Mono<Object> timed = mono(applyTimeout(source, prepared.execution().timeLimit()));
         return withCancellation(prepared, timed
-                .doOnSuccess(prepared::complete)
+                .doOnSuccess(terminalValue -> prepared.finish(prepared.complete(terminalValue)))
                 .onErrorResume(error -> resolveMonoFailure(prepared, error)));
     }
 
@@ -75,28 +76,30 @@ public final class ReactorGuardExecutor implements ReactiveGuardExecutor {
         } catch (Throwable throwable) {
             return Flux.error(throwable);
         }
+        prepared.stage("admission", prepared.admission());
         if (!prepared.admitted()) {
-            return withCancellation(prepared, resolveFlux(() -> prepared.resolveAdmission()));
+            return withCancellation(prepared, resolveFlux(prepared, prepared::resolveAdmission));
         }
         Object value;
         try {
             value = invocation.continuation().execute();
         } catch (Throwable throwable) {
-            return withCancellation(prepared, resolveFlux(() -> prepared.resolveFailure(
+            return withCancellation(prepared, resolveFlux(prepared, () -> prepared.resolveFailure(
                     GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION")));
         }
         if (!(value instanceof Flux<?> source)) {
-            return withCancellation(prepared, resolveFlux(() -> prepared.resolveFailure(
+            return withCancellation(prepared, resolveFlux(prepared, () -> prepared.resolveFailure(
                     GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION")));
         }
         Flux<Object> timed = flux(applyTimeout(source, prepared.execution().timeLimit()));
         return withCancellation(prepared, timed
-                .doOnComplete(() -> prepared.complete(null))
+                .doOnComplete(() -> prepared.finish(prepared.complete(null)))
                 .onErrorResume(error -> resolveFluxFailure(prepared, error)));
     }
 
     private Mono<Object> resolveMonoFailure(PreparedGuardExecution prepared, Throwable error) {
         if (error instanceof AccessGuardRejectedException) {
+            prepared.finish(((AccessGuardRejectedException) error).outcome());
             return Mono.error(error);
         }
         GuardDecision decision = error instanceof TimeoutException
@@ -105,11 +108,12 @@ public final class ReactorGuardExecutor implements ReactiveGuardExecutor {
         String code = decision == GuardDecision.TIME_LIMIT_EXCEEDED
                 ? "TIME_LIMIT_EXCEEDED"
                 : "BUSINESS_EXCEPTION";
-        return resolveMono(() -> prepared.resolveFailure(decision, code));
+        return resolveMono(prepared, () -> prepared.resolveFailure(decision, code));
     }
 
     private Flux<Object> resolveFluxFailure(PreparedGuardExecution prepared, Throwable error) {
         if (error instanceof AccessGuardRejectedException) {
+            prepared.finish(((AccessGuardRejectedException) error).outcome());
             return Flux.error(error);
         }
         GuardDecision decision = error instanceof TimeoutException
@@ -118,36 +122,72 @@ public final class ReactorGuardExecutor implements ReactiveGuardExecutor {
         String code = decision == GuardDecision.TIME_LIMIT_EXCEEDED
                 ? "TIME_LIMIT_EXCEEDED"
                 : "BUSINESS_EXCEPTION";
-        return resolveFlux(() -> prepared.resolveFailure(decision, code));
+        return resolveFlux(prepared, () -> prepared.resolveFailure(decision, code));
     }
 
-    private static Mono<Object> resolveMono(Resolution resolution) {
+    private static Mono<Object> resolveMono(
+            PreparedGuardExecution prepared,
+            Resolution resolution
+    ) {
         try {
-            Object value = resolution.resolve().value();
+            GuardExecutionResult<Object> result = resolution.resolve();
+            Object value = result.value();
+            Mono<Object> resolved;
             if (value instanceof Mono<?> mono) {
-                return mono(mono);
+                resolved = mono(mono);
+            } else if (value instanceof Flux<?>) {
+                resolved = Mono.error(new IllegalStateException("Mono guard fallback returned Flux"));
+            } else {
+                resolved = Mono.justOrEmpty(value);
             }
-            if (value instanceof Flux<?>) {
-                return Mono.error(new IllegalStateException("Mono guard fallback returned Flux"));
-            }
-            return Mono.justOrEmpty(value);
+            return resolved
+                    .doOnSuccess(ignored -> prepared.finish(result))
+                    .doOnError(error -> finishResolutionError(prepared, result, error));
+        } catch (AccessGuardRejectedException exception) {
+            prepared.finish(exception.outcome());
+            return Mono.error(exception);
         } catch (Throwable throwable) {
+            prepared.finishResolutionFailure(prepared.admission());
             return Mono.error(throwable);
         }
     }
 
-    private static Flux<Object> resolveFlux(Resolution resolution) {
+    private static Flux<Object> resolveFlux(
+            PreparedGuardExecution prepared,
+            Resolution resolution
+    ) {
         try {
-            Object value = resolution.resolve().value();
+            GuardExecutionResult<Object> result = resolution.resolve();
+            Object value = result.value();
+            Flux<Object> resolved;
             if (value instanceof Flux<?> flux) {
-                return flux(flux);
+                resolved = flux(flux);
+            } else if (value instanceof Mono<?>) {
+                resolved = Flux.error(new IllegalStateException("Flux guard fallback returned Mono"));
+            } else {
+                resolved = value == null ? Flux.empty() : Flux.just(value);
             }
-            if (value instanceof Mono<?>) {
-                return Flux.error(new IllegalStateException("Flux guard fallback returned Mono"));
-            }
-            return value == null ? Flux.empty() : Flux.just(value);
+            return resolved
+                    .doOnComplete(() -> prepared.finish(result))
+                    .doOnError(error -> finishResolutionError(prepared, result, error));
+        } catch (AccessGuardRejectedException exception) {
+            prepared.finish(exception.outcome());
+            return Flux.error(exception);
         } catch (Throwable throwable) {
+            prepared.finishResolutionFailure(prepared.admission());
             return Flux.error(throwable);
+        }
+    }
+
+    private static void finishResolutionError(
+            PreparedGuardExecution prepared,
+            GuardExecutionResult<Object> result,
+            Throwable error
+    ) {
+        if (error instanceof AccessGuardRejectedException rejected) {
+            prepared.finish(rejected.outcome());
+        } else {
+            prepared.finishResolutionFailure(result.outcome());
         }
     }
 

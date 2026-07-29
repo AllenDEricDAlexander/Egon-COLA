@@ -1,5 +1,6 @@
 package top.egon.cola.component.accessguard.execution.async;
 
+import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.GuardEngine;
 import top.egon.cola.component.accessguard.core.GuardExecutionResult;
@@ -10,6 +11,7 @@ import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -33,8 +35,10 @@ public final class CompletionStageGuardExecutor {
             return CompletableFuture.failedFuture(throwable);
         }
         if (!prepared.admitted()) {
-            return resolve(() -> prepared.resolveAdmission());
+            prepared.stage("admission", prepared.admission());
+            return resolve(prepared, prepared::resolveAdmission);
         }
+        prepared.stage("admission", prepared.admission());
 
         CompletionStage<?> source;
         try {
@@ -44,20 +48,28 @@ public final class CompletionStageGuardExecutor {
             }
             source = applyTimeout(stage, prepared.execution().timeLimit());
         } catch (Throwable throwable) {
-            return resolve(() -> prepared.resolveFailure(
+            return resolve(prepared, () -> prepared.resolveFailure(
                     GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION"));
         }
 
         CompletionStage<CompletionStage<T>> composed = source.handle((value, failure) -> {
                     if (failure == null) {
-                        return CompletionStageGuardExecutor.<T>completed(prepared.complete(value));
+                        return CompletionStageGuardExecutor.<T>completed(prepared, prepared.complete(value));
                     }
                     Throwable cause = unwrap(failure);
+                    if (cause instanceof CancellationException) {
+                        prepared.cancel();
+                        return CompletableFuture.<T>failedFuture(cause);
+                    }
+                    if (cause instanceof AccessGuardRejectedException rejected) {
+                        prepared.finish(rejected.outcome());
+                        return CompletableFuture.<T>failedFuture(cause);
+                    }
                     if (cause instanceof TimeoutException) {
-                        return CompletionStageGuardExecutor.<T>resolve(() -> prepared.resolveFailure(
+                        return CompletionStageGuardExecutor.<T>resolve(prepared, () -> prepared.resolveFailure(
                                 GuardDecision.TIME_LIMIT_EXCEEDED, "TIME_LIMIT_EXCEEDED"));
                     }
-                    return CompletionStageGuardExecutor.<T>resolve(() -> prepared.resolveFailure(
+                    return CompletionStageGuardExecutor.<T>resolve(prepared, () -> prepared.resolveFailure(
                             GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION"));
                 });
         return composed.thenCompose(Function.identity());
@@ -73,21 +85,52 @@ public final class CompletionStageGuardExecutor {
         return source.toCompletableFuture().orTimeout(timeLimit.timeout().toNanos(), TimeUnit.NANOSECONDS);
     }
 
-    private static <T> CompletionStage<T> resolve(Resolution resolution) {
+    private static <T> CompletionStage<T> resolve(
+            PreparedGuardExecution prepared,
+            Resolution resolution
+    ) {
         try {
-            return completed(resolution.resolve());
+            return completed(prepared, resolution.resolve());
+        } catch (AccessGuardRejectedException exception) {
+            prepared.finish(exception.outcome());
+            return CompletableFuture.failedFuture(exception);
         } catch (Throwable throwable) {
+            prepared.finishResolutionFailure(prepared.admission());
             return CompletableFuture.failedFuture(throwable);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> CompletionStage<T> completed(GuardExecutionResult<Object> result) {
+    private static <T> CompletionStage<T> completed(
+            PreparedGuardExecution prepared,
+            GuardExecutionResult<Object> result
+    ) {
         Object value = result.value();
-        if (value instanceof CompletionStage<?> stage) {
-            return (CompletionStage<T>) stage;
+        if (value instanceof CompletionStage<?> rawStage) {
+            CompletionStage<T> typedStage = (CompletionStage<T>) rawStage;
+            return typedStage.whenComplete((ignored, failure) -> finish(prepared, result, failure));
         }
-        return CompletableFuture.completedFuture((T) value);
+        CompletionStage<T> completed = CompletableFuture.completedFuture((T) value);
+        return completed.whenComplete((ignored, failure) -> finish(prepared, result, failure));
+    }
+
+    private static void finish(
+            PreparedGuardExecution prepared,
+            GuardExecutionResult<Object> result,
+            Throwable failure
+    ) {
+        if (failure == null) {
+            prepared.finish(result);
+            return;
+        }
+        Throwable cause = unwrap(failure);
+        if (cause instanceof CancellationException) {
+            prepared.cancel();
+        } else if (cause instanceof AccessGuardRejectedException rejected) {
+            prepared.finish(rejected.outcome());
+        } else {
+            prepared.finishResolutionFailure(result.outcome());
+        }
     }
 
     private static Throwable unwrap(Throwable throwable) {

@@ -50,6 +50,7 @@ import top.egon.cola.component.accessguard.policy.penalty.DefaultPenaltyService;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyBoxPolicy;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyService;
 import top.egon.cola.component.accessguard.policy.ratelimit.RateLimitPolicy;
+import top.egon.cola.component.accessguard.observability.GuardEventPublisher;
 import top.egon.cola.component.accessguard.store.AllowListStore;
 import top.egon.cola.component.accessguard.store.DenyListStore;
 import top.egon.cola.component.accessguard.store.PenaltyStore;
@@ -86,9 +87,21 @@ public class AccessGuardCoreAutoConfiguration {
     @ConditionalOnMissingBean(GuardPlanResolver.class)
     public DefaultGuardPlanResolver accessGuardPlanResolver(
             List<GuardPlanSource> sources,
-            GuardPlanValidator validator
+            GuardPlanValidator validator,
+            GuardPlanProperties properties,
+            ObjectProvider<GuardEventPublisher> eventPublishers
     ) {
-        return new DefaultGuardPlanResolver(sources, validator);
+        GuardEventPublisher eventPublisher = eventPublishers.getIfAvailable(GuardEventPublisher::noop);
+        return new DefaultGuardPlanResolver(sources, validator, event -> {
+            GuardPlanProperties.Rule rule = properties.getRules().get(event.ruleId());
+            if (rule == null || rule.getObservability().isMetrics()) {
+                try {
+                    eventPublisher.publishPlanChanged(event);
+                } catch (RuntimeException ignored) {
+                    // Plan activation is independent from optional observability delivery.
+                }
+            }
+        });
     }
 
     @Bean
@@ -248,7 +261,8 @@ public class AccessGuardCoreAutoConfiguration {
             PenaltyService penaltyService,
             TimeLimiter timeLimiter,
             RejectionHandler rejectionHandler,
-            GuardPlanProperties properties
+            GuardPlanProperties properties,
+            ObjectProvider<GuardEventPublisher> eventPublishers
     ) {
         return new DefaultGuardEngine(
                 planResolver,
@@ -261,7 +275,8 @@ public class AccessGuardCoreAutoConfiguration {
                 rejectionHandler,
                 System::nanoTime,
                 properties.getStorage().name(),
-                properties.getEngine().name());
+                properties.getEngine().name(),
+                eventPublishers.getIfAvailable(GuardEventPublisher::noop));
     }
 
     @Bean

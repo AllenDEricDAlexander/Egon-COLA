@@ -10,6 +10,7 @@ import top.egon.cola.component.accessguard.core.plan.ExecutionConfig;
 import top.egon.cola.component.accessguard.core.plan.GuardPlan;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanSnapshot;
+import top.egon.cola.component.accessguard.core.plan.ObservabilityConfig;
 import top.egon.cola.component.accessguard.key.GuardKeyResolution;
 import top.egon.cola.component.accessguard.key.GuardKeyResolutionException;
 import top.egon.cola.component.accessguard.key.GuardKeyResolver;
@@ -26,6 +27,8 @@ import top.egon.cola.component.accessguard.policy.GuardPolicy;
 import top.egon.cola.component.accessguard.policy.PolicyConfig;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyService;
+import top.egon.cola.component.accessguard.observability.GuardEventPublisher;
+import top.egon.cola.component.accessguard.observability.GuardInvocationFinalizer;
 import top.egon.cola.component.accessguard.store.StoreOperationException;
 
 import java.time.Duration;
@@ -51,6 +54,7 @@ public final class DefaultGuardEngine implements GuardEngine {
     private final LongSupplier ticker;
     private final String storage;
     private final String engine;
+    private final GuardEventPublisher eventPublisher;
 
     public DefaultGuardEngine(
             GuardPlanResolver planResolver,
@@ -103,7 +107,8 @@ public final class DefaultGuardEngine implements GuardEngine {
                 rejectionHandler,
                 ticker,
                 storage,
-                engine);
+                engine,
+                GuardEventPublisher.noop());
     }
 
     public DefaultGuardEngine(
@@ -119,6 +124,35 @@ public final class DefaultGuardEngine implements GuardEngine {
             String storage,
             String engine
     ) {
+        this(
+                planResolver,
+                keyResolver,
+                policies,
+                localPolicies,
+                failurePolicyResolver,
+                penaltyService,
+                timeLimiter,
+                rejectionHandler,
+                ticker,
+                storage,
+                engine,
+                GuardEventPublisher.noop());
+    }
+
+    public DefaultGuardEngine(
+            GuardPlanResolver planResolver,
+            GuardKeyResolver keyResolver,
+            List<GuardPolicy<?>> policies,
+            Map<String, GuardPolicy<?>> localPolicies,
+            FailurePolicyResolver failurePolicyResolver,
+            PenaltyService penaltyService,
+            TimeLimiter timeLimiter,
+            RejectionHandler rejectionHandler,
+            LongSupplier ticker,
+            String storage,
+            String engine,
+            GuardEventPublisher eventPublisher
+    ) {
         this.planResolver = Objects.requireNonNull(planResolver, "planResolver");
         this.keyResolver = Objects.requireNonNull(keyResolver, "keyResolver");
         this.policies = List.copyOf(Objects.requireNonNull(policies, "policies"));
@@ -130,6 +164,7 @@ public final class DefaultGuardEngine implements GuardEngine {
         this.ticker = Objects.requireNonNull(ticker, "ticker");
         this.storage = requireText(storage, "storage");
         this.engine = requireText(engine, "engine");
+        this.eventPublisher = Objects.requireNonNull(eventPublisher, "eventPublisher");
         List<String> policyIds = this.policies.stream().map(GuardPolicy::id).toList();
         if (!policyIds.equals(BUILT_IN_POLICY_IDS)) {
             throw new IllegalArgumentException("built-in policies must use the fixed order " + BUILT_IN_POLICY_IDS);
@@ -138,7 +173,9 @@ public final class DefaultGuardEngine implements GuardEngine {
 
     @Override
     public GuardOutcome evaluate(GuardInvocation invocation) {
-        return prepare(invocation).admission();
+        PreparedGuardExecution prepared = prepare(invocation);
+        prepared.finish(prepared.admission());
+        return prepared.admission();
     }
 
     private GuardOutcome evaluateAdmission(GuardInvocation invocation, PlanCapture capture) {
@@ -277,31 +314,57 @@ public final class DefaultGuardEngine implements GuardEngine {
                 }
                 : rejected -> resolveRejection(
                         invocation, rejected, execution.rejection(), capture.startedAt);
+        ObservabilityConfig observability = capture.snapshot == null
+                ? ObservabilityConfig.defaults()
+                : capture.snapshot.plan().observability();
+        GuardInvocationFinalizer finalizer = new GuardInvocationFinalizer(eventPublisher, observability);
         return new PreparedGuardExecution(
                 invocation,
                 admission,
                 execution,
                 rejectionResolver,
                 (decision, code) -> executionFailure(admission, decision, code, capture.startedAt),
-                value -> new GuardExecutionResult<>(value, withElapsed(admission, capture.startedAt)));
+                value -> new GuardExecutionResult<>(value, withElapsed(admission, capture.startedAt)),
+                finalizer);
     }
 
     GuardExecutionResult<Object> executeWithOutcome(GuardInvocation invocation) throws Throwable {
         PreparedGuardExecution prepared = prepare(invocation);
+        prepared.stage("admission", prepared.admission());
         if (!prepared.admitted()) {
-            return prepared.resolveAdmission();
+            return resolveAndFinish(prepared, prepared::resolveAdmission);
         }
         try {
             Object value = executeOperation(invocation, prepared.execution().timeLimit());
-            return prepared.complete(value);
+            GuardExecutionResult<Object> result = prepared.complete(value);
+            prepared.finish(result);
+            return result;
         } catch (TimeLimitExceededException exception) {
-            return prepared.resolveFailure(GuardDecision.TIME_LIMIT_EXCEEDED, "TIME_LIMIT_EXCEEDED");
+            return resolveAndFinish(prepared, () -> prepared.resolveFailure(
+                    GuardDecision.TIME_LIMIT_EXCEEDED, "TIME_LIMIT_EXCEEDED"));
         } catch (ExecutorRejectedException exception) {
-            return prepared.resolveFailure(GuardDecision.EXECUTOR_REJECTED, "EXECUTOR_REJECTED");
+            return resolveAndFinish(prepared, () -> prepared.resolveFailure(
+                    GuardDecision.EXECUTOR_REJECTED, "EXECUTOR_REJECTED"));
         } catch (AccessGuardRejectedException exception) {
+            prepared.finish(exception.outcome());
             throw exception;
         } catch (Throwable throwable) {
-            return prepared.resolveFailure(GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION");
+            return resolveAndFinish(prepared, () -> prepared.resolveFailure(
+                    GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION"));
+        }
+    }
+
+    private GuardExecutionResult<Object> resolveAndFinish(
+            PreparedGuardExecution prepared,
+            Resolution resolution
+    ) throws Throwable {
+        try {
+            GuardExecutionResult<Object> result = resolution.resolve();
+            prepared.finish(result);
+            return result;
+        } catch (AccessGuardRejectedException exception) {
+            prepared.finish(exception.outcome());
+            throw exception;
         }
     }
 
@@ -588,5 +651,11 @@ public final class DefaultGuardEngine implements GuardEngine {
         private GuardPlanSnapshot snapshot;
 
         private long startedAt;
+    }
+
+    @FunctionalInterface
+    private interface Resolution {
+
+        GuardExecutionResult<Object> resolve() throws Throwable;
     }
 }

@@ -48,9 +48,11 @@ class CompletionStageGuardExecutorTest {
         assertThat(result.toCompletableFuture()).isNotDone();
         assertThat(calls).hasValue(1);
         verify(prepared, never()).complete(any());
+        verify(prepared, never()).finish(any(GuardExecutionResult.class));
         pending.complete("ok");
         assertThat(result.toCompletableFuture().get(1, TimeUnit.SECONDS)).isEqualTo("ok");
         verify(prepared).complete("ok");
+        verify(prepared).finish(any(GuardExecutionResult.class));
     }
 
     @Test

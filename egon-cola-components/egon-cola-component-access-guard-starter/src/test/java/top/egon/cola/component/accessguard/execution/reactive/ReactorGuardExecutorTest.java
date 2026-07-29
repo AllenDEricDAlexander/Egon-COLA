@@ -41,9 +41,11 @@ class ReactorGuardExecutorTest {
         Mono<String> result = cast(executor.guard(invocation, Mono.class));
 
         verifyNoInteractions(engine);
+        verify(prepared, never()).finish(any(GuardExecutionResult.class));
         StepVerifier.create(result).expectNext("ok").verifyComplete();
         verify(engine).prepare(any());
         verify(prepared).complete("ok");
+        verify(prepared).finish(any(GuardExecutionResult.class));
     }
 
     @Test

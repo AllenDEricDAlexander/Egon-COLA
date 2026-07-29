@@ -13,12 +13,16 @@ import top.egon.cola.component.accessguard.core.plan.KeyConfig;
 import top.egon.cola.component.accessguard.core.plan.ObservabilityConfig;
 import top.egon.cola.component.accessguard.execution.RejectionMode;
 import top.egon.cola.component.accessguard.execution.RejectionHandler;
+import top.egon.cola.component.accessguard.execution.RoutingTimeLimiter;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 import top.egon.cola.component.accessguard.execution.TimeLimitExceededException;
 import top.egon.cola.component.accessguard.execution.TimeLimiter;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.key.GuardKeyResolution;
 import top.egon.cola.component.accessguard.key.GuardKeyScope;
+import top.egon.cola.component.accessguard.observability.CompositeGuardEventPublisher;
+import top.egon.cola.component.accessguard.observability.GuardEvent;
+import top.egon.cola.component.accessguard.observability.GuardEventListener;
 import top.egon.cola.component.accessguard.policy.AdmissionPolicies;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
 import top.egon.cola.component.accessguard.policy.allow.AllowListPolicy;
@@ -36,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -180,6 +185,36 @@ class DefaultGuardEngineTest {
     }
 
     @Test
+    void fallbackPublishesExactlyOneFinalEvent() throws Throwable {
+        ExecutionConfig execution = new ExecutionConfig(
+                new ExecutionConfig.TimeLimitConfig(
+                        true,
+                        TimeLimitMode.ENFORCE,
+                        TimeLimiterType.VIRTUAL_THREAD,
+                        Duration.ofMillis(50),
+                        true),
+                new ExecutionConfig.RejectionConfig(RejectionMode.FALLBACK, "fallback", ""));
+        GuardPlanSnapshot snapshot = snapshot(FailurePolicies.defaults(), AllowListMode.GATE, execution);
+        List<GuardEvent> events = new ArrayList<>();
+        GuardEventListener listener = events::add;
+        DefaultGuardEngine engine = executionEngine(
+                snapshot,
+                Map.of(TimeLimiterType.VIRTUAL_THREAD, (invocation, config) -> {
+                    throw new TimeLimitExceededException(config.timeout());
+                }),
+                (invocation, outcome, config) -> "fallback",
+                new CompositeGuardEventPublisher(List.of(listener)));
+
+        GuardExecutionResult<Object> result = engine.executeWithOutcome(invocation(new AtomicInteger()));
+
+        assertThat(events).singleElement()
+                .extracting(GuardEvent::outcome)
+                .isEqualTo(result.outcome());
+        assertThat(result.outcome().decision()).isEqualTo(GuardDecision.TIME_LIMIT_EXCEEDED);
+        assertThat(result.outcome().resolution()).isEqualTo(GuardResolution.FALLBACK);
+    }
+
+    @Test
     void rejectionRendererFailureNeverRunsBusinessOperation() throws Exception {
         GuardPlanSnapshot snapshot = snapshot(FailurePolicies.defaults(), AllowListMode.GATE);
         RejectionHandler failedRenderer = (invocation, outcome, config) -> {
@@ -261,6 +296,32 @@ class DefaultGuardEngineTest {
             RejectionHandler rejectionHandler
     ) {
         return executionEngine(snapshot, timeLimiters, rejectionHandler, (rule, version, hash) -> false);
+    }
+
+    private static DefaultGuardEngine executionEngine(
+            GuardPlanSnapshot snapshot,
+            Map<TimeLimiterType, TimeLimiter> timeLimiters,
+            RejectionHandler rejectionHandler,
+            top.egon.cola.component.accessguard.observability.GuardEventPublisher eventPublisher
+    ) {
+        DenyListPolicy deny = new DenyListPolicy((rule, version, hash) -> false);
+        AllowListPolicy allow = new AllowListPolicy((rule, version, hash) -> true);
+        PenaltyBoxPolicy penalty = new PenaltyBoxPolicy(key -> Optional.empty());
+        RateLimitPolicy rate = new RateLimitPolicy(
+                request -> new RateLimitDecision(true, 1, Duration.ZERO));
+        return new DefaultGuardEngine(
+                ruleId -> snapshot,
+                (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
+                AdmissionPolicies.builtIns(deny, allow, penalty, rate),
+                Map.of("penalty-box", penalty, "rate-limit", rate),
+                new DefaultFailurePolicyResolver(),
+                (context, config) -> new top.egon.cola.component.accessguard.store.PenaltyState(0, false, null, null),
+                new RoutingTimeLimiter(timeLimiters),
+                rejectionHandler,
+                System::nanoTime,
+                "LOCAL",
+                "PROGRAMMATIC",
+                eventPublisher);
     }
 
     private static DefaultGuardEngine executionEngine(

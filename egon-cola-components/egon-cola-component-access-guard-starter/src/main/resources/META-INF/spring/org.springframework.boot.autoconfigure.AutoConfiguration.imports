@@ -1,3 +1,4 @@
+top.egon.cola.component.accessguard.autoconfigure.AccessGuardObservabilityAutoConfiguration
 top.egon.cola.component.accessguard.autoconfigure.AccessGuardCoreAutoConfiguration
 top.egon.cola.component.accessguard.autoconfigure.AccessGuardLocalStoreAutoConfiguration
 top.egon.cola.component.accessguard.autoconfigure.AccessGuardV2RedissonAutoConfiguration
