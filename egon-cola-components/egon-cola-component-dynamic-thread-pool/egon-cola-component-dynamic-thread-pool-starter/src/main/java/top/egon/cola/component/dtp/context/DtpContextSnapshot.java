@@ -1,8 +1,7 @@
 package top.egon.cola.component.dtp.context;
 
-import org.slf4j.MDC;
-
-import java.util.Map;
+import top.egon.cola.component.common.trace.TraceScope;
+import top.egon.cola.component.common.trace.TraceSnapshot;
 
 /**
  * @author      有罗敷的马同学
@@ -11,41 +10,31 @@ import java.util.Map;
  **/
 public final class DtpContextSnapshot {
 
-    private final Map<String, String> mdcContext;
+    private final TraceSnapshot traceSnapshot;
 
-    private DtpContextSnapshot(Map<String, String> mdcContext) {
-        this.mdcContext = mdcContext;
+    private DtpContextSnapshot(TraceSnapshot traceSnapshot) {
+        this.traceSnapshot = traceSnapshot;
     }
 
     public static DtpContextSnapshot capture() {
-        return new DtpContextSnapshot(MDC.getCopyOfContextMap());
+        return new DtpContextSnapshot(TraceSnapshot.capture());
     }
 
     public Scope restore() {
-        Map<String, String> previous = MDC.getCopyOfContextMap();
-        if (mdcContext == null || mdcContext.isEmpty()) {
-            MDC.clear();
-        } else {
-            MDC.setContextMap(mdcContext);
-        }
-        return new Scope(previous);
+        return new Scope(traceSnapshot.open());
     }
 
     public static final class Scope implements AutoCloseable {
 
-        private final Map<String, String> previous;
+        private final TraceScope delegate;
 
-        private Scope(Map<String, String> previous) {
-            this.previous = previous;
+        private Scope(TraceScope delegate) {
+            this.delegate = delegate;
         }
 
         @Override
         public void close() {
-            if (previous == null || previous.isEmpty()) {
-                MDC.clear();
-            } else {
-                MDC.setContextMap(previous);
-            }
+            delegate.close();
         }
 
     }
