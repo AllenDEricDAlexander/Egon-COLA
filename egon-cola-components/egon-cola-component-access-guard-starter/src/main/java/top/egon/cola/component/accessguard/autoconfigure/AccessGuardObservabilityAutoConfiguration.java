@@ -9,7 +9,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.observability.CompositeGuardEventPublisher;
 import top.egon.cola.component.accessguard.observability.GuardEventListener;
@@ -22,9 +21,9 @@ import java.util.List;
 import java.util.function.IntSupplier;
 
 @AutoConfiguration(after = AccessGuardCoreAutoConfiguration.class)
-@EnableConfigurationProperties(GuardPlanProperties.class)
+@EnableConfigurationProperties(AccessGuardProperties.class)
 @ConditionalOnProperty(
-        prefix = GuardPlanProperties.PREFIX,
+        prefix = AccessGuardProperties.PREFIX,
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true)
@@ -80,7 +79,7 @@ public class AccessGuardObservabilityAutoConfiguration {
         @ConditionalOnBean(GuardPlanResolver.class)
         @ConditionalOnMissingBean(type = "top.egon.cola.component.accessguard.observability.AccessGuardEndpoint")
         top.egon.cola.component.accessguard.observability.AccessGuardEndpoint accessGuardEndpoint(
-                GuardPlanProperties properties,
+                AccessGuardProperties properties,
                 GuardPlanResolver resolver,
                 ObjectProvider<LocalPenaltyStore> penaltyStore,
                 ObjectProvider<LocalRateLimitBackend> rateLimitBackend

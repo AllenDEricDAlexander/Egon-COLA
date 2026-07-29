@@ -4,7 +4,7 @@ import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.core.plan.GuardPlan;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
+import top.egon.cola.component.accessguard.autoconfigure.AccessGuardProperties;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanSnapshot;
 
@@ -18,13 +18,13 @@ import java.util.function.IntSupplier;
 @Endpoint(id = "accessguard")
 public final class AccessGuardEndpoint {
 
-    private final GuardPlanProperties properties;
+    private final AccessGuardProperties properties;
     private final GuardPlanResolver resolver;
     private final IntSupplier penaltyEntries;
     private final IntSupplier rateLimitEntries;
 
     public AccessGuardEndpoint(
-            GuardPlanProperties properties,
+            AccessGuardProperties properties,
             GuardPlanResolver resolver,
             IntSupplier penaltyEntries,
             IntSupplier rateLimitEntries
@@ -39,7 +39,7 @@ public final class AccessGuardEndpoint {
     public Map<String, Object> accessguard() {
         List<Map<String, Object>> rules = new ArrayList<>();
         int failures = 0;
-        for (Map.Entry<String, GuardPlanProperties.Rule> configured : properties.getRules().entrySet()) {
+        for (Map.Entry<String, AccessGuardProperties.Rule> configured : properties.getRules().entrySet()) {
             if (!configured.getValue().getObservability().isEndpoint()) {
                 continue;
             }

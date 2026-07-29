@@ -34,7 +34,7 @@ class AccessGuardMatcherTest {
         assertTrue(filter.isGovernance(
                 "Ltop/egon/cola/component/accessguard/api/TimeLimitGuard;"));
         assertFalse(filter.isGovernance(
-                "Ltop/egon/cola/component/accessguard/annotation/DoHystrix;"));
+                "Ltop/egon/cola/component/accessguard/annotation/LegacyGuard;"));
         assertFalse(filter.isGovernance(
                 "Ltop/egon/cola/component/accessguard/annotation/AccessGuard;"));
     }

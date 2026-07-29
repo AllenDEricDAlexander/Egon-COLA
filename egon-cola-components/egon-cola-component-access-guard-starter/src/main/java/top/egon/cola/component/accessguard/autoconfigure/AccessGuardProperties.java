@@ -3,19 +3,30 @@ package top.egon.cola.component.accessguard.autoconfigure;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import top.egon.cola.component.accessguard.annotation.FailStrategy;
-import top.egon.cola.component.accessguard.annotation.TimeoutExecutorType;
-import top.egon.cola.component.accessguard.annotation.WhiteListMode;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.accessguard.core.failure.FailurePolicy;
+import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
+import top.egon.cola.component.accessguard.execution.RejectionMode;
+import top.egon.cola.component.accessguard.execution.TimeLimitMode;
+import top.egon.cola.component.accessguard.execution.TimeLimiterType;
+import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
-@ConfigurationProperties(prefix = "egon.cola.component.access-guard", ignoreInvalidFields = true)
+@Validated
+@ConfigurationProperties(
+        prefix = AccessGuardProperties.PREFIX,
+        ignoreInvalidFields = false,
+        ignoreUnknownFields = false)
 @Getter
 @Setter
 public class AccessGuardProperties {
+
+    public static final String PREFIX = "egon.cola.component.access-guard";
 
     private boolean enabled = true;
 
@@ -23,62 +34,43 @@ public class AccessGuardProperties {
 
     private Storage storage = Storage.LOCAL;
 
-    private String keyPrefix = "egon:access-guard";
+    private Defaults defaults = new Defaults();
 
-    private String app = "";
-
-    private String env = "";
-
-    private FailStrategy failStrategy = FailStrategy.FAIL_OPEN;
-
-    private KeyResolveFailureStrategy keyResolveFailureStrategy = KeyResolveFailureStrategy.USE_ALL;
-
-    private Aop aop = new Aop();
+    private Key key = new Key();
 
     private Redisson redisson = new Redisson();
 
-    private WhiteList whiteList = new WhiteList();
-
-    private RateLimiter rateLimiter = new RateLimiter();
-
-    private Blacklist blacklist = new Blacklist();
-
-    private CircuitBreaker circuitBreaker = new CircuitBreaker();
+    private Local local = new Local();
 
     private ThreadPool threadPool = new ThreadPool();
 
-    private Dynamic dynamic = new Dynamic();
-
-    private LocalFallback localFallback = new LocalFallback();
-
-    private List<Rule> rules = new ArrayList<>();
+    private Map<String, Rule> rules = new LinkedHashMap<>();
 
     public enum Storage {
-        /**
-         * In-process governance state. Requires no external infrastructure.
-         */
         LOCAL,
-        /**
-         * Shared governance state in Redis. Requires a RedissonClient bean.
-         */
         REDISSON
-    }
-
-    public enum KeyResolveFailureStrategy {
-        USE_ALL,
-        REJECT
-    }
-
-    public enum WhiteListEmptyListStrategy {
-        DENY_ALL,
-        ALLOW_ALL
     }
 
     @Getter
     @Setter
-    public static class Aop {
+    public static class Defaults {
 
-        private int order = -100;
+        private RejectionMode rejection = RejectionMode.THROW;
+    }
+
+    @Getter
+    @Setter
+    public static class Key {
+
+        private List<String> contributors = new ArrayList<>(List.of("ARGUMENT"));
+
+        private List<String> trustedProxies = new ArrayList<>();
+
+        private List<String> headers = new ArrayList<>();
+
+        private String hmacSecret = "";
+
+        private int maxPartLength = 1024;
     }
 
     @Getter
@@ -87,51 +79,20 @@ public class AccessGuardProperties {
 
         private String clientBeanName = "redissonClient";
 
-        private boolean autoCreateClient = false;
+        private String keyPrefix = "egon:access-guard";
+
+        private String application = "";
     }
 
     @Getter
     @Setter
-    public static class WhiteList {
+    public static class Local {
 
-        private WhiteListEmptyListStrategy emptyListStrategy = WhiteListEmptyListStrategy.DENY_ALL;
+        private int maxEntries = 100_000;
 
-        private WhiteListMode mode = WhiteListMode.GATEKEEPER;
+        private Duration cleanupInterval = Duration.ofMinutes(1);
 
-        private List<String> defaultUsers = new ArrayList<>();
-    }
-
-    @Getter
-    @Setter
-    public static class RateLimiter {
-
-        private long defaultPermits = 1L;
-
-        private long defaultInterval = 1L;
-
-        private TimeUnit defaultIntervalUnit = TimeUnit.SECONDS;
-    }
-
-    @Getter
-    @Setter
-    public static class Blacklist {
-
-        private long defaultCount = 0L;
-
-        private Duration defaultTimeout = Duration.ofHours(24);
-    }
-
-    @Getter
-    @Setter
-    public static class CircuitBreaker {
-
-        private Duration defaultTimeout = Duration.ofMillis(350);
-
-        private TimeoutExecutorType executor = TimeoutExecutorType.THREAD_POOL;
-
-        private boolean fallbackOnException = false;
-
-        private boolean cancelRunningTask = true;
+        private Duration idleTtl = Duration.ofMinutes(10);
     }
 
     @Getter
@@ -145,22 +106,8 @@ public class AccessGuardProperties {
         private int maxPoolSize = 16;
 
         private int queueCapacity = 1024;
-    }
 
-    @Getter
-    @Setter
-    public static class Dynamic {
-
-        private boolean enabled = false;
-
-        private String providerBeanName = "";
-    }
-
-    @Getter
-    @Setter
-    public static class LocalFallback {
-
-        private boolean enabled = true;
+        private Duration keepAlive = Duration.ofSeconds(60);
     }
 
     @Getter
@@ -169,69 +116,139 @@ public class AccessGuardProperties {
 
         private boolean enabled = true;
 
-        private String name = "";
+        private RuleKey key = new RuleKey();
 
-        private String key = "all";
+        private DenyList denyList = new DenyList();
 
-        private String keyExpression = "";
+        private AllowList allowList = new AllowList();
 
-        private RuleWhiteList whiteList = new RuleWhiteList();
+        private PenaltyBox penaltyBox = new PenaltyBox();
 
-        private RuleRateLimiter rateLimiter = new RuleRateLimiter();
+        private RateLimit rateLimit = new RateLimit();
 
-        private RuleCircuitBreaker circuitBreaker = new RuleCircuitBreaker();
+        private TimeLimit timeLimit = new TimeLimit();
+
+        private Rejection rejection = new Rejection();
+
+        private Failures failurePolicies = new Failures();
+
+        private Observability observability = new Observability();
+    }
+
+    @Getter
+    @Setter
+    public static class RuleKey {
+
+        private List<String> contributors = new ArrayList<>();
+    }
+
+    @Getter
+    @Setter
+    public static class DenyList {
+
+        private boolean enabled = false;
+
+        private String dataVersion = "v1";
+    }
+
+    @Getter
+    @Setter
+    public static class AllowList {
+
+        private boolean enabled = false;
+
+        private AllowListMode mode = AllowListMode.GATE;
+
+        private String dataVersion = "v1";
+    }
+
+    @Getter
+    @Setter
+    public static class PenaltyBox {
+
+        private boolean enabled = false;
+
+        private long threshold = 5;
+
+        private Duration violationTtl = Duration.ofMinutes(1);
+
+        private Duration penaltyTtl = Duration.ofMinutes(10);
+    }
+
+    @Getter
+    @Setter
+    public static class RateLimit {
+
+        private boolean enabled = false;
+
+        private AdmissionConfig.RateLimitAlgorithm algorithm = AdmissionConfig.RateLimitAlgorithm.TOKEN_BUCKET;
+
+        private long capacity = 100;
+
+        private long refillTokens = 100;
+
+        private Duration refillPeriod = Duration.ofSeconds(1);
+
+        private long requestedTokens = 1;
+    }
+
+    @Getter
+    @Setter
+    public static class TimeLimit {
+
+        private boolean enabled = false;
+
+        private TimeLimitMode mode = TimeLimitMode.DISABLED;
+
+        private TimeLimiterType executor = TimeLimiterType.CALLER_THREAD;
+
+        private Duration timeout = Duration.ofSeconds(1);
+
+        private boolean cancelRunningTask = true;
+    }
+
+    @Getter
+    @Setter
+    public static class Rejection {
+
+        private RejectionMode mode;
 
         private String fallbackMethod = "";
 
         private String returnJson = "";
-
-        private FailStrategy failStrategy = FailStrategy.GLOBAL_DEFAULT;
     }
 
     @Getter
     @Setter
-    public static class RuleWhiteList {
+    public static class Failures {
 
-        private boolean enabled = false;
+        private FailurePolicy keyResolution = FailurePolicy.FAIL_CLOSED;
 
-        private List<String> users = new ArrayList<>();
+        private FailurePolicy denyListStore = FailurePolicy.FAIL_CLOSED;
 
-        private WhiteListMode mode = WhiteListMode.GATEKEEPER;
+        private FailurePolicy allowListStore = FailurePolicy.FAIL_CLOSED;
+
+        private FailurePolicy penaltyStore = FailurePolicy.LOCAL_FALLBACK;
+
+        private FailurePolicy rateLimitBackend = FailurePolicy.LOCAL_FALLBACK;
+
+        private FailurePolicy execution = FailurePolicy.FAIL_CLOSED;
+
+        private FailurePolicy observability = FailurePolicy.FAIL_OPEN;
     }
 
     @Getter
     @Setter
-    public static class RuleRateLimiter {
+    public static class Observability {
 
-        private boolean enabled = false;
+        private boolean finalEvents = true;
 
-        private long permits = 1L;
+        private boolean stageEvents = false;
 
-        private long interval = 1L;
+        private boolean metrics = true;
 
-        private TimeUnit intervalUnit = TimeUnit.SECONDS;
+        private boolean logging = true;
 
-        private boolean blacklistEnabled = false;
-
-        private long blacklistCount = 0L;
-
-        private Duration blacklistTimeout = Duration.ofHours(24);
-
-        private boolean enableBlacklistForAllKey = false;
-    }
-
-    @Getter
-    @Setter
-    public static class RuleCircuitBreaker {
-
-        private boolean enabled = false;
-
-        private Duration timeout = Duration.ofMillis(350);
-
-        private TimeoutExecutorType executor = TimeoutExecutorType.GLOBAL_DEFAULT;
-
-        private boolean fallbackOnException = false;
-
-        private boolean cancelRunningTask = true;
+        private boolean endpoint = true;
     }
 }

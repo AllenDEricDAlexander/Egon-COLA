@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Fallback;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
 import top.egon.cola.component.accessguard.store.local.LocalAllowListStore;
 import top.egon.cola.component.accessguard.store.local.LocalDenyListStore;
 import top.egon.cola.component.accessguard.store.local.LocalPenaltyStore;
@@ -17,7 +16,7 @@ import java.util.List;
 
 @AutoConfiguration
 @ConditionalOnProperty(
-        prefix = GuardPlanProperties.PREFIX,
+        prefix = AccessGuardProperties.PREFIX,
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true)
@@ -32,28 +31,28 @@ public class AccessGuardLocalStoreAutoConfiguration {
     @Bean
     @Fallback
     @ConditionalOnMissingBean(name = "accessGuardLocalDenyListStore")
-    public LocalDenyListStore accessGuardLocalDenyListStore(Clock accessGuardClock, GuardPlanProperties properties) {
+    public LocalDenyListStore accessGuardLocalDenyListStore(Clock accessGuardClock, AccessGuardProperties properties) {
         return new LocalDenyListStore(accessGuardClock, properties.getLocal().getMaxEntries());
     }
 
     @Bean
     @Fallback
     @ConditionalOnMissingBean(name = "accessGuardLocalAllowListStore")
-    public LocalAllowListStore accessGuardLocalAllowListStore(Clock accessGuardClock, GuardPlanProperties properties) {
+    public LocalAllowListStore accessGuardLocalAllowListStore(Clock accessGuardClock, AccessGuardProperties properties) {
         return new LocalAllowListStore(accessGuardClock, properties.getLocal().getMaxEntries());
     }
 
     @Bean
     @Fallback
     @ConditionalOnMissingBean(name = "accessGuardLocalPenaltyStore")
-    public LocalPenaltyStore accessGuardLocalPenaltyStore(Clock accessGuardClock, GuardPlanProperties properties) {
+    public LocalPenaltyStore accessGuardLocalPenaltyStore(Clock accessGuardClock, AccessGuardProperties properties) {
         return new LocalPenaltyStore(accessGuardClock, properties.getLocal().getMaxEntries());
     }
 
     @Bean
     @Fallback
     @ConditionalOnMissingBean(name = "accessGuardLocalRateLimitBackend")
-    public LocalRateLimitBackend accessGuardLocalRateLimitBackend(GuardPlanProperties properties) {
+    public LocalRateLimitBackend accessGuardLocalRateLimitBackend(AccessGuardProperties properties) {
         return new LocalRateLimitBackend(
                 System::nanoTime,
                 properties.getLocal().getMaxEntries(),
@@ -63,7 +62,7 @@ public class AccessGuardLocalStoreAutoConfiguration {
     @Bean(destroyMethod = "close")
     @ConditionalOnMissingBean
     public LocalStateCleaner accessGuardLocalStateCleaner(
-            GuardPlanProperties properties,
+            AccessGuardProperties properties,
             LocalPenaltyStore penaltyStore,
             LocalRateLimitBackend rateLimitBackend
     ) {

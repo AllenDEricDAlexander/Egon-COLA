@@ -3,7 +3,7 @@ package top.egon.cola.component.accessguard.autoconfigure;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
+import top.egon.cola.component.accessguard.autoconfigure.AccessGuardProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,7 +21,7 @@ class AccessGuardPropertiesBindingTest {
                         "egon.cola.component.access-guard.rules.draw.rate-limit.refill-period=1s")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    GuardPlanProperties properties = context.getBean(GuardPlanProperties.class);
+                    AccessGuardProperties properties = context.getBean(AccessGuardProperties.class);
                     assertThat(properties.getRules()).containsOnlyKeys("draw");
                     assertThat(properties.getRules().get("draw").getRateLimit().getCapacity()).isEqualTo(100L);
                 });
@@ -36,7 +36,7 @@ class AccessGuardPropertiesBindingTest {
                 .run(context -> assertThat(context).hasFailed());
     }
 
-    @EnableConfigurationProperties(GuardPlanProperties.class)
+    @EnableConfigurationProperties(AccessGuardProperties.class)
     static class PropertiesConfiguration {
     }
 }

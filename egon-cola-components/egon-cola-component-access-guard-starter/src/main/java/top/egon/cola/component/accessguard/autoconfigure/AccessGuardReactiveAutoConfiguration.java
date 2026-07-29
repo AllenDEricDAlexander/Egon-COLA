@@ -6,7 +6,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.accessguard.core.GuardEngine;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
 import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecutor;
 import top.egon.cola.component.accessguard.execution.reactive.ReactorGuardExecutor;
 
@@ -18,7 +17,7 @@ import top.egon.cola.component.accessguard.execution.reactive.ReactorGuardExecut
         "reactor.core.publisher.Flux"
 })
 @ConditionalOnProperty(
-        prefix = GuardPlanProperties.PREFIX,
+        prefix = AccessGuardProperties.PREFIX,
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true)

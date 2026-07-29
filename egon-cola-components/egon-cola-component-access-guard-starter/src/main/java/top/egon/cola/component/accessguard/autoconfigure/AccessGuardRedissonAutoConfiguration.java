@@ -1,80 +1,134 @@
 package top.egon.cola.component.accessguard.autoconfigure;
 
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import top.egon.cola.component.accessguard.blacklist.BlacklistService;
-import top.egon.cola.component.accessguard.blacklist.RedissonBlacklistService;
-import top.egon.cola.component.accessguard.ratelimiter.LocalRateLimiterExecutor;
-import top.egon.cola.component.accessguard.ratelimiter.RateLimiterExecutor;
-import top.egon.cola.component.accessguard.ratelimiter.RedissonRateLimiterExecutor;
-import top.egon.cola.component.accessguard.support.AccessGuardRedisKeys;
-import top.egon.cola.component.accessguard.whitelist.RedissonWhiteListRepository;
-import top.egon.cola.component.accessguard.whitelist.WhiteListRepository;
+import org.springframework.core.env.Environment;
+import top.egon.cola.component.accessguard.store.AccessGuardStorageIntegration;
+import top.egon.cola.component.accessguard.store.AllowListStore;
+import top.egon.cola.component.accessguard.store.DenyListStore;
+import top.egon.cola.component.accessguard.store.PenaltyStore;
+import top.egon.cola.component.accessguard.store.RateLimitBackend;
+import top.egon.cola.component.accessguard.store.local.LocalAllowListStore;
+import top.egon.cola.component.accessguard.store.local.LocalDenyListStore;
+import top.egon.cola.component.accessguard.store.local.LocalPenaltyStore;
+import top.egon.cola.component.accessguard.store.local.LocalRateLimitBackend;
+import top.egon.cola.component.accessguard.store.redisson.AccessGuardRedisKeyFactory;
+import top.egon.cola.component.accessguard.store.redisson.RedissonAllowListStore;
+import top.egon.cola.component.accessguard.store.redisson.RedissonDenyListStore;
+import top.egon.cola.component.accessguard.store.redisson.RedissonPenaltyStore;
+import top.egon.cola.component.accessguard.store.redisson.RedissonRateLimitBackend;
 
-/**
- * Backs the guard with Redis when {@code storage=REDISSON}.
- *
- * <p>Registered before {@link AccessGuardAutoConfiguration} so its local defaults, which are all
- * {@code @ConditionalOnMissingBean}, back off. The application supplies the {@link RedissonClient};
- * this component never creates one, so an application without Redis is never forced to connect.
- */
-@AutoConfiguration(before = AccessGuardAutoConfiguration.class)
+import java.util.Arrays;
+
+@AutoConfiguration(before = {
+        AccessGuardLocalStoreAutoConfiguration.class,
+        AccessGuardCoreAutoConfiguration.class
+})
 @EnableConfigurationProperties(AccessGuardProperties.class)
 @ConditionalOnClass(RedissonClient.class)
-@ConditionalOnBean(RedissonClient.class)
 @ConditionalOnProperty(
-        prefix = "egon.cola.component.access-guard",
+        prefix = AccessGuardProperties.PREFIX,
         name = "storage",
-        havingValue = "REDISSON"
-)
+        havingValue = "REDISSON")
 public class AccessGuardRedissonAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean
-    public AccessGuardRedisKeys accessGuardRedisKeys(AccessGuardProperties properties) {
-        return new AccessGuardRedisKeys(
-                properties.getKeyPrefix(), properties.getApp(), properties.getEnv());
+    SelectedRedissonClient accessGuardSelectedRedissonClient(
+            ListableBeanFactory beanFactory,
+            AccessGuardProperties properties
+    ) {
+        return new SelectedRedissonClient(resolveClient(beanFactory, properties.getRedisson().getClientBeanName()));
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public WhiteListRepository whiteListRepository(
-            BeanFactory beanFactory, AccessGuardProperties properties, AccessGuardRedisKeys redisKeys) {
-        return new RedissonWhiteListRepository(resolveClient(beanFactory, properties), redisKeys);
+    AccessGuardRedisKeyFactory accessGuardRedisKeyFactory(
+            AccessGuardProperties properties,
+            Environment environment
+    ) {
+        String application = properties.getRedisson().getApplication();
+        if (application == null || application.isBlank()) {
+            application = environment.getProperty("spring.application.name", "");
+        }
+        if (application.isBlank()) {
+            throw new IllegalStateException(
+                    "REDISSON storage requires spring.application.name or access-guard.redisson.application");
+        }
+        return new AccessGuardRedisKeyFactory(properties.getRedisson().getKeyPrefix(), application);
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    public BlacklistService blacklistService(
-            BeanFactory beanFactory, AccessGuardProperties properties, AccessGuardRedisKeys redisKeys) {
-        return new RedissonBlacklistService(resolveClient(beanFactory, properties), redisKeys);
+    @ConditionalOnMissingBean(value = DenyListStore.class, ignored = LocalDenyListStore.class)
+    RedissonDenyListStore accessGuardRedissonDenyListStore(
+            SelectedRedissonClient selected,
+            AccessGuardRedisKeyFactory keyFactory
+    ) {
+        return new RedissonDenyListStore(selected.client(), keyFactory);
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    public RateLimiterExecutor rateLimiterExecutor(
-            BeanFactory beanFactory, AccessGuardProperties properties, AccessGuardRedisKeys redisKeys) {
-        return new RedissonRateLimiterExecutor(
-                resolveClient(beanFactory, properties), redisKeys, new LocalRateLimiterExecutor());
+    @ConditionalOnMissingBean(value = AllowListStore.class, ignored = LocalAllowListStore.class)
+    RedissonAllowListStore accessGuardRedissonAllowListStore(
+            SelectedRedissonClient selected,
+            AccessGuardRedisKeyFactory keyFactory
+    ) {
+        return new RedissonAllowListStore(selected.client(), keyFactory);
     }
 
-    /**
-     * Looks the client up by the configured bean name so an application running several Redis
-     * connections can choose which one carries governance state. Deliberately resolved rather than
-     * republished as a bean, so this component never adds a second RedissonClient candidate.
-     */
-    private RedissonClient resolveClient(BeanFactory beanFactory, AccessGuardProperties properties) {
-        String beanName = properties.getRedisson().getClientBeanName();
-        if (beanName == null || beanName.isBlank()) {
-            return beanFactory.getBean(RedissonClient.class);
+    @Bean
+    @ConditionalOnMissingBean(value = PenaltyStore.class, ignored = LocalPenaltyStore.class)
+    RedissonPenaltyStore accessGuardRedissonPenaltyStore(
+            SelectedRedissonClient selected,
+            AccessGuardRedisKeyFactory keyFactory
+    ) {
+        return new RedissonPenaltyStore(selected.client(), keyFactory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(value = RateLimitBackend.class, ignored = LocalRateLimitBackend.class)
+    RedissonRateLimitBackend accessGuardRedissonRateLimitBackend(
+            SelectedRedissonClient selected,
+            AccessGuardRedisKeyFactory keyFactory,
+            AccessGuardProperties properties
+    ) {
+        return new RedissonRateLimitBackend(
+                selected.client(), keyFactory, properties.getLocal().getIdleTtl());
+    }
+
+    @Bean
+    AccessGuardStorageIntegration accessGuardRedissonStorageIntegration() {
+        return () -> AccessGuardProperties.Storage.REDISSON.name();
+    }
+
+    private static RedissonClient resolveClient(ListableBeanFactory beanFactory, String configuredName) {
+        if (configuredName == null || configuredName.isBlank()) {
+            String[] names = beanFactory.getBeanNamesForType(RedissonClient.class, false, false);
+            if (names.length != 1) {
+                throw new IllegalStateException(
+                        "REDISSON storage requires exactly one RedissonClient when client-bean-name is blank; found "
+                                + names.length + " " + Arrays.toString(names));
+            }
+            return beanFactory.getBean(names[0], RedissonClient.class);
+        }
+        String beanName = configuredName.trim();
+        if (!beanFactory.containsBean(beanName)) {
+            throw new IllegalStateException("Configured RedissonClient bean '" + beanName + "' was not found");
+        }
+        Class<?> beanType = beanFactory.getType(beanName, false);
+        if (beanType == null || !RedissonClient.class.isAssignableFrom(beanType)) {
+            throw new IllegalStateException(
+                    "Configured bean '" + beanName + "' must be a RedissonClient but was "
+                            + (beanType == null ? "unknown" : beanType.getName()));
         }
         return beanFactory.getBean(beanName, RedissonClient.class);
+    }
+
+    record SelectedRedissonClient(RedissonClient client) {
     }
 }

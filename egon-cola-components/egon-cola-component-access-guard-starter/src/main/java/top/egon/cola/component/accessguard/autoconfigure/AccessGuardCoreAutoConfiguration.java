@@ -16,7 +16,6 @@ import top.egon.cola.component.accessguard.core.GuardEngine;
 import top.egon.cola.component.accessguard.core.failure.DefaultFailurePolicyResolver;
 import top.egon.cola.component.accessguard.core.failure.FailurePolicyResolver;
 import top.egon.cola.component.accessguard.core.plan.DefaultGuardPlanResolver;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanSource;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
@@ -63,9 +62,9 @@ import java.util.List;
 import java.util.Map;
 
 @AutoConfiguration
-@EnableConfigurationProperties(GuardPlanProperties.class)
+@EnableConfigurationProperties(AccessGuardProperties.class)
 @ConditionalOnProperty(
-        prefix = GuardPlanProperties.PREFIX,
+        prefix = AccessGuardProperties.PREFIX,
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true)
@@ -79,7 +78,7 @@ public class AccessGuardCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public PropertiesGuardPlanSource accessGuardPropertiesPlanSource(GuardPlanProperties properties) {
+    public PropertiesGuardPlanSource accessGuardPropertiesPlanSource(AccessGuardProperties properties) {
         return new PropertiesGuardPlanSource(properties);
     }
 
@@ -88,12 +87,12 @@ public class AccessGuardCoreAutoConfiguration {
     public DefaultGuardPlanResolver accessGuardPlanResolver(
             List<GuardPlanSource> sources,
             GuardPlanValidator validator,
-            GuardPlanProperties properties,
+            AccessGuardProperties properties,
             ObjectProvider<GuardEventPublisher> eventPublishers
     ) {
         GuardEventPublisher eventPublisher = eventPublishers.getIfAvailable(GuardEventPublisher::noop);
         return new DefaultGuardPlanResolver(sources, validator, event -> {
-            GuardPlanProperties.Rule rule = properties.getRules().get(event.ruleId());
+            AccessGuardProperties.Rule rule = properties.getRules().get(event.ruleId());
             if (rule == null || rule.getObservability().isMetrics()) {
                 try {
                     eventPublisher.publishPlanChanged(event);
@@ -106,7 +105,7 @@ public class AccessGuardCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public TrustedProxyMatcher accessGuardTrustedProxyMatcher(GuardPlanProperties properties) {
+    public TrustedProxyMatcher accessGuardTrustedProxyMatcher(AccessGuardProperties properties) {
         return new TrustedProxyMatcher(properties.getKey().getTrustedProxies());
     }
 
@@ -261,7 +260,7 @@ public class AccessGuardCoreAutoConfiguration {
             PenaltyService penaltyService,
             TimeLimiter timeLimiter,
             RejectionHandler rejectionHandler,
-            GuardPlanProperties properties,
+            AccessGuardProperties properties,
             ObjectProvider<GuardEventPublisher> eventPublishers
     ) {
         return new DefaultGuardEngine(
@@ -300,7 +299,7 @@ public class AccessGuardCoreAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public AccessGuardStartupValidator accessGuardStartupValidator(
-            GuardPlanProperties properties,
+            AccessGuardProperties properties,
             GuardPlanResolver planResolver,
             GuardPlanValidator planValidator,
             GuardBindingResolver bindingResolver,

@@ -2,7 +2,7 @@ package top.egon.cola.component.accessguard.observability;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.accessguard.core.plan.DefaultGuardPlanResolver;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
+import top.egon.cola.component.accessguard.autoconfigure.AccessGuardProperties;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
 import top.egon.cola.component.accessguard.core.plan.PropertiesGuardPlanSource;
 
@@ -15,8 +15,8 @@ class AccessGuardEndpointTest {
 
     @Test
     void endpointReturnsOnlyBoundedRuleAndHealthData() {
-        GuardPlanProperties properties = new GuardPlanProperties();
-        GuardPlanProperties.Rule rule = new GuardPlanProperties.Rule();
+        AccessGuardProperties properties = new AccessGuardProperties();
+        AccessGuardProperties.Rule rule = new AccessGuardProperties.Rule();
         rule.getDenyList().setEnabled(true);
         rule.getAllowList().setEnabled(true);
         rule.getRejection().setFallbackMethod("drawFallback");

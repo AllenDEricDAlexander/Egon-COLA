@@ -9,7 +9,6 @@ import top.egon.cola.component.accessguard.adapter.aop.GuardBindingResolver;
 import top.egon.cola.component.accessguard.api.AccessGuard;
 import top.egon.cola.component.accessguard.api.AccessGuardAgentIntegration;
 import top.egon.cola.component.accessguard.core.plan.GuardPlan;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
 import top.egon.cola.component.accessguard.execution.FallbackMethodCache;
@@ -27,7 +26,7 @@ import java.util.Set;
 
 public final class AccessGuardStartupValidator implements SmartInitializingSingleton {
 
-    private final GuardPlanProperties properties;
+    private final AccessGuardProperties properties;
     private final GuardPlanResolver planResolver;
     private final GuardPlanValidator planValidator;
     private final GuardBindingResolver bindingResolver;
@@ -39,7 +38,7 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     private final ObjectProvider<ReactiveGuardExecutor> reactiveExecutors;
 
     public AccessGuardStartupValidator(
-            GuardPlanProperties properties,
+            AccessGuardProperties properties,
             GuardPlanResolver planResolver,
             GuardPlanValidator planValidator,
             GuardBindingResolver bindingResolver,
@@ -90,11 +89,11 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     }
 
     private void validateStorageIntegration() {
-        if (properties.getStorage() != GuardPlanProperties.Storage.REDISSON) {
+        if (properties.getStorage() != AccessGuardProperties.Storage.REDISSON) {
             return;
         }
         List<AccessGuardStorageIntegration> installed = storageIntegrations.orderedStream()
-                .filter(integration -> GuardPlanProperties.Storage.REDISSON.name().equals(integration.storage()))
+                .filter(integration -> AccessGuardProperties.Storage.REDISSON.name().equals(integration.storage()))
                 .toList();
         if (installed.size() != 1) {
             throw new IllegalStateException(

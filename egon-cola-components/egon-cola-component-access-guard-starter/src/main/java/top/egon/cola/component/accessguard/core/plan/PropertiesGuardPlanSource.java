@@ -1,5 +1,6 @@
 package top.egon.cola.component.accessguard.core.plan;
 
+import top.egon.cola.component.accessguard.autoconfigure.AccessGuardProperties;
 import top.egon.cola.component.accessguard.core.failure.FailurePoint;
 import top.egon.cola.component.accessguard.core.failure.FailurePolicy;
 import top.egon.cola.component.accessguard.execution.RejectionMode;
@@ -15,9 +16,9 @@ import java.util.function.Consumer;
 
 public final class PropertiesGuardPlanSource implements GuardPlanSource {
 
-    private final GuardPlanProperties properties;
+    private final AccessGuardProperties properties;
 
-    public PropertiesGuardPlanSource(GuardPlanProperties properties) {
+    public PropertiesGuardPlanSource(AccessGuardProperties properties) {
         this.properties = properties;
     }
 
@@ -33,7 +34,7 @@ public final class PropertiesGuardPlanSource implements GuardPlanSource {
 
     @Override
     public Optional<GuardPlanSnapshot> current(String ruleId) {
-        GuardPlanProperties.Rule rule = properties.getRules().get(ruleId);
+        AccessGuardProperties.Rule rule = properties.getRules().get(ruleId);
         if (rule == null) {
             return Optional.empty();
         }
@@ -52,7 +53,7 @@ public final class PropertiesGuardPlanSource implements GuardPlanSource {
         };
     }
 
-    private GuardPlan toPlan(String ruleId, GuardPlanProperties.Rule rule) {
+    private GuardPlan toPlan(String ruleId, AccessGuardProperties.Rule rule) {
         List<String> contributors = rule.getKey().getContributors().isEmpty()
                 ? properties.getKey().getContributors()
                 : rule.getKey().getContributors();
@@ -95,7 +96,7 @@ public final class PropertiesGuardPlanSource implements GuardPlanSource {
                         rejectionMode,
                         rule.getRejection().getFallbackMethod(),
                         rule.getRejection().getReturnJson()));
-        GuardPlanProperties.Failures failure = rule.getFailurePolicies();
+        AccessGuardProperties.Failures failure = rule.getFailurePolicies();
         EnumMap<FailurePoint, FailurePolicy> policies = new EnumMap<>(FailurePoint.class);
         policies.put(FailurePoint.KEY_RESOLUTION, failure.getKeyResolution());
         policies.put(FailurePoint.DENY_LIST_STORE, failure.getDenyListStore());
@@ -104,7 +105,7 @@ public final class PropertiesGuardPlanSource implements GuardPlanSource {
         policies.put(FailurePoint.RATE_LIMIT_BACKEND, failure.getRateLimitBackend());
         policies.put(FailurePoint.EXECUTION, failure.getExecution());
         policies.put(FailurePoint.OBSERVABILITY, failure.getObservability());
-        GuardPlanProperties.Observability observability = rule.getObservability();
+        AccessGuardProperties.Observability observability = rule.getObservability();
         return new GuardPlan(
                 ruleId,
                 rule.isEnabled(),

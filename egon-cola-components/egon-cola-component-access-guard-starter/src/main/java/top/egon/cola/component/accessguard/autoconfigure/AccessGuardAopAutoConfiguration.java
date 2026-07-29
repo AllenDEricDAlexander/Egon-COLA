@@ -10,7 +10,6 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import top.egon.cola.component.accessguard.adapter.aop.GuardBindingResolver;
 import top.egon.cola.component.accessguard.adapter.aop.SpringAopAccessGuardAdvisor;
 import top.egon.cola.component.accessguard.core.GuardEngine;
-import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
 import top.egon.cola.component.accessguard.execution.async.CompletionStageGuardExecutor;
 import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecutor;
 
@@ -18,12 +17,12 @@ import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecu
 @AutoConfigureAfter(AccessGuardCoreAutoConfiguration.class)
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 @ConditionalOnProperty(
-        prefix = GuardPlanProperties.PREFIX,
+        prefix = AccessGuardProperties.PREFIX,
         name = "engine",
         havingValue = "AOP",
         matchIfMissing = true)
 @ConditionalOnProperty(
-        prefix = GuardPlanProperties.PREFIX,
+        prefix = AccessGuardProperties.PREFIX,
         name = "enabled",
         havingValue = "true",
         matchIfMissing = true)
