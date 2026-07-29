@@ -1,13 +1,13 @@
-package top.egon.cola.component.common.pojo;
+package top.egon.cola.component.common.core.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import top.egon.cola.component.common.enums.ErrorStatus;
-import top.egon.cola.component.common.enums.ResultCode;
-import top.egon.cola.component.common.exception.CommonException;
+import top.egon.cola.component.common.core.enums.ErrorStatus;
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.trace.TraceContext;
 
 import java.io.Serial;

@@ -3,7 +3,9 @@ package top.egon.cola.component.common.pojo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.enums.ResultCode;
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 import java.util.Map;

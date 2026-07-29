@@ -1,4 +1,4 @@
-package top.egon.cola.component.common.pojo;
+package top.egon.cola.component.common.core.pojo;
 
 /**
  * Options controlling tree construction.

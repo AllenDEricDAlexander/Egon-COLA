@@ -1,6 +1,8 @@
 package top.egon.cola.component.common.pojo;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

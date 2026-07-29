@@ -1,6 +1,6 @@
-package top.egon.cola.component.common.exception;
+package top.egon.cola.component.common.core.exception;
 
-import top.egon.cola.component.common.enums.ErrorStatus;
+import top.egon.cola.component.common.core.enums.ErrorStatus;
 
 import java.io.Serial;
 

@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.pojo.ResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.manifest.DdcComponentManifest;
 
 @RestController

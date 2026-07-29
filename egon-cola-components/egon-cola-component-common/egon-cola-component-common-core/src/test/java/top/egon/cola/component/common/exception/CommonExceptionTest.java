@@ -1,7 +1,14 @@
 package top.egon.cola.component.common.exception;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.enums.ResultCode;
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.BusinessException;
+import top.egon.cola.component.common.core.exception.ConcurrencyException;
+import top.egon.cola.component.common.core.exception.ForbiddenException;
+import top.egon.cola.component.common.core.exception.NotFoundException;
+import top.egon.cola.component.common.core.exception.RemoteCallException;
+import top.egon.cola.component.common.core.exception.UnauthorizedException;
+import top.egon.cola.component.common.core.exception.ValidationException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

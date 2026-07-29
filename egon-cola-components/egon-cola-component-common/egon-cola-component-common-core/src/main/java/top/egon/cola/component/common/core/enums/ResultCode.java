@@ -1,4 +1,4 @@
-package top.egon.cola.component.common.enums;
+package top.egon.cola.component.common.core.enums;
 
 /**
  * Common result code definitions shared by Egon COLA components.

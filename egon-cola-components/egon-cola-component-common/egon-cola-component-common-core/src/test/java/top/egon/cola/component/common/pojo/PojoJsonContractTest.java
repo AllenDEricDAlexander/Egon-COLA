@@ -3,6 +3,12 @@ package top.egon.cola.component.common.pojo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.pojo.BaseRequest;
+import top.egon.cola.component.common.core.pojo.OperatorContext;
+import top.egon.cola.component.common.core.pojo.PageMetaRecord;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.core.pojo.PageSlice;
+import top.egon.cola.component.common.core.pojo.SortQuery;
 
 import java.util.List;
 import java.util.Map;

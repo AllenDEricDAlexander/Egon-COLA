@@ -1,4 +1,4 @@
-package top.egon.cola.component.common.pojo;
+package top.egon.cola.component.common.core.pojo;
 
 import java.util.ArrayList;
 import java.util.List;

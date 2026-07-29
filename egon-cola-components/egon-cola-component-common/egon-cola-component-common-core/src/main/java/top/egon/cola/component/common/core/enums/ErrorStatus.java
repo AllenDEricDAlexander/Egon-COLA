@@ -1,4 +1,4 @@
-package top.egon.cola.component.common.enums;
+package top.egon.cola.component.common.core.enums;
 
 /**
  * Error status contract used by common result and exception records.

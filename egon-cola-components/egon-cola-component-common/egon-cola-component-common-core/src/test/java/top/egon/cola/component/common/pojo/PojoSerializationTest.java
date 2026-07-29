@@ -1,6 +1,13 @@
 package top.egon.cola.component.common.pojo;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.pojo.BaseRequest;
+import top.egon.cola.component.common.core.pojo.OperatorContext;
+import top.egon.cola.component.common.core.pojo.PageMetaRecord;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
+import top.egon.cola.component.common.core.pojo.PageSlice;
+import top.egon.cola.component.common.core.pojo.SortQuery;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

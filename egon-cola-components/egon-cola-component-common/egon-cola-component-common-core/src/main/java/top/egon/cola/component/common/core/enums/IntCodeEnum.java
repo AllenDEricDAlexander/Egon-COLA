@@ -1,4 +1,4 @@
-package top.egon.cola.component.common.enums;
+package top.egon.cola.component.common.core.enums;
 
 /**
  * Base contract for enums that expose a stable integer code value.

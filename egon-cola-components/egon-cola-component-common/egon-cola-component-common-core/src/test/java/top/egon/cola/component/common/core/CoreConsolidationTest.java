@@ -1,10 +1,10 @@
 package top.egon.cola.component.common.core;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.pojo.PageResultRecord;
-import top.egon.cola.component.common.pojo.ResultRecord;
-import top.egon.cola.component.common.pojo.TreeBuilder;
-import top.egon.cola.component.common.pojo.TreeNode;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.common.core.pojo.TreeBuilder;
+import top.egon.cola.component.common.core.pojo.TreeNode;
 import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.List;

@@ -1,6 +1,7 @@
 package top.egon.cola.component.common.pojo;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

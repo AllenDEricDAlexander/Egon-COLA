@@ -9,7 +9,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriUtils;
-import top.egon.cola.component.common.pojo.ResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;

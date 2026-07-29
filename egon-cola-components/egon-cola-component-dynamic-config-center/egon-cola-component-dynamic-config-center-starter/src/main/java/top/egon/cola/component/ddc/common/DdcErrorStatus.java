@@ -1,6 +1,6 @@
 package top.egon.cola.component.ddc.common;
 
-import top.egon.cola.component.common.enums.ErrorStatus;
+import top.egon.cola.component.common.core.enums.ErrorStatus;
 
 public enum DdcErrorStatus implements ErrorStatus {
 

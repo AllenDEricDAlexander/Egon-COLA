@@ -3,9 +3,11 @@ package top.egon.cola.component.common.pojo;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.enums.ResultCode;
-import top.egon.cola.component.common.exception.BusinessException;
-import top.egon.cola.component.common.exception.RemoteCallException;
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.BusinessException;
+import top.egon.cola.component.common.core.exception.RemoteCallException;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.List;

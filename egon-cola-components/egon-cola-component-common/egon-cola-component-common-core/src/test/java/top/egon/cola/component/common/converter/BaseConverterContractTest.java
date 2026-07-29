@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
 import java.util.List;
 

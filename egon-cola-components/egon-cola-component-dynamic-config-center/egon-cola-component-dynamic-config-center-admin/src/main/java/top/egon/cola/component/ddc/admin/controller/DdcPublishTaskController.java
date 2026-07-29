@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.pojo.ResultRecord;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;

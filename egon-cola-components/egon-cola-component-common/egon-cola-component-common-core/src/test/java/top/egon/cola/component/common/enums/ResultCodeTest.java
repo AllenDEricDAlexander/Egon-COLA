@@ -1,6 +1,8 @@
 package top.egon.cola.component.common.enums;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.enums.ErrorStatus;
+import top.egon.cola.component.common.core.enums.ResultCode;
 
 import java.util.Arrays;
 import java.util.Set;
