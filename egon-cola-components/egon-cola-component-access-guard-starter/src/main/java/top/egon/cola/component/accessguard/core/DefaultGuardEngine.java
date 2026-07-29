@@ -16,6 +16,7 @@ import top.egon.cola.component.accessguard.key.GuardKeyResolver;
 import top.egon.cola.component.accessguard.execution.ExecutorRejectedException;
 import top.egon.cola.component.accessguard.execution.RejectionHandler;
 import top.egon.cola.component.accessguard.execution.RejectionMode;
+import top.egon.cola.component.accessguard.execution.RoutingTimeLimiter;
 import top.egon.cola.component.accessguard.execution.TimeLimitExceededException;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 import top.egon.cola.component.accessguard.execution.TimeLimiter;
@@ -45,7 +46,7 @@ public final class DefaultGuardEngine implements GuardEngine {
     private final Map<String, GuardPolicy<?>> localPolicies;
     private final FailurePolicyResolver failurePolicyResolver;
     private final PenaltyService penaltyService;
-    private final Map<TimeLimiterType, TimeLimiter> timeLimiters;
+    private final TimeLimiter timeLimiter;
     private final RejectionHandler rejectionHandler;
     private final LongSupplier ticker;
     private final String storage;
@@ -91,13 +92,40 @@ public final class DefaultGuardEngine implements GuardEngine {
             String storage,
             String engine
     ) {
+        this(
+                planResolver,
+                keyResolver,
+                policies,
+                localPolicies,
+                failurePolicyResolver,
+                penaltyService,
+                new RoutingTimeLimiter(timeLimiters),
+                rejectionHandler,
+                ticker,
+                storage,
+                engine);
+    }
+
+    public DefaultGuardEngine(
+            GuardPlanResolver planResolver,
+            GuardKeyResolver keyResolver,
+            List<GuardPolicy<?>> policies,
+            Map<String, GuardPolicy<?>> localPolicies,
+            FailurePolicyResolver failurePolicyResolver,
+            PenaltyService penaltyService,
+            TimeLimiter timeLimiter,
+            RejectionHandler rejectionHandler,
+            LongSupplier ticker,
+            String storage,
+            String engine
+    ) {
         this.planResolver = Objects.requireNonNull(planResolver, "planResolver");
         this.keyResolver = Objects.requireNonNull(keyResolver, "keyResolver");
         this.policies = List.copyOf(Objects.requireNonNull(policies, "policies"));
         this.localPolicies = Map.copyOf(Objects.requireNonNull(localPolicies, "localPolicies"));
         this.failurePolicyResolver = Objects.requireNonNull(failurePolicyResolver, "failurePolicyResolver");
         this.penaltyService = Objects.requireNonNull(penaltyService, "penaltyService");
-        this.timeLimiters = Map.copyOf(Objects.requireNonNull(timeLimiters, "timeLimiters"));
+        this.timeLimiter = Objects.requireNonNull(timeLimiter, "timeLimiter");
         this.rejectionHandler = Objects.requireNonNull(rejectionHandler, "rejectionHandler");
         this.ticker = Objects.requireNonNull(ticker, "ticker");
         this.storage = requireText(storage, "storage");
@@ -282,11 +310,7 @@ public final class DefaultGuardEngine implements GuardEngine {
         if (!config.enabled() || config.mode() == TimeLimitMode.DISABLED) {
             return invocation.continuation().execute();
         }
-        TimeLimiter limiter = timeLimiters.get(config.executor());
-        if (limiter == null) {
-            throw new IllegalStateException("No TimeLimiter configured for " + config.executor());
-        }
-        return limiter.execute(invocation, config);
+        return timeLimiter.execute(invocation, config);
     }
 
     private GuardExecutionResult<Object> resolveRejection(

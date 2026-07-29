@@ -89,6 +89,8 @@ public class GuardPlanProperties {
         private int maxEntries = 100_000;
 
         private Duration cleanupInterval = Duration.ofMinutes(1);
+
+        private Duration idleTtl = Duration.ofMinutes(10);
     }
 
     @Getter
@@ -102,6 +104,8 @@ public class GuardPlanProperties {
         private int maxPoolSize = 16;
 
         private int queueCapacity = 1024;
+
+        private Duration keepAlive = Duration.ofSeconds(60);
     }
 
     @Getter
