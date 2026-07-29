@@ -15,12 +15,14 @@ class GatewayRpcDriverControllerTest {
 
         GatewayRpcDriverController.EchoView response = controller.echo(
                 "through-gateway",
-                "rpc-driver-trace"
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+                "rpc-driver-request"
         );
 
         assertThat(response.providerId()).isEqualTo("rpc-provider-test");
         assertThat(response.message()).isEqualTo("through-gateway");
-        assertThat(response.traceId()).isEqualTo("rpc-driver-trace");
+        assertThat(response.traceId())
+                .isEqualTo("4bf92f3577b34da6a3ce929d0e0e4736");
         assertThat(TraceContext.getTraceId()).isNull();
     }
 
