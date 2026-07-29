@@ -1,5 +1,6 @@
 package top.egon.cola.component.accessguard.autoconfigure;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -10,6 +11,8 @@ import top.egon.cola.component.accessguard.adapter.aop.GuardBindingResolver;
 import top.egon.cola.component.accessguard.adapter.aop.SpringAopAccessGuardAdvisor;
 import top.egon.cola.component.accessguard.core.GuardEngine;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
+import top.egon.cola.component.accessguard.execution.async.CompletionStageGuardExecutor;
+import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecutor;
 
 @AutoConfiguration
 @AutoConfigureAfter(AccessGuardCoreAutoConfiguration.class)
@@ -30,8 +33,14 @@ public class AccessGuardAopAutoConfiguration {
     @ConditionalOnMissingBean
     public SpringAopAccessGuardAdvisor accessGuardAdvisor(
             GuardBindingResolver bindingResolver,
-            GuardEngine engine
+            GuardEngine engine,
+            CompletionStageGuardExecutor completionStageExecutor,
+            ObjectProvider<ReactiveGuardExecutor> reactiveExecutor
     ) {
-        return new SpringAopAccessGuardAdvisor(bindingResolver, engine);
+        return new SpringAopAccessGuardAdvisor(
+                bindingResolver,
+                engine,
+                completionStageExecutor,
+                reactiveExecutor.getIfAvailable());
     }
 }

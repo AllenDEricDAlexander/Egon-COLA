@@ -15,6 +15,7 @@ import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
 import top.egon.cola.component.accessguard.execution.FallbackMethodCache;
 import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
 import top.egon.cola.component.accessguard.store.AccessGuardStorageIntegration;
+import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecutor;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -35,6 +36,7 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     private final ListableBeanFactory beanFactory;
     private final ObjectProvider<AccessGuardAgentIntegration> integrations;
     private final ObjectProvider<AccessGuardStorageIntegration> storageIntegrations;
+    private final ObjectProvider<ReactiveGuardExecutor> reactiveExecutors;
 
     public AccessGuardStartupValidator(
             GuardPlanProperties properties,
@@ -45,7 +47,8 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
             JsonRejectValueParser jsonParser,
             ListableBeanFactory beanFactory,
             ObjectProvider<AccessGuardAgentIntegration> integrations,
-            ObjectProvider<AccessGuardStorageIntegration> storageIntegrations
+            ObjectProvider<AccessGuardStorageIntegration> storageIntegrations,
+            ObjectProvider<ReactiveGuardExecutor> reactiveExecutors
     ) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.planResolver = Objects.requireNonNull(planResolver, "planResolver");
@@ -56,6 +59,7 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
         this.beanFactory = Objects.requireNonNull(beanFactory, "beanFactory");
         this.integrations = Objects.requireNonNull(integrations, "integrations");
         this.storageIntegrations = Objects.requireNonNull(storageIntegrations, "storageIntegrations");
+        this.reactiveExecutors = Objects.requireNonNull(reactiveExecutors, "reactiveExecutors");
     }
 
     @Override
@@ -125,9 +129,20 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     }
 
     private void validateBinding(Method method, GuardBinding binding) {
+        if (isReactive(method) && reactiveExecutors.orderedStream().count() != 1L) {
+            throw new IllegalStateException(
+                    "Reactive Access Guard method requires exactly one Reactor adapter: "
+                            + method.toGenericString());
+        }
         GuardPlan plan = planResolver.resolve(binding.ruleId()).plan();
         validateDedicatedBinding(binding, plan);
         planValidator.validateExecution(method, plan, fallbackCache, jsonParser);
+    }
+
+    private static boolean isReactive(Method method) {
+        String returnType = method.getReturnType().getName();
+        return "reactor.core.publisher.Mono".equals(returnType)
+                || "reactor.core.publisher.Flux".equals(returnType);
     }
 
     private static void validateDedicatedBinding(GuardBinding binding, GuardPlan plan) {

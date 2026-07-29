@@ -138,7 +138,7 @@ public final class DefaultGuardEngine implements GuardEngine {
 
     @Override
     public GuardOutcome evaluate(GuardInvocation invocation) {
-        return evaluateAdmission(invocation, null);
+        return prepare(invocation).admission();
     }
 
     private GuardOutcome evaluateAdmission(GuardInvocation invocation, PlanCapture capture) {
@@ -263,43 +263,45 @@ public final class DefaultGuardEngine implements GuardEngine {
         return executeWithOutcome(invocation).value();
     }
 
-    GuardExecutionResult<Object> executeWithOutcome(GuardInvocation invocation) throws Throwable {
+    @Override
+    public PreparedGuardExecution prepare(GuardInvocation invocation) {
         Objects.requireNonNull(invocation, "invocation");
         PlanCapture capture = new PlanCapture();
         GuardOutcome admission = evaluateAdmission(invocation, capture);
-        if (capture.snapshot == null) {
-            throw new AccessGuardRejectedException(admission);
-        }
-        ExecutionConfig execution = capture.snapshot.plan().execution();
-        if (admission.type() == GuardOutcomeType.REJECTED || admission.type() == GuardOutcomeType.FAILED) {
-            return resolveRejection(invocation, admission, execution.rejection(), capture.startedAt);
+        ExecutionConfig execution = capture.snapshot == null
+                ? unavailableExecution()
+                : capture.snapshot.plan().execution();
+        PreparedGuardExecution.RejectionResolver rejectionResolver = capture.snapshot == null
+                ? rejected -> {
+                    throw new AccessGuardRejectedException(rejected);
+                }
+                : rejected -> resolveRejection(
+                        invocation, rejected, execution.rejection(), capture.startedAt);
+        return new PreparedGuardExecution(
+                invocation,
+                admission,
+                execution,
+                rejectionResolver,
+                (decision, code) -> executionFailure(admission, decision, code, capture.startedAt),
+                value -> new GuardExecutionResult<>(value, withElapsed(admission, capture.startedAt)));
+    }
+
+    GuardExecutionResult<Object> executeWithOutcome(GuardInvocation invocation) throws Throwable {
+        PreparedGuardExecution prepared = prepare(invocation);
+        if (!prepared.admitted()) {
+            return prepared.resolveAdmission();
         }
         try {
-            Object value = executeOperation(invocation, execution.timeLimit());
-            return new GuardExecutionResult<>(value, withElapsed(admission, capture.startedAt));
+            Object value = executeOperation(invocation, prepared.execution().timeLimit());
+            return prepared.complete(value);
         } catch (TimeLimitExceededException exception) {
-            GuardOutcome timedOut = executionFailure(
-                    admission,
-                    GuardDecision.TIME_LIMIT_EXCEEDED,
-                    "TIME_LIMIT_EXCEEDED",
-                    capture.startedAt);
-            return resolveRejection(invocation, timedOut, execution.rejection(), capture.startedAt);
+            return prepared.resolveFailure(GuardDecision.TIME_LIMIT_EXCEEDED, "TIME_LIMIT_EXCEEDED");
         } catch (ExecutorRejectedException exception) {
-            GuardOutcome rejected = executionFailure(
-                    admission,
-                    GuardDecision.EXECUTOR_REJECTED,
-                    "EXECUTOR_REJECTED",
-                    capture.startedAt);
-            return resolveRejection(invocation, rejected, execution.rejection(), capture.startedAt);
+            return prepared.resolveFailure(GuardDecision.EXECUTOR_REJECTED, "EXECUTOR_REJECTED");
         } catch (AccessGuardRejectedException exception) {
             throw exception;
         } catch (Throwable throwable) {
-            GuardOutcome failed = executionFailure(
-                    admission,
-                    GuardDecision.BUSINESS_EXCEPTION,
-                    "BUSINESS_EXCEPTION",
-                    capture.startedAt);
-            return resolveRejection(invocation, failed, execution.rejection(), capture.startedAt);
+            return prepared.resolveFailure(GuardDecision.BUSINESS_EXCEPTION, "BUSINESS_EXCEPTION");
         }
     }
 
@@ -371,6 +373,17 @@ public final class DefaultGuardEngine implements GuardEngine {
                 elapsed(startedAt),
                 Duration.ZERO,
                 new GuardFailure("EXECUTION", code));
+    }
+
+    private static ExecutionConfig unavailableExecution() {
+        return new ExecutionConfig(
+                new ExecutionConfig.TimeLimitConfig(
+                        false,
+                        TimeLimitMode.DISABLED,
+                        TimeLimiterType.CALLER_THREAD,
+                        Duration.ofSeconds(1),
+                        true),
+                new ExecutionConfig.RejectionConfig(RejectionMode.THROW, "", ""));
     }
 
     private GuardOutcome withElapsed(GuardOutcome outcome, long startedAt) {

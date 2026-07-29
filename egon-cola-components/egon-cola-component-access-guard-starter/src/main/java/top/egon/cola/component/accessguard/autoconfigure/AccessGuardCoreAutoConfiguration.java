@@ -28,6 +28,8 @@ import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
 import top.egon.cola.component.accessguard.execution.MethodHandleFallbackHandler;
 import top.egon.cola.component.accessguard.execution.RejectionHandler;
 import top.egon.cola.component.accessguard.execution.TimeLimiter;
+import top.egon.cola.component.accessguard.execution.async.CompletionStageGuardExecutor;
+import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecutor;
 import top.egon.cola.component.accessguard.key.CompositeGuardKeyResolver;
 import top.egon.cola.component.accessguard.key.GuardKeyResolver;
 import top.egon.cola.component.accessguard.key.HmacSha256KeyHasher;
@@ -270,6 +272,12 @@ public class AccessGuardCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public CompletionStageGuardExecutor accessGuardCompletionStageExecutor(GuardEngine engine) {
+        return new CompletionStageGuardExecutor(engine);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public GuardBindingResolver accessGuardBindingResolver() {
         return new GuardBindingResolver();
     }
@@ -285,7 +293,8 @@ public class AccessGuardCoreAutoConfiguration {
             JsonRejectValueParser jsonParser,
             org.springframework.beans.factory.ListableBeanFactory beanFactory,
             ObjectProvider<top.egon.cola.component.accessguard.api.AccessGuardAgentIntegration> integrations,
-            ObjectProvider<AccessGuardStorageIntegration> storageIntegrations
+            ObjectProvider<AccessGuardStorageIntegration> storageIntegrations,
+            ObjectProvider<ReactiveGuardExecutor> reactiveExecutors
     ) {
         return new AccessGuardStartupValidator(
                 properties,
@@ -296,6 +305,7 @@ public class AccessGuardCoreAutoConfiguration {
                 jsonParser,
                 beanFactory,
                 integrations,
-                storageIntegrations);
+                storageIntegrations,
+                reactiveExecutors);
     }
 }

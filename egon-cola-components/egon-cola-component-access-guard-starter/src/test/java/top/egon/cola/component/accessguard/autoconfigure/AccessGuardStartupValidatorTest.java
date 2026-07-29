@@ -1,6 +1,7 @@
 package top.egon.cola.component.accessguard.autoconfigure;
 
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -43,6 +44,16 @@ class AccessGuardStartupValidatorTest {
                         .getFailure().hasMessageContaining("constructor"));
     }
 
+    @Test
+    void reactiveMethodWithoutRegisteredAdapterFailsStartup() {
+        contextRunner.withUserConfiguration(ReactiveGuardConfiguration.class)
+                .withPropertyValues(
+                        "egon.cola.component.access-guard.key.hmac-secret=test-secret",
+                        "egon.cola.component.access-guard.rules.reactive.key.contributors[0]=GLOBAL")
+                .run(context -> assertThat(context).hasFailed()
+                        .getFailure().hasMessageContaining("Reactor adapter"));
+    }
+
     @Configuration(proxyBeanMethods = false)
     static class DedicatedGuardConfiguration {
 
@@ -69,10 +80,27 @@ class AccessGuardStartupValidatorTest {
         }
     }
 
+    @Configuration(proxyBeanMethods = false)
+    static class ReactiveGuardConfiguration {
+
+        @Bean
+        ReactiveGuardedService reactiveGuardedService() {
+            return new ReactiveGuardedService();
+        }
+    }
+
     static class ConstructorGuardedService {
 
         @AccessGuard("constructor")
         ConstructorGuardedService() {
+        }
+    }
+
+    static class ReactiveGuardedService {
+
+        @AccessGuard("reactive")
+        Mono<String> draw() {
+            return Mono.just("ok");
         }
     }
 }
