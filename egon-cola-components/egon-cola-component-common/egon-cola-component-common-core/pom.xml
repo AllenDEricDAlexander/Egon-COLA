@@ -14,7 +14,7 @@
     <artifactId>egon-cola-component-common-core</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-component-common-core</name>
-    <description>Core enums, exception, pojo, trace, and converter contracts for Egon COLA.</description>
+    <description>Core enums, exception, pojo, and converter contracts for Egon COLA.</description>
 
     <properties>
         <mapstruct.version>1.6.3</mapstruct.version>
@@ -22,6 +22,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-trace</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>

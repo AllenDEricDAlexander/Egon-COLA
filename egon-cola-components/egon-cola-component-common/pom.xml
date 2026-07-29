@@ -18,6 +18,9 @@
 
     <modules>
         <module>egon-cola-component-common-core</module>
+        <module>egon-cola-component-common-log</module>
+        <module>egon-cola-component-common-trace</module>
+        <module>egon-cola-component-common-trace-spring-boot-starter</module>
         <module>egon-cola-component-common-id-starter</module>
         <module>egon-cola-component-common-crypto</module>
         <module>egon-cola-component-common-mask</module>
