@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.admin.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,6 +22,9 @@ class DdcManifestControllerTest {
     @Autowired
     private DdcManifestController controller;
 
+    @Value("${sdk.version}")
+    private String componentVersion;
+
     @Test
     void manifestReturnsDynamicConfigCenterMetadata() throws Exception {
         mockMvc.perform(get("/api/v1/ddc/manifest"))
@@ -32,6 +36,6 @@ class DdcManifestControllerTest {
 
     @Test
     void manifestUsesFilteredComponentVersion() {
-        assertThat(controller.manifest().data().getVersion()).isEqualTo("5.3.2");
+        assertThat(controller.manifest().data().getVersion()).isEqualTo(componentVersion);
     }
 }
