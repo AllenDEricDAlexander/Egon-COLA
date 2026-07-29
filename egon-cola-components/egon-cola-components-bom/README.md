@@ -15,7 +15,7 @@ Admin, test, and aggregator POM modules are not exported as business dependency 
 
 ### Unified Version Management
 
-After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.3.1`.
+After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.3.2`.
 
 ### Exported Dependencies
 
@@ -112,7 +112,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 
 ```xml
 <properties>
-    <egon-cola.version>5.3.1</egon-cola.version>
+    <egon-cola.version>5.3.2</egon-cola.version>
 </properties>
 
 <dependencyManagement>

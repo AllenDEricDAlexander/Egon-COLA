@@ -12,7 +12,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 
 ### 统一版本管理
 
-业务应用通过 `dependencyManagement` import BOM 后，后续声明组件依赖时不需要再写 `<version>`。所有组件版本跟随 BOM 的 `project.version`，当前为 `5.3.1`。
+业务应用通过 `dependencyManagement` import BOM 后，后续声明组件依赖时不需要再写 `<version>`。所有组件版本跟随 BOM 的 `project.version`，当前为 `5.3.2`。
 
 ### 导出的依赖清单
 
@@ -109,7 +109,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 
 ```xml
 <properties>
-    <egon-cola.version>5.3.1</egon-cola.version>
+    <egon-cola.version>5.3.2</egon-cola.version>
 </properties>
 
 <dependencyManagement>

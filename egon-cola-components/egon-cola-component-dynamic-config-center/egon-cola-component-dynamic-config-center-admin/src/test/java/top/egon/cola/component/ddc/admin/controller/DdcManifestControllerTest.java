@@ -32,6 +32,6 @@ class DdcManifestControllerTest {
 
     @Test
     void manifestUsesFilteredComponentVersion() {
-        assertThat(controller.manifest().data().getVersion()).isEqualTo("5.3.1");
+        assertThat(controller.manifest().data().getVersion()).isEqualTo("5.3.2");
     }
 }
