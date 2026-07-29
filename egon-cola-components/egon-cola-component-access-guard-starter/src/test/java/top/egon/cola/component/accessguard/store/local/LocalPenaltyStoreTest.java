@@ -46,6 +46,22 @@ class LocalPenaltyStoreTest {
     }
 
     @Test
+    void counterExpiryStartsAtTheFirstViolationInsteadOfSliding() {
+        MutableClock clock = new MutableClock(INSTANT);
+        LocalPenaltyStore store = new LocalPenaltyStore(clock, 100);
+        store.recordViolation(key("user"), 3, ONE_MINUTE, TEN_MINUTES);
+        clock.advance(Duration.ofSeconds(40));
+        store.recordViolation(key("user"), 3, ONE_MINUTE, TEN_MINUTES);
+        clock.advance(Duration.ofSeconds(21));
+
+        assertThat(store.recordViolation(key("user"), 3, ONE_MINUTE, TEN_MINUTES))
+                .satisfies(state -> {
+                    assertThat(state.violations()).isEqualTo(1L);
+                    assertThat(state.active()).isFalse();
+                });
+    }
+
+    @Test
     void rejectsNewEntryWhenBoundedCapacityIsFull() {
         LocalPenaltyStore store = new LocalPenaltyStore(new MutableClock(INSTANT), 1);
         store.recordViolation(key("first"), 3, ONE_MINUTE, TEN_MINUTES);

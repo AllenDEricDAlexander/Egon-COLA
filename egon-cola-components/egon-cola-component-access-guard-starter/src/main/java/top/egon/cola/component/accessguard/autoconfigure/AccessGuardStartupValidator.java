@@ -14,6 +14,7 @@ import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
 import top.egon.cola.component.accessguard.execution.FallbackMethodCache;
 import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
+import top.egon.cola.component.accessguard.store.AccessGuardStorageIntegration;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -33,6 +34,7 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     private final JsonRejectValueParser jsonParser;
     private final ListableBeanFactory beanFactory;
     private final ObjectProvider<AccessGuardAgentIntegration> integrations;
+    private final ObjectProvider<AccessGuardStorageIntegration> storageIntegrations;
 
     public AccessGuardStartupValidator(
             GuardPlanProperties properties,
@@ -42,7 +44,8 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
             FallbackMethodCache fallbackCache,
             JsonRejectValueParser jsonParser,
             ListableBeanFactory beanFactory,
-            ObjectProvider<AccessGuardAgentIntegration> integrations
+            ObjectProvider<AccessGuardAgentIntegration> integrations,
+            ObjectProvider<AccessGuardStorageIntegration> storageIntegrations
     ) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.planResolver = Objects.requireNonNull(planResolver, "planResolver");
@@ -52,6 +55,7 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
         this.jsonParser = Objects.requireNonNull(jsonParser, "jsonParser");
         this.beanFactory = Objects.requireNonNull(beanFactory, "beanFactory");
         this.integrations = Objects.requireNonNull(integrations, "integrations");
+        this.storageIntegrations = Objects.requireNonNull(storageIntegrations, "storageIntegrations");
     }
 
     @Override
@@ -62,9 +66,7 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
                 || properties.getKey().getHmacSecret().isBlank())) {
             throw new IllegalStateException("Access Guard key HMAC secret must not be blank when rules are configured");
         }
-        if (properties.getStorage() == GuardPlanProperties.Storage.REDISSON) {
-            throw new IllegalStateException("REDISSON storage requires the V2 Redisson auto-configuration");
-        }
+        validateStorageIntegration();
         properties.getRules().keySet().forEach(planResolver::resolve);
         if (properties.getEngine() != AccessGuardEngine.DISABLED) {
             validateGuardedBeans();
@@ -80,6 +82,20 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
             throw new IllegalStateException(
                     "Access Guard engine=AGENT requires exactly one integration from "
                             + "egon-cola-component-bytecode-starter; found " + installed.size());
+        }
+    }
+
+    private void validateStorageIntegration() {
+        if (properties.getStorage() != GuardPlanProperties.Storage.REDISSON) {
+            return;
+        }
+        List<AccessGuardStorageIntegration> installed = storageIntegrations.orderedStream()
+                .filter(integration -> GuardPlanProperties.Storage.REDISSON.name().equals(integration.storage()))
+                .toList();
+        if (installed.size() != 1) {
+            throw new IllegalStateException(
+                    "REDISSON storage requires exactly one Access Guard Redisson integration; found "
+                            + installed.size());
         }
     }
 

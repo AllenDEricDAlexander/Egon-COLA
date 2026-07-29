@@ -80,6 +80,8 @@ public class GuardPlanProperties {
         private String clientBeanName = "redissonClient";
 
         private String keyPrefix = "egon:access-guard";
+
+        private String application = "";
     }
 
     @Getter

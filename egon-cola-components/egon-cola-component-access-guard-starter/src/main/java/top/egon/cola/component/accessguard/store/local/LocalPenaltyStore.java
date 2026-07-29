@@ -57,13 +57,14 @@ public final class LocalPenaltyStore implements PenaltyStore {
                     && existing.penaltyExpiresAt.isAfter(now)) {
                 return existing;
             }
-            long previous = existing != null
+            boolean currentWindow = existing != null
                     && existing.penaltyExpiresAt == null
-                    && existing.violationExpiresAt.isAfter(now)
-                    ? existing.violations
-                    : 0L;
+                    && existing.violationExpiresAt.isAfter(now);
+            long previous = currentWindow ? existing.violations : 0L;
             long violations = Math.addExact(previous, 1L);
-            Instant violationExpiresAt = now.plus(violationTtl);
+            Instant violationExpiresAt = currentWindow
+                    ? existing.violationExpiresAt
+                    : now.plus(violationTtl);
             Instant penaltyExpiresAt = violations >= threshold ? now.plus(penaltyTtl) : null;
             return new Entry(violations, violationExpiresAt, penaltyExpiresAt);
         });

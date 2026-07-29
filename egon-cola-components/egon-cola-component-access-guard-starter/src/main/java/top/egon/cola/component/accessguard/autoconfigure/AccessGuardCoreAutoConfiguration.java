@@ -52,6 +52,9 @@ import top.egon.cola.component.accessguard.store.AllowListStore;
 import top.egon.cola.component.accessguard.store.DenyListStore;
 import top.egon.cola.component.accessguard.store.PenaltyStore;
 import top.egon.cola.component.accessguard.store.RateLimitBackend;
+import top.egon.cola.component.accessguard.store.AccessGuardStorageIntegration;
+import top.egon.cola.component.accessguard.store.local.LocalPenaltyStore;
+import top.egon.cola.component.accessguard.store.local.LocalRateLimitBackend;
 
 import java.util.List;
 import java.util.Map;
@@ -191,10 +194,12 @@ public class AccessGuardCoreAutoConfiguration {
 
     @Bean("accessGuardLocalPolicies")
     public Map<String, GuardPolicy<?>> accessGuardLocalPolicies(
-            PenaltyBoxPolicy penaltyBox,
-            RateLimitPolicy rateLimit
+            LocalPenaltyStore penaltyStore,
+            LocalRateLimitBackend rateLimitBackend
     ) {
-        return Map.of("penalty-box", penaltyBox, "rate-limit", rateLimit);
+        return Map.of(
+                "penalty-box", new PenaltyBoxPolicy(penaltyStore),
+                "rate-limit", new RateLimitPolicy(rateLimitBackend));
     }
 
     @Bean
@@ -279,7 +284,8 @@ public class AccessGuardCoreAutoConfiguration {
             FallbackMethodCache fallbackCache,
             JsonRejectValueParser jsonParser,
             org.springframework.beans.factory.ListableBeanFactory beanFactory,
-            ObjectProvider<top.egon.cola.component.accessguard.api.AccessGuardAgentIntegration> integrations
+            ObjectProvider<top.egon.cola.component.accessguard.api.AccessGuardAgentIntegration> integrations,
+            ObjectProvider<AccessGuardStorageIntegration> storageIntegrations
     ) {
         return new AccessGuardStartupValidator(
                 properties,
@@ -289,6 +295,7 @@ public class AccessGuardCoreAutoConfiguration {
                 fallbackCache,
                 jsonParser,
                 beanFactory,
-                integrations);
+                integrations,
+                storageIntegrations);
     }
 }
