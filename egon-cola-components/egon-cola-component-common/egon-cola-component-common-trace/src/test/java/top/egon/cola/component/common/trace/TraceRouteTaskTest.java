@@ -3,6 +3,9 @@ package top.egon.cola.component.common.trace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
+import top.egon.cola.component.common.trace.thread.TraceRouteCallable;
+import top.egon.cola.component.common.trace.thread.TraceRouteRunnable;
+import top.egon.cola.component.common.trace.thread.TraceRouteSupplier;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

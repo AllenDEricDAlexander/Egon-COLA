@@ -4,6 +4,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
@@ -11,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,6 +20,7 @@ class TraceContextScopeTest {
 
     @AfterEach
     void tearDown() {
+        TraceContext.clearOwnedKeys();
         MDC.clear();
     }
 
@@ -26,10 +29,71 @@ class TraceContextScopeTest {
         TraceContext.setTraceId("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 
         assertEquals("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", TraceContext.getTraceId());
+        TraceState state = TraceContext.current().orElseThrow();
+        assertEquals(state.spanId(), MDC.get(TraceKeys.SPAN_ID));
 
         TraceContext.clearTraceId();
 
         assertNull(TraceContext.getTraceId());
+        assertTrue(TraceContext.current().isEmpty());
+        TraceKeys.ownedMdcKeys().forEach(key -> assertNull(MDC.get(key)));
+    }
+
+    @Test
+    void legacyNonW3cTraceIdDoesNotLeaveAConflictingTraceState() {
+        TraceState state = TraceState.root();
+
+        try (TraceScope ignored = TraceContext.open(state)) {
+            TraceContext.setTraceId("trace-legacy");
+
+            assertEquals("trace-legacy", TraceContext.getTraceId());
+            assertTrue(TraceContext.current().isEmpty());
+            assertNull(MDC.get(TraceKeys.SPAN_ID));
+        }
+    }
+
+    @Test
+    void currentStateIsCanonicalWhenOwnedMdcIsModifiedExternally() {
+        TraceState state = TraceState.root();
+
+        try (TraceScope ignored = TraceContext.open(state)) {
+            MDC.put(TraceKeys.TRACE_ID, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+
+            assertEquals(state.traceId(), TraceContext.getTraceId());
+            assertEquals(state, TraceContext.current().orElseThrow());
+        }
+    }
+
+    @Test
+    void traceIdSnapshotProjectsACompleteW3cState() {
+        TraceSnapshot snapshot = new TraceSnapshot(
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        );
+
+        try (TraceScope ignored = snapshot.open()) {
+            assertNotNull(snapshot.state());
+            assertEquals(snapshot.state().traceId(), MDC.get(TraceKeys.TRACE_ID));
+            assertEquals(snapshot.state().spanId(), MDC.get(TraceKeys.SPAN_ID));
+        }
+    }
+
+    @Test
+    void snapshotRemovesStaleOwnedMdcThatIsAbsentFromCanonicalState() {
+        TraceState state = TraceState.root();
+        TraceSnapshot snapshot = new TraceSnapshot(
+                state,
+                Map.of(
+                        TraceKeys.PARENT_SPAN_ID,
+                        "bbbbbbbbbbbbbbbb",
+                        "biz",
+                        "keep"
+                )
+        );
+
+        try (TraceScope ignored = snapshot.open()) {
+            assertNull(MDC.get(TraceKeys.PARENT_SPAN_ID));
+            assertEquals("keep", MDC.get("biz"));
+        }
     }
 
     @Test

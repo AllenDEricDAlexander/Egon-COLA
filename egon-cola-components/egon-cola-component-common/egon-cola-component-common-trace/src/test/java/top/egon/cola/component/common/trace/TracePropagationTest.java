@@ -77,4 +77,31 @@ class TracePropagationTest {
 
         assertNull(headers.get("tracestate"));
     }
+
+    @Test
+    void discardsTracestateWithoutAValidTraceparent() {
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("traceparent", "invalid");
+        headers.put("tracestate", "vendor=value");
+
+        TracePropagation.Extracted extracted = TracePropagation.extract(
+                headers::get,
+                TracePropagation.Options.defaults()
+        );
+
+        assertNull(extracted.state().tracestate());
+    }
+
+    @Test
+    void replacesInvalidRequestIdWithABoundedGeneratedValue() {
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("x-egon-request-id", "x".repeat(129));
+
+        TracePropagation.Extracted extracted = TracePropagation.extract(
+                headers::get,
+                TracePropagation.Options.defaults()
+        );
+
+        assertTrue(TraceIds.isValidTraceId(extracted.state().requestId()));
+    }
 }

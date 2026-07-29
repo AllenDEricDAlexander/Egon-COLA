@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.contract.trace;
 
-import top.egon.cola.component.common.trace.TraceCarrierReader;
+import top.egon.cola.component.common.trace.function.TraceCarrierReader;
 import top.egon.cola.component.common.trace.TraceIds;
 import top.egon.cola.component.common.trace.TraceKeys;
 import top.egon.cola.component.common.trace.TracePropagation;

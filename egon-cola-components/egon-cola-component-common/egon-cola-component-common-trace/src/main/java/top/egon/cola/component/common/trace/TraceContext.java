@@ -2,6 +2,7 @@ package top.egon.cola.component.common.trace;
 
 import org.slf4j.MDC;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -17,37 +18,47 @@ public final class TraceContext {
     }
 
     public static String getTraceId() {
-        return MDC.get(TRACE_ID);
+        TraceState current = CURRENT.get();
+        return current == null ? MDC.get(TRACE_ID) : current.traceId();
     }
 
     public static void setTraceId(String traceId) {
         if (traceId == null || traceId.isBlank()) {
-            MDC.remove(TRACE_ID);
-            CURRENT.remove();
+            clearTraceId();
             return;
         }
-        String value = traceId.trim().toLowerCase(java.util.Locale.ROOT);
-        MDC.put(TRACE_ID, value);
-        if (TraceIds.isValidTraceId(value)) {
-            String spanId = MDC.get(TraceKeys.SPAN_ID);
-            CURRENT.set(new TraceState(
-                    value,
-                    TraceIds.isValidSpanId(spanId)
-                            ? spanId
-                            : TraceIds.newSpanId(),
-                    null,
-                    MDC.get(TraceKeys.REQUEST_ID),
-                    MDC.get(TraceKeys.TRACE_FLAGS),
-                    MDC.get(TraceKeys.TRACESTATE),
-                    MDC.get(TraceKeys.SOURCE_APP),
-                    MDC.get(TraceKeys.SOURCE_INSTANCE)
-            ));
+        String value = traceId.trim();
+        Optional<String> normalized = TraceIds.normalizeTraceId(value);
+        if (normalized.isEmpty()) {
+            clearOwnedKeys();
+            MDC.put(TRACE_ID, value);
+            return;
         }
+        TraceState previous = current().orElse(null);
+        TraceState state = previous != null
+                && previous.traceId().equals(normalized.get())
+                ? previous
+                : new TraceState(
+                normalized.get(),
+                TraceIds.newSpanId(),
+                null,
+                previous == null
+                        ? MDC.get(TraceKeys.REQUEST_ID)
+                        : previous.requestId(),
+                "00",
+                null,
+                previous == null
+                        ? MDC.get(TraceKeys.SOURCE_APP)
+                        : previous.sourceApp(),
+                previous == null
+                        ? MDC.get(TraceKeys.SOURCE_INSTANCE)
+                        : previous.sourceInstance()
+        );
+        install(state);
     }
 
     public static void clearTraceId() {
-        MDC.remove(TRACE_ID);
-        CURRENT.remove();
+        clearOwnedKeys();
     }
 
     public static Optional<TraceState> current() {
@@ -67,8 +78,8 @@ public final class TraceContext {
     }
 
     public static void clearOwnedKeys() {
-        TraceKeys.ownedMdcKeys().forEach(MDC::remove);
         CURRENT.remove();
+        replaceOwnedMdc(Map.of());
     }
 
     public static void putIfAbsent(String key, String value) {
@@ -93,6 +104,22 @@ public final class TraceContext {
             CURRENT.remove();
         } else {
             CURRENT.set(state);
+        }
+    }
+
+    private static void install(TraceState state) {
+        CURRENT.set(state);
+        replaceOwnedMdc(state.toMdcMap());
+    }
+
+    private static void replaceOwnedMdc(Map<String, String> context) {
+        for (String key : TraceKeys.ownedMdcKeys()) {
+            String value = context.get(key);
+            if (value == null) {
+                MDC.remove(key);
+            } else {
+                MDC.put(key, value);
+            }
         }
     }
 }

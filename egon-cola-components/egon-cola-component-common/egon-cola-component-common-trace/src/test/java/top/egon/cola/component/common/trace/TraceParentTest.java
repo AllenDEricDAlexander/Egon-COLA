@@ -30,7 +30,20 @@ class TraceParentTest {
         assertFalse(TraceParent.parse("00-00000000000000000000000000000000-00f067aa0ba902b7-01").isPresent());
         assertFalse(TraceParent.parse("00-4bf92f3577b34da6a3ce929d0e0e4736-0000000000000000-01").isPresent());
         assertFalse(TraceParent.parse("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-0g").isPresent());
+        assertFalse(TraceParent.parse("00-4BF92F3577B34DA6A3CE929D0E0E4736-00f067aa0ba902b7-01").isPresent());
+        assertFalse(TraceParent.parse(" 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01").isPresent());
         assertFalse(TraceParent.parse("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01\r\nx: y").isPresent());
+    }
+
+    @Test
+    void parsesKnownFieldsFromAValidFutureVersion() {
+        TraceParent parent = TraceParent.parse(
+                "01-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01-extra"
+        ).orElseThrow();
+
+        assertEquals("01", parent.version());
+        assertEquals("4bf92f3577b34da6a3ce929d0e0e4736", parent.traceId());
+        assertEquals("00f067aa0ba902b7", parent.spanId());
     }
 
     @Test

@@ -4,6 +4,7 @@ import org.slf4j.MDC;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -43,6 +44,7 @@ public final class TraceScope implements AutoCloseable {
     }
 
     static TraceScope open(TraceSnapshot snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot");
         Map<String, String> previousFullMdc = MDC.getCopyOfContextMap();
         TraceState previousState = TraceContext.currentThreadState();
         restoreFullMdc(snapshot.mdcContext());

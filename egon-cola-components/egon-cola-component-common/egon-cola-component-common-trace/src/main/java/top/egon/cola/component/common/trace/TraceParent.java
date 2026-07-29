@@ -17,6 +17,10 @@ public record TraceParent(
     @Serial
     private static final long serialVersionUID = 1L;
 
+    private static final int BASE_VALUE_LENGTH = 55;
+
+    private static final int MAX_VALUE_LENGTH = 512;
+
     public TraceParent {
         version = normalizeVersion(version)
                 .orElseThrow(() -> new IllegalArgumentException("invalid traceparent version"));
@@ -29,21 +33,41 @@ public record TraceParent(
     }
 
     public static Optional<TraceParent> parse(String value) {
-        if (value == null || TraceIds.hasLineBreak(value)) {
+        if (value == null
+                || TraceIds.hasLineBreak(value)
+                || value.length() < BASE_VALUE_LENGTH
+                || value.length() > MAX_VALUE_LENGTH
+                || !value.equals(value.trim())) {
             return Optional.empty();
         }
-        String candidate = value.trim();
-        if (candidate.length() != 55) {
+        String candidate = value;
+        if (candidate.charAt(2) != '-'
+                || candidate.charAt(35) != '-'
+                || candidate.charAt(52) != '-') {
             return Optional.empty();
         }
-        String[] parts = candidate.split("-", -1);
-        if (parts.length != 4) {
+        String versionValue = candidate.substring(0, 2);
+        String traceIdValue = candidate.substring(3, 35);
+        String spanIdValue = candidate.substring(36, 52);
+        String flagsValue = candidate.substring(53, 55);
+        if (!isLowercaseHex(versionValue)
+                || !isLowercaseHex(traceIdValue)
+                || !isLowercaseHex(spanIdValue)
+                || !isLowercaseHex(flagsValue)) {
             return Optional.empty();
         }
-        Optional<String> version = normalizeVersion(parts[0]);
-        Optional<String> traceId = TraceIds.normalizeTraceId(parts[1]);
-        Optional<String> spanId = TraceIds.normalizeSpanId(parts[2]);
-        Optional<String> flags = TraceIds.normalizeTraceFlags(parts[3]);
+        Optional<String> version = normalizeVersion(versionValue);
+        if (version.isEmpty()
+                || ("00".equals(version.get())
+                && candidate.length() != BASE_VALUE_LENGTH)
+                || (!"00".equals(version.get())
+                && candidate.length() > BASE_VALUE_LENGTH
+                && candidate.charAt(BASE_VALUE_LENGTH) != '-')) {
+            return Optional.empty();
+        }
+        Optional<String> traceId = TraceIds.normalizeTraceId(traceIdValue);
+        Optional<String> spanId = TraceIds.normalizeSpanId(spanIdValue);
+        Optional<String> flags = TraceIds.normalizeTraceFlags(flagsValue);
         if (version.isEmpty()
                 || traceId.isEmpty()
                 || spanId.isEmpty()
@@ -81,7 +105,7 @@ public record TraceParent(
                 TraceIds.newSpanId(),
                 spanId,
                 requestId,
-                traceFlags,
+                outgoingTraceFlags(),
                 tracestate,
                 null,
                 null
@@ -94,5 +118,25 @@ public record TraceParent(
             return Optional.empty();
         }
         return Optional.of(normalized.get());
+    }
+
+    private String outgoingTraceFlags() {
+        if ("00".equals(version)) {
+            return traceFlags;
+        }
+        return (Integer.parseInt(traceFlags, 16) & 1) == 1
+                ? "01"
+                : "00";
+    }
+
+    private static boolean isLowercaseHex(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            if (!((character >= '0' && character <= '9')
+                    || (character >= 'a' && character <= 'f'))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

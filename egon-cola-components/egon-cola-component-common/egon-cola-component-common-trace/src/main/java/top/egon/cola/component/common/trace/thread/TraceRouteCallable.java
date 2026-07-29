@@ -1,4 +1,7 @@
-package top.egon.cola.component.common.trace;
+package top.egon.cola.component.common.trace.thread;
+
+import top.egon.cola.component.common.trace.TraceScope;
+import top.egon.cola.component.common.trace.TraceSnapshot;
 
 import java.util.Objects;
 import java.util.concurrent.Callable;

@@ -1,5 +1,8 @@
 package top.egon.cola.component.common.trace;
 
+import top.egon.cola.component.common.trace.function.TraceCarrierReader;
+import top.egon.cola.component.common.trace.function.TraceCarrierWriter;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
@@ -8,6 +11,8 @@ import java.util.Objects;
  * Protocol-neutral trace extraction and injection.
  */
 public final class TracePropagation {
+
+    private static final int MAX_REQUEST_ID_LENGTH = 128;
 
     private TracePropagation() {
     }
@@ -18,15 +23,20 @@ public final class TracePropagation {
         Options effectiveOptions = options == null
                 ? Options.defaults()
                 : options;
-        String requestId = firstText(
+        String requestId = boundedText(
                 read(reader, TraceKeys.REQUEST_ID_HEADER),
-                TraceIds.newTraceId()
+                MAX_REQUEST_ID_LENGTH
         );
-        String tracestate = TraceParent.normalizeTracestate(
-                read(reader, TraceKeys.TRACESTATE_HEADER)
-        ).orElse(null);
+        if (requestId == null) {
+            requestId = TraceIds.newTraceId();
+        }
         TraceParent parent = TraceParent.parse(
                 read(reader, TraceKeys.TRACEPARENT_HEADER)
+        ).orElse(null);
+        String tracestate = parent == null
+                ? null
+                : TraceParent.normalizeTracestate(
+                read(reader, TraceKeys.TRACESTATE_HEADER)
         ).orElse(null);
         String legacyTraceId = effectiveOptions.readLegacyTraceId()
                 ? TraceIds.normalizeTraceId(
@@ -49,7 +59,7 @@ public final class TracePropagation {
                             null,
                             requestId,
                             "00",
-                            tracestate,
+                            null,
                             null,
                             null
                     ),
@@ -58,7 +68,7 @@ public final class TracePropagation {
             );
         }
         return new Extracted(
-                TraceState.root(requestId).withTracestate(tracestate),
+                TraceState.root(requestId),
                 Source.GENERATED,
                 false
         );
@@ -90,10 +100,12 @@ public final class TracePropagation {
         return null;
     }
 
-    private static String firstText(String value, String fallback) {
-        return value == null || value.isBlank() || TraceIds.hasLineBreak(value)
-                ? fallback
-                : value.trim();
+    private static String boundedText(String value, int maxLength) {
+        if (value == null || value.isBlank() || TraceIds.hasLineBreak(value)) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.length() <= maxLength ? trimmed : null;
     }
 
     public enum Source {

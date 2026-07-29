@@ -1,7 +1,12 @@
 package top.egon.cola.component.common.trace;
 
+import top.egon.cola.component.common.trace.thread.TraceRouteCallable;
+import top.egon.cola.component.common.trace.thread.TraceRouteRunnable;
+import top.egon.cola.component.common.trace.thread.TraceRouteSupplier;
+
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -42,9 +47,17 @@ public final class TraceSnapshot implements Serializable {
 
     public TraceSnapshot(TraceState state, Map<String, String> mdcContext) {
         this.state = state;
-        this.mdcContext = mdcContext == null || mdcContext.isEmpty()
+        Map<String, String> normalizedContext = new LinkedHashMap<>();
+        if (mdcContext != null) {
+            normalizedContext.putAll(mdcContext);
+        }
+        if (state != null) {
+            TraceKeys.ownedMdcKeys().forEach(normalizedContext::remove);
+            normalizedContext.putAll(state.toMdcMap());
+        }
+        this.mdcContext = normalizedContext.isEmpty()
                 ? Map.of()
-                : Map.copyOf(mdcContext);
+                : Map.copyOf(normalizedContext);
     }
 
     public static TraceSnapshot capture() {
@@ -105,6 +118,7 @@ public final class TraceSnapshot implements Serializable {
     }
 
     public Executor decorate(Executor executor) {
+        Objects.requireNonNull(executor, "executor");
         return command -> executor.execute(wrap(command));
     }
 }

@@ -1,4 +1,4 @@
-package top.egon.cola.component.common.trace;
+package top.egon.cola.component.common.trace.function;
 
 @FunctionalInterface
 public interface TraceCarrierWriter {
