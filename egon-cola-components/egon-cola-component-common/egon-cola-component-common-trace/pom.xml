@@ -6,9 +6,9 @@
 
     <parent>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-aggregation-parent</artifactId>
+        <artifactId>egon-cola-component-common</artifactId>
         <version>5.3.2</version>
-        <relativePath>../../../pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>egon-cola-component-common-trace</artifactId>
