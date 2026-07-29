@@ -63,9 +63,12 @@ public final class PropertiesGuardPlanSource implements GuardPlanSource {
                 properties.getKey().getHeaders(),
                 properties.getKey().getMaxPartLength());
         AdmissionConfig admission = new AdmissionConfig(
-                new AdmissionConfig.DenyListConfig(rule.getDenyList().isEnabled()),
+                new AdmissionConfig.DenyListConfig(
+                        rule.getDenyList().isEnabled(), rule.getDenyList().getDataVersion()),
                 new AdmissionConfig.AllowListConfig(
-                        rule.getAllowList().isEnabled(), rule.getAllowList().getMode()),
+                        rule.getAllowList().isEnabled(),
+                        rule.getAllowList().getMode(),
+                        rule.getAllowList().getDataVersion()),
                 new AdmissionConfig.PenaltyBoxConfig(
                         rule.getPenaltyBox().isEnabled(),
                         rule.getPenaltyBox().getThreshold(),

@@ -20,13 +20,26 @@ public record AdmissionConfig(
         rateLimit = Objects.requireNonNull(rateLimit, "rateLimit");
     }
 
-    public record DenyListConfig(boolean enabled) implements PolicyConfig {
+    public record DenyListConfig(boolean enabled, String dataVersion) implements PolicyConfig {
+
+        public DenyListConfig {
+            dataVersion = requireVersion(dataVersion);
+        }
+
+        public DenyListConfig(boolean enabled) {
+            this(enabled, "v1");
+        }
     }
 
-    public record AllowListConfig(boolean enabled, AllowListMode mode) implements PolicyConfig {
+    public record AllowListConfig(boolean enabled, AllowListMode mode, String dataVersion) implements PolicyConfig {
 
         public AllowListConfig {
             mode = Objects.requireNonNull(mode, "mode");
+            dataVersion = requireVersion(dataVersion);
+        }
+
+        public AllowListConfig(boolean enabled, AllowListMode mode) {
+            this(enabled, mode, "v1");
         }
     }
 
@@ -60,5 +73,12 @@ public record AdmissionConfig(
 
     public enum RateLimitAlgorithm {
         TOKEN_BUCKET
+    }
+
+    private static String requireVersion(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("dataVersion must not be blank");
+        }
+        return value.trim();
     }
 }
