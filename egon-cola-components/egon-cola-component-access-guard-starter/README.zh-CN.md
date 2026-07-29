@@ -4,7 +4,7 @@
 
 ## 简要介绍
 
-`egon-cola-component-access-guard` 是 Egon COLA 的方法级访问治理 starter。它可以通过默认的 Spring AOP 引擎或可选的 Bytecode Agent 引擎，对标注入口执行白名单、黑名单、限流、超时保护和拒绝响应处理，适合抽奖、优惠券领取、登录、风控校验、热点接口保护等需要在业务方法入口统一治理的场景。
+`egon-cola-component-access-guard-starter` 是 Egon COLA 的方法级访问治理 starter。它可以通过默认的 Spring AOP 引擎或可选的 Bytecode Agent 引擎，对标注入口执行白名单、黑名单、限流、超时保护和拒绝响应处理，适合抽奖、优惠券领取、登录、风控校验、热点接口保护等需要在业务方法入口统一治理的场景。
 
 组件默认提供本地实现和可覆盖扩展点，同时保留 `DoWhiteList`、`DoRateLimiter`、`DoHystrix` 兼容注解，便于从旧式注解平滑迁移。
 
@@ -12,8 +12,7 @@
 
 | Module | 说明 |
 |---|---|
-| `egon-cola-component-access-guard-starter` | Spring Boot starter，提供注解、AOP、规则解析、key 解析、白名单、限流、黑名单、超时保护、拒绝响应和事件扩展点 |
-| `egon-cola-component-access-guard-test` | 组件样例和集成验证模块 |
+| `egon-cola-component-access-guard-starter` | Spring Boot starter，提供注解、AOP、规则解析、key 解析、白名单、限流、黑名单、超时保护、拒绝响应、事件扩展点，以及 `src/test` 下的测试 |
 
 ## 执行引擎
 
@@ -431,6 +430,5 @@ public class AccessGuardRedisConfig {
 ## 验证命令
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-access-guard/egon-cola-component-access-guard-starter -am test
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-access-guard/egon-cola-component-access-guard-test -am -Dsurefire.failIfNoSpecifiedTests=false test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-access-guard-starter -am test
 ```

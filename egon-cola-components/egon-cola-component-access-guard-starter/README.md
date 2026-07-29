@@ -4,7 +4,7 @@
 
 ## Overview
 
-`egon-cola-component-access-guard` is a method-level access-governance starter for Egon COLA. Through the default Spring AOP engine or the optional Bytecode Agent engine, it applies allow-list, deny-list, rate-limiting, timeout protection, and rejection handling at annotated entry points. It fits scenarios such as lotteries, coupon claims, login, risk checks, and hot-endpoint protection where governance should be applied consistently at the business-method boundary.
+`egon-cola-component-access-guard-starter` is a method-level access-governance starter for Egon COLA. Through the default Spring AOP engine or the optional Bytecode Agent engine, it applies allow-list, deny-list, rate-limiting, timeout protection, and rejection handling at annotated entry points. It fits scenarios such as lotteries, coupon claims, login, risk checks, and hot-endpoint protection where governance should be applied consistently at the business-method boundary.
 
 The component provides local implementations and replaceable extension points by default. It also keeps the compatible `DoWhiteList`, `DoRateLimiter`, and `DoHystrix` annotations so applications can migrate from legacy annotations gradually.
 
@@ -12,8 +12,7 @@ The component provides local implementations and replaceable extension points by
 
 | Module | Description |
 |---|---|
-| `egon-cola-component-access-guard-starter` | Spring Boot starter providing annotations, AOP, rule resolution, key resolution, allow-list, rate limiting, deny-list, timeout protection, rejection responses, and event extension points |
-| `egon-cola-component-access-guard-test` | Component examples and integration verification |
+| `egon-cola-component-access-guard-starter` | Spring Boot starter providing annotations, AOP, rule resolution, key resolution, allow-list, rate limiting, deny-list, timeout protection, rejection responses, event extension points, and tests under `src/test` |
 
 ## Execution Engines
 
@@ -432,6 +431,5 @@ public class AccessGuardRedisConfig {
 ## Verification
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-access-guard/egon-cola-component-access-guard-starter -am test
-./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-access-guard/egon-cola-component-access-guard-test -am -Dsurefire.failIfNoSpecifiedTests=false test
+./mvnw -B -ntp -pl egon-cola-components/egon-cola-component-access-guard-starter -am test
 ```

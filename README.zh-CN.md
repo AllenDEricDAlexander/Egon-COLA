@@ -51,7 +51,7 @@ Egon-COLA
 │   ├── egon-cola-component-dynamic-thread-pool/
 │   ├── egon-cola-component-rpc/
 │   ├── egon-cola-component-rule-engine/
-│   ├── egon-cola-component-access-guard/
+│   ├── egon-cola-component-access-guard-starter/
 │   ├── egon-cola-component-method-extension/
 │   ├── egon-cola-component-transactional-outbox/
 │   ├── egon-cola-component-bytecode/
@@ -239,7 +239,7 @@ Components BOM。各组件 README 是对应 API、配置、边界和专项验证
 | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | `...-starter` | 执行器注册、快照、Redis 变更、扩缩容、虚拟线程并发限制和 MDC 传播。 |
 | [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | `...-starter` | Protobuf/gRPC Provider、Consumer、DDC 注册发现、Deadline 和 Gateway 通道。 |
 | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine/README.md) | `...-starter` | Java 规则链、单例责任链、规则树、trace、限制和监听器。 |
-| [Access Guard](egon-cola-components/egon-cola-component-access-guard/README.md) | `...-starter` | 方法级白名单、黑名单、限流、超时和拒绝治理。 |
+| [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.zh-CN.md) | `...-starter` | 方法级白名单、黑名单、限流、超时和拒绝治理。 |
 | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.md) | `...-starter` | 在注解方法前执行 AOP 或 Agent 业务决策 Handler。 |
 | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | `...-starter` | 基于 PostgreSQL/JDBC 的至少一次 HTTP、RabbitMQ 或自定义 Handler 投递。 |
 | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.md) | API、bridge、runtime、Agent、starter | 构建期架构检查，以及可选的 executor、观测、Method Extension 和 Access Guard 增强。 |

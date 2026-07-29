@@ -51,7 +51,7 @@ Egon-COLA
 │   ├── egon-cola-component-dynamic-thread-pool/
 │   ├── egon-cola-component-rpc/
 │   ├── egon-cola-component-rule-engine/
-│   ├── egon-cola-component-access-guard/
+│   ├── egon-cola-component-access-guard-starter/
 │   ├── egon-cola-component-method-extension/
 │   ├── egon-cola-component-transactional-outbox/
 │   ├── egon-cola-component-bytecode/
@@ -241,7 +241,7 @@ verification command.
 | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | `...-starter` | Executor registration, snapshots, Redis changes, resizing, virtual-thread limits, and MDC propagation. |
 | [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | `...-starter` | Protobuf/gRPC Provider and Consumer contracts, DDC registration/discovery, deadlines, and Gateway channels. |
 | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine/README.md) | `...-starter` | Java rule chains, singleton chains of responsibility, rule trees, traces, limits, and listeners. |
-| [Access Guard](egon-cola-components/egon-cola-component-access-guard/README.md) | `...-starter` | Method-level allow-list, deny-list, rate-limit, timeout, and rejection governance. |
+| [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.md) | `...-starter` | Method-level allow-list, deny-list, rate-limit, timeout, and rejection governance. |
 | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.md) | `...-starter` | AOP or Agent-based business decision handlers before annotated methods. |
 | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | `...-starter` | PostgreSQL/JDBC at-least-once delivery through HTTP, RabbitMQ, or custom handlers. |
 | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.md) | API, bridge, runtime, Agent, and starter | Build-time architecture checks plus optional executor, observation, Method Extension, and Access Guard enhancement. |

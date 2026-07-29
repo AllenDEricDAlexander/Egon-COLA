@@ -59,7 +59,7 @@
         <module>egon-cola-component-dynamic-config-center</module>
         <module>egon-cola-component-rpc</module>
         <module>egon-cola-component-rule-engine</module>
-        <module>egon-cola-component-access-guard</module>
+        <module>egon-cola-component-access-guard-starter</module>
         <module>egon-cola-component-method-extension</module>
         <module>egon-cola-component-transactional-outbox</module>
         <module>egon-cola-component-bytecode</module>
