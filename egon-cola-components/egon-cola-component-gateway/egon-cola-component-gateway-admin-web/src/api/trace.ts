@@ -1,5 +1,6 @@
 export type LogicalTrace = {
   traceId: string
+  requestId: string
 }
 
 const randomHex = (bytes: number): string | undefined => {
@@ -13,7 +14,8 @@ const randomHex = (bytes: number): string | undefined => {
 
 export const createLogicalTrace = (): LogicalTrace | undefined => {
   const traceId = randomHex(16)
-  return traceId ? { traceId } : undefined
+  const requestId = randomHex(16)
+  return traceId && requestId ? { traceId, requestId } : undefined
 }
 
 export const traceHeaders = (
@@ -24,11 +26,11 @@ export const traceHeaders = (
   }
   const spanId = randomHex(8)
   if (!spanId) {
-    return { 'X-Trace-Id': logicalTrace.traceId }
+    return { 'x-egon-request-id': logicalTrace.requestId }
   }
   return {
-    'X-Trace-Id': logicalTrace.traceId,
     traceparent: `00-${logicalTrace.traceId}-${spanId}-01`,
+    'x-egon-request-id': logicalTrace.requestId,
   }
 }
 

@@ -33,8 +33,7 @@ class TrustedIdentitySanitizerTest {
                                         "trusted"
                                 ),
                                 Map.of()
-                        ),
-                        "trace-123456789012"
+                        )
                 );
 
         assertFalse(sanitized.containsKey("authorization"));
@@ -56,8 +55,7 @@ class TrustedIdentitySanitizerTest {
                         new TrustedIdentity(
                                 Map.of("Authorization", "secret"),
                                 Map.of()
-                        ),
-                        "trace-123456789012"
+                        )
                 )
         );
     }

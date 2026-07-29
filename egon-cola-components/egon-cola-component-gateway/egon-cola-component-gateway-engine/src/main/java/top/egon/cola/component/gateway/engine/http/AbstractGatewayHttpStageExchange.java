@@ -16,10 +16,10 @@ import top.egon.cola.component.gateway.core.exchange.GatewayRequest;
 import top.egon.cola.component.gateway.core.exchange.GatewayResponse;
 import top.egon.cola.component.gateway.core.exchange.ImmutableGatewayHeaders;
 import top.egon.cola.component.gateway.core.filter.GatewayFilterChain;
+import top.egon.cola.component.gateway.contract.trace.GatewayTraceContext;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public abstract class AbstractGatewayHttpStageExchange
         implements GatewayExchange {
@@ -111,12 +111,18 @@ public abstract class AbstractGatewayHttpStageExchange
     private GatewayRequest request(
             GatewayInboundHttpRequest source,
             GatewayContext gatewayContext) {
+        GatewayTraceContext selected = gatewayContext == null
+                ? GatewayTraceContext.fromHeaders(
+                header(source.headers(), "traceparent", null),
+                header(source.headers(), "tracestate", null),
+                header(source.headers(), "x-egon-request-id", null)
+        )
+                : null;
         String traceId = gatewayContext == null
-                ? header(source.headers(), "x-trace-id", UUID.randomUUID()
-                .toString().replace("-", ""))
+                ? selected.traceId()
                 : gatewayContext.traceId();
         String requestId = gatewayContext == null
-                ? header(source.headers(), "x-request-id", traceId)
+                ? selected.requestId()
                 : gatewayContext.requestId();
         AccessZone accessZone = gatewayContext == null
                 ? AccessZone.INTERNAL

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftService;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
@@ -129,10 +128,7 @@ public class GatewayDraftController {
     }
 
     private RequestAuditContext audit() {
-        return new RequestAuditContext(
-                UuidV7.simpleString(),
-                UuidV7.simpleString()
-        );
+        return RequestAuditContext.current();
     }
 
     public record RouteRequest(

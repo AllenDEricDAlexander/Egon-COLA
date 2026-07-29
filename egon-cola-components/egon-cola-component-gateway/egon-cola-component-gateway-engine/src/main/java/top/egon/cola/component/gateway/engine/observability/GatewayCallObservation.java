@@ -139,7 +139,7 @@ public final class GatewayCallObservation {
         return new GatewayCallObservation(
                 Clock.systemUTC(),
                 trace,
-                UuidV7.simpleString(),
+                trace.requestId(),
                 protocol,
                 accessZone,
                 engineNodeId,

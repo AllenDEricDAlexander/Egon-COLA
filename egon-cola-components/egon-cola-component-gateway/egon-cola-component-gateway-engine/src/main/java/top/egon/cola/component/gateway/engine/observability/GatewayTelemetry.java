@@ -171,6 +171,7 @@ public final class GatewayTelemetry {
         }
         return new GatewayTraceContext(
                 tracing.traceId(),
+                fallback.requestId(),
                 tracing.parentId(),
                 tracing.spanId(),
                 Boolean.TRUE.equals(tracing.sampled()) ? "01" : "00",

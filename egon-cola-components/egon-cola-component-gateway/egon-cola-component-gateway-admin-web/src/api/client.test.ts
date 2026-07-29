@@ -23,10 +23,11 @@ describe('typed API client', () => {
 
     const init = fetchMock.mock.calls[0][1] as RequestInit
     const headers = init.headers as Headers
-    expect(headers.get('X-Trace-Id')).toMatch(/^[0-9a-f]{32}$/)
+    expect(headers.has('X-Trace-Id')).toBe(false)
     expect(headers.get('traceparent')).toMatch(
       /^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/,
     )
+    expect(headers.get('x-egon-request-id')).toMatch(/^[0-9a-f]{32}$/)
     expect(headers.get('X-Gateway-Contract-Version')).toBe('v1')
   })
 

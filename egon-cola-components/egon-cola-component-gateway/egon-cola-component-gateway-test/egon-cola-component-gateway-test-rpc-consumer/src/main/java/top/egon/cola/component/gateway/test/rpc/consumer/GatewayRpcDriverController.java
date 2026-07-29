@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.common.trace.TraceKeys;
+import top.egon.cola.component.common.trace.TracePropagation;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.EchoResponse;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.OrderResponse;
 
@@ -27,26 +29,41 @@ public class GatewayRpcDriverController {
     @GetMapping("/echo")
     public EchoView echo(
             @RequestParam("message") String message,
-            @RequestHeader(value = "X-Trace-Id", required = false)
-            String traceId) {
-        return traced(traceId, () -> EchoView.from(client.echo(message)));
+            @RequestHeader(value = "traceparent", required = false)
+            String traceparent,
+            @RequestHeader(value = "x-egon-request-id", required = false)
+            String requestId) {
+        return traced(
+                traceparent,
+                requestId,
+                () -> EchoView.from(client.echo(message))
+        );
     }
 
     @GetMapping("/orders")
     public OrderView order(
             @RequestParam("orderId") String orderId,
-            @RequestHeader(value = "X-Trace-Id", required = false)
-            String traceId) {
-        return traced(traceId, () -> OrderView.from(client.order(orderId)));
+            @RequestHeader(value = "traceparent", required = false)
+            String traceparent,
+            @RequestHeader(value = "x-egon-request-id", required = false)
+            String requestId) {
+        return traced(
+                traceparent,
+                requestId,
+                () -> OrderView.from(client.order(orderId))
+        );
     }
 
     @PostMapping("/orders")
     public OrderView create(
             @RequestBody CreateOrder command,
-            @RequestHeader(value = "X-Trace-Id", required = false)
-            String traceId) {
+            @RequestHeader(value = "traceparent", required = false)
+            String traceparent,
+            @RequestHeader(value = "x-egon-request-id", required = false)
+            String requestId) {
         return traced(
-                traceId,
+                traceparent,
+                requestId,
                 () -> OrderView.from(client.create(
                         command.customerId(),
                         command.skus()
@@ -58,10 +75,13 @@ public class GatewayRpcDriverController {
     public OrderView slow(
             @RequestParam("orderId") String orderId,
             @RequestParam("delayMillis") long delayMillis,
-            @RequestHeader(value = "X-Trace-Id", required = false)
-            String traceId) {
+            @RequestHeader(value = "traceparent", required = false)
+            String traceparent,
+            @RequestHeader(value = "x-egon-request-id", required = false)
+            String requestId) {
         return traced(
-                traceId,
+                traceparent,
+                requestId,
                 () -> OrderView.from(client.slow(orderId, delayMillis))
         );
     }
@@ -69,21 +89,34 @@ public class GatewayRpcDriverController {
     @GetMapping("/fail")
     public OrderView fail(
             @RequestParam("code") String code,
-            @RequestHeader(value = "X-Trace-Id", required = false)
-            String traceId) {
+            @RequestHeader(value = "traceparent", required = false)
+            String traceparent,
+            @RequestHeader(value = "x-egon-request-id", required = false)
+            String requestId) {
         return traced(
-                traceId,
+                traceparent,
+                requestId,
                 () -> OrderView.from(client.fail(code))
         );
     }
 
-    private <T> T traced(String traceId, Supplier<T> invocation) {
-        String previous = TraceContext.getTraceId();
-        try {
-            TraceContext.setTraceId(traceId);
+    private <T> T traced(String traceparent,
+                         String requestId,
+                         Supplier<T> invocation) {
+        TracePropagation.Extracted extracted = TracePropagation.extract(
+                name -> {
+                    if (TraceKeys.TRACEPARENT_HEADER.equals(name)) {
+                        return traceparent;
+                    }
+                    if (TraceKeys.REQUEST_ID_HEADER.equals(name)) {
+                        return requestId;
+                    }
+                    return null;
+                },
+                new TracePropagation.Options(false)
+        );
+        try (var ignored = TraceContext.open(extracted.state())) {
             return invocation.get();
-        } finally {
-            TraceContext.setTraceId(previous);
         }
     }
 

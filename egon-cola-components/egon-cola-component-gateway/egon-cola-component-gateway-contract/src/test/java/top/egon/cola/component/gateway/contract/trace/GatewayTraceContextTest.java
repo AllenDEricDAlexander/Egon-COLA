@@ -3,18 +3,19 @@ package top.egon.cola.component.gateway.contract.trace;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayTraceContextTest {
 
     @Test
-    void prefersTraceparentAndReportsConflict() {
-        GatewayTraceContext context = GatewayTraceContext.select(
+    void usesTraceparentWithoutLegacyHeaders() {
+        GatewayTraceContext context = GatewayTraceContext.fromHeaders(
                 "00-0123456789abcdef0123456789abcdef-"
                         + "0123456789abcdef-01",
-                "fedcba9876543210fedcba9876543210",
-                "vendor=value"
+                "vendor=value",
+                null
         );
 
         assertEquals(
@@ -25,31 +26,36 @@ class GatewayTraceContextTest {
                 GatewayTraceContext.Source.TRACEPARENT,
                 context.source()
         );
-        assertTrue(context.headerConflict());
+        assertFalse(context.headerConflict());
         assertTrue(context.sampled());
         assertNotEquals(context.parentSpanId(), context.engineSpanId());
     }
 
     @Test
-    void fallsBackToHeaderThenGeneratesForInvalidValues() {
-        GatewayTraceContext header = GatewayTraceContext.select(
+    void carriesRequestIdAndGeneratesForInvalidValues() {
+        GatewayTraceContext request = GatewayTraceContext.fromHeaders(
+                "00-0123456789abcdef0123456789abcdef-"
+                        + "0123456789abcdef-00",
+                null,
+                "request-1"
+        );
+        assertEquals("request-1", request.requestId());
+
+        GatewayTraceContext header = GatewayTraceContext.fromHeaders(
                 "invalid",
-                "ABCDEF0123456789ABCDEF0123456789",
+                null,
                 null
         );
         assertEquals(
-                "abcdef0123456789abcdef0123456789",
-                header.traceId()
-        );
-        assertEquals(
-                GatewayTraceContext.Source.X_TRACE_ID,
+                GatewayTraceContext.Source.GENERATED,
                 header.source()
         );
+        assertTrue(header.traceId().matches("[0-9a-f]{32}"));
 
-        GatewayTraceContext generated = GatewayTraceContext.select(
+        GatewayTraceContext generated = GatewayTraceContext.fromHeaders(
                 "00-00000000000000000000000000000000-"
                         + "0000000000000000-01",
-                "00000000000000000000000000000000",
+                null,
                 null
         );
         assertEquals(

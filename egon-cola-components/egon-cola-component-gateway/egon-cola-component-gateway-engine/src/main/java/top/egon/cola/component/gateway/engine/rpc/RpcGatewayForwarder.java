@@ -241,7 +241,7 @@ public final class RpcGatewayForwarder {
                         Status.INVALID_ARGUMENT.withDescription(
                                 "RPC method metadata conflicts with route"
                         ),
-                        gatewayTrailers(trace.traceId())
+                        gatewayTrailers()
                 );
                 publish(
                         observation,
@@ -528,9 +528,7 @@ public final class RpcGatewayForwarder {
                                 return;
                             }
                             responseStarted = true;
-                            serverCall.sendHeaders(safeMetadata(
-                                    trace.traceId()
-                            ));
+                            serverCall.sendHeaders(safeMetadata());
                         }
                     }
 
@@ -583,10 +581,7 @@ public final class RpcGatewayForwarder {
                             }
                             serverCall.close(
                                     status,
-                                    providerTrailers(
-                                            trace.traceId(),
-                                            status
-                                    )
+                                    providerTrailers(status)
                             );
                             publish(
                                     observation,
@@ -668,7 +663,7 @@ public final class RpcGatewayForwarder {
                 }
                 serverCall.close(
                         status.withDescription(code),
-                        gatewayTrailers(trace.traceId())
+                        gatewayTrailers()
                 );
                 publish(observation, "GATEWAY", status, code);
                 closeHandles();
@@ -797,11 +792,11 @@ public final class RpcGatewayForwarder {
                 RpcMetadataKeys.INVOCATION_ID,
                 valueOrGenerated(inbound.get(RpcMetadataKeys.INVOCATION_ID))
         );
-        result.put(RpcMetadataKeys.TRACE_ID, trace.traceId());
         result.put(
                 RpcMetadataKeys.TRACEPARENT,
                 attemptTrace.traceparent()
         );
+        result.put(RpcMetadataKeys.REQUEST_ID, trace.requestId());
         if (attemptTrace.tracestate() != null) {
             result.put(
                     RpcMetadataKeys.TRACESTATE,
@@ -835,33 +830,29 @@ public final class RpcGatewayForwarder {
         }
     }
 
-    private Metadata safeMetadata(String traceId) {
-        Metadata safe = new Metadata();
-        safe.put(RpcMetadataKeys.TRACE_ID, traceId);
-        return safe;
+    private Metadata safeMetadata() {
+        return new Metadata();
     }
 
-    private Metadata providerTrailers(
-            String traceId,
-            Status status) {
-        Metadata trailers = safeMetadata(traceId);
+    private Metadata providerTrailers(Status status) {
+        Metadata trailers = safeMetadata();
         if (!status.isOk()) {
             RpcFailureStage.PROVIDER.put(trailers);
         }
         return trailers;
     }
 
-    private Metadata gatewayTrailers(String traceId) {
-        Metadata trailers = safeMetadata(traceId);
+    private Metadata gatewayTrailers() {
+        Metadata trailers = safeMetadata();
         RpcFailureStage.GATEWAY.put(trailers);
         return trailers;
     }
 
     private GatewayTraceContext traceContext(Metadata metadata) {
-        return GatewayTraceContext.select(
+        return GatewayTraceContext.fromHeaders(
                 metadata.get(RpcMetadataKeys.TRACEPARENT),
-                metadata.get(RpcMetadataKeys.TRACE_ID),
-                metadata.get(RpcMetadataKeys.TRACESTATE)
+                metadata.get(RpcMetadataKeys.TRACESTATE),
+                metadata.get(RpcMetadataKeys.REQUEST_ID)
         );
     }
 

@@ -29,7 +29,6 @@ import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKaf
 import top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaConsumerMetrics;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.JdbcGatewayObservabilityStore;
 import top.egon.cola.component.gateway.admin.infrastructure.security.AesGcmGatewaySecretProtector;
-import top.egon.cola.component.gateway.admin.interfaces.management.GatewayAdminTraceFilter;
 import top.egon.cola.component.gateway.admin.interfaces.scheduled.GatewayObservabilityRetentionReaper;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
 
@@ -176,11 +175,6 @@ public class GatewayAdminConfiguration {
                 service,
                 Clock.systemUTC()
         );
-    }
-
-    @Bean
-    GatewayAdminTraceFilter gatewayAdminTraceFilter() {
-        return new GatewayAdminTraceFilter();
     }
 
     @Bean

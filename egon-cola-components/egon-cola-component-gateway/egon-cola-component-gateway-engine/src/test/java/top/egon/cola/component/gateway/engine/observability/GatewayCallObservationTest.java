@@ -18,11 +18,7 @@ class GatewayCallObservationTest {
     void publishesExactlyOneCompletionFact() {
         GatewayCallObservation observation = new GatewayCallObservation(
                 Clock.fixed(Instant.ofEpochMilli(100), ZoneOffset.UTC),
-                GatewayTraceContext.select(
-                        null,
-                        "0123456789abcdef0123456789abcdef",
-                        null
-                ),
+                GatewayTraceContext.fromHeaders(null, null, null),
                 "request-1",
                 "HTTP",
                 "PUBLIC",

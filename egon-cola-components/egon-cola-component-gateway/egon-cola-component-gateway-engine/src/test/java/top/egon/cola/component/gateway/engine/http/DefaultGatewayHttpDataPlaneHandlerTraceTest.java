@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DefaultGatewayHttpDataPlaneHandlerTraceTest {
 
@@ -47,13 +48,20 @@ class DefaultGatewayHttpDataPlaneHandlerTraceTest {
                         "codex-local"
                 );
         String traceId = "0123456789abcdef0123456789abcdef";
+        String requestId = "request-1";
         GatewayOutboundHttpResponse response = handler.handle(
                 AccessZone.PUBLIC,
                 new GatewayInboundHttpRequest(
                         "GET",
                         "example.test",
                         "/missing",
-                        Map.of("X-Trace-Id", List.of(traceId)),
+                        Map.of(
+                                "traceparent",
+                                List.of("00-" + traceId
+                                        + "-0123456789abcdef-01"),
+                                "x-egon-request-id",
+                                List.of(requestId)
+                        ),
                         new InetSocketAddress("127.0.0.1", 12345),
                         Flux.empty()
                 )
@@ -61,9 +69,19 @@ class DefaultGatewayHttpDataPlaneHandlerTraceTest {
 
         response.body().collectList().block();
 
-        assertEquals(List.of(traceId), response.headers().get("x-trace-id"));
         assertEquals(1, events.size());
+        assertNull(response.headers().get("x-trace-id"));
+        assertEquals(
+                List.of("00-" + traceId + "-"
+                        + events.getFirst().trace().engineSpanId() + "-01"),
+                response.headers().get("traceparent")
+        );
+        assertEquals(
+                List.of(requestId),
+                response.headers().get("x-egon-request-id")
+        );
         assertEquals(traceId, events.getFirst().trace().traceId());
+        assertEquals(requestId, events.getFirst().request().requestId());
         assertEquals("dev", events.getFirst().routing().env());
         assertEquals(
                 "codex-local",

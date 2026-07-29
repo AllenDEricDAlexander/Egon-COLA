@@ -166,7 +166,10 @@ class GatewayCorsProcessorTest {
                                 "allowedOrigins", origins,
                                 "allowedMethods", methods,
                                 "allowedHeaders", headers,
-                                "exposedHeaders", List.of("x-trace-id"),
+                                "exposedHeaders", List.of(
+                                        "traceparent",
+                                        "x-egon-request-id"
+                                ),
                                 "allowCredentials", credentials,
                                 "maxAgeSeconds", 600
                         )

@@ -42,8 +42,7 @@ public final class TrustedIdentitySanitizer {
     public Map<String, List<String>> sanitizeHttp(
             Map<String, List<String>> source,
             Set<String> fieldsToRemove,
-            TrustedIdentity identity,
-            String traceId) {
+            TrustedIdentity identity) {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(identity, "identity");
         Set<String> removals = normalized(fieldsToRemove);
@@ -68,7 +67,6 @@ public final class TrustedIdentitySanitizer {
             }
             result.put(lower, List.of(safeValue(value)));
         });
-        result.put("x-trace-id", List.of(safeValue(traceId)));
         return Map.copyOf(result);
     }
 

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.admin.application.GatewayGroupService;
 import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
@@ -44,9 +43,7 @@ public class GatewayGroupController {
             @Valid @RequestBody CreateRequest request,
             AdminActor actor,
             @RequestHeader(value = "X-Request-Id",
-                    required = false) String requestId,
-            @RequestHeader(value = "X-Trace-Id",
-                    required = false) String traceId) {
+                    required = false) String requestId) {
         return service.create(
                 new GatewayGroupService.CreateGatewayGroup(
                         request.gatewayGroupCode(),
@@ -56,7 +53,7 @@ public class GatewayGroupController {
                         request.description()
                 ),
                 actor,
-                audit(requestId, traceId)
+                audit(requestId)
         );
     }
 
@@ -73,9 +70,7 @@ public class GatewayGroupController {
             @Valid @RequestBody UpdateRequest request,
             AdminActor actor,
             @RequestHeader(value = "X-Request-Id",
-                    required = false) String requestId,
-            @RequestHeader(value = "X-Trace-Id",
-                    required = false) String traceId) {
+                    required = false) String requestId) {
         return service.update(
                 id,
                 new GatewayGroupService.UpdateGatewayGroup(
@@ -84,7 +79,7 @@ public class GatewayGroupController {
                         request.expectedRevision()
                 ),
                 actor,
-                audit(requestId, traceId)
+                audit(requestId)
         );
     }
 
@@ -97,7 +92,7 @@ public class GatewayGroupController {
                 id,
                 true,
                 actor,
-                audit(null, null)
+                audit(null)
         );
     }
 
@@ -110,23 +105,12 @@ public class GatewayGroupController {
                 id,
                 false,
                 actor,
-                audit(null, null)
+                audit(null)
         );
     }
 
-    private RequestAuditContext audit(
-            String requestId,
-            String traceId) {
-        return new RequestAuditContext(
-                valueOrGenerated(requestId),
-                valueOrGenerated(traceId)
-        );
-    }
-
-    private String valueOrGenerated(String value) {
-        return value == null || value.isBlank()
-                ? UuidV7.simpleString()
-                : value;
+    private RequestAuditContext audit(String requestId) {
+        return RequestAuditContext.current(requestId);
     }
 
     public record CreateRequest(

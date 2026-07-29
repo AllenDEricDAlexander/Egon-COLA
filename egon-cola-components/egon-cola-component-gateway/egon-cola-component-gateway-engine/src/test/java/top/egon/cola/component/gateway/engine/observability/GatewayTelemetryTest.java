@@ -50,12 +50,12 @@ class GatewayTelemetryTest {
             GatewayTelemetry telemetry = new GatewayTelemetry(registry);
             String traceId = "0123456789abcdef0123456789abcdef";
             GatewayTelemetry.Request request = telemetry.startRequest(
-                    GatewayTraceContext.select(
+                    GatewayTraceContext.fromHeaders(
                             "00-"
                                     + traceId
                                     + "-0123456789abcdef-01",
-                            null,
-                            "vendor=value"
+                            "vendor=value",
+                            null
                     ),
                     "HTTP",
                     "PUBLIC"

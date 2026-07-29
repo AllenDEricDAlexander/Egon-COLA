@@ -780,13 +780,16 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 identitySanitizer.sanitizeHttp(
                 source,
                 security.fieldsToRemove(),
-                security.trustedIdentity(),
-                trace.traceId()
+                security.trustedIdentity()
         );
         Map<String, List<String>> result = new LinkedHashMap<>(sanitized);
         result.put(
                 "traceparent",
                 List.of(attemptTrace.traceparent())
+        );
+        result.put(
+                "x-egon-request-id",
+                List.of(trace.requestId())
         );
         if (attemptTrace.tracestate() != null) {
             result.put(
@@ -810,9 +813,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 status,
                 Map.of(
                         "content-type",
-                        List.of("application/json; charset=UTF-8"),
-                        "x-trace-id",
-                        List.of(traceId)
+                        List.of("application/json; charset=UTF-8")
                 ),
                 reactor.core.publisher.Flux.just(
                         body.getBytes(java.nio.charset.StandardCharsets.UTF_8)
@@ -880,8 +881,12 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 response.headers()
         );
         headers.put(
-                "x-trace-id",
-                List.of(observation.trace().traceId())
+                "traceparent",
+                List.of(observation.trace().engineTraceparent())
+        );
+        headers.put(
+                "x-egon-request-id",
+                List.of(observation.trace().requestId())
         );
         return new GatewayOutboundHttpResponse(
                 response.status(),
@@ -926,10 +931,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
 
     private GatewayTraceContext traceContext(
             Map<String, List<String>> headers) {
-        return GatewayTraceContext.select(
+        return GatewayTraceContext.fromHeaders(
                 firstHeader(headers, "traceparent"),
-                firstHeader(headers, "x-trace-id"),
-                firstHeader(headers, "tracestate")
+                firstHeader(headers, "tracestate"),
+                firstHeader(headers, "x-egon-request-id")
         );
     }
 
@@ -1074,7 +1079,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayTraceContext trace) {
         Instant startedAt = Instant.now();
         return new GatewayContext(
-                trace.traceId(),
+                trace.requestId(),
                 trace.traceId(),
                 trace.engineTraceparent(),
                 trace.tracestate(),

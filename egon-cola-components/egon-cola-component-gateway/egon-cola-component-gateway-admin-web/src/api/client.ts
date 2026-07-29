@@ -5,6 +5,13 @@ import { refreshAccessToken, tokenStore } from '../auth/tokenStore'
 const API_BASE_URL = import.meta.env.VITE_GATEWAY_ADMIN_API_BASE_URL ?? ''
 const CONTRACT_VERSION = 'v1'
 
+const traceIdFromTraceparent = (value: string | null): string | undefined => {
+  const parts = value?.split('-')
+  return parts?.length === 4 && /^[0-9a-f]{32}$/.test(parts[1])
+    ? parts[1]
+    : undefined
+}
+
 export type ApiRequest = Omit<RequestInit, 'body'> & {
   body?: unknown
   trace?: LogicalTrace
@@ -55,7 +62,7 @@ const decodeError = async (response: Response): Promise<GatewayApiError> => {
     response.status,
     body.code ?? `HTTP_${response.status}`,
     body.message ?? `Gateway Admin 请求失败（${response.status}）`,
-    body.traceId ?? response.headers.get('X-Trace-Id') ?? undefined,
+    body.traceId ?? traceIdFromTraceparent(response.headers.get('traceparent')),
     body.currentRevision,
     body.errors,
   )

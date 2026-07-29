@@ -38,7 +38,7 @@ class GatewayCallEventDispatcherTest {
 
     private static GatewayCallEventV1 event() {
         GatewayCallObservation observation = GatewayCallObservation.start(
-                GatewayTraceContext.select(null, null, null),
+                GatewayTraceContext.fromHeaders(null, null, null),
                 "HTTP",
                 "PUBLIC",
                 "engine-1"

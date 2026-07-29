@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogService;
 import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
@@ -130,10 +129,7 @@ public class GatewayCatalogController {
     }
 
     private RequestAuditContext audit() {
-        return new RequestAuditContext(
-                UuidV7.simpleString(),
-                UuidV7.simpleString()
-        );
+        return RequestAuditContext.current();
     }
 
     public record ResourceCreated(String id) {

@@ -145,9 +145,9 @@ public final class HttpRpcUpstreamAdapter {
 
     private Metadata rpcHeaders(Map<String, List<String>> headers) {
         Metadata metadata = new Metadata();
-        copy(headers, metadata, "x-trace-id", RpcMetadataKeys.TRACE_ID);
         copy(headers, metadata, "traceparent", RpcMetadataKeys.TRACEPARENT);
         copy(headers, metadata, "tracestate", RpcMetadataKeys.TRACESTATE);
+        copy(headers, metadata, "x-egon-request-id", RpcMetadataKeys.REQUEST_ID);
         return metadata;
     }
 
