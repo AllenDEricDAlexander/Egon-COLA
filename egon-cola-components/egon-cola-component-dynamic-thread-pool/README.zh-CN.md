@@ -46,7 +46,7 @@ starter 会创建名为 `dynamicThreadRedissonClient` 的 Redisson 客户端，�
 
 ### MDC 上下文传播
 
-`DtpRunnable`、`DtpCallable`、`DtpSupplier`、`DtpContextAwareExecutorService` 和 `DtpThreads` 会捕获提交任务时的 MDC，并在任务执行时恢复，避免异步线程丢失 `traceId` / `requestId`。
+`DtpRunnable`、`DtpCallable`、`DtpSupplier`、`DtpContextAwareExecutorService` 和 `DtpThreads` 通过 `common-trace` 的 `TraceSnapshot` 捕获提交任务时的 Trace/MDC，并在任务执行时恢复，避免异步线程丢失 `traceId` / `spanId` / `requestId`。DTP 不提供独立 Trace Starter，也不会再次包装已经由 Bytecode 或业务显式包装过的任务。
 
 ### Admin REST API
 

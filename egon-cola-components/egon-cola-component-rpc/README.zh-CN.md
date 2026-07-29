@@ -326,10 +326,11 @@ Consumer 配置项：
 ## Metadata、状态与取消
 
 Consumer 发送长度受控的 ASCII Metadata，包括 service、group、version、
-invocation ID、来源应用、来源实例和 trace ID。Gateway 负责原样转发，Provider
-通过 `RpcInvocationMetadata.current()` 向业务代码暴露校验后的值。
-`traceparent` 和 `tracestate` 也保留为 Gateway 转发及 Provider 接收字段；V1
-Starter 自动生成或继承的是 trace ID。非法或超长值会被丢弃，不传入业务代码。
+invocation ID、来源应用、来源实例、`traceparent`、`tracestate` 和
+`x-egon-request-id`。Gateway 负责转发标准 Trace Context，Provider 通过
+`RpcInvocationMetadata.current()` 向业务代码暴露校验后的 traceId、requestId、
+spanId、parentSpanId 和 invocationId。`x-egon-trace-id` 不再作为传播字段写出；
+旧字段只保留常量兼容测试和安全忽略路径。非法或超长值会被丢弃，不传入业务代码。
 
 gRPC Status 会转换为稳定的框架错误：
 

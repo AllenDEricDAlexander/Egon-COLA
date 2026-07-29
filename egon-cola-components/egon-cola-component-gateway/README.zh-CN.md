@@ -53,6 +53,18 @@ Admin Web 是与 Gateway 源码同目录的私有 React 应用，路径为
 - Micrometer Observation / OpenTelemetry Span 和有界 Kafka 调用事件投影；遥测
   故障不得改变业务响应。
 
+## Trace 传播
+
+Gateway 数据面使用 `egon-cola-component-common-trace` 的 W3C Trace Context 能力。
+入口只从合法 `traceparent`、`tracestate` 和 `x-egon-request-id` 建立上下文；Gateway
+不再读取或写入 `X-Trace-Id`、`x-trace-id` 或 `x-egon-trace-id`。HTTP 上游和 RPC
+上游都会为每次 Provider Attempt 创建独立 child span，重试不会复用同一个 attempt
+`spanId`，但整个请求保持同一个 `traceId`。
+
+Gateway 已接入 Micrometer Observation / OpenTelemetry。存在有效 Observation Span
+时，`GatewayCallEventV1.Trace`、普通日志和下游 `traceparent` 会以当前 Span 为准；
+没有 Tracer 时才使用 `common-trace` 的轻量生成逻辑。
+
 ## 消费和构建
 
 公共 BOM 只导出 Starter 和 Provider Runtime。Engine、Admin、Contract、Core 和

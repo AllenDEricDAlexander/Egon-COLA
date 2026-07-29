@@ -57,6 +57,21 @@ Maven child and is not exported by the BOM. See its [frontend README](egon-cola-
 - Micrometer Observation / OpenTelemetry spans and bounded Kafka call-event
   projection. Telemetry failures must not change the business response.
 
+## Trace Propagation
+
+The Gateway data plane uses the W3C Trace Context support from
+`egon-cola-component-common-trace`. Inbound requests build context only from
+valid `traceparent`, `tracestate`, and `x-egon-request-id`. Gateway no longer
+reads or writes `X-Trace-Id`, `x-trace-id`, or `x-egon-trace-id`. HTTP and RPC
+upstreams create a distinct child span for each provider attempt; retries do
+not reuse the same attempt `spanId`, while the whole request keeps one
+`traceId`.
+
+Gateway is already wired to Micrometer Observation / OpenTelemetry. When a
+valid Observation span exists, `GatewayCallEventV1.Trace`, normal logs, and
+downstream `traceparent` use that span. Without a tracer, Gateway falls back to
+the lightweight `common-trace` generator.
+
 ## Consumption and Build
 
 The public BOM exports only the Starter and Provider Runtime. Engine, Admin, Contract,

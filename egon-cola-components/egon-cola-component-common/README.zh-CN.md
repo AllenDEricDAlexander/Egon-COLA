@@ -4,15 +4,18 @@
 
 ## 简要介绍
 
-`egon-cola-component-common` 是 Egon COLA 组件体系的通用能力聚合模块，提供结果 record、分页元数据、请求/查询 PO、枚举错误码、异常、链路上下文、树结构构建、转换器契约、ID、加密、脱敏和源码边界断言等基础能力。
+`egon-cola-component-common` 是 Egon COLA 组件体系的通用能力聚合模块，提供结果 record、分页元数据、请求/查询 PO、枚举错误码、异常、树结构构建、转换器契约、结构化业务日志、Trace 核心与 Spring 自动装配、ID、加密、脱敏和源码边界断言等基础能力。
 
-这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，ID Starter、加密和脱敏能力继续作为独立工具模块保留。
+这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，`common-log` 负责受控业务日志字段，`common-trace` 负责纯核心 Trace Context，Trace Spring Boot Starter 负责 Web 与客户端自动装配。
 
 ## 模块结构
 
 | Module | 说明 |
 |---|---|
-| `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record、链路上下文和树结构构建 |
+| `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record 和树结构构建 |
+| `egon-cola-component-common-log` | 纯 SLF4J 2 结构化业务日志：固定字段 Builder、单行与长度约束、Trace MDC 自动关联 |
+| `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace 核心：`TraceState`、`TraceContext`、`TraceScope`、`TraceSnapshot` 和 W3C `traceparent` 传播 |
+| `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
 | `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器、已废弃的 UUIDv7 兼容 API 和 Spring Boot 自动配置；全部测试位于本模块 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
 | `egon-cola-component-common-mask` | 手机号、邮箱、首尾保留等稳定脱敏规则 |
@@ -48,6 +51,13 @@ common-core 的异常类名不再使用 `Egon` 前缀。
 
 `BaseConverter<S, T>` 定义 `toTarget`、`toSource`、列表转换，以及简单的 `Date` / `String` 默认转换。MapStruct 和 MapStruct Plus 示例放在 `common-core` 的 test 包下，生产代码只暴露轻量契约。
 
+### 结构化业务日志
+
+`common-log` 提供 `BizLog.debug/info/warn/error(Logger)` 和固定字段 Builder。字段限定为
+`biz`、`scene`、`step`、`phase`、`bill_type`、`bill_id`、`biz_id`、`status`、
+`decision`、`error_code`、`cost_ms`、`msg`，不提供任意 Map 或身份字段默认入口。
+Trace 字段由 MDC 自动附加，详见 [common-log 中文文档](egon-cola-component-common-log/README.zh-CN.md)。
+
 ## 依赖方式
 
 先导入组件 BOM：
@@ -76,6 +86,18 @@ common-core 的异常类名不再使用 `Egon` 前缀。
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-log</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-trace</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-trace-spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-id-starter</artifactId>
     </dependency>
     <dependency>
@@ -96,7 +118,6 @@ common-core 的异常类名不再使用 `Egon` 前缀。
 ```java
 package demo.order;
 
-import org.slf4j.MDC;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -106,7 +127,6 @@ import top.egon.cola.component.common.mask.Masking;
 import top.egon.cola.component.common.pojo.PageQuery;
 import top.egon.cola.component.common.pojo.PageResultRecord;
 import top.egon.cola.component.common.pojo.ResultRecord;
-import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.List;
 
@@ -124,7 +144,6 @@ public class OrderController {
 
     @GetMapping
     public PageResultRecord<OrderView> list(OrderListQuery query) {
-        TraceContext.setTraceId(MDC.get("traceId"));
         PageQuery page = new PageQuery(query.pageNo(), query.pageSize());
 
         List<OrderView> records = queryService.list(page.offset(), page.pageSize())
@@ -175,15 +194,18 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 
 ## 设计思想
 
-1. 稳定通用契约收敛进 `common-core`，业务方不需要为 result/page/query/trace/tree 这类基础语义组合多个小 Jar。
+1. 稳定通用契约收敛进 `common-core`，业务方不需要为 result/page/query/tree 这类基础语义组合多个小 Jar。
 2. 公共 PO 契约优先使用 Java record，保持不可变、可序列化、JSON 字段顺序稳定。
 3. 用 record 自身的静态工厂方法替代独立的 `ResultDtos` 或 `ResultModels` 工厂类。
-4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 与 SLF4J 是显式轻量依赖，因为 core 负责 JSON 契约和链路上下文。
-5. 只暴露 converter 契约，不在生产代码里提供生成式 converter 实现。MapStruct 和 MapStruct Plus 实现由业务侧或测试示例承载。
+4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 是显式轻量依赖，因为 core 负责 JSON 契约。
+5. `common-trace` 只依赖 JDK 和 `slf4j-api`，不依赖 Spring、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson 或 Logback 实现。
+6. `common-log` 只依赖 `slf4j-api`，使用 SLF4J 2 key-value 事件，不绑定具体日志实现；Trace 通过 MDC 关联。
+7. Trace Spring Boot Starter 与 Trace Core 同属 common 聚合，但 Spring 依赖不会进入 `common-trace` 或 `common-log`。
+8. 只暴露 converter 契约，不在生产代码里提供生成式 converter 实现。MapStruct 和 MapStruct Plus 实现由业务侧或测试示例承载。
 
 ## 实现细节
 
-- `ResultRecord.success` 和 `PageResultRecord.success` 会读取 `TraceContext` 并带上当前 `traceId`。
+- `ResultRecord.success` 和 `PageResultRecord.success` 会读取 `TraceContext` 并带上当前 `traceId`；Trace 上下文能力由 `common-trace` 提供。
 - `ResultRecord` 和 `PageResultRecord` 保留稳定的 `status` 字段，默认由 `ResultCode` 提供 `code`、`status` 和 `message`。
 - `PageResultRecord` 组合 `PageMetaRecord`，分页元数据不再平铺进结果 record。
 - `PageResultRecord` 和 `PageSlice` 会防御性复制 records，并暴露不可变列表。

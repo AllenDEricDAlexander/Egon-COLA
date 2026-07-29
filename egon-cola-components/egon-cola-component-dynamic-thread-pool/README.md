@@ -46,7 +46,7 @@ The starter creates a Redisson client named `dynamicThreadRedissonClient` and wr
 
 ### MDC Context Propagation
 
-`DtpRunnable`, `DtpCallable`, `DtpSupplier`, `DtpContextAwareExecutorService`, and `DtpThreads` capture the MDC when a task is submitted and restore it while the task runs, preventing asynchronous threads from losing `traceId` / `requestId`.
+`DtpRunnable`, `DtpCallable`, `DtpSupplier`, `DtpContextAwareExecutorService`, and `DtpThreads` use the `TraceSnapshot` from `common-trace` to capture Trace/MDC when a task is submitted and restore it while the task runs, preventing asynchronous threads from losing `traceId` / `spanId` / `requestId`. DTP does not provide a separate trace starter and does not wrap tasks that were already wrapped by Bytecode or business code.
 
 ### Admin REST API
 

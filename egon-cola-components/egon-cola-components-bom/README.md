@@ -15,13 +15,16 @@ Admin, test, and aggregator POM modules are not exported as business dependency 
 
 ### Unified Version Management
 
-After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.2.3`.
+After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.3.1`.
 
 ### Exported Dependencies
 
 | Artifact | Purpose |
 |---|---|
-| `egon-cola-component-common-core` | Error statuses, exceptions, enum contracts, request/result models, trace context, and tree construction |
+| `egon-cola-component-common-core` | Error statuses, exceptions, enum contracts, request/result models, and tree construction |
+| `egon-cola-component-common-log` | Pure SLF4J 2 fixed-field structured business logging builder |
+| `egon-cola-component-common-trace` | Pure JDK + SLF4J trace context, MDC projection, W3C `traceparent` parsing, and task wrapping |
+| `egon-cola-component-common-trace-spring-boot-starter` | Common-aggregated Spring Boot log correlation and trace propagation starter |
 | `egon-cola-component-common-id-starter` | Pure-JDK Snowflake contracts and algorithm, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration for database `BIGINT` IDs |
 | `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
 | `egon-cola-component-common-mask` | Data masking |
@@ -77,6 +80,14 @@ After a business application imports the BOM through `dependencyManagement`, sub
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-log</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-trace-spring-boot-starter</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-id-starter</artifactId>
     </dependency>
     <dependency>
@@ -102,7 +113,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 
 ```xml
 <properties>
-    <egon-cola.version>5.2.3</egon-cola.version>
+    <egon-cola.version>5.3.1</egon-cola.version>
 </properties>
 
 <dependencyManagement>
@@ -132,7 +143,7 @@ Child modules declare only the artifact:
 ### Design Principles
 
 1. The BOM manages only runtime entry points that consumers actually need, preventing accidental business dependencies on admin, test, or aggregator modules.
-2. Stable common contracts are exported through `common-core`; ID algorithms and the Spring Boot entry point are exported together as the single `common-id-starter` artifact, while the algorithm packages themselves remain pure JDK.
+2. Stable common contracts are exported through `common-core`; trace core is exported through `common-trace`, and Spring applications use the dedicated Trace Starter.
 3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. DDC includes its typed management API in Starter, Gateway exposes its Provider Runtime separately, and the bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
 4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
 

@@ -336,12 +336,13 @@ gRPC `disableRetry()`.
 ## Metadata, Status, and Cancellation
 
 The Consumer sends bounded ASCII metadata for service, group, version,
-invocation ID, source application, source instance, and trace ID. The Gateway
-forwards it and the Provider exposes validated values through
-`RpcInvocationMetadata.current()`. `traceparent` and `tracestate` are also
-reserved for Gateway forwarding and Provider input; the V1 Starter
-automatically creates or inherits the trace ID. Invalid or oversized values are
-discarded rather than passed to business code.
+invocation ID, source application, source instance, `traceparent`,
+`tracestate`, and `x-egon-request-id`. The Gateway forwards standard Trace
+Context, and the Provider exposes validated traceId, requestId, spanId,
+parentSpanId, and invocationId through `RpcInvocationMetadata.current()`.
+`x-egon-trace-id` is no longer written as a propagation field; the old metadata
+key remains only for compatibility tests and safe ignore paths. Invalid or
+oversized values are discarded rather than passed to business code.
 
 gRPC statuses are converted to stable framework errors:
 

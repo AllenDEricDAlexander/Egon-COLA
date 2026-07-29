@@ -53,6 +53,17 @@ Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL
 </dependency>
 ```
 
+## Trace 传播
+
+Starter 的 `HttpDdcAdminClient`、OpenAPI 注册客户端、心跳、拉取、ACK 重试、Redis
+Topic 回调和租约恢复任务统一使用 `egon-cola-component-common-trace`。业务请求触发的
+DDC 调用会继承当前 `traceId` 并创建 child span；后台任务没有上游 Trace 时会为每次
+逻辑操作创建新的 `TraceScope`，并在结束后恢复原线程 MDC。出站只写
+`traceparent`、`tracestate` 和 `x-egon-request-id`，不写 `x-egon-trace-id`。
+
+Spring MVC Admin 侧直接引入 `egon-cola-component-common-trace-spring-boot-starter`，不再维护
+DDC 私有 Trace Filter。
+
 ## 配置客户端生命周期
 
 `DdcRuntimeCoordinator` 只在 Redis 订阅已经可用后启动，并严格按以下顺序执行：
