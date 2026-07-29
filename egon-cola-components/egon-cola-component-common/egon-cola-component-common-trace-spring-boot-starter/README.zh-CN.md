@@ -15,8 +15,7 @@ OpenTelemetry SDK。它只负责统一 Trace Context、MDC 投影和跨协议 He
 
 | 模块 | 职责 |
 |---|---|
-| `egon-cola-component-common-trace` | 纯核心：`TraceState`、`TraceContext`、`TraceScope`、`TraceSnapshot`、W3C `traceparent` 解析与注入 |
-| `egon-cola-component-common-log` | 受控结构化业务日志字段和 SLF4J 2 key-value Builder |
+| `egon-cola-component-common-trace` | 纯核心：Trace 状态与传播，以及包含 MDC 的 `CommonLogUtil` 业务日志 Builder |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
 
 ## 协议和字段

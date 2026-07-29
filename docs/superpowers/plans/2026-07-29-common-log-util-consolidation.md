@@ -51,6 +51,7 @@ formatted message:
 assertEquals(
         "traceId=0123456789abcdef0123456789abcdef "
                 + "spanId=0123456789abcdef requestId=request-1 "
+                + "traceFlags=01 "
                 + "tenantId=tenant-1 biz=order scene=create "
                 + "result=SUCCESS msg=\"order created\"",
         onlyEvent().getFormattedMessage()

@@ -6,15 +6,14 @@
 
 `egon-cola-component-common` 是 Egon COLA 组件体系的通用能力聚合模块，提供结果 record、分页元数据、请求/查询 PO、枚举错误码、异常、树结构构建、转换器契约、结构化业务日志、Trace 核心与 Spring 自动装配、ID、加密、脱敏和源码边界断言等基础能力。
 
-这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，`common-log` 负责受控业务日志字段，`common-trace` 负责纯核心 Trace Context，Trace Spring Boot Starter 负责 Web 与客户端自动装配。
+这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，`common-trace` 负责纯核心 Trace Context 和 `CommonLogUtil`，Trace Spring Boot Starter 负责 Web 与客户端自动装配。
 
 ## 模块结构
 
 | Module | 说明 |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record 和树结构构建 |
-| `egon-cola-component-common-log` | 纯 SLF4J 2 结构化业务日志：固定字段 Builder、单行与长度约束、Trace MDC 自动关联 |
-| `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace 核心：`TraceState`、`TraceContext`、`TraceScope`、`TraceSnapshot` 和 W3C `traceparent` 传播 |
+| `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace 核心、W3C `traceparent` 传播和包含 MDC 的 `CommonLogUtil` 业务日志 |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
 | `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器、已废弃的 UUIDv7 兼容 API 和 Spring Boot 自动配置；全部测试位于本模块 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
@@ -53,10 +52,17 @@ common-core 的异常类名不再使用 `Egon` 前缀。
 
 ### 结构化业务日志
 
-`common-log` 提供 `BizLog.debug/info/warn/error(Logger)` 和固定字段 Builder。字段限定为
-`biz`、`scene`、`step`、`phase`、`bill_type`、`bill_id`、`biz_id`、`status`、
-`decision`、`error_code`、`cost_ms`、`msg`，不提供任意 Map 或身份字段默认入口。
-Trace 字段由 MDC 自动附加，详见 [common-log 中文文档](egon-cola-component-common-log/README.zh-CN.md)。
+`common-trace` 只对外提供一个顶层日志工具类 `CommonLogUtil`，业务日志 Builder
+是它的内部类。`bizDebug`、`bizInfo`、`bizWarn`、`bizError` 支持稳定业务字段、
+结果状态、耗时和异常日志。每次真正打印时都会读取完整 MDC，并将 MDC 字段放在业务字段
+之前直接写入最终单行日志，不依赖日志 Pattern 是否配置 `%X`、`%mdc` 或 `%kvp`。
+
+```java
+CommonLogUtil.bizInfo(LOG)
+        .biz("order")
+        .scene("create")
+        .success("order created");
+```
 
 ### 异步任务 Trace 传播
 
@@ -101,10 +107,6 @@ executor.execute(new TraceRouteRunnable() {
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-core</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-log</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
@@ -216,9 +218,9 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 2. 公共 PO 契约优先使用 Java record，保持不可变、可序列化、JSON 字段顺序稳定。
 3. 用 record 自身的静态工厂方法替代独立的 `ResultDtos` 或 `ResultModels` 工厂类。
 4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 是显式轻量依赖，因为 core 负责 JSON 契约。
-5. `common-trace` 只依赖 JDK 和 `slf4j-api`，不依赖 Spring、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson 或 Logback 实现。
-6. `common-log` 只依赖 `slf4j-api`，使用 SLF4J 2 key-value 事件，不绑定具体日志实现；Trace 通过 MDC 关联。
-7. Trace Spring Boot Starter 与 Trace Core 同属 common 聚合，但 Spring 依赖不会进入 `common-trace` 或 `common-log`。
+5. `common-trace` 只依赖 JDK 和 `slf4j-api`；Trace 传播和 `CommonLogUtil` 都不依赖 Spring、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson 或 Logback 实现。
+6. `CommonLogUtil` 将 MDC 直接写进业务日志消息，日志关联不依赖具体日志实现的 Pattern。
+7. Trace Spring Boot Starter 与 Trace Core 同属 common 聚合，但 Spring 依赖不会进入 `common-trace`。
 8. 只暴露 converter 契约，不在生产代码里提供生成式 converter 实现。MapStruct 和 MapStruct Plus 实现由业务侧或测试示例承载。
 
 ## 实现细节

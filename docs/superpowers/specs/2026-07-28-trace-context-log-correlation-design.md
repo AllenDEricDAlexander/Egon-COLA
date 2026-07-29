@@ -78,11 +78,10 @@
 
 采用 common 聚合内的分层设计：
 
-1. `common-trace` 作为协议无关、Spring 无关、JDK+slf4j-only 的 Trace 核心。
-2. `common-log` 作为 SLF4J-only 的固定字段结构化业务日志层，与 Trace Core 分离，通过 MDC 自动关联。
-3. `common-trace-spring-boot-starter` 作为 Spring Boot Web/MVC/WebFlux/RestClient/WebClient 自动装配层。
-4. RPC、Gateway、DDC 直接接入 `common-trace`，不再各自维护 traceId 校验和生成逻辑。
-5. Gateway 的 Micrometer Observation/OpenTelemetry 仍由 Gateway Engine 自己掌握，`common-trace` 只做轻量 fallback 与 MDC 投影，不创建与 OTel 平行冲突的 span。
+1. `common-trace` 作为协议无关、Spring 无关、JDK+slf4j-only 的 Trace 核心，并提供单类 `CommonLogUtil` 业务日志工具。
+2. `common-trace-spring-boot-starter` 作为 Spring Boot Web/MVC/WebFlux/RestClient/WebClient 自动装配层。
+3. RPC、Gateway、DDC 直接接入 `common-trace`，不再各自维护 traceId 校验和生成逻辑。
+4. Gateway 的 Micrometer Observation/OpenTelemetry 仍由 Gateway Engine 自己掌握，`common-trace` 只做轻量 fallback 与 MDC 投影，不创建与 OTel 平行冲突的 span。
 
 备选方案与取舍：
 
@@ -90,7 +89,7 @@
 |---|---|---|
 | 只增强 `common-core` | 改动少，但 core 会继续承担 trace、pojo、exception、converter 等职责 | 不推荐，违背拆出 trace 的目标 |
 | 完全复制 FamilyAiButler 六 Starter | 覆盖面广，但依赖污染、实现过重、默认传播敏感身份字段 | 不采用 |
-| common 聚合内的 `common-log` + `common-trace` + Trace Spring Starter，RPC/Gateway/DDC 直接接入 | 边界清晰，依赖可控，common 保持唯一聚合入口 | 采用 |
+| common 聚合内的 `common-trace` + Trace Spring Starter，RPC/Gateway/DDC 直接接入 | Trace 与日志关联共用 MDC 边界，依赖可控，不为一个工具类单建 artifact | 采用 |
 
 ## 模块布局
 
@@ -104,7 +103,6 @@
 
 新增：
 
-- `egon-cola-components/egon-cola-component-common/egon-cola-component-common-log`
 - `egon-cola-components/egon-cola-component-common/egon-cola-component-common-trace/pom.xml`
 - `egon-cola-components/egon-cola-component-common/egon-cola-component-common-trace/src/main/java/top/egon/cola/component/common/trace`
 - `egon-cola-components/egon-cola-component-common/egon-cola-component-common-trace/src/test/java/top/egon/cola/component/common/trace`
@@ -122,11 +120,10 @@
 - 禁止：Spring、Spring Boot、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson、Logback 实现、业务组件
 - 测试允许：JUnit、AssertJ、logback-classic
 
-### Common 内部 Log 与 Trace 模块
+### Common 内部 Trace 模块
 
 `egon-cola-component-common` 直接聚合并由 BOM 导出：
 
-- `egon-cola-component-common-log`
 - `egon-cola-component-common-trace`
 - `egon-cola-component-common-trace-spring-boot-starter`
 
@@ -797,7 +794,9 @@ DTP：
 
 ## 业务日志边界
 
-本次不复制 `FamilyLogUtil` 超大型工具类；在 `common-log` 中提供受控的小型 `BizLogBuilder`。
+参考 `FamilyLogUtil` 的单类组织方式，在 `common-trace` 中只暴露一个顶层
+`CommonLogUtil`；业务日志 Builder 和阶段枚举均为内部类型，不再创建独立
+`common-log` artifact。
 
 README 可定义推荐字段：
 
@@ -814,7 +813,11 @@ README 可定义推荐字段：
 - `cost_ms`
 - `msg`
 
-`common-log` 只依赖 `slf4j-api`，通过 SLF4J 2 fluent key-value 事件输出固定字段；不提供任意 Map 字段入口。字符串值转为单行并限长，异常保留原生 cause。Trace MDC 自动附加，`common-log` 不依赖 Spring、Logback、Jackson、日志采集平台或 APM，也不放进 trace core。
+`CommonLogUtil` 复用 `common-trace` 已有的 `slf4j-api` 依赖。每次真正打印时读取
+完整 MDC，按照 Trace 字段、其余 MDC 字段、业务字段的顺序，直接渲染为稳定单行
+`key=value` 消息，不依赖 `%X`、`%mdc`、`%kvp` 或特定日志实现。字符串值单行化并
+限长，集合限制元素数，扩展字段执行基础脱敏，异常保留原生 cause。生产代码仍不依赖
+Spring、Logback、Jackson、日志采集平台或 APM。
 
 ## 协议传播矩阵
 
@@ -857,7 +860,7 @@ README 可定义推荐字段：
 
 - 外部客户端如果只依赖旧 traceId Header，必须直接迁移到 W3C `traceparent`；不提供出站过渡期双写。
 - Gateway 管理端和前端从响应 `traceparent` 读取 traceId，并使用 `x-egon-request-id` 关联请求。
-- 依赖树新增 `egon-cola-component-common-log`、`egon-cola-component-common-trace` 和 `egon-cola-component-common-trace-spring-boot-starter`。
+- 依赖树新增 `egon-cola-component-common-trace` 和 `egon-cola-component-common-trace-spring-boot-starter`。
 
 ## 测试验收
 
@@ -920,9 +923,11 @@ README 可定义推荐字段：
 ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/pom.xml -pl egon-cola-component-common-trace-spring-boot-starter -am test
 ```
 
-### common-log
+### CommonLogUtil
 
-覆盖固定字段、`msg`、异常 cause、字符串单行限长和 Trace MDC 自动关联。生产依赖树只允许 `slf4j-api`。
+在 `common-trace` 测试中覆盖完整 MDC 与自定义 MDC、稳定字段顺序、`msg`、异常
+cause、敏感字段脱敏、字符串单行限长、集合边界和禁用日志级别短路。生产依赖树仍只
+允许 `slf4j-api`。
 
 ### RPC
 
@@ -988,7 +993,6 @@ README 可定义推荐字段：
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -pl \
 egon-cola-component-common/egon-cola-component-common-trace,\
-egon-cola-component-common/egon-cola-component-common-log,\
 egon-cola-component-common/egon-cola-component-common-trace-spring-boot-starter,\
 egon-cola-component-rpc/egon-cola-component-rpc-starter,\
 egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter,\
@@ -1023,8 +1027,6 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 - `egon-cola-components/egon-cola-component-common/README.zh-CN.md`
 - `egon-cola-components/egon-cola-components-bom/README.md`
 - `egon-cola-components/egon-cola-components-bom/README.zh-CN.md`
-- `egon-cola-components/egon-cola-component-common/egon-cola-component-common-log/README.md`
-- `egon-cola-components/egon-cola-component-common/egon-cola-component-common-log/README.zh-CN.md`
 - `egon-cola-components/egon-cola-component-common/egon-cola-component-common-trace-spring-boot-starter/README.md`
 - `egon-cola-components/egon-cola-component-common/egon-cola-component-common-trace-spring-boot-starter/README.zh-CN.md`
 - `egon-cola-components/egon-cola-component-rpc/README.md`
@@ -1053,17 +1055,17 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 - Adapter：`TraceCarrierReader`/`TraceCarrierWriter` 适配 HTTP、gRPC、Reactor Netty、Spring headers。
 - Strategy：`TracePropagation` 通过配置控制 header 优先级、兼容 header、覆盖策略。
 - Decorator：`TraceSnapshot.wrap/decorate` 包装异步任务和 Executor。
-- Builder：`common-log` 用固定字段小型 Builder 约束业务日志 schema，不开放任意字段 Map。
+- Builder：`CommonLogUtil` 用内部 Builder 组织可选业务字段，扩展字段统一经过规范化、限长和脱敏。
 
 不采用：
 
-- 超大型日志工具类、任意字段 Builder 和日志平台封装。
+- 在日志工具类中重复 Trace 生成、协议传播、线程上下文恢复，以及日志平台封装。
 - Controller AOP 全量日志，本次不是审计平台。
 - 独立 OTel SDK 封装，Gateway 已由 Micrometer/OTel 负责。
 
 ## 实施切分建议
 
-1. common-log、common-trace 与 Trace Spring Boot Starter 全部归入 common 聚合。
+1. common-trace 与 Trace Spring Boot Starter 全部归入 common 聚合，业务日志工具直接放入 common-trace。
 2. common-core 依赖 common-trace，并保持 `ResultRecord`/`PageResultRecord` 兼容。
 3. Trace Spring Boot Starter：Servlet、RestClient、WebFlux、WebClient 与 Reactor Context。
 4. RPC Consumer/Provider metadata 与 Listener Scope。

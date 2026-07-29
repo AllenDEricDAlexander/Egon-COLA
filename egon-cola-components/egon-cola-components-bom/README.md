@@ -22,8 +22,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | Artifact | Purpose |
 |---|---|
 | `egon-cola-component-common-core` | Error statuses, exceptions, enum contracts, request/result models, and tree construction |
-| `egon-cola-component-common-log` | Pure SLF4J 2 fixed-field structured business logging builder |
-| `egon-cola-component-common-trace` | Pure JDK + SLF4J trace context, MDC projection, W3C `traceparent` parsing, and task wrapping |
+| `egon-cola-component-common-trace` | Pure JDK + SLF4J trace context, MDC projection, W3C `traceparent` parsing, task wrapping, and `CommonLogUtil` |
 | `egon-cola-component-common-trace-spring-boot-starter` | Common-aggregated Spring Boot log correlation and trace propagation starter |
 | `egon-cola-component-common-id-starter` | Pure-JDK Snowflake contracts and algorithm, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration for database `BIGINT` IDs |
 | `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
@@ -80,7 +79,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-log</artifactId>
+        <artifactId>egon-cola-component-common-trace</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>

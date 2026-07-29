@@ -6,15 +6,14 @@
 
 `egon-cola-component-common` is the common-capability aggregator for the Egon COLA component ecosystem. It provides stable contracts for result records, page metadata, request/query POJOs, enum codes, exceptions, tree construction, converters, structured business logs, trace core and Spring integration, IDs, crypto, masking, and source boundary assertions.
 
-This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include only the runtime modules they need. `common-core` owns stable contracts, `common-log` owns controlled business log fields, `common-trace` owns the framework-neutral Trace Context, and the Trace Spring Boot Starter owns web and client auto-configuration.
+This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include only the runtime modules they need. `common-core` owns stable contracts, `common-trace` owns the framework-neutral Trace Context and `CommonLogUtil`, and the Trace Spring Boot Starter owns web and client auto-configuration.
 
 ## Module Layout
 
 | Module | Description |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`, common exceptions, converter contracts, POJO records, and tree construction |
-| `egon-cola-component-common-log` | Pure SLF4J 2 structured business logs with a fixed-field builder, bounded single-line values, and automatic Trace MDC correlation |
-| `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core: `TraceState`, `TraceContext`, `TraceScope`, `TraceSnapshot`, and W3C `traceparent` propagation |
+| `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core, W3C `traceparent` propagation, and MDC-aware `CommonLogUtil` business logs |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
 | `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration; all tests live in this module |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
@@ -53,10 +52,19 @@ The main contracts in `common-core` use Java records with stable Jackson field n
 
 ### Structured Business Logs
 
-`common-log` provides `BizLog.debug/info/warn/error(Logger)` with a fixed-field
-builder. The schema is limited to `biz`, `scene`, `step`, `phase`, `bill_type`,
-`bill_id`, `biz_id`, `status`, `decision`, `error_code`, `cost_ms`, and `msg`.
-Trace fields are added through MDC. See the [common-log documentation](egon-cola-component-common-log/README.md).
+`common-trace` exposes one top-level logging API, `CommonLogUtil`, with a nested
+business-log builder. `bizDebug`, `bizInfo`, `bizWarn`, and `bizError` support
+stable business fields, result helpers, elapsed time, and throwable logging.
+Every terminal log call captures the complete current MDC and renders it before
+the business fields in the final single-line message, so correlation does not
+depend on a logging pattern containing `%X`, `%mdc`, or `%kvp`.
+
+```java
+CommonLogUtil.bizInfo(LOG)
+        .biz("order")
+        .scene("create")
+        .success("order created");
+```
 
 ### Async Trace Propagation
 
@@ -102,10 +110,6 @@ Then include the specific modules you need:
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-core</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-log</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
@@ -217,9 +221,9 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 2. Prefer Java records for common PO contracts to preserve immutability, serializability, and stable JSON field ordering.
 3. Use direct record factory methods instead of separate `ResultDtos` or `ResultModels` classes.
 4. Keep `common-core` free of Spring runtime dependencies; Jackson annotations are explicit lightweight dependencies because core owns JSON contracts.
-5. Keep `common-trace` limited to the JDK and `slf4j-api`; it does not depend on Spring, Servlet, WebFlux, Reactor, gRPC, Gateway, Jackson, or a Logback implementation.
-6. Keep `common-log` limited to `slf4j-api`; it emits SLF4J 2 key-value events and correlates Trace through MDC without binding a logging implementation.
-7. Keep the Trace Spring Boot Starter in the same common aggregator without leaking Spring dependencies into `common-trace` or `common-log`.
+5. Keep `common-trace` limited to the JDK and `slf4j-api`; Trace propagation and `CommonLogUtil` do not depend on Spring, Servlet, WebFlux, Reactor, gRPC, Gateway, Jackson, or a Logback implementation.
+6. Render MDC directly in `CommonLogUtil` messages so business-log correlation does not depend on backend-specific patterns.
+7. Keep the Trace Spring Boot Starter in the same common aggregator without leaking Spring dependencies into `common-trace`.
 8. Expose converter contracts, not generated converter implementations. MapStruct and MapStruct Plus implementations belong in consumers or tests.
 
 ## Implementation Details

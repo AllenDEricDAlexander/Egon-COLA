@@ -58,7 +58,7 @@ entry with the same key.
 The final SLF4J message contains the flattened fields directly, for example:
 
 ```text
-traceId=0123456789abcdef0123456789abcdef spanId=0123456789abcdef requestId=req-1 tenantId=tenant-1 biz=order scene=create result=SUCCESS msg="order created"
+traceId=0123456789abcdef0123456789abcdef spanId=0123456789abcdef requestId=req-1 traceFlags=01 tenantId=tenant-1 biz=order scene=create result=SUCCESS msg="order created"
 ```
 
 This contract does not depend on `%X`, `%mdc`, `%kvp`, a particular Logback

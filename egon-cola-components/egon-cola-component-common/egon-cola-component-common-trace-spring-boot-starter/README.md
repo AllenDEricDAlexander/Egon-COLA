@@ -18,8 +18,7 @@ and OpenTelemetry.
 
 | Module | Responsibility |
 |---|---|
-| `egon-cola-component-common-trace` | Pure core: `TraceState`, `TraceContext`, `TraceScope`, `TraceSnapshot`, W3C `traceparent` parsing and injection |
-| `egon-cola-component-common-log` | Controlled structured business log fields and an SLF4J 2 key-value builder |
+| `egon-cola-component-common-trace` | Pure core: Trace state and propagation plus the MDC-aware `CommonLogUtil` business-log builder |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
 
 ## Protocol
