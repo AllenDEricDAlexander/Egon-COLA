@@ -6,5 +6,7 @@ public interface GuardPlanResolver {
 
     GuardPlanSnapshot resolve(String ruleId);
 
-    Optional<GuardPlanLoadFailure> lastFailure(String ruleId);
+    default Optional<GuardPlanLoadFailure> lastFailure(String ruleId) {
+        return Optional.empty();
+    }
 }
