@@ -33,6 +33,15 @@ public interface GuardStoreContract {
         assertThat(store.contains("draw", "v1", HASH_B)).isTrue();
     }
 
+    @Test
+    default void ttlExpiresMembership() {
+        ListStoreFixture store = fixture();
+        store.add("draw", "v1", HASH_A, Duration.ofSeconds(5));
+        store.advance(Duration.ofSeconds(5).plusNanos(1));
+
+        assertThat(store.contains("draw", "v1", HASH_A)).isFalse();
+    }
+
     interface ListStoreFixture {
 
         boolean contains(String ruleId, String dataVersion, String keyHash);
@@ -40,5 +49,7 @@ public interface GuardStoreContract {
         void add(String ruleId, String dataVersion, String keyHash, Duration ttl);
 
         void replace(String ruleId, String dataVersion, Set<String> keyHashes, Duration ttl);
+
+        void advance(Duration duration);
     }
 }

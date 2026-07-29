@@ -16,6 +16,7 @@ public final class GuardPlanValidator {
         }
         AdmissionConfig.RateLimitConfig rate = plan.admission().rateLimit();
         if (rate.capacity() <= 0 || rate.refillTokens() <= 0 || rate.requestedTokens() <= 0
+                || rate.requestedTokens() > rate.capacity()
                 || rate.refillPeriod().isZero() || rate.refillPeriod().isNegative()) {
             throw new IllegalArgumentException("rate-limit values must be positive");
         }
