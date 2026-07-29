@@ -1,23 +1,31 @@
 package top.egon.cola.component.rpc.context;
 
 import io.grpc.Attributes;
+import io.grpc.ForwardingServerCallListener;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.Status;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
+import top.egon.cola.component.common.trace.TraceKeys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcProviderServerInterceptorTest {
 
+    @AfterEach
+    void tearDown() {
+        MDC.clear();
+    }
+
     @Test
-    void shouldExposeOnlyValidatedMetadataAndReplaceInvalidTrace() {
+    void shouldExposeValidatedMetadataAndCreateMissingTrace() {
         Metadata headers = new Metadata();
         headers.put(RpcMetadataKeys.SERVICE, "egon.rpc.test.Echo");
         headers.put(RpcMetadataKeys.GROUP, "default");
-        headers.put(RpcMetadataKeys.TRACE_ID, "not-a-trace");
         RpcInvocationMetadata[] observed = new RpcInvocationMetadata[1];
         ServerCallHandler<String, String> next = (call, metadata) -> {
             observed[0] = RpcInvocationMetadata.current();
@@ -35,7 +43,71 @@ class RpcProviderServerInterceptorTest {
                 .isEqualTo("egon.rpc.test.Echo");
         assertThat(observed[0].group()).isEqualTo("default");
         assertThat(observed[0].traceId()).matches("[0-9a-f]{32}");
+        assertThat(observed[0].spanId()).matches("[0-9a-f]{16}");
         assertThat(RpcInvocationMetadata.current()).isNull();
+    }
+
+    @Test
+    void restoresMdcForEveryServerListenerCallback() {
+        Metadata headers = new Metadata();
+        headers.put(
+                RpcMetadataKeys.TRACEPARENT,
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+        );
+        headers.put(RpcMetadataKeys.REQUEST_ID, "request-1");
+        headers.put(RpcMetadataKeys.INVOCATION_ID, "invoke-1");
+        StringBuilder callbacks = new StringBuilder();
+        ServerCallHandler<String, String> next = (call, metadata) ->
+                new ServerCall.Listener<>() {
+                    @Override
+                    public void onMessage(String message) {
+                        assertTrace(callbacks, "message");
+                    }
+
+                    @Override
+                    public void onHalfClose() {
+                        assertTrace(callbacks, "halfClose");
+                    }
+
+                    @Override
+                    public void onReady() {
+                        assertTrace(callbacks, "ready");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        assertTrace(callbacks, "complete");
+                    }
+                };
+
+        ServerCall.Listener<String> listener =
+                new RpcProviderServerInterceptor().interceptCall(
+                        new NoOpServerCall(),
+                        headers,
+                        next
+                );
+
+        MDC.put(TraceKeys.TRACE_ID, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        listener.onMessage("request");
+        listener.onHalfClose();
+        listener.onReady();
+        listener.onComplete();
+
+        assertThat(callbacks.toString())
+                .isEqualTo("message;halfClose;ready;complete;");
+        assertThat(MDC.get(TraceKeys.TRACE_ID))
+                .isEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    }
+
+    private void assertTrace(StringBuilder callbacks, String callback) {
+        callbacks.append(callback).append(';');
+        assertThat(MDC.get(TraceKeys.TRACE_ID))
+                .isEqualTo("4bf92f3577b34da6a3ce929d0e0e4736");
+        assertThat(MDC.get(TraceKeys.PARENT_SPAN_ID))
+                .isEqualTo("00f067aa0ba902b7");
+        assertThat(MDC.get(TraceKeys.REQUEST_ID)).isEqualTo("request-1");
+        assertThat(RpcInvocationMetadata.current().invocationId())
+                .isEqualTo("invoke-1");
     }
 
     private static final class NoOpServerCall

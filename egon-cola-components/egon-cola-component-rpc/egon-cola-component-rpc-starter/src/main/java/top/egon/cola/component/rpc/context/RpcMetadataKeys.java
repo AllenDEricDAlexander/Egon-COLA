@@ -22,8 +22,8 @@ public final class RpcMetadataKeys {
     public static final Metadata.Key<String> SOURCE_INSTANCE =
             ascii("x-egon-rpc-source-instance");
 
-    public static final Metadata.Key<String> TRACE_ID =
-            ascii("x-egon-trace-id");
+    public static final Metadata.Key<String> REQUEST_ID =
+            ascii("x-egon-request-id");
 
     public static final Metadata.Key<String> TRACEPARENT =
             ascii("traceparent");

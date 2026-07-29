@@ -10,6 +10,9 @@ public record RpcInvocationMetadata(
         String sourceApp,
         String sourceInstance,
         String traceId,
+        String spanId,
+        String parentSpanId,
+        String requestId,
         String traceparent,
         String tracestate
 ) {

@@ -87,9 +87,9 @@ final class MockUnaryForwarder {
         copy(source, target, RpcMetadataKeys.INVOCATION_ID);
         copy(source, target, RpcMetadataKeys.SOURCE_APP);
         copy(source, target, RpcMetadataKeys.SOURCE_INSTANCE);
-        copy(source, target, RpcMetadataKeys.TRACE_ID);
         copy(source, target, RpcMetadataKeys.TRACEPARENT);
         copy(source, target, RpcMetadataKeys.TRACESTATE);
+        copy(source, target, RpcMetadataKeys.REQUEST_ID);
         return target;
     }
 

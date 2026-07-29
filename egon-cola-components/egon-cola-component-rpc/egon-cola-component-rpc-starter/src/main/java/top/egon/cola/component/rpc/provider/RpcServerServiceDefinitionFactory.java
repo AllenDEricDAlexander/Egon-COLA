@@ -8,7 +8,6 @@ import io.grpc.stub.ServerCalls;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.rpc.context.RpcInvocationMetadata;
 import top.egon.cola.component.rpc.exception.EgonRpcRejectedException;
 
@@ -68,8 +67,6 @@ public class RpcServerServiceDefinitionFactory {
             return;
         }
         RpcInvocationMetadata metadata = RpcInvocationMetadata.current();
-        String previousTrace = TraceContext.getTraceId();
-        TraceContext.setTraceId(metadata == null ? null : metadata.traceId());
         try {
             Object response = binding.method().javaMethod().invoke(
                     binding.provider().bean(),
@@ -86,8 +83,6 @@ public class RpcServerServiceDefinitionFactory {
             fail(binding, observer, exception.getTargetException());
         } catch (Throwable throwable) {
             fail(binding, observer, throwable);
-        } finally {
-            TraceContext.setTraceId(previousTrace);
         }
     }
 
