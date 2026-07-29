@@ -14,6 +14,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -140,9 +141,12 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
                 throw exception;
             }
             topicRegistrations = List.copyOf(registered);
-            refresh();
+            refreshWithTrace();
             reconciliation = scheduler.scheduleWithFixedDelay(
-                    this::safeRefresh,
+                    DdcTraceSupport.wrapNewOperation(
+                            "registry-reconcile",
+                            this::safeRefresh
+                    ),
                     reconcileIntervalMillis,
                     reconcileIntervalMillis,
                     TimeUnit.MILLISECONDS
@@ -171,7 +175,10 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
             if (!closed.get() && refreshQueued.compareAndSet(false, true)) {
                 scheduler.execute(() -> {
                     try {
-                        safeRefresh();
+                        try (DdcTraceSupport.Scope ignored =
+                                     DdcTraceSupport.openOperation("registry-event")) {
+                            safeRefresh();
+                        }
                     } finally {
                         refreshQueued.set(false);
                     }
@@ -184,10 +191,17 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
                 return;
             }
             try {
-                refresh();
+                refreshWithTrace();
             } catch (RuntimeException exception) {
                 LOGGER.warn("DDC registry reconciliation failed", exception);
                 expireLocal();
+            }
+        }
+
+        private void refreshWithTrace() {
+            try (DdcTraceSupport.Scope ignored =
+                         DdcTraceSupport.openOperation("registry-refresh")) {
+                refresh();
             }
         }
 

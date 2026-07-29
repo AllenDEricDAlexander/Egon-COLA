@@ -6,9 +6,21 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
+import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.common.trace.TraceIds;
+import top.egon.cola.component.common.trace.TraceScope;
+import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
+import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
+import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -135,6 +147,37 @@ class DdcAckDeliveryTest {
         assertThat(delivery.isWorkerTerminated()).isTrue();
     }
 
+    @Test
+    void capturesSubmitterTraceAndDoesNotLeakWorkerTrace() throws Exception {
+        CountDownLatch delivered = new CountDownLatch(2);
+        List<String> traces = java.util.Collections.synchronizedList(new ArrayList<>());
+        DdcAdminClient client = new NoOpAdminClient() {
+            @Override
+            public void ack(DdcAckRequest request) {
+                traces.add(TraceContext.getTraceId());
+                TraceContext.setTraceId("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+                delivered.countDown();
+            }
+        };
+        TraceState parent = TraceState.root("request-1");
+
+        try (DdcAckDelivery delivery = delivery(client, 8, 1)) {
+            delivery.start();
+            try (TraceScope ignored = TraceContext.open(parent)) {
+                assertThat(delivery.submit(request("change-8"))).isTrue();
+            }
+            TraceContext.clearOwnedKeys();
+            assertThat(delivery.submit(request("change-9"))).isTrue();
+
+            assertThat(delivered.await(2, TimeUnit.SECONDS)).isTrue();
+        }
+
+        assertThat(traces).hasSize(2);
+        assertThat(traces.get(0)).isEqualTo(parent.traceId());
+        assertThat(TraceIds.isValidTraceId(traces.get(1))).isTrue();
+        assertThat(traces.get(1)).isNotEqualTo("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    }
+
     private DdcAckDelivery delivery(DdcAdminClient client,
                                     int queueCapacity,
                                     int maxAttempts) {
@@ -164,5 +207,38 @@ class DdcAckDeliveryTest {
             Thread.onSpinWait();
         }
         assertThat(condition.getAsBoolean()).isTrue();
+    }
+
+    private static class NoOpAdminClient implements DdcAdminClient {
+
+        @Override
+        public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public DdcLeaseOperationResult offline(DdcHeartbeatRequest request) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<DdcConfigValue> pull() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void reportDefaults(DdcDefaultReportRequest request) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void ack(DdcAckRequest request) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

@@ -25,6 +25,11 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-common-trace</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-common-id-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -36,6 +41,11 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-common-trace-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

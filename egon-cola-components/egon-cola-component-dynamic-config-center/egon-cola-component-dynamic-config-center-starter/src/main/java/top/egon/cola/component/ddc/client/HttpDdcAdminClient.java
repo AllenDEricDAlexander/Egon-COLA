@@ -23,6 +23,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.net.URI;
 import java.util.Collections;
@@ -137,7 +138,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
         DdcCanonicalRequest canonicalRequest = canonicalRequest("GET", path, query, new byte[0]);
         ResultRecord<List<DdcConfigValue>> result = restClient.get()
                 .uri(URI.create(path + "?" + canonicalRequest.canonicalQuery()))
-                .headers(headers -> sign(headers, canonicalRequest))
+                .headers(headers -> prepareHeaders(headers, canonicalRequest))
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
@@ -176,7 +177,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
         ResultRecord<T> result = restClient.post()
                 .uri(path)
                 .contentType(MediaType.APPLICATION_JSON)
-                .headers(headers -> sign(headers, canonicalRequest))
+                .headers(headers -> prepareHeaders(headers, canonicalRequest))
                 .body(body)
                 .retrieve()
                 .body(responseType);
@@ -230,5 +231,10 @@ public class HttpDdcAdminClient implements DdcAdminClient {
                 DdcRequestSigner.SIGNATURE_HEADER,
                 signer.sign(request, properties.getAdmin().getSecretKey())
         );
+    }
+
+    private void prepareHeaders(HttpHeaders headers, DdcCanonicalRequest request) {
+        DdcTraceSupport.inject(headers);
+        sign(headers, request);
     }
 }

@@ -5,6 +5,7 @@ import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
+import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 public class DdcRedisChangeListener implements MessageListener<DdcPublishMessage> {
 
@@ -19,13 +20,16 @@ public class DdcRedisChangeListener implements MessageListener<DdcPublishMessage
 
     @Override
     public void onMessage(CharSequence channel, DdcPublishMessage message) {
-        if (message == null
-                || !matchesScope(message)
-                || !matchesChecksum(message)
-                || !matchesContentChecksum(message)) {
-            return;
+        try (DdcTraceSupport.Scope ignored =
+                     DdcTraceSupport.openOperation("redis-change")) {
+            if (message == null
+                    || !matchesScope(message)
+                    || !matchesChecksum(message)
+                    || !matchesContentChecksum(message)) {
+                return;
+            }
+            refreshService.refresh(message);
         }
-        refreshService.refresh(message);
     }
 
     private boolean matchesScope(DdcPublishMessage message) {

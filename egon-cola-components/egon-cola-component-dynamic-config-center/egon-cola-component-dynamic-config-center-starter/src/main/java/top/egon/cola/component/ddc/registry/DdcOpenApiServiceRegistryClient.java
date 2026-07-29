@@ -26,6 +26,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -259,7 +260,7 @@ public final class DdcOpenApiServiceRegistryClient
                 canonicalRequest("GET", path, query, new byte[0]);
         ResultRecord<T> result = restClient.get()
                 .uri(URI.create(path + "?" + canonicalRequest.canonicalQuery()))
-                .headers(headers -> sign(headers, canonicalRequest))
+                .headers(headers -> prepareHeaders(headers, canonicalRequest))
                 .retrieve()
                 .body(responseType);
         return data(result);
@@ -274,7 +275,7 @@ public final class DdcOpenApiServiceRegistryClient
         ResultRecord<T> result = restClient.post()
                 .uri(path)
                 .contentType(MediaType.APPLICATION_JSON)
-                .headers(headers -> sign(headers, canonicalRequest))
+                .headers(headers -> prepareHeaders(headers, canonicalRequest))
                 .body(body)
                 .retrieve()
                 .body(responseType);
@@ -315,6 +316,11 @@ public final class DdcOpenApiServiceRegistryClient
                 DdcRequestSigner.SIGNATURE_HEADER,
                 signer.sign(request, properties.getAdmin().getSecretKey())
         );
+    }
+
+    private void prepareHeaders(HttpHeaders headers, DdcCanonicalRequest request) {
+        DdcTraceSupport.inject(headers);
+        sign(headers, request);
     }
 
     private <T> T data(ResultRecord<T> result) {

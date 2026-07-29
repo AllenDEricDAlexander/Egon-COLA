@@ -7,6 +7,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
+import top.egon.cola.component.common.trace.TraceSnapshot;
+import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -98,7 +100,11 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
                 );
                 return false;
             }
-            delivery = new PendingDelivery(key, request);
+            delivery = new PendingDelivery(
+                    key,
+                    request,
+                    DdcTraceSupport.captureOrCreate()
+            );
             pending.put(key, delivery);
             submitted.incrementAndGet();
         }
@@ -291,7 +297,11 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
                              long delayMs) {
         try {
             current.schedule(
-                    () -> deliver(delivery),
+                    DdcTraceSupport.wrapSnapshot(
+                            delivery.traceSnapshot(),
+                            "ack",
+                            () -> deliver(delivery)
+                    ),
                     delayMs,
                     TimeUnit.MILLISECONDS
             );
@@ -398,11 +408,14 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
     private record PendingDelivery(
             AckKey key,
             DdcAckRequest request,
+            TraceSnapshot traceSnapshot,
             AtomicInteger attempts
     ) {
 
-        private PendingDelivery(AckKey key, DdcAckRequest request) {
-            this(key, request, new AtomicInteger());
+        private PendingDelivery(AckKey key,
+                                DdcAckRequest request,
+                                TraceSnapshot traceSnapshot) {
+            this(key, request, traceSnapshot, new AtomicInteger());
         }
     }
 }

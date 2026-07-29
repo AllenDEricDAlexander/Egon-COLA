@@ -13,6 +13,7 @@ import top.egon.cola.component.ddc.model.vo.DdcFieldBinding;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -146,6 +147,13 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     }
 
     void heartbeatOnce() {
+        try (DdcTraceSupport.Scope ignored =
+                     DdcTraceSupport.openOperation("heartbeat")) {
+            doHeartbeatOnce();
+        }
+    }
+
+    private void doHeartbeatOnce() {
         if (!running.get() || state.get() == DdcRuntimeState.STOPPING) {
             return;
         }
@@ -168,6 +176,13 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     }
 
     void reconcileOnce() {
+        try (DdcTraceSupport.Scope ignored =
+                     DdcTraceSupport.openOperation("pull")) {
+            doReconcileOnce();
+        }
+    }
+
+    private void doReconcileOnce() {
         if (!running.get()
                 || !properties.getConsistency().isReconcileEnabled()
                 || state.get() == DdcRuntimeState.STOPPING) {
