@@ -12,7 +12,10 @@ import top.egon.cola.component.accessguard.core.plan.GuardPlanSnapshot;
 import top.egon.cola.component.accessguard.core.plan.KeyConfig;
 import top.egon.cola.component.accessguard.core.plan.ObservabilityConfig;
 import top.egon.cola.component.accessguard.execution.RejectionMode;
+import top.egon.cola.component.accessguard.execution.RejectionHandler;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
+import top.egon.cola.component.accessguard.execution.TimeLimitExceededException;
+import top.egon.cola.component.accessguard.execution.TimeLimiter;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.key.GuardKeyResolution;
 import top.egon.cola.component.accessguard.key.GuardKeyScope;
@@ -146,6 +149,54 @@ class DefaultGuardEngineTest {
         assertThat(businessCalls).hasValue(0);
     }
 
+    @Test
+    void timeoutFallbackKeepsTimeoutDecision() throws Throwable {
+        ExecutionConfig execution = new ExecutionConfig(
+                new ExecutionConfig.TimeLimitConfig(
+                        true,
+                        TimeLimitMode.ENFORCE,
+                        TimeLimiterType.VIRTUAL_THREAD,
+                        Duration.ofMillis(50),
+                        true),
+                new ExecutionConfig.RejectionConfig(RejectionMode.FALLBACK, "fallback", ""));
+        GuardPlanSnapshot snapshot = snapshot(
+                FailurePolicies.defaults(),
+                AllowListMode.GATE,
+                execution);
+        TimeLimiter timedOut = (invocation, config) -> {
+            throw new TimeLimitExceededException(config.timeout());
+        };
+        RejectionHandler fallback = (invocation, outcome, config) -> "fallback";
+        DefaultGuardEngine engine = executionEngine(snapshot, Map.of(TimeLimiterType.VIRTUAL_THREAD, timedOut), fallback);
+        AtomicInteger businessCalls = new AtomicInteger();
+
+        GuardExecutionResult<Object> result = engine.executeWithOutcome(invocation(businessCalls));
+
+        assertThat(result.value()).isEqualTo("fallback");
+        assertThat(result.outcome().type()).isEqualTo(GuardOutcomeType.DEGRADED);
+        assertThat(result.outcome().decision()).isEqualTo(GuardDecision.TIME_LIMIT_EXCEEDED);
+        assertThat(result.outcome().resolution()).isEqualTo(GuardResolution.FALLBACK);
+        assertThat(businessCalls).hasValue(0);
+    }
+
+    @Test
+    void rejectionRendererFailureNeverRunsBusinessOperation() throws Exception {
+        GuardPlanSnapshot snapshot = snapshot(FailurePolicies.defaults(), AllowListMode.GATE);
+        RejectionHandler failedRenderer = (invocation, outcome, config) -> {
+            throw new IllegalStateException("render failed");
+        };
+        DefaultGuardEngine engine = executionEngine(
+                snapshot,
+                Map.of(),
+                failedRenderer,
+                (rule, version, hash) -> true);
+        AtomicInteger businessCalls = new AtomicInteger();
+
+        assertThatThrownBy(() -> engine.execute(invocation(businessCalls)))
+                .isInstanceOf(AccessGuardRejectedException.class);
+        assertThat(businessCalls).hasValue(0);
+    }
+
     private static DefaultGuardEngine engine(
             top.egon.cola.component.accessguard.store.DenyListStore denyStore,
             top.egon.cola.component.accessguard.store.AllowListStore allowStore,
@@ -173,6 +224,20 @@ class DefaultGuardEngineTest {
     }
 
     private static GuardPlanSnapshot snapshot(FailurePolicies failures, AllowListMode allowMode) {
+        return snapshot(
+                failures,
+                allowMode,
+                new ExecutionConfig(
+                        new ExecutionConfig.TimeLimitConfig(false, TimeLimitMode.DISABLED,
+                                TimeLimiterType.CALLER_THREAD, Duration.ofSeconds(1), true),
+                        new ExecutionConfig.RejectionConfig(RejectionMode.THROW, "", "")));
+    }
+
+    private static GuardPlanSnapshot snapshot(
+            FailurePolicies failures,
+            AllowListMode allowMode,
+            ExecutionConfig execution
+    ) {
         GuardPlan plan = new GuardPlan(
                 "draw",
                 true,
@@ -183,14 +248,44 @@ class DefaultGuardEngineTest {
                         new AdmissionConfig.PenaltyBoxConfig(true, 3, Duration.ofMinutes(1), Duration.ofMinutes(10)),
                         new AdmissionConfig.RateLimitConfig(true, AdmissionConfig.RateLimitAlgorithm.TOKEN_BUCKET,
                                 10, 10, Duration.ofSeconds(1), 1)),
-                new ExecutionConfig(
-                        new ExecutionConfig.TimeLimitConfig(false, TimeLimitMode.DISABLED,
-                                TimeLimiterType.CALLER_THREAD, Duration.ofSeconds(1), true),
-                        new ExecutionConfig.RejectionConfig(RejectionMode.THROW, "", "")),
+                execution,
                 failures,
                 ObservabilityConfig.defaults(),
                 "state-v1");
         return new GuardPlanSnapshot("draw", 1L, Instant.EPOCH, "test", plan, "fingerprint");
+    }
+
+    private static DefaultGuardEngine executionEngine(
+            GuardPlanSnapshot snapshot,
+            Map<TimeLimiterType, TimeLimiter> timeLimiters,
+            RejectionHandler rejectionHandler
+    ) {
+        return executionEngine(snapshot, timeLimiters, rejectionHandler, (rule, version, hash) -> false);
+    }
+
+    private static DefaultGuardEngine executionEngine(
+            GuardPlanSnapshot snapshot,
+            Map<TimeLimiterType, TimeLimiter> timeLimiters,
+            RejectionHandler rejectionHandler,
+            top.egon.cola.component.accessguard.store.DenyListStore denyStore
+    ) {
+        DenyListPolicy deny = new DenyListPolicy(denyStore);
+        AllowListPolicy allow = new AllowListPolicy((rule, version, hash) -> true);
+        PenaltyBoxPolicy penalty = new PenaltyBoxPolicy(key -> Optional.empty());
+        RateLimitPolicy rate = new RateLimitPolicy(
+                request -> new RateLimitDecision(true, 1, Duration.ZERO));
+        return new DefaultGuardEngine(
+                ruleId -> snapshot,
+                (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
+                AdmissionPolicies.builtIns(deny, allow, penalty, rate),
+                Map.of("penalty-box", penalty, "rate-limit", rate),
+                new DefaultFailurePolicyResolver(),
+                (context, config) -> new top.egon.cola.component.accessguard.store.PenaltyState(0, false, null, null),
+                timeLimiters,
+                rejectionHandler,
+                System::nanoTime,
+                "LOCAL",
+                "PROGRAMMATIC");
     }
 
     private static GuardInvocation invocation(AtomicInteger calls) throws Exception {

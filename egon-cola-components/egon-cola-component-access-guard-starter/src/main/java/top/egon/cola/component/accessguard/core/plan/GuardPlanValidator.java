@@ -1,6 +1,16 @@
 package top.egon.cola.component.accessguard.core.plan;
 
 import top.egon.cola.component.accessguard.core.failure.FailurePoint;
+import top.egon.cola.component.accessguard.execution.RejectionMode;
+import top.egon.cola.component.accessguard.execution.FallbackMethodCache;
+import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
+import top.egon.cola.component.accessguard.execution.TimeLimitMode;
+import top.egon.cola.component.accessguard.execution.TimeLimiterType;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Method;
+import java.util.Objects;
 
 public final class GuardPlanValidator {
 
@@ -24,8 +34,54 @@ public final class GuardPlanValidator {
         if (time.timeout().isZero() || time.timeout().isNegative()) {
             throw new IllegalArgumentException("time-limit timeout must be positive");
         }
+        if (time.enabled()) {
+            if (time.mode() == TimeLimitMode.DISABLED) {
+                throw new IllegalArgumentException("enabled time-limit must declare a mode");
+            }
+            if (time.executor() == TimeLimiterType.CALLER_THREAD && time.mode() != TimeLimitMode.OBSERVE_ONLY) {
+                throw new IllegalArgumentException("CALLER_THREAD is valid only for OBSERVE_ONLY");
+            }
+            if (time.executor() != TimeLimiterType.CALLER_THREAD && time.mode() != TimeLimitMode.ENFORCE) {
+                throw new IllegalArgumentException("managed executors require ENFORCE mode");
+            }
+        }
+        ExecutionConfig.RejectionConfig rejection = plan.execution().rejection();
+        if (rejection.mode() == RejectionMode.FALLBACK && rejection.fallbackMethod().isBlank()) {
+            throw new IllegalArgumentException("FALLBACK requires fallbackMethod");
+        }
+        if (rejection.mode() == RejectionMode.RETURN_JSON && rejection.returnJson().isBlank()) {
+            throw new IllegalArgumentException("RETURN_JSON requires returnJson");
+        }
         for (FailurePoint point : FailurePoint.values()) {
             plan.failurePolicies().policyFor(point);
+        }
+    }
+
+    public void validateExecution(
+            Executable executable,
+            GuardPlan plan,
+            FallbackMethodCache fallbackCache,
+            JsonRejectValueParser jsonParser
+    ) {
+        Objects.requireNonNull(executable, "executable");
+        Objects.requireNonNull(plan, "plan");
+        ExecutionConfig execution = plan.execution();
+        if (executable instanceof Constructor<?>) {
+            if (execution.timeLimit().enabled() || execution.rejection().mode() != RejectionMode.THROW) {
+                throw new IllegalArgumentException("constructors support admission and THROW rejection only");
+            }
+            return;
+        }
+        Method method = (Method) executable;
+        ExecutionConfig.RejectionConfig rejection = execution.rejection();
+        if (rejection.mode() == RejectionMode.FALLBACK) {
+            Objects.requireNonNull(fallbackCache, "fallbackCache")
+                    .validateAndCache(method, rejection.fallbackMethod());
+        } else if (rejection.mode() == RejectionMode.RETURN_JSON) {
+            Objects.requireNonNull(jsonParser, "jsonParser")
+                    .parse(rejection.returnJson(), method.getReturnType());
+        } else if (rejection.mode() == RejectionMode.RETURN_NULL && method.getReturnType().isPrimitive()) {
+            throw new IllegalArgumentException("primitive return types do not support RETURN_NULL");
         }
     }
 }

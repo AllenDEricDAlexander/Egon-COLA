@@ -8,14 +8,13 @@ import top.egon.cola.component.accessguard.core.GuardEntryType;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.GuardInvocationKind;
 import top.egon.cola.component.accessguard.core.GuardOutcome;
+import top.egon.cola.component.accessguard.execution.MethodHandleFallbackHandler;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
 public final class DefaultAccessGuardClient implements AccessGuardClient {
-
-    public static final String FALLBACK_ATTRIBUTE = "accessGuard.fallback";
 
     private final GuardEngine engine;
 
@@ -39,7 +38,7 @@ public final class DefaultAccessGuardClient implements AccessGuardClient {
         Objects.requireNonNull(operation, "operation");
         Map<String, Object> attributes = new LinkedHashMap<>(request.attributes());
         if (request.fallback() != null) {
-            attributes.put(FALLBACK_ATTRIBUTE, request.fallback());
+            attributes.put(MethodHandleFallbackHandler.PROGRAMMATIC_FALLBACK_ATTRIBUTE, request.fallback());
         }
         return new GuardInvocation(
                 request.ruleId(),

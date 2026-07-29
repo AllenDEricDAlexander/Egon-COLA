@@ -6,12 +6,20 @@ import top.egon.cola.component.accessguard.core.failure.FailurePolicy;
 import top.egon.cola.component.accessguard.core.failure.FailurePolicyResolver;
 import top.egon.cola.component.accessguard.core.failure.FailureResolution;
 import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
+import top.egon.cola.component.accessguard.core.plan.ExecutionConfig;
 import top.egon.cola.component.accessguard.core.plan.GuardPlan;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanSnapshot;
 import top.egon.cola.component.accessguard.key.GuardKeyResolution;
 import top.egon.cola.component.accessguard.key.GuardKeyResolutionException;
 import top.egon.cola.component.accessguard.key.GuardKeyResolver;
+import top.egon.cola.component.accessguard.execution.ExecutorRejectedException;
+import top.egon.cola.component.accessguard.execution.RejectionHandler;
+import top.egon.cola.component.accessguard.execution.RejectionMode;
+import top.egon.cola.component.accessguard.execution.TimeLimitExceededException;
+import top.egon.cola.component.accessguard.execution.TimeLimitMode;
+import top.egon.cola.component.accessguard.execution.TimeLimiter;
+import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.policy.GuardContext;
 import top.egon.cola.component.accessguard.policy.GuardPolicy;
 import top.egon.cola.component.accessguard.policy.PolicyConfig;
@@ -37,6 +45,8 @@ public final class DefaultGuardEngine implements GuardEngine {
     private final Map<String, GuardPolicy<?>> localPolicies;
     private final FailurePolicyResolver failurePolicyResolver;
     private final PenaltyService penaltyService;
+    private final Map<TimeLimiterType, TimeLimiter> timeLimiters;
+    private final RejectionHandler rejectionHandler;
     private final LongSupplier ticker;
     private final String storage;
     private final String engine;
@@ -52,12 +62,43 @@ public final class DefaultGuardEngine implements GuardEngine {
             String storage,
             String engine
     ) {
+        this(
+                planResolver,
+                keyResolver,
+                policies,
+                localPolicies,
+                failurePolicyResolver,
+                penaltyService,
+                Map.of(),
+                (invocation, rejected, config) -> {
+                    throw new AccessGuardRejectedException(rejected);
+                },
+                ticker,
+                storage,
+                engine);
+    }
+
+    public DefaultGuardEngine(
+            GuardPlanResolver planResolver,
+            GuardKeyResolver keyResolver,
+            List<GuardPolicy<?>> policies,
+            Map<String, GuardPolicy<?>> localPolicies,
+            FailurePolicyResolver failurePolicyResolver,
+            PenaltyService penaltyService,
+            Map<TimeLimiterType, TimeLimiter> timeLimiters,
+            RejectionHandler rejectionHandler,
+            LongSupplier ticker,
+            String storage,
+            String engine
+    ) {
         this.planResolver = Objects.requireNonNull(planResolver, "planResolver");
         this.keyResolver = Objects.requireNonNull(keyResolver, "keyResolver");
         this.policies = List.copyOf(Objects.requireNonNull(policies, "policies"));
         this.localPolicies = Map.copyOf(Objects.requireNonNull(localPolicies, "localPolicies"));
         this.failurePolicyResolver = Objects.requireNonNull(failurePolicyResolver, "failurePolicyResolver");
         this.penaltyService = Objects.requireNonNull(penaltyService, "penaltyService");
+        this.timeLimiters = Map.copyOf(Objects.requireNonNull(timeLimiters, "timeLimiters"));
+        this.rejectionHandler = Objects.requireNonNull(rejectionHandler, "rejectionHandler");
         this.ticker = Objects.requireNonNull(ticker, "ticker");
         this.storage = requireText(storage, "storage");
         this.engine = requireText(engine, "engine");
@@ -69,8 +110,15 @@ public final class DefaultGuardEngine implements GuardEngine {
 
     @Override
     public GuardOutcome evaluate(GuardInvocation invocation) {
+        return evaluateAdmission(invocation, null);
+    }
+
+    private GuardOutcome evaluateAdmission(GuardInvocation invocation, PlanCapture capture) {
         Objects.requireNonNull(invocation, "invocation");
         long startedAt = ticker.getAsLong();
+        if (capture != null) {
+            capture.startedAt = startedAt;
+        }
         GuardPlanSnapshot snapshot;
         try {
             snapshot = planResolver.resolve(invocation.ruleId());
@@ -85,6 +133,9 @@ public final class DefaultGuardEngine implements GuardEngine {
                     Duration.ZERO,
                     new GuardFailure("CONFIG", "PLAN_RESOLUTION_FAILED"),
                     startedAt);
+        }
+        if (capture != null) {
+            capture.snapshot = snapshot;
         }
         GuardPlan plan = snapshot.plan();
         if (!plan.enabled()) {
@@ -122,7 +173,7 @@ public final class DefaultGuardEngine implements GuardEngine {
             try {
                 result = evaluatePolicy(policy, state.context(), config);
             } catch (StoreOperationException exception) {
-                FailureResolution resolution = resolveStoreFailure(policy, state.context(), config, plan, exception);
+                FailureResolution resolution = resolveStoreFailure(policy, state.context(), config, plan);
                 GuardOutcome terminal = terminalFailureOutcome(
                         invocation.ruleId(), snapshot, policy.id(), resolution, startedAt);
                 if (terminal != null) {
@@ -185,11 +236,132 @@ public final class DefaultGuardEngine implements GuardEngine {
     }
 
     GuardExecutionResult<Object> executeWithOutcome(GuardInvocation invocation) throws Throwable {
-        GuardOutcome outcome = evaluate(invocation);
-        if (outcome.type() == GuardOutcomeType.REJECTED || outcome.type() == GuardOutcomeType.FAILED) {
-            throw new AccessGuardRejectedException(outcome);
+        Objects.requireNonNull(invocation, "invocation");
+        PlanCapture capture = new PlanCapture();
+        GuardOutcome admission = evaluateAdmission(invocation, capture);
+        if (capture.snapshot == null) {
+            throw new AccessGuardRejectedException(admission);
         }
-        return new GuardExecutionResult<>(invocation.continuation().execute(), outcome);
+        ExecutionConfig execution = capture.snapshot.plan().execution();
+        if (admission.type() == GuardOutcomeType.REJECTED || admission.type() == GuardOutcomeType.FAILED) {
+            return resolveRejection(invocation, admission, execution.rejection(), capture.startedAt);
+        }
+        try {
+            Object value = executeOperation(invocation, execution.timeLimit());
+            return new GuardExecutionResult<>(value, withElapsed(admission, capture.startedAt));
+        } catch (TimeLimitExceededException exception) {
+            GuardOutcome timedOut = executionFailure(
+                    admission,
+                    GuardDecision.TIME_LIMIT_EXCEEDED,
+                    "TIME_LIMIT_EXCEEDED",
+                    capture.startedAt);
+            return resolveRejection(invocation, timedOut, execution.rejection(), capture.startedAt);
+        } catch (ExecutorRejectedException exception) {
+            GuardOutcome rejected = executionFailure(
+                    admission,
+                    GuardDecision.EXECUTOR_REJECTED,
+                    "EXECUTOR_REJECTED",
+                    capture.startedAt);
+            return resolveRejection(invocation, rejected, execution.rejection(), capture.startedAt);
+        } catch (AccessGuardRejectedException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            GuardOutcome failed = executionFailure(
+                    admission,
+                    GuardDecision.BUSINESS_EXCEPTION,
+                    "BUSINESS_EXCEPTION",
+                    capture.startedAt);
+            return resolveRejection(invocation, failed, execution.rejection(), capture.startedAt);
+        }
+    }
+
+    private Object executeOperation(
+            GuardInvocation invocation,
+            ExecutionConfig.TimeLimitConfig config
+    ) throws Throwable {
+        if (!config.enabled() || config.mode() == TimeLimitMode.DISABLED) {
+            return invocation.continuation().execute();
+        }
+        TimeLimiter limiter = timeLimiters.get(config.executor());
+        if (limiter == null) {
+            throw new IllegalStateException("No TimeLimiter configured for " + config.executor());
+        }
+        return limiter.execute(invocation, config);
+    }
+
+    private GuardExecutionResult<Object> resolveRejection(
+            GuardInvocation invocation,
+            GuardOutcome rejected,
+            ExecutionConfig.RejectionConfig config,
+            long startedAt
+    ) throws Throwable {
+        try {
+            Object value = rejectionHandler.resolve(invocation, rejected, config);
+            GuardOutcome resolved = new GuardOutcome(
+                    GuardOutcomeType.DEGRADED,
+                    rejected.decision(),
+                    resolutionFor(config.mode()),
+                    rejected.ruleId(),
+                    rejected.policy(),
+                    rejected.planVersion(),
+                    rejected.storage(),
+                    rejected.engine(),
+                    elapsed(startedAt),
+                    rejected.retryAfter(),
+                    rejected.failure());
+            return new GuardExecutionResult<>(value, resolved);
+        } catch (AccessGuardRejectedException exception) {
+            throw exception;
+        } catch (Throwable throwable) {
+            GuardOutcome failed = new GuardOutcome(
+                    GuardOutcomeType.FAILED,
+                    rejected.decision(),
+                    GuardResolution.THROWN,
+                    rejected.ruleId(),
+                    rejected.policy(),
+                    rejected.planVersion(),
+                    rejected.storage(),
+                    rejected.engine(),
+                    elapsed(startedAt),
+                    rejected.retryAfter(),
+                    new GuardFailure("EXECUTION", "REJECTION_RESOLUTION_FAILED"));
+            throw new AccessGuardRejectedException(failed);
+        }
+    }
+
+    private GuardOutcome executionFailure(
+            GuardOutcome admission,
+            GuardDecision decision,
+            String code,
+            long startedAt
+    ) {
+        return new GuardOutcome(
+                GuardOutcomeType.FAILED,
+                decision,
+                GuardResolution.THROWN,
+                admission.ruleId(),
+                "execution",
+                admission.planVersion(),
+                admission.storage(),
+                admission.engine(),
+                elapsed(startedAt),
+                Duration.ZERO,
+                new GuardFailure("EXECUTION", code));
+    }
+
+    private GuardOutcome withElapsed(GuardOutcome outcome, long startedAt) {
+        return new GuardOutcome(
+                outcome.type(),
+                outcome.decision(),
+                outcome.resolution(),
+                outcome.ruleId(),
+                outcome.policy(),
+                outcome.planVersion(),
+                outcome.storage(),
+                outcome.engine(),
+                elapsed(startedAt),
+                outcome.retryAfter(),
+                outcome.failure());
     }
 
     private GuardOutcome resolveKeyFailure(
@@ -235,8 +407,7 @@ public final class DefaultGuardEngine implements GuardEngine {
             GuardPolicy<?> policy,
             GuardContext context,
             PolicyConfig config,
-            GuardPlan plan,
-            StoreOperationException exception
+            GuardPlan plan
     ) {
         GuardFailure failure = new GuardFailure("STORE", "OPERATION_FAILED");
         Supplier<PolicyResult> localFallback = null;
@@ -312,7 +483,6 @@ public final class DefaultGuardEngine implements GuardEngine {
             GuardFailure failure,
             long startedAt
     ) {
-        long elapsedNanos = Math.max(0, ticker.getAsLong() - startedAt);
         return new GuardOutcome(
                 type,
                 decision,
@@ -322,9 +492,22 @@ public final class DefaultGuardEngine implements GuardEngine {
                 planVersion,
                 storage,
                 engine,
-                Duration.ofNanos(elapsedNanos),
+                elapsed(startedAt),
                 retryAfter,
                 failure);
+    }
+
+    private Duration elapsed(long startedAt) {
+        return Duration.ofNanos(Math.max(0, ticker.getAsLong() - startedAt));
+    }
+
+    private static GuardResolution resolutionFor(RejectionMode mode) {
+        return switch (mode) {
+            case THROW -> GuardResolution.THROWN;
+            case FALLBACK -> GuardResolution.FALLBACK;
+            case RETURN_JSON -> GuardResolution.RETURN_JSON;
+            case RETURN_NULL -> GuardResolution.RETURN_NULL;
+        };
     }
 
     private static FailurePoint failurePoint(String policyId) {
@@ -361,5 +544,12 @@ public final class DefaultGuardEngine implements GuardEngine {
             throw new IllegalArgumentException(name + " must not be blank");
         }
         return value.trim();
+    }
+
+    private static final class PlanCapture {
+
+        private GuardPlanSnapshot snapshot;
+
+        private long startedAt;
     }
 }
