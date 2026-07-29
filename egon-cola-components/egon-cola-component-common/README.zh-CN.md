@@ -58,6 +58,24 @@ common-core 的异常类名不再使用 `Egon` 前缀。
 `decision`、`error_code`、`cost_ms`、`msg`，不提供任意 Map 或身份字段默认入口。
 Trace 字段由 MDC 自动附加，详见 [common-log 中文文档](egon-cola-component-common-log/README.zh-CN.md)。
 
+### 异步任务 Trace 传播
+
+`common-trace` 提供 `TraceRouteRunnable`、`TraceRouteCallable<T>` 和
+`TraceRouteSupplier<T>`。包装器在创建时捕获当前 `TraceSnapshot`，任务执行前恢复
+Trace 与 MDC，执行完成或抛出异常后恢复工作线程原上下文。
+
+```java
+executor.execute(new TraceRouteRunnable() {
+    @Override
+    protected void doRun() {
+        orderService.refresh();
+    }
+});
+```
+
+需要函数式包装时，可以继续使用 `TraceContext.snapshot().wrap(task)`；两种入口使用
+相同的 `TraceScope` 恢复机制。
+
 ## 依赖方式
 
 先导入组件 BOM：

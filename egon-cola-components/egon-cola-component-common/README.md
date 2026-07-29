@@ -58,6 +58,25 @@ builder. The schema is limited to `biz`, `scene`, `step`, `phase`, `bill_type`,
 `bill_id`, `biz_id`, `status`, `decision`, `error_code`, `cost_ms`, and `msg`.
 Trace fields are added through MDC. See the [common-log documentation](egon-cola-component-common-log/README.md).
 
+### Async Trace Propagation
+
+`common-trace` provides `TraceRouteRunnable`, `TraceRouteCallable<T>`, and
+`TraceRouteSupplier<T>`. Each wrapper captures the current `TraceSnapshot` when
+it is created, restores Trace and MDC before execution, and restores the worker
+thread's original context after completion or failure.
+
+```java
+executor.execute(new TraceRouteRunnable() {
+    @Override
+    protected void doRun() {
+        orderService.refresh();
+    }
+});
+```
+
+Functional code can continue using `TraceContext.snapshot().wrap(task)`; both
+entry points use the same `TraceScope` restoration mechanism.
+
 ## Dependency Setup
 
 First import the component BOM:

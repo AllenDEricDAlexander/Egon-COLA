@@ -3,6 +3,7 @@ package top.egon.cola.component.common.trace;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
@@ -74,24 +75,30 @@ public final class TraceSnapshot implements Serializable {
     }
 
     public Runnable wrap(Runnable runnable) {
-        return () -> {
-            try (TraceScope ignored = open()) {
+        Objects.requireNonNull(runnable, "runnable");
+        return new TraceRouteRunnable(this) {
+            @Override
+            protected void doRun() {
                 runnable.run();
             }
         };
     }
 
     public <T> Callable<T> wrap(Callable<T> callable) {
-        return () -> {
-            try (TraceScope ignored = open()) {
+        Objects.requireNonNull(callable, "callable");
+        return new TraceRouteCallable<>(this) {
+            @Override
+            protected T doCall() throws Exception {
                 return callable.call();
             }
         };
     }
 
     public <T> Supplier<T> wrap(Supplier<T> supplier) {
-        return () -> {
-            try (TraceScope ignored = open()) {
+        Objects.requireNonNull(supplier, "supplier");
+        return new TraceRouteSupplier<>(this) {
+            @Override
+            protected T doGet() {
                 return supplier.get();
             }
         };
