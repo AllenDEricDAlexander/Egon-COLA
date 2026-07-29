@@ -115,12 +115,16 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     }
 
     private void validateGuardedType(Class<?> type) {
-        if (properties.getEngine() == AccessGuardEngine.AOP) {
-            for (Constructor<?> constructor : type.getDeclaredConstructors()) {
-                if (constructor.isAnnotationPresent(AccessGuard.class)) {
+        for (Constructor<?> constructor : type.getDeclaredConstructors()) {
+            if (constructor.isAnnotationPresent(AccessGuard.class)) {
+                if (properties.getEngine() == AccessGuardEngine.AOP) {
                     throw new IllegalStateException(
                             "AOP mode does not support guarded constructor " + constructor.toGenericString());
                 }
+                bindingResolver.resolve(constructor).ifPresent(binding -> {
+                    GuardPlan plan = planResolver.resolve(binding.ruleId()).plan();
+                    planValidator.validateExecution(constructor, plan, fallbackCache, jsonParser);
+                });
             }
         }
         for (Method method : allMethods(type)) {

@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.accessguard.api.AccessGuard;
+import top.egon.cola.component.accessguard.api.AccessGuardAgentIntegration;
 import top.egon.cola.component.accessguard.api.RateLimitGuard;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,6 +43,21 @@ class AccessGuardStartupValidatorTest {
                         "egon.cola.component.access-guard.rules.constructor.key.contributors[0]=GLOBAL")
                 .run(context -> assertThat(context).hasFailed()
                         .getFailure().hasMessageContaining("constructor"));
+    }
+
+    @Test
+    void agentModeRejectsConstructorExecutionPolicies() {
+        contextRunner.withUserConfiguration(
+                        ConstructorGuardConfiguration.class,
+                        AgentIntegrationConfiguration.class)
+                .withPropertyValues(
+                        "egon.cola.component.access-guard.engine=agent",
+                        "egon.cola.component.access-guard.key.hmac-secret=test-secret",
+                        "egon.cola.component.access-guard.rules.constructor.key.contributors[0]=GLOBAL",
+                        "egon.cola.component.access-guard.rules.constructor.rejection.mode=RETURN_NULL")
+                .run(context -> assertThat(context).hasFailed()
+                        .getFailure().hasMessageContaining(
+                                "constructors support admission and THROW rejection only"));
     }
 
     @Test
@@ -86,6 +102,16 @@ class AccessGuardStartupValidatorTest {
         @Bean
         ReactiveGuardedService reactiveGuardedService() {
             return new ReactiveGuardedService();
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class AgentIntegrationConfiguration {
+
+        @Bean
+        AccessGuardAgentIntegration accessGuardAgentIntegration() {
+            return new AccessGuardAgentIntegration() {
+            };
         }
     }
 

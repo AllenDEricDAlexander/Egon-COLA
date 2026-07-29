@@ -8,6 +8,7 @@ import top.egon.cola.component.accessguard.api.RateLimitGuard;
 import top.egon.cola.component.accessguard.api.TimeLimitGuard;
 
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,10 @@ public final class GuardBindingResolver {
             return single(methodBindings, specific.toGenericString());
         }
         return single(bindings(targetClass), targetClass.getName());
+    }
+
+    public Optional<GuardBinding> resolve(Constructor<?> constructor) {
+        return single(bindings(constructor), constructor.toGenericString());
     }
 
     private static List<GuardBinding> bindings(AnnotatedElement element) {

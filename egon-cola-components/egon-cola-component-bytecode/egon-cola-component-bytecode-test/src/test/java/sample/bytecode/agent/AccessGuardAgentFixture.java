@@ -1,24 +1,32 @@
 package sample.bytecode.agent;
 
-import top.egon.cola.component.accessguard.annotation.AccessGuard;
-import top.egon.cola.component.accessguard.annotation.FailStrategy;
-import top.egon.cola.component.accessguard.autoconfigure.AccessGuardProperties;
-import top.egon.cola.component.accessguard.blacklist.BlacklistService;
-import top.egon.cola.component.accessguard.blacklist.BlacklistStatus;
-import top.egon.cola.component.accessguard.config.AccessGuardAnnotationResolver;
-import top.egon.cola.component.accessguard.config.AccessGuardRule;
-import top.egon.cola.component.accessguard.config.AccessGuardRuleResolver;
-import top.egon.cola.component.accessguard.config.DefaultAccessGuardConfigProvider;
-import top.egon.cola.component.accessguard.context.AccessGuardContext;
-import top.egon.cola.component.accessguard.event.AccessGuardEvent;
-import top.egon.cola.component.accessguard.execution.AccessGuardExecutionService;
-import top.egon.cola.component.accessguard.execution.AccessGuardFailureHandler;
-import top.egon.cola.component.accessguard.execution.ConstructorAccessGuardExecutionService;
-import top.egon.cola.component.accessguard.execution.ConstructorAccessGuardValidator;
-import top.egon.cola.component.accessguard.key.DefaultAccessKeyResolver;
-import top.egon.cola.component.accessguard.ratelimiter.RateLimiterDecision;
-import top.egon.cola.component.accessguard.reject.ReflectionFallbackInvoker;
-import top.egon.cola.component.accessguard.whitelist.WhiteListDecision;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import top.egon.cola.component.accessguard.adapter.aop.GuardBindingResolver;
+import top.egon.cola.component.accessguard.api.AccessGuard;
+import top.egon.cola.component.accessguard.core.DefaultGuardEngine;
+import top.egon.cola.component.accessguard.core.GuardOutcome;
+import top.egon.cola.component.accessguard.core.failure.DefaultFailurePolicyResolver;
+import top.egon.cola.component.accessguard.core.plan.DefaultGuardPlanResolver;
+import top.egon.cola.component.accessguard.core.plan.GuardPlanProperties;
+import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
+import top.egon.cola.component.accessguard.core.plan.PropertiesGuardPlanSource;
+import top.egon.cola.component.accessguard.execution.DefaultRejectionHandler;
+import top.egon.cola.component.accessguard.execution.FallbackMethodCache;
+import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
+import top.egon.cola.component.accessguard.execution.MethodHandleFallbackHandler;
+import top.egon.cola.component.accessguard.execution.RejectionMode;
+import top.egon.cola.component.accessguard.key.GuardKeyResolution;
+import top.egon.cola.component.accessguard.key.GuardKeyScope;
+import top.egon.cola.component.accessguard.observability.CompositeGuardEventPublisher;
+import top.egon.cola.component.accessguard.observability.GuardEvent;
+import top.egon.cola.component.accessguard.policy.AdmissionPolicies;
+import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
+import top.egon.cola.component.accessguard.policy.allow.AllowListPolicy;
+import top.egon.cola.component.accessguard.policy.deny.DenyListPolicy;
+import top.egon.cola.component.accessguard.policy.penalty.PenaltyBoxPolicy;
+import top.egon.cola.component.accessguard.policy.ratelimit.RateLimitPolicy;
+import top.egon.cola.component.accessguard.store.PenaltyState;
+import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.bytecode.api.observation.ObservationEvent;
 import top.egon.cola.component.bytecode.bridge.DispatcherRegistry;
 import top.egon.cola.component.bytecode.runtime.DefaultBytecodeRuntimeDispatcher;
@@ -33,80 +41,29 @@ import top.egon.cola.component.bytecode.starter.accessguard.AccessGuardRuntimeAd
 import top.egon.cola.component.bytecode.starter.accessguard.CombinedPolicyDispatcher;
 import top.egon.cola.component.bytecode.starter.methodextension.MethodMetadataResolver;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public final class AccessGuardAgentFixture {
+
+    private static final String KEY_HASH =
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
     private AccessGuardAgentFixture() {
     }
 
-    public static void main(String[] args) {
-        List<AccessGuardEvent> guardEvents = new ArrayList<>();
+    public static void main(String[] args) throws Exception {
+        List<GuardEvent> guardEvents = new ArrayList<>();
         List<ObservationEvent> observationEvents = new ArrayList<>();
-        AccessGuardProperties properties = new AccessGuardProperties();
-        AccessGuardRuleResolver rules = new AccessGuardRuleResolver(
-                properties,
-                new DefaultAccessGuardConfigProvider(),
-                new AccessGuardAnnotationResolver()
-        );
-        DefaultAccessKeyResolver keys = new DefaultAccessKeyResolver();
-        AccessGuardFailureHandler failures = new AccessGuardFailureHandler(properties);
-        BlacklistService blacklist = new BlacklistService() {
-            @Override
-            public BlacklistStatus status(AccessGuardRule rule, AccessGuardContext context) {
-                return BlacklistStatus.none();
-            }
-
-            @Override
-            public BlacklistStatus incrementRejectAndMaybeBlacklist(
-                    AccessGuardRule rule, AccessGuardContext context) {
-                return BlacklistStatus.none();
-            }
-
-            @Override
-            public void remove(String ruleName, String accessKeyHash) {
-            }
-        };
-        var whiteList = (top.egon.cola.component.accessguard.whitelist.WhiteListService)
-                (rule, keyHash) -> rule.name().startsWith("reject")
-                        ? WhiteListDecision.reject("policy")
-                        : WhiteListDecision.pass(rule.whiteListMode());
-        var rateLimiter = (top.egon.cola.component.accessguard.ratelimiter.RateLimiterExecutor)
-                (rule, context) -> RateLimiterDecision.allow(1);
-        ReflectionFallbackInvoker rejects = new ReflectionFallbackInvoker();
-        AccessGuardExecutionService methodService = new AccessGuardExecutionService(
-                properties,
-                rules,
-                keys,
-                whiteList,
-                blacklist,
-                rateLimiter,
-                (joinPoint, rule, context) -> joinPoint.proceed(),
-                rejects,
-                guardEvents::add,
-                failures
-        );
-        ConstructorAccessGuardExecutionService constructorService =
-                new ConstructorAccessGuardExecutionService(
-                        properties,
-                        rules,
-                        new ConstructorAccessGuardValidator(),
-                        keys,
-                        whiteList,
-                        blacklist,
-                        rateLimiter,
-                        guardEvents::add,
-                        failures
-                );
+        DefaultGuardEngine engine = engine(guardEvents);
         AccessGuardRuntimeAdapter adapter = new AccessGuardRuntimeAdapter(
-                () -> methodService,
-                () -> constructorService,
+                engine,
                 new MethodMetadataResolver(),
-                rules,
-                failures
-        );
+                new GuardBindingResolver());
         adapter.markReady();
         BoundedFailureStore runtimeFailures = new BoundedFailureStore(8);
         ObservationRuntime observation = new ObservationRuntime(
@@ -138,6 +95,9 @@ public final class AccessGuardAgentFixture {
                             event.methodName().equals("rejected")),
                     "rejected method reached observation");
             require(guardEvents.size() >= 10, "guard events missing: " + guardEvents);
+            require(guardEvents.stream().map(GuardEvent::outcome).map(GuardOutcome::decision)
+                            .anyMatch(decision -> decision.name().equals("ALLOW_LIST_MISS")),
+                    "rejection outcome missing");
             require(guardEvents.stream().noneMatch(event ->
                             event.toString().contains("password=secret")),
                     "guard event leaked arguments");
@@ -148,13 +108,69 @@ public final class AccessGuardAgentFixture {
         }
     }
 
+    private static DefaultGuardEngine engine(List<GuardEvent> events) throws Exception {
+        GuardPlanProperties properties = properties();
+        DefaultGuardPlanResolver plans = new DefaultGuardPlanResolver(
+                List.of(new PropertiesGuardPlanSource(properties)),
+                new GuardPlanValidator());
+        DenyListPolicy deny = new DenyListPolicy((ruleId, version, hash) -> false);
+        AllowListPolicy allow = new AllowListPolicy(
+                (ruleId, version, hash) -> !ruleId.startsWith("reject"));
+        PenaltyBoxPolicy penalty = new PenaltyBoxPolicy(key -> Optional.empty());
+        RateLimitPolicy rate = new RateLimitPolicy(
+                request -> new RateLimitDecision(true, 1, Duration.ZERO));
+        FallbackMethodCache fallbackCache = new FallbackMethodCache();
+        fallbackCache.validateAndCache(
+                Target.class.getDeclaredMethod("staticRejected"), "staticFallback");
+        return new DefaultGuardEngine(
+                plans,
+                (invocation, config) -> new GuardKeyResolution(
+                        GuardKeyScope.GLOBAL, List.of(), KEY_HASH),
+                AdmissionPolicies.builtIns(deny, allow, penalty, rate),
+                Map.of("penalty-box", penalty, "rate-limit", rate),
+                new DefaultFailurePolicyResolver(),
+                (context, config) -> new PenaltyState(0, false, null, null),
+                (invocation, config) -> invocation.continuation().execute(),
+                new DefaultRejectionHandler(
+                        new MethodHandleFallbackHandler(fallbackCache),
+                        new JsonRejectValueParser(new ObjectMapper())),
+                System::nanoTime,
+                "LOCAL",
+                "AGENT",
+                new CompositeGuardEventPublisher(List.of(events::add)));
+    }
+
+    private static GuardPlanProperties properties() {
+        GuardPlanProperties properties = new GuardPlanProperties();
+        properties.getKey().setHmacSecret("integration-secret");
+        Map<String, GuardPlanProperties.Rule> rules = new LinkedHashMap<>();
+        for (String ruleId : List.of(
+                "constructor", "private-constructor", "allowed", "private",
+                "synchronized", "recursive")) {
+            rules.put(ruleId, new GuardPlanProperties.Rule());
+        }
+        GuardPlanProperties.Rule rejected = new GuardPlanProperties.Rule();
+        rejected.getAllowList().setEnabled(true);
+        rejected.getAllowList().setMode(AllowListMode.GATE);
+        rejected.getRejection().setMode(RejectionMode.RETURN_JSON);
+        rejected.getRejection().setReturnJson("\"access rejected\"");
+        rules.put("reject-method", rejected);
+        GuardPlanProperties.Rule fallback = new GuardPlanProperties.Rule();
+        fallback.getAllowList().setEnabled(true);
+        fallback.getAllowList().setMode(AllowListMode.GATE);
+        fallback.getRejection().setMode(RejectionMode.FALLBACK);
+        fallback.getRejection().setFallbackMethod("staticFallback");
+        rules.put("reject-static", fallback);
+        properties.setRules(rules);
+        return properties;
+    }
+
     private static ExecutorTaskDecorator taskDecorator(BoundedFailureStore failures) {
         return new ExecutorTaskDecorator(
                 new CompositeContextCarrier(List.of()),
                 new RuntimeEventFanout(List.of(), failures),
                 new RuntimeTaskDetector(),
-                new ExecutorNameResolver(List.of(), Map.of())
-        );
+                new ExecutorNameResolver(List.of(), Map.of()));
     }
 
     private static void require(boolean condition, String message) {
@@ -167,20 +183,12 @@ public final class AccessGuardAgentFixture {
 
         private final int value;
 
-        @AccessGuard(
-                name = "constructor",
-                key = "value",
-                failStrategy = FailStrategy.FAIL_CLOSED
-        )
+        @AccessGuard("constructor")
         public Target(int value) {
             this.value = value;
         }
 
-        @AccessGuard(
-                name = "private-constructor",
-                key = "value",
-                failStrategy = FailStrategy.FAIL_CLOSED
-        )
+        @AccessGuard("private-constructor")
         private Target(Integer value) {
             this.value = value;
         }
@@ -189,17 +197,17 @@ public final class AccessGuardAgentFixture {
             return new Target(Integer.valueOf(9));
         }
 
-        @AccessGuard(name = "allowed")
+        @AccessGuard("allowed")
         public String allowed(String sensitive) {
             return "allowed";
         }
 
-        @AccessGuard(name = "reject-method", whitelist = true)
+        @AccessGuard("reject-method")
         public String rejected() {
             return "body";
         }
 
-        @AccessGuard(name = "private")
+        @AccessGuard("private")
         private String privateValue() {
             return "private";
         }
@@ -208,11 +216,7 @@ public final class AccessGuardAgentFixture {
             return privateValue();
         }
 
-        @AccessGuard(
-                name = "reject-static",
-                whitelist = true,
-                fallbackMethod = "staticFallback"
-        )
+        @AccessGuard("reject-static")
         public static String staticRejected() {
             return "body";
         }
@@ -221,12 +225,12 @@ public final class AccessGuardAgentFixture {
             return "static-fallback";
         }
 
-        @AccessGuard(name = "synchronized")
+        @AccessGuard("synchronized")
         public synchronized String synchronizedValue() {
             return "synchronized";
         }
 
-        @AccessGuard(name = "recursive")
+        @AccessGuard("recursive")
         public int recursive(int remaining) {
             return remaining == 0 ? 0 : 1 + recursive(remaining - 1);
         }

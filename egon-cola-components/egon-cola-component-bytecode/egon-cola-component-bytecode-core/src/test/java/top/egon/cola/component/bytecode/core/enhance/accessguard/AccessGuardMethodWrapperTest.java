@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AccessGuardMethodWrapperTest {
 
     private static final String ACCESS_GUARD =
-            "Ltop/egon/cola/component/accessguard/annotation/AccessGuard;";
+            "Ltop/egon/cola/component/accessguard/api/AccessGuard;";
 
     @Test
     void emitsVerifiedWrappersForInstancePrivateStaticAndSynchronizedMethods() throws Exception {
@@ -167,6 +167,7 @@ class AccessGuardMethodWrapperTest {
 
     private void annotation(MethodVisitor method) {
         AnnotationVisitor annotation = method.visitAnnotation(ACCESS_GUARD, true);
+        annotation.visit("value", "test");
         annotation.visitEnd();
     }
 

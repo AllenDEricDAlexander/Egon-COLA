@@ -12,6 +12,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 import top.egon.cola.component.bytecode.bridge.BridgeCapability;
 import top.egon.cola.component.bytecode.bridge.BridgeConstructorInvocation;
+import top.egon.cola.component.bytecode.bridge.BridgeFailHint;
 import top.egon.cola.component.bytecode.bridge.BridgeProtocol;
 import top.egon.cola.component.bytecode.bridge.BytecodeRuntimeDispatcher;
 import top.egon.cola.component.bytecode.bridge.ConstructorGuardDecision;
@@ -33,14 +34,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ConstructorGuardEnhancerTest {
 
     private static final String ACCESS_GUARD =
-            "Ltop/egon/cola/component/accessguard/annotation/AccessGuard;";
+            "Ltop/egon/cola/component/accessguard/api/AccessGuard;";
 
     @Test
     void insertsVerifiedGuardBeforeAnyUseOfUninitializedThis() throws Exception {
         DefiningClassLoader loader = new DefiningClassLoader(getClass().getClassLoader());
         ApplicationClassEnhancer enhancer = new ApplicationClassEnhancer(
                 false, null, null, new AccessGuardMatcher());
-        byte[] transformed = enhancer.enhance(loader, fixtureBytes("FAIL_OPEN"));
+        byte[] transformed = enhancer.enhance(loader, fixtureBytes());
 
         assertNotNull(transformed);
         assertVerified(loader, transformed);
@@ -58,16 +59,19 @@ class ConstructorGuardEnhancerTest {
                     () -> type.getConstructor(int.class).newInstance(7));
             assertEquals("constructor-rejected", rejected.getCause().getMessage());
             assertEquals(7, dispatcher.lastInvocation.arguments()[0]);
+            assertEquals(BridgeFailHint.FAIL_CLOSED, dispatcher.lastInvocation.failHint());
         }
-        assertNotNull(type.getConstructor(int.class).newInstance(8));
+        InvocationTargetException unavailable = assertThrows(InvocationTargetException.class,
+                () -> type.getConstructor(int.class).newInstance(8));
+        assertTrue(unavailable.getCause() instanceof IllegalStateException);
     }
 
     @Test
-    void honorsExplicitFailClosedWhenRuntimeIsAbsent() throws Exception {
+    void alwaysFailsClosedWhenRuntimeIsAbsent() throws Exception {
         DefiningClassLoader loader = new DefiningClassLoader(getClass().getClassLoader());
         byte[] transformed = new ApplicationClassEnhancer(
                 false, null, null, new AccessGuardMatcher())
-                .enhance(loader, fixtureBytes("FAIL_CLOSED"));
+                .enhance(loader, fixtureBytes());
         Class<?> type = loader.define(transformed);
 
         InvocationTargetException failure = assertThrows(InvocationTargetException.class,
@@ -75,18 +79,14 @@ class ConstructorGuardEnhancerTest {
         assertTrue(failure.getCause() instanceof IllegalStateException);
     }
 
-    private byte[] fixtureBytes(String failStrategy) {
+    private byte[] fixtureBytes() {
         ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-        String owner = "sample/bytecode/ConstructorGuardFixture" + failStrategy;
+        String owner = "sample/bytecode/ConstructorGuardFixture";
         writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, owner, null, "java/lang/Object", null);
         MethodVisitor constructor = writer.visitMethod(
                 Opcodes.ACC_PUBLIC, "<init>", "(I)V", null, null);
         AnnotationVisitor annotation = constructor.visitAnnotation(ACCESS_GUARD, true);
-        annotation.visitEnum(
-                "failStrategy",
-                "Ltop/egon/cola/component/accessguard/annotation/FailStrategy;",
-                failStrategy
-        );
+        annotation.visit("value", "constructor");
         annotation.visitEnd();
         constructor.visitCode();
         constructor.visitVarInsn(Opcodes.ALOAD, 0);

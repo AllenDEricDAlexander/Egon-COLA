@@ -5,13 +5,10 @@ import java.util.Set;
 public final class GovernanceAnnotationFilter {
 
     private static final Set<String> ANNOTATIONS = Set.of(
-            "Ltop/egon/cola/component/accessguard/annotation/AccessGuard;",
-            "Ltop/egon/cola/component/accessguard/annotation/WhiteListAccessInterceptor;",
-            "Ltop/egon/cola/component/accessguard/annotation/RateLimiterAccessInterceptor;",
-            "Ltop/egon/cola/component/accessguard/annotation/TimeoutCircuitBreaker;",
-            "Ltop/egon/cola/component/accessguard/annotation/DoWhiteList;",
-            "Ltop/egon/cola/component/accessguard/annotation/DoRateLimiter;",
-            "Ltop/egon/cola/component/accessguard/annotation/DoHystrix;"
+            "Ltop/egon/cola/component/accessguard/api/AccessGuard;",
+            "Ltop/egon/cola/component/accessguard/api/AllowListGuard;",
+            "Ltop/egon/cola/component/accessguard/api/RateLimitGuard;",
+            "Ltop/egon/cola/component/accessguard/api/TimeLimitGuard;"
     );
 
     public boolean isGovernance(String descriptor) {
