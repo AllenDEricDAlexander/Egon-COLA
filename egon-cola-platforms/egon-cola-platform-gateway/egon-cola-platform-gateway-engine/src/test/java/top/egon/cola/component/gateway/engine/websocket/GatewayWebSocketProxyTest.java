@@ -29,6 +29,7 @@ import java.util.OptionalLong;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -121,6 +122,61 @@ class GatewayWebSocketProxyTest {
         );
         assertTrue(upstream.disposed);
         assertTrue(downstream.disposed);
+    }
+
+    @Test
+    void enabledBodyLogObserverReceivesOnlyWebSocketFrameMetadata() {
+        List<String> frameMetadata = new CopyOnWriteArrayList<>();
+        GatewayWebSocketObserver observer = new GatewayWebSocketObserver() {
+            @Override
+            public void observe(
+                    String transportMode,
+                    String commitPoint,
+                    String terminationReason) {
+            }
+
+            @Override
+            public void observeFrame(
+                    String direction,
+                    GatewayWebSocketFrameType frameType,
+                    long payloadBytes,
+                    boolean finalFragment) {
+                frameMetadata.add(
+                        direction + ":" + frameType + ":"
+                                + payloadBytes + ":" + finalFragment
+                );
+            }
+        };
+        FakePeer upstream = new FakePeer(Flux.never());
+        FakePeer downstream = new FakePeer(Flux.just(
+                frame(GatewayWebSocketFrameType.TEXT, true, "secret"),
+                GatewayWebSocketFrame.close(
+                        new GatewayWebSocketCloseStatus(1000, "done")
+                )
+        ));
+        GatewayWebSocketProxyContext context = context(
+                1024,
+                Duration.ofSeconds(5),
+                true,
+                observer
+        );
+
+        new GatewayWebSocketProxy(ignored -> Mono.empty())
+                .bridge(
+                        new GatewayPreparedWebSocketSession(
+                                context,
+                                upstream,
+                                null
+                        ),
+                        downstream
+                )
+                .block(Duration.ofSeconds(1));
+
+        assertEquals("REQUEST:TEXT:6:true", frameMetadata.getFirst());
+        assertEquals(2, frameMetadata.size());
+        assertFalse(frameMetadata.stream().anyMatch(
+                value -> value.contains("secret")
+        ));
     }
 
     @Test
@@ -221,6 +277,19 @@ class GatewayWebSocketProxyTest {
     private GatewayWebSocketProxyContext context(
             long maxFrameBytes,
             Duration idleTimeout) {
+        return context(
+                maxFrameBytes,
+                idleTimeout,
+                false,
+                GatewayWebSocketObserver.noop()
+        );
+    }
+
+    private GatewayWebSocketProxyContext context(
+            long maxFrameBytes,
+            Duration idleTimeout,
+            boolean bodyLogEnabled,
+            GatewayWebSocketObserver observer) {
         return new GatewayWebSocketProxyContext(
                 provider(8080, false),
                 "/v1/realtime?model=gpt-realtime",
@@ -231,15 +300,22 @@ class GatewayWebSocketProxyTest {
                         List.of("https://client.example")
                 ),
                 List.of("realtime", "fallback"),
-                policy(maxFrameBytes, idleTimeout),
+                policy(maxFrameBytes, idleTimeout, bodyLogEnabled),
                 GatewayCommitGuard.websocket(),
-                GatewayWebSocketObserver.noop()
+                observer
         );
     }
 
     private EffectiveGatewayTransportPolicy policy(
             long maxFrameBytes,
             Duration idleTimeout) {
+        return policy(maxFrameBytes, idleTimeout, false);
+    }
+
+    private EffectiveGatewayTransportPolicy policy(
+            long maxFrameBytes,
+            Duration idleTimeout,
+            boolean bodyLogEnabled) {
         return new EffectiveGatewayTransportPolicy(
                 GatewayRouteProfile.OPENAI_HTTP,
                 GatewayTransportProtocol.WEBSOCKET,
@@ -253,7 +329,7 @@ class GatewayWebSocketProxyTest {
                 Optional.empty(),
                 Optional.of(idleTimeout),
                 OptionalLong.of(maxFrameBytes),
-                false,
+                bodyLogEnabled,
                 false,
                 true
         );

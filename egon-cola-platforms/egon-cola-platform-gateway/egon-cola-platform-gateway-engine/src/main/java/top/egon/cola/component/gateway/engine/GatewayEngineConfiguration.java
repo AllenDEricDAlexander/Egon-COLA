@@ -472,7 +472,9 @@ public class GatewayEngineConfiguration {
                 telemetry,
                 properties.getEnv(),
                 properties.getNamespace(),
-                transportDispatcher
+                transportDispatcher,
+                engineProperties.bodyLogSampleBytes(),
+                null
         );
         return new GatewayHttpServer(engineProperties, handler);
     }

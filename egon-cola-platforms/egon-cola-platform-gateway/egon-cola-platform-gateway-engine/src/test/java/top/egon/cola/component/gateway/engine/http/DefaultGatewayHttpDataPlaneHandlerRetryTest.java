@@ -10,9 +10,13 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
+import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;
+import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
+import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
+import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
 import top.egon.cola.component.gateway.core.provider.ProviderHealthState;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
@@ -22,6 +26,8 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
+import top.egon.cola.component.gateway.core.transport
+        .EffectiveGatewayTransportPolicy;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
 import top.egon.cola.component.gateway.engine.observability
@@ -39,6 +45,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -137,6 +145,70 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
     }
 
     @Test
+    void openAiStreamingRouteReturnsRetryableStatusWithoutRetrying() {
+        ProviderInstance provider = provider();
+        AtomicInteger upstreamCalls = new AtomicInteger();
+        DefaultGatewayHttpDataPlaneHandler handler =
+                new DefaultGatewayHttpDataPlaneHandler(
+                        new HttpRequestNormalizer(32, 8192),
+                        () -> new HttpRouteCompiler().compile(
+                                List.of(openAiRoute())
+                        ),
+                        ignored -> new ProviderSelectionHandle(
+                                provider,
+                                () -> {
+                                }
+                        ),
+                        request -> {
+                            upstreamCalls.incrementAndGet();
+                            return Mono.just(
+                                    GatewayOutboundHttpResponse.text(
+                                            503,
+                                            "upstream-unavailable"
+                                    )
+                            );
+                        },
+                        1024,
+                        Duration.ofSeconds(1),
+                        (zone, request, normalized, route, traceId) ->
+                                Mono.just(
+                                        GatewayHttpSecurityProcessor.Outcome
+                                                .anonymous()
+                                ),
+                        GatewayCallCompletionListener.noop(),
+                        "engine-1",
+                        retryGovernance(),
+                        null,
+                        (runtimeIdentity, outcome) -> {
+                        }
+                );
+
+        GatewayOutboundHttpResponse response = handler.handle(
+                AccessZone.INTERNAL,
+                new GatewayInboundHttpRequest(
+                        "POST",
+                        "api.example.com",
+                        "/v1/responses",
+                        Map.of(
+                                "content-type",
+                                List.of("application/json"),
+                                "content-length",
+                                List.of(Integer.toString(3 * 1024 * 1024))
+                        ),
+                        new InetSocketAddress("127.0.0.1", 12345),
+                        Flux.empty()
+                )
+        ).block();
+
+        assertEquals(503, response.status());
+        assertEquals(
+                "upstream-unavailable",
+                GatewayDataBufferTestSupport.joinUtf8(response.body(), 1024)
+        );
+        assertEquals(1, upstreamCalls.get());
+    }
+
+    @Test
     void keepsProviderAttemptOpenUntilStreamingBodyTerminates() {
         ProviderInstance provider = provider();
         AtomicInteger selectionReleases = new AtomicInteger();
@@ -215,7 +287,7 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
                                 .doOnCancel(
                                         upstreamCancellations::incrementAndGet
                                 ),
-                        1024,
+                        4L * 1024 * 1024,
                         Duration.ofSeconds(1),
                         (zone, request, normalized, route, traceId) ->
                                 Mono.just(
@@ -327,6 +399,41 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
                 0,
                 GatewayResponseMode.TRANSPARENT,
                 Map.of("idempotent", "true")
+        );
+    }
+
+    private RuntimeHttpRoute openAiRoute() {
+        return new RuntimeHttpRoute(
+                "openai-route",
+                "openai-operation",
+                "group",
+                Set.of(AccessZone.INTERNAL),
+                "api.example.com",
+                Set.of("POST"),
+                "/v1/responses",
+                true,
+                provider().serviceKey(),
+                Set.of("retry"),
+                0,
+                GatewayResponseMode.TRANSPARENT,
+                Map.of("idempotent", "true"),
+                new EffectiveGatewayTransportPolicy(
+                        GatewayRouteProfile.OPENAI_HTTP,
+                        GatewayTransportProtocol.HTTP,
+                        GatewayRequestBodyMode.STREAMING,
+                        GatewayTransportResponseMode.SSE,
+                        4L * 1024 * 1024,
+                        OptionalLong.empty(),
+                        Duration.ofSeconds(1),
+                        Duration.ofSeconds(1),
+                        Duration.ofSeconds(1),
+                        Optional.of(Duration.ofSeconds(5)),
+                        Optional.empty(),
+                        OptionalLong.empty(),
+                        false,
+                        false,
+                        true
+                )
         );
     }
 

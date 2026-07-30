@@ -20,6 +20,8 @@ import top.egon.cola.component.gateway.engine.http.GatewayHttpFlushMode;
 import top.egon.cola.component.gateway.engine.http.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.http.HttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.http.HttpUpstreamRequest;
+import top.egon.cola.component.gateway.engine.http.logging.GatewayBodyLogDirection;
+import top.egon.cola.component.gateway.engine.http.logging.GatewayBodyLogEvent;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -117,6 +119,68 @@ class GatewayHttpProxyStrategyTest {
 
         assertEquals(1, subscriptions.get());
         assertArrayEquals(payload, forwarded.get());
+    }
+
+    @Test
+    void enabledBodyLogObservesBoundedRequestAndResponseSamples() {
+        List<GatewayBodyLogEvent> events = new java.util.ArrayList<>();
+        byte[] requestBody = "request-body".getBytes(StandardCharsets.UTF_8);
+        byte[] responseBody = "response-body".getBytes(StandardCharsets.UTF_8);
+        AtomicReference<byte[]> forwarded = new AtomicReference<>();
+        HttpUpstreamAdapter adapter = request -> {
+            forwarded.set(GatewayDataBufferTestSupport.join(
+                    request.body(),
+                    requestBody.length
+            ));
+            return Mono.just(new GatewayOutboundHttpResponse(
+                    200,
+                    Map.of("content-type", List.of("application/json")),
+                    Flux.just(buffer(responseBody))
+            ));
+        };
+        EffectiveGatewayTransportPolicy loggingPolicy = policy(
+                GatewayRequestBodyMode.STREAMING,
+                GatewayTransportResponseMode.AUTO_STREAM,
+                OptionalLong.empty(),
+                true
+        );
+
+        GatewayOutboundHttpResponse response =
+                new StreamingHttpProxyStrategy().proxy(
+                        new GatewayHttpProxyContext(
+                                adapter,
+                                provider(),
+                                "POST",
+                                "/v1/responses",
+                                Map.of(
+                                        "content-type",
+                                        List.of("application/json")
+                                ),
+                                Flux.just(buffer(requestBody)),
+                                loggingPolicy,
+                                4,
+                                events::add
+                        )
+                ).block();
+        byte[] received = GatewayDataBufferTestSupport.join(
+                response.body(),
+                responseBody.length
+        );
+
+        assertArrayEquals(requestBody, forwarded.get());
+        assertArrayEquals(responseBody, received);
+        assertEquals(2, events.size());
+        assertEquals(
+                List.of(
+                        GatewayBodyLogDirection.REQUEST,
+                        GatewayBodyLogDirection.RESPONSE
+                ),
+                events.stream().map(GatewayBodyLogEvent::direction).toList()
+        );
+        assertEquals(4, events.get(0).sample().length);
+        assertEquals(requestBody.length, events.get(0).totalBytes());
+        assertEquals(4, events.get(1).sample().length);
+        assertEquals(responseBody.length, events.get(1).totalBytes());
     }
 
     @Test
@@ -292,6 +356,19 @@ class GatewayHttpProxyStrategyTest {
             GatewayRequestBodyMode requestMode,
             GatewayTransportResponseMode responseMode,
             OptionalLong maxResponseBytes) {
+        return policy(
+                requestMode,
+                responseMode,
+                maxResponseBytes,
+                false
+        );
+    }
+
+    private EffectiveGatewayTransportPolicy policy(
+            GatewayRequestBodyMode requestMode,
+            GatewayTransportResponseMode responseMode,
+            OptionalLong maxResponseBytes,
+            boolean bodyLogEnabled) {
         return new EffectiveGatewayTransportPolicy(
                 GatewayRouteProfile.OPENAI_HTTP,
                 GatewayTransportProtocol.HTTP,
@@ -305,7 +382,7 @@ class GatewayHttpProxyStrategyTest {
                 Optional.of(Duration.ofMinutes(2)),
                 Optional.empty(),
                 OptionalLong.empty(),
-                false,
+                bodyLogEnabled,
                 false,
                 true
         );

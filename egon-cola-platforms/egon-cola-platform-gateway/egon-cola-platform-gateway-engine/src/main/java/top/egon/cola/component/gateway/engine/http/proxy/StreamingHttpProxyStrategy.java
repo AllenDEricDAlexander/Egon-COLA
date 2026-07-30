@@ -8,6 +8,7 @@ import top.egon.cola.component.gateway.engine.http.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.http.GatewayRequestBodyTooLargeException;
 import top.egon.cola.component.gateway.engine.http.HttpUpstreamRequest;
 import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferPipeline;
+import top.egon.cola.component.gateway.engine.http.logging.GatewayBodyLogDirection;
 
 public final class StreamingHttpProxyStrategy
         implements GatewayHttpProxyStrategy {
@@ -23,16 +24,19 @@ public final class StreamingHttpProxyStrategy
             GatewayHttpProxyContext context) {
         long limit = context.policy().maxRequestBodyBytes();
         limiter.validateRequestHeaders(context.headers(), limit);
-        Flux<DataBuffer> body = GatewayDataBufferPipeline
-                .releaseOnDiscardOrCancel(
-                        GatewayDataBufferPipeline.limitBytes(
-                                context.body(),
-                                limit,
-                                () -> new GatewayRequestBodyTooLargeException(
-                                        "request body exceeds configured limit"
-                                )
-                        )
-                );
+        Flux<DataBuffer> body = GatewayDataBufferPipeline.limitBytes(
+                context.body(),
+                limit,
+                () -> new GatewayRequestBodyTooLargeException(
+                        "request body exceeds configured limit"
+                )
+        );
+        body = context.observeBody(
+                body,
+                GatewayBodyLogDirection.REQUEST,
+                context.headers()
+        );
+        body = GatewayDataBufferPipeline.releaseOnDiscardOrCancel(body);
         return context.adapter().invoke(new HttpUpstreamRequest(
                         context.provider(),
                         context.method(),
@@ -45,6 +49,14 @@ public final class StreamingHttpProxyStrategy
                         context.policy().totalTimeout(),
                         false
                 ))
-                .map(response -> responseSemantics.apply(response, context));
+                .map(response -> responseSemantics.apply(response, context))
+                .map(response -> response.withHeadersAndBody(
+                        response.headers(),
+                        context.observeBody(
+                                response.body(),
+                                GatewayBodyLogDirection.RESPONSE,
+                                response.headers()
+                        )
+                ));
     }
 }

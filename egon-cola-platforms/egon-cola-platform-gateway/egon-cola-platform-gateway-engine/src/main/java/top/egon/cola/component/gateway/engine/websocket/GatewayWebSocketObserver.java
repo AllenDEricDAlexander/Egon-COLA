@@ -11,6 +11,13 @@ public interface GatewayWebSocketObserver {
             String commitPoint,
             String terminationReason);
 
+    default void observeFrame(
+            String direction,
+            GatewayWebSocketFrameType frameType,
+            long payloadBytes,
+            boolean finalFragment) {
+    }
+
     static GatewayWebSocketObserver noop() {
         return (transportMode, commitPoint, terminationReason) -> {
         };

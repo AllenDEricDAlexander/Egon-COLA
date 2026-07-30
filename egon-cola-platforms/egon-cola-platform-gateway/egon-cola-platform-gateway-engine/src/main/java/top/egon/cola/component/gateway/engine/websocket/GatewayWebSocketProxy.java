@@ -80,6 +80,7 @@ public final class GatewayWebSocketProxy {
         Mono<Void> upstreamToDownstream = forward(
                 upstream.upstream(),
                 downstream,
+                "RESPONSE",
                 context,
                 termination,
                 maxFrameBytes,
@@ -90,6 +91,7 @@ public final class GatewayWebSocketProxy {
         Mono<Void> downstreamToUpstream = forward(
                 downstream,
                 upstream.upstream(),
+                "REQUEST",
                 context,
                 termination,
                 maxFrameBytes,
@@ -122,6 +124,7 @@ public final class GatewayWebSocketProxy {
     private Mono<Void> forward(
             GatewayWebSocketPeer source,
             GatewayWebSocketPeer target,
+            String direction,
             GatewayWebSocketProxyContext context,
             Termination termination,
             long maxFrameBytes,
@@ -141,6 +144,7 @@ public final class GatewayWebSocketProxy {
                         frame,
                         source,
                         target,
+                        direction,
                         context,
                         termination,
                         maxFrameBytes
@@ -189,6 +193,7 @@ public final class GatewayWebSocketProxy {
             GatewayWebSocketFrame frame,
             GatewayWebSocketPeer source,
             GatewayWebSocketPeer target,
+            String direction,
             GatewayWebSocketProxyContext context,
             Termination termination,
             long maxFrameBytes) {
@@ -196,6 +201,7 @@ public final class GatewayWebSocketProxy {
             frame.release();
             return termination.await();
         }
+        observeFrame(context, direction, frame);
         if (frame.payloadBytesCount() > maxFrameBytes) {
             frame.release();
             if (!termination.win("FRAME_TOO_LARGE")) {
@@ -284,6 +290,25 @@ public final class GatewayWebSocketProxy {
                     "WEBSOCKET",
                     context.commitGuard().current().name(),
                     reason
+            );
+        } catch (RuntimeException ignored) {
+            // Observation is passive and cannot alter transport behavior.
+        }
+    }
+
+    private static void observeFrame(
+            GatewayWebSocketProxyContext context,
+            String direction,
+            GatewayWebSocketFrame frame) {
+        if (!context.policy().bodyLogEnabled()) {
+            return;
+        }
+        try {
+            context.observer().observeFrame(
+                    direction,
+                    frame.type(),
+                    frame.payloadBytesCount(),
+                    frame.finalFragment()
             );
         } catch (RuntimeException ignored) {
             // Observation is passive and cannot alter transport behavior.

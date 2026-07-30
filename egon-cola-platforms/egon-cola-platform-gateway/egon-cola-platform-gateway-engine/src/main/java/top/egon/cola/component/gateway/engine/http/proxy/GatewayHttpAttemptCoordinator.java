@@ -23,6 +23,27 @@ public final class GatewayHttpAttemptCoordinator {
 
     private final GatewayRetryGate retryGate = new GatewayRetryGate();
 
+    public boolean canRetryLegacyStatus(
+            EffectiveGatewayTransportPolicy transportPolicy,
+            GatewayRetryPolicy retryPolicy,
+            GatewayCommitGuard commitGuard,
+            boolean idempotent,
+            boolean replayable,
+            int attempt) {
+        Objects.requireNonNull(transportPolicy, "transportPolicy");
+        Objects.requireNonNull(retryPolicy, "retryPolicy");
+        Objects.requireNonNull(commitGuard, "commitGuard");
+        return retryGate.canRetryLegacyStatus(
+                transportPolicy,
+                commitGuard,
+                retryPolicy.enabled(),
+                idempotent,
+                replayable,
+                attempt,
+                retryPolicy.maxAttempts()
+        );
+    }
+
     public <T> Mono<T> execute(
             EffectiveGatewayTransportPolicy transportPolicy,
             GatewayRetryPolicy retryPolicy,
@@ -50,14 +71,13 @@ public final class GatewayHttpAttemptCoordinator {
                 replayable,
                 1,
                 retryPolicy.maxAttempts()
-        ) || retryGate.canRetryLegacyStatus(
+        ) || canRetryLegacyStatus(
                 transportPolicy,
+                retryPolicy,
                 commitGuard,
-                retryPolicy.enabled(),
                 idempotent,
                 replayable,
-                1,
-                retryPolicy.maxAttempts()
+                1
         );
         AtomicInteger attempts = new AtomicInteger();
         if (!eligible) {
@@ -79,14 +99,13 @@ public final class GatewayHttpAttemptCoordinator {
                     return attempt.get();
                 },
                 failure -> retryableLegacyStatus.test(failure)
-                        ? retryGate.canRetryLegacyStatus(
+                        ? canRetryLegacyStatus(
                                 transportPolicy,
+                                retryPolicy,
                                 commitGuard,
-                                retryPolicy.enabled(),
                                 idempotent,
                                 replayable,
-                                attempts.get(),
-                                retryPolicy.maxAttempts()
+                                attempts.get()
                         )
                         : retryableTransportFailure.test(failure)
                         && retryGate.canRetryTransportFailure(

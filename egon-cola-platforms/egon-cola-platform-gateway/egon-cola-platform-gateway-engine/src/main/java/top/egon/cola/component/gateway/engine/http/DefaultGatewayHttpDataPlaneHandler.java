@@ -27,11 +27,14 @@ import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecorder;
 import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferOwnership;
+import top.egon.cola.component.gateway.engine.http.logging.GatewayBodyLogEvent;
+import top.egon.cola.component.gateway.engine.http.logging.GatewayBodyLogTap;
 import top.egon.cola.component.gateway.engine.http.proxy.AggregatedHttpProxyStrategy;
 import top.egon.cola.component.gateway.engine.http.proxy.GatewayHttpAttemptCoordinator;
 import top.egon.cola.component.gateway.engine.http.proxy.GatewayHttpProxyContext;
 import top.egon.cola.component.gateway.engine.http.proxy.GatewayHttpProxyStrategySelector;
 import top.egon.cola.component.gateway.engine.http.proxy.StreamingHttpProxyStrategy;
+import top.egon.cola.component.gateway.engine.observability.GatewayCallAccessLogger;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
@@ -49,6 +52,7 @@ import top.egon.cola.component.gateway.engine.transport.GatewayCommitPoint;
 import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
 import top.egon.cola.component.gateway.engine.websocket.GatewayPreparedWebSocketSession;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketFrameType;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketObserver;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketPeer;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
@@ -67,6 +71,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class DefaultGatewayHttpDataPlaneHandler
@@ -107,6 +112,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
             new GatewayHttpAttemptCoordinator();
 
     private final GatewayTransportDispatcher transportDispatcher;
+
+    private final int bodyLogSampleBytes;
+
+    private final Consumer<GatewayBodyLogEvent> bodyLogObserver;
+
+    private final GatewayCallAccessLogger accessLogger =
+            new GatewayCallAccessLogger();
 
     private final String engineNodeId;
 
@@ -437,6 +449,49 @@ public final class DefaultGatewayHttpDataPlaneHandler
             String engineEnv,
             String engineNamespace,
             GatewayTransportDispatcher transportDispatcher) {
+        this(
+                normalizer,
+                routeIndex,
+                providerSelector,
+                upstreamAdapter,
+                maxBodyBytes,
+                upstreamTimeout,
+                securityProcessor,
+                completionListener,
+                engineNodeId,
+                trafficGovernance,
+                httpRpcUpstream,
+                outcomeRecorder,
+                corsPolicies,
+                telemetry,
+                engineEnv,
+                engineNamespace,
+                transportDispatcher,
+                GatewayBodyLogTap.DEFAULT_SAMPLE_BYTES,
+                null
+        );
+    }
+
+    public DefaultGatewayHttpDataPlaneHandler(
+            HttpRequestNormalizer normalizer,
+            Supplier<CompiledHttpRouteIndex> routeIndex,
+            ProviderSelector providerSelector,
+            HttpUpstreamAdapter upstreamAdapter,
+            long maxBodyBytes,
+            Duration upstreamTimeout,
+            GatewayHttpSecurityProcessor securityProcessor,
+            GatewayCallCompletionListener completionListener,
+            String engineNodeId,
+            GatewayTrafficGovernance trafficGovernance,
+            HttpRpcUpstreamAdapter httpRpcUpstream,
+            ProviderCallOutcomeRecorder outcomeRecorder,
+            Supplier<Map<String, RuntimeCorsPolicy>> corsPolicies,
+            GatewayTelemetry telemetry,
+            String engineEnv,
+            String engineNamespace,
+            GatewayTransportDispatcher transportDispatcher,
+            int bodyLogSampleBytes,
+            Consumer<GatewayBodyLogEvent> bodyLogObserver) {
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.routeIndex = Objects.requireNonNull(routeIndex, "routeIndex");
         this.providerSelector = Objects.requireNonNull(
@@ -451,6 +506,16 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 transportDispatcher,
                 "transportDispatcher"
         );
+        if (bodyLogSampleBytes < 1
+                || bodyLogSampleBytes > GatewayBodyLogTap.MAX_SAMPLE_BYTES) {
+            throw new IllegalArgumentException(
+                    "bodyLogSampleBytes must be between 1 and 64 KiB"
+            );
+        }
+        this.bodyLogSampleBytes = bodyLogSampleBytes;
+        this.bodyLogObserver = bodyLogObserver == null
+                ? accessLogger::onBody
+                : bodyLogObserver;
         this.maxBodyBytes = maxBodyBytes;
         this.upstreamTimeout = Objects.requireNonNull(
                 upstreamTimeout,
@@ -745,9 +810,17 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayTraceContext trace,
             GatewayCallObservation observation,
             GatewayTrafficGovernance.RequestPermit permit) {
-        long requestLimit = permit.requestSizeLimit(maxBodyBytes);
+        long requestLimit = permit.requestSizeLimit(
+                match.route().transportPolicy().maxRequestBodyBytes()
+        );
         bodySizeLimiter.validateRequestHeaders(request.headers(), requestLimit);
         GatewayCommitGuard commitGuard = GatewayCommitGuard.http();
+        observeTransport(
+                observation,
+                match,
+                commitGuard,
+                "STARTED"
+        );
         boolean aggregate = match.route().upstream().protocolType()
                 == ProviderProtocolType.RPC
                 || match.route().transportPolicy().requestBodyMode()
@@ -806,11 +879,53 @@ public final class DefaultGatewayHttpDataPlaneHandler
             commitGuard.advance(
                     GatewayCommitPoint.DOWNSTREAM_HEADERS_COMMITTED
             );
+            observeTransport(
+                    observation,
+                    match,
+                    commitGuard,
+                    "DOWNSTREAM_HEADERS"
+            );
+            AtomicBoolean firstBodyObserved = new AtomicBoolean();
             return response.withBody(response.body()
-                    .doOnNext(ignored -> commitGuard.advance(
-                            GatewayCommitPoint.FIRST_BODY_BUFFER_SENT
-                    ))
-                    .doFinally(ignored -> commitGuard.terminate()));
+                    .doOnNext(ignored -> {
+                        if (!firstBodyObserved.compareAndSet(false, true)) {
+                            return;
+                        }
+                        commitGuard.advance(
+                                GatewayCommitPoint.FIRST_BODY_BUFFER_SENT
+                        );
+                        observeTransport(
+                                observation,
+                                match,
+                                commitGuard,
+                                "BODY_STREAMING"
+                        );
+                    })
+                    .doFinally(signal -> {
+                        commitGuard.terminate();
+                        observeTransport(
+                                observation,
+                                match,
+                                commitGuard,
+                                signal.toString()
+                        );
+                    }));
+        }).doOnError(failure -> {
+            commitGuard.terminate();
+            observeTransport(
+                    observation,
+                    match,
+                    commitGuard,
+                    "ERROR"
+            );
+        }).doOnCancel(() -> {
+            commitGuard.terminate();
+            observeTransport(
+                    observation,
+                    match,
+                    commitGuard,
+                    "CANCELLED"
+            );
         });
     }
 
@@ -907,6 +1022,12 @@ public final class DefaultGatewayHttpDataPlaneHandler
         } else {
             if (!body.replayable()) {
                 commitGuard.advance(GatewayCommitPoint.REQUEST_STREAMING);
+                observeTransport(
+                        observation,
+                        match,
+                        commitGuard,
+                        "REQUEST_STREAMING"
+                );
             }
             invocation = transportDispatcher.dispatchHttp(
                     new GatewayHttpProxyContext(
@@ -919,7 +1040,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                     : "?" + normalized.rawQuery()),
                             headers,
                             body.publisher(),
-                            match.route().transportPolicy()
+                            match.route().transportPolicy(),
+                            bodyLogSampleBytes,
+                            bodyLogObserver
                     )
             );
         }
@@ -933,17 +1056,31 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                 )
                         )
                         : response)
-                .doOnNext(ignored -> commitGuard.advance(
-                        GatewayCommitPoint.UPSTREAM_HEADERS_RECEIVED
-                ))
+                .doOnNext(ignored -> {
+                    commitGuard.advance(
+                            GatewayCommitPoint.UPSTREAM_HEADERS_RECEIVED
+                    );
+                    observeTransport(
+                            observation,
+                            match,
+                            commitGuard,
+                            "UPSTREAM_HEADERS"
+                    );
+                })
                 .flatMap(response -> {
                     GatewayOutboundHttpResponse tracked =
                             trackAttemptResponse(response, lifecycle);
                     boolean retryStatus = requestPermit.retryPolicy()
-                            .retryableHttpStatus(response.status());
-                    if (retryStatus
-                            && attemptNumber
-                            < requestPermit.retryPolicy().maxAttempts()) {
+                            .retryableHttpStatus(response.status())
+                            && attemptCoordinator.canRetryLegacyStatus(
+                            match.route().transportPolicy(),
+                            requestPermit.retryPolicy(),
+                            commitGuard,
+                            idempotent(match, normalized),
+                            body.replayable(),
+                            attemptNumber
+                    );
+                    if (retryStatus) {
                         return tracked.body()
                                 .doOnNext(
                                         GatewayDataBufferOwnership::release
@@ -1696,7 +1833,11 @@ public final class DefaultGatewayHttpDataPlaneHandler
                             subprotocols(inbound().headers()),
                             match.route().transportPolicy(),
                             GatewayCommitGuard.websocket(),
-                            GatewayWebSocketObserver.noop()
+                            webSocketObserver(
+                                    observation,
+                                    match.route().transportPolicy()
+                                            .bodyLogEnabled()
+                            )
                     );
             return transportDispatcher.prepareWebSocket(context)
                     .flatMap(result -> {
@@ -1761,6 +1902,63 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     "GATEWAY_UPSTREAM_CONNECT_FAILED",
                     trace.traceId()
             );
+        }
+    }
+
+    private GatewayWebSocketObserver webSocketObserver(
+            GatewayCallObservation observation,
+            boolean bodyLogEnabled) {
+        return new GatewayWebSocketObserver() {
+            @Override
+            public void observe(
+                    String transportMode,
+                    String commitPoint,
+                    String terminationReason) {
+                try {
+                    observation.transport(
+                            transportMode,
+                            commitPoint,
+                            terminationReason
+                    );
+                } catch (RuntimeException ignored) {
+                    // Observation cannot alter WebSocket forwarding.
+                }
+            }
+
+            @Override
+            public void observeFrame(
+                    String direction,
+                    GatewayWebSocketFrameType frameType,
+                    long payloadBytes,
+                    boolean finalFragment) {
+                if (bodyLogEnabled) {
+                    accessLogger.onWebSocketFrame(
+                            direction,
+                            frameType.name(),
+                            payloadBytes,
+                            finalFragment
+                    );
+                }
+            }
+        };
+    }
+
+    private void observeTransport(
+            GatewayCallObservation observation,
+            HttpRouteMatch match,
+            GatewayCommitGuard commitGuard,
+            String terminationReason) {
+        try {
+            var policy = match.route().transportPolicy();
+            observation.transport(
+                    policy.transportProtocol().name()
+                            + "_" + policy.requestBodyMode().name()
+                            + "_" + policy.responseMode().name(),
+                    commitGuard.current().name(),
+                    terminationReason
+            );
+        } catch (RuntimeException ignored) {
+            // Observation cannot alter HTTP forwarding.
         }
     }
 
