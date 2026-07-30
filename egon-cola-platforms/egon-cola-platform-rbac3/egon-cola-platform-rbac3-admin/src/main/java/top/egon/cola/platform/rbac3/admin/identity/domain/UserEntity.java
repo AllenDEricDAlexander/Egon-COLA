@@ -100,6 +100,19 @@ public class UserEntity extends TenantScopedEntity {
         return authVersion;
     }
 
+    public long advanceAuthorizationVersion(
+            long expectedVersion,
+            String actorId,
+            Instant now
+    ) {
+        if (authVersion != expectedVersion) {
+            throw new IllegalStateException("user authorization version conflict");
+        }
+        authVersion = Math.incrementExact(authVersion);
+        markUpdated(actorId, now);
+        return authVersion;
+    }
+
     public static String normalize(String value) {
         return Normalizer.normalize(required(value, "username"), Normalizer.Form.NFKC)
                 .toLowerCase(Locale.ROOT);

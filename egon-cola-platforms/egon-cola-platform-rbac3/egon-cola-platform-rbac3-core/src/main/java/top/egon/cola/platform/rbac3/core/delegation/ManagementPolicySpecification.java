@@ -12,28 +12,31 @@ public final class ManagementPolicySpecification {
     ) {
         if (!policy.active()
                 || input.databaseNow().isBefore(policy.validFrom())
-                || !input.databaseNow().isBefore(policy.validTo())) {
-            return denied(policy.id(), "MANAGEMENT_POLICY_INACTIVE");
+                || (policy.validTo() != null
+                && !input.databaseNow().isBefore(policy.validTo()))) {
+            return denied(policy.id(), "MANAGEMENT_POLICY_DENIED");
         }
         if (!policy.subjectIds().contains(input.subjectId())) {
-            return denied(policy.id(), "MANAGEMENT_SUBJECT_OUT_OF_SCOPE");
+            return denied(policy.id(), "MANAGEMENT_POLICY_DENIED");
         }
         if (!policy.targetUserIds().contains(input.targetUserId())) {
-            return denied(policy.id(), "MANAGEMENT_TARGET_OUT_OF_SCOPE");
+            return denied(policy.id(), "MANAGED_USER_SCOPE_DENIED");
         }
         if (!policy.activationRootRoleIds().contains(input.activationRootRoleId())) {
-            return denied(policy.id(), "MANAGEMENT_ROLE_OUT_OF_SCOPE");
+            return denied(policy.id(), "MANAGED_ROLE_SCOPE_DENIED");
         }
         if (!policy.operations().contains(input.operation())) {
-            return denied(policy.id(), "MANAGEMENT_OPERATION_OUT_OF_SCOPE");
+            return denied(policy.id(), "MANAGEMENT_OPERATION_DENIED");
         }
         ManagementPolicyDecisionService.Restrictions restrictions = policy.restrictions();
+        if (strength(input.authStrength()) < strength(restrictions.requiredAuthStrength())) {
+            return denied(policy.id(), "STEP_UP_REQUIRED");
+        }
         if (input.assignmentDays() > restrictions.maxAssignmentDays()
                 || risk(input.roleRisk()) > risk(restrictions.maxRiskLevel())
-                || strength(input.authStrength()) < strength(restrictions.requiredAuthStrength())
                 || (restrictions.requireReason() && !input.reasonPresent())
                 || (restrictions.requireTicket() && !input.ticketPresent())) {
-            return denied(policy.id(), "MANAGEMENT_RESTRICTION_VIOLATION");
+            return denied(policy.id(), "MANAGEMENT_POLICY_DENIED");
         }
         return RuleResult.allow("MANAGEMENT_POLICY_ALLOWED");
     }

@@ -147,6 +147,10 @@ public class RoleEntity extends TenantScopedEntity {
         return status;
     }
 
+    public Integer getMaximumAssignmentDays() {
+        return maximumAssignmentDays;
+    }
+
     public enum RoleType {
         PUBLIC,
         POSITION,

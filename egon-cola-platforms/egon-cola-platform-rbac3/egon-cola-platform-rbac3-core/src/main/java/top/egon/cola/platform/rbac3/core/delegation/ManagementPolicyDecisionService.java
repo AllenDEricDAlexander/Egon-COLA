@@ -17,6 +17,7 @@ public final class ManagementPolicyDecisionService {
     }
 
     public ManagementDecision decide(ManagementDecisionInput input) {
+        String denial = "MANAGEMENT_POLICY_DENIED";
         for (ManagementPolicyFact policy : input.policies().stream()
                 .sorted(java.util.Comparator.comparing(ManagementPolicyFact::id))
                 .toList()) {
@@ -24,8 +25,21 @@ public final class ManagementPolicyDecisionService {
             if (result.allowed()) {
                 return new ManagementDecision(true, result.reasonCode(), policy.id());
             }
+            if (priority(result.reasonCode()) > priority(denial)) {
+                denial = result.reasonCode();
+            }
         }
-        return new ManagementDecision(false, "MANAGEMENT_POLICY_NOT_FOUND", null);
+        return new ManagementDecision(false, denial, null);
+    }
+
+    private int priority(String reasonCode) {
+        return switch (reasonCode) {
+            case "STEP_UP_REQUIRED" -> 5;
+            case "MANAGEMENT_OPERATION_DENIED" -> 4;
+            case "MANAGED_ROLE_SCOPE_DENIED" -> 3;
+            case "MANAGED_USER_SCOPE_DENIED" -> 2;
+            default -> 1;
+        };
     }
 
     public record ManagementDecisionInput(

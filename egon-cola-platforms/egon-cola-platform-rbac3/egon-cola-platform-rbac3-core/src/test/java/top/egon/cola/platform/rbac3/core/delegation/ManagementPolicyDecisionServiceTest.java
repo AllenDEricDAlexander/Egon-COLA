@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ManagementPolicyDecisionServiceTest {
@@ -32,6 +33,20 @@ class ManagementPolicyDecisionServiceTest {
                         "manager", "user", "payment-root", "ASSIGN_ROLE",
                         "MFA", "LOW", 7, true, true, now,
                         List.of(subjectOnly, targetOnly, complete))).allowed());
+    }
+
+    @Test
+    void insufficientAuthenticationStrengthRequiresStepUp() {
+        Instant now = Instant.parse("2026-07-30T10:00:00Z");
+        var decision = new ManagementPolicyDecisionService().decide(
+                new ManagementPolicyDecisionService.ManagementDecisionInput(
+                        "manager", "user", "payment-root", "ASSIGN_ROLE",
+                        "PASSWORD", "LOW", 7, true, true, now,
+                        List.of(policy("p1", Set.of("manager"), Set.of("user"),
+                                Set.of("payment-root"), Set.of("ASSIGN_ROLE"), now))));
+
+        assertFalse(decision.allowed());
+        assertEquals("STEP_UP_REQUIRED", decision.reasonCode());
     }
 
     private ManagementPolicyDecisionService.ManagementPolicyFact policy(
