@@ -2,7 +2,7 @@
 
 版本：v2
 
-状态：推荐架构已确认，设计模式增强版待用户复审；尚未修改运行代码
+状态：v2 已获用户确认；并行实施 Plan 已生成，等待 Plan 审核；尚未修改运行代码
 
 本次修订：在不改变 v1 功能范围、默认值和职责边界的前提下，补充设计模式选择、
 协作关系、类职责、拒绝项、依赖方向和测试约束。
@@ -11,6 +11,10 @@
 
 - `2026-07-24-gateway-component-design.md`
 - `2026-07-25-gateway-engine-http-core-design.md`
+
+实施计划：
+
+- `../plans/2026-07-30-gateway-openai-streaming-transport-parallel.md`
 
 主模块：
 
@@ -418,17 +422,24 @@ source
 5. 不重新实现 Route Match、Security、Governance 或 Provider Selection；
 6. 不读取 Body 内容。
 
-Dispatcher 保留两个真实终止契约：
+Dispatcher 保留 HTTP 与 WebSocket 两类真实终止契约。WebSocket 必须拆成准备和桥接
+两阶段，确保上游握手失败时客户端仍未收到 101：
 
 ```java
 Mono<GatewayOutboundHttpResponse> dispatchHttp(
         GatewayHttpProxyContext context);
 
-Mono<Void> dispatchWebSocket(
+Mono<GatewayWebSocketHandshakeResult> prepareWebSocket(
         GatewayWebSocketProxyContext context);
+
+Mono<Void> bridgeWebSocket(
+        GatewayPreparedWebSocketSession upstream,
+        GatewayWebSocketPeer downstream);
 ```
 
-不返回 `Object`，也不为了统一方法签名引入只包含一种值的通用 Result Wrapper。
+`prepareWebSocket` 返回 `Accepted/Rejected`；只有 `Accepted` 后 Listener 才提交下游
+101 并调用 `bridgeWebSocket`。不返回 `Object`，也不为了统一方法签名引入只包含一种
+值的通用 Result Wrapper。
 
 Facade 的目的只是避免 `GatewayHttpListener` 同时认识所有 Strategy、Adapter 和
 Commit Guard；它不是新的业务 Service，也不拥有可变全局状态。
@@ -542,7 +553,7 @@ flowchart LR
 ### 5.16 依赖方向
 
 ```text
-Admin → Contract
+Admin → Contract + Core（既有依赖）
 Engine → Contract + Core
 Engine Transport Strategy → Engine Adapter Port
 Reactor Netty Adapter → Engine Transport Model
@@ -907,7 +918,7 @@ Malformed Header 不能透传。
 - Streaming Request、Multipart 和 WebSocket 始终 non-replayable；
 - Route `retryEnabled=true` 不代表一定重试，它只允许既有 RETRY Policy 进入安全判断。
 
-### 13.2 唯一允许重试的窗口
+### 13.2 安全重试窗口与旧状态码兼容分支
 
 同时满足以下条件才允许重试：
 
@@ -920,9 +931,14 @@ Malformed Header 不能透传。
 7. WebSocket 还没有完成 101，也没有发送任何 Frame；
 8. Total Timeout 仍有足够 attempt 预算。
 
-因此 Streaming/OpenAI Route 不进行基于上游 HTTP Status 的重试，因为判断 Status 时
-已经收到上游响应头。旧 `STANDARD` Route 保留现有基于状态码的重试语义，避免破坏
-兼容性。
+上述条件定义 `mayRetryTransportFailure`。因此 Streaming/OpenAI Route 不进行基于
+上游 HTTP Status 的重试，因为判断 Status 时已经收到上游响应头。
+
+为避免破坏旧行为，另保留窄 `mayRetryLegacyStatus`：只允许
+`DEFAULT + AGGREGATED + STANDARD`、Method/Operation 幂等、Body 可完整重放、已有
+RETRY Policy、Total Budget 足够且下游尚未提交的 Route 进入既有状态码重试。
+`OPENAI_HTTP`、Streaming、Multipart、SSE、Binary 或 WebSocket 任一条件存在时，该
+兼容分支必须返回 false。
 
 错误、取消和超时必须带着 Commit State 进入重试判断；禁止仅以 Exception 类型判断。
 
@@ -1004,6 +1020,7 @@ Admin 数据兼容：
 - 新保存统一写入 `host/httpMethod/pathPattern/accessZones/transportPolicy`；
 - 读取旧 Draft 时兼容 `listener/method/path`，编辑后规范化；
 - 发布服务同样双读旧键，避免历史 Draft 因 UI 旧格式无法发布；
+- 旧 UI 没有保存 Host 且无安全回退来源；缺失时要求操作者人工补录，禁止推断为 `*`；
 - 新字段继续存入现有 JSONB；
 - 不创建 V5 Migration。
 
@@ -1018,7 +1035,11 @@ Admin 数据兼容：
 7. 增加与 `GatewayRuleParameterCompatibilityTest` 同等级的旧 JSON SHA-256
    往返测试；
 8. 旧 HTTP Route 不自动按 `/v1/**`、Header 或 Content-Type 套用 OpenAI Profile，
-   防止无配置行为变化。
+   防止无配置行为变化；
+9. 兼容承诺是新 Engine 读取旧 v1 Snapshot；旧 Engine 不保证读取含
+   `transportPolicy` 的新 Snapshot；
+10. 发布顺序必须是全部 Engine 升级并 READY，再升级 Admin 并允许发布新字段；混部
+    期间不得发布 Transport Policy。
 
 ## 18. 错误处理
 
@@ -1234,13 +1255,13 @@ Trace、LKG Rule 和 RPC 实现，不做无关重构。
 17. Adapter、Policy、Decorator、Observer 和 Commit Guard 各自满足第 5 节禁止职责，
     没有形成新的巨型 Handler 或继承层级。
 
-## 23. 本轮审核项
+## 23. 已确认的设计决策
 
 用户已确认 v1 推荐方向：通用 Streaming/SSE/Multipart/Binary/WebSocket 能力 +
 `OPENAI_HTTP` Profile，不建立 OpenAI 业务协议。v1 的 Profile 默认值、Header、
 Timeout、Retry、Admin、兼容和无 Migration 决策在 v2 中均未改变。
 
-请一次性复审本次新增的设计模式决策：
+用户已确认以下设计模式决策，实施 Plan 必须逐项遵守：
 
 1. 认可 Remote Proxy 是总体职责模式，Gateway 只承载远端 Contract，不成为模型、
    Prompt、Token 或 Tool Call 的实现者；
@@ -1259,4 +1280,4 @@ Timeout、Retry、Admin、兼容和无 Migration 决策在 v2 中均未改变。
 10. 认可拒绝 Template Method、Factory Method/Abstract Factory、Builder、Command、
     完整 State、Specification 类树、Domain Service 和 OpenAI SDK/Facade；
 11. 认可第 5.14 节类职责和第 5.16 节依赖方向；
-12. 认可最新 Spec 审核通过前仍不开始实现。
+12. 认可 v2 后进入并行实施计划阶段；运行代码在 Plan 审核通过前仍不修改。
