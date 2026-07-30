@@ -7,6 +7,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -110,22 +111,27 @@ public final class GatewayDataBufferPipeline {
         return Flux.defer(() -> {
             AtomicReference<Subscription> sourceSubscription =
                     new AtomicReference<>();
+            AtomicBoolean timeoutFailed = new AtomicBoolean();
             Flux<Void> timeoutFailure = Mono.from(timeoutSignal)
-                    .flatMap(ignored -> {
-                        Subscription subscription =
-                                sourceSubscription.get();
-                        if (subscription != null) {
-                            subscription.cancel();
-                        }
-                        return Mono.<Void>error(Objects.requireNonNull(
+                    .flatMap(ignored -> Mono.<Void>error(
+                            Objects.requireNonNull(
                                 failureSupplier.get(),
                                 "failureSupplier result"
-                        ));
+                            )
+                    ))
+                    .doOnError(ignored -> {
+                        timeoutFailed.set(true);
+                        cancelSource(sourceSubscription);
                     })
                     .flux()
                     .concatWith(Flux.never());
             return source
-                    .doOnSubscribe(sourceSubscription::set)
+                    .doOnSubscribe(subscription -> {
+                        sourceSubscription.set(subscription);
+                        if (timeoutFailed.get()) {
+                            cancelSource(sourceSubscription);
+                        }
+                    })
                     .takeUntilOther(timeoutFailure);
         });
     }
@@ -148,6 +154,14 @@ public final class GatewayDataBufferPipeline {
             observer.run();
         } catch (RuntimeException ignored) {
             // Observation cannot control or interrupt the body transfer.
+        }
+    }
+
+    private static void cancelSource(
+            AtomicReference<Subscription> sourceSubscription) {
+        Subscription subscription = sourceSubscription.getAndSet(null);
+        if (subscription != null) {
+            subscription.cancel();
         }
     }
 }

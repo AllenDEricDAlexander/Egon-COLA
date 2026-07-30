@@ -246,6 +246,47 @@ class GatewayDataBufferPipelineTest {
         assertReleased(first);
     }
 
+    @Test
+    void externalIdleSignalErrorCancelsBodyAndReleasesPendingBuffer() {
+        OwnedBuffer pending = buffer(1, 2, 3);
+        AtomicBoolean cancelled = new AtomicBoolean();
+        Sinks.Empty<Void> timeoutSignal = Sinks.empty();
+        RuntimeException failure = new RuntimeException("idle signal");
+        Flux<DataBuffer> source = Flux.concat(
+                        Flux.<DataBuffer>just(pending.dataBuffer()),
+                        Flux.never()
+                )
+                .doOnCancel(() -> cancelled.set(true));
+        Flux<DataBuffer> body = GatewayDataBufferPipeline
+                .releaseOnDiscardOrCancel(
+                        GatewayDataBufferPipeline.enforceIdleTimeout(
+                                source,
+                                timeoutSignal.asMono(),
+                                () -> new IllegalStateException(
+                                        "fallback failure"
+                                )
+                        )
+                );
+
+        try {
+            StepVerifier.create(body, 0)
+                    .then(() -> assertSame(
+                            Sinks.EmitResult.OK,
+                            timeoutSignal.tryEmitError(failure)
+                    ))
+                    .expectErrorSatisfies(error -> assertSame(
+                            failure,
+                            error
+                    ))
+                    .verify();
+
+            assertTrue(cancelled.get());
+            assertReleased(pending);
+        } finally {
+            releaseRemaining(pending);
+        }
+    }
+
     private OwnedBuffer buffer(int... values) {
         NettyDataBuffer dataBuffer = bufferFactory.allocateBuffer(values.length);
         for (int value : values) {
@@ -261,6 +302,14 @@ class GatewayDataBufferPipelineTest {
     private void assertReleased(OwnedBuffer... buffers) {
         for (OwnedBuffer buffer : buffers) {
             assertEquals(0, buffer.nativeBuffer().refCnt());
+        }
+    }
+
+    private void releaseRemaining(OwnedBuffer... buffers) {
+        for (OwnedBuffer buffer : buffers) {
+            while (buffer.nativeBuffer().refCnt() > 0) {
+                buffer.nativeBuffer().release();
+            }
         }
     }
 
