@@ -6,9 +6,9 @@
 
 `egon-cola-components-bom` is the Maven BOM for the Egon COLA component ecosystem. It provides no runtime code. Its only responsibility is to manage versions consistently for components under `egon-cola-components` that business applications can consume directly, avoiding repeated version declarations on every component dependency.
 
-The BOM exports stable consumption entry points: common core and utility modules, the DDC
-Starter including its typed management API, business component starters, and the bytecode
-component's public API, bridge, runtime, Agent, and starter. Platform, admin, test, and
+The BOM exports stable consumption entry points: common core and utility modules,
+business component starters, and the bytecode component's public API, bridge, runtime,
+Agent, and starter. Platform, admin, test, and
 aggregator POM modules are not exported as business dependency entry points.
 
 ## Features
@@ -28,7 +28,6 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
 | `egon-cola-component-common-mask` | Data masking |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
-| `egon-cola-component-dynamic-config-center-starter` | Business-side dynamic configuration center starter |
 | `egon-cola-component-rule-engine-starter` | Rule engine starter |
 | `egon-cola-component-access-guard-starter` | Method access governance starter |
 | `egon-cola-component-method-extension-starter` | Method extension starter |
@@ -47,7 +46,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common` | Aggregator POM, not a runtime JAR |
 | `*-admin` | Standalone services that should be deployed as applications, not used as business dependencies |
 | `*-test` | Component samples and verification modules that should not enter the business runtime |
-| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | Component aggregator POMs, not business dependency entry points |
+| `egon-cola-component-dynamic-thread-pool` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | Component aggregator POMs, not business dependency entry points |
 | `egon-cola-platform-*` | Enterprise infrastructure platforms belong to `egon-cola-platforms` and are versioned outside the Components BOM |
 
 ## Complete Usage Example
@@ -128,7 +127,7 @@ Child modules declare only the artifact:
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+    <artifactId>egon-cola-component-transactional-outbox-starter</artifactId>
 </dependency>
 ```
 
@@ -138,7 +137,7 @@ Child modules declare only the artifact:
 
 1. The BOM manages only runtime entry points that consumers actually need, preventing accidental business dependencies on admin, test, or aggregator modules.
 2. Stable common contracts are exported through `common-core`; trace core is exported through `common-trace`, and Spring applications use the dedicated Trace Starter.
-3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. DDC includes its typed management API in Starter, Gateway exposes its Provider Runtime separately, and the bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
+3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. The bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
 4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
 
 ### Implementation Details

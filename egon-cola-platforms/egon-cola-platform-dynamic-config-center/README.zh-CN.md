@@ -4,8 +4,11 @@
 
 ## 范围
 
-`egon-cola-component-dynamic-config-center` 提供包含类型化管理 API 的动态配置 SDK、
+`egon-cola-platform-dynamic-config-center` 提供包含类型化管理 API 的动态配置 SDK、
 可独立部署的 Admin 应用，以及面向 RPC Provider 和内部 Gateway 的 Redis 服务注册中心。
+
+Maven 模块统一使用 `egon-cola-platform-*` 前缀。为保持源码和配置兼容，现有 Java 包名
+以及 `egon.cola.component.ddc` 配置命名空间保持不变。
 
 V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 Admin 进程可以服务
 同一个控制面：发布准备通过 PostgreSQL 行锁、版本条件更新和持久化发布任务完成，
@@ -34,9 +37,9 @@ Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL
 
 | 模块 | 职责 |
 |---|---|
-| `egon-cola-component-dynamic-config-center-starter` | 唯一业务侧 SDK：`@DdcValue`、类型化管理 API、启动同步、刷新、ACK、CONFIG_CLIENT 租约、HMAC 和服务注册契约 |
-| `egon-cola-component-dynamic-config-center-admin` | 独立 REST Admin、PostgreSQL 持久化、Redis 缓存与租约、注册中心 API 和同步发布状态机 |
-| `egon-cola-component-dynamic-config-center-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
+| `egon-cola-platform-dynamic-config-center-starter` | 唯一业务侧 SDK：`@DdcValue`、类型化管理 API、启动同步、刷新、ACK、CONFIG_CLIENT 租约、HMAC 和服务注册契约 |
+| `egon-cola-platform-dynamic-config-center-admin` | 独立 REST Admin、PostgreSQL 持久化、Redis 缓存与租约、注册中心 API 和同步发布状态机 |
+| `egon-cola-platform-dynamic-config-center-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
 
 业务应用只引入 Starter。`egon.cola.component.ddc.enabled=true` 会显式启动
 `CONFIG_CLIENT` 注册、默认值上报、配置拉取、Redis 订阅、心跳和停机下线闭环；
@@ -49,7 +52,8 @@ Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+    <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+    <version>5.3.2</version>
 </dependency>
 ```
 
@@ -302,21 +306,21 @@ egon:
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test \
+  -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-test \
   -am clean test
 
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter \
+  -pl :egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-starter \
   -am package -DskipTests
 ```
 
 ## 明确边界
 
 完整的 DDC + Gateway + RPC 启动顺序、凭据、租约演练和运行证据见
-[开发联调 Runbook](../../egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.zh-CN.md)。
+[开发联调 Runbook](../egon-cola-platform-gateway/docs/developer-integration.zh-CN.md)。
 
 - 不支持 Raft、Leader 选举、共识日志或成员协议；
-- 多 Admin 运行要求共享 PostgreSQL 和 Redis；组件不负责提供数据库或 Redis HA；
+- 多 Admin 运行要求共享 PostgreSQL 和 Redis；平台不负责提供数据库或 Redis HA；
 - 不提供分布式共识或通用分布式锁服务；
 - 不内嵌 Redis，不使用数据库持久化服务注册信息；
 - 不包含 UI、账号系统、RBAC 或 MySQL 兼容目标；

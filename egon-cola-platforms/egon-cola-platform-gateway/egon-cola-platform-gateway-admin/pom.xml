@@ -27,7 +27,7 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+            <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>

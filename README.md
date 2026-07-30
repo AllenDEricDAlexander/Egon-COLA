@@ -47,7 +47,6 @@ Egon-COLA
 │   ├── egon-cola-components-bom/
 │   ├── egon-cola-component-common/
 │   │   └── egon-cola-component-common-id-starter/
-│   ├── egon-cola-component-dynamic-config-center/
 │   ├── egon-cola-component-dynamic-thread-pool/
 │   ├── egon-cola-component-rpc/
 │   ├── egon-cola-component-rule-engine/
@@ -56,6 +55,7 @@ Egon-COLA
 │   ├── egon-cola-component-transactional-outbox/
 │   └── egon-cola-component-bytecode/
 ├── egon-cola-platforms/      # Enterprise infrastructure platforms and their shared parent POM
+│   ├── egon-cola-platform-dynamic-config-center/
 │   └── egon-cola-platform-gateway/
 ├── scripts/                  # Local verification, version updates, and release notes
 ├── mvnw
@@ -83,10 +83,10 @@ cd Egon-COLA
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-To verify only the components reactor:
+To verify the RPC component together with its required DDC platform client:
 
 ```bash
-./mvnw -V --no-transfer-progress -f egon-cola-components/pom.xml test
+./mvnw -B -ntp -pl :egon-cola-component-rpc-test-suite -am test
 ```
 
 ## Local Verification
@@ -238,7 +238,6 @@ verification command.
 | Component | Main entry point | Scope |
 |---|---|---|
 | [Common](egon-cola-components/egon-cola-component-common/README.md) | `egon-cola-component-common-*`, [`...-id-starter`](egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md) | Common contracts plus Snowflake ID generation and Spring Boot auto-configuration. |
-| [Dynamic Config Center](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | `...-management-client`, `...-starter` | Dynamic configuration, Redis leases/service registry, synchronous publish, and standalone Admin. |
 | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | `...-starter` | Executor registration, snapshots, Redis changes, resizing, virtual-thread limits, and MDC propagation. |
 | [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | `...-starter` | Protobuf/gRPC Provider and Consumer contracts, DDC registration/discovery, deadlines, and Gateway channels. |
 | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine/README.md) | `...-starter` | Java rule chains, singleton chains of responsibility, rule trees, traces, limits, and listeners. |
@@ -257,6 +256,7 @@ BOM does not export platform artifacts.
 
 | Platform | Main entry point | Scope |
 |---|---|---|
+| [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md) | Starter, Admin | Dynamic configuration, Redis leases/service registry, synchronous publish, and standalone control plane. |
 | [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.md) | Engine, Admin, Starter, Provider Runtime | HTTP/RPC data plane, rule releases, provider discovery, security, observability, and deployment assets. |
 
 Recommended structure for runtime starter-style components:
@@ -351,44 +351,14 @@ Strong CI uses `.github/workflows/ci_java_compatibility.yaml`, runs on a GitHub-
 
 ## Release
 
-Egon-COLA uses the Sonatype Central Portal release process. Before publishing, verify the release profile locally:
+Egon-COLA uses the Sonatype Central Portal release process. DDC is a platform, while the
+RPC component consumes its client SDK and Gateway consumes RPC. Maven topologically sorts
+that graph in the root reactor, so fresh versions must be verified and published from the
+root rather than as separate Components and Platforms releases.
 
 ```bash
-./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -Prelease -DskipTests verify
-
-./mvnw -B -ntp -f egon-cola-platforms/pom.xml \
-  -Prelease -DskipTests verify
-
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-  -Prelease -DskipTests verify
-```
-
-Publish the parent POMs:
-
-```bash
-./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
-```
-
-Publish components:
-
-```bash
-./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
-```
-
-Publish platforms after the Components artifacts are available:
-
-```bash
-./mvnw -B -ntp -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
-```
-
-Publish archetypes:
-
-```bash
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -Prelease -DskipTests verify
+./mvnw -B -ntp -Prelease -DskipTests clean deploy
 ```
 
 See [scripts/maven-deploy.md](scripts/maven-deploy.md) for detailed steps.
@@ -405,7 +375,7 @@ See [scripts/maven-deploy.md](scripts/maven-deploy.md) for detailed steps.
 | [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md) | Multi-component project structure conventions. |
 | [egon-cola-components/egon-cola-components-bom/README.md](egon-cola-components/egon-cola-components-bom/README.md) | Public component versions and export boundaries. |
 | [egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md](egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md) | Snowflake ID configuration, guarantees, and operational boundaries. |
-| [egon-cola-components/egon-cola-component-dynamic-config-center/README.md](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | Dynamic configuration, leases, registry, and publish protocol. |
+| [egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md) | Dynamic configuration, leases, registry, and publish protocol. |
 | [egon-cola-components/egon-cola-component-rpc/README.md](egon-cola-components/egon-cola-component-rpc/README.md) | Protobuf/gRPC Provider and Consumer contract. |
 | [egon-cola-platforms/egon-cola-platform-gateway/README.md](egon-cola-platforms/egon-cola-platform-gateway/README.md) | HTTP/RPC Gateway platform and deployment links. |
 | [egon-cola-components/egon-cola-component-transactional-outbox/README.md](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | PostgreSQL/JDBC transactional outbox usage and guarantees. |

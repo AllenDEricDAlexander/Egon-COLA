@@ -49,7 +49,7 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-dynamic-config-center-admin</artifactId>
+            <artifactId>egon-cola-platform-dynamic-config-center-admin</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

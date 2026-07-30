@@ -47,7 +47,6 @@ Egon-COLA
 │   ├── egon-cola-components-bom/
 │   ├── egon-cola-component-common/
 │   │   └── egon-cola-component-common-id-starter/
-│   ├── egon-cola-component-dynamic-config-center/
 │   ├── egon-cola-component-dynamic-thread-pool/
 │   ├── egon-cola-component-rpc/
 │   ├── egon-cola-component-rule-engine/
@@ -56,6 +55,7 @@ Egon-COLA
 │   ├── egon-cola-component-transactional-outbox/
 │   └── egon-cola-component-bytecode/
 ├── egon-cola-platforms/      # 企业级基础设施平台及其统一父 POM
+│   ├── egon-cola-platform-dynamic-config-center/
 │   └── egon-cola-platform-gateway/
 ├── scripts/                  # 本地验证、版本调整、发布说明
 ├── mvnw
@@ -83,10 +83,10 @@ cd Egon-COLA
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-只验证 components 工程：
+验证 RPC 组件及其所需的 DDC 平台客户端：
 
 ```bash
-./mvnw -V --no-transfer-progress -f egon-cola-components/pom.xml test
+./mvnw -B -ntp -pl :egon-cola-component-rpc-test-suite -am test
 ```
 
 ## 本地验证
@@ -236,7 +236,6 @@ Components BOM。各组件 README 是对应 API、配置、边界和专项验证
 | 组件 | 主要入口 | 范围 |
 |---|---|---|
 | [Common](egon-cola-components/egon-cola-component-common/README.md) | `egon-cola-component-common-*`、[`...-id-starter`](egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.zh-CN.md) | 通用契约、Snowflake ID 生成及 Spring Boot 自动配置。 |
-| [Dynamic Config Center](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | `...-management-client`、`...-starter` | 动态配置、Redis 租约/服务注册、同步发布和独立 Admin。 |
 | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | `...-starter` | 执行器注册、快照、Redis 变更、扩缩容、虚拟线程并发限制和 MDC 传播。 |
 | [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | `...-starter` | Protobuf/gRPC Provider、Consumer、DDC 注册发现、Deadline 和 Gateway 通道。 |
 | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine/README.md) | `...-starter` | Java 规则链、单例责任链、规则树、trace、限制和监听器。 |
@@ -254,6 +253,7 @@ components，但 Components BOM 不反向导出 platform Artifact。
 
 | 平台 | 主要入口 | 范围 |
 |---|---|---|
+| [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md) | Starter、Admin | 动态配置、Redis 租约/服务注册、同步发布和独立控制面。 |
 | [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.md) | Engine、Admin、Starter、Provider Runtime | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
 
 运行时 starter-style 组件推荐结构：
@@ -347,44 +347,13 @@ Strong CI 使用 `.github/workflows/ci_java_compatibility.yaml`，由 GitHub-hos
 
 ## 发布
 
-Egon-COLA 使用 Sonatype Central Portal 发布流程。发布前建议先本地验证 release profile：
+Egon-COLA 使用 Sonatype Central Portal 发布流程。DDC 归属 platform，RPC 组件消费其
+客户端 SDK，而 Gateway 又消费 RPC。Maven 可以在根 Reactor 中按依赖拓扑排序，因此
+新版本必须从根 Reactor 统一验证和发布，不能再把 Components 与 Platforms 分开发布。
 
 ```bash
-./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -Prelease -DskipTests verify
-
-./mvnw -B -ntp -f egon-cola-platforms/pom.xml \
-  -Prelease -DskipTests verify
-
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-  -Prelease -DskipTests verify
-```
-
-发布父 POM：
-
-```bash
-./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
-```
-
-发布 components：
-
-```bash
-./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
-```
-
-Components Artifact 可解析后再发布 platforms：
-
-```bash
-./mvnw -B -ntp -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
-```
-
-发布 archetypes：
-
-```bash
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -Prelease -DskipTests verify
+./mvnw -B -ntp -Prelease -DskipTests clean deploy
 ```
 
 详细步骤见 [scripts/maven-deploy.md](scripts/maven-deploy.md)。
@@ -401,7 +370,7 @@ Components Artifact 可解析后再发布 platforms：
 | [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md) | 多组件工程结构规范。 |
 | [egon-cola-components/egon-cola-components-bom/README.md](egon-cola-components/egon-cola-components-bom/README.md) | 公共组件版本和导出边界。 |
 | [egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.zh-CN.md](egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.zh-CN.md) | Snowflake ID 配置、保证范围和运行边界。 |
-| [egon-cola-components/egon-cola-component-dynamic-config-center/README.md](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | 动态配置、租约、注册发现和发布协议。 |
+| [egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md) | 动态配置、租约、注册发现和发布协议。 |
 | [egon-cola-components/egon-cola-component-rpc/README.md](egon-cola-components/egon-cola-component-rpc/README.md) | Protobuf/gRPC Provider 与 Consumer 契约。 |
 | [egon-cola-platforms/egon-cola-platform-gateway/README.md](egon-cola-platforms/egon-cola-platform-gateway/README.md) | HTTP/RPC Gateway 平台和部署入口。 |
 | [egon-cola-components/egon-cola-component-transactional-outbox/README.md](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | PostgreSQL/JDBC 事务消息使用方式与保证。 |

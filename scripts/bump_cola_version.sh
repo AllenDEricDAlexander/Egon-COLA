@@ -69,48 +69,63 @@ verify_archetype_pom_versions() {
     done < <(find_archetype_template_poms)
 }
 
-backup_project_poms() {
-    local pom_file
+backup_versioned_files() {
+    local source_file
     local relative_path
     local backup_file
 
     BACKUP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/egon-cola-version-backup.XXXXXX")"
 
-    while IFS= read -r -d '' pom_file; do
-        relative_path="${pom_file#"$PROJECT_ROOT"/}"
+    while IFS= read -r -d '' source_file; do
+        relative_path="${source_file#"$PROJECT_ROOT"/}"
         backup_file="$BACKUP_DIR/original/$relative_path"
         mkdir -p "$(dirname "$backup_file")"
-        cp -p "$pom_file" "$backup_file"
-    done < <(find_project_poms)
+        cp -p "$source_file" "$backup_file"
+    done < <(
+        find_project_poms
+        find_readme_files
+        find_ddc_readme_files
+    )
 
     ROLLBACK_REQUIRED=true
 }
 
-restore_project_poms() {
+restore_versioned_files() {
     local backup_file
     local relative_path
+    local restore_failed=false
 
     while IFS= read -r -d '' backup_file; do
         relative_path="${backup_file#"$BACKUP_DIR/original"/}"
-        cp -p "$backup_file" "$PROJECT_ROOT/$relative_path"
-    done < <(find "$BACKUP_DIR/original" -type f -name pom.xml -print0)
+        if ! cp -p "$backup_file" "$PROJECT_ROOT/$relative_path"; then
+            printf 'Error: failed to restore %s.\n' "$relative_path" >&2
+            restore_failed=true
+        fi
+    done < <(find "$BACKUP_DIR/original" -type f -print0)
+
+    [[ "$restore_failed" == false ]]
 }
 
 cleanup_on_exit() {
     local status=$?
+    local preserve_backup=false
 
     trap - EXIT HUP INT TERM
 
     if [[ "$ROLLBACK_REQUIRED" == true ]]; then
-        if restore_project_poms; then
-            printf 'Restored POM files after the version update failed.\n' >&2
+        if restore_versioned_files; then
+            printf 'Restored version-managed files after the version update failed.\n' >&2
         else
-            printf 'Error: failed to restore one or more POM files from %s.\n' "$BACKUP_DIR" >&2
+            printf 'Error: failed to restore one or more version-managed files. Original backup preserved at %s.\n' \
+                "$BACKUP_DIR" >&2
             status=1
+            preserve_backup=true
         fi
     fi
 
-    [[ -z "$BACKUP_DIR" || ! -d "$BACKUP_DIR" ]] || rm -rf "$BACKUP_DIR"
+    if [[ "$preserve_backup" == false && -n "$BACKUP_DIR" && -d "$BACKUP_DIR" ]]; then
+        rm -rf "$BACKUP_DIR"
+    fi
     exit "$status"
 }
 
@@ -145,6 +160,15 @@ find_readme_files() {
     local readme
 
     for readme in "$PROJECT_ROOT/README.md" "$PROJECT_ROOT/README.zh-CN.md"; do
+        [[ -f "$readme" ]] && printf '%s\0' "$readme"
+    done
+}
+
+find_ddc_readme_files() {
+    local ddc_dir="$PROJECT_ROOT/egon-cola-platforms/egon-cola-platform-dynamic-config-center"
+    local readme
+
+    for readme in "$ddc_dir/README.md" "$ddc_dir/README.zh-CN.md"; do
         [[ -f "$readme" ]] && printf '%s\0' "$readme"
     done
 }
@@ -184,6 +208,46 @@ verify_readme_archetype_versions() {
     done < <(find_readme_files)
 }
 
+update_ddc_readme_versions() {
+    local current_version="$1"
+    local new_version="$2"
+    local current_tag="<version>$current_version</version>"
+    local new_tag="<version>$new_version</version>"
+    local escaped_current_tag
+    local readme_file
+    local temp_file
+    local updated_count=0
+
+    escaped_current_tag="$(escape_sed_pattern "$current_tag")"
+
+    while IFS= read -r -d '' readme_file; do
+        if ! grep -Fq -- "$current_tag" "$readme_file"; then
+            continue
+        fi
+
+        temp_file="$BACKUP_DIR/updated/${readme_file#"$PROJECT_ROOT"/}"
+        mkdir -p "$(dirname "$temp_file")"
+        sed "s|$escaped_current_tag|$new_tag|g" "$readme_file" > "$temp_file"
+        cp "$temp_file" "$readme_file"
+        updated_count=$((updated_count + 1))
+    done < <(find_ddc_readme_files)
+
+    printf 'Updated %d DDC README file(s).\n' "$updated_count"
+}
+
+verify_ddc_readme_versions() {
+    local expected_version="$1"
+    local expected_tag="<version>$expected_version</version>"
+    local readme_file
+
+    while IFS= read -r -d '' readme_file; do
+        grep -Fq -- 'egon-cola-platform-dynamic-config-center-starter' "$readme_file" || \
+            die "$readme_file does not document the DDC platform Starter"
+        grep -Fq -- "$expected_tag" "$readme_file" || \
+            die "$readme_file does not document DDC version $expected_version"
+    done < <(find_ddc_readme_files)
+}
+
 if [[ $# -ne 1 ]]; then
     usage >&2
     exit 2
@@ -202,6 +266,7 @@ readonly CURRENT_VERSION
     die 'could not determine the current project version'
 
 verify_archetype_pom_versions "$CURRENT_VERSION"
+verify_ddc_readme_versions "$CURRENT_VERSION"
 
 if [[ "$CURRENT_VERSION" == "$NEW_VERSION" ]]; then
     printf 'Egon-COLA is already at version %s. No changes made.\n' "$NEW_VERSION"
@@ -212,7 +277,7 @@ trap cleanup_on_exit EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
-backup_project_poms
+backup_versioned_files
 
 printf 'Updating Egon-COLA from %s to %s...\n' "$CURRENT_VERSION" "$NEW_VERSION"
 
@@ -229,6 +294,8 @@ update_archetype_pom_versions "$CURRENT_VERSION" "$NEW_VERSION"
 verify_archetype_pom_versions "$NEW_VERSION"
 update_readme_archetype_versions "$NEW_VERSION"
 verify_readme_archetype_versions "$NEW_VERSION"
+update_ddc_readme_versions "$CURRENT_VERSION" "$NEW_VERSION"
+verify_ddc_readme_versions "$NEW_VERSION"
 
 UPDATED_VERSION="$(read_project_version)"
 readonly UPDATED_VERSION

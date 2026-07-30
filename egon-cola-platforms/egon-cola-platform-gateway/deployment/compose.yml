@@ -68,7 +68,7 @@ services:
 
   ddc-admin:
     build:
-      context: ../../../egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin
+      context: ../../egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin
     environment:
       SERVER_PORT: 18080
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_ddc

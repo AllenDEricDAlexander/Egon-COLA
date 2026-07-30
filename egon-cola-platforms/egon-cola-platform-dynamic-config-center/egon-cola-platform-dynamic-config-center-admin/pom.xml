@@ -6,21 +6,22 @@
 
     <parent>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-dynamic-config-center</artifactId>
+        <artifactId>egon-cola-platform-dynamic-config-center</artifactId>
         <version>5.3.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>egon-cola-component-dynamic-config-center-admin</artifactId>
+    <artifactId>egon-cola-platform-dynamic-config-center-admin</artifactId>
     <packaging>jar</packaging>
-    <name>egon-cola-component-dynamic-config-center-admin</name>
+    <name>egon-cola-platform-dynamic-config-center-admin</name>
     <description>Admin service for Egon COLA dynamic config center.</description>
 
-    <properties>
-        <testcontainers.version>1.21.4</testcontainers.version>
-    </properties>
-
     <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-core</artifactId>
@@ -31,8 +32,7 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
-            <version>${project.version}</version>
+            <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
@@ -95,13 +95,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
-        <finalName>egon-cola-component-dynamic-config-center-admin</finalName>
+        <finalName>egon-cola-platform-dynamic-config-center-admin</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

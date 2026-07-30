@@ -4,9 +4,13 @@
 
 ## Scope
 
-`egon-cola-component-dynamic-config-center` provides a dynamic-configuration SDK
+`egon-cola-platform-dynamic-config-center` provides a dynamic-configuration SDK
 with typed management APIs, a standalone Admin application, and a Redis-backed
 service registry for RPC Providers and internal Gateways.
+
+The Maven modules use the `egon-cola-platform-*` prefix. Existing Java packages and
+the `egon.cola.component.ddc` configuration namespace remain unchanged for source and
+configuration compatibility.
 
 V1 supports one logical control plane backed by shared PostgreSQL and Redis. Multiple
 Admin processes can serve the same control plane: publish preparation uses PostgreSQL
@@ -39,9 +43,9 @@ ACK, operation, and configuration-client projection data.
 
 | Module | Responsibility |
 |---|---|
-| `egon-cola-component-dynamic-config-center-starter` | The only consumer SDK: `@DdcValue`, typed management APIs, startup synchronization, refresh, ACK, CONFIG_CLIENT leases, HMAC, and service-registry contracts |
-| `egon-cola-component-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
-| `egon-cola-component-dynamic-config-center-test` | Starter-only sample and black-box consumer verification; it has no Admin dependency |
+| `egon-cola-platform-dynamic-config-center-starter` | The only consumer SDK: `@DdcValue`, typed management APIs, startup synchronization, refresh, ACK, CONFIG_CLIENT leases, HMAC, and service-registry contracts |
+| `egon-cola-platform-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
+| `egon-cola-platform-dynamic-config-center-test` | Starter-only sample and black-box consumer verification; it has no Admin dependency |
 
 Applications add only the Starter. `egon.cola.component.ddc.enabled=true` explicitly
 starts the `CONFIG_CLIENT` registration, default-report, pull, Redis subscription,
@@ -56,7 +60,8 @@ VIP, or load balancer; Starter does not discover Admin processes.
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+    <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+    <version>5.3.2</version>
 </dependency>
 ```
 
@@ -322,21 +327,21 @@ Admin Redis connection. It is not the production storage topology.
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test \
+  -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-test \
   -am clean test
 
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin,egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter \
+  -pl :egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-starter \
   -am package -DskipTests
 ```
 
 ## Explicit Boundaries
 
 For the complete DDC + Gateway + RPC startup order, credentials, lease drills, and
-runtime evidence, use the [developer integration runbook](../../egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.md).
+runtime evidence, use the [developer integration runbook](../egon-cola-platform-gateway/docs/developer-integration.md).
 
 - no Raft, leader election, consensus log, or membership protocol;
-- multi-Admin operation requires shared PostgreSQL and Redis; the component does not provision database or Redis HA;
+- multi-Admin operation requires shared PostgreSQL and Redis; the platform does not provision database or Redis HA;
 - no distributed consensus or general-purpose distributed lock service;
 - no embedded Redis and no database-backed service registry;
 - no UI, account system, RBAC, or MySQL compatibility target;

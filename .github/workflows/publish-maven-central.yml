@@ -10,13 +10,6 @@ on:
         type: choice
         options:
           - all
-          - egon-cola-aggregation-parent
-          - egon-cola-components-parent
-          - egon-cola-platforms-parent
-          - egon-cola-archetypes-parent
-          - egon-cola-components
-          - egon-cola-platforms
-          - egon-cola-archetypes
 
       skip_tests:
         description: "Skip tests"
@@ -145,52 +138,13 @@ jobs:
 
           TARGET="${{ inputs.target }}"
 
-          case "${TARGET}" in
-            all)
-              MAVEN_PROJECT_ARGS=""
-              VERSION_PROJECT_ARGS="-N"
-              ;;
+          if [[ "${TARGET}" != "all" ]]; then
+            echo "Unsupported publish target: ${TARGET}"
+            exit 1
+          fi
 
-            egon-cola-aggregation-parent)
-              MAVEN_PROJECT_ARGS="-N"
-              VERSION_PROJECT_ARGS="-N"
-              ;;
-
-            egon-cola-components-parent)
-              MAVEN_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
-              VERSION_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
-              ;;
-
-            egon-cola-platforms-parent)
-              MAVEN_PROJECT_ARGS="-N -f egon-cola-platforms/pom.xml"
-              VERSION_PROJECT_ARGS="-N -f egon-cola-platforms/pom.xml"
-              ;;
-
-            egon-cola-archetypes-parent)
-              MAVEN_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
-              VERSION_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
-              ;;
-
-            egon-cola-components)
-              MAVEN_PROJECT_ARGS="-f egon-cola-components/pom.xml"
-              VERSION_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
-              ;;
-
-            egon-cola-platforms)
-              MAVEN_PROJECT_ARGS="-f egon-cola-platforms/pom.xml"
-              VERSION_PROJECT_ARGS="-N -f egon-cola-platforms/pom.xml"
-              ;;
-
-            egon-cola-archetypes)
-              MAVEN_PROJECT_ARGS="-f egon-cola-archetypes/pom.xml"
-              VERSION_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
-              ;;
-
-            *)
-              echo "Unsupported publish target: ${TARGET}"
-              exit 1
-              ;;
-          esac
+          MAVEN_PROJECT_ARGS=""
+          VERSION_PROJECT_ARGS="-N"
 
           echo "maven_project_args=${MAVEN_PROJECT_ARGS}" >> "${GITHUB_OUTPUT}"
           echo "version_project_args=${VERSION_PROJECT_ARGS}" >> "${GITHUB_OUTPUT}"

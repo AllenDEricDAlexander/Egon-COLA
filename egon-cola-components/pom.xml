@@ -56,7 +56,6 @@
         <module>egon-cola-components-bom</module>
         <module>egon-cola-component-common</module>
         <module>egon-cola-component-dynamic-thread-pool</module>
-        <module>egon-cola-component-dynamic-config-center</module>
         <module>egon-cola-component-rpc</module>
         <module>egon-cola-component-rule-engine</module>
         <module>egon-cola-component-access-guard-starter</module>

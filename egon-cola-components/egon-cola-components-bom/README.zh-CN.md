@@ -6,7 +6,7 @@
 
 `egon-cola-components-bom` 是 Egon COLA 组件体系的 Maven BOM。它不提供运行时代码，只负责统一管理 `egon-cola-components` 下可被业务应用直接依赖的组件版本，避免业务工程在每个组件依赖上重复写版本号。
 
-BOM 当前导出的是稳定消费入口：common core 与工具模块、包含类型化管理 API 的 DDC Starter、各业务组件的 starter，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。platform、admin、test、聚合 POM 不作为业务依赖入口导出。
+BOM 当前导出的是稳定消费入口：common core 与工具模块、各业务组件的 starter，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。platform、admin、test、聚合 POM 不作为业务依赖入口导出。
 
 ## 功能说明
 
@@ -25,7 +25,6 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 | `egon-cola-component-common-crypto` | 摘要、HMAC、Base64、Hex |
 | `egon-cola-component-common-mask` | 数据脱敏 |
 | `egon-cola-component-dynamic-thread-pool-starter` | 动态线程池业务侧 starter |
-| `egon-cola-component-dynamic-config-center-starter` | 动态配置中心业务侧 starter |
 | `egon-cola-component-rule-engine-starter` | 规则引擎 starter |
 | `egon-cola-component-access-guard-starter` | 方法访问治理 starter |
 | `egon-cola-component-method-extension-starter` | 方法扩展 starter |
@@ -44,7 +43,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 | `egon-cola-component-common` | 聚合 POM，不是运行时 Jar |
 | `*-admin` | 独立服务，应按应用部署，不作为业务依赖 |
 | `*-test` | 组件样例和验证模块，不应进入业务运行时 |
-| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | 组件聚合 POM，不是业务依赖入口 |
+| `egon-cola-component-dynamic-thread-pool` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | 组件聚合 POM，不是业务依赖入口 |
 | `egon-cola-platform-*` | 企业级基础设施平台归属 `egon-cola-platforms`，不由 Components BOM 管理版本 |
 
 ## 完整的使用示例
@@ -125,7 +124,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-dynamic-config-center-starter</artifactId>
+    <artifactId>egon-cola-component-transactional-outbox-starter</artifactId>
 </dependency>
 ```
 
@@ -135,7 +134,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 
 1. BOM 只管理消费者真正需要的运行时入口，避免 admin/test/聚合模块被业务误依赖。
 2. 稳定 common 契约通过 `common-core` 导出；Trace 核心通过 `common-trace` 导出，Spring 场景通过独立 Trace Starter 接入。
-3. 常规业务组件只导出 starter，保持 Spring Boot 自动配置入口明确；DDC 的类型化管理 API 合并在 Starter 中，Gateway 单独导出 Provider Runtime，字节码组件按公开的 API、桥接、运行时、Agent 和 starter 边界分别管理版本。
+3. 常规业务组件只导出 starter，保持 Spring Boot 自动配置入口明确；字节码组件按公开的 API、桥接、运行时、Agent 和 starter 边界分别管理版本。
 4. 版本统一跟随 BOM 自身版本，降低组件组合使用时的版本漂移风险。
 
 ### 实现细节

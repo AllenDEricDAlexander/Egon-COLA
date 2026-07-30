@@ -8,7 +8,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class DdcComponentBoundaryTest {
+class DdcPlatformBoundaryTest {
 
     @Test
     void starterDoesNotDependOnAdminOrTestPackages() throws Exception {
@@ -30,7 +30,7 @@ class DdcComponentBoundaryTest {
                 .toString();
 
         assertThat(location)
-                .contains("egon-cola-component-dynamic-config-center-starter")
+                .contains("egon-cola-platform-dynamic-config-center-starter")
                 .doesNotContain("management-client");
     }
 }
