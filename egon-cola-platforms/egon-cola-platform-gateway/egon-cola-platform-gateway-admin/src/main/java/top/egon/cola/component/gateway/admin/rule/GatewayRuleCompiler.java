@@ -55,6 +55,9 @@ public final class GatewayRuleCompiler {
 
     private final GatewayRuleCanonicalizer canonicalizer;
 
+    private final GatewayRouteTransportPolicyValidator transportValidator =
+            new GatewayRouteTransportPolicyValidator();
+
     public GatewayRuleCompiler(GatewayRuleCanonicalizer canonicalizer) {
         this.canonicalizer = canonicalizer;
     }
@@ -144,6 +147,29 @@ public final class GatewayRuleCompiler {
                         GatewayRuntimeOperation::operationId,
                         Function.identity()
                 ));
+        content.routes().forEach(route -> {
+            GatewayRuntimeOperation operation = operations.get(
+                    route.operationId()
+            );
+            if (operation == null) {
+                return;
+            }
+            List<GatewayRouteTransportPolicyValidator.ValidationIssue> issues =
+                    transportValidator.validate(route, operation);
+            if (!issues.isEmpty()) {
+                GatewayRouteTransportPolicyValidator.ValidationIssue issue =
+                        issues.getFirst();
+                throw invalid(
+                        issue.code()
+                                + " at routes."
+                                + route.routeId()
+                                + "."
+                                + issue.path()
+                                + ": "
+                                + issue.message()
+                );
+            }
+        });
         policies.forEach(policy -> {
             if (!SUPPORTED_POLICIES.contains(policy.type())) {
                 throw invalid("unsupported policy type " + policy.type());

@@ -14,7 +14,11 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayA
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
+import top.egon.cola.component.gateway.admin.rule.GatewayRouteDraftMapper;
+import top.egon.cola.component.gateway.admin.rule.GatewayRouteTransportPolicyValidator;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
+import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
+import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -40,6 +44,12 @@ public class GatewayDraftService {
 
     private final GatewayRuleCanonicalizer canonicalizer =
             new GatewayRuleCanonicalizer();
+
+    private final GatewayRouteDraftMapper routeMapper =
+            new GatewayRouteDraftMapper();
+
+    private final GatewayRouteTransportPolicyValidator transportValidator =
+            new GatewayRouteTransportPolicyValidator();
 
     private final Clock clock;
 
@@ -88,10 +98,21 @@ public class GatewayDraftService {
             RouteMutation command,
             AdminActor actor,
             RequestAuditContext request) {
+        Map<String, Object> canonicalContent = routeMapper.canonicalize(
+                command.content()
+        );
+        RouteMutation canonicalCommand = new RouteMutation(
+                command.operationId(),
+                canonicalContent,
+                command.enabled(),
+                command.expectedRevision(),
+                command.idempotencyKey(),
+                command.changeReason()
+        );
         String digest = digest(Map.of(
                 "action", "PUT_ROUTE",
                 "routeId", routeId,
-                "command", command
+                "command", canonicalCommand
         ));
         MutationResult replay = replay(
                 gatewayGroupId,
@@ -108,7 +129,7 @@ public class GatewayDraftService {
                                         + command.operationId()
                                         + " was not found"
                         ));
-        if (isPublic(command.content())
+        if (isPublic(canonicalContent)
                 && !operation.externalAccessible()) {
             throw new IllegalArgumentException(
                     "PUBLIC route references an internal-only operation"
@@ -123,7 +144,7 @@ public class GatewayDraftService {
                 gatewayGroupId,
                 required(routeId, "routeId"),
                 command.operationId(),
-                Map.copyOf(command.content()),
+                canonicalContent,
                 command.enabled(),
                 now,
                 actor.actorId()
@@ -277,8 +298,26 @@ public class GatewayDraftService {
         List<ValidationIssue> errors = new ArrayList<>();
         List<ValidationIssue> warnings = new ArrayList<>();
         for (GatewayDraftStore.RouteDraft route : draft.routes()) {
+            Map<String, Object> canonicalContent = routeMapper.canonicalize(
+                    route.content()
+            );
             GatewayCatalogStore.OperationRecord operation =
                     catalog.findOperation(route.operationId()).orElse(null);
+            GatewayProtocol protocol = operation == null
+                    ? null
+                    : GatewayProtocol.valueOf(operation.protocol());
+            GatewayResponseMode responseMode = operation == null
+                    ? null
+                    : operationResponseMode(operation.id());
+            transportValidator.validate(
+                    canonicalContent,
+                    protocol,
+                    responseMode
+            ).forEach(issue -> errors.add(new ValidationIssue(
+                    "routes." + route.routeId() + "." + issue.path(),
+                    issue.code(),
+                    issue.message()
+            )));
             if (operation == null) {
                 errors.add(new ValidationIssue(
                         "routes." + route.routeId() + ".operationId",
@@ -307,7 +346,7 @@ public class GatewayDraftService {
                         "deprecated operation remains routable"
                 ));
             }
-            if (isPublic(route.content())
+            if (isPublic(canonicalContent)
                     && !operation.externalAccessible()) {
                 errors.add(new ValidationIssue(
                         "routes." + route.routeId() + ".accessZones",
@@ -455,6 +494,18 @@ public class GatewayDraftService {
                 values.spliterator(),
                 false
         ).anyMatch(value -> "PUBLIC".equalsIgnoreCase(value.toString()));
+    }
+
+    private GatewayResponseMode operationResponseMode(String operationId) {
+        return catalog.loadDefinitions(operationId)
+                .stream()
+                .findFirst()
+                .map(definition -> definition.attributes().getOrDefault(
+                        "responseMode",
+                        "TRANSPARENT"
+                ).toString())
+                .map(GatewayResponseMode::valueOf)
+                .orElse(GatewayResponseMode.TRANSPARENT);
     }
 
     private String digest(Object value) {
