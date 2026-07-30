@@ -669,7 +669,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 normalized.headers(),
                 trace,
                 attemptTrace,
-                security
+                security,
+                provider.serviceKey().protocolType()
+                        == ProviderProtocolType.HTTP
         );
         Mono<GatewayOutboundHttpResponse> invocation;
         if (provider.serviceKey().protocolType()
@@ -775,7 +777,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
             Map<String, List<String>> source,
             GatewayTraceContext trace,
             GatewayTelemetry.AttemptTrace attemptTrace,
-            GatewayHttpSecurityProcessor.Outcome security) {
+            GatewayHttpSecurityProcessor.Outcome security,
+            boolean forwardHttpCredential) {
         Map<String, List<String>> sanitized =
                 identitySanitizer.sanitizeHttp(
                 source,
@@ -783,6 +786,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 security.trustedIdentity()
         );
         Map<String, List<String>> result = new LinkedHashMap<>(sanitized);
+        restoreOriginalBearer(result, security, forwardHttpCredential);
         result.put(
                 "traceparent",
                 List.of(attemptTrace.traceparent())
@@ -798,6 +802,20 @@ public final class DefaultGatewayHttpDataPlaneHandler
             );
         }
         return Map.copyOf(result);
+    }
+
+    static void restoreOriginalBearer(
+            Map<String, List<String>> sanitized,
+            GatewayHttpSecurityProcessor.Outcome security,
+            boolean forwardHttpCredential
+    ) {
+        if (forwardHttpCredential && security.forwardingCredential() != null) {
+            sanitized.put(
+                    "authorization",
+                    List.of("Bearer "
+                            + security.forwardingCredential().tokenReference())
+            );
+        }
     }
 
     private GatewayOutboundHttpResponse error(

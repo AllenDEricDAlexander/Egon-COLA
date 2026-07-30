@@ -13,7 +13,8 @@ public record GatewaySecurityPolicy(
         AuthorizationDecisionMode decisionMode,
         String identityMapperId,
         Duration providerTimeout,
-        SecurityFailureMode failureMode
+        SecurityFailureMode failureMode,
+        CredentialForwardingMode credentialForwardingMode
 ) {
 
     public GatewaySecurityPolicy {
@@ -41,6 +42,10 @@ public record GatewaySecurityPolicy(
                 "providerTimeout"
         );
         failureMode = Objects.requireNonNull(failureMode, "failureMode");
+        credentialForwardingMode = Objects.requireNonNull(
+                credentialForwardingMode,
+                "credentialForwardingMode"
+        );
         if (providerTimeout.isNegative()
                 || providerTimeout.isZero()
                 || providerTimeout.compareTo(Duration.ofSeconds(30)) > 0) {
@@ -66,6 +71,34 @@ public record GatewaySecurityPolicy(
                     "ANY_ALLOW needs authorization providers"
             );
         }
+    }
+
+    /**
+     * Compatibility constructor for rules compiled before credential forwarding existed.
+     */
+    public GatewaySecurityPolicy(
+            String policyId,
+            AuthenticationMode authenticationMode,
+            List<String> credentialExtractorIds,
+            List<String> authenticationProviderIds,
+            List<String> authorizationProviderIds,
+            AuthorizationDecisionMode decisionMode,
+            String identityMapperId,
+            Duration providerTimeout,
+            SecurityFailureMode failureMode
+    ) {
+        this(
+                policyId,
+                authenticationMode,
+                credentialExtractorIds,
+                authenticationProviderIds,
+                authorizationProviderIds,
+                decisionMode,
+                identityMapperId,
+                providerTimeout,
+                failureMode,
+                CredentialForwardingMode.NONE
+        );
     }
 
     private static List<String> identifiers(

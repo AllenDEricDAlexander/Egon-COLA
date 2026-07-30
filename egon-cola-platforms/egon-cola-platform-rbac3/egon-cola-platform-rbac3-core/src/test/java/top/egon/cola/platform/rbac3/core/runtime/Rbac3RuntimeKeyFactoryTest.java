@@ -16,6 +16,8 @@ class Rbac3RuntimeKeyFactoryTest {
         assertEquals("rbac3:{42}:snapshot:99:3", keys.snapshot("42", "99", 3));
         assertEquals("rbac3:{42}:fence:session:99", keys.sessionFence("42", "99"));
         assertEquals("rbac3:{42}:operation-mapping:finance:5", keys.operationMapping("42", "finance", 5));
+        assertEquals("rbac3:{42}:operation-mapping:def-7:operation-9:5",
+                keys.operationMapping("42", "def-7", "operation-9", 5));
         assertEquals("rbac3:{42}:key-ring", keys.keyRing("42"));
     }
 

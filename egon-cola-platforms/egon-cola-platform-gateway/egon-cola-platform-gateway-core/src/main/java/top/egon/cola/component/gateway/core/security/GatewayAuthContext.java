@@ -5,6 +5,7 @@ import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.core.context.GatewayPrincipal;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -22,7 +23,8 @@ public record GatewayAuthContext(
         String traceId,
         String requestId,
         Instant deadline,
-        String releaseId
+        String releaseId,
+        Map<String, String> attributes
 ) {
 
     public GatewayAuthContext {
@@ -43,6 +45,10 @@ public record GatewayAuthContext(
         requestId = required(requestId, "requestId");
         deadline = Objects.requireNonNull(deadline, "deadline");
         releaseId = required(releaseId, "releaseId");
+        attributes = Map.copyOf(Objects.requireNonNull(attributes, "attributes"));
+        if (attributes.size() > 16) {
+            throw new IllegalArgumentException("attribute count exceeds 16");
+        }
     }
 
     public GatewayAuthContext withPrincipal(
@@ -61,8 +67,34 @@ public record GatewayAuthContext(
                 traceId,
                 requestId,
                 deadline,
-                releaseId
+                releaseId,
+                attributes
         );
+    }
+
+    /**
+     * Compatibility constructor for callers that do not supply trusted route metadata.
+     */
+    public GatewayAuthContext(
+            AccessZone accessZone,
+            GatewayProtocol protocol,
+            String operationId,
+            String routeId,
+            String policyId,
+            String requestTarget,
+            String method,
+            Set<String> credentialTypes,
+            GatewayPrincipal principal,
+            String remoteAddress,
+            String traceId,
+            String requestId,
+            Instant deadline,
+            String releaseId
+    ) {
+        this(accessZone, protocol, operationId, routeId, policyId,
+                requestTarget, method, credentialTypes, principal,
+                remoteAddress, traceId, requestId, deadline, releaseId,
+                Map.of());
     }
 
     private static String required(String value, String field) {

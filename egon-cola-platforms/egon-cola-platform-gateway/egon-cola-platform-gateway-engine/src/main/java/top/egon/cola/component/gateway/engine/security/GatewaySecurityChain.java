@@ -10,6 +10,7 @@ import top.egon.cola.component.gateway.core.security.AuthenticationMode;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecision;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecisionMode;
 import top.egon.cola.component.gateway.core.security.CredentialExtractionResult;
+import top.egon.cola.component.gateway.core.security.CredentialForwardingMode;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
@@ -61,7 +62,8 @@ public final class GatewaySecurityChain {
                             GatewayPrincipal.anonymous()
                     ),
                     policy,
-                    Set.of()
+                    Set.of(),
+                    null
             )
                     : extract(exchange, policy)
                     .flatMap(extraction -> authenticate(
@@ -134,7 +136,8 @@ public final class GatewaySecurityChain {
                             GatewayPrincipal.anonymous()
                     ),
                     policy,
-                    extraction.fieldsToRemove()
+                    extraction.fieldsToRemove(),
+                    null
             );
         }
         Set<String> types = extraction.credentials().stream()
@@ -154,7 +157,8 @@ public final class GatewaySecurityChain {
                 initialContext.traceId(),
                 initialContext.requestId(),
                 initialContext.deadline(),
-                initialContext.releaseId()
+                initialContext.releaseId(),
+                initialContext.attributes()
         );
         return Flux.fromIterable(extraction.credentials())
                 .concatMap(credential -> Flux.fromIterable(
@@ -176,8 +180,22 @@ public final class GatewaySecurityChain {
                         .flatMap(principal -> authorizeAndMap(
                                 credentialContext.withPrincipal(principal),
                                 policy,
-                                extraction.fieldsToRemove()
+                                extraction.fieldsToRemove(),
+                                forwardable(policy, extraction.credentials())
                         )));
+    }
+
+    private GatewayCredential forwardable(
+            GatewaySecurityPolicy policy,
+            List<GatewayCredential> credentials
+    ) {
+        if (policy.credentialForwardingMode()
+                != CredentialForwardingMode.ORIGINAL_BEARER
+                || credentials.size() != 1
+                || !"bearer".equalsIgnoreCase(credentials.getFirst().type())) {
+            return null;
+        }
+        return credentials.getFirst();
     }
 
     private Mono<GatewayPrincipal> authenticatedPrincipal(
@@ -216,7 +234,8 @@ public final class GatewaySecurityChain {
     private Mono<GatewaySecurityResult> authorizeAndMap(
             GatewayAuthContext context,
             GatewaySecurityPolicy policy,
-            Set<String> removals) {
+            Set<String> removals,
+            GatewayCredential forwardingCredential) {
         return Flux.fromIterable(policy.authorizationProviderIds())
                 .concatMap(id -> Mono.from(
                         capabilities.authorization(id).authorize(context)
@@ -230,7 +249,8 @@ public final class GatewaySecurityChain {
                             .map(identity -> new GatewaySecurityResult(
                                     context,
                                     identity,
-                                    removals
+                                    removals,
+                                    forwardingCredential
                             ));
                 });
     }

@@ -4,6 +4,7 @@ import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.core.http.NormalizedHttpRequest;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
+import top.egon.cola.component.gateway.core.security.GatewayCredential;
 import top.egon.cola.component.gateway.core.security.TrustedIdentity;
 
 import java.util.Objects;
@@ -20,7 +21,8 @@ public interface GatewayHttpSecurityProcessor {
 
     record Outcome(
             TrustedIdentity trustedIdentity,
-            Set<String> fieldsToRemove
+            Set<String> fieldsToRemove,
+            GatewayCredential forwardingCredential
     ) {
 
         public Outcome {
@@ -34,8 +36,15 @@ public interface GatewayHttpSecurityProcessor {
             ));
         }
 
+        public Outcome(
+                TrustedIdentity trustedIdentity,
+                Set<String> fieldsToRemove
+        ) {
+            this(trustedIdentity, fieldsToRemove, null);
+        }
+
         public static Outcome anonymous() {
-            return new Outcome(TrustedIdentity.empty(), Set.of());
+            return new Outcome(TrustedIdentity.empty(), Set.of(), null);
         }
     }
 }

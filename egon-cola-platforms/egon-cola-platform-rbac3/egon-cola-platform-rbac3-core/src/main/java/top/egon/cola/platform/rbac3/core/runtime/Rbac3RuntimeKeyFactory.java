@@ -42,6 +42,22 @@ public final class Rbac3RuntimeKeyFactory {
                 + segment(applicationCode, "applicationCode") + ':' + mappingVersion;
     }
 
+    public String operationMapping(
+            String tenantId,
+            String definitionSetId,
+            String gatewayOperationId,
+            long publishedVersion
+    ) {
+        if (publishedVersion < 0) {
+            throw new IllegalArgumentException(
+                    "publishedVersion must not be negative");
+        }
+        return prefix(tenantId) + "operation-mapping:"
+                + segment(definitionSetId, "definitionSetId") + ':'
+                + segment(gatewayOperationId, "gatewayOperationId") + ':'
+                + publishedVersion;
+    }
+
     public String keyRing(String tenantId) {
         return prefix(tenantId) + "key-ring";
     }
