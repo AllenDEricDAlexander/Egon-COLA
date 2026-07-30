@@ -17,8 +17,31 @@ public record GatewayRuntimeRoute(
         String pathPattern,
         Set<AccessZone> accessZones,
         int priority,
-        boolean enabled
+        boolean enabled,
+        GatewayRouteTransportPolicy transportPolicy
 ) {
+
+    public GatewayRuntimeRoute(
+            String routeId,
+            String operationId,
+            String host,
+            String httpMethod,
+            String pathPattern,
+            Set<AccessZone> accessZones,
+            int priority,
+            boolean enabled) {
+        this(
+                routeId,
+                operationId,
+                host,
+                httpMethod,
+                pathPattern,
+                accessZones,
+                priority,
+                enabled,
+                null
+        );
+    }
 
     public GatewayRuntimeRoute {
         routeId = required(routeId, "routeId");

@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.core.route;
 
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
+import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
 
 import java.util.Locale;
 import java.util.Map;
@@ -21,8 +22,41 @@ public record RuntimeHttpRoute(
         Set<String> policyRefs,
         int priority,
         GatewayResponseMode responseMode,
-        Map<String, String> metadata
+        Map<String, String> metadata,
+        EffectiveGatewayTransportPolicy transportPolicy
 ) {
+
+    public RuntimeHttpRoute(
+            String routeId,
+            String operationId,
+            String gatewayGroupId,
+            Set<AccessZone> accessZones,
+            String hostPattern,
+            Set<String> methods,
+            String pathPattern,
+            boolean externalAccessible,
+            ProviderServiceKey upstream,
+            Set<String> policyRefs,
+            int priority,
+            GatewayResponseMode responseMode,
+            Map<String, String> metadata) {
+        this(
+                routeId,
+                operationId,
+                gatewayGroupId,
+                accessZones,
+                hostPattern,
+                methods,
+                pathPattern,
+                externalAccessible,
+                upstream,
+                policyRefs,
+                priority,
+                responseMode,
+                metadata,
+                EffectiveGatewayTransportPolicy.legacy()
+        );
+    }
 
     public RuntimeHttpRoute {
         routeId = required(routeId, "routeId");
@@ -50,6 +84,10 @@ public record RuntimeHttpRoute(
         policyRefs = Set.copyOf(Objects.requireNonNull(policyRefs, "policyRefs"));
         responseMode = Objects.requireNonNull(responseMode, "responseMode");
         metadata = Map.copyOf(Objects.requireNonNull(metadata, "metadata"));
+        transportPolicy = Objects.requireNonNull(
+                transportPolicy,
+                "transportPolicy"
+        );
         if (accessZones.contains(AccessZone.PUBLIC) && !externalAccessible) {
             throw new IllegalArgumentException(
                     "PUBLIC route must be externally accessible"
