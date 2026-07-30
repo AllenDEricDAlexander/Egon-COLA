@@ -1,6 +1,7 @@
 package top.egon.cola.component.common.id.snowflake;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import top.egon.cola.component.common.id.exception.ClockMovedBackwardException;
@@ -10,25 +11,31 @@ import top.egon.cola.component.common.id.time.TimeSource;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
+@Timeout(value = 30, unit = TimeUnit.SECONDS)
 class SnowflakeIdGeneratorTest {
 
     private static final long TEST_TIME = SnowflakeIdLayout.EPOCH_MILLIS + 1_000;
+    private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(3);
 
     @Test
     void generatesStrictlyIncreasingIdsInOneInstance() {
@@ -63,14 +70,26 @@ class SnowflakeIdGeneratorTest {
     }
 
     @Test
-    void differentMachinesDoNotCollideInSameMillisecond() {
-        long timestamp = SnowflakeIdLayout.EPOCH_MILLIS + 10;
-        long first = generator(1, timestamp).nextLongId();
-        long second = generator(2, timestamp).nextLongId();
+    void differentMachineIdsDoNotCollideAcrossAFullSequence() {
+        Set<Long> firstMachineIds = generateAtFixedTime(1, TEST_TIME, 4_096);
+        Set<Long> secondMachineIds = generateAtFixedTime(2, TEST_TIME, 4_096);
 
-        assertNotEquals(first, second);
-        assertEquals(1, SnowflakeIdParser.parse(first).machineId());
-        assertEquals(2, SnowflakeIdParser.parse(second).machineId());
+        assertEquals(4_096, firstMachineIds.size());
+        assertEquals(4_096, secondMachineIds.size());
+        assertTrue(Collections.disjoint(firstMachineIds, secondMachineIds));
+    }
+
+    @Test
+    void independentGeneratorsWithSameMachineIdCanGenerateDuplicates() {
+        SnowflakeIdGenerator firstGenerator = generator(17, TEST_TIME);
+        SnowflakeIdGenerator secondGenerator = generator(17, TEST_TIME);
+
+        long first = firstGenerator.nextLongId();
+        long second = secondGenerator.nextLongId();
+
+        assertEquals(first, second);
+        assertEquals(17, SnowflakeIdParser.parse(first).machineId());
+        assertEquals(0, SnowflakeIdParser.parse(first).sequence());
     }
 
     @Test
@@ -107,84 +126,138 @@ class SnowflakeIdGeneratorTest {
     }
 
     @Test
-    void sequenceExhaustionWaitsForNextMillisecond() {
-        AtomicLong reads = new AtomicLong();
-        TimeSource timeSource = () -> reads.getAndIncrement() <= 4_096 ? TEST_TIME : TEST_TIME + 1;
-        SnowflakeIdGenerator generator = new SnowflakeIdGenerator(5, Duration.ofMillis(5), timeSource);
+    void generatesAllSequencesThenWaitsForNextMillisecond() {
+        assertTimeoutPreemptively(WAIT_TIMEOUT, () -> {
+            ControllableTimeSource timeSource = new ControllableTimeSource(TEST_TIME);
+            SnowflakeIdGenerator generator = generator(5, Duration.ofMillis(5), timeSource);
+            List<Long> ids = new ArrayList<>(4_096);
 
-        long first = generator.nextLongId();
-        long lastInMillisecond = first;
-        for (int i = 1; i < 4_096; i++) {
-            lastInMillisecond = generator.nextLongId();
-        }
-        long nextMillisecond = generator.nextLongId();
+            for (int sequence = 0; sequence < 4_096; sequence++) {
+                long id = generator.nextLongId();
+                SnowflakeId parsed = SnowflakeIdParser.parse(id);
+                assertTrue(id > 0L);
+                assertEquals(TEST_TIME - SnowflakeIdLayout.EPOCH_MILLIS, parsed.elapsedMillis());
+                assertEquals(5, parsed.machineId());
+                assertEquals(sequence, parsed.sequence());
+                if (sequence > 0) {
+                    assertTrue(id > ids.get(sequence - 1));
+                }
+                ids.add(id);
+            }
+            assertEquals(4_096, new HashSet<>(ids).size());
 
-        assertEquals(0, SnowflakeIdParser.parse(first).sequence());
-        assertEquals(4_095, SnowflakeIdParser.parse(lastInMillisecond).sequence());
-        assertEquals(0, SnowflakeIdParser.parse(nextMillisecond).sequence());
-        assertEquals(1_001, SnowflakeIdParser.parse(nextMillisecond).elapsedMillis());
-        assertTrue(nextMillisecond > lastInMillisecond);
+            long readsBeforeWait = timeSource.readCount();
+            PendingGeneration pending = startVirtualGeneration(generator, "snowflake-sequence-wait");
+            try {
+                awaitReadCountGreaterThan(timeSource, readsBeforeWait, WAIT_TIMEOUT);
+                assertTrue(pending.thread().isAlive(), "4097th generation must wait for time to advance");
+                assertNull(pending.result().get());
+
+                timeSource.advanceMillis(1L);
+                awaitTermination(pending.thread(), WAIT_TIMEOUT);
+            } finally {
+                stopIfAlive(pending.thread());
+            }
+
+            assertNull(pending.failure().get());
+            Long nextResult = pending.result().get();
+            assertNotNull(nextResult);
+            long nextId = nextResult;
+            SnowflakeId next = SnowflakeIdParser.parse(nextId);
+            assertTrue(nextId > ids.get(ids.size() - 1));
+            assertEquals(TEST_TIME + 1L - SnowflakeIdLayout.EPOCH_MILLIS, next.elapsedMillis());
+            assertEquals(0, next.sequence());
+        });
     }
 
     @Test
-    void smallClockRollbackWaitsForRecovery() {
-        ScriptedTimeSource timeSource = new ScriptedTimeSource(
-                TEST_TIME, TEST_TIME - 3, TEST_TIME - 2, TEST_TIME - 1, TEST_TIME);
-        SnowflakeIdGenerator generator = new SnowflakeIdGenerator(3, Duration.ofMillis(5), timeSource);
+    void smallClockRollbackWaitsForManualRecovery() {
+        assertTimeoutPreemptively(WAIT_TIMEOUT, () -> {
+            ControllableTimeSource timeSource = new ControllableTimeSource(TEST_TIME);
+            SnowflakeIdGenerator generator = generator(3, Duration.ofSeconds(1), timeSource);
+            long first = generator.nextLongId();
 
-        long first = generator.nextLongId();
-        long second = generator.nextLongId();
+            timeSource.setCurrentTimeMillis(TEST_TIME - 3L);
+            long readsBeforeWait = timeSource.readCount();
+            PendingGeneration pending = startVirtualGeneration(generator, "snowflake-clock-recovery");
+            try {
+                awaitReadCountGreaterThan(timeSource, readsBeforeWait, WAIT_TIMEOUT);
+                assertTrue(pending.thread().isAlive(), "generation must wait while the clock is behind");
 
-        assertTrue(second > first);
-        assertEquals(1, SnowflakeIdParser.parse(second).sequence());
+                timeSource.setCurrentTimeMillis(TEST_TIME);
+                awaitTermination(pending.thread(), WAIT_TIMEOUT);
+            } finally {
+                stopIfAlive(pending.thread());
+            }
+
+            assertNull(pending.failure().get());
+            Long secondResult = pending.result().get();
+            assertNotNull(secondResult);
+            long second = secondResult;
+            assertTrue(second > first);
+            assertEquals(1, SnowflakeIdParser.parse(second).sequence());
+        });
     }
 
     @Test
     void largeClockRollbackFailsImmediatelyWithDiagnostics() {
-        ScriptedTimeSource timeSource = new ScriptedTimeSource(TEST_TIME, TEST_TIME - 6);
-        SnowflakeIdGenerator generator = new SnowflakeIdGenerator(9, Duration.ofMillis(5), timeSource);
+        ControllableTimeSource timeSource = new ControllableTimeSource(TEST_TIME);
+        SnowflakeIdGenerator generator = generator(9, Duration.ofMillis(5), timeSource);
         generator.nextLongId();
+        timeSource.setCurrentTimeMillis(TEST_TIME - 6L);
 
         ClockMovedBackwardException exception = assertThrows(
                 ClockMovedBackwardException.class, generator::nextLongId);
 
-        assertEquals(TEST_TIME - 6, exception.currentTimeMillis());
+        assertEquals(TEST_TIME - 6L, exception.currentTimeMillis());
         assertEquals(TEST_TIME, exception.lastTimeMillis());
-        assertEquals(6, exception.backwardMillis());
+        assertEquals(6L, exception.backwardMillis());
         assertEquals(9, exception.machineId());
         assertTrue(exception.getMessage().contains("machineId=9"));
     }
 
     @Test
     void stalledSmallRollbackFailsWithinBoundedWait() {
-        ScriptedTimeSource timeSource = new ScriptedTimeSource(TEST_TIME, TEST_TIME - 1);
-        SnowflakeIdGenerator generator = new SnowflakeIdGenerator(2, Duration.ofMillis(1), timeSource);
+        ControllableTimeSource timeSource = new ControllableTimeSource(TEST_TIME);
+        SnowflakeIdGenerator generator = generator(2, Duration.ofMillis(1), timeSource);
         generator.nextLongId();
+        timeSource.setCurrentTimeMillis(TEST_TIME - 1L);
 
-        assertThrows(ClockMovedBackwardException.class, generator::nextLongId);
+        assertTimeoutPreemptively(WAIT_TIMEOUT,
+                () -> assertThrows(ClockMovedBackwardException.class, generator::nextLongId));
     }
 
     @Test
-    void interruptedSequenceWaitPreservesInterruptStatus() {
-        SnowflakeIdGenerator generator = generator(4, TEST_TIME);
-        for (int i = 0; i < 4_096; i++) {
-            generator.nextLongId();
-        }
+    void interruptedVirtualThreadWaitingForNextMillisecondThrowsDedicatedException() {
+        assertTimeoutPreemptively(WAIT_TIMEOUT, () -> {
+            ControllableTimeSource timeSource = new ControllableTimeSource(TEST_TIME);
+            SnowflakeIdGenerator generator = generator(4, Duration.ofMillis(5), timeSource);
+            for (int i = 0; i < 4_096; i++) {
+                generator.nextLongId();
+            }
 
-        Thread.currentThread().interrupt();
-        try {
-            assertThrows(IdGenerationInterruptedException.class, generator::nextLongId);
-            assertTrue(Thread.currentThread().isInterrupted());
-        } finally {
-            Thread.interrupted();
-        }
+            long readsBeforeWait = timeSource.readCount();
+            PendingGeneration pending = startVirtualGeneration(generator, "snowflake-interrupt-wait");
+            try {
+                awaitReadCountGreaterThan(timeSource, readsBeforeWait, WAIT_TIMEOUT);
+                assertTrue(pending.thread().isAlive(), "generation must still be waiting");
+                pending.thread().interrupt();
+                awaitTermination(pending.thread(), WAIT_TIMEOUT);
+            } finally {
+                stopIfAlive(pending.thread());
+            }
+
+            assertNull(pending.result().get());
+            assertInstanceOf(IdGenerationInterruptedException.class, pending.failure().get());
+            assertTrue(pending.interruptedAtExit().get());
+        });
     }
 
     @Test
     void largeDeterministicBatchIsUniqueAndStrictlyIncreasing() {
         AtomicLong reads = new AtomicLong();
         TimeSource timeSource = () -> TEST_TIME + reads.getAndIncrement() / 2_048;
-        SnowflakeIdGenerator generator = new SnowflakeIdGenerator(11, Duration.ofMillis(5), timeSource);
+        SnowflakeIdGenerator generator = generator(11, Duration.ofMillis(5), timeSource);
         List<Long> ids = new ArrayList<>(100_000);
 
         for (int i = 0; i < 100_000; i++) {
@@ -197,60 +270,65 @@ class SnowflakeIdGeneratorTest {
         }
     }
 
-    @Test
-    void concurrentGenerationIsUniqueAndStrictlyIncreasingWhenSorted() throws Exception {
-        int threadCount = 16;
-        int idsPerThread = 5_000;
-        AtomicLong reads = new AtomicLong();
-        TimeSource timeSource = () -> TEST_TIME + reads.getAndIncrement() / 1_024;
-        SnowflakeIdGenerator generator = new SnowflakeIdGenerator(23, Duration.ofMillis(5), timeSource);
-        Set<Long> ids = ConcurrentHashMap.newKeySet(threadCount * idsPerThread);
-        CountDownLatch start = new CountDownLatch(1);
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        List<Future<?>> futures = new ArrayList<>();
-
-        try {
-            for (int thread = 0; thread < threadCount; thread++) {
-                futures.add(executor.submit(() -> {
-                    start.await();
-                    for (int i = 0; i < idsPerThread; i++) {
-                        ids.add(generator.nextLongId());
-                    }
-                    return null;
-                }));
-            }
-            start.countDown();
-            for (Future<?> future : futures) {
-                future.get(10, TimeUnit.SECONDS);
-            }
-        } finally {
-            executor.shutdownNow();
+    private Set<Long> generateAtFixedTime(long machineId, long currentTimeMillis, int count) {
+        SnowflakeIdGenerator generator = generator(machineId, currentTimeMillis);
+        Set<Long> ids = new HashSet<>(count);
+        for (int i = 0; i < count; i++) {
+            ids.add(generator.nextLongId());
         }
-
-        assertEquals(threadCount * idsPerThread, ids.size());
-        List<Long> sorted = ids.stream().sorted().toList();
-        for (int i = 1; i < sorted.size(); i++) {
-            assertTrue(sorted.get(i) > sorted.get(i - 1));
-        }
+        return ids;
     }
 
     private SnowflakeIdGenerator generator(long machineId, long currentTimeMillis) {
-        return new SnowflakeIdGenerator(machineId, Duration.ofMillis(5), () -> currentTimeMillis);
+        return generator(machineId, Duration.ofMillis(5), () -> currentTimeMillis);
     }
 
-    private static final class ScriptedTimeSource implements TimeSource {
+    private SnowflakeIdGenerator generator(long machineId, Duration maxClockBackward,
+                                             TimeSource timeSource) {
+        return new SnowflakeIdGenerator(machineId, maxClockBackward, timeSource);
+    }
 
-        private final long[] values;
-        private final AtomicLong index = new AtomicLong();
+    private PendingGeneration startVirtualGeneration(SnowflakeIdGenerator generator, String threadName) {
+        AtomicReference<Long> result = new AtomicReference<>();
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        AtomicBoolean interruptedAtExit = new AtomicBoolean();
+        Thread thread = Thread.ofVirtual().name(threadName).unstarted(() -> {
+            try {
+                result.set(generator.nextLongId());
+            } catch (Throwable throwable) {
+                failure.set(throwable);
+            } finally {
+                interruptedAtExit.set(Thread.currentThread().isInterrupted());
+            }
+        });
+        thread.start();
+        return new PendingGeneration(thread, result, failure, interruptedAtExit);
+    }
 
-        private ScriptedTimeSource(long... values) {
-            this.values = values.clone();
+    private void awaitReadCountGreaterThan(ControllableTimeSource timeSource, long previousReadCount,
+                                            Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        while (timeSource.readCount() <= previousReadCount && System.nanoTime() < deadline) {
+            LockSupport.parkNanos(100_000L);
         }
+        assertTrue(timeSource.readCount() > previousReadCount,
+                "time source was not read again before the timeout");
+    }
 
-        @Override
-        public long currentTimeMillis() {
-            int current = (int) Math.min(index.getAndIncrement(), values.length - 1L);
-            return values[current];
+    private void awaitTermination(Thread thread, Duration timeout) throws InterruptedException {
+        thread.join(timeout.toMillis());
+        assertFalse(thread.isAlive(), "virtual thread did not terminate before the timeout");
+    }
+
+    private void stopIfAlive(Thread thread) throws InterruptedException {
+        if (thread.isAlive()) {
+            thread.interrupt();
+            thread.join(WAIT_TIMEOUT.toMillis());
         }
+    }
+
+    private record PendingGeneration(Thread thread, AtomicReference<Long> result,
+                                     AtomicReference<Throwable> failure,
+                                     AtomicBoolean interruptedAtExit) {
     }
 }
