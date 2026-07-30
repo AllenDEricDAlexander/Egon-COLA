@@ -158,10 +158,49 @@ export type OperationDetail = {
   definitions: OperationDefinition[]
 }
 
+export type GatewayRouteProfile = 'DEFAULT' | 'OPENAI_HTTP'
+
+export type GatewayTransportProtocol = 'HTTP' | 'WEBSOCKET'
+
+export type GatewayRequestBodyMode = 'AGGREGATED' | 'STREAMING'
+
+export type GatewayTransportResponseMode =
+  | 'STANDARD'
+  | 'AUTO_STREAM'
+  | 'SSE'
+  | 'BINARY_STREAM'
+
+export type GatewayRouteTransportPolicy = {
+  profile?: GatewayRouteProfile
+  transportProtocol?: GatewayTransportProtocol
+  requestBodyMode?: GatewayRequestBodyMode
+  responseMode?: GatewayTransportResponseMode
+  maxRequestBodyBytes?: number
+  connectTimeoutMs?: number
+  responseHeaderTimeoutMs?: number
+  streamIdleTimeoutMs?: number
+  totalTimeoutMs?: number
+  websocketIdleTimeoutMs?: number
+  websocketMaxFrameBytes?: number
+  bodyLogEnabled?: boolean
+  retryEnabled?: boolean
+  [key: string]: unknown
+}
+
+export type GatewayRouteContent = {
+  host?: string
+  httpMethod?: string
+  pathPattern?: string
+  accessZones?: string[]
+  priority?: number
+  transportPolicy?: GatewayRouteTransportPolicy
+  [key: string]: unknown
+}
+
 export type DraftRoute = {
   routeId: string
   operationId: string
-  routeContent: Record<string, any>
+  routeContent: GatewayRouteContent
   enabled: boolean
 }
 
