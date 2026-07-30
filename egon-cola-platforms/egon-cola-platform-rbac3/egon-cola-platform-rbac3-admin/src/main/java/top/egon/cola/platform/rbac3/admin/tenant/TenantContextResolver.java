@@ -24,7 +24,8 @@ public final class TenantContextResolver {
         if (targetTenant == null) {
             return new TenantContext(principal.tenantId(), principal.tenantId(), false);
         }
-        boolean platformRoute = request.getRequestURI().startsWith("/api/v1/platform/");
+        boolean platformRoute = request.getRequestURI().startsWith("/api/rbac3/v1/platform/")
+                || request.getRequestURI().startsWith("/api/v1/platform/");
         if (!platformRoute || !principal.platformAdministrator()
                 || !principal.hasPermission(TARGET_PERMISSION)) {
             throw new TenantContextResolutionException(403, "PERMISSION_DENIED");
