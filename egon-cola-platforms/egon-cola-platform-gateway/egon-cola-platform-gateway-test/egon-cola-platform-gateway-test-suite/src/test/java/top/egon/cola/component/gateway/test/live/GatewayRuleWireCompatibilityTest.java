@@ -5,12 +5,17 @@ import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCompiler;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
+import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
+import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
+import top.egon.cola.component.gateway.contract.rule.GatewayRouteTransportPolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
+import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
+import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleJsonCodec;
 
 import java.nio.charset.StandardCharsets;
@@ -18,6 +23,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class GatewayRuleWireCompatibilityTest {
 
@@ -102,6 +110,97 @@ class GatewayRuleWireCompatibilityTest {
                 release.snapshotJson().getBytes(StandardCharsets.UTF_8)
         );
 
+        assertNull(engineSnapshot.content().routes().getFirst()
+                .transportPolicy());
+        assertEquals(
+                "443d1078f434d8123527e7b62a166614cf61a47217854e83143bdf013cb32d73",
+                engineSnapshot.ruleContentSha256()
+        );
+        engineCodec.verify(engineSnapshot);
+    }
+
+    @Test
+    void engineVerifiesAdminSnapshotWithOpenAiTransportPolicy() {
+        GatewayRouteTransportPolicy transport =
+                new GatewayRouteTransportPolicy(
+                        GatewayRouteProfile.OPENAI_HTTP,
+                        GatewayTransportProtocol.HTTP,
+                        GatewayRequestBodyMode.STREAMING,
+                        GatewayTransportResponseMode.SSE,
+                        536_870_912L,
+                        10_000L,
+                        120_000L,
+                        90_000L,
+                        1_800_000L,
+                        null,
+                        null,
+                        false,
+                        false
+                );
+        GatewayRuntimeOperation operation = new GatewayRuntimeOperation(
+                "openai-responses",
+                "POST /v1/responses",
+                GatewayProtocol.HTTP,
+                "POST /v1/responses",
+                "{}",
+                "{}",
+                List.of(),
+                true,
+                new GatewayProviderServiceRef(
+                        "test",
+                        "gateway-live",
+                        GatewayProtocol.HTTP,
+                        "openai-compatible-provider",
+                        "default",
+                        "v1",
+                        "https"
+                ),
+                "TRANSPARENT",
+                Set.of(),
+                Map.of("framework", "webflux"),
+                false
+        );
+        GatewayRuntimeRoute route = new GatewayRuntimeRoute(
+                "openai-responses",
+                operation.operationId(),
+                "api.openai.example",
+                "POST",
+                "/v1/responses",
+                Set.of(AccessZone.PUBLIC),
+                0,
+                true,
+                transport
+        );
+        GatewayRuleContent content = new GatewayRuleContent(
+                "group-openai",
+                "default",
+                "test",
+                "gateway-live",
+                List.of(operation),
+                List.of(route),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        var release = new GatewayRuleCompiler(
+                new GatewayRuleCanonicalizer()
+        ).compile(
+                "release-openai",
+                Instant.parse("2026-07-30T00:00:00Z"),
+                content
+        );
+        GatewayRuleJsonCodec engineCodec = new GatewayRuleJsonCodec();
+        var engineSnapshot = engineCodec.readSnapshot(
+                release.snapshotJson().getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertEquals(
+                transport,
+                engineSnapshot.content().routes().getFirst()
+                        .transportPolicy()
+        );
         engineCodec.verify(engineSnapshot);
     }
 }

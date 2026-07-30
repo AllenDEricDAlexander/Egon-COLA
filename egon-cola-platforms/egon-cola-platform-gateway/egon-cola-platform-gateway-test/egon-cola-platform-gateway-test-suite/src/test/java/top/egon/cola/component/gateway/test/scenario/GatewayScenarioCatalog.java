@@ -21,6 +21,32 @@ public final class GatewayScenarioCatalog {
                 scenario("trace-kafka", "Engine", "Kafka and Admin"),
                 scenario("failure-recovery", "Fault Injector", "Topology"),
                 scenario(
+                        "openai-http-json",
+                        "HTTP Client",
+                        "Streaming Provider"
+                ),
+                scenario("sse-stream", "HTTP Client", "SSE Provider"),
+                scenario(
+                        "multipart-upload",
+                        "HTTP Client",
+                        "Upload Provider"
+                ),
+                scenario(
+                        "binary-stream",
+                        "HTTP Client",
+                        "Binary Provider"
+                ),
+                scenario(
+                        "realtime-websocket",
+                        "WebSocket Client",
+                        "Realtime Provider"
+                ),
+                scenario(
+                        "transport-lifecycle-safety",
+                        "Client Cancellation and Timeout",
+                        "Upstream and Retry Guard"
+                ),
+                scenario(
                         "rpc-slot-invariant",
                         "Zero One Two Slots",
                         "RPC Consumer"
