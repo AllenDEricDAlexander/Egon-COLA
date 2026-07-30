@@ -15,8 +15,27 @@ public record HttpUpstreamRequest(
         String pathAndQuery,
         Map<String, List<String>> headers,
         Flux<DataBuffer> body,
-        Duration timeout
+        Duration timeout,
+        boolean replayable
 ) {
+
+    public HttpUpstreamRequest(
+            ProviderInstance provider,
+            String method,
+            String pathAndQuery,
+            Map<String, List<String>> headers,
+            Flux<DataBuffer> body,
+            Duration timeout) {
+        this(
+                provider,
+                method,
+                pathAndQuery,
+                headers,
+                body,
+                timeout,
+                false
+        );
+    }
 
     public HttpUpstreamRequest {
         provider = Objects.requireNonNull(provider, "provider");

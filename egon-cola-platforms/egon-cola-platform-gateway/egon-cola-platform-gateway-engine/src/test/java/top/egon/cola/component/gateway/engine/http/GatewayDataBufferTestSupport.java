@@ -28,7 +28,7 @@ public final class GatewayDataBufferTestSupport {
         return BUFFER_FACTORY.wrap(value);
     }
 
-    static Flux<DataBuffer> body(String... chunks) {
+    public static Flux<DataBuffer> body(String... chunks) {
         return Flux.fromArray(chunks)
                 .map(GatewayDataBufferTestSupport::buffer);
     }
@@ -38,7 +38,7 @@ public final class GatewayDataBufferTestSupport {
                 .map(GatewayDataBufferTestSupport::buffer);
     }
 
-    static byte[] join(Flux<DataBuffer> body, int maxBytes) {
+    public static byte[] join(Flux<DataBuffer> body, int maxBytes) {
         DataBuffer joined = DataBufferUtils.join(body, maxBytes).block();
         if (joined == null) {
             return new byte[0];

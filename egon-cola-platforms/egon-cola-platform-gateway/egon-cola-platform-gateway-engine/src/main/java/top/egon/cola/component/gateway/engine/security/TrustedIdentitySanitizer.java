@@ -43,13 +43,25 @@ public final class TrustedIdentitySanitizer {
             Map<String, List<String>> source,
             Set<String> fieldsToRemove,
             TrustedIdentity identity) {
+        return sanitizeHttp(source, fieldsToRemove, identity, false);
+    }
+
+    public Map<String, List<String>> sanitizeHttp(
+            Map<String, List<String>> source,
+            Set<String> fieldsToRemove,
+            TrustedIdentity identity,
+            boolean authorizationForwardingAllowed) {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(identity, "identity");
         Set<String> removals = normalized(fieldsToRemove);
         Map<String, List<String>> result = new LinkedHashMap<>();
         source.forEach((name, values) -> {
             String lower = normalizedName(name);
-            if (safeInbound(lower, removals)) {
+            if (safeInbound(
+                    lower,
+                    removals,
+                    authorizationForwardingAllowed
+            )) {
                 result.put(lower, List.copyOf(values));
             }
         });
@@ -80,7 +92,7 @@ public final class TrustedIdentitySanitizer {
         Map<String, String> result = new LinkedHashMap<>();
         source.forEach((name, value) -> {
             String lower = normalizedName(name);
-            if (safeInbound(lower, removals)
+            if (safeInbound(lower, removals, false)
                     && !lower.startsWith("egon-gateway-")) {
                 result.put(lower, safeValue(value));
             }
@@ -102,8 +114,14 @@ public final class TrustedIdentitySanitizer {
         return Map.copyOf(result);
     }
 
-    private boolean safeInbound(String name, Set<String> removals) {
-        return !FIXED_SENSITIVE.contains(name)
+    private boolean safeInbound(
+            String name,
+            Set<String> removals,
+            boolean authorizationForwardingAllowed) {
+        boolean fixedSensitive = FIXED_SENSITIVE.contains(name)
+                && !(authorizationForwardingAllowed
+                && "authorization".equals(name));
+        return !fixedSensitive
                 && !HOP_BY_HOP.contains(name)
                 && !removals.contains(name)
                 && !name.startsWith("x-egon-gateway-")

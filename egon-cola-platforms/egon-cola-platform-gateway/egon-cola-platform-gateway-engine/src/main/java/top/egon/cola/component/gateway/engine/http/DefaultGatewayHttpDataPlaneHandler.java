@@ -674,7 +674,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 normalized.headers(),
                 trace,
                 attemptTrace,
-                security
+                security,
+                match.route().transportPolicy()
+                        .authorizationForwardingAllowed()
         );
         Mono<GatewayOutboundHttpResponse> invocation;
         if (provider.serviceKey().protocolType()
@@ -788,12 +790,14 @@ public final class DefaultGatewayHttpDataPlaneHandler
             Map<String, List<String>> source,
             GatewayTraceContext trace,
             GatewayTelemetry.AttemptTrace attemptTrace,
-            GatewayHttpSecurityProcessor.Outcome security) {
+            GatewayHttpSecurityProcessor.Outcome security,
+            boolean authorizationForwardingAllowed) {
         Map<String, List<String>> sanitized =
                 identitySanitizer.sanitizeHttp(
                 source,
                 security.fieldsToRemove(),
-                security.trustedIdentity()
+                security.trustedIdentity(),
+                authorizationForwardingAllowed
         );
         Map<String, List<String>> result = new LinkedHashMap<>(sanitized);
         result.put(

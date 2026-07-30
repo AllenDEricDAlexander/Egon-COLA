@@ -27,6 +27,8 @@ public final class GatewayOutboundHttpResponse {
 
     private final Flux<DataBuffer> body;
 
+    private final GatewayHttpFlushMode flushMode;
+
     private final Runnable abandonAction;
 
     private final AtomicBoolean abandoned = new AtomicBoolean();
@@ -35,7 +37,15 @@ public final class GatewayOutboundHttpResponse {
             int status,
             Map<String, List<String>> headers,
             Flux<DataBuffer> body) {
-        this(status, headers, body, () -> {
+        this(status, headers, body, GatewayHttpFlushMode.STANDARD);
+    }
+
+    public GatewayOutboundHttpResponse(
+            int status,
+            Map<String, List<String>> headers,
+            Flux<DataBuffer> body,
+            GatewayHttpFlushMode flushMode) {
+        this(status, headers, body, flushMode, () -> {
         });
     }
 
@@ -43,6 +53,7 @@ public final class GatewayOutboundHttpResponse {
             int status,
             Map<String, List<String>> headers,
             Flux<DataBuffer> body,
+            GatewayHttpFlushMode flushMode,
             Runnable abandonAction) {
         if (status < 100 || status > 599) {
             throw new IllegalArgumentException("invalid HTTP status");
@@ -52,6 +63,7 @@ public final class GatewayOutboundHttpResponse {
                 Objects.requireNonNull(headers, "headers")
         );
         this.body = Objects.requireNonNull(body, "body");
+        this.flushMode = Objects.requireNonNull(flushMode, "flushMode");
         this.abandonAction = Objects.requireNonNull(
                 abandonAction,
                 "abandonAction"
@@ -70,17 +82,33 @@ public final class GatewayOutboundHttpResponse {
         return body;
     }
 
+    public GatewayHttpFlushMode flushMode() {
+        return flushMode;
+    }
+
     GatewayOutboundHttpResponse withBody(Flux<DataBuffer> replacement) {
         return withHeadersAndBody(headers, replacement);
     }
 
-    GatewayOutboundHttpResponse withHeadersAndBody(
+    public GatewayOutboundHttpResponse withHeadersAndBody(
             Map<String, List<String>> replacementHeaders,
             Flux<DataBuffer> replacementBody) {
         return new GatewayOutboundHttpResponse(
                 status,
                 replacementHeaders,
                 replacementBody,
+                flushMode,
+                this::abandon
+        );
+    }
+
+    public GatewayOutboundHttpResponse withFlushMode(
+            GatewayHttpFlushMode replacement) {
+        return new GatewayOutboundHttpResponse(
+                status,
+                headers,
+                body,
+                replacement,
                 this::abandon
         );
     }
@@ -91,6 +119,7 @@ public final class GatewayOutboundHttpResponse {
                 status,
                 headers,
                 body,
+                flushMode,
                 () -> {
                     try {
                         abandon();

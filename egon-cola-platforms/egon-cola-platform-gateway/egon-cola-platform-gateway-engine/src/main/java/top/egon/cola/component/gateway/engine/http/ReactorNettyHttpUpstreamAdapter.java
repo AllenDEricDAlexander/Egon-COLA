@@ -27,14 +27,6 @@ public final class ReactorNettyHttpUpstreamAdapter
             new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT);
 
     private static final Set<String> FORBIDDEN = Set.of(
-            "connection",
-            "keep-alive",
-            "proxy-authenticate",
-            "proxy-authorization",
-            "te",
-            "trailer",
-            "transfer-encoding",
-            "upgrade",
             "host",
             "x-forwarded-for",
             "x-forwarded-host",
@@ -48,6 +40,9 @@ public final class ReactorNettyHttpUpstreamAdapter
 
     private final HttpClient client;
 
+    private final GatewayHeaderFilter headerFilter =
+            new GatewayHeaderFilter();
+
     public ReactorNettyHttpUpstreamAdapter(
             int maxConnections,
             int pendingAcquireMaxCount,
@@ -57,8 +52,7 @@ public final class ReactorNettyHttpUpstreamAdapter
                 .pendingAcquireMaxCount(pendingAcquireMaxCount)
                 .maxIdleTime(idleTimeout)
                 .build();
-        client = HttpClient.create(connectionProvider)
-                .compress(true);
+        client = HttpClient.create(connectionProvider);
     }
 
     @Override
@@ -68,7 +62,8 @@ public final class ReactorNettyHttpUpstreamAdapter
         return client
                 .responseTimeout(request.timeout())
                 .headers(headers -> {
-                    request.headers().forEach((name, values) -> {
+                    headerFilter.requestHeaders(request.headers())
+                            .forEach((name, values) -> {
                         if (!FORBIDDEN.contains(name.toLowerCase(Locale.ROOT))) {
                             values.forEach(value -> headers.add(name, value));
                         }
@@ -116,6 +111,7 @@ public final class ReactorNettyHttpUpstreamAdapter
                             response.status().code(),
                             responseHeaders(response.responseHeaders()),
                             body,
+                            GatewayHttpFlushMode.STANDARD,
                             dispose
                     ));
                 })
@@ -140,6 +136,6 @@ public final class ReactorNettyHttpUpstreamAdapter
                 ).add(entry.getValue());
             }
         });
-        return Map.copyOf(result);
+        return headerFilter.responseHeaders(result);
     }
 }
