@@ -8,6 +8,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,17 +73,32 @@ public final class GatewayRouteTransportPolicyValidator {
             GatewayProtocol operationProtocol,
             GatewayResponseMode operationResponseMode) {
         List<ValidationIssue> issues = new ArrayList<>();
-        String host = text(routeContent.get("host"));
-        String method = text(routeContent.get("httpMethod"));
-        String pathPattern = text(routeContent.get("pathPattern"));
-        if (host == null) {
+        Object rawHost = routeContent.get("host");
+        Object rawMethod = routeContent.get("httpMethod");
+        Object rawPathPattern = routeContent.get("pathPattern");
+        String host = text(rawHost);
+        String method = text(rawMethod);
+        String pathPattern = text(rawPathPattern);
+        if (rawHost != null && !(rawHost instanceof String)) {
+            issues.add(issue(
+                    "host",
+                    "ROUTE_HOST_INVALID",
+                    "Host must be a string"
+            ));
+        } else if (host == null) {
             issues.add(issue(
                     "host",
                     "ROUTE_HOST_REQUIRED",
                     "Host is required"
             ));
         }
-        if (method == null) {
+        if (rawMethod != null && !(rawMethod instanceof String)) {
+            issues.add(issue(
+                    "httpMethod",
+                    "ROUTE_METHOD_INVALID",
+                    "HTTP Method must be a string"
+            ));
+        } else if (method == null) {
             issues.add(issue(
                     "httpMethod",
                     "ROUTE_METHOD_REQUIRED",
@@ -187,7 +203,8 @@ public final class GatewayRouteTransportPolicyValidator {
         for (String field : ENUM_FIELDS) {
             Object value = policy.get(field);
             if (value != null
-                    && !ENUM_VALUES.get(field).contains(value.toString())) {
+                    && (!(value instanceof String text)
+                    || !ENUM_VALUES.get(field).contains(text))) {
                 issues.add(issue(
                         "transportPolicy." + field,
                         "TRANSPORT_ENUM_UNKNOWN",
@@ -387,23 +404,41 @@ public final class GatewayRouteTransportPolicyValidator {
             return null;
         }
         try {
-            BigDecimal decimal = new BigDecimal(number.toString());
-            return decimal.longValueExact();
-        } catch (ArithmeticException | NumberFormatException invalid) {
+            if (number instanceof BigDecimal decimal) {
+                return decimal.longValueExact();
+            }
+            if (number instanceof BigInteger integer) {
+                return integer.longValueExact();
+            }
+            if (number instanceof Byte
+                    || number instanceof Short
+                    || number instanceof Integer
+                    || number instanceof Long) {
+                return number.longValue();
+            }
+            double decimal = number.doubleValue();
+            if (!Double.isFinite(decimal)
+                    || decimal != Math.rint(decimal)
+                    || decimal < Long.MIN_VALUE
+                    || decimal > Long.MAX_VALUE) {
+                return null;
+            }
+            return (long) decimal;
+        } catch (ArithmeticException invalid) {
             return null;
         }
     }
 
     private String value(Map<?, ?> values, String field) {
         Object value = values.get(field);
-        return value == null ? null : value.toString();
+        return value instanceof String text ? text : null;
     }
 
     private String text(Object value) {
-        if (value == null || value.toString().isBlank()) {
+        if (!(value instanceof String text) || text.isBlank()) {
             return null;
         }
-        return value.toString().trim();
+        return text.trim();
     }
 
     private ValidationIssue issue(

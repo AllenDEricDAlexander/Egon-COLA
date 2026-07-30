@@ -6,6 +6,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRouteTransportPolicy
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -36,7 +37,7 @@ public final class GatewayRouteDraftMapper {
         Map<String, Object> canonical = new LinkedHashMap<>(content);
         LEGACY_KEYS.forEach(canonical::remove);
 
-        putText(canonical, "host", text(content.get("host")), false);
+        putText(canonical, "host", content.get("host"), false);
         putText(
                 canonical,
                 "httpMethod",
@@ -108,26 +109,35 @@ public final class GatewayRouteDraftMapper {
             }
             return;
         }
-        String listener = text(content.get("listener"));
+        Object listener = content.get("listener");
         if (listener == null) {
+            canonical.remove("accessZones");
+            return;
+        }
+        if (!(listener instanceof String)) {
+            canonical.put("accessZones", List.of(listener));
+            return;
+        }
+        String normalized = text(listener);
+        if (normalized == null) {
             canonical.remove("accessZones");
             return;
         }
         canonical.put(
                 "accessZones",
-                List.of(listener.toUpperCase(Locale.ROOT))
+                List.of(normalized.toUpperCase(Locale.ROOT))
         );
     }
 
-    private List<String> normalizedZones(Iterable<?> values) {
-        LinkedHashSet<String> zones = new LinkedHashSet<>();
+    private List<Object> normalizedZones(Iterable<?> values) {
+        LinkedHashSet<Object> zones = new LinkedHashSet<>();
         for (Object value : values) {
             String zone = text(value);
-            if (zone != null) {
-                zones.add(zone.toUpperCase(Locale.ROOT));
-            }
+            zones.add(zone == null
+                    ? value
+                    : zone.toUpperCase(Locale.ROOT));
         }
-        return List.copyOf(zones);
+        return Collections.unmodifiableList(new ArrayList<>(zones));
     }
 
     private void copyTransportPolicy(
@@ -139,7 +149,11 @@ public final class GatewayRouteDraftMapper {
         }
         if (raw instanceof Map<?, ?> policy) {
             Map<String, Object> copy = new LinkedHashMap<>();
-            policy.forEach((key, value) -> copy.put(key.toString(), value));
+            policy.forEach((key, value) -> {
+                if (key instanceof String field) {
+                    copy.put(field, value);
+                }
+            });
             canonical.put(
                     "transportPolicy",
                     Collections.unmodifiableMap(copy)
@@ -147,35 +161,46 @@ public final class GatewayRouteDraftMapper {
         }
     }
 
-    private String canonicalOrLegacy(
+    private Object canonicalOrLegacy(
             Map<String, Object> content,
             String canonical,
             String legacy) {
         return content.containsKey(canonical)
-                ? text(content.get(canonical))
-                : text(content.get(legacy));
+                ? content.get(canonical)
+                : content.get(legacy);
     }
 
     private void putText(
             Map<String, Object> canonical,
             String key,
-            String value,
+            Object value,
             boolean uppercase) {
         if (value == null) {
             canonical.remove(key);
             return;
         }
+        if (!(value instanceof String)) {
+            canonical.put(key, value);
+            return;
+        }
+        String normalized = text(value);
+        if (normalized == null) {
+            canonical.remove(key);
+            return;
+        }
         canonical.put(
                 key,
-                uppercase ? value.toUpperCase(Locale.ROOT) : value
+                uppercase
+                        ? normalized.toUpperCase(Locale.ROOT)
+                        : normalized
         );
     }
 
     private String text(Object value) {
-        if (value == null || value.toString().isBlank()) {
+        if (!(value instanceof String text) || text.isBlank()) {
             return null;
         }
-        return value.toString().trim();
+        return text.trim();
     }
 
     private <E extends Enum<E>> E enumeration(
@@ -186,8 +211,13 @@ public final class GatewayRouteDraftMapper {
         if (value == null) {
             return null;
         }
+        if (!(value instanceof String text)) {
+            throw new IllegalArgumentException(
+                    "transportPolicy." + field + " must be a string"
+            );
+        }
         try {
-            return Enum.valueOf(type, value.toString());
+            return Enum.valueOf(type, text);
         } catch (IllegalArgumentException unknown) {
             throw new IllegalArgumentException(
                     "transportPolicy." + field + " contains an unknown value",

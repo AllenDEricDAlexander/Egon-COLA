@@ -384,6 +384,60 @@ class GatewayRuleCompilerTest {
         ));
     }
 
+    @Test
+    void compilerPublishesWebSocketForATransparentHttpOperation() {
+        GatewayRouteTransportPolicy policy =
+                new GatewayRouteTransportPolicy(
+                        GatewayRouteProfile.OPENAI_HTTP,
+                        GatewayTransportProtocol.WEBSOCKET,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        300_000L,
+                        16_777_216L,
+                        false,
+                        false
+                );
+        GatewayRuntimeRoute route = new GatewayRuntimeRoute(
+                "realtime",
+                "realtime",
+                "api.example.com",
+                "GET",
+                "/v1/realtime",
+                Set.of(AccessZone.PUBLIC),
+                0,
+                true,
+                policy
+        );
+
+        CompiledGatewayRelease release = compiler.compile(
+                "release-ws",
+                Instant.parse("2026-07-30T00:00:00Z"),
+                content(
+                        List.of(operation(
+                                "realtime",
+                                GatewayProtocol.HTTP,
+                                "TRANSPARENT"
+                        )),
+                        List.of(route)
+                )
+        );
+
+        assertEquals(
+                policy,
+                release.snapshot().content().routes().getFirst()
+                        .transportPolicy()
+        );
+        assertTrue(release.snapshotJson().contains(
+                "\"transportProtocol\":\"WEBSOCKET\""
+        ));
+        canonicalizer.verify(release.snapshot());
+    }
+
     private GatewayRuleContent content(
             List<GatewayRuntimeOperation> operations,
             List<GatewayRuntimeRoute> routes) {

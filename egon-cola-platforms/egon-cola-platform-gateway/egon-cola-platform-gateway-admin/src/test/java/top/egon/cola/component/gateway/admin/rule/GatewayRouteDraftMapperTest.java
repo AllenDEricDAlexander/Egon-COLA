@@ -115,4 +115,26 @@ class GatewayRouteDraftMapperTest {
         assertThat(mapped.bodyLogEnabled()).isFalse();
         assertThat(mapped.retryEnabled()).isFalse();
     }
+
+    @Test
+    void preservesInvalidTextValuesAndUnknownScalarExtensionsForValidation() {
+        Map<String, Object> host = Map.of("tenant", "x");
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("host", host);
+        content.put("httpMethod", false);
+        content.put("pathPattern", 42);
+        content.put("accessZones", List.of("PUBLIC"));
+        content.put("futureFalse", false);
+        content.put("futureNumber", 7);
+        content.put("futureNull", null);
+
+        Map<String, Object> canonical = mapper.canonicalize(content);
+
+        assertThat(canonical).containsEntry("host", host)
+                .containsEntry("httpMethod", false)
+                .containsEntry("pathPattern", 42)
+                .containsEntry("futureFalse", false)
+                .containsEntry("futureNumber", 7)
+                .containsEntry("futureNull", null);
+    }
 }

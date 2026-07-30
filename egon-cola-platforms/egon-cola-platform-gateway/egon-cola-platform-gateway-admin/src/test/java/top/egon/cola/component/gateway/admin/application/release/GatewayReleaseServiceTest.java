@@ -35,7 +35,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -98,6 +100,88 @@ class GatewayReleaseServiceTest {
 
     @Test
     void createMapsLegacyDraftOntoCanonicalTypedTransportPolicy() {
+        Map<String, Object> routeContent = Map.of(
+                "host", "ai.example.com",
+                "listener", "PUBLIC",
+                "method", "POST",
+                "path", "/v1/**",
+                "transportPolicy", Map.of(
+                        "profile", "OPENAI_HTTP",
+                        "requestBodyMode", "STREAMING",
+                        "responseMode", "AUTO_STREAM",
+                        "connectTimeoutMs", 10_000,
+                        "retryEnabled", false
+                )
+        );
+        CreateFixture fixture = createFixture(routeContent);
+
+        fixture.service.create(
+                "group-1",
+                new GatewayReleaseService.CreateRelease(
+                        0L,
+                        "publish transport route"
+                ),
+                actor(),
+                request()
+        );
+
+        ArgumentCaptor<CompiledGatewayRelease> compiled =
+                ArgumentCaptor.forClass(CompiledGatewayRelease.class);
+        verify(fixture.releases).insert(
+                any(GatewayReleaseStore.ReleaseRecord.class),
+                compiled.capture(),
+                eq(1)
+        );
+        var publishedRoute = compiled.getValue()
+                .snapshot()
+                .content()
+                .routes()
+                .getFirst();
+        assertThat(publishedRoute.host()).isEqualTo("ai.example.com");
+        assertThat(publishedRoute.httpMethod()).isEqualTo("POST");
+        assertThat(publishedRoute.pathPattern()).isEqualTo("/v1/**");
+        assertThat(publishedRoute.accessZones())
+                .containsExactly(AccessZone.PUBLIC);
+        assertThat(publishedRoute.transportPolicy().profile())
+                .isEqualTo(GatewayRouteProfile.OPENAI_HTTP);
+        assertThat(publishedRoute.transportPolicy().requestBodyMode())
+                .isEqualTo(GatewayRequestBodyMode.STREAMING);
+        assertThat(publishedRoute.transportPolicy().responseMode())
+                .isEqualTo(GatewayTransportResponseMode.AUTO_STREAM);
+        assertThat(publishedRoute.transportPolicy().connectTimeoutMs())
+                .isEqualTo(10_000L);
+        assertThat(publishedRoute.transportPolicy().retryEnabled()).isFalse();
+    }
+
+    @Test
+    void createRejectsNonStringRouteTextBeforeBuildingASnapshot() {
+        CreateFixture fixture = createFixture(Map.of(
+                "host", Map.of("tenant", "x"),
+                "listener", "PUBLIC",
+                "method", false,
+                "path", "/v1/**"
+        ));
+
+        assertThatThrownBy(() -> fixture.service.create(
+                "group-1",
+                new GatewayReleaseService.CreateRelease(
+                        0L,
+                        "publish invalid route"
+                ),
+                actor(),
+                request()
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ROUTE_HOST_INVALID")
+                .hasMessageContaining("host");
+
+        verify(fixture.releases, never()).insert(
+                any(),
+                any(),
+                anyInt()
+        );
+    }
+
+    private CreateFixture createFixture(Map<String, Object> routeContent) {
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
         GatewayDraftService draftService = mock(GatewayDraftService.class);
@@ -119,19 +203,6 @@ class GatewayReleaseServiceTest {
                 null,
                 "admin",
                 NOW
-        );
-        Map<String, Object> routeContent = Map.of(
-                "host", "ai.example.com",
-                "listener", "PUBLIC",
-                "method", "POST",
-                "path", "/v1/**",
-                "transportPolicy", Map.of(
-                        "profile", "OPENAI_HTTP",
-                        "requestBodyMode", "STREAMING",
-                        "responseMode", "AUTO_STREAM",
-                        "connectTimeoutMs", 10_000,
-                        "retryEnabled", false
-                )
         );
         GatewayDraftStore.RouteDraft route =
                 new GatewayDraftStore.RouteDraft(
@@ -186,43 +257,7 @@ class GatewayReleaseServiceTest {
                 null,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
-
-        service.create(
-                "group-1",
-                new GatewayReleaseService.CreateRelease(
-                        0L,
-                        "publish transport route"
-                ),
-                actor(),
-                request()
-        );
-
-        ArgumentCaptor<CompiledGatewayRelease> compiled =
-                ArgumentCaptor.forClass(CompiledGatewayRelease.class);
-        verify(releases).insert(
-                any(GatewayReleaseStore.ReleaseRecord.class),
-                compiled.capture(),
-                eq(1)
-        );
-        var publishedRoute = compiled.getValue()
-                .snapshot()
-                .content()
-                .routes()
-                .getFirst();
-        assertThat(publishedRoute.host()).isEqualTo("ai.example.com");
-        assertThat(publishedRoute.httpMethod()).isEqualTo("POST");
-        assertThat(publishedRoute.pathPattern()).isEqualTo("/v1/**");
-        assertThat(publishedRoute.accessZones())
-                .containsExactly(AccessZone.PUBLIC);
-        assertThat(publishedRoute.transportPolicy().profile())
-                .isEqualTo(GatewayRouteProfile.OPENAI_HTTP);
-        assertThat(publishedRoute.transportPolicy().requestBodyMode())
-                .isEqualTo(GatewayRequestBodyMode.STREAMING);
-        assertThat(publishedRoute.transportPolicy().responseMode())
-                .isEqualTo(GatewayTransportResponseMode.AUTO_STREAM);
-        assertThat(publishedRoute.transportPolicy().connectTimeoutMs())
-                .isEqualTo(10_000L);
-        assertThat(publishedRoute.transportPolicy().retryEnabled()).isFalse();
+        return new CreateFixture(service, releases);
     }
 
     private Fixture fixture(
@@ -409,6 +444,12 @@ class GatewayReleaseServiceTest {
             GatewayReleaseStore releases,
             GatewayDraftRepository drafts,
             GatewayDraftEntity draft
+    ) {
+    }
+
+    private record CreateFixture(
+            GatewayReleaseService service,
+            GatewayReleaseStore releases
     ) {
     }
 }

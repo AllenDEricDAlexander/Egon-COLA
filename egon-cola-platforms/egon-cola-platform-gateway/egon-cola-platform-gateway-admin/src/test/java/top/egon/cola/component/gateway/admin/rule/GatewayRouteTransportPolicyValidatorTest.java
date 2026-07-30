@@ -140,6 +140,42 @@ class GatewayRouteTransportPolicyValidatorTest {
         ));
     }
 
+    @Test
+    void rejectsNonStringRouteTextFieldsWithoutStringifyingThem() {
+        Map<String, Object> content = route("POST", Map.of());
+        content.put("host", Map.of("tenant", "x"));
+        content.put("httpMethod", false);
+
+        assertThat(validator.validate(
+                content,
+                GatewayProtocol.HTTP,
+                GatewayResponseMode.TRANSPARENT
+        )).contains(
+                new GatewayRouteTransportPolicyValidator.ValidationIssue(
+                        "host",
+                        "ROUTE_HOST_INVALID",
+                        "Host must be a string"
+                ),
+                new GatewayRouteTransportPolicyValidator.ValidationIssue(
+                        "httpMethod",
+                        "ROUTE_METHOD_INVALID",
+                        "HTTP Method must be a string"
+                )
+        );
+    }
+
+    @Test
+    void acceptsWebSocketForATransparentHttpOperation() {
+        assertThat(validator.validate(
+                route("GET", Map.of(
+                        "profile", "OPENAI_HTTP",
+                        "transportProtocol", "WEBSOCKET"
+                )),
+                GatewayProtocol.HTTP,
+                GatewayResponseMode.TRANSPARENT
+        )).isEmpty();
+    }
+
     private static Stream<Arguments> numericRanges() {
         return Stream.of(
                 Arguments.of("maxRequestBodyBytes", 1L, 1_073_741_824L),

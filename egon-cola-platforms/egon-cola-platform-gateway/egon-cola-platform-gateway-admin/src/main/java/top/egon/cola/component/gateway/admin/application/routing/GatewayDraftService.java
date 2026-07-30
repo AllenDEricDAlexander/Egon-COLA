@@ -109,7 +109,12 @@ public class GatewayDraftService {
                 command.idempotencyKey(),
                 command.changeReason()
         );
-        String digest = digest(Map.of(
+        String legacyDigest = digest(Map.of(
+                "action", "PUT_ROUTE",
+                "routeId", routeId,
+                "command", command
+        ));
+        String canonicalDigest = digest(Map.of(
                 "action", "PUT_ROUTE",
                 "routeId", routeId,
                 "command", canonicalCommand
@@ -117,7 +122,8 @@ public class GatewayDraftService {
         MutationResult replay = replay(
                 gatewayGroupId,
                 command.idempotencyKey(),
-                digest
+                canonicalDigest,
+                legacyDigest
         );
         if (replay != null) {
             return replay;
@@ -156,7 +162,7 @@ public class GatewayDraftService {
                 "UPSERT",
                 command.changeReason(),
                 command.idempotencyKey(),
-                digest,
+                canonicalDigest,
                 actor,
                 request,
                 now
@@ -437,7 +443,8 @@ public class GatewayDraftService {
     private MutationResult replay(
             String gatewayGroupId,
             String key,
-            String digest) {
+            String digest,
+            String... compatibleDigests) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException(
                     "idempotencyKey is required"
@@ -451,7 +458,9 @@ public class GatewayDraftService {
         if (existing == null) {
             return null;
         }
-        if (!existing.payloadSha256().equals(digest)) {
+        boolean compatible = java.util.Arrays.stream(compatibleDigests)
+                .anyMatch(existing.payloadSha256()::equals);
+        if (!existing.payloadSha256().equals(digest) && !compatible) {
             throw new GatewayAdminIdempotencyConflictException();
         }
         Object revision = existing.response().get("revision");
