@@ -14,8 +14,51 @@ public record GatewayHttpEngineProperties(
         Duration connectionIdleTimeout,
         Duration drainTimeout,
         int upstreamMaxConnections,
-        int upstreamPendingAcquireMaxCount
+        int upstreamPendingAcquireMaxCount,
+        long absoluteMaxRequestBodyBytes,
+        int bodyLogSampleBytes,
+        int absoluteMaxBodyLogSampleBytes,
+        Duration maxConnectTimeout,
+        Duration maxResponseHeaderTimeout,
+        Duration maxStreamIdleTimeout,
+        Duration maxTotalTimeout,
+        Duration maxWebsocketIdleTimeout,
+        long maxWebsocketFrameBytes
 ) {
+
+    private static final long MIB = 1024L * 1024L;
+
+    public GatewayHttpEngineProperties(
+            Listener publicListener,
+            Listener internalListener,
+            int maxHeaderCount,
+            int maxHeaderBytes,
+            long defaultMaxBodyBytes,
+            Duration connectionIdleTimeout,
+            Duration drainTimeout,
+            int upstreamMaxConnections,
+            int upstreamPendingAcquireMaxCount) {
+        this(
+                publicListener,
+                internalListener,
+                maxHeaderCount,
+                maxHeaderBytes,
+                defaultMaxBodyBytes,
+                connectionIdleTimeout,
+                drainTimeout,
+                upstreamMaxConnections,
+                upstreamPendingAcquireMaxCount,
+                1024L * MIB,
+                8 * 1024,
+                64 * 1024,
+                Duration.ofSeconds(60),
+                Duration.ofMinutes(10),
+                Duration.ofMinutes(30),
+                Duration.ofHours(2),
+                Duration.ofHours(2),
+                64L * MIB
+        );
+    }
 
     public GatewayHttpEngineProperties {
         publicListener = Objects.requireNonNull(publicListener, "publicListener");
@@ -47,10 +90,26 @@ public record GatewayHttpEngineProperties(
         if (maxHeaderCount < 1 || maxHeaderBytes < 256) {
             throw new IllegalArgumentException("invalid HTTP header limits");
         }
-        if (defaultMaxBodyBytes < 1
-                || defaultMaxBodyBytes > 64L * 1024 * 1024) {
+        if (absoluteMaxRequestBodyBytes < 1
+                || absoluteMaxRequestBodyBytes > 1024L * MIB) {
             throw new IllegalArgumentException(
-                    "defaultMaxBodyBytes must be between 1 byte and 64 MiB"
+                    "absoluteMaxRequestBodyBytes must be between 1 byte and "
+                            + "1 GiB"
+            );
+        }
+        if (defaultMaxBodyBytes < 1
+                || defaultMaxBodyBytes > absoluteMaxRequestBodyBytes) {
+            throw new IllegalArgumentException(
+                    "defaultMaxBodyBytes must be between 1 byte and "
+                            + "absoluteMaxRequestBodyBytes"
+            );
+        }
+        if (absoluteMaxBodyLogSampleBytes < 1
+                || absoluteMaxBodyLogSampleBytes > 64 * 1024
+                || bodyLogSampleBytes < 1
+                || bodyLogSampleBytes > absoluteMaxBodyLogSampleBytes) {
+            throw new IllegalArgumentException(
+                    "invalid HTTP body log sample limits"
             );
         }
         connectionIdleTimeout = positive(
@@ -58,6 +117,42 @@ public record GatewayHttpEngineProperties(
                 "connectionIdleTimeout"
         );
         drainTimeout = positive(drainTimeout, "drainTimeout");
+        maxConnectTimeout = range(
+                maxConnectTimeout,
+                Duration.ofMillis(100),
+                Duration.ofSeconds(60),
+                "maxConnectTimeout"
+        );
+        maxResponseHeaderTimeout = range(
+                maxResponseHeaderTimeout,
+                Duration.ofSeconds(1),
+                Duration.ofMinutes(10),
+                "maxResponseHeaderTimeout"
+        );
+        maxStreamIdleTimeout = range(
+                maxStreamIdleTimeout,
+                Duration.ofSeconds(1),
+                Duration.ofMinutes(30),
+                "maxStreamIdleTimeout"
+        );
+        maxTotalTimeout = range(
+                maxTotalTimeout,
+                Duration.ofSeconds(1),
+                Duration.ofHours(2),
+                "maxTotalTimeout"
+        );
+        maxWebsocketIdleTimeout = range(
+                maxWebsocketIdleTimeout,
+                Duration.ofSeconds(1),
+                Duration.ofHours(2),
+                "maxWebsocketIdleTimeout"
+        );
+        if (maxWebsocketFrameBytes < 1024L
+                || maxWebsocketFrameBytes > 64L * MIB) {
+            throw new IllegalArgumentException(
+                    "maxWebsocketFrameBytes must be between 1 KiB and 64 MiB"
+            );
+        }
         if (upstreamMaxConnections < 1
                 || upstreamPendingAcquireMaxCount < 0) {
             throw new IllegalArgumentException(
@@ -102,6 +197,20 @@ public record GatewayHttpEngineProperties(
         Objects.requireNonNull(value, field);
         if (value.isZero() || value.isNegative()) {
             throw new IllegalArgumentException(field + " must be positive");
+        }
+        return value;
+    }
+
+    private static Duration range(
+            Duration value,
+            Duration minimum,
+            Duration maximum,
+            String field) {
+        Objects.requireNonNull(value, field);
+        if (value.compareTo(minimum) < 0 || value.compareTo(maximum) > 0) {
+            throw new IllegalArgumentException(
+                    field + " must be between " + minimum + " and " + maximum
+            );
         }
         return value;
     }

@@ -12,6 +12,10 @@ import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
+import top.egon.cola.component.gateway.core.transport.GatewayRouteProfileResolver;
+import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
+import top.egon.cola.component.gateway.core.transport.GatewayTransportPolicyOverrides;
+import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndex;
 import top.egon.cola.component.gateway.engine.rpc.RpcMethodIndexCompiler;
 import top.egon.cola.component.gateway.engine.rpc.RuntimeRpcRoute;
@@ -20,6 +24,8 @@ import top.egon.cola.component.gateway.engine.cors.GatewayCorsPolicyCompiler;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
+import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
+import top.egon.cola.component.gateway.engine.traffic.TrafficPolicyType;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -27,6 +33,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -48,19 +57,56 @@ public final class EngineGatewayRuleCompiler {
 
     private final GatewaySecurityPolicyCompiler securityPolicyCompiler;
 
+    private final GatewayRouteProfileResolver transportResolver =
+            new GatewayRouteProfileResolver();
+
+    private final GatewayTransportDefaults transportDefaults;
+
+    private final GatewayTransportSafetyLimits transportSafetyLimits;
+
     public EngineGatewayRuleCompiler() {
-        this(GatewaySecurityCapabilityRegistry.empty());
+        this(
+                GatewaySecurityCapabilityRegistry.empty(),
+                GatewayTransportDefaults.legacy(),
+                GatewayTransportSafetyLimits.specDefaults()
+        );
     }
 
     public EngineGatewayRuleCompiler(
             GatewaySecurityCapabilityRegistry capabilities) {
+        this(
+                capabilities,
+                GatewayTransportDefaults.legacy(),
+                GatewayTransportSafetyLimits.specDefaults()
+        );
+    }
+
+    public EngineGatewayRuleCompiler(
+            GatewaySecurityCapabilityRegistry capabilities,
+            GatewayTransportDefaults transportDefaults,
+            GatewayTransportSafetyLimits transportSafetyLimits) {
         securityPolicyCompiler = new GatewaySecurityPolicyCompiler(
                 capabilities
+        );
+        this.transportDefaults = Objects.requireNonNull(
+                transportDefaults,
+                "transportDefaults"
+        );
+        this.transportSafetyLimits = Objects.requireNonNull(
+                transportSafetyLimits,
+                "transportSafetyLimits"
         );
     }
 
     public CompiledGatewayRules compile(GatewayRuleSnapshot snapshot) {
         GatewayRuleContent content = snapshot.content();
+        List<GatewayRuntimePolicy> runtimePolicies = new ArrayList<>();
+        runtimePolicies.addAll(content.providerPolicies());
+        runtimePolicies.addAll(content.trafficPolicies());
+        runtimePolicies.addAll(content.securityPolicies());
+        runtimePolicies.addAll(content.corsPolicies());
+        Map<String, RuntimeTrafficPolicy> trafficPolicies =
+                trafficPolicyCompiler.compile(runtimePolicies);
         Map<String, GatewayRuntimeOperation> operations = content.operations()
                 .stream()
                 .collect(java.util.stream.Collectors.toUnmodifiableMap(
@@ -96,6 +142,15 @@ public final class EngineGatewayRuleCompiler {
                             routeMetadata(
                                     operation,
                                     snapshot.releaseId()
+                            ),
+                            transportResolver.resolve(
+                                    route.transportPolicy(),
+                                    transportDefaults,
+                                    transportOverrides(
+                                            operation.policyRefs(),
+                                            trafficPolicies
+                                    ),
+                                    transportSafetyLimits
                             )
                     );
                 })
@@ -122,11 +177,6 @@ public final class EngineGatewayRuleCompiler {
                                 ignored -> new LinkedHashSet<>()
                         ).add(operation.protocol())
                 ));
-        List<GatewayRuntimePolicy> runtimePolicies = new ArrayList<>();
-        runtimePolicies.addAll(content.providerPolicies());
-        runtimePolicies.addAll(content.trafficPolicies());
-        runtimePolicies.addAll(content.securityPolicies());
-        runtimePolicies.addAll(content.corsPolicies());
         Map<String, GatewaySecurityPolicy> securityPolicies =
                 securityPolicyCompiler.compile(
                         runtimePolicies,
@@ -186,10 +236,81 @@ public final class EngineGatewayRuleCompiler {
                 rpcCompiler.compile(rpcRoutes),
                 services,
                 providerPolicies,
-                trafficPolicyCompiler.compile(runtimePolicies),
+                trafficPolicies,
                 securityPolicies,
                 corsPolicies
         );
+    }
+
+    private GatewayTransportPolicyOverrides transportOverrides(
+            Set<String> policyRefs,
+            Map<String, RuntimeTrafficPolicy> policies) {
+        OptionalLong requestLimit = OptionalLong.empty();
+        OptionalLong responseLimit = OptionalLong.empty();
+        Optional<Duration> totalTimeout = Optional.empty();
+        for (String policyRef : policyRefs) {
+            RuntimeTrafficPolicy policy = policies.get(policyRef);
+            if (policy == null || !policy.enabled()) {
+                continue;
+            }
+            if (policy.type() == TrafficPolicyType.REQUEST_SIZE) {
+                requestLimit = minimum(
+                        requestLimit,
+                        longValue(policy.parameters().get("maxBytes"))
+                );
+            } else if (policy.type() == TrafficPolicyType.RESPONSE_SIZE) {
+                responseLimit = minimum(
+                        responseLimit,
+                        longValue(policy.parameters().get("maxBytes"))
+                );
+            } else if (policy.type() == TrafficPolicyType.TIMEOUT) {
+                Duration configured = timeout(policy.parameters());
+                if (configured != null
+                        && (totalTimeout.isEmpty()
+                        || configured.compareTo(totalTimeout.orElseThrow())
+                        < 0)) {
+                    totalTimeout = Optional.of(configured);
+                }
+            }
+        }
+        return new GatewayTransportPolicyOverrides(
+                requestLimit,
+                responseLimit,
+                totalTimeout
+        );
+    }
+
+    private OptionalLong minimum(OptionalLong current, long candidate) {
+        return current.isEmpty()
+                ? OptionalLong.of(candidate)
+                : OptionalLong.of(Math.min(current.getAsLong(), candidate));
+    }
+
+    private Duration timeout(Map<String, Object> parameters) {
+        Object value = parameters.get("timeout");
+        if (value == null) {
+            value = parameters.get("timeoutMillis");
+        }
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Duration duration) {
+            return duration;
+        }
+        if (value instanceof Number number) {
+            return Duration.ofMillis(number.longValue());
+        }
+        String text = value.toString();
+        return text.startsWith("P")
+                ? Duration.parse(text)
+                : Duration.ofMillis(Long.parseLong(text));
+    }
+
+    private long longValue(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        return Long.parseLong(Objects.requireNonNull(value).toString());
     }
 
     private RuntimeRpcRoute rpcRoute(GatewayRuntimeOperation operation) {

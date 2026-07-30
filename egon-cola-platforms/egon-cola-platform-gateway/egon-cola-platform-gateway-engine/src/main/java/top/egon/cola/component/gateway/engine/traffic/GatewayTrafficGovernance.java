@@ -203,20 +203,22 @@ public final class GatewayTrafficGovernance {
     private Duration effectiveTimeout(
             List<RuntimeTrafficPolicy> policies,
             Duration fallback) {
-        Duration result = fallback;
+        Duration result = null;
         for (RuntimeTrafficPolicy policy : policies) {
             if (policy.type() == TrafficPolicyType.TIMEOUT) {
                 Duration configured = duration(
                         policy.parameters(),
                         "timeout",
-                        fallback
+                        null
                 );
-                if (configured.compareTo(result) < 0) {
+                if (configured != null
+                        && (result == null
+                        || configured.compareTo(result) < 0)) {
                     result = configured;
                 }
             }
         }
-        return result;
+        return result == null ? fallback : result;
     }
 
     private String dimension(
