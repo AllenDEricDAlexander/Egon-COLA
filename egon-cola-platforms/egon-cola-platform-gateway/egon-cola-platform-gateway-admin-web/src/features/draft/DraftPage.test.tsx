@@ -309,4 +309,102 @@ describe('DraftPage route editor state integrity', () => {
     expect(screen.getByLabelText('Route ID')).toHaveValue('route-b')
     expect(screen.getByLabelText('Host')).toHaveValue('b-validation.example.com')
   })
+
+  it('locks only Route A while its submit validation is pending', async () => {
+    const routeAValidation = deferred<OperationDetail>()
+    vi.mocked(gatewayApi.operation)
+      .mockResolvedValueOnce(operationDetail('operation-a'))
+      .mockReturnValueOnce(routeAValidation.promise)
+      .mockResolvedValueOnce(operationDetail('operation-b'))
+    renderDraftPage()
+
+    await openRoute(0)
+    await screen.findByText('Operation Protocol：HTTP')
+    fireEvent.click(screen.getByText('OK'))
+    await waitFor(() => expect(gatewayApi.operation).toHaveBeenCalledTimes(2))
+
+    expect(screen.getByLabelText('Route ID')).toBeDisabled()
+    expect(screen.getByLabelText('Operation ID')).toBeDisabled()
+    expect(screen.getByLabelText('Host')).toBeDisabled()
+
+    fireEvent.click(screen.getByText('Cancel'))
+    await waitFor(() => expect(screen.queryByText('Route Transport')).not.toBeInTheDocument())
+    await openRoute(1)
+    await screen.findByText('Operation Protocol：HTTP')
+    const routeBHost = screen.getByLabelText('Host')
+
+    expect(screen.getByLabelText('Route ID')).not.toBeDisabled()
+    expect(screen.getByLabelText('Operation ID')).not.toBeDisabled()
+    expect(routeBHost).not.toBeDisabled()
+    expect(screen.getByText('OK').closest('button')).not.toBeDisabled()
+    fireEvent.change(routeBHost, { target: { value: 'b-validation-pending.example.com' } })
+    expect(routeBHost).toHaveValue('b-validation-pending.example.com')
+
+    await act(async () => {
+      routeAValidation.reject(new Error('Route A validation cancelled'))
+      await routeAValidation.promise.catch(() => undefined)
+    })
+  })
+
+  it('locks only Route A while its save mutation is pending', async () => {
+    const routeASave = deferred<DraftMutationResult>()
+    vi.mocked(gatewayApi.operation).mockImplementation((operationId) =>
+      Promise.resolve(operationDetail(operationId)))
+    vi.mocked(gatewayApi.saveRoute).mockReturnValueOnce(routeASave.promise)
+    renderDraftPage()
+
+    await openRoute(0)
+    await screen.findByText('Operation Protocol：HTTP')
+    fireEvent.click(screen.getByText('OK'))
+    await waitFor(() => expect(gatewayApi.saveRoute).toHaveBeenCalledTimes(1))
+
+    expect(screen.getByLabelText('Route ID')).toBeDisabled()
+    expect(screen.getByLabelText('Operation ID')).toBeDisabled()
+    expect(screen.getByLabelText('Host')).toBeDisabled()
+
+    fireEvent.click(screen.getByText('Cancel'))
+    await waitFor(() => expect(screen.queryByText('Route Transport')).not.toBeInTheDocument())
+    await openRoute(1)
+    await screen.findByText('Operation Protocol：HTTP')
+    const routeBHost = screen.getByLabelText('Host')
+
+    expect(screen.getByLabelText('Route ID')).not.toBeDisabled()
+    expect(screen.getByLabelText('Operation ID')).not.toBeDisabled()
+    expect(routeBHost).not.toBeDisabled()
+    expect(screen.getByText('OK').closest('button')).not.toBeDisabled()
+    fireEvent.change(routeBHost, { target: { value: 'b-save-pending.example.com' } })
+    expect(routeBHost).toHaveValue('b-save-pending.example.com')
+
+    await act(async () => {
+      routeASave.resolve(mutationResult('route-a'))
+      await routeASave.promise
+    })
+    await waitFor(() => expect(gatewayApi.draft).toHaveBeenCalledTimes(2))
+    expect(screen.getByLabelText('Host')).toHaveValue('b-save-pending.example.com')
+  })
+
+  it('does not restart a READY Operation lookup during submit validation', async () => {
+    const routeAValidation = deferred<OperationDetail>()
+    vi.mocked(gatewayApi.operation)
+      .mockResolvedValueOnce(operationDetail('operation-a'))
+      .mockReturnValueOnce(routeAValidation.promise)
+      .mockResolvedValueOnce(operationDetail('operation-a'))
+    renderDraftPage()
+
+    await openRoute(0)
+    await screen.findByText('Operation Protocol：HTTP')
+    const operationId = screen.getByLabelText('Operation ID')
+    fireEvent.click(screen.getByText('OK'))
+    await waitFor(() => expect(gatewayApi.operation).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByText('OK').closest('button')).toBeDisabled())
+
+    fireEvent.blur(operationId)
+    expect(gatewayApi.operation).toHaveBeenCalledTimes(2)
+
+    await act(async () => {
+      routeAValidation.resolve(operationDetail('operation-a'))
+      await routeAValidation.promise
+    })
+    await waitFor(() => expect(gatewayApi.saveRoute).toHaveBeenCalledTimes(1))
+  })
 })

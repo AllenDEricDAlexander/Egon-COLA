@@ -143,6 +143,7 @@ export const DraftPage = () => {
   const [policyOpen, setPolicyOpen] = useState(false)
   const [routeOperation, setRouteOperation] = useState<RouteOperationState>()
   const [validatingRoute, setValidatingRoute] = useState(false)
+  const [activeEditorSession, setActiveEditorSession] = useState(0)
   const [legacyHostMissing, setLegacyHostMissing] = useState(false)
   const [localConflict, setLocalConflict] = useState<GatewayApiError>()
   const operationRequest = useRef(0)
@@ -274,8 +275,14 @@ export const DraftPage = () => {
     }
   }
 
+  const advanceEditorSession = () => {
+    const nextSession = editorSession.current + 1
+    editorSession.current = nextSession
+    setActiveEditorSession(nextSession)
+  }
+
   const openNewRoute = () => {
-    editorSession.current += 1
+    advanceEditorSession()
     operationRequest.current += 1
     routeValidationRequest.current += 1
     setValidatingRoute(false)
@@ -294,7 +301,7 @@ export const DraftPage = () => {
   }
 
   const openExistingRoute = (route: DraftRoute) => {
-    editorSession.current += 1
+    advanceEditorSession()
     routeValidationRequest.current += 1
     setValidatingRoute(false)
     const values = readRouteForm(route.routeContent)
@@ -313,7 +320,7 @@ export const DraftPage = () => {
   }
 
   const closeRoute = () => {
-    editorSession.current += 1
+    advanceEditorSession()
     operationRequest.current += 1
     routeValidationRequest.current += 1
     setValidatingRoute(false)
@@ -400,6 +407,11 @@ export const DraftPage = () => {
   const operationReady = Boolean(
     currentOperation?.protocol && !currentOperation.loading && !currentOperation.error,
   )
+  const currentEditorSaving = Boolean(
+    saveRoute.isPending
+    && saveRoute.variables?.editorSession === activeEditorSession,
+  )
+  const routeFormDisabled = validatingRoute || currentEditorSaving
   const currentTransportPolicy = watchedRoute?.transportPolicy
   const currentTransportState = transportFormState(
     currentOperation?.protocol,
@@ -553,7 +565,7 @@ export const DraftPage = () => {
         open={routeOpen}
         onCancel={closeRoute}
         onOk={() => routeForm.submit()}
-        confirmLoading={saveRoute.isPending || validatingRoute}
+        confirmLoading={routeFormDisabled}
         okButtonProps={{ disabled: !operationReady }}
         destroyOnHidden
         width={760}
@@ -561,6 +573,7 @@ export const DraftPage = () => {
       >
         <Form
           form={routeForm}
+          disabled={routeFormDisabled}
           layout="vertical"
           initialValues={{
             accessZones: ['INTERNAL'],
@@ -586,7 +599,13 @@ export const DraftPage = () => {
                   setRouteOperation(undefined)
                 }
               }}
-              onBlur={(event) => void loadRouteOperation(event.target.value)}
+              onBlur={(event) => {
+                const operationId = event.target.value.trim()
+                const operationLoaded = routeOperation?.operationId === operationId
+                  && Boolean(routeOperation.protocol || routeOperation.loading)
+                if (validatingRoute || operationLoaded) return
+                void loadRouteOperation(operationId)
+              }}
             />
           </Form.Item>
           {currentOperation?.loading && (
