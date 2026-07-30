@@ -146,6 +146,7 @@ export const DraftPage = () => {
   const [legacyHostMissing, setLegacyHostMissing] = useState(false)
   const [localConflict, setLocalConflict] = useState<GatewayApiError>()
   const operationRequest = useRef(0)
+  const routeValidationRequest = useRef(0)
   const editorSession = useRef(0)
   const originalTransportPolicy = useRef<GatewayRouteTransportPolicy | undefined>(undefined)
   const draft = useQuery({
@@ -276,6 +277,8 @@ export const DraftPage = () => {
   const openNewRoute = () => {
     editorSession.current += 1
     operationRequest.current += 1
+    routeValidationRequest.current += 1
+    setValidatingRoute(false)
     originalTransportPolicy.current = undefined
     setLegacyHostMissing(false)
     setRouteOperation(undefined)
@@ -292,6 +295,8 @@ export const DraftPage = () => {
 
   const openExistingRoute = (route: DraftRoute) => {
     editorSession.current += 1
+    routeValidationRequest.current += 1
+    setValidatingRoute(false)
     const values = readRouteForm(route.routeContent)
     originalTransportPolicy.current = values.transportPolicy
     setLegacyHostMissing(Boolean(values.legacyHostMissing))
@@ -310,6 +315,8 @@ export const DraftPage = () => {
   const closeRoute = () => {
     editorSession.current += 1
     operationRequest.current += 1
+    routeValidationRequest.current += 1
+    setValidatingRoute(false)
     setRouteOpen(false)
     setRouteOperation(undefined)
   }
@@ -318,16 +325,18 @@ export const DraftPage = () => {
     const currentEditorSession = editorSession.current
     const operationId = values.operationId.trim()
     const request = ++operationRequest.current
+    const validationRequest = ++routeValidationRequest.current
+    const isCurrentValidation = () => (
+      request === operationRequest.current
+      && validationRequest === routeValidationRequest.current
+      && currentEditorSession === editorSession.current
+      && routeForm.getFieldValue('operationId')?.trim() === operationId
+    )
     setValidatingRoute(true)
     setLocalConflict(undefined)
     try {
       const detail = await gatewayApi.operation(operationId)
-      if (
-        request !== operationRequest.current
-        || routeForm.getFieldValue('operationId')?.trim() !== operationId
-      ) {
-        return
-      }
+      if (!isCurrentValidation()) return
       const operationProtocol = detail.operation.protocol.toUpperCase()
       setRouteOperation({
         operationId,
@@ -368,6 +377,7 @@ export const DraftPage = () => {
         values: candidate,
       })
     } catch {
+      if (!isCurrentValidation()) return
       setRouteOperation({
         operationId,
         loading: false,
@@ -375,7 +385,9 @@ export const DraftPage = () => {
       })
       void message.error('无法读取 Operation，Route 未保存')
     } finally {
-      setValidatingRoute(false)
+      if (isCurrentValidation()) {
+        setValidatingRoute(false)
+      }
     }
   }
 
@@ -569,6 +581,8 @@ export const DraftPage = () => {
               onChange={(event) => {
                 if (routeOperation?.operationId !== event.target.value.trim()) {
                   operationRequest.current += 1
+                  routeValidationRequest.current += 1
+                  setValidatingRoute(false)
                   setRouteOperation(undefined)
                 }
               }}

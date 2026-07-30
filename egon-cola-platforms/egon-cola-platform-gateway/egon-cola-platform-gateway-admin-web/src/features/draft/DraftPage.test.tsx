@@ -270,4 +270,43 @@ describe('DraftPage route editor state integrity', () => {
     expect(screen.getByLabelText('Route ID')).toHaveValue('route-b')
     expect(screen.getByLabelText('Host')).toHaveValue('b-edited.example.com')
   })
+
+  it('isolates Route B from Route A submit validation rejection', async () => {
+    const routeAValidation = deferred<OperationDetail>()
+    vi.mocked(gatewayApi.operation)
+      .mockResolvedValueOnce(operationDetail('operation-a'))
+      .mockReturnValueOnce(routeAValidation.promise)
+      .mockResolvedValueOnce(operationDetail('operation-b'))
+    renderDraftPage()
+
+    await openRoute(0)
+    await screen.findByText('Operation Protocol：HTTP')
+    fireEvent.click(screen.getByText('OK'))
+    await waitFor(() => expect(gatewayApi.operation).toHaveBeenCalledTimes(2))
+
+    fireEvent.click(screen.getByText('Cancel'))
+    await waitFor(() => expect(screen.queryByText('Route Transport')).not.toBeInTheDocument())
+    await openRoute(1)
+    await screen.findByText('Operation Protocol：HTTP')
+    const confirm = screen.getByText('OK').closest('button')!
+    const host = screen.getByLabelText('Host')
+    fireEvent.change(host, { target: { value: 'b-validation.example.com' } })
+
+    expect(confirm).not.toBeDisabled()
+    expect(screen.getByLabelText('Route ID')).toHaveValue('route-b')
+    expect(host).toHaveValue('b-validation.example.com')
+
+    await act(async () => {
+      routeAValidation.reject(new Error('Route A Operation lookup failed'))
+      await routeAValidation.promise.catch(() => undefined)
+    })
+
+    await waitFor(() => expect(confirm).not.toBeDisabled())
+    expect(screen.getByText('Operation Protocol：HTTP')).toBeInTheDocument()
+    expect(screen.queryByText('无法从服务端读取 Operation 协议，请确认 Operation ID。'))
+      .not.toBeInTheDocument()
+    expect(screen.getByText('Route Transport')).toBeInTheDocument()
+    expect(screen.getByLabelText('Route ID')).toHaveValue('route-b')
+    expect(screen.getByLabelText('Host')).toHaveValue('b-validation.example.com')
+  })
 })
