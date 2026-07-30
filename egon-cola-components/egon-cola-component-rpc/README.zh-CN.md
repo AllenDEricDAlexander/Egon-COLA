@@ -9,7 +9,7 @@ Spring Boot RPC 框架。Provider 暴露带注解的 Java Bean，并将生成的
 服务身份注册到动态配置中心（DDC）；Consumer 创建 JDK Proxy，发现有效的内部
 Gateway，为每个 Gateway 保持一个通道，并在总 Deadline 内将调用分布到这些通道。
 
-生产 Gateway 由同级的 [Gateway 组件](../egon-cola-component-gateway/README.md) 实现。
+生产 Gateway 由独立的 [Gateway 平台](../../egon-cola-platforms/egon-cola-platform-gateway/README.md) 实现。
 本组件负责 Provider/Consumer 契约和生命周期集成，不内嵌 Gateway 数据面。测试源码
 仍保留 Mock Gateway，用于隔离验证 Consumer → Gateway → Provider 链路。
 
@@ -351,7 +351,7 @@ failure-stage Trailer。
 
 ## Gateway 边界
 
-Starter 不打包生产 Gateway。Gateway 组件负责 Gateway 注册、Provider Directory、
+Starter 不打包生产 Gateway。Gateway 平台负责 Gateway 注册、Provider Directory、
 规则执行、HTTP/RPC 转发、健康检查和流量治理。下列能力仍是
 `rpc-test-suite/src/test` 下的测试夹具：
 
@@ -376,7 +376,7 @@ Consumer → Mock Gateway → Provider，不使用 gRPC In-Process Transport：
 ```
 
 套件同时覆盖 Cancellation，以及多 Provider 的 Directory
-发现、租约替换和摘除。Gateway 选择和 Provider 负载均衡属于 Gateway 组件；
+发现、租约替换和摘除。Gateway 选择和 Provider 负载均衡属于 Gateway 平台；
 Consumer 只负责在有效 Gateway Channel 间选择。
 
 可选 `verify` Profile 会在四个独立 JVM 中启动一个 Admin、一个 Provider、
@@ -397,7 +397,7 @@ Redis 需要鉴权时设置 `DDC_TEST_REDIS_PASSWORD`。进程测试使用临时
 ## V1 非目标
 
 生产 Gateway 拓扑、双 Engine 调用和故障演练见
-[Gateway + DDC + RPC 联调 Runbook](../egon-cola-component-gateway/docs/developer-integration.zh-CN.md)。
+[Gateway + DDC + RPC 联调 Runbook](../../egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.zh-CN.md)。
 
 V1 不实现：
 

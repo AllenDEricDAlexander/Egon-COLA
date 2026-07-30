@@ -63,7 +63,6 @@
         <module>egon-cola-component-method-extension</module>
         <module>egon-cola-component-transactional-outbox</module>
         <module>egon-cola-component-bytecode</module>
-        <module>egon-cola-component-gateway</module>
     </modules>
 
     <properties>
@@ -291,6 +290,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
+                <inherited>false</inherited>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
@@ -433,6 +433,13 @@
             <id>release</id>
             <build>
                 <plugins>
+                    <plugin>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                    </plugin>
                     <plugin>
                         <artifactId>maven-source-plugin</artifactId>
                         <executions>

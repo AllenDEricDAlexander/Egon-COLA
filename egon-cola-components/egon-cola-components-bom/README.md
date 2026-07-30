@@ -7,9 +7,9 @@
 `egon-cola-components-bom` is the Maven BOM for the Egon COLA component ecosystem. It provides no runtime code. Its only responsibility is to manage versions consistently for components under `egon-cola-components` that business applications can consume directly, avoiding repeated version declarations on every component dependency.
 
 The BOM exports stable consumption entry points: common core and utility modules, the DDC
-Starter including its typed management API, business component starters, Gateway runtime
-entry points, and the bytecode component's public API, bridge, runtime, Agent, and starter.
-Admin, test, and aggregator POM modules are not exported as business dependency entry points.
+Starter including its typed management API, business component starters, and the bytecode
+component's public API, bridge, runtime, Agent, and starter. Platform, admin, test, and
+aggregator POM modules are not exported as business dependency entry points.
 
 ## Features
 
@@ -33,8 +33,6 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-access-guard-starter` | Method access governance starter |
 | `egon-cola-component-method-extension-starter` | Method extension starter |
 | `egon-cola-component-transactional-outbox-starter` | PostgreSQL/JDBC transactional outbox starter |
-| `egon-cola-component-gateway-starter` | Provider interface reporting and Gateway integration starter |
-| `egon-cola-component-gateway-provider-runtime` | HTTP Provider lease runtime |
 | `egon-cola-component-rpc-starter` | Protobuf/gRPC Provider and Consumer starter |
 | `egon-cola-component-bytecode-api` | Public bytecode capability API |
 | `egon-cola-component-bytecode-bridge` | Bridge between business applications and the Agent |
@@ -49,7 +47,8 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common` | Aggregator POM, not a runtime JAR |
 | `*-admin` | Standalone services that should be deployed as applications, not used as business dependencies |
 | `*-test` | Component samples and verification modules that should not enter the business runtime |
-| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `gateway` / `bytecode` | Component aggregator POMs, not business dependency entry points |
+| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | Component aggregator POMs, not business dependency entry points |
+| `egon-cola-platform-*` | Enterprise infrastructure platforms belong to `egon-cola-platforms` and are versioned outside the Components BOM |
 
 ## Complete Usage Example
 
@@ -100,10 +99,6 @@ After a business application imports the BOM through `dependencyManagement`, sub
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-rpc-starter</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-gateway-starter</artifactId>
     </dependency>
 </dependencies>
 ```

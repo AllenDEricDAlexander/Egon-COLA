@@ -12,8 +12,10 @@ on:
           - all
           - egon-cola-aggregation-parent
           - egon-cola-components-parent
+          - egon-cola-platforms-parent
           - egon-cola-archetypes-parent
           - egon-cola-components
+          - egon-cola-platforms
           - egon-cola-archetypes
 
       skip_tests:
@@ -159,6 +161,11 @@ jobs:
               VERSION_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
               ;;
 
+            egon-cola-platforms-parent)
+              MAVEN_PROJECT_ARGS="-N -f egon-cola-platforms/pom.xml"
+              VERSION_PROJECT_ARGS="-N -f egon-cola-platforms/pom.xml"
+              ;;
+
             egon-cola-archetypes-parent)
               MAVEN_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
               VERSION_PROJECT_ARGS="-N -f egon-cola-archetypes/pom.xml"
@@ -167,6 +174,11 @@ jobs:
             egon-cola-components)
               MAVEN_PROJECT_ARGS="-f egon-cola-components/pom.xml"
               VERSION_PROJECT_ARGS="-N -f egon-cola-components/pom.xml"
+              ;;
+
+            egon-cola-platforms)
+              MAVEN_PROJECT_ARGS="-f egon-cola-platforms/pom.xml"
+              VERSION_PROJECT_ARGS="-N -f egon-cola-platforms/pom.xml"
               ;;
 
             egon-cola-archetypes)

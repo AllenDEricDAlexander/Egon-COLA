@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -9,10 +9,10 @@
         <version>5.3.2</version>
     </parent>
 
-    <artifactId>egon-cola-archetypes-parent</artifactId>
+    <artifactId>egon-cola-platforms-parent</artifactId>
     <packaging>pom</packaging>
-    <name>egon-cola-archetypes-parent</name>
-    <description>egon-cola-archetypes-parent</description>
+    <name>egon-cola-platforms-parent</name>
+    <description>Dependency and plugin management for Egon COLA infrastructure platforms.</description>
     <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>
@@ -53,11 +53,7 @@
     </developers>
 
     <modules>
-        <module>egon-cola-organization-facade</module>
-        <module>egon-cola-evaluation-facade</module>
-        <module>egon-cola-archetype-light</module>
-        <module>egon-cola-archetype-service</module>
-        <module>egon-cola-archetype-web</module>
+        <module>egon-cola-platform-gateway</module>
     </modules>
 
     <properties>
@@ -65,13 +61,26 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring.boot.version>3.5.16</spring.boot.version>
+        <flyway.version>11.15.0</flyway.version>
+        <postgresql.version>42.7.8</postgresql.version>
+        <micrometer.version>1.15.12</micrometer.version>
+        <resilience4j.version>2.2.0</resilience4j.version>
+        <junit.jupiter.version>5.12.2</junit.jupiter.version>
+        <grpc.version>1.75.0</grpc.version>
+        <protobuf.version>4.32.0</protobuf.version>
+        <protoc.version>4.32.0</protoc.version>
+        <protoc-gen-grpc-java.version>1.75.0</protoc-gen-grpc-java.version>
+        <protobuf.maven.plugin.version>0.6.1</protobuf.maven.plugin.version>
+        <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+        <maven.failsafe.plugin.version>3.2.5</maven.failsafe.plugin.version>
+        <javax.annotation.api.version>1.3.2</javax.annotation.api.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <central.server.id>central</central.server.id>
         <central.publishing.maven.plugin.version>0.11.0</central.publishing.maven.plugin.version>
         <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
         <maven.gpg.plugin.version>3.2.8</maven.gpg.plugin.version>
-        <archetype.groovy.version>4.0.28</archetype.groovy.version>
-        <spring.boot.version>3.5.16</spring.boot.version>
     </properties>
 
     <dependencyManagement>
@@ -83,33 +92,127 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-components-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-dynamic-config-center-admin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-core</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-database-postgresql</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-core</artifactId>
+                <version>${micrometer.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-bom</artifactId>
+                <version>${resilience4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.jupiter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-stub</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-services</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java-util</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>${javax.annotation.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>kafka</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <version>${archetype.groovy.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.groovy</groupId>
-            <artifactId>groovy-xml</artifactId>
-            <version>${archetype.groovy.version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
     <build>
-        <extensions>
-            <extension>
-                <groupId>org.apache.maven.archetype</groupId>
-                <artifactId>archetype-packaging</artifactId>
-                <version>3.2.1</version>
-            </extension>
-        </extensions>
         <plugins>
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.9.14,)</version>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <inherited>false</inherited>
@@ -121,16 +224,27 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <artifactId>maven-archetype-plugin</artifactId>
-                    <version>3.4.1</version>
-                </plugin>
-                <plugin>
                     <artifactId>maven-resources-plugin</artifactId>
                     <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.15.0</version>
+                    <configuration>
+                        <release>${java.version}</release>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.springframework.boot</groupId>
+                                <artifactId>spring-boot-configuration-processor</artifactId>
+                                <version>${spring.boot.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring.boot.version}</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-source-plugin</artifactId>
@@ -145,24 +259,12 @@
                     <version>${maven.gpg.plugin.version}</version>
                 </plugin>
                 <plugin>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.5.0</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.2.5</version>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.6.3</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-deploy-plugin</artifactId>
                     <version>3.1.4</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-install-plugin</artifactId>
-                    <version>3.1.4</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.6.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.sonatype.central</groupId>
@@ -185,6 +287,24 @@
                     <artifactId>git-commit-id-plugin</artifactId>
                     <version>4.9.10</version>
                 </plugin>
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven.failsafe.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.xolstice.maven.plugins</groupId>
+                    <artifactId>protobuf-maven-plugin</artifactId>
+                    <version>${protobuf.maven.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>kr.motd.maven</groupId>
+                    <artifactId>os-maven-plugin</artifactId>
+                    <version>${os-maven-plugin.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
@@ -198,6 +318,37 @@
     </distributionManagement>
 
     <profiles>
+        <profile>
+            <id>gen-code-cov</id>
+            <activation>
+                <property>
+                    <name>env.TRAVIS</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>release</id>
             <build>

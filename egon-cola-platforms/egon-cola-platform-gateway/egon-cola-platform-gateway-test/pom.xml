@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-platform-gateway</artifactId>
+        <version>5.3.2</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>egon-cola-platform-gateway-test</artifactId>
+    <packaging>pom</packaging>
+    <name>egon-cola-platform-gateway-test</name>
+    <description>Real applications and end-to-end tests for Egon COLA Gateway.</description>
+
+    <modules>
+        <module>egon-cola-platform-gateway-test-http-provider</module>
+        <module>egon-cola-platform-gateway-test-webflux-http-provider</module>
+        <module>egon-cola-platform-gateway-test-rpc-contract</module>
+        <module>egon-cola-platform-gateway-test-rpc-provider</module>
+        <module>egon-cola-platform-gateway-test-rpc-consumer</module>
+        <module>egon-cola-platform-gateway-test-suite</module>
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>gateway-live</id>
+            <properties>
+                <gateway.live.test>true</gateway.live.test>
+                <gateway.live.infrastructure>testcontainers</gateway.live.infrastructure>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <gateway.live.test>${gateway.live.test}</gateway.live.test>
+                                        <gateway.live.infrastructure>${gateway.live.infrastructure}</gateway.live.infrastructure>
+                                        <jdk.httpclient.allowRestrictedHeaders>host</jdk.httpclient.allowRestrictedHeaders>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

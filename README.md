@@ -54,8 +54,9 @@ Egon-COLA
 │   ├── egon-cola-component-access-guard-starter/
 │   ├── egon-cola-component-method-extension/
 │   ├── egon-cola-component-transactional-outbox/
-│   ├── egon-cola-component-bytecode/
-│   └── egon-cola-component-gateway/
+│   └── egon-cola-component-bytecode/
+├── egon-cola-platforms/      # Enterprise infrastructure platforms and their shared parent POM
+│   └── egon-cola-platform-gateway/
 ├── scripts/                  # Local verification, version updates, and release notes
 ├── mvnw
 ├── mvnw.cmd
@@ -245,8 +246,18 @@ verification command.
 | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.md) | `...-starter` | AOP or Agent-based business decision handlers before annotated methods. |
 | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | `...-starter` | PostgreSQL/JDBC at-least-once delivery through HTTP, RabbitMQ, or custom handlers. |
 | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.md) | API, bridge, runtime, Agent, and starter | Build-time architecture checks plus optional executor, observation, Method Extension, and Access Guard enhancement. |
-| [Gateway](egon-cola-components/egon-cola-component-gateway/README.md) | Engine, Admin, Starter, Provider Runtime | HTTP/RPC data plane, rule releases, provider discovery, security, observability, and deployment assets. |
 | [Components BOM](egon-cola-components/egon-cola-components-bom/README.md) | `egon-cola-components-bom` | Central version management for public component consumption artifacts. |
+
+## Platform Ecosystem
+
+`egon-cola-platforms` contains deployable enterprise infrastructure systems. Its empty
+packaging parent POM aggregates only platform systems and centralizes their dependency
+imports and plugin versions. Platforms may consume public components, while the Components
+BOM does not export platform artifacts.
+
+| Platform | Main entry point | Scope |
+|---|---|---|
+| [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.md) | Engine, Admin, Starter, Provider Runtime | HTTP/RPC data plane, rule releases, provider discovery, security, observability, and deployment assets. |
 
 Recommended structure for runtime starter-style components:
 
@@ -346,6 +357,9 @@ Egon-COLA uses the Sonatype Central Portal release process. Before publishing, v
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
   -Prelease -DskipTests verify
 
+./mvnw -B -ntp -f egon-cola-platforms/pom.xml \
+  -Prelease -DskipTests verify
+
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
   -Prelease -DskipTests verify
 ```
@@ -355,6 +369,7 @@ Publish the parent POMs:
 ```bash
 ./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
 ./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
+./mvnw -B -ntp -N -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
 ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 ```
 
@@ -362,6 +377,12 @@ Publish components:
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
+```
+
+Publish platforms after the Components artifacts are available:
+
+```bash
+./mvnw -B -ntp -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
 ```
 
 Publish archetypes:
@@ -386,7 +407,7 @@ See [scripts/maven-deploy.md](scripts/maven-deploy.md) for detailed steps.
 | [egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md](egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md) | Snowflake ID configuration, guarantees, and operational boundaries. |
 | [egon-cola-components/egon-cola-component-dynamic-config-center/README.md](egon-cola-components/egon-cola-component-dynamic-config-center/README.md) | Dynamic configuration, leases, registry, and publish protocol. |
 | [egon-cola-components/egon-cola-component-rpc/README.md](egon-cola-components/egon-cola-component-rpc/README.md) | Protobuf/gRPC Provider and Consumer contract. |
-| [egon-cola-components/egon-cola-component-gateway/README.md](egon-cola-components/egon-cola-component-gateway/README.md) | HTTP/RPC Gateway platform and deployment links. |
+| [egon-cola-platforms/egon-cola-platform-gateway/README.md](egon-cola-platforms/egon-cola-platform-gateway/README.md) | HTTP/RPC Gateway platform and deployment links. |
 | [egon-cola-components/egon-cola-component-transactional-outbox/README.md](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | PostgreSQL/JDBC transactional outbox usage and guarantees. |
 | [scripts/maven-deploy.md](scripts/maven-deploy.md) | Maven Central release instructions. |
 

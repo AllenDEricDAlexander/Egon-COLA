@@ -313,7 +313,7 @@ egon:
 ## 明确边界
 
 完整的 DDC + Gateway + RPC 启动顺序、凭据、租约演练和运行证据见
-[开发联调 Runbook](../egon-cola-component-gateway/docs/developer-integration.zh-CN.md)。
+[开发联调 Runbook](../../egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.zh-CN.md)。
 
 - 不支持 Raft、Leader 选举、共识日志或成员协议；
 - 多 Admin 运行要求共享 PostgreSQL 和 Redis；组件不负责提供数据库或 Redis HA；

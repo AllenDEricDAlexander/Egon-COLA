@@ -49,6 +49,7 @@
 
     <modules>
         <module>egon-cola-components</module>
+        <module>egon-cola-platforms</module>
         <module>egon-cola-archetypes</module>
     </modules>
 
@@ -118,6 +119,13 @@
             <id>release</id>
             <build>
                 <plugins>
+                    <plugin>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <inherited>false</inherited>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                    </plugin>
                     <plugin>
                         <artifactId>maven-source-plugin</artifactId>
                         <inherited>false</inherited>

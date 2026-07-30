@@ -4,15 +4,23 @@ on:
   push:
     paths:
       - ".github/workflows/gateway.yml"
+      - "pom.xml"
+      - "egon-cola-components/pom.xml"
+      - "egon-cola-components/egon-cola-components-bom/pom.xml"
       - "egon-cola-components/egon-cola-component-dynamic-config-center/**"
       - "egon-cola-components/egon-cola-component-rpc/**"
-      - "egon-cola-components/egon-cola-component-gateway/**"
+      - "egon-cola-platforms/pom.xml"
+      - "egon-cola-platforms/egon-cola-platform-gateway/**"
   pull_request:
     paths:
       - ".github/workflows/gateway.yml"
+      - "pom.xml"
+      - "egon-cola-components/pom.xml"
+      - "egon-cola-components/egon-cola-components-bom/pom.xml"
       - "egon-cola-components/egon-cola-component-dynamic-config-center/**"
       - "egon-cola-components/egon-cola-component-rpc/**"
-      - "egon-cola-components/egon-cola-component-gateway/**"
+      - "egon-cola-platforms/pom.xml"
+      - "egon-cola-platforms/egon-cola-platform-gateway/**"
   schedule:
     - cron: "23 18 * * *"
   workflow_dispatch:
@@ -31,8 +39,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GATEWAY_ROOT: egon-cola-components/egon-cola-component-gateway
-  GATEWAY_TEST_SUITE: egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite
+  GATEWAY_ROOT: egon-cola-platforms/egon-cola-platform-gateway
+  GATEWAY_TEST_SUITE: egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite
 
 jobs:
   gateway-fast:
@@ -62,12 +70,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/.node-version"
+          node-version-file: "${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web/.node-version"
           cache: npm
-          cache-dependency-path: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/package-lock.json"
+          cache-dependency-path: "${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web/package-lock.json"
 
       - name: Verify Gateway Admin Web
-        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web
+        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web
         run: |
           npm ci
           npm run typecheck
@@ -87,18 +95,18 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/.node-version"
+          node-version-file: "${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web/.node-version"
           cache: npm
-          cache-dependency-path: "${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/package-lock.json"
+          cache-dependency-path: "${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web/package-lock.json"
 
       - name: Install dependencies and Chromium
-        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web
+        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web
         run: |
           npm ci
           npx playwright install --with-deps chromium
 
       - name: Run Gateway Admin acceptance
-        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web
+        working-directory: ${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web
         run: npx playwright test
 
       - name: Upload Playwright report
@@ -106,7 +114,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gateway-admin-playwright-report
-          path: ${{ env.GATEWAY_ROOT }}/egon-cola-component-gateway-admin-web/playwright-report
+          path: ${{ env.GATEWAY_ROOT }}/egon-cola-platform-gateway-admin-web/playwright-report
           if-no-files-found: ignore
 
   gateway-live:

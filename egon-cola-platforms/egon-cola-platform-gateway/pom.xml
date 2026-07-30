@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-platforms-parent</artifactId>
+        <version>5.3.2</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>egon-cola-platform-gateway</artifactId>
+    <packaging>pom</packaging>
+    <name>egon-cola-platform-gateway</name>
+    <description>Self-built HTTP and RPC gateway platform for Egon COLA.</description>
+
+    <modules>
+        <module>egon-cola-platform-gateway-contract</module>
+        <module>egon-cola-platform-gateway-core</module>
+        <module>egon-cola-platform-gateway-engine</module>
+        <module>egon-cola-platform-gateway-admin</module>
+        <module>egon-cola-platform-gateway-starter</module>
+        <module>egon-cola-platform-gateway-provider-runtime</module>
+        <module>egon-cola-platform-gateway-test</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-contract</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-admin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-provider-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-test-http-provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-test-webflux-http-provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-test-rpc-contract</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-test-rpc-provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-test-rpc-consumer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

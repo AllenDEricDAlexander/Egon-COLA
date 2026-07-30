@@ -1,0 +1,130 @@
+services:
+  http-provider-mvc:
+    build:
+      context: ../../..
+      dockerfile: egon-cola-platforms/egon-cola-platform-gateway/deployment/Dockerfile.test-app
+      args:
+        APP_JAR: egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/target/gateway-test-http-provider-exec.jar
+    env_file:
+      - path: .demo/http-provider.env
+        required: false
+    environment:
+      SERVER_PORT: 18080
+      EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-test-http-provider
+      EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: http://ddc-admin:18080
+      EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_SECRET_KEY: ${DDC_SECRET_KEY}
+      EGON_COLA_COMPONENT_DDC_REGISTRY_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_REDIS_HOST: ddc-redis
+      EGON_COLA_COMPONENT_DDC_REDIS_PORT: 6379
+      GATEWAY_TEST_PROVIDER_ID: http-provider-mvc-demo
+      GATEWAY_TEST_SERVICE_VERSION: ${DEMO_SERVICE_VERSION:-1.0.0-demo}
+      GATEWAY_TEST_ADVERTISED_HOST: http-provider-mvc
+      GATEWAY_TEST_ADVERTISED_PORT: 18080
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_ADMIN_BASE_URL: http://gateway-admin:18080
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_APPLICATION_CODE: gateway-test-http-provider
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+    depends_on:
+      gateway-admin: {condition: service_started}
+      ddc-admin: {condition: service_started}
+    ports: ["18084:18080"]
+
+  http-provider-webflux:
+    build:
+      context: ../../..
+      dockerfile: egon-cola-platforms/egon-cola-platform-gateway/deployment/Dockerfile.test-app
+      args:
+        APP_JAR: egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider/target/gateway-test-webflux-http-provider-exec.jar
+    environment:
+      SERVER_PORT: 18080
+      EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-test-http-provider
+      EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: http://ddc-admin:18080
+      EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_SECRET_KEY: ${DDC_SECRET_KEY}
+      EGON_COLA_COMPONENT_DDC_REGISTRY_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_REDIS_HOST: ddc-redis
+      EGON_COLA_COMPONENT_DDC_REDIS_PORT: 6379
+      GATEWAY_TEST_PROVIDER_ID: http-provider-webflux-demo
+      GATEWAY_TEST_SERVICE_VERSION: ${DEMO_SERVICE_VERSION:-1.0.0-demo}
+      GATEWAY_TEST_ADVERTISED_HOST: http-provider-webflux
+      GATEWAY_TEST_ADVERTISED_PORT: 18080
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_ENABLED: "false"
+    depends_on: {ddc-admin: {condition: service_started}}
+    ports: ["18085:18080"]
+
+  rpc-provider:
+    build:
+      context: ../../..
+      dockerfile: egon-cola-platforms/egon-cola-platform-gateway/deployment/Dockerfile.test-app
+      args:
+        APP_JAR: egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-rpc-provider/target/gateway-test-rpc-provider-exec.jar
+    env_file:
+      - path: .demo/rpc-provider.env
+        required: false
+    environment:
+      SERVER_PORT: 18080
+      EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-test-rpc-provider
+      EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: http://ddc-admin:18080
+      EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_SECRET_KEY: ${DDC_SECRET_KEY}
+      EGON_COLA_COMPONENT_RPC_ENABLED: "true"
+      EGON_COLA_COMPONENT_RPC_TLS_DEVELOPMENT_PLAINTEXT: "true"
+      EGON_COLA_COMPONENT_RPC_PROVIDER_ENABLED: "true"
+      EGON_COLA_COMPONENT_RPC_PROVIDER_PORT: 19091
+      EGON_COLA_COMPONENT_RPC_PROVIDER_ADVERTISED_HOST: rpc-provider
+      EGON_COLA_COMPONENT_RPC_PROVIDER_ADVERTISED_PORT: 19091
+      GATEWAY_TEST_PROVIDER_ID: rpc-provider-demo
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_ENABLED: "true"
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_ADMIN_BASE_URL: http://gateway-admin:18080
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_APPLICATION_CODE: gateway-test-rpc-provider
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_GATEWAY_REPORTING_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+    depends_on:
+      gateway-admin: {condition: service_started}
+      ddc-admin: {condition: service_started}
+    ports: ["18086:18080", "19091:19091"]
+
+  rpc-consumer:
+    build:
+      context: ../../..
+      dockerfile: egon-cola-platforms/egon-cola-platform-gateway/deployment/Dockerfile.test-app
+      args:
+        APP_JAR: egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-rpc-consumer/target/gateway-test-rpc-consumer-exec.jar
+    environment:
+      SERVER_PORT: 18080
+      EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-test-rpc-consumer
+      EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
+      EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_DDC_ADMIN_ENDPOINT: http://ddc-admin:18080
+      EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_SIGNATURE_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_ADMIN_ACCESS_KEY: ${DDC_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_ADMIN_SECRET_KEY: ${DDC_SECRET_KEY}
+      EGON_COLA_COMPONENT_RPC_ENABLED: "true"
+      EGON_COLA_COMPONENT_RPC_TLS_DEVELOPMENT_PLAINTEXT: "true"
+      EGON_COLA_COMPONENT_RPC_CONSUMER_ENABLED: "true"
+      EGON_COLA_COMPONENT_RPC_CONSUMER_GATEWAY_SERVICE_NAME: ${GATEWAY_RPC_SERVICE_NAME:-egon-gateway-rpc}
+      EGON_COLA_COMPONENT_RPC_CONSUMER_GATEWAY_GROUP: ${GATEWAY_RPC_GROUP:-default}
+      EGON_COLA_COMPONENT_RPC_CONSUMER_GATEWAY_VERSION: ${GATEWAY_RPC_VERSION:-1.0.0}
+    depends_on:
+      gateway-engine: {condition: service_started}
+      gateway-engine-2: {condition: service_started}
+    ports: ["18087:18080"]

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-platform-gateway</artifactId>
+        <version>5.3.2</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>egon-cola-platform-gateway-core</artifactId>
+    <packaging>jar</packaging>
+    <name>egon-cola-platform-gateway-core</name>
+    <description>Framework-free data-plane model and SPI for Egon COLA Gateway.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-platform-gateway-contract</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

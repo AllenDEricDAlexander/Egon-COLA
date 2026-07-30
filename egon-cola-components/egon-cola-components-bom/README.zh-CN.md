@@ -6,7 +6,7 @@
 
 `egon-cola-components-bom` 是 Egon COLA 组件体系的 Maven BOM。它不提供运行时代码，只负责统一管理 `egon-cola-components` 下可被业务应用直接依赖的组件版本，避免业务工程在每个组件依赖上重复写版本号。
 
-BOM 当前导出的是稳定消费入口：common core 与工具模块、包含类型化管理 API 的 DDC Starter、各业务组件的 starter、Gateway 运行时入口，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。admin、test、聚合 POM 不作为业务依赖入口导出。
+BOM 当前导出的是稳定消费入口：common core 与工具模块、包含类型化管理 API 的 DDC Starter、各业务组件的 starter，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。platform、admin、test、聚合 POM 不作为业务依赖入口导出。
 
 ## 功能说明
 
@@ -30,8 +30,6 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 | `egon-cola-component-access-guard-starter` | 方法访问治理 starter |
 | `egon-cola-component-method-extension-starter` | 方法扩展 starter |
 | `egon-cola-component-transactional-outbox-starter` | PostgreSQL/JDBC 事务消息 starter |
-| `egon-cola-component-gateway-starter` | Provider 接口上报和 Gateway 集成 starter |
-| `egon-cola-component-gateway-provider-runtime` | HTTP Provider 租约运行时 |
 | `egon-cola-component-rpc-starter` | Protobuf/gRPC Provider 与 Consumer starter |
 | `egon-cola-component-bytecode-api` | 字节码能力公共 API |
 | `egon-cola-component-bytecode-bridge` | 业务应用与 Agent 之间的桥接层 |
@@ -46,7 +44,8 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
 | `egon-cola-component-common` | 聚合 POM，不是运行时 Jar |
 | `*-admin` | 独立服务，应按应用部署，不作为业务依赖 |
 | `*-test` | 组件样例和验证模块，不应进入业务运行时 |
-| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `gateway` / `bytecode` | 组件聚合 POM，不是业务依赖入口 |
+| `egon-cola-component-dynamic-thread-pool` / `dynamic-config-center` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | 组件聚合 POM，不是业务依赖入口 |
+| `egon-cola-platform-*` | 企业级基础设施平台归属 `egon-cola-platforms`，不由 Components BOM 管理版本 |
 
 ## 完整的使用示例
 
@@ -97,10 +96,6 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、包含�
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-rpc-starter</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-gateway-starter</artifactId>
     </dependency>
 </dependencies>
 ```

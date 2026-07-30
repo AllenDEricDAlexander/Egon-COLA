@@ -1,7 +1,7 @@
 # Egon-COLA Maven Central 发布操作说明
 
 > 适用路径：`scripts/maven-deploy.md`  
-> 适用目标：将 Egon-COLA 的 Parent POM、Components、Archetypes 发布到 Maven Central。  
+> 适用目标：将 Egon-COLA 的 Parent POM、Components、Platforms、Archetypes 发布到 Maven Central。
 > 发布方式：Sonatype Central Portal + `central-publishing-maven-plugin`。  
 > 不再使用旧 OSSRH Staging 流程。
 
@@ -18,6 +18,9 @@ Egon-COLA
 │   ├── egon-cola-components-parent   # Components Parent POM
 │   ├── egon-cola-components-bom      # Components BOM
 │   └── egon-cola-component-*         # 具体组件模块
+├── egon-cola-platforms
+│   ├── egon-cola-platforms-parent    # Platforms Parent POM
+│   └── egon-cola-platform-*          # 企业级基础设施平台
 └── egon-cola-archetypes
     ├── egon-cola-archetypes-parent   # Archetypes Parent POM
     ├── egon-cola-archetype-light
@@ -33,12 +36,11 @@ flowchart TD
     B --> C[Release Profile 验证]
     C --> D[Deploy 生命周期 Dry Run]
     D --> E[发布根 Parent POM]
-    E --> F[发布 Components Parent POM]
-    F --> G[发布 Archetypes Parent POM]
-    G --> H[发布 Components 全量模块]
-    H --> I[等待 Maven Central 可解析]
-    I --> J[发布 Archetypes 全量模块]
-    J --> K[创建 Git Tag / Release Note]
+    E --> F[发布 Components 全量模块]
+    F --> G[等待 Components BOM 可解析]
+    G --> H[发布 Platforms 全量模块]
+    H --> I[发布 Archetypes 全量模块]
+    I --> J[创建 Git Tag / Release Note]
 ```
 
 第一次发布或大版本发布时，建议按顺序分步发布；只有在确认整个发布链路稳定后，才考虑使用 `all`。
@@ -181,6 +183,12 @@ gpg --armor --export-secret-keys <KEY_ID>
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests verify
 ```
 
+验证 Platforms 发布构建：
+
+```bash
+./mvnw -B -ntp -Prelease -DskipTests -pl egon-cola-platforms -am verify
+```
+
 验证 Archetypes 发布构建：
 
 ```bash
@@ -191,6 +199,7 @@ gpg --armor --export-secret-keys <KEY_ID>
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
+./mvnw -B -ntp -Prelease -DskipTests -Dgpg.skip=true -pl egon-cola-platforms -am verify
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -Dgpg.skip=true verify
 ```
 
@@ -202,11 +211,13 @@ gpg --armor --export-secret-keys <KEY_ID>
 
 ```bash
 ./mvnw -B -ntp -N -Prelease -DskipTests -DskipPublishing=true clean deploy
-./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
-./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+./mvnw -B -ntp -f egon-cola-platforms/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 ```
+
+各业务 Reactor 会同时验证自己的 Parent POM 和子模块。不要先对同一版本运行
+parent-only deploy，再运行包含该 Parent 的全量 deploy，否则会重复发布同一坐标。
 
 Dry Run 通过后，再进入真实发布。
 
@@ -216,10 +227,11 @@ Dry Run 通过后，再进入真实发布。
 
 ### 7.1 发布
 
+推荐按 7.2 到 7.4 分步发布。根 Reactor 全量发布仅用于整条链路已经稳定、且
+同版本没有执行过任何 parent-only 或局部发布的场景：
+
 ```bash
-./mvnw -B -ntp -f ./pom.xml -Prelease clean deploy  # 发布全部的包
-./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease clean deploy # 发布 components 全部的包 parent & children module
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease clean deploy # 发布 archetypes 全部的包 parent & children module
+./mvnw -B -ntp -f ./pom.xml -Prelease clean deploy
 ```
 
 ### 7.2 发布 Components
@@ -228,7 +240,7 @@ Dry Run 通过后，再进入真实发布。
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
 ```
 
-发布后等待 Maven Central 能解析 Components，再发布 Archetypes。
+发布后等待 Maven Central 能解析 Components，再发布 Platforms 和 Archetypes。
 
 可以用下面方式验证依赖是否可解析：
 
@@ -236,7 +248,13 @@ Dry Run 通过后，再进入真实发布。
 ./mvnw -B -ntp dependency:get -Dartifact=top.egon:egon-cola-components-bom:5.x.y:pom
 ```
 
-### 7.3 发布 Archetypes
+### 7.3 发布 Platforms
+
+```bash
+./mvnw -B -ntp -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
+```
+
+### 7.4 发布 Archetypes
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
@@ -278,8 +296,10 @@ GitHub Repository → Actions → Publish Maven Central → Run workflow
 |--------------------------------|--------------------------|-----------|
 | `egon-cola-aggregation-parent` | 发布根 Parent POM           | 新版本首次发布   |
 | `egon-cola-components-parent`  | 发布 Components Parent POM | 新版本首次发布   |
+| `egon-cola-platforms-parent`   | 发布 Platforms Parent POM  | 新版本首次发布   |
 | `egon-cola-archetypes-parent`  | 发布 Archetypes Parent POM | 新版本首次发布   |
 | `egon-cola-components`         | 发布 Components 全量模块       | 组件发布      |
+| `egon-cola-platforms`          | 发布 Platforms 全量模块        | 平台发布      |
 | `egon-cola-archetypes`         | 发布 Archetypes 全量模块       | 脚手架发布     |
 | `all`                          | 从根 Reactor 发布全部          | 仅在链路稳定后使用 |
 
@@ -287,11 +307,17 @@ GitHub Repository → Actions → Publish Maven Central → Run workflow
 
 ```text
 1. egon-cola-aggregation-parent
-2. egon-cola-components-parent
-3. egon-cola-archetypes-parent
-4. egon-cola-components
+2. egon-cola-components
+3. 等待 egon-cola-components-bom 可从 Maven Central 解析
+4. egon-cola-platforms
 5. egon-cola-archetypes
 ```
+
+`egon-cola-platforms-parent` 导入同版本 `egon-cola-components-bom`，因此不能在
+Components 全量发布完成前单独发布。
+
+parent-only 目标仅用于新版本只发布父 POM 的场景；同一版本如果后续还要发布
+该父 POM 的全量 Reactor，应直接选择全量目标，避免重复发布父坐标。
 
 `skip_tests=true` 可以用于手动发布加速，但正式 Release 前必须至少跑过一次完整 CI。发布不是许愿池，测试该还的债迟早会来敲门。
 
@@ -380,24 +406,27 @@ git push origin v5.x.y
 
 # 3. Release Profile 验证
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests verify
+./mvnw -B -ntp -Prelease -DskipTests -pl egon-cola-platforms -am verify
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests verify
 
 # 4. Dry Run
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
+./mvnw -B -ntp -f egon-cola-platforms/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests -DskipPublishing=true clean deploy
 
 # 5. 发布 Parent POM
 ./mvnw -B -ntp -N -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
-./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 
-# 6. 发布 Components
+# 6. 发布 Components Parent、BOM 和全部组件
 ./mvnw -B -ntp -f egon-cola-components/pom.xml -Prelease -DskipTests clean deploy
 
-# 7. 等待 Components 可解析后发布 Archetypes
+# 7. 等待 Components BOM 可解析后发布 Platforms Parent 和全部平台
+./mvnw -B -ntp -f egon-cola-platforms/pom.xml -Prelease -DskipTests clean deploy
+
+# 8. 发布 Archetypes Parent 和全部 Archetype 模块
 ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -DskipTests clean deploy
 
-# 8. 打 Tag
+# 9. 打 Tag
 git tag -a v5.x.y -m "Release v5.x.y"
 git push origin v5.x.y
 ```

@@ -10,8 +10,8 @@ their generated Proto service identities in the Dynamic Config Center (DDC). A
 Consumer creates JDK proxies, discovers active internal Gateways, keeps one
 channel per Gateway, and distributes calls across them within the overall deadline.
 
-The production Gateway is implemented by the sibling
-[Gateway component](../egon-cola-component-gateway/README.md). This component owns
+The production Gateway is implemented by the separate
+[Gateway platform](../../egon-cola-platforms/egon-cola-platform-gateway/README.md). This component owns
 the Provider and Consumer contracts and lifecycle integration; it does not embed a
 Gateway data plane. The test sources still contain a Mock Gateway for isolated
 Consumer → Gateway → Provider verification.
@@ -363,7 +363,7 @@ Provider `UNAVAILABLE` status must add the framework failure-stage trailer.
 
 ## Gateway Boundary
 
-The Starter does not package the production Gateway. The sibling Gateway component
+The Starter does not package the production Gateway. The separate Gateway platform
 owns Gateway registration, provider directory, route/rule execution, HTTP/RPC
 forwarding, health, and traffic governance. The following capabilities remain
 test-only fixtures under `rpc-test-suite/src/test`:
@@ -390,7 +390,7 @@ They do not use gRPC in-process transports:
 
 The suite also verifies cancellation and multi-Provider Directory
 discovery/replacement/eviction. Gateway selection and Provider load balancing belong
-to the Gateway component; the Consumer only selects among active Gateway channels.
+to the Gateway platform; the Consumer only selects among active Gateway channels.
 
 An opt-in `verify` profile launches one Admin, one Provider, one Mock Gateway,
 and one Consumer in separate JVMs. It requires an externally managed Redis
@@ -410,7 +410,7 @@ under `target/rpc-process-it`, and stops children in reverse order.
 
 ## V1 Non-goals
 
-Use the [Gateway + DDC + RPC integration runbook](../egon-cola-component-gateway/docs/developer-integration.md)
+Use the [Gateway + DDC + RPC integration runbook](../../egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.md)
 for the production Gateway topology, dual-Engine calls, and fault drills.
 
 V1 does not implement:

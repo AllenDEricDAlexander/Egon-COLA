@@ -7,6 +7,8 @@ updates:
       - "/"
       - "/egon-cola-components"
       - "/egon-cola-components/*"
+      - "/egon-cola-platforms"
+      - "/egon-cola-platforms/*"
       - "/egon-cola-archetypes"
       - "/egon-cola-archetypes/*"
 
