@@ -149,7 +149,7 @@ class SnowflakeIdGeneratorTest {
             long readsBeforeWait = timeSource.readCount();
             PendingGeneration pending = startVirtualGeneration(generator, "snowflake-sequence-wait");
             try {
-                awaitReadCountGreaterThan(timeSource, readsBeforeWait, WAIT_TIMEOUT);
+                awaitReadCountAtLeast(timeSource, readsBeforeWait + 2L, WAIT_TIMEOUT);
                 assertTrue(pending.thread().isAlive(), "4097th generation must wait for time to advance");
                 assertNull(pending.result().get());
 
@@ -181,7 +181,7 @@ class SnowflakeIdGeneratorTest {
             long readsBeforeWait = timeSource.readCount();
             PendingGeneration pending = startVirtualGeneration(generator, "snowflake-clock-recovery");
             try {
-                awaitReadCountGreaterThan(timeSource, readsBeforeWait, WAIT_TIMEOUT);
+                awaitReadCountAtLeast(timeSource, readsBeforeWait + 2L, WAIT_TIMEOUT);
                 assertTrue(pending.thread().isAlive(), "generation must wait while the clock is behind");
 
                 timeSource.setCurrentTimeMillis(TEST_TIME);
@@ -239,7 +239,7 @@ class SnowflakeIdGeneratorTest {
             long readsBeforeWait = timeSource.readCount();
             PendingGeneration pending = startVirtualGeneration(generator, "snowflake-interrupt-wait");
             try {
-                awaitReadCountGreaterThan(timeSource, readsBeforeWait, WAIT_TIMEOUT);
+                awaitReadCountAtLeast(timeSource, readsBeforeWait + 2L, WAIT_TIMEOUT);
                 assertTrue(pending.thread().isAlive(), "generation must still be waiting");
                 pending.thread().interrupt();
                 awaitTermination(pending.thread(), WAIT_TIMEOUT);
@@ -305,14 +305,14 @@ class SnowflakeIdGeneratorTest {
         return new PendingGeneration(thread, result, failure, interruptedAtExit);
     }
 
-    private void awaitReadCountGreaterThan(ControllableTimeSource timeSource, long previousReadCount,
-                                            Duration timeout) {
+    private void awaitReadCountAtLeast(ControllableTimeSource timeSource, long expectedReadCount,
+                                       Duration timeout) {
         long deadline = System.nanoTime() + timeout.toNanos();
-        while (timeSource.readCount() <= previousReadCount && System.nanoTime() < deadline) {
+        while (timeSource.readCount() < expectedReadCount && System.nanoTime() < deadline) {
             LockSupport.parkNanos(100_000L);
         }
-        assertTrue(timeSource.readCount() > previousReadCount,
-                "time source was not read again before the timeout");
+        assertTrue(timeSource.readCount() >= expectedReadCount,
+                "generator did not enter the clock wait loop before the timeout");
     }
 
     private void awaitTermination(Thread thread, Duration timeout) throws InterruptedException {

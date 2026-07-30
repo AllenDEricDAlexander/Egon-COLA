@@ -20,8 +20,9 @@ final class ControllableTimeSource implements TimeSource {
 
     @Override
     public long currentTimeMillis() {
+        long observedTimeMillis = currentTimeMillis.get();
         readCount.incrementAndGet();
-        return currentTimeMillis.get();
+        return observedTimeMillis;
     }
 
     void setCurrentTimeMillis(long currentTimeMillis) {
