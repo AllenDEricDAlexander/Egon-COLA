@@ -1567,34 +1567,42 @@ $$;
 CREATE TRIGGER trg_rbac3_directory_snapshot_immutable
     BEFORE UPDATE ON rbac3_directory_snapshot
     FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
-        'provider_code', 'snapshot_version', 'checksum', 'generated_at', 'payload'
+        'tenant_id', 'provider_code', 'snapshot_version', 'checksum',
+        'generated_at', 'payload'
     );
 
 CREATE TRIGGER trg_rbac3_resource_manifest_immutable
     BEFORE UPDATE ON rbac3_resource_manifest
     FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
-        'application_id', 'schema_version', 'artifact_version', 'build_id',
-        'manifest_version', 'checksum', 'payload'
+        'tenant_id', 'application_id', 'schema_version', 'artifact_version',
+        'build_id', 'manifest_version', 'checksum', 'payload'
     );
 
 CREATE TRIGGER trg_rbac3_permission_code_immutable
     BEFORE UPDATE ON rbac3_permission
     FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
-        'permission_code'
+        'tenant_id', 'application_id', 'permission_code'
+    );
+
+CREATE TRIGGER trg_rbac3_resource_identity_immutable
+    BEFORE UPDATE ON rbac3_resource
+    FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
+        'tenant_id', 'application_id', 'resource_type', 'resource_code',
+        'source_manifest_id', 'source_build_id', 'mechanical_facts'
     );
 
 CREATE TRIGGER trg_rbac3_role_identity_immutable
     BEFORE UPDATE ON rbac3_role
     FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
-        'application_id', 'role_type', 'privileged'
+        'tenant_id', 'application_id', 'role_code', 'role_type', 'privileged'
     );
 
 CREATE TRIGGER trg_rbac3_permission_resource_mapping_immutable
     BEFORE UPDATE ON rbac3_permission_resource
     FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
-        'application_id', 'permission_id', 'resource_id', 'resource_type',
-        'definition_set_id', 'gateway_operation_id', 'security_policy_id',
-        'mapping_version'
+        'tenant_id', 'application_id', 'permission_id', 'resource_id',
+        'resource_type', 'definition_set_id', 'gateway_operation_id',
+        'security_policy_id', 'mapping_version'
     );
 
 CREATE FUNCTION rbac3_reject_append_only_change()

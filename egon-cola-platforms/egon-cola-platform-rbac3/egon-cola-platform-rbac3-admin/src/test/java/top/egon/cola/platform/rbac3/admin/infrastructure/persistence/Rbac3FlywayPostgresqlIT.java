@@ -380,6 +380,14 @@ class Rbac3FlywayPostgresqlIT {
         );
         assertImmutableUpdateRejected(
                 connection, schema,
+                "update rbac3_resource set mechanical_facts = '{\"changed\":true}'::jsonb where id = 7100"
+        );
+        assertImmutableUpdateRejected(
+                connection, schema,
+                "update rbac3_role set role_code = 'ROLE_CHANGED' where id = 1000"
+        );
+        assertImmutableUpdateRejected(
+                connection, schema,
                 "update rbac3_role set privileged = true where id = 1000"
         );
         assertImmutableUpdateRejected(
