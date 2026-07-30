@@ -1,6 +1,6 @@
 # Egon-COLA RBAC3 企业级权限平台设计 Spec
 
-> 状态：待用户审核，未进入实施
+> 状态：已通过用户审核，实施 Plan 待审核，尚未进入实施
 >
 > 日期：2026-07-30
 >
@@ -19,17 +19,17 @@
 本文只固化 RBAC3 的产品范围、领域语义、模块边界、运行拓扑、接口契约、数据模型、
 一致性要求、错误语义和验收标准，不是实施计划。
 
-在本文获得用户明确确认前：
+本文已于 2026-07-30 获得用户明确确认，现仅授权编写并审核一次性交付实施 Plan。在该 Plan 再次获得用户明确确认前：
 
 1. 不创建 `egon-cola-platform-rbac3` 目录或任何子模块；
 2. 不修改根 POM、Platforms POM、BOM、版本号或发布配置；
 3. 不新增 Java、TypeScript、React、配置、测试、SQL 或 Flyway 文件；
 4. 不修改现有 Gateway、DDC、Access Guard 或 Transactional Outbox；
-5. 不生成 `docs/superpowers/plans/` 下的实施计划；
+5. 只允许生成和修订 `docs/superpowers/plans/2026-07-30-rbac3-permission-platform-one-shot-parallel.md`，不执行其中任何 Task；
 6. 不启动 RBAC3、Gateway、DDC、PostgreSQL、Redis 或其他长驻进程。
 
-用户确认本文后，下一步才是按本 Spec 编写实施计划。实施计划仍需列出精确文件、测试、
-验证命令和逐任务提交边界。
+现已按本 Spec 编写一次性交付并行实施 Plan，其中列出精确文件、测试、验证命令和逐任务提交
+边界；用户确认该 Plan 后才进入实现。
 
 ### 1.1 本轮评审对象
 
@@ -926,7 +926,9 @@ RBAC3 Admin 必须依赖现有：
 top.egon:egon-cola-platform-gateway-starter
 ```
 
-Controller 使用现有 `@EgonHttpService`，方法使用现有 `@GatewayOperation`。Spring MVC Mapping
+Controller 同时使用当前 Gateway Scanner 实际识别的 `@GatewayInterfaceGroup` 和服务语义元数据
+`@EgonHttpService`，方法使用现有 `@GatewayOperation`。`@GatewayInterfaceGroup` 填写业务域、实体域和
+接口组字段，`@EgonHttpService` 填写 service/group/version/basePath；两者不能互相代替。Spring MVC Mapping
 仍是 HTTP Method、Path、Content Type 和参数事实来源，不新增重复描述机械 HTTP 信息的注解。
 
 统一应用身份：
@@ -1154,7 +1156,7 @@ sequenceDiagram
     participant Engine as Gateway Engine
     participant Client as Client
 
-    Admin->>GStarter: 扫描 @EgonHttpService/@GatewayOperation
+    Admin->>GStarter: 扫描 @GatewayInterfaceGroup/@EgonHttpService/@GatewayOperation
     GStarter->>GAdmin: 上报版本化接口定义
     Admin->>DDC: 注册 HTTP_PROVIDER 租约并持续心跳
     GAdmin->>DDC: 发布包含 Route 与 Security Policy 的 Release
