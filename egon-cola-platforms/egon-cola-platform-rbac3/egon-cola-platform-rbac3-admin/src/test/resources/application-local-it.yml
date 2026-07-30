@@ -1,0 +1,11 @@
+spring:
+  config:
+    activate:
+      on-profile: local-it
+
+rbac3:
+  integration-test:
+    postgres:
+      url: ${RBAC3_IT_POSTGRES_URL}
+      user: ${RBAC3_IT_POSTGRES_USER}
+      password-file: ${RBAC3_IT_POSTGRES_PASSWORD_FILE}
