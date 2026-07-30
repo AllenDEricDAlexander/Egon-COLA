@@ -46,6 +46,9 @@ Maven child. See its [frontend README](egon-cola-platform-gateway-admin-web/READ
 
 - Public and internal HTTP listeners with bounded request bodies, CORS, security
   filters, protocol retries, idempotency propagation, and graceful drain.
+- Transparent OpenAI-compatible HTTP transport for raw JSON, SSE with per-buffer
+  flush, streaming multipart uploads, and binary/multimodal request and response
+  bodies, plus two-phase `ws`/`wss` Realtime WebSocket proxying.
 - HTTP-to-HTTP, HTTP-to-RPC, and RPC-to-RPC forwarding through immutable route
   and provider snapshots.
 - DDC lease-based provider discovery, active health probing, bounded provider
@@ -126,5 +129,12 @@ It uses Testcontainers by default, or isolated host-local processes when `initdb
 - The Gateway does not include a general account system or external IAM. Admin Web
   receives a verified IAM Bearer Token and Gateway Admin enforces the authenticated
   actor and capability boundary.
+- The OpenAI route profile is a transport preset, not an AI platform. Gateway does
+  not count tokens, charge usage, manage prompts or conversations, perform RAG or
+  Agent orchestration, execute Function Calling, or select a business model. It
+  recognizes routes, carries protocols, and transparently forwards bytes.
+- Streaming component tests prove the in-process Gateway boundaries only. They do
+  not prove public OpenAI connectivity, external/private-CA TLS, multi-process
+  infrastructure, or flush/cache behavior of an outer Nginx or Ingress.
 - The implementation and deployment contracts continue to evolve; use the focused
   tests and the linked deployment documentation as the current release evidence.

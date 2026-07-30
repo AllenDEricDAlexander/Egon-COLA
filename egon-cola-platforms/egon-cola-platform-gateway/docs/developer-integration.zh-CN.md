@@ -67,6 +67,118 @@ JWT、凭据与对象 ID 只写入忽略目录 `.demo/`，文件权限为 0600�
 `purge` 需要 `.demo/.local-demo-marker` 且 Compose project name 必须以
 `egon-cola-gateway-demo-` 开头。它不可恢复。
 
+## OpenAI 兼容传输 Route
+
+OpenAI 兼容 Route 仍是绑定 HTTP Operation、通过租约注册中心发现 Provider 的普通
+Gateway Route，不包含静态上游 URL，也不包含模型选择。以下 JSON 是 Draft Route API
+中的规范 `content`；外围请求的 `operationId` 必须来自接口目录。
+
+普通 JSON、SSE 自动识别、Multipart 上传和多模态载荷可以共用一个
+`OPENAI_HTTP` Streaming Route：
+
+```json
+{
+  "host": "ai.example.com",
+  "httpMethod": "POST",
+  "pathPattern": "/v1/**",
+  "accessZones": ["PUBLIC"],
+  "priority": 0,
+  "transportPolicy": {
+    "profile": "OPENAI_HTTP",
+    "transportProtocol": "HTTP",
+    "requestBodyMode": "STREAMING",
+    "responseMode": "AUTO_STREAM",
+    "maxRequestBodyBytes": 536870912,
+    "connectTimeoutMs": 10000,
+    "responseHeaderTimeoutMs": 120000,
+    "streamIdleTimeoutMs": 90000,
+    "totalTimeoutMs": 1800000,
+    "bodyLogEnabled": false,
+    "retryEnabled": false
+  }
+}
+```
+
+契约更窄时可显式指定响应模式。Multipart 和大文件上传应保持
+`requestBodyMode=STREAMING`；Gateway 不运行 Multipart Parser。
+
+| Route 用途 | `requestBodyMode` | `responseMode` |
+|---|---|---|
+| 普通 JSON 或混合 OpenAI Endpoint | `STREAMING` | `AUTO_STREAM` |
+| Responses/Chat SSE Endpoint | `STREAMING` | `SSE` |
+| Multipart 音频/文件上传 | `STREAMING` | `STANDARD` 或 `AUTO_STREAM` |
+| 图片/音频二进制下载 | `STREAMING` | `BINARY_STREAM` |
+
+Realtime WebSocket 使用单独的 GET Route，并复用同一接口目录与 Provider 边界：
+
+```json
+{
+  "host": "ai.example.com",
+  "httpMethod": "GET",
+  "pathPattern": "/v1/realtime",
+  "accessZones": ["PUBLIC"],
+  "priority": 0,
+  "transportPolicy": {
+    "profile": "OPENAI_HTTP",
+    "transportProtocol": "WEBSOCKET",
+    "websocketIdleTimeoutMs": 300000,
+    "websocketMaxFrameBytes": 16777216,
+    "bodyLogEnabled": false,
+    "retryEnabled": false
+  }
+}
+```
+
+Engine 根据已选 Provider 的 secure 元数据使用 `ws` 或 `wss`，转发 Text、Binary、
+Continuation、Ping/Pong 和合法 Close Frame，并从客户端候选中协商 Subprotocol；
+默认关闭 WebSocket Extension。上游握手拒绝仍返回普通 HTTP 错误，因为只有上游握手
+成功后才向下游发送 `101`。
+
+`OPENAI_HTTP` 默认请求上限为 512 MiB，Connect Timeout 10 秒、Response Header
+Timeout 120 秒、Stream Idle Timeout 90 秒、Total Timeout 30 分钟，并关闭 Body 日志
+和重试；WebSocket 默认 Idle 为 5 分钟、单 Frame 为 16 MiB。Route 显式值优先，但
+始终受 Engine 安全上限约束；同一 Gateway Group 的全部 Engine 必须使用一致的安全上限。
+
+| 字段 | 语义 |
+|---|---|
+| `maxRequestBodyBytes` | 流式字节上限；已声明超限在连接前拒绝，Chunked 超限在中途终止。 |
+| `connectTimeoutMs` | TCP/TLS 建连预算。 |
+| `responseHeaderTimeoutMs` | 请求开始发送后等待上游响应头的预算。 |
+| `streamIdleTimeoutMs` | 请求或响应流相邻 Buffer 之间允许的最大无活动时间。 |
+| `totalTimeoutMs` | HTTP 端到端总预算；持续 SSE 数据不会重置。 |
+| `websocketIdleTimeoutMs` | 双向共享 Frame 空闲预算；Ping/Pong 会刷新活动时间。 |
+| `websocketMaxFrameBytes` | 单 Frame 上限；超限以 1009 关闭。 |
+| `bodyLogEnabled` | 只控制既有的有界 Body Sample；OpenAI Profile 默认关闭。 |
+| `retryEnabled` | 仍受安全门禁；Streaming、OpenAI POST、WebSocket 与任何已提交交换都不可重试。 |
+
+在 Route 安全配置允许时，`Content-Type`、`Authorization`、
+`OpenAI-Organization`、`OpenAI-Project`、`Idempotency-Key`、`traceparent` 和
+`tracestate` 等端到端 Header 会保留；固定及 `Connection` 声明的 Hop-by-Hop Header
+会移除。Body 以 `DataBuffer` 流透传，不解析再序列化。SSE 会移除 `Content-Length`，
+设置 `Cache-Control: no-cache, no-transform` 与 `X-Accel-Buffering: no`，并逐 Buffer
+Flush。二进制 Body 不经过 String 或 JSON 转换。
+
+HTTP→RPC 与 RPC Route 保持既有的聚合 unary 行为，不能启用 WebSocket、Streaming
+Request、SSE、Binary Stream 或 `OPENAI_HTTP` 默认值。OpenAI 传输一旦收到上游响应头、
+提交下游响应头、发送 SSE Buffer、完成 WebSocket `101` 或转发 Frame，就绝不重试。
+下游断开会立即取消当前上游 Body 或 Session。
+
+### 兼容与发布顺序
+
+新 Engine 仍可读取不含 `transportPolicy` 的旧 v1 Release，并维持旧的 HTTP/RPC 聚合
+行为；旧 Engine 不应接收包含新 Transport 字段的 Release。必须按以下顺序发布：
+
+1. 升级同一 Gateway Group 的全部 Engine，并等待所有节点 Ready。
+2. 确认 Engine Transport 安全上限同构且 runtime consistency 正常。
+3. 升级 Gateway Admin 与 Admin Web。
+4. 最后才创建并发布包含 `transportPolicy` 的 Route。
+
+混部窗口继续使用旧规则；激活失败沿用现有 last-known-good Release。历史 UI Draft
+缺少 `host` 时必须人工补录，Admin 不会自动生成通配符 `*`。
+
+该能力严格止于传输：Gateway 不统计 Token、不计费、不管理 Prompt 或会话、不执行
+RAG/Agent 编排或 Function Calling，也不做业务模型选择。
+
 ## 手工成功判据
 
 ```bash
@@ -131,6 +243,7 @@ runtime-consistency、Provider/Engine 投影和 Actuator readiness。不要用�
   -am -Pgateway-live -Dgateway.live.infrastructure=local verify
 ```
 
-基础 Demo 不验证 Redis Sentinel/Cluster、PostgreSQL/Kafka HA、控制面多实例故障转移、
-生产 TLS/mTLS、证书轮换、外部负载均衡或 Kubernetes。对应 overlay 只能证明配置可渲染，
-实际运行前仍需在目标环境验证。
+基础 Demo 与进程内流式组件测试不验证 Redis Sentinel/Cluster、PostgreSQL/Kafka HA、
+控制面多实例故障转移、生产 TLS/mTLS、证书轮换、公网 OpenAI、私有 CA、外部负载均衡
+或 Kubernetes。Gateway 也不能强制外层 Nginx/Ingress Flush 或关闭缓存。配置可渲染与
+组件 Fixture 都不等于真实运行证据，仍需在目标环境验证。

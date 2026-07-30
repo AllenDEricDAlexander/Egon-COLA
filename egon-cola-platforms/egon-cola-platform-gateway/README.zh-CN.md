@@ -44,6 +44,9 @@ Admin Web 是与 Gateway 源码同目录的私有 React 应用，路径为
 
 - Public 和 Internal HTTP 监听器，提供有界请求体、CORS、安全过滤器、协议重试、
   幂等传递和优雅 Drain。
+- 基于 OpenAI HTTP 调用规范的透明传输，支持原始 JSON、逐 Buffer Flush 的 SSE、
+  Multipart 大文件流式上传、图片/音频等多模态与二进制请求响应，以及两阶段
+  `ws`/`wss` Realtime WebSocket 双向代理。
 - 通过不可变路由与 Provider 快照支持 HTTP→HTTP、HTTP→RPC 和 RPC→RPC 转发。
 - 基于 DDC 租约的 Provider 发现、主动健康探测、有界 Provider 尝试、负载均衡，
   以及过期/不健康实例摘除。
@@ -114,4 +117,9 @@ Testcontainers；当 `PATH` 中存在 `initdb`、`postgres` 和 `redis-server` �
   代理路由，不会把单节点 PostgreSQL、Redis 或 Kafka 变成生产 HA 服务。
 - Gateway 不包含通用账号系统或外部 IAM。Admin Web 提供经过验证的 IAM Bearer
   Token，Gateway Admin 负责鉴权 Actor 和 capability 边界。
+- OpenAI Route Profile 只是传输配置预设，不是 AI 业务平台。Gateway 不统计 Token、
+  不计费、不管理 Prompt 或会话、不执行 RAG/Agent 编排或 Function Calling，也不做
+  业务模型选择；它只识别请求、匹配路由、承载协议并透明转发字节。
+- 流式组件测试只证明进程内 Gateway 边界，不证明公网 OpenAI、外部/私有 CA TLS、
+  多进程基础设施，或外层 Nginx/Ingress 的 Flush 与缓存行为。
 - 实现和部署契约仍在演进；当前版本证据以专项测试和下方运维文档为准。
