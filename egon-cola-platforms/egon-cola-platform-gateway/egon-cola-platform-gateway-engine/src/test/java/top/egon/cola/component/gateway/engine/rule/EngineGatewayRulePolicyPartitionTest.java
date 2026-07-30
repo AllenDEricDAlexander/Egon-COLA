@@ -11,8 +11,6 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
-import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficContext;
-import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.TrafficPolicyType;
 
 import java.time.Duration;
@@ -98,7 +96,7 @@ class EngineGatewayRulePolicyPartitionTest {
     }
 
     @Test
-    void timeoutPolicyCanExceedLegacyFallbackAndRetryTrueCreatesNoPolicy() {
+    void httpEffectiveTimeoutCanExceedLegacyFallbackWithoutCreatingRetry() {
         GatewayRuntimePolicy timeout = new GatewayRuntimePolicy(
                 "timeout-1",
                 "TIMEOUT",
@@ -180,36 +178,16 @@ class EngineGatewayRulePolicyPartitionTest {
         assertFalse(compiled.trafficPolicies().values().stream()
                 .anyMatch(policy -> policy.type()
                         == TrafficPolicyType.RETRY));
-        assertTrue(compiled.httpRoutes().match(
+        var route = compiled.httpRoutes().match(
                 "api.example.com",
                 "GET",
                 "/orders",
                 AccessZone.PUBLIC
-        ).orElseThrow().route().transportPolicy().retryAllowed());
-
-        GatewayTrafficGovernance.RequestPermit permit =
-                new GatewayTrafficGovernance(() -> compiled, null)
-                        .acquire(
-                                Set.of("timeout-1"),
-                                trafficContext(),
-                                Duration.ofSeconds(5)
-                        ).block();
-        assertEquals(Duration.ofMinutes(1), permit.timeout());
-        permit.close();
-    }
-
-    private GatewayTrafficContext trafficContext() {
-        return new GatewayTrafficContext(
-                "operation-1",
-                "route-1",
-                "orders",
-                "caller",
-                "127.0.0.1",
-                "orders",
-                null,
-                Map.of(),
-                Map.of(),
-                Map.of()
+        ).orElseThrow().route();
+        assertTrue(route.transportPolicy().retryAllowed());
+        assertEquals(
+                Duration.ofMinutes(1),
+                route.transportPolicy().totalTimeout().orElseThrow()
         );
     }
 }

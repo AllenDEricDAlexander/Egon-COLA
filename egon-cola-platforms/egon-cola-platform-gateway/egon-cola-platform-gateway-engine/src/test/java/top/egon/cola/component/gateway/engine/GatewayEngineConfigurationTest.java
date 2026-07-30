@@ -109,6 +109,54 @@ class GatewayEngineConfigurationTest {
     }
 
     @Test
+    void boundLegacyAggregatedLimitStillRejectsSixtyFiveMib() {
+        GatewayEngineRuntimeProperties properties = new Binder(
+                new MapConfigurationPropertySource(Map.of(
+                        "egon.cola.component.gateway.engine.http.max-body-bytes",
+                        Long.toString(65L * MIB),
+                        "egon.cola.component.gateway.engine.http.absolute-max-request-body-bytes",
+                        Long.toString(1024L * MIB)
+                ))
+        ).bind(
+                "egon.cola.component.gateway.engine",
+                Bindable.of(GatewayEngineRuntimeProperties.class)
+        ).get();
+        enableDevelopmentPlaintext(properties);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new GatewayEngineConfiguration()
+                        .gatewayHttpEngineProperties(properties)
+        );
+    }
+
+    @Test
+    void legacyHttpEnginePropertiesConstructorRejectsSixtyFiveMib() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new GatewayHttpEngineProperties(
+                        new GatewayHttpEngineProperties.Listener(
+                                true,
+                                "127.0.0.1",
+                                0
+                        ),
+                        new GatewayHttpEngineProperties.Listener(
+                                false,
+                                "127.0.0.1",
+                                0
+                        ),
+                        128,
+                        64 * 1024,
+                        65L * MIB,
+                        Duration.ofSeconds(30),
+                        Duration.ofSeconds(10),
+                        512,
+                        1024
+                )
+        );
+    }
+
+    @Test
     void legacyHttpEnginePropertiesConstructorKeepsNewSafetyDefaults() {
         GatewayHttpEngineProperties properties =
                 new GatewayHttpEngineProperties(

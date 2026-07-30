@@ -188,6 +188,58 @@ class GatewayRouteProfileResolverTest {
     }
 
     @Test
+    void defaultProfileInheritsPositiveSubsecondLegacyTimeouts() {
+        GatewayTransportDefaults subsecondDefaults =
+                new GatewayTransportDefaults(
+                        2L * MIB,
+                        OptionalLong.of(4L * MIB),
+                        Duration.ofSeconds(30),
+                        Duration.ofMillis(500),
+                        Duration.ofMillis(500),
+                        Optional.empty(),
+                        false,
+                        true
+                );
+
+        EffectiveGatewayTransportPolicy effective = resolver.resolve(
+                null,
+                subsecondDefaults,
+                NO_OVERRIDES,
+                SAFETY
+        );
+
+        assertEquals(Duration.ofMillis(500),
+                effective.responseHeaderTimeout());
+        assertEquals(Duration.ofMillis(500),
+                effective.streamIdleTimeout());
+    }
+
+    @TestFactory
+    Stream<DynamicTest> rejectsExplicitSubsecondHeaderAndIdleOverrides() {
+        List<InvalidCase> cases = List.of(
+                invalid("explicit header below one second", numericPolicy(
+                        1L, 100L, 500L, 1_000L,
+                        1_000L, 1_000L, 1024L)),
+                invalid("explicit idle below one second", numericPolicy(
+                        1L, 100L, 1_000L, 500L,
+                        1_000L, 1_000L, 1024L))
+        );
+
+        return cases.stream().map(testCase -> DynamicTest.dynamicTest(
+                testCase.name(),
+                () -> assertThrows(
+                        IllegalArgumentException.class,
+                        () -> resolver.resolve(
+                                testCase.policy(),
+                                LEGACY_DEFAULTS,
+                                NO_OVERRIDES,
+                                SAFETY
+                        )
+                )
+        ));
+    }
+
+    @Test
     void acceptsEverySpecifiedHardBoundary() {
         GatewayRouteTransportPolicy atBoundary = numericPolicy(
                 1024L * MIB,

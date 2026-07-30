@@ -28,6 +28,8 @@ public record GatewayHttpEngineProperties(
 
     private static final long MIB = 1024L * 1024L;
 
+    private static final long LEGACY_AGGREGATED_MAX_BODY_BYTES = 64L * MIB;
+
     public GatewayHttpEngineProperties(
             Listener publicListener,
             Listener internalListener,
@@ -97,10 +99,15 @@ public record GatewayHttpEngineProperties(
                             + "1 GiB"
             );
         }
+        long aggregatedMaximum = Math.min(
+                LEGACY_AGGREGATED_MAX_BODY_BYTES,
+                absoluteMaxRequestBodyBytes
+        );
         if (defaultMaxBodyBytes < 1
-                || defaultMaxBodyBytes > absoluteMaxRequestBodyBytes) {
+                || defaultMaxBodyBytes > aggregatedMaximum) {
             throw new IllegalArgumentException(
                     "defaultMaxBodyBytes must be between 1 byte and "
+                            + "the lower of 64 MiB and "
                             + "absoluteMaxRequestBodyBytes"
             );
         }

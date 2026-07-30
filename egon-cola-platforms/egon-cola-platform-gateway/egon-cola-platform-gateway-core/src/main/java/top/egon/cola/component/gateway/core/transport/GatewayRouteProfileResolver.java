@@ -54,19 +54,19 @@ public final class GatewayRouteProfileResolver {
                 safetyLimits.maxConnectTimeout(),
                 "connectTimeoutMs"
         );
-        Duration responseHeaderTimeout = duration(
+        Duration responseHeaderTimeout = streamDuration(
                 routePolicy == null
                         ? null
                         : routePolicy.responseHeaderTimeoutMs(),
                 profileDefaults.responseHeaderTimeout(),
-                MIN_STREAM_TIMEOUT,
+                profile == GatewayRouteProfile.DEFAULT,
                 safetyLimits.maxResponseHeaderTimeout(),
                 "responseHeaderTimeoutMs"
         );
-        Duration streamIdleTimeout = duration(
+        Duration streamIdleTimeout = streamDuration(
                 routePolicy == null ? null : routePolicy.streamIdleTimeoutMs(),
                 profileDefaults.streamIdleTimeout(),
-                MIN_STREAM_TIMEOUT,
+                profile == GatewayRouteProfile.DEFAULT,
                 safetyLimits.maxStreamIdleTimeout(),
                 "streamIdleTimeoutMs"
         );
@@ -305,6 +305,36 @@ public final class GatewayRouteProfileResolver {
                         maximum,
                         field
                 );
+    }
+
+    private Duration streamDuration(
+            Long configuredMs,
+            Duration fallback,
+            boolean legacyInherited,
+            Duration maximum,
+            String field) {
+        if (configuredMs != null) {
+            return duration(
+                    configuredMs,
+                    MIN_STREAM_TIMEOUT,
+                    maximum,
+                    field
+            );
+        }
+        if (!legacyInherited) {
+            return duration(
+                    fallback,
+                    MIN_STREAM_TIMEOUT,
+                    maximum,
+                    field
+            );
+        }
+        if (fallback.compareTo(maximum) > 0) {
+            throw new IllegalArgumentException(
+                    field + " must not exceed " + maximum
+            );
+        }
+        return fallback;
     }
 
     private Duration duration(

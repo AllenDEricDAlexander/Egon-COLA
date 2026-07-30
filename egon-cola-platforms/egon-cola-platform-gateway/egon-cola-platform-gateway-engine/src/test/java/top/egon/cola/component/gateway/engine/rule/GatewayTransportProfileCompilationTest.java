@@ -1,6 +1,9 @@
 package top.egon.cola.component.gateway.engine.rule;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
@@ -17,6 +20,8 @@ import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMod
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
+import top.egon.cola.component.gateway.engine.GatewayEngineConfiguration;
+import top.egon.cola.component.gateway.engine.GatewayEngineRuntimeProperties;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityCapabilityRegistry;
 
 import java.time.Duration;
@@ -188,6 +193,38 @@ class GatewayTransportProfileCompilationTest {
                         compiler
                 )
         );
+    }
+
+    @Test
+    void boundLegacySubsecondTimeoutCompilesForDefaultRoute() {
+        GatewayEngineRuntimeProperties properties = new Binder(
+                new MapConfigurationPropertySource(Map.of(
+                        "egon.cola.component.gateway.engine.http.upstream-timeout",
+                        "PT0.5S"
+                ))
+        ).bind(
+                "egon.cola.component.gateway.engine",
+                Bindable.of(GatewayEngineRuntimeProperties.class)
+        ).get();
+        GatewayTransportDefaults defaults = new GatewayEngineConfiguration()
+                .gatewayTransportDefaults(properties);
+        EngineGatewayRuleCompiler compiler = new EngineGatewayRuleCompiler(
+                GatewaySecurityCapabilityRegistry.empty(),
+                defaults,
+                GatewayTransportSafetyLimits.specDefaults()
+        );
+
+        RuntimeHttpRoute route = compile(
+                null,
+                Set.of(),
+                List.of(),
+                compiler
+        );
+
+        assertEquals(Duration.ofMillis(500),
+                route.transportPolicy().responseHeaderTimeout());
+        assertEquals(Duration.ofMillis(500),
+                route.transportPolicy().streamIdleTimeout());
     }
 
     private RuntimeHttpRoute compile(

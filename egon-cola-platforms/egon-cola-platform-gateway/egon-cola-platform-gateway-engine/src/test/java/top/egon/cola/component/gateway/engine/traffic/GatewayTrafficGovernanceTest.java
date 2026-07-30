@@ -122,6 +122,26 @@ class GatewayTrafficGovernanceTest {
         permit.close();
     }
 
+    @Test
+    void rpcRouteDeadlineRemainsShorterThanTimeoutPolicy() {
+        RuntimeTrafficPolicy timeout = runtime(new GatewayRuntimePolicy(
+                "timeout",
+                "TIMEOUT",
+                "ROUTE",
+                Map.of("timeout", "PT1M")
+        ));
+        GatewayTrafficGovernance governance = governance(timeout);
+
+        GatewayTrafficGovernance.RequestPermit permit = governance.acquire(
+                Set.of("timeout"),
+                context(),
+                Duration.ofSeconds(3)
+        ).block();
+
+        assertEquals(Duration.ofSeconds(3), permit.timeout());
+        permit.close();
+    }
+
     private RuntimeTrafficPolicy runtime(GatewayRuntimePolicy source) {
         return new GatewayTrafficPolicyCompiler()
                 .compile(List.of(source))
