@@ -1,0 +1,273 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { gatewayApi } from '../../api/gatewayApi'
+import type {
+  DraftMutationResult,
+  GatewayDraft,
+  GatewayRouteTransportPolicy,
+  OperationDetail,
+} from '../../api/types'
+import { DraftPage } from './DraftPage'
+
+vi.mock('antd', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('antd')>()
+  return {
+    ...actual,
+    Modal: ({
+      children,
+      confirmLoading,
+      okButtonProps,
+      onCancel,
+      onOk,
+      open,
+      title,
+    }: {
+      children?: ReactNode
+      confirmLoading?: boolean
+      okButtonProps?: { disabled?: boolean }
+      onCancel?: () => void
+      onOk?: () => void
+      open?: boolean
+      title?: ReactNode
+    }) => open ? (
+      <section aria-label={String(title)}>
+        <h2>{title}</h2>
+        {children}
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button
+          type="button"
+          disabled={Boolean(confirmLoading || okButtonProps?.disabled)}
+          onClick={onOk}
+        >
+          OK
+        </button>
+      </section>
+    ) : null,
+  }
+})
+
+vi.mock('../../api/gatewayApi', () => ({
+  gatewayApi: {
+    draft: vi.fn(),
+    draftDiff: vi.fn(),
+    operation: vi.fn(),
+    saveRoute: vi.fn(),
+    savePolicy: vi.fn(),
+    deleteRoute: vi.fn(),
+    deletePolicy: vi.fn(),
+  },
+}))
+
+vi.mock('../../app/capabilities', () => ({
+  useCapability: vi.fn(() => true),
+}))
+
+const originalTransportPolicy: GatewayRouteTransportPolicy = {
+  profile: 'OPENAI_HTTP',
+  transportProtocol: 'HTTP',
+  requestBodyMode: 'STREAMING',
+  responseMode: 'AUTO_STREAM',
+  maxRequestBodyBytes: 536_870_912,
+  connectTimeoutMs: 10_000,
+  responseHeaderTimeoutMs: 120_000,
+  streamIdleTimeoutMs: 90_000,
+  totalTimeoutMs: 1_800_000,
+  websocketIdleTimeoutMs: 300_000,
+  websocketMaxFrameBytes: 16_777_216,
+  bodyLogEnabled: false,
+  retryEnabled: false,
+  futureOption: false,
+}
+
+const draft: GatewayDraft = {
+  gatewayGroupId: 'group-1',
+  revision: 7,
+  status: 'EDITING',
+  routes: [
+    {
+      routeId: 'route-a',
+      operationId: 'operation-a',
+      enabled: true,
+      routeContent: {
+        host: 'a.example.com',
+        httpMethod: 'POST',
+        pathPattern: '/v1/a/**',
+        accessZones: ['PUBLIC'],
+        priority: 0,
+        transportPolicy: originalTransportPolicy,
+      },
+    },
+    {
+      routeId: 'route-b',
+      operationId: 'operation-b',
+      enabled: true,
+      routeContent: {
+        host: 'b.example.com',
+        httpMethod: 'GET',
+        pathPattern: '/v1/b/**',
+        accessZones: ['INTERNAL'],
+        priority: 1,
+      },
+    },
+  ],
+  policies: [],
+  updatedAt: '2026-07-30T06:00:00Z',
+}
+
+const operationDetail = (operationId: string): OperationDetail => ({
+  operation: {
+    id: operationId,
+    applicationId: 'application-1',
+    interfaceGroupId: 'interface-group-1',
+    operationKey: `POST /${operationId}`,
+    protocol: 'HTTP',
+    methodIdentity: `POST /${operationId}`,
+    providerServiceIdentity: {
+      env: 'test',
+      namespace: 'gateway',
+      protocol: 'HTTP',
+      serviceName: 'openai-compatible-provider',
+      group: 'default',
+      version: '1.0.0',
+      transport: 'HTTP',
+    },
+    externalAccessible: true,
+    lifecycleStatus: 'ACTIVE',
+    sourceType: 'STARTER',
+    revision: 3,
+  },
+  definitions: [],
+})
+
+const mutationResult = (routeId: string): DraftMutationResult => ({
+  revision: 8,
+  resourceId: routeId,
+  replayed: false,
+})
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+  return { promise, reject, resolve }
+}
+
+const renderDraftPage = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+      queries: { retry: false },
+    },
+  })
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/gateway-groups/group-1/draft/routes']}>
+        <Routes>
+          <Route path="/gateway-groups/:groupId/draft/routes" element={<DraftPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
+const openRoute = async (index: number) => {
+  await screen.findByText(index === 0 ? 'route-a' : 'route-b')
+  const editButtons = await screen.findAllByText(/编\s*辑/)
+  fireEvent.click(editButtons[index])
+  await screen.findByText('Route Transport')
+}
+
+beforeEach(() => {
+  vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
+    matches: false,
+    media: '',
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })))
+  vi.stubGlobal('ResizeObserver', class {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  })
+  vi.mocked(gatewayApi.draft).mockResolvedValue(draft)
+  vi.mocked(gatewayApi.draftDiff).mockResolvedValue({})
+  vi.mocked(gatewayApi.saveRoute).mockResolvedValue(mutationResult('route-a'))
+})
+
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+  vi.unstubAllGlobals()
+})
+
+describe('DraftPage route editor state integrity', () => {
+  it('waits for Operation protocol before saving every existing transport field', async () => {
+    const operationLookup = deferred<OperationDetail>()
+    vi.mocked(gatewayApi.operation)
+      .mockReturnValueOnce(operationLookup.promise)
+      .mockResolvedValueOnce(operationDetail('operation-a'))
+    renderDraftPage()
+
+    await openRoute(0)
+    const confirm = screen.getByText('OK').closest('button')!
+    expect(confirm).toBeDisabled()
+
+    await act(async () => {
+      operationLookup.resolve(operationDetail('operation-a'))
+      await operationLookup.promise
+    })
+    await screen.findByText('Operation Protocol：HTTP')
+    await waitFor(() => expect(confirm).not.toBeDisabled())
+    fireEvent.click(confirm)
+
+    await waitFor(() => expect(gatewayApi.saveRoute).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(gatewayApi.saveRoute).mock.calls[0][2].content.transportPolicy)
+      .toEqual(originalTransportPolicy)
+  })
+
+  it('keeps Route B open when Route A save completes after switching editors', async () => {
+    const routeASave = deferred<DraftMutationResult>()
+    vi.mocked(gatewayApi.operation).mockImplementation((operationId) =>
+      Promise.resolve(operationDetail(operationId)))
+    vi.mocked(gatewayApi.saveRoute).mockReturnValueOnce(routeASave.promise)
+    renderDraftPage()
+
+    await openRoute(0)
+    await screen.findByText('Operation Protocol：HTTP')
+    fireEvent.click(screen.getByText('OK').closest('button')!)
+    await waitFor(() => expect(gatewayApi.saveRoute).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByText('Cancel'))
+    await waitFor(() => expect(screen.queryByText('Route Transport')).not.toBeInTheDocument())
+    await openRoute(1)
+    await screen.findByText('Operation Protocol：HTTP')
+    const routeId = screen.getByLabelText('Route ID')
+    const host = screen.getByLabelText('Host')
+    expect(routeId).toHaveValue('route-b')
+    fireEvent.change(host, { target: { value: 'b-edited.example.com' } })
+    expect(host).toHaveValue('b-edited.example.com')
+
+    await act(async () => {
+      routeASave.resolve(mutationResult('route-a'))
+      await routeASave.promise
+    })
+
+    await waitFor(() => expect(gatewayApi.draft).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('Operation Protocol：HTTP')).toBeInTheDocument()
+    expect(screen.getByText('Route Transport')).toBeInTheDocument()
+    expect(screen.getByLabelText('Route ID')).toHaveValue('route-b')
+    expect(screen.getByLabelText('Host')).toHaveValue('b-edited.example.com')
+  })
+})

@@ -75,6 +75,11 @@ type RouteEditorValues = RouteFormValues & {
   changeReason: string
 }
 
+type RouteSaveRequest = {
+  editorSession: number
+  values: RouteEditorValues
+}
+
 type RouteOperationState = {
   operationId: string
   protocol?: string
@@ -103,6 +108,7 @@ const mergeTransportPolicy = (
   original: GatewayRouteTransportPolicy | undefined,
   edited: GatewayRouteTransportPolicy | undefined,
 ): GatewayRouteTransportPolicy | undefined => {
+  if (!edited) return original ? { ...original } : undefined
   const merged: GatewayRouteTransportPolicy = { ...original }
   const writable = merged as Record<string, unknown>
   TRANSPORT_POLICY_FIELDS.forEach((field) => {
@@ -140,6 +146,7 @@ export const DraftPage = () => {
   const [legacyHostMissing, setLegacyHostMissing] = useState(false)
   const [localConflict, setLocalConflict] = useState<GatewayApiError>()
   const operationRequest = useRef(0)
+  const editorSession = useRef(0)
   const originalTransportPolicy = useRef<GatewayRouteTransportPolicy | undefined>(undefined)
   const draft = useQuery({
     queryKey: ['draft', groupId],
@@ -152,7 +159,8 @@ export const DraftPage = () => {
     enabled: Boolean(groupId),
   })
   const saveRoute = useMutation({
-    mutationFn: (values: RouteEditorValues) => gatewayApi.saveRoute(
+    mutationFn: ({ values }: RouteSaveRequest) =>
+      gatewayApi.saveRoute(
         groupId,
         values.routeId,
         {
@@ -163,16 +171,20 @@ export const DraftPage = () => {
         },
         draft.data!.revision,
       ),
-    onSuccess: async () => {
-      closeRoute()
-      setLocalConflict(undefined)
+    onSuccess: async (_, request) => {
+      if (request.editorSession === editorSession.current) {
+        closeRoute()
+        setLocalConflict(undefined)
+      }
       await queryClient.invalidateQueries({ queryKey: ['draft', groupId] })
       await queryClient.invalidateQueries({ queryKey: ['draft-diff', groupId] })
       void message.success('Route 已保存')
     },
-    onError: (error) => {
+    onError: (error, request) => {
       if (error instanceof GatewayApiError && error.status === 409) {
-        setLocalConflict(error)
+        if (request.editorSession === editorSession.current) {
+          setLocalConflict(error)
+        }
         return
       }
       void message.error('Route 保存失败，请检查表单和服务端校验结果')
@@ -262,6 +274,7 @@ export const DraftPage = () => {
   }
 
   const openNewRoute = () => {
+    editorSession.current += 1
     operationRequest.current += 1
     originalTransportPolicy.current = undefined
     setLegacyHostMissing(false)
@@ -278,6 +291,7 @@ export const DraftPage = () => {
   }
 
   const openExistingRoute = (route: DraftRoute) => {
+    editorSession.current += 1
     const values = readRouteForm(route.routeContent)
     originalTransportPolicy.current = values.transportPolicy
     setLegacyHostMissing(Boolean(values.legacyHostMissing))
@@ -294,12 +308,14 @@ export const DraftPage = () => {
   }
 
   const closeRoute = () => {
+    editorSession.current += 1
     operationRequest.current += 1
     setRouteOpen(false)
     setRouteOperation(undefined)
   }
 
   const submitRoute = async (values: RouteEditorValues) => {
+    const currentEditorSession = editorSession.current
     const operationId = values.operationId.trim()
     const request = ++operationRequest.current
     setValidatingRoute(true)
@@ -347,7 +363,10 @@ export const DraftPage = () => {
         })))
         return
       }
-      saveRoute.mutate(candidate)
+      saveRoute.mutate({
+        editorSession: currentEditorSession,
+        values: candidate,
+      })
     } catch {
       setRouteOperation({
         operationId,
@@ -366,6 +385,9 @@ export const DraftPage = () => {
   const currentOperation = routeOperation?.operationId === currentOperationId
     ? routeOperation
     : undefined
+  const operationReady = Boolean(
+    currentOperation?.protocol && !currentOperation.loading && !currentOperation.error,
+  )
   const currentTransportPolicy = watchedRoute?.transportPolicy
   const currentTransportState = transportFormState(
     currentOperation?.protocol,
@@ -520,6 +542,7 @@ export const DraftPage = () => {
         onCancel={closeRoute}
         onOk={() => routeForm.submit()}
         confirmLoading={saveRoute.isPending || validatingRoute}
+        okButtonProps={{ disabled: !operationReady }}
         destroyOnHidden
         width={760}
         styles={{ body: { maxHeight: '72vh', overflowY: 'auto' } }}
