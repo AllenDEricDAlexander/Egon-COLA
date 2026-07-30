@@ -32,6 +32,9 @@ public final class RefreshTokenService {
     public RotationResult rotate(String rawToken, Instant now) {
         Objects.requireNonNull(rawToken, "rawToken");
         Objects.requireNonNull(now, "now");
+        if (rawToken.isBlank() || rawToken.length() > 512) {
+            return new RotationResult(Outcome.INVALID, null, null);
+        }
         return store.withLockedToken(hash(rawToken), current -> rotateLocked(current, now));
     }
 
@@ -81,6 +84,11 @@ public final class RefreshTokenService {
 
         <T> T withLockedToken(String tokenHash, Function<TokenRecord, T> action);
 
+        /**
+         * Implementations must lock the owning session before changing either token.
+         * Role activation uses the same session lock, which serializes refresh and
+         * activation version increments without a distributed lock.
+         */
         void rotate(TokenRecord oldToken, TokenRecord newToken);
 
         void compromiseFamily(String familyId, Instant detectedAt);

@@ -1,0 +1,144 @@
+package top.egon.cola.platform.rbac3.admin.snapshot.infrastructure;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.redisson.api.RBucket;
+import org.redisson.api.RScript;
+import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Repository;
+import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Publishes the session pointer and its immutable snapshot through one Redis script.
+ */
+@Repository
+public class RedisAuthorizationRuntimeStore implements RoleActivationFacade.RuntimeStore {
+
+    private static final String PUBLISH_SCRIPT = script(
+            "redis/publish-session-snapshot.lua");
+    private static final String VERIFY_FENCE_SCRIPT = script(
+            "redis/verify-authorization-fence.lua");
+
+    private final RedissonClient redisson;
+    private final ObjectMapper objectMapper;
+    private final Rbac3RuntimeKeyFactory keyFactory;
+
+    public RedisAuthorizationRuntimeStore(
+            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
+            ObjectMapper objectMapper,
+            Rbac3RuntimeKeyFactory keyFactory
+    ) {
+        this.redisson = Objects.requireNonNull(redisson, "redisson");
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+        this.keyFactory = Objects.requireNonNull(keyFactory, "keyFactory");
+    }
+
+    public PublishResult publish(PublishCommand command) {
+        var session = command.projection().session();
+        var snapshot = command.projection().snapshot();
+        List<Object> keys = List.of(
+                keyFactory.session(command.tenantId(), command.sessionId()),
+                keyFactory.authVersion(command.tenantId(), command.userId()),
+                keyFactory.policyVersion(command.tenantId()),
+                keyFactory.snapshot(
+                        command.tenantId(), command.sessionId(), command.sessionVersion()),
+                keyFactory.sessionFence(command.tenantId(), command.sessionId()));
+        Number result = redisson.getScript(StringCodec.INSTANCE).eval(
+                RScript.Mode.READ_WRITE,
+                PUBLISH_SCRIPT,
+                RScript.ReturnType.INTEGER,
+                keys,
+                json(session),
+                Long.toString(command.authVersion()),
+                Long.toString(command.policyVersion()),
+                json(snapshot),
+                Long.toString(command.sessionVersion()),
+                Long.toString(session.expiresAt().toEpochMilli()));
+        if (result == null || result.intValue() < 0) {
+            throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
+        }
+        return new PublishResult(result.intValue() == 1, snapshot.checksum());
+    }
+
+    @Override
+    public void publish(RoleActivationFacade.RuntimePublication publication) {
+        publish(new PublishCommand(
+                publication.tenantId(), publication.userId(), publication.sessionId(),
+                publication.authVersion(), publication.sessionVersion(),
+                publication.policyVersion(), publication.projection()));
+    }
+
+    public void createSessionFence(
+            String tenantId,
+            String sessionId,
+            String mutationId,
+            Duration ttl
+    ) {
+        if (ttl.isNegative() || ttl.isZero()) {
+            throw new IllegalArgumentException("fence ttl must be positive");
+        }
+        RBucket<String> bucket = redisson.getBucket(
+                keyFactory.sessionFence(tenantId, sessionId), StringCodec.INSTANCE);
+        bucket.set(mutationId, ttl);
+    }
+
+    @Override
+    public void createFence(
+            String tenantId,
+            String sessionId,
+            String mutationId,
+            Duration ttl
+    ) {
+        createSessionFence(tenantId, sessionId, mutationId, ttl);
+    }
+
+    public boolean isSessionFenced(String tenantId, String sessionId) {
+        Number result = redisson.getScript(StringCodec.INSTANCE).eval(
+                RScript.Mode.READ_ONLY,
+                VERIFY_FENCE_SCRIPT,
+                RScript.ReturnType.INTEGER,
+                List.of(keyFactory.sessionFence(tenantId, sessionId)));
+        return result != null && result.intValue() == 1;
+    }
+
+    private String json(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("cannot encode RBAC3 runtime projection", exception);
+        }
+    }
+
+    private static String script(String location) {
+        try (var input = new ClassPathResource(location).getInputStream()) {
+            return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            throw new IllegalStateException("cannot load Redis script: " + location, exception);
+        }
+    }
+
+    public record PublishCommand(
+            String tenantId,
+            String userId,
+            String sessionId,
+            long authVersion,
+            long sessionVersion,
+            long policyVersion,
+            SessionSnapshotProjector.Projection projection
+    ) {
+    }
+
+    public record PublishResult(boolean changed, String checksum) {
+    }
+}

@@ -128,6 +128,34 @@ public class SessionEntity extends TenantScopedEntity {
         markUpdated(actorId, now);
     }
 
+    public void activateRoles(
+            long currentAuthVersion,
+            long currentPolicyVersion,
+            String rootChecksum,
+            String actorId,
+            Instant now
+    ) {
+        requireActive(now);
+        if (currentAuthVersion < 0 || currentPolicyVersion < 0) {
+            throw new IllegalArgumentException("versions must not be negative");
+        }
+        sessionVersion = Math.incrementExact(sessionVersion);
+        authVersionAtIssue = currentAuthVersion;
+        policyVersionAtIssue = currentPolicyVersion;
+        activeRootChecksum = required(rootChecksum, "rootChecksum");
+        activationRequired = false;
+        lastSeenAt = now;
+        markUpdated(actorId, now);
+    }
+
+    public void requireRoleReselection(String actorId, Instant now) {
+        requireActive(now);
+        sessionVersion = Math.incrementExact(sessionVersion);
+        activeRootChecksum = null;
+        activationRequired = true;
+        markUpdated(actorId, now);
+    }
+
     public boolean logout(String actorId, Instant now) {
         if (status == Status.LOGGED_OUT) {
             return false;
@@ -185,6 +213,18 @@ public class SessionEntity extends TenantScopedEntity {
 
     public long getPolicyVersionAtIssue() {
         return policyVersionAtIssue;
+    }
+
+    public String getActiveRootChecksum() {
+        return activeRootChecksum;
+    }
+
+    public boolean isActivationRequired() {
+        return activationRequired;
+    }
+
+    public AuthenticationStrength getAuthenticationStrength() {
+        return authenticationStrength;
     }
 
     public Instant getLastSeenAt() {

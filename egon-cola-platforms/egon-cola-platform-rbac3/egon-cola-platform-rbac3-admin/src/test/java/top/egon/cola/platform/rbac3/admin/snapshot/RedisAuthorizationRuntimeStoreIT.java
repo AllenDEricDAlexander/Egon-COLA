@@ -1,0 +1,106 @@
+package top.egon.cola.platform.rbac3.admin.snapshot;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.redisson.api.RScript;
+import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
+import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class RedisAuthorizationRuntimeStoreIT {
+
+    private static final Instant NOW = Instant.parse("2026-07-30T12:00:00Z");
+
+    @Test
+    void publishesAllRuntimeKeysAtomicallyInTheTenantHashSlot() {
+        AtomicReference<List<Object>> keys = new AtomicReference<>();
+        RScript script = mock(RScript.class);
+        RedissonClient redisson = mock(RedissonClient.class);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        when(script.eval(
+                eq(RScript.Mode.READ_WRITE), anyString(),
+                eq(RScript.ReturnType.INTEGER), anyList(), any(Object[].class)))
+                .thenAnswer(invocation -> {
+                    keys.set(invocation.getArgument(3));
+                    return 1L;
+                });
+        RedisAuthorizationRuntimeStore store = new RedisAuthorizationRuntimeStore(
+                redisson,
+                new ObjectMapper().findAndRegisterModules(),
+                new Rbac3RuntimeKeyFactory());
+
+        var result = store.publish(command());
+
+        assertThat(result.changed()).isTrue();
+        assertThat(keys.get()).hasSize(5)
+                .allSatisfy(key -> assertThat(key.toString()).contains("rbac3:{7}:"));
+        assertThat(keys.get().get(3).toString()).endsWith("snapshot:99:1");
+        assertThat(keys.get().get(4).toString()).endsWith("fence:session:99");
+    }
+
+    @Test
+    void rejectsAProjectionThatWouldDowngradeRuntimeVersions() {
+        RScript script = mock(RScript.class);
+        RedissonClient redisson = mock(RedissonClient.class);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        when(script.eval(
+                eq(RScript.Mode.READ_WRITE), anyString(),
+                eq(RScript.ReturnType.INTEGER), anyList(), any(Object[].class)))
+                .thenReturn(-1L);
+        RedisAuthorizationRuntimeStore store = new RedisAuthorizationRuntimeStore(
+                redisson,
+                new ObjectMapper().findAndRegisterModules(),
+                new Rbac3RuntimeKeyFactory());
+
+        assertThatThrownBy(() -> store.publish(command()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+    }
+
+    @Test
+    void treatsTheSameRuntimeVersionAsIdempotent() {
+        RScript script = mock(RScript.class);
+        RedissonClient redisson = mock(RedissonClient.class);
+        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        when(script.eval(
+                eq(RScript.Mode.READ_WRITE), anyString(),
+                eq(RScript.ReturnType.INTEGER), anyList(), any(Object[].class)))
+                .thenReturn(0L);
+        RedisAuthorizationRuntimeStore store = new RedisAuthorizationRuntimeStore(
+                redisson,
+                new ObjectMapper().findAndRegisterModules(),
+                new Rbac3RuntimeKeyFactory());
+
+        var result = store.publish(command());
+
+        assertThat(result.changed()).isFalse();
+    }
+
+    private RedisAuthorizationRuntimeStore.PublishCommand command() {
+        SessionSnapshotProjector.RuntimeSession session =
+                new SessionSnapshotProjector.RuntimeSession(
+                        "7", "9", "99", "ACTIVE", 3, 1, 4,
+                        NOW.plusSeconds(3600));
+        SessionAuthorizationSnapshot snapshot = new SessionAuthorizationSnapshot(
+                "99", 3, 1, 4, List.of(), "sha256:test", NOW);
+        return new RedisAuthorizationRuntimeStore.PublishCommand(
+                "7", "9", "99", 3, 1, 4,
+                new SessionSnapshotProjector.Projection(session, snapshot));
+    }
+}
