@@ -1,6 +1,11 @@
 # GWS-03A Gateway OpenAI 兼容流式传输能力 Spec
 
-状态：待用户审核，仅完成设计与现状审计，尚未修改运行代码
+版本：v2
+
+状态：推荐架构已确认，设计模式增强版待用户复审；尚未修改运行代码
+
+本次修订：在不改变 v1 功能范围、默认值和职责边界的前提下，补充设计模式选择、
+协作关系、类职责、拒绝项、依赖方向和测试约束。
 
 父文档：
 
@@ -193,26 +198,244 @@ gRPC Streaming。
 网关可以继续记录通用传输元数据，如 Route、Provider、状态、耗时、连接关闭原因和
 请求/响应字节数，但不能把这些数据解释成 Token 或计费数据。
 
-## 5. 方案比较与设计模式取舍
+## 5. 方案比较与设计模式
+
+### 5.1 设计原则
+
+设计模式只用于解决本次已经存在的变化点，不为了形式完整而增加层级：
+
+1. 组合优于继承；
+2. 只有真正可替换的实现才共享 Strategy Interface；
+3. Route Profile 是传输 Policy，不是模型选择 Strategy；
+4. HTTP Body 的横切约束通过响应式 Operator 组合，不为每个 Operator 创建类；
+5. 复用现有 Filter Chain，不再建设第二套 Security/Governance Chain；
+6. WebSocket 与普通 HTTP 的终止契约不同，不强行伪装成同一种 Response；
+7. 每个模式必须有可独立验证的输入、输出和失败边界；
+8. 模式不能让 Contract/Core 依赖 Reactor Netty，也不能让 Admin 依赖 Engine。
+
+### 5.2 总体方案比较
 
 | 方案 | 优点 | 问题 | 结论 |
 |---|---|---|---|
-| A. `DataBuffer` + Route Transport Strategy | 与用户要求一致；保留 Reactor Netty；流式、聚合和 WS 生命周期可隔离；不复制业务协议 | 需要严格管理 pooled buffer 所有权 | 采用 |
+| A. `DataBuffer` + 组合式 Transport Pattern | 与用户要求一致；保留 Reactor Netty；流式、聚合和 WS 生命周期可隔离；不复制业务协议 | 需要严格管理 pooled buffer 所有权 | 采用 |
 | B. 全链路直接暴露 Netty `ByteBuf` | 最少复制，Netty API 直接 | Netty 类型会穿透 Handler、Limiter、测试和扩展点，耦合过重 | 不采用 |
 | C. 新建 OpenAI Controller/Proxy 模块 | 初期看似独立 | 重复 Route、Security、Governance、Discovery、Trace；容易加入模型业务职责 | 禁止 |
 
-采用 Strategy Pattern：
+### 5.3 模式组合方案比较
 
-- `AggregatedHttpProxyStrategy` 保留旧 HTTP 与 HTTP-to-RPC 行为；
-- `StreamingHttpProxyStrategy` 处理普通透明流、SSE、Multipart 和 Binary；
-- `WebSocketProxyStrategy` 处理 Upgrade 与双向 Frame；
-- `GatewayRouteProfileResolver` 只解析 Profile 默认值和 Route Override。
+| 模式方案 | 做法 | 优点 | 问题 | 结论 |
+|---|---|---|---|---|
+| A. Remote Proxy + 责任链 + Strategy + Adapter + Policy + 响应式 Decorator | 保留旧 Filter Chain，在 Invocation 阶段选择传输实现，并用窄 Facade/Observer 协调 | 与当前工程模式一致，变化点清楚，HTTP/WS 可分别测试 | 需要明确模式边界和 DataBuffer 所有权 | 推荐 |
+| B. 所有能力都做成 Gateway Filter | SSE、Multipart、Timeout、WebSocket 都加入 Chain | 表面上统一 | WebSocket 是双向长连接，Body Operator 是逐 Buffer 生命周期，均不适合单次前向 Chain；容易重复订阅 | 不采用 |
+| C. `AbstractProxyHandler` Template Method | 抽象父类固定 normalize、route、invoke、writeResponse 步骤 | 可以共享部分代码 | HTTP、SSE 和 WS 的返回契约、提交点与取消路径不同，子类会大量 override；形成脆弱父类 | 不采用 |
 
-该模式用于隔离三种实质不同的资源生命周期、超时和重试边界。把这些逻辑继续堆入当前
-超过一千行的 `DefaultGatewayHttpDataPlaneHandler` 会形成大量条件分支，直接实现已
-不足以保持可测性。这里不引入 Factory 层级、继承树或独立微模块。
+总体职责采用 Remote Proxy Pattern：客户端仍使用 OpenAI 兼容 HTTP/WebSocket
+Contract，Gateway 只代表远端 Provider 承载并转发该 Contract，不成为目标业务能力的
+实现者。这一模式直接约束网关不得解释模型、Prompt、Token 或 Tool Call。
 
-重试提交状态使用一个小型原子状态记录，不引入完整 State Pattern：
+当前 `DefaultGatewayHttpDataPlaneHandler` 已超过一千行。继续在同一方法中用
+`if/else` 叠加聚合、SSE、Multipart、Binary、WebSocket、五类 Timeout 和提交点，会
+形成传输模式与治理规则的组合爆炸。采用上述模式是为了拆开已经不同的生命周期；
+简单场景仍保持直接实现，不为每个枚举、状态或配置项创建接口。
+
+### 5.4 Chain of Responsibility：保留现有跨切面管线
+
+现有 `DefaultGatewayFilterChain` 和 `GatewayHttpExecutionPipeline` 已按 Stage 承载：
+
+```text
+CORS
+  → AUTHENTICATION
+  → RATE_CONCURRENCY
+  → INVOCATION
+```
+
+本次继续使用该责任链处理 Route 已匹配后的通用横切规则：
+
+- CORS 或 WebSocket Handshake Origin 约束；
+- Authentication/Authorization；
+- Rate Limit、Bulkhead、Circuit Breaker 和 Governance；
+- 进入最终 Invocation。
+
+新增约束：
+
+1. Transport Policy Resolution 和 Strategy Dispatch 发生在 `INVOCATION` 阶段；
+2. SSE Flush、DataBuffer Size Limit、Stream Idle 等逐 Buffer 行为不得注册为
+   Gateway Filter，避免 Chain 被每个 Buffer 重复执行；
+3. WebSocket Frame 不重新进入 Authentication/Governance Chain；
+4. HTTP 与 WebSocket 必须经过同一个 Route Exposure、Security 和 Governance
+   入口，不能由 WebSocket 旁路；
+5. 原有 Filter Stage、顺序和短路语义不变。
+
+该模式已经存在，继续复用比创建新的 Admission Chain 更安全。
+
+### 5.5 Strategy：只隔离真实可替换的 HTTP Body 处理
+
+新增窄接口 `GatewayHttpProxyStrategy`，只覆盖具有同一输入/输出契约的 HTTP 代理：
+
+```java
+interface GatewayHttpProxyStrategy {
+
+    GatewayRequestBodyMode requestBodyMode();
+
+    Mono<GatewayOutboundHttpResponse> invoke(
+            GatewayHttpProxyContext context,
+            Flux<DataBuffer> requestBody);
+}
+```
+
+实现：
+
+| Strategy | 职责 | 明确不负责 |
+|---|---|---|
+| `AggregatedHttpProxyStrategy` | 在有限上限内聚合；保留旧 HTTP、参数绑定和 HTTP-to-RPC Bridge；提供 replayable body | SSE、Multipart 大文件、WebSocket |
+| `StreamingHttpProxyStrategy` | 透明传输 JSON、Multipart、大 Body、SSE 和 Binary；body 永远 non-replayable | 解析 JSON、Multipart Part、模型或 SSE Event |
+
+选择规则：
+
+- `AGGREGATED` 选择 Aggregated；
+- `STREAMING` 选择 Streaming；
+- `transportProtocol=WEBSOCKET` 不进入 `GatewayHttpProxyStrategy`。
+
+WebSocket 不强行实现该接口。HTTP Strategy 返回
+`Mono<GatewayOutboundHttpResponse>`，而 WebSocket 在 101 后拥有一个双向会话并返回
+`Mono<Void>`；让两者共享同一接口会违反可替换性，并迫使 HTTP Response 模型承载
+不存在的 WebSocket Body。
+
+Strategy 实例在 Engine 初始化时创建并复用，不按请求 new；选择器使用固定 Enum Map
+或穷尽 `switch`，不引入 Abstract Factory。
+
+### 5.6 Dedicated WebSocket Proxy：独立终止契约
+
+`GatewayWebSocketProxy` 是 Transport Dispatcher 的专用分支，而不是
+`GatewayHttpProxyStrategy` 子类：
+
+1. 输入是已完成 Route/Security/Governance/Provider Selection 的
+   `GatewayWebSocketProxyContext`；
+2. 输出是代表整个双向会话生命周期的 `Mono<Void>`；
+3. 它协调 Client Handshake、Upstream Handshake、两个 Frame Flux、Close 和取消；
+4. Frame 内容只交给 WebSocket Adapter，不进入 HTTP Body Strategy；
+5. 它不包含 OpenAI Event、音频或模型逻辑。
+
+这种分离保持了 Strategy Pattern 的真实可替换边界，也避免为“模式数量看起来统一”
+而制造虚假抽象。
+
+### 5.7 Adapter：隔离 Reactor Netty
+
+保留并调整现有 `HttpUpstreamAdapter`：
+
+- 接收 `HttpUpstreamRequest` 与 `Flux<DataBuffer>`；
+- 返回 `Mono<GatewayOutboundHttpResponse>`；
+- Reactor Netty 实现负责 HTTP Client、连接、Header、ByteBuf/DataBuffer 边界和取消；
+- Strategy 不直接调用 `HttpClient`。
+
+新增 `WebSocketUpstreamAdapter`：
+
+- 根据 Provider `secure` 选择 ws/wss；
+- 完成上游 Handshake；
+- 暴露 Text/Binary/Ping/Pong/Close Frame 的双向端口；
+- Reactor Netty 细节不泄漏到 Contract、Core、Admin 或 Profile Resolver。
+
+Adapter 的价值是把“如何使用 Reactor Netty”与“何时允许流式、重试或关闭”分开。
+前者属于 I/O 技术，后者属于网关传输 Policy。
+
+不为 Listener 再创建无意义的多层 Adapter；入站只有一个 Reactor Netty 实现时，直接在
+Listener 边界转换为 Engine Model 即可。
+
+### 5.8 Policy Object + Resolver：Profile 不是业务 Strategy
+
+`GatewayRouteProfileResolver` 是纯函数式 Policy Resolver：
+
+```text
+Route Transport Override
+  + OPENAI_HTTP / DEFAULT Profile
+  + Existing Traffic Policy
+  + Engine Safety Bounds
+  → EffectiveGatewayTransportPolicy
+```
+
+`EffectiveGatewayTransportPolicy` 是不可变值对象，包含本次请求需要的最终：
+
+- Transport Protocol；
+- Request/Response Mode；
+- Body/Frame Limit；
+- 五类 Timeout；
+- Body Log；
+- Retry Veto。
+
+规则：
+
+1. 尽量在 Rule Compile/Activation 时解析，而不是在每个 DataBuffer 上判断；
+2. Resolver 不读取 HTTP Body、模型名、Content 或用户身份；
+3. Resolver 不创建 Upstream Client 或 Strategy；
+4. 同一输入必须得到同一输出，便于表驱动测试；
+5. Profile 只给默认值，显式 Route Override 和安全硬边界按第 8 节规则处理。
+
+这里使用 Policy Object 是为了把配置决策从 I/O 实现中移走；不使用 Strategy 表示
+Profile，避免把“配置值组合”和“执行算法替换”混为一谈。
+
+### 5.9 Decorator：用 Reactor Operator 组合流式约束
+
+DataBuffer 横切能力采用 Decorator 思路，但实现为小型纯 Operator，不创建深层包装类：
+
+```text
+source
+  → ownership
+  → incrementalSizeLimit
+  → byteObservation / boundedBodyLogTap
+  → streamIdleTimeout
+  → upstream/downstream send
+  → cancel/error/discard release
+```
+
+建议集中在 `GatewayDataBufferPipeline` 中提供可组合函数：
+
+- `limitBytes`；
+- `observeBytes`；
+- `sampleBodyWhenEnabled`；
+- `enforceIdleTimeout`；
+- `releaseOnDiscardOrCancel`。
+
+约束：
+
+1. 每个 Operator 保持单订阅；
+2. 不调用 `cache`、`replay` 或无界 `collect`；
+3. `doOnDiscard`、cancel 和正常发送只能释放各自拥有的 Buffer，不能重复 release；
+4. Operator 顺序固定并有测试，Body Log 不能绕过 Size Limit；
+5. Observation 异常不得中断主传输；
+6. Multipart、Binary 和 WebSocket 内容日志的禁止规则不能被 Decorator Override。
+
+使用响应式 Decorator 能独立测试每项约束，又不会出现
+`LoggingTimeoutSizeLimitedStreamingBody` 一类组合爆炸。
+
+### 5.10 Facade/Dispatcher：让 Listener 只负责协议承载
+
+新增窄 `GatewayTransportDispatcher`，作为 Listener 与传输实现之间的 Facade：
+
+1. 接收已建立的 Gateway Exchange 和 Effective Transport Policy；
+2. HTTP 分支委托 `GatewayHttpProxyStrategy`；
+3. WebSocket 分支委托 `GatewayWebSocketProxy`；
+4. 统一连接取消、Observation 终止和错误提交边界；
+5. 不重新实现 Route Match、Security、Governance 或 Provider Selection；
+6. 不读取 Body 内容。
+
+Dispatcher 保留两个真实终止契约：
+
+```java
+Mono<GatewayOutboundHttpResponse> dispatchHttp(
+        GatewayHttpProxyContext context);
+
+Mono<Void> dispatchWebSocket(
+        GatewayWebSocketProxyContext context);
+```
+
+不返回 `Object`，也不为了统一方法签名引入只包含一种值的通用 Result Wrapper。
+
+Facade 的目的只是避免 `GatewayHttpListener` 同时认识所有 Strategy、Adapter 和
+Commit Guard；它不是新的业务 Service，也不拥有可变全局状态。
+
+### 5.11 单调 Commit Guard：不引入完整 State Pattern
+
+重试提交状态使用 `GatewayCommitGuard` 的原子枚举/CAS，不为每个状态创建类：
 
 ```text
 NEW
@@ -233,7 +456,103 @@ NEW
   → TERMINATED
 ```
 
-状态只能单向前进，用于禁止越过提交点后的重试和错误响应改写。
+职责：
+
+- 只允许单向前进；
+- 提供 `mayRetry()`、`downstreamCommitted()` 等查询；
+- 一旦收到上游响应头，`mayRetry()` 永久为 false；
+- 不执行 retry、write response 或 dispose，只给调用方不可逆事实；
+- 并发 cancel、header 和 body signal 下保持线性化。
+
+完整 State Pattern 不适合这里：状态本身没有不同算法，只有单调事实和安全断言。
+创建 `NewState`、`HeadersState`、`BodyState` 等对象只会增加间接层。
+
+### 5.12 Observer：观测不能控制传输
+
+继续复用 `GatewayCallObservation` 的 Observer 角色：
+
+- Strategy、Adapter、Commit Guard 只发送事件；
+- Observation 记录字节数、模式、提交点、取消和 Close Reason；
+- Observation 不选择 Provider、不决定 retry、不改变 DataBuffer；
+- 观测 Sink 失败必须隔离，不能让 SSE 或 WebSocket 断流；
+- 不创建第二个 Body Subscription。
+
+Body Log Tap 是受 Policy 控制的有界 Observer，不是请求处理器。
+
+### 5.13 模式协作图
+
+```mermaid
+flowchart LR
+    L["Reactor Netty Listener"] --> C["Existing Gateway Filter Chain<br/>CORS / Security / Governance"]
+    C --> D["GatewayTransportDispatcher<br/>Facade"]
+    RC["Rule Compiler / Activation"] --> R["GatewayRouteProfileResolver<br/>Policy Object"]
+    R --> EP["EffectiveGatewayTransportPolicy"]
+    EP --> D
+    D --> S["HTTP Strategy Selector"]
+    S --> A["AggregatedHttpProxyStrategy"]
+    S --> T["StreamingHttpProxyStrategy"]
+    D --> W["GatewayWebSocketProxy"]
+    A --> H["HttpUpstreamAdapter"]
+    T --> P["GatewayDataBufferPipeline<br/>Reactive Decorators"]
+    P --> H
+    W --> WA["WebSocketUpstreamAdapter"]
+    D --> G["GatewayCommitGuard"]
+    A -. events .-> O["GatewayCallObservation"]
+    T -. events .-> O
+    W -. events .-> O
+    G -. state .-> O
+```
+
+图中的 Profile Resolver 在规则激活时尽量预计算；请求阶段只读取已解析值。图为职责
+关系，不要求每条边都对应一个新的 Java Interface。
+
+### 5.14 建议类职责
+
+| 类型 | 状态 | 单一职责 | 禁止职责 |
+|---|---|---|---|
+| `GatewayHttpExecutionPipeline` | 复用/小改 | 执行现有 Filter Chain，Invocation 委托 Dispatcher | 解析 OpenAI Body、逐 Buffer 处理 |
+| `GatewayTransportDispatcher` | 新增 | HTTP/WS 分派和终止协调 | Route Match、Provider Discovery、模型选择 |
+| `GatewayRouteProfileResolver` | 新增 | 编译 Effective Transport Policy | 网络调用、Body 读取 |
+| `GatewayHttpProxyStrategy` | 新增 | HTTP 聚合/流式可替换契约 | WebSocket 会话 |
+| `AggregatedHttpProxyStrategy` | 新增 | 保留有限聚合和旧桥接 | Multipart 大文件、SSE |
+| `StreamingHttpProxyStrategy` | 新增 | DataBuffer 透明 HTTP 流 | JSON/SSE/Multipart 解析 |
+| `GatewayWebSocketProxy` | 新增 | Handshake、Frame、Close 双向协调 | HTTP Body、OpenAI Event |
+| `HttpUpstreamAdapter` | 修改 | HTTP I/O 技术适配 | Route Policy 决策 |
+| `WebSocketUpstreamAdapter` | 新增 | WebSocket I/O 技术适配 | Security/Governance |
+| `GatewayDataBufferPipeline` | 新增 | 有界 Operator 组合与 Buffer 释放 | Route/Provider 选择 |
+| `GatewayCommitGuard` | 新增 | 单调提交事实和 retry gate 查询 | 发起 retry、写响应 |
+| `GatewayHeaderFilter` | 新增 | End-to-End/Hop-by-Hop Header 规则 | 凭证业务管理 |
+| `GatewayCallObservation` | 扩展 | 被动观测传输事件 | 控制主流程 |
+
+命名允许在实施计划中按现有包风格微调，但职责边界不得合并回一个巨型 Handler。
+
+### 5.15 明确拒绝的模式
+
+| 模式 | 本次是否采用 | 原因 |
+|---|---|---|
+| Template Method | 否 | HTTP 与 WebSocket 生命周期差异过大，继承会产生大量 Hook/Override |
+| Factory Method / Abstract Factory | 否 | Strategy 数量固定且由 Enum 决定，实例在启动时装配，简单 Map/switch 足够 |
+| Builder | 否 | Transport Policy 是可校验 Record/值对象，没有复杂分步构建 |
+| Command | 否 | 网关不排队、持久化或重放 AI 请求；Command 容易模糊禁止重试边界 |
+| 完整 State Pattern | 否 | 状态只有单调事实，没有独立行为算法 |
+| Specification 类树 | 否 | 发布校验规则数量有限，Compiler 内直接组合更清楚 |
+| Domain Service | 否 | 本次是协议传输，不是模型、Token、Prompt 等业务域 |
+| OpenAI Facade/SDK | 否 | 会引入请求解析、序列化和厂商业务耦合 |
+
+### 5.16 依赖方向
+
+```text
+Admin → Contract
+Engine → Contract + Core
+Engine Transport Strategy → Engine Adapter Port
+Reactor Netty Adapter → Engine Transport Model
+Contract/Core ↛ Reactor Netty / Spring DataBuffer
+Admin ↛ Engine
+Profile Resolver ↛ OpenAI SDK
+```
+
+`DataBuffer` 只存在于 Engine HTTP 传输层；Contract/Core 继续保持协议和运行规则模型。
+任何模式实现都不能反转该依赖方向。
 
 ## 6. 目标架构
 
@@ -246,7 +565,7 @@ Reactor Netty Listener
   → Effective Transport Policy
       ├─ Aggregated HTTP Strategy
       ├─ Streaming HTTP Strategy
-      └─ WebSocket Proxy Strategy
+      └─ Dedicated WebSocket Proxy
   → 统一 Observation / Cancellation / Resource Release
 ```
 
@@ -805,7 +1124,28 @@ OpenAI Body。
 - Netty Leak Detection 覆盖完成、失败、取消、超限、超时；
 - Engine Drain 能终止 HTTP Stream 和 WebSocket。
 
-### 19.9 实现后验证命令
+### 19.9 设计模式边界与协作
+
+- HTTP 与 WebSocket 都只执行一次现有 Filter Chain，WebSocket 不得绕过 Security 或
+  Governance；
+- `GatewayRouteProfileResolver` 使用表驱动测试覆盖 DEFAULT、OPENAI、Override、
+  Traffic Policy 和 Safety Bound，并验证同一输入输出稳定；
+- HTTP Strategy Selector 对 `GatewayRequestBodyMode` 穷尽映射，未知值在 Rule
+  Compile 阶段失败；
+- Aggregated 与 Streaming Strategy 使用同一 Contract Test，验证各自只调用 Adapter
+  一次、错误和取消均传播；
+- WebSocket Proxy 不被注册成 HTTP Strategy，并验证其独立 `Mono<Void>` 生命周期；
+- `GatewayDataBufferPipeline` 验证 Operator 顺序、单订阅、Observer 失败隔离、
+  `doOnDiscard` 和取消释放；
+- `GatewayCommitGuard` 使用并发测试验证状态单调、不可回退，以及收到上游响应头后
+  `mayRetry()` 永久为 false；
+- Adapter 测试只验证 Reactor Netty I/O、Header 和 Buffer 所有权，不复制 Route
+  Policy 测试；
+- Observation 测试验证 Sink 抛错不会中断 SSE、Binary 或 WebSocket；
+- 模块依赖检查验证 Contract/Core 不依赖 Reactor Netty/DataBuffer，Admin 不依赖
+  Engine；不为此新增另一套架构测试框架。
+
+### 19.10 实现后验证命令
 
 实现阶段至少执行：
 
@@ -838,7 +1178,9 @@ starter、provider-runtime 和 test modules 的回归闭合。
 - HTTP Body 模型迁移为 `Flux<DataBuffer>`；
 - Listener 与 Upstream Adapter 取消 `ByteBufUtil::getBytes`；
 - Body Limiter 增加 Streaming 计数与释放；
-- 引入 Aggregated/Streaming/WebSocket 三个 Strategy；
+- 复用现有 Filter Chain，引入 Aggregated/Streaming 两个 HTTP Strategy；
+- 增加 Dedicated WebSocket Proxy、Transport Dispatcher 和 Profile Resolver；
+- 增加 DataBuffer Decorator Pipeline、Commit Guard 与 Adapter 边界；
 - 通用 Hop-by-Hop Filter；
 - 五类 Timeout；
 - Commit State + retry gate；
@@ -861,10 +1203,10 @@ Trace、LKG Rule 和 RPC 实现，不做无关重构。
 
 用户审核通过后按以下顺序实施，每项完成、测试并独立提交一次：
 
-1. Contract、Rule Canonical Compatibility 和 Admin Backend 映射；
-2. DataBuffer 基础、Streaming Size Limit、Header Filter 和 HTTP 策略；
-3. SSE、Multipart、Binary、Timeout、Cancellation 与 Retry Gate；
-4. WebSocket Proxy；
+1. Contract、Rule Canonical Compatibility、Profile Resolver 和 Admin Backend 映射；
+2. DataBuffer 基础、Adapter Port、HTTP Strategy、Header Filter 和 Dispatcher；
+3. SSE、Multipart、Binary、Decorator Pipeline、Timeout、Cancellation 与 Commit Guard；
+4. Dedicated WebSocket Proxy 和 WebSocket Adapter；
 5. Admin Web Route 表单；
 6. Gateway 全量回归与文档收口。
 
@@ -886,21 +1228,35 @@ Trace、LKG Rule 和 RPC 实现，不做无关重构。
 12. OpenAI Profile 仅是传输配置预设，不包含模型或计费业务；
 13. Admin 只新增传输字段；
 14. 旧 Snapshot 哈希和旧 Draft 可兼容；
-15. 没有数据库 Migration、额外网关模块或新的模型管理能力。
+15. 没有数据库 Migration、额外网关模块或新的模型管理能力；
+16. 现有责任链只执行一次，HTTP Strategy 可替换边界真实，WebSocket 不伪装成 HTTP
+    Response；
+17. Adapter、Policy、Decorator、Observer 和 Commit Guard 各自满足第 5 节禁止职责，
+    没有形成新的巨型 Handler 或继承层级。
 
 ## 23. 本轮审核项
 
-请一次性审核以下决策：
+用户已确认 v1 推荐方向：通用 Streaming/SSE/Multipart/Binary/WebSocket 能力 +
+`OPENAI_HTTP` Profile，不建立 OpenAI 业务协议。v1 的 Profile 默认值、Header、
+Timeout、Retry、Admin、兼容和无 Migration 决策在 v2 中均未改变。
 
-1. 认可“通用 Streaming/SSE/Multipart/Binary/WebSocket 能力 +
-   `OPENAI_HTTP` Profile”，不建立 OpenAI 业务协议；
-2. 认可 Engine HTTP 内部使用 `Flux<DataBuffer>`，旧 Aggregated 路径继续保留；
-3. 认可本 Spec 的 Profile 初始默认值：512 MiB 请求上限、10s Connect、120s
-   Header、90s Stream Idle、30min Total、5min WebSocket Idle、16 MiB Frame；
-4. 认可 OpenAI Streaming 响应默认不设字节上限，以背压、Timeout 和可选
-   `RESPONSE_SIZE` Policy 控制；
-5. 认可 `Authorization` 只对显式 OpenAI 透明 Profile 放行，旧 Route 安全行为不变；
-6. 认可 Route Override 不能突破资源硬边界和协议安全不变量；
-7. 认可修正 Admin Route 键名不一致，采用旧键双读、标准键写入；
-8. 认可不新增 Flyway Migration；
-9. 认可审核通过前不开始实现。
+请一次性复审本次新增的设计模式决策：
+
+1. 认可 Remote Proxy 是总体职责模式，Gateway 只承载远端 Contract，不成为模型、
+   Prompt、Token 或 Tool Call 的实现者；
+2. 认可复用现有 Chain of Responsibility，只在 Invocation 阶段分派传输，不把逐
+   DataBuffer 或 WebSocket Frame 处理做成 Gateway Filter；
+3. 认可 Strategy 只用于可替换的 Aggregated/Streaming HTTP 路径，WebSocket 使用
+   独立 Proxy，不强行实现 HTTP Strategy；
+4. 认可 `HttpUpstreamAdapter`/`WebSocketUpstreamAdapter` 隔离 Reactor Netty，
+   Strategy 不直接操作 Client；
+5. 认可 Route Profile 使用纯 Policy Resolver，不作为模型或业务 Strategy；
+6. 认可 DataBuffer 横切能力使用响应式 Decorator Operator，不创建包装类组合爆炸；
+7. 认可 `GatewayTransportDispatcher` 是窄 Facade，现有 Filter Chain、Route、
+   Security、Governance 和 Provider Selection 仍为唯一入口；
+8. 认可提交点使用单调 `GatewayCommitGuard`，不引入完整 State Pattern；
+9. 认可 Observer 只能被动记录，不能控制 retry、Provider 或传输；
+10. 认可拒绝 Template Method、Factory Method/Abstract Factory、Builder、Command、
+    完整 State、Specification 类树、Domain Service 和 OpenAI SDK/Facade；
+11. 认可第 5.14 节类职责和第 5.16 节依赖方向；
+12. 认可最新 Spec 审核通过前仍不开始实现。
