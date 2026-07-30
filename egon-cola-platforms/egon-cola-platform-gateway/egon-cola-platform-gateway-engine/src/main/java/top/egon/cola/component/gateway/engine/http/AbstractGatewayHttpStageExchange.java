@@ -17,6 +17,7 @@ import top.egon.cola.component.gateway.core.exchange.GatewayResponse;
 import top.egon.cola.component.gateway.core.exchange.ImmutableGatewayHeaders;
 import top.egon.cola.component.gateway.core.filter.GatewayFilterChain;
 import top.egon.cola.component.gateway.contract.trace.GatewayTraceContext;
+import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketHandshakeResult;
 
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,9 @@ public abstract class AbstractGatewayHttpStageExchange
 
     private final GatewayRequest request;
 
-    private GatewayHttpBridgeResponse response;
+    private GatewayResponse response;
+
+    private GatewayWebSocketHandshakeResult webSocketResult;
 
     protected AbstractGatewayHttpStageExchange(
             GatewayInboundHttpRequest inbound,
@@ -63,6 +66,16 @@ public abstract class AbstractGatewayHttpStageExchange
         return Mono.just(response);
     }
 
+    protected final Publisher<GatewayResponse> respondWebSocket(
+            GatewayWebSocketHandshakeResult result) {
+        webSocketResult = result;
+        response = new GatewayWebSocketBridgeResponse(
+                result,
+                request.traceId()
+        );
+        return Mono.just(response);
+    }
+
     final GatewayResponse fail(Throwable failure) {
         response = new GatewayHttpBridgeResponse(
                 mapFailure(failure),
@@ -72,12 +85,28 @@ public abstract class AbstractGatewayHttpStageExchange
     }
 
     final GatewayOutboundHttpResponse outbound() {
-        if (response == null) {
+        if (!(response instanceof GatewayHttpBridgeResponse bridge)) {
             throw new IllegalStateException(
                     "gateway HTTP pipeline produced no response"
             );
         }
-        return response.outbound();
+        return bridge.outbound();
+    }
+
+    final GatewayWebSocketHandshakeResult webSocketResult() {
+        if (webSocketResult != null) {
+            return webSocketResult;
+        }
+        if (response instanceof GatewayHttpBridgeResponse bridge) {
+            return GatewayWebSocketHandshakeResult.rejected(
+                    bridge.outbound().status(),
+                    "GATEWAY_WEBSOCKET_REQUEST_REJECTED",
+                    "gateway WebSocket request rejected before handshake"
+            );
+        }
+        throw new IllegalStateException(
+                "gateway WebSocket pipeline produced no handshake result"
+        );
     }
 
     @Override
@@ -220,6 +249,39 @@ public abstract class AbstractGatewayHttpStageExchange
         @Override
         public GatewayHeaders headers() {
             return new ImmutableGatewayHeaders(outbound.headers());
+        }
+
+        @Override
+        public GatewayBody body() {
+            return EmptyGatewayBody.INSTANCE;
+        }
+    }
+
+    private record GatewayWebSocketBridgeResponse(
+            GatewayWebSocketHandshakeResult handshake,
+            String traceId
+    ) implements GatewayResponse {
+
+        @Override
+        public GatewayResult result() {
+            if (handshake instanceof GatewayWebSocketHandshakeResult.Accepted) {
+                return GatewayResult.success();
+            }
+            GatewayWebSocketHandshakeResult.Rejected rejected =
+                    (GatewayWebSocketHandshakeResult.Rejected) handshake;
+            return GatewayResult.failure(new GatewayError(
+                    rejected.errorCode(),
+                    GatewayErrorCategory.UPSTREAM_FAILURE,
+                    rejected.message(),
+                    traceId,
+                    rejected.httpStatus() >= 500,
+                    Map.of()
+            ));
+        }
+
+        @Override
+        public GatewayHeaders headers() {
+            return new ImmutableGatewayHeaders(Map.of());
         }
 
         @Override

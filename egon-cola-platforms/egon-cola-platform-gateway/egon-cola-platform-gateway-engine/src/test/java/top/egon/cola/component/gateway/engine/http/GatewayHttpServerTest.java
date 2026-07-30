@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayHttpServerTest {
@@ -202,7 +203,7 @@ class GatewayHttpServerTest {
     }
 
     @Test
-    void waitsForAcceptedRequestsUntilConfiguredDrainDeadline()
+    void cancelsAcceptedRequestsAfterConfiguredDrainDeadline()
             throws Exception {
         GatewayHttpEngineProperties properties =
                 new GatewayHttpEngineProperties(
@@ -249,11 +250,11 @@ class GatewayHttpServerTest {
             server.beginDrain();
 
             assertFalse(server.awaitDrain());
+            assertNull(response.get(1, TimeUnit.SECONDS));
             completion.tryEmitValue(
                     GatewayOutboundHttpResponse.text(200, "DONE")
             );
             assertTrue(server.awaitDrain());
-            assertEquals("DONE", response.get(1, TimeUnit.SECONDS));
         } finally {
             completion.tryEmitValue(
                     GatewayOutboundHttpResponse.text(500, "CLOSED")

@@ -10,7 +10,7 @@ public sealed interface GatewayWebSocketHandshakeResult
         return new Accepted(session);
     }
 
-    static Rejected rejected(
+    public static Rejected rejected(
             int httpStatus,
             String errorCode,
             String message) {

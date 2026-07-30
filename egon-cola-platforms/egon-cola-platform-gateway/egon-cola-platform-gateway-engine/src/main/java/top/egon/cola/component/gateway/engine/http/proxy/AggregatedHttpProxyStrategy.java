@@ -32,7 +32,10 @@ public final class AggregatedHttpProxyStrategy
                                         DefaultDataBufferFactory.sharedInstance
                                                 .wrap(body)
                                 )),
+                                context.policy().connectTimeout(),
                                 context.policy().responseHeaderTimeout(),
+                                context.policy().streamIdleTimeout(),
+                                context.policy().totalTimeout(),
                                 true
                         )
                 ))

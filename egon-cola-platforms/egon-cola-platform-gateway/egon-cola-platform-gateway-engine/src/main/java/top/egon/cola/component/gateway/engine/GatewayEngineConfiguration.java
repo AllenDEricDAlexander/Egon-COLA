@@ -44,6 +44,9 @@ import top.egon.cola.component.gateway.engine.http.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.ReactorNettyHttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.http.RuleBackedHttpGatewaySecurityProcessor;
+import top.egon.cola.component.gateway.engine.http.proxy.AggregatedHttpProxyStrategy;
+import top.egon.cola.component.gateway.engine.http.proxy.GatewayHttpProxyStrategySelector;
+import top.egon.cola.component.gateway.engine.http.proxy.StreamingHttpProxyStrategy;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallAccessLogger;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallEventDispatcher;
@@ -74,6 +77,9 @@ import top.egon.cola.component.gateway.engine.security.TrustedClientAddressResol
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
 import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketExecutor;
+import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
+import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
+import top.egon.cola.component.gateway.engine.websocket.ReactorNettyWebSocketUpstreamAdapter;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -364,6 +370,21 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
+    public GatewayTransportDispatcher gatewayTransportDispatcher() {
+        return new GatewayTransportDispatcher(
+                new GatewayHttpProxyStrategySelector(
+                        new AggregatedHttpProxyStrategy(),
+                        new StreamingHttpProxyStrategy()
+                ),
+                new GatewayWebSocketProxy(
+                        new ReactorNettyWebSocketUpstreamAdapter(
+                                reactor.netty.http.client.HttpClient.create()
+                        )
+                )
+        );
+    }
+
+    @Bean
     public GatewayCallCompletionListener gatewayCallCompletionListener(
             MeterRegistry meterRegistry,
             ObjectProvider<GatewayCallEventDispatcher> dispatcher) {
@@ -415,7 +436,8 @@ public class GatewayEngineConfiguration {
             GatewayTrafficGovernance trafficGovernance,
             HttpRpcUpstreamAdapter httpRpcUpstream,
             PassiveHealthTracker passiveHealth,
-            GatewayTelemetry telemetry) {
+            GatewayTelemetry telemetry,
+            GatewayTransportDispatcher transportDispatcher) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         var emptyRoutes = new HttpRouteCompiler().compile(List.of());
         var security = new RuleBackedHttpGatewaySecurityProcessor(
@@ -449,7 +471,8 @@ public class GatewayEngineConfiguration {
                         : activation.active().corsPolicies(),
                 telemetry,
                 properties.getEnv(),
-                properties.getNamespace()
+                properties.getNamespace(),
+                transportDispatcher
         );
         return new GatewayHttpServer(engineProperties, handler);
     }

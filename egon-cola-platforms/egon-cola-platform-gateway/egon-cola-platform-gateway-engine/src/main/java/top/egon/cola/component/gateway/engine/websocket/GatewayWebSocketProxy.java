@@ -66,6 +66,7 @@ public final class GatewayWebSocketProxy {
         );
         observe(context, "BRIDGING");
         Termination termination = new Termination();
+        AtomicBoolean cleaned = new AtomicBoolean();
         Sinks.Many<Long> activity = Sinks.many()
                 .multicast()
                 .directBestEffort();
@@ -100,12 +101,21 @@ public final class GatewayWebSocketProxy {
                         upstreamToDownstream,
                         downstreamToUpstream
                 )
-                .doFinally(signal -> finish(
+                .doOnSuccess(ignored -> finishOnce(
+                        SignalType.ON_COMPLETE,
+                        upstream,
+                        downstream,
+                        context,
+                        termination,
+                        cleaned
+                ))
+                .doFinally(signal -> finishOnce(
                         signal,
                         upstream,
                         downstream,
                         context,
-                        termination
+                        termination,
+                        cleaned
                 ));
     }
 
@@ -252,6 +262,18 @@ public final class GatewayWebSocketProxy {
         observe(context, termination.reason());
         upstream.dispose();
         downstream.dispose();
+    }
+
+    private void finishOnce(
+            SignalType signal,
+            GatewayPreparedWebSocketSession upstream,
+            GatewayWebSocketPeer downstream,
+            GatewayWebSocketProxyContext context,
+            Termination termination,
+            AtomicBoolean cleaned) {
+        if (cleaned.compareAndSet(false, true)) {
+            finish(signal, upstream, downstream, context, termination);
+        }
     }
 
     private static void observe(

@@ -14,18 +14,33 @@ public final class GatewayPreparedWebSocketSession implements AutoCloseable {
 
     private final String selectedSubprotocol;
 
+    private final Runnable disposeAction;
+
     private final AtomicBoolean disposed = new AtomicBoolean();
 
     public GatewayPreparedWebSocketSession(
             GatewayWebSocketProxyContext context,
             GatewayWebSocketPeer upstream,
             String selectedSubprotocol) {
+        this(context, upstream, selectedSubprotocol, () -> {
+        });
+    }
+
+    private GatewayPreparedWebSocketSession(
+            GatewayWebSocketProxyContext context,
+            GatewayWebSocketPeer upstream,
+            String selectedSubprotocol,
+            Runnable disposeAction) {
         this.context = Objects.requireNonNull(context, "context");
         this.upstream = Objects.requireNonNull(upstream, "upstream");
         this.selectedSubprotocol = selectedSubprotocol == null
                 || selectedSubprotocol.isBlank()
                 ? null
                 : selectedSubprotocol;
+        this.disposeAction = Objects.requireNonNull(
+                disposeAction,
+                "disposeAction"
+        );
     }
 
     public GatewayWebSocketProxyContext context() {
@@ -44,8 +59,28 @@ public final class GatewayPreparedWebSocketSession implements AutoCloseable {
         if (!disposed.compareAndSet(false, true)) {
             return false;
         }
-        upstream.dispose();
+        try {
+            upstream.dispose();
+        } finally {
+            disposeAction.run();
+        }
         return true;
+    }
+
+    public GatewayPreparedWebSocketSession onDispose(Runnable action) {
+        Objects.requireNonNull(action, "action");
+        return new GatewayPreparedWebSocketSession(
+                context,
+                upstream,
+                selectedSubprotocol,
+                () -> {
+                    try {
+                        dispose();
+                    } finally {
+                        action.run();
+                    }
+                }
+        );
     }
 
     @Override

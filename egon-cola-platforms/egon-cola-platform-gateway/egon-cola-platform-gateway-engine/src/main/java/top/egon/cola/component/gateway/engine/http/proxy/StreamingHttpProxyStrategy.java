@@ -39,7 +39,10 @@ public final class StreamingHttpProxyStrategy
                         context.pathAndQuery(),
                         context.headers(),
                         body,
+                        context.policy().connectTimeout(),
                         context.policy().responseHeaderTimeout(),
+                        context.policy().streamIdleTimeout(),
+                        context.policy().totalTimeout(),
                         false
                 ))
                 .map(response -> responseSemantics.apply(response, context));
