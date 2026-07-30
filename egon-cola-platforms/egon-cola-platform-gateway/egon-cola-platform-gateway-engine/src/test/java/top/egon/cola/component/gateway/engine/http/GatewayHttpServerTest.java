@@ -2,8 +2,10 @@ package top.egon.cola.component.gateway.engine.http;
 
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 import reactor.netty.http.client.HttpClient;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 
 import java.time.Duration;
@@ -12,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -255,6 +258,67 @@ class GatewayHttpServerTest {
             completion.tryEmitValue(
                     GatewayOutboundHttpResponse.text(500, "CLOSED")
             );
+            server.close();
+        }
+    }
+
+    @Test
+    void abandonsResponseWhenClientCancelsStream() throws Exception {
+        GatewayHttpEngineProperties properties =
+                new GatewayHttpEngineProperties(
+                        new GatewayHttpEngineProperties.Listener(
+                                true,
+                                "127.0.0.1",
+                                0
+                        ),
+                        new GatewayHttpEngineProperties.Listener(
+                                false,
+                                "127.0.0.1",
+                                0
+                        ),
+                        64,
+                        8192,
+                        1024,
+                        Duration.ofSeconds(30),
+                        Duration.ofSeconds(5),
+                        10,
+                        10
+                );
+        CountDownLatch abandoned = new CountDownLatch(1);
+        AtomicInteger abandonments = new AtomicInteger();
+        GatewayHttpServer server = new GatewayHttpServer(
+                properties,
+                (zone, request) -> Mono.just(
+                        new GatewayOutboundHttpResponse(
+                                200,
+                                Map.of(),
+                                Flux.concat(
+                                        Flux.defer(() -> Flux.just(
+                                                DefaultDataBufferFactory
+                                                        .sharedInstance
+                                                        .wrap(new byte[]{1})
+                                        )),
+                                        Flux.never()
+                                )
+                        ).onAbandon(() -> {
+                            abandonments.incrementAndGet();
+                            abandoned.countDown();
+                        })
+                )
+        );
+        server.start();
+        try {
+            HttpClient.create()
+                    .get()
+                    .uri("http://127.0.0.1:"
+                            + server.publicPort()
+                            + "/cancel")
+                    .response((response, body) -> body.take(1).then())
+                    .blockLast(Duration.ofSeconds(2));
+
+            assertTrue(abandoned.await(1, TimeUnit.SECONDS));
+            assertEquals(1, abandonments.get());
+        } finally {
             server.close();
         }
     }

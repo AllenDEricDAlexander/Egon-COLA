@@ -10,6 +10,7 @@ import reactor.core.publisher.Flux;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -104,17 +105,41 @@ class GatewayBodySizeLimiterTest {
     @Test
     void rejectsDeclaredContentLengthBeforeBodySubscription() {
         GatewayBodySizeLimiter limiter = new GatewayBodySizeLimiter();
+        AtomicInteger abandonments = new AtomicInteger();
         GatewayOutboundHttpResponse response =
                 new GatewayOutboundHttpResponse(
                         200,
                         Map.of("content-length", List.of("6")),
                         Flux.never()
-                );
+                ).onAbandon(abandonments::incrementAndGet);
 
         assertThrows(
                 GatewayResponseBodyTooLargeException.class,
                 () -> limiter.limitResponse(response, 5)
         );
+        response.abandon();
+
+        assertEquals(1, abandonments.get());
+    }
+
+    @Test
+    void preservesAbandonmentWhenDecoratingResponseBody() {
+        GatewayBodySizeLimiter limiter = new GatewayBodySizeLimiter();
+        AtomicInteger abandonments = new AtomicInteger();
+        GatewayOutboundHttpResponse response =
+                new GatewayOutboundHttpResponse(
+                        200,
+                        Map.of(),
+                        Flux.never()
+                ).onAbandon(abandonments::incrementAndGet);
+
+        GatewayOutboundHttpResponse limited =
+                limiter.limitResponse(response, 5);
+        limited.abandon();
+        limited.abandon();
+        response.abandon();
+
+        assertEquals(1, abandonments.get());
     }
 
     private ByteBuf pooledBytes(String value) {

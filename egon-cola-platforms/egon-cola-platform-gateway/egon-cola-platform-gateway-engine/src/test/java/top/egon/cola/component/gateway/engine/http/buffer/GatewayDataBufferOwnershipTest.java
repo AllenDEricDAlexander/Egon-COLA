@@ -1,6 +1,8 @@
 package top.egon.cola.component.gateway.engine.http.buffer;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.AbstractByteBufAllocator;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -15,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class GatewayDataBufferOwnershipTest {
 
@@ -130,6 +133,86 @@ class GatewayDataBufferOwnershipTest {
         } finally {
             transferred.release();
         }
+    }
+
+    @Test
+    void transferToNettyReleasesInputWhenAllocationFails() {
+        TrackingPooledDataBuffer input = new TrackingPooledDataBuffer(
+                DefaultDataBufferFactory.sharedInstance.wrap(
+                        new byte[]{4, 5, 6}
+                )
+        );
+        ByteBufAllocator failingAllocator =
+                new AbstractByteBufAllocator(false) {
+                    @Override
+                    public boolean isDirectBufferPooled() {
+                        return false;
+                    }
+
+                    @Override
+                    protected ByteBuf newHeapBuffer(
+                            int initialCapacity,
+                            int maxCapacity) {
+                        throw new IllegalStateException("allocation failed");
+                    }
+
+                    @Override
+                    protected ByteBuf newDirectBuffer(
+                            int initialCapacity,
+                            int maxCapacity) {
+                        throw new AssertionError("allocation failed");
+                    }
+                };
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> GatewayDataBufferOwnership.transferToNetty(
+                        input,
+                        failingAllocator
+                )
+        );
+
+        assertFalse(input.isAllocated());
+    }
+
+    @Test
+    void transferToNettyReleasesInputWhenAllocationRaisesError() {
+        TrackingPooledDataBuffer input = new TrackingPooledDataBuffer(
+                DefaultDataBufferFactory.sharedInstance.wrap(
+                        new byte[]{7, 8, 9}
+                )
+        );
+        ByteBufAllocator failingAllocator =
+                new AbstractByteBufAllocator(true) {
+                    @Override
+                    public boolean isDirectBufferPooled() {
+                        return false;
+                    }
+
+                    @Override
+                    protected ByteBuf newHeapBuffer(
+                            int initialCapacity,
+                            int maxCapacity) {
+                        throw new IllegalStateException("allocation failed");
+                    }
+
+                    @Override
+                    protected ByteBuf newDirectBuffer(
+                            int initialCapacity,
+                            int maxCapacity) {
+                        throw new AssertionError("allocation failed");
+                    }
+                };
+
+        assertThrows(
+                AssertionError.class,
+                () -> GatewayDataBufferOwnership.transferToNetty(
+                        input,
+                        failingAllocator
+                )
+        );
+
+        assertFalse(input.isAllocated());
     }
 
     private void releaseRemaining(ByteBuf buffer) {

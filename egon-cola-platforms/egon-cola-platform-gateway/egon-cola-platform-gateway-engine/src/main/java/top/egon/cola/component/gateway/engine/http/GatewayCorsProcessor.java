@@ -213,8 +213,7 @@ public final class GatewayCorsProcessor {
                     response.headers()
             );
             headers.putAll(responseHeaders);
-            return new GatewayOutboundHttpResponse(
-                    response.status(),
+            return response.withHeadersAndBody(
                     headers,
                     response.body()
             );

@@ -758,6 +758,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 upstream.dispose();
             });
             Disposable subscription = response
+                    .doOnDiscard(
+                            GatewayOutboundHttpResponse.class,
+                            GatewayOutboundHttpResponse::abandon
+                    )
                     .contextWrite(sink.currentContext())
                     .subscribe(
                             sink::success,
@@ -771,15 +775,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
     private GatewayOutboundHttpResponse trackAttemptResponse(
             GatewayOutboundHttpResponse response,
             AttemptLifecycle lifecycle) {
-        return new GatewayOutboundHttpResponse(
-                response.status(),
-                response.headers(),
+        return response.withBody(
                 response.body()
                         .doOnComplete(() ->
                                 lifecycle.complete(response.status()))
                         .doOnError(lifecycle::fail)
                         .doOnCancel(lifecycle::cancel)
-        );
+        ).onAbandon(lifecycle::cancel);
     }
 
     private Map<String, List<String>> forwardedHeaders(
@@ -855,8 +857,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         (rejected.retryAfterMillis() + 999) / 1000
                 )))
         );
-        return new GatewayOutboundHttpResponse(
-                response.status(),
+        return response.withHeadersAndBody(
                 headers,
                 response.body()
         );
@@ -901,8 +902,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 "x-egon-request-id",
                 List.of(observation.trace().requestId())
         );
-        return new GatewayOutboundHttpResponse(
-                response.status(),
+        return response.withHeadersAndBody(
                 headers,
                 response.body()
                         .doOnNext(buffer -> observation.addResponseBytes(

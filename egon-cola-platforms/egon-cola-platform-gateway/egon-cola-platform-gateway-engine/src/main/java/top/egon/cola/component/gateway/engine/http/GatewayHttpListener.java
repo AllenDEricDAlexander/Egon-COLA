@@ -99,7 +99,11 @@ public final class GatewayHttpListener implements AutoCloseable {
                                                             ))
                             );
                     return handler.handle(accessZone, inbound)
-                            .flatMap(outbound -> {
+                            .doOnDiscard(
+                                    GatewayOutboundHttpResponse.class,
+                                    GatewayOutboundHttpResponse::abandon
+                            )
+                            .flatMap(outbound -> Mono.defer(() -> {
                                 response.status(outbound.status());
                                 outbound.headers().forEach((name, values) ->
                                         values.forEach(value ->
@@ -107,15 +111,13 @@ public final class GatewayHttpListener implements AutoCloseable {
                                         )
                                 );
                                 return response.send(outbound.body().map(
-                                                buffer ->
-                                                        GatewayDataBufferOwnership
-                                                                .transferToNetty(
-                                                                        buffer,
-                                                                        response.alloc()
-                                                                )
-                                        ))
-                                        .then();
-                            });
+                                        buffer -> GatewayDataBufferOwnership
+                                                .transferToNetty(
+                                                        buffer,
+                                                        response.alloc()
+                                                )
+                                )).then();
+                            }).doFinally(ignored -> outbound.abandon()));
                 })
                 .bindNow();
     }

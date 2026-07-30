@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class ReactorNettyHttpUpstreamAdapter
         implements HttpUpstreamAdapter, AutoCloseable {
@@ -95,22 +96,29 @@ public final class ReactorNettyHttpUpstreamAdapter
                                                                 outbound.alloc()
                                                         ))
                         ))
-                .responseConnection((response, connection) ->
-                        Flux.just(new GatewayOutboundHttpResponse(
-                                response.status().code(),
-                                responseHeaders(response.responseHeaders()),
-                                connection.inbound()
-                                        .receive()
-                                        .<DataBuffer>map(buffer ->
-                                                GatewayDataBufferOwnership
-                                                        .retainAndWrap(
-                                                                BUFFER_FACTORY,
-                                                                buffer
-                                                        ))
-                                        .timeout(request.timeout())
-                                        .doFinally(ignored ->
-                                                connection.dispose())
-                        )))
+                .responseConnection((response, connection) -> {
+                    AtomicBoolean disposed = new AtomicBoolean();
+                    Runnable dispose = () -> {
+                        if (disposed.compareAndSet(false, true)) {
+                            connection.dispose();
+                        }
+                    };
+                    Flux<DataBuffer> body = connection.inbound()
+                            .receive()
+                            .<DataBuffer>map(buffer ->
+                                    GatewayDataBufferOwnership.retainAndWrap(
+                                            BUFFER_FACTORY,
+                                            buffer
+                                    ))
+                            .timeout(request.timeout())
+                            .doFinally(ignored -> dispose.run());
+                    return Flux.just(new GatewayOutboundHttpResponse(
+                            response.status().code(),
+                            responseHeaders(response.responseHeaders()),
+                            body,
+                            dispose
+                    ));
+                })
                 .single()
                 .timeout(request.timeout());
     }

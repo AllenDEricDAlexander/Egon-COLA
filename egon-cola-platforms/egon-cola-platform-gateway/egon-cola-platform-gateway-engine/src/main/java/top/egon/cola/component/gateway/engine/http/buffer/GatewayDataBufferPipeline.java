@@ -138,7 +138,11 @@ public final class GatewayDataBufferPipeline {
 
     /**
      * Installs the single release hook for upstream operators that discard
-     * untransferred buffers during filtering, failure, or cancellation.
+     * emitted but untransferred buffers during filtering, failure, or
+     * cancellation. The producer remains responsible for pooled elements that
+     * it owns but never emits; pooled bodies therefore must be lazy or expose
+     * their own cancellation cleanup rather than pre-constructing elements in
+     * {@code Flux.just}.
      */
     public static Flux<DataBuffer> releaseOnDiscardOrCancel(
             Flux<DataBuffer> source) {

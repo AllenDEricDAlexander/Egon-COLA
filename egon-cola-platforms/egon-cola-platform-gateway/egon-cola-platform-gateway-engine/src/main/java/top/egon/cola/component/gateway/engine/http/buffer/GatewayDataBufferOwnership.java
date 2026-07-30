@@ -63,16 +63,21 @@ public final class GatewayDataBufferOwnership {
         if (buffer instanceof NettyDataBuffer nettyBuffer) {
             return nettyBuffer.getNativeBuffer();
         }
-        int readableBytes = buffer.readableByteCount();
-        ByteBuf copy = allocator.buffer(readableBytes, readableBytes);
-        try (DataBuffer.ByteBufferIterator byteBuffers =
-                     buffer.readableByteBuffers()) {
-            while (byteBuffers.hasNext()) {
-                copy.writeBytes(byteBuffers.next());
+        ByteBuf copy = null;
+        try {
+            int readableBytes = buffer.readableByteCount();
+            copy = allocator.buffer(readableBytes, readableBytes);
+            try (DataBuffer.ByteBufferIterator byteBuffers =
+                         buffer.readableByteBuffers()) {
+                while (byteBuffers.hasNext()) {
+                    copy.writeBytes(byteBuffers.next());
+                }
             }
             return copy;
         } catch (RuntimeException | Error failure) {
-            copy.release();
+            if (copy != null) {
+                copy.release();
+            }
             throw failure;
         } finally {
             release(buffer);

@@ -55,6 +55,7 @@ public final class GatewayBodySizeLimiter {
             long limit) {
         requirePositive(limit);
         if (contentLength(response.headers()) > limit) {
+            response.abandon();
             throw new GatewayResponseBodyTooLargeException(
                     "response content-length exceeds configured limit"
             );
@@ -69,11 +70,7 @@ public final class GatewayBodySizeLimiter {
                                 )
                         )
         );
-        return new GatewayOutboundHttpResponse(
-                response.status(),
-                response.headers(),
-                limitedBody
-        );
+        return response.withBody(limitedBody);
     }
 
     private long contentLength(Map<String, List<String>> headers) {
