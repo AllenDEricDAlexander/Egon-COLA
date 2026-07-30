@@ -117,18 +117,21 @@ const draft: GatewayDraft = {
   updatedAt: '2026-07-30T06:00:00Z',
 }
 
-const operationDetail = (operationId: string): OperationDetail => ({
+const operationDetail = (
+  operationId: string,
+  protocol: 'HTTP' | 'RPC' = 'HTTP',
+): OperationDetail => ({
   operation: {
     id: operationId,
     applicationId: 'application-1',
     interfaceGroupId: 'interface-group-1',
     operationKey: `POST /${operationId}`,
-    protocol: 'HTTP',
+    protocol,
     methodIdentity: `POST /${operationId}`,
     providerServiceIdentity: {
       env: 'test',
       namespace: 'gateway',
-      protocol: 'HTTP',
+      protocol,
       serviceName: 'openai-compatible-provider',
       group: 'default',
       version: '1.0.0',
@@ -235,6 +238,21 @@ describe('DraftPage route editor state integrity', () => {
     await waitFor(() => expect(gatewayApi.saveRoute).toHaveBeenCalledTimes(1))
     expect(vi.mocked(gatewayApi.saveRoute).mock.calls[0][2].content.transportPolicy)
       .toEqual(originalTransportPolicy)
+  })
+
+  it('hides HTTP transport controls for an RPC Operation', async () => {
+    vi.mocked(gatewayApi.operation).mockResolvedValue(
+      operationDetail('operation-a', 'RPC'),
+    )
+    renderDraftPage()
+
+    await openRoute(0)
+    await screen.findByText('Operation Protocol：RPC / gRPC')
+
+    expect(screen.queryByText('Transport Policy')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Transport Protocol')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Request Body Mode')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Response Mode')).not.toBeInTheDocument()
   })
 
   it('keeps Route B open when Route A save completes after switching editors', async () => {

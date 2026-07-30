@@ -127,6 +127,43 @@ describe('gateway API response adapters', () => {
     expect(releases[0].id).toBe('release-1')
   })
 
+  it('preserves transport overrides and unknown draft extensions exactly', async () => {
+    const transportPolicy = {
+      profile: 'OPENAI_HTTP',
+      transportProtocol: 'HTTP',
+      requestBodyMode: 'STREAMING',
+      responseMode: 'AUTO_STREAM',
+      bodyLogEnabled: false,
+      retryEnabled: false,
+      futureOption: false,
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+      gatewayGroupId: 'group-1',
+      revision: 3,
+      status: 'EDITING',
+      routes: [{
+        routeId: 'route-ai',
+        operationId: 'operation-ai',
+        content: {
+          host: 'ai.example.com',
+          httpMethod: 'POST',
+          pathPattern: '/v1/**',
+          accessZones: ['PUBLIC'],
+          transportPolicy,
+          futureRouteOption: { enabled: false },
+        },
+        enabled: true,
+      }],
+      policies: [],
+      updatedAt: '2026-07-30T08:00:00Z',
+    })))
+
+    const value = await gatewayApi.draft('group-1')
+
+    expect(value.routes[0].routeContent.transportPolicy).toEqual(transportPolicy)
+    expect(value.routes[0].routeContent.futureRouteOption).toEqual({ enabled: false })
+  })
+
   it('maps runtime consistency field names', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
       targetReleaseId: 'release-1',
