@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.application.release;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -11,13 +12,19 @@ import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
 import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
 import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftService;
+import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftStore;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.domain.GatewayReleaseStatus;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
+import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
+import top.egon.cola.component.gateway.contract.protocol.AccessZone;
+import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;
+import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
+import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -28,6 +35,10 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -85,6 +96,168 @@ class GatewayReleaseServiceTest {
         );
         assertThat(fixture.draft.getBasedOnReleaseId()).isNull();
         verify(fixture.drafts, never()).flush();
+    }
+
+    @Test
+    void createMapsLegacyDraftOntoCanonicalTypedTransportPolicy() {
+        Map<String, Object> routeContent = Map.of(
+                "host", "ai.example.com",
+                "listener", "PUBLIC",
+                "method", "POST",
+                "path", "/v1/**",
+                "transportPolicy", Map.of(
+                        "profile", "OPENAI_HTTP",
+                        "requestBodyMode", "STREAMING",
+                        "responseMode", "AUTO_STREAM",
+                        "connectTimeoutMs", 10_000,
+                        "retryEnabled", false
+                )
+        );
+        CreateFixture fixture = createFixture(routeContent);
+
+        fixture.service.create(
+                "group-1",
+                new GatewayReleaseService.CreateRelease(
+                        0L,
+                        "publish transport route"
+                ),
+                actor(),
+                request()
+        );
+
+        ArgumentCaptor<CompiledGatewayRelease> compiled =
+                ArgumentCaptor.forClass(CompiledGatewayRelease.class);
+        verify(fixture.releases).insert(
+                any(GatewayReleaseStore.ReleaseRecord.class),
+                compiled.capture(),
+                eq(1)
+        );
+        var publishedRoute = compiled.getValue()
+                .snapshot()
+                .content()
+                .routes()
+                .getFirst();
+        assertThat(publishedRoute.host()).isEqualTo("ai.example.com");
+        assertThat(publishedRoute.httpMethod()).isEqualTo("POST");
+        assertThat(publishedRoute.pathPattern()).isEqualTo("/v1/**");
+        assertThat(publishedRoute.accessZones())
+                .containsExactly(AccessZone.PUBLIC);
+        assertThat(publishedRoute.transportPolicy().profile())
+                .isEqualTo(GatewayRouteProfile.OPENAI_HTTP);
+        assertThat(publishedRoute.transportPolicy().requestBodyMode())
+                .isEqualTo(GatewayRequestBodyMode.STREAMING);
+        assertThat(publishedRoute.transportPolicy().responseMode())
+                .isEqualTo(GatewayTransportResponseMode.AUTO_STREAM);
+        assertThat(publishedRoute.transportPolicy().connectTimeoutMs())
+                .isEqualTo(10_000L);
+        assertThat(publishedRoute.transportPolicy().retryEnabled()).isFalse();
+    }
+
+    @Test
+    void createRejectsNonStringRouteTextBeforeBuildingASnapshot() {
+        CreateFixture fixture = createFixture(Map.of(
+                "host", Map.of("tenant", "x"),
+                "listener", "PUBLIC",
+                "method", false,
+                "path", "/v1/**"
+        ));
+
+        assertThatThrownBy(() -> fixture.service.create(
+                "group-1",
+                new GatewayReleaseService.CreateRelease(
+                        0L,
+                        "publish invalid route"
+                ),
+                actor(),
+                request()
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ROUTE_HOST_INVALID")
+                .hasMessageContaining("host");
+
+        verify(fixture.releases, never()).insert(
+                any(),
+                any(),
+                anyInt()
+        );
+    }
+
+    private CreateFixture createFixture(Map<String, Object> routeContent) {
+        GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
+        GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
+        GatewayDraftService draftService = mock(GatewayDraftService.class);
+        GatewayCatalogStore catalog = mock(GatewayCatalogStore.class);
+        GatewayReleaseStore releases = mock(GatewayReleaseStore.class);
+        GatewayAuditLogRepository audits =
+                mock(GatewayAuditLogRepository.class);
+        GatewayDraftEntity draft = new GatewayDraftEntity(
+                "group-1",
+                "admin",
+                NOW
+        );
+        GatewayGroupEntity group = new GatewayGroupEntity(
+                "group-1",
+                "orders",
+                "Orders",
+                "local",
+                "default",
+                null,
+                "admin",
+                NOW
+        );
+        GatewayDraftStore.RouteDraft route =
+                new GatewayDraftStore.RouteDraft(
+                        "group-1",
+                        "route-1",
+                        "operation-1",
+                        routeContent,
+                        true,
+                        NOW,
+                        "admin"
+                );
+        GatewayDraftService.DraftView view =
+                new GatewayDraftService.DraftView(
+                        "group-1",
+                        0L,
+                        null,
+                        "EDITABLE",
+                        null,
+                        List.of(route),
+                        List.of(),
+                        NOW
+                );
+        when(groups.findByIdAndDeletedFalse("group-1"))
+                .thenReturn(Optional.of(group));
+        when(drafts.findById("group-1")).thenReturn(Optional.of(draft));
+        when(draftService.validate("group-1")).thenReturn(
+                new GatewayDraftService.ValidationReport(
+                        true,
+                        0L,
+                        List.of(),
+                        List.of(),
+                        "draft-sha"
+                )
+        );
+        when(draftService.get("group-1")).thenReturn(view);
+        when(catalog.findOperation("operation-1"))
+                .thenReturn(Optional.of(operation()));
+        when(catalog.loadDefinitions("operation-1"))
+                .thenReturn(List.of(definition()));
+        when(releases.find(anyString())).thenAnswer(invocation ->
+                Optional.of(release(invocation.getArgument(0)))
+        );
+        when(releases.attempts(anyString())).thenReturn(List.of());
+        GatewayReleaseService service = new GatewayReleaseService(
+                groups,
+                drafts,
+                draftService,
+                catalog,
+                releases,
+                audits,
+                transactions(),
+                null,
+                Clock.fixed(NOW, ZoneOffset.UTC)
+        );
+        return new CreateFixture(service, releases);
     }
 
     private Fixture fixture(
@@ -171,6 +344,70 @@ class GatewayReleaseServiceTest {
         );
     }
 
+    private GatewayReleaseStore.ReleaseRecord release(String releaseId) {
+        return new GatewayReleaseStore.ReleaseRecord(
+                releaseId,
+                "group-1",
+                0L,
+                null,
+                null,
+                GatewayReleaseStatus.FAILED,
+                false,
+                null,
+                Map.of(),
+                Map.of(),
+                "publish transport route",
+                NOW,
+                "admin",
+                NOW
+        );
+    }
+
+    private GatewayCatalogStore.OperationRecord operation() {
+        return new GatewayCatalogStore.OperationRecord(
+                "operation-1",
+                "application-1",
+                "interface-1",
+                "orders",
+                "HTTP",
+                "POST /v1/orders",
+                true,
+                Map.of(
+                        "env", "local",
+                        "namespace", "default",
+                        "serviceName", "orders",
+                        "group", "default",
+                        "version", "v1",
+                        "transport", "http"
+                ),
+                "MANUAL",
+                "ACTIVE",
+                "definition-1",
+                1L,
+                NOW,
+                NOW
+        );
+    }
+
+    private GatewayCatalogStore.OperationDefinition definition() {
+        return new GatewayCatalogStore.OperationDefinition(
+                "definition-1",
+                "operation-1",
+                1L,
+                "sha256",
+                "orders",
+                List.of(),
+                Map.of("type", "object"),
+                Map.of("type", "object"),
+                List.of(),
+                null,
+                Map.of("responseMode", "TRANSPARENT"),
+                true,
+                NOW,
+                "admin"
+        );
+    }
+
     private AdminActor actor() {
         return new AdminActor(
                 "admin",
@@ -207,6 +444,12 @@ class GatewayReleaseServiceTest {
             GatewayReleaseStore releases,
             GatewayDraftRepository drafts,
             GatewayDraftEntity draft
+    ) {
+    }
+
+    private record CreateFixture(
+            GatewayReleaseService service,
+            GatewayReleaseStore releases
     ) {
     }
 }

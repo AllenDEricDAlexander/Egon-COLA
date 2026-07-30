@@ -234,6 +234,24 @@ public final class GatewayTelemetry {
             );
         }
 
+        public void transport(
+                String transportMode,
+                String commitPoint,
+                String terminationReason) {
+            observation.lowCardinalityKeyValue(
+                    "gateway.transport.mode",
+                    safe(transportMode)
+            );
+            observation.lowCardinalityKeyValue(
+                    "gateway.commit.point",
+                    safe(commitPoint)
+            );
+            observation.lowCardinalityKeyValue(
+                    "gateway.termination.reason",
+                    safe(terminationReason)
+            );
+        }
+
         public AttemptTrace startAttempt(
                 int number,
                 String providerInstanceId,

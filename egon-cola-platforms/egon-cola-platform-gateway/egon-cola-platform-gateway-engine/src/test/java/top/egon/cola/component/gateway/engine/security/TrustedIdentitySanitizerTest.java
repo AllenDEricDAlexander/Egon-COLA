@@ -61,6 +61,35 @@ class TrustedIdentitySanitizerTest {
     }
 
     @Test
+    void forwardsAuthorizationOnlyForTransparentProfileUnlessVetoed() {
+        TrustedIdentitySanitizer sanitizer = new TrustedIdentitySanitizer();
+        TrustedIdentity identity = new TrustedIdentity(Map.of(), Map.of());
+
+        Map<String, List<String>> forwarded = sanitizer.sanitizeHttp(
+                Map.of(
+                        "Authorization", List.of("Bearer upstream"),
+                        "OpenAI-Project", List.of("project")
+                ),
+                Set.of(),
+                identity,
+                true
+        );
+        Map<String, List<String>> vetoed = sanitizer.sanitizeHttp(
+                Map.of("Authorization", List.of("Bearer upstream")),
+                Set.of("AUTHORIZATION"),
+                identity,
+                true
+        );
+
+        assertEquals(
+                List.of("Bearer upstream"),
+                forwarded.get("authorization")
+        );
+        assertEquals(List.of("project"), forwarded.get("openai-project"));
+        assertFalse(vetoed.containsKey("authorization"));
+    }
+
+    @Test
     void rpcMetadataAlsoDropsRawCredentials() {
         Map<String, String> metadata =
                 new TrustedIdentitySanitizer().sanitizeRpc(

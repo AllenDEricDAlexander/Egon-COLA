@@ -61,6 +61,11 @@ class GatewayTelemetryTest {
                     "PUBLIC"
             );
             request.route("group-1", "operation-1", "route-1");
+            request.transport(
+                    "HTTP_STREAMING",
+                    "FIRST_BODY_BUFFER_SENT",
+                    "COMPLETED"
+            );
 
             GatewayTelemetry.AttemptTrace attempt =
                     request.startAttempt(1, "provider-1", "HTTP");
@@ -97,6 +102,22 @@ class GatewayTelemetryTest {
                     requestSpan.getAttributes().get(
                             AttributeKey.stringKey(
                                     "gateway.operation.id"
+                            )
+                    )
+            );
+            assertEquals(
+                    "HTTP_STREAMING",
+                    requestSpan.getAttributes().get(
+                            AttributeKey.stringKey(
+                                    "gateway.transport.mode"
+                            )
+                    )
+            );
+            assertEquals(
+                    "FIRST_BODY_BUFFER_SENT",
+                    requestSpan.getAttributes().get(
+                            AttributeKey.stringKey(
+                                    "gateway.commit.point"
                             )
                     )
             );

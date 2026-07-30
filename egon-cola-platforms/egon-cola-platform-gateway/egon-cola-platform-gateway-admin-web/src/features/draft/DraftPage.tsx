@@ -5,6 +5,7 @@ import {
   Card,
   Form,
   Input,
+  InputNumber,
   Modal,
   Popconfirm,
   Select,
@@ -15,15 +16,31 @@ import {
   Typography,
   message,
 } from 'antd'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
 import { GatewayApiError } from '../../api/client'
 import { gatewayApi } from '../../api/gatewayApi'
-import type { DraftPolicy, DraftRoute } from '../../api/types'
+import type {
+  DraftPolicy,
+  DraftRoute,
+  GatewayRouteTransportPolicy,
+} from '../../api/types'
 import { JsonPanel } from '../../components/JsonPanel'
 import { LoadingBlock, QueryFailure } from '../../components/QueryState'
 import { useCapability } from '../../app/capabilities'
-import { policyWarnings, validatePublicRoute } from './routeValidation'
+import {
+  policyWarnings,
+  transportFormState,
+  validatePublicRoute,
+} from './routeValidation'
+import {
+  readRouteForm,
+  transportFieldPresentation,
+  validateTransportRoute,
+  writeCanonicalRoute,
+  type RouteFormValues,
+  type TransportPolicyField,
+} from './routeTransport'
 
 const json = (value: string): Record<string, unknown> => {
   const parsed = JSON.parse(value) as unknown
@@ -32,17 +49,6 @@ const json = (value: string): Record<string, unknown> => {
   }
   return parsed as Record<string, unknown>
 }
-
-const routeContent = (values: any): Record<string, unknown> => ({
-  ...json(values.advancedContent || '{}'),
-  listener: values.accessZone,
-  protocol: values.protocol,
-  method: values.protocol === 'HTTP' ? values.method : undefined,
-  path: values.protocol === 'HTTP' ? values.path : undefined,
-  fullMethodName: values.protocol === 'RPC' ? values.fullMethodName : undefined,
-  providerServiceName: values.providerServiceName,
-  priority: Number(values.priority ?? 0),
-})
 
 const policyContent = (values: any): Record<string, unknown> => ({
   ...json(values.advancedContent || '{}'),
@@ -62,16 +68,88 @@ const policyContent = (values: any): Record<string, unknown> => ({
     .filter(Boolean),
 })
 
+type RouteEditorValues = RouteFormValues & {
+  routeId: string
+  operationId: string
+  enabled: boolean
+  changeReason: string
+}
+
+type RouteSaveRequest = {
+  editorSession: number
+  values: RouteEditorValues
+}
+
+type RouteOperationState = {
+  operationId: string
+  protocol?: string
+  externalAccessible?: boolean
+  loading: boolean
+  error?: string
+}
+
+const TRANSPORT_POLICY_FIELDS = [
+  'profile',
+  'transportProtocol',
+  'requestBodyMode',
+  'responseMode',
+  'maxRequestBodyBytes',
+  'connectTimeoutMs',
+  'responseHeaderTimeoutMs',
+  'streamIdleTimeoutMs',
+  'totalTimeoutMs',
+  'websocketIdleTimeoutMs',
+  'websocketMaxFrameBytes',
+  'bodyLogEnabled',
+  'retryEnabled',
+] as const
+
+const mergeTransportPolicy = (
+  original: GatewayRouteTransportPolicy | undefined,
+  edited: GatewayRouteTransportPolicy | undefined,
+): GatewayRouteTransportPolicy | undefined => {
+  if (!edited) return original ? { ...original } : undefined
+  const merged: GatewayRouteTransportPolicy = { ...original }
+  const writable = merged as Record<string, unknown>
+  TRANSPORT_POLICY_FIELDS.forEach((field) => {
+    writable[field] = edited?.[field]
+  })
+  return Object.keys(merged).length ? merged : undefined
+}
+
+const displayTransportValue = (value: unknown): string => {
+  if (value === undefined) return '继承既有策略 / 不适用'
+  if (value === true) return '开启'
+  if (value === false) return '关闭'
+  return String(value)
+}
+
+const transportFieldExtra = (
+  policy: GatewayRouteTransportPolicy | undefined,
+  field: TransportPolicyField,
+): string => {
+  const presentation = transportFieldPresentation(policy, field)
+  return `${presentation.source === 'ROUTE_OVERRIDE' ? 'Route Override' : 'Profile 默认'}：${displayTransportValue(presentation.value)}`
+}
+
 export const DraftPage = () => {
   const { groupId = '' } = useParams()
   const location = useLocation()
   const queryClient = useQueryClient()
   const canWrite = useCapability('gateway:drafts:write')
-  const [routeForm] = Form.useForm()
+  const [routeForm] = Form.useForm<RouteEditorValues>()
   const [policyForm] = Form.useForm()
   const [routeOpen, setRouteOpen] = useState(false)
   const [policyOpen, setPolicyOpen] = useState(false)
+  const [routeOperation, setRouteOperation] = useState<RouteOperationState>()
+  const [validatingRoute, setValidatingRoute] = useState(false)
+  const [activeEditorSession, setActiveEditorSession] = useState(0)
+  const [legacyHostMissing, setLegacyHostMissing] = useState(false)
   const [localConflict, setLocalConflict] = useState<GatewayApiError>()
+  const operationRequest = useRef(0)
+  const routeValidationRequest = useRef(0)
+  const editorSession = useRef(0)
+  const originalTransportPolicy = useRef<GatewayRouteTransportPolicy | undefined>(undefined)
   const draft = useQuery({
     queryKey: ['draft', groupId],
     queryFn: ({ signal }) => gatewayApi.draft(groupId, signal),
@@ -83,37 +161,35 @@ export const DraftPage = () => {
     enabled: Boolean(groupId),
   })
   const saveRoute = useMutation({
-    mutationFn: (values: any) => {
-      const constraint = validatePublicRoute(
-        values.accessZone,
-        values.operationExternalAccessible,
-      )
-      if (constraint) throw new Error(constraint)
-      return gatewayApi.saveRoute(
+    mutationFn: ({ values }: RouteSaveRequest) =>
+      gatewayApi.saveRoute(
         groupId,
         values.routeId,
         {
           operationId: values.operationId,
-          content: {
-            ...routeContent(values),
-          },
+          content: writeCanonicalRoute(values),
           enabled: values.enabled,
           changeReason: values.changeReason,
         },
         draft.data!.revision,
-      )
-    },
-    onSuccess: async () => {
-      setRouteOpen(false)
-      setLocalConflict(undefined)
+      ),
+    onSuccess: async (_, request) => {
+      if (request.editorSession === editorSession.current) {
+        closeRoute()
+        setLocalConflict(undefined)
+      }
       await queryClient.invalidateQueries({ queryKey: ['draft', groupId] })
       await queryClient.invalidateQueries({ queryKey: ['draft-diff', groupId] })
       void message.success('Route 已保存')
     },
-    onError: (error) => {
+    onError: (error, request) => {
       if (error instanceof GatewayApiError && error.status === 409) {
-        setLocalConflict(error)
+        if (request.editorSession === editorSession.current) {
+          setLocalConflict(error)
+        }
+        return
       }
+      void message.error('Route 保存失败，请检查表单和服务端校验结果')
     },
   })
   const savePolicy = useMutation({
@@ -171,7 +247,176 @@ export const DraftPage = () => {
       void message.success('Policy 已删除')
     },
   })
+
+  const loadRouteOperation = async (rawOperationId: string) => {
+    const operationId = rawOperationId.trim()
+    const request = ++operationRequest.current
+    if (!operationId) {
+      setRouteOperation(undefined)
+      return
+    }
+    setRouteOperation({ operationId, loading: true })
+    try {
+      const detail = await gatewayApi.operation(operationId)
+      if (request !== operationRequest.current) return
+      setRouteOperation({
+        operationId,
+        protocol: detail.operation.protocol.toUpperCase(),
+        externalAccessible: detail.operation.externalAccessible,
+        loading: false,
+      })
+    } catch {
+      if (request !== operationRequest.current) return
+      setRouteOperation({
+        operationId,
+        loading: false,
+        error: '无法从服务端读取 Operation 协议，请确认 Operation ID。',
+      })
+    }
+  }
+
+  const advanceEditorSession = () => {
+    const nextSession = editorSession.current + 1
+    editorSession.current = nextSession
+    setActiveEditorSession(nextSession)
+  }
+
+  const openNewRoute = () => {
+    advanceEditorSession()
+    operationRequest.current += 1
+    routeValidationRequest.current += 1
+    setValidatingRoute(false)
+    originalTransportPolicy.current = undefined
+    setLegacyHostMissing(false)
+    setRouteOperation(undefined)
+    routeForm.resetFields()
+    routeForm.setFieldsValue({
+      accessZones: ['INTERNAL'],
+      httpMethod: 'GET',
+      priority: 0,
+      advancedContent: '{}',
+      enabled: true,
+    })
+    setRouteOpen(true)
+  }
+
+  const openExistingRoute = (route: DraftRoute) => {
+    advanceEditorSession()
+    routeValidationRequest.current += 1
+    setValidatingRoute(false)
+    const values = readRouteForm(route.routeContent)
+    originalTransportPolicy.current = values.transportPolicy
+    setLegacyHostMissing(Boolean(values.legacyHostMissing))
+    routeForm.resetFields()
+    routeForm.setFieldsValue({
+      ...values,
+      routeId: route.routeId,
+      operationId: route.operationId,
+      enabled: route.enabled,
+      changeReason: 'Edit route from Gateway Admin Web',
+    })
+    setRouteOpen(true)
+    void loadRouteOperation(route.operationId)
+  }
+
+  const closeRoute = () => {
+    advanceEditorSession()
+    operationRequest.current += 1
+    routeValidationRequest.current += 1
+    setValidatingRoute(false)
+    setRouteOpen(false)
+    setRouteOperation(undefined)
+  }
+
+  const submitRoute = async (values: RouteEditorValues) => {
+    const currentEditorSession = editorSession.current
+    const operationId = values.operationId.trim()
+    const request = ++operationRequest.current
+    const validationRequest = ++routeValidationRequest.current
+    const isCurrentValidation = () => (
+      request === operationRequest.current
+      && validationRequest === routeValidationRequest.current
+      && currentEditorSession === editorSession.current
+      && routeForm.getFieldValue('operationId')?.trim() === operationId
+    )
+    setValidatingRoute(true)
+    setLocalConflict(undefined)
+    try {
+      const detail = await gatewayApi.operation(operationId)
+      if (!isCurrentValidation()) return
+      const operationProtocol = detail.operation.protocol.toUpperCase()
+      setRouteOperation({
+        operationId,
+        protocol: operationProtocol,
+        externalAccessible: detail.operation.externalAccessible,
+        loading: false,
+      })
+      const candidate: RouteEditorValues = {
+        ...values,
+        operationId,
+        operationProtocol,
+        legacyHostMissing,
+        transportPolicy: operationProtocol === 'HTTP'
+          ? mergeTransportPolicy(originalTransportPolicy.current, values.transportPolicy)
+          : originalTransportPolicy.current,
+      }
+      const issues = validateTransportRoute(candidate)
+      const accessIssue = validatePublicRoute(
+        candidate.accessZones,
+        detail.operation.externalAccessible,
+      )
+      if (accessIssue) {
+        issues.push({
+          path: 'accessZones',
+          code: 'EXTERNAL_ACCESS_DENIED',
+          message: accessIssue,
+        })
+      }
+      if (issues.length) {
+        routeForm.setFields(issues.map((issue) => ({
+          name: issue.path.split('.'),
+          errors: [issue.message],
+        })))
+        return
+      }
+      saveRoute.mutate({
+        editorSession: currentEditorSession,
+        values: candidate,
+      })
+    } catch {
+      if (!isCurrentValidation()) return
+      setRouteOperation({
+        operationId,
+        loading: false,
+        error: '无法从服务端读取 Operation 协议，请确认 Operation ID。',
+      })
+      void message.error('无法读取 Operation，Route 未保存')
+    } finally {
+      if (isCurrentValidation()) {
+        setValidatingRoute(false)
+      }
+    }
+  }
+
   const active = location.pathname.endsWith('/policies') ? 'policies' : 'routes'
+  const watchedRoute = Form.useWatch([], routeForm) as Partial<RouteEditorValues> | undefined
+  const currentOperationId = watchedRoute?.operationId?.trim()
+  const currentOperation = routeOperation?.operationId === currentOperationId
+    ? routeOperation
+    : undefined
+  const operationReady = Boolean(
+    currentOperation?.protocol && !currentOperation.loading && !currentOperation.error,
+  )
+  const currentEditorSaving = Boolean(
+    saveRoute.isPending
+    && saveRoute.variables?.editorSession === activeEditorSession,
+  )
+  const routeFormDisabled = validatingRoute || currentEditorSaving
+  const currentTransportPolicy = watchedRoute?.transportPolicy
+  const currentTransportState = transportFormState(
+    currentOperation?.protocol,
+    currentTransportPolicy,
+  )
   const watchedPolicy = Form.useWatch([], policyForm) ?? {}
   const policyType = Form.useWatch('policyType', policyForm) ?? ''
   const warnings = (() => {
@@ -209,7 +454,7 @@ export const DraftPage = () => {
               label: 'Routes',
               children: (
                 <Card
-                  extra={<Button type="primary" disabled={!canWrite} onClick={() => setRouteOpen(true)}>新增 Route</Button>}
+                  extra={<Button type="primary" disabled={!canWrite} onClick={openNewRoute}>新增 Route</Button>}
                 >
                   <Table<DraftRoute>
                     rowKey="routeId"
@@ -218,8 +463,17 @@ export const DraftPage = () => {
                     columns={[
                       { title: 'Route ID', dataIndex: 'routeId' },
                       { title: 'Operation ID', dataIndex: 'operationId' },
-                      { title: 'Listener', render: (_, row) => String(row.routeContent.listener ?? '-') },
-                      { title: '协议', render: (_, row) => String(row.routeContent.protocol ?? '-') },
+                      {
+                        title: 'Access Zones',
+                        render: (_, row) =>
+                          readRouteForm(row.routeContent).accessZones?.join(', ') ?? '-',
+                      },
+                      {
+                        title: 'Route Profile',
+                        render: (_, row) => String(
+                          row.routeContent.transportPolicy?.profile ?? 'DEFAULT',
+                        ),
+                      },
                       { title: '状态', render: (_, row) => row.enabled ? '启用' : '禁用' },
                       {
                         title: '操作',
@@ -227,25 +481,7 @@ export const DraftPage = () => {
                           <Space>
                             <Button
                               disabled={!canWrite}
-                              onClick={() => {
-                                routeForm.setFieldsValue({
-                                  routeId: row.routeId,
-                                  operationId: row.operationId,
-                                  accessZone: row.routeContent.listener ?? 'INTERNAL',
-                                  operationExternalAccessible:
-                                    row.routeContent.operationExternalAccessible ?? false,
-                                  protocol: row.routeContent.protocol ?? 'HTTP',
-                                  method: row.routeContent.method,
-                                  path: row.routeContent.path,
-                                  fullMethodName: row.routeContent.fullMethodName,
-                                  providerServiceName: row.routeContent.providerServiceName,
-                                  priority: row.routeContent.priority ?? 0,
-                                  advancedContent: '{}',
-                                  enabled: row.enabled,
-                                  changeReason: 'Edit route from Gateway Admin Web',
-                                })
-                                setRouteOpen(true)
-                              }}
+                              onClick={() => openExistingRoute(row)}
                             >
                               编辑
                             </Button>
@@ -325,62 +561,310 @@ export const DraftPage = () => {
         {diff.data && <JsonPanel title="与基线 Diff" value={diff.data} />}
       </Space>
       <Modal
-        title="Route"
+        title="Route Transport"
         open={routeOpen}
-        onCancel={() => setRouteOpen(false)}
+        onCancel={closeRoute}
         onOk={() => routeForm.submit()}
-        confirmLoading={saveRoute.isPending}
+        confirmLoading={routeFormDisabled}
+        okButtonProps={{ disabled: !operationReady }}
         destroyOnHidden
+        width={760}
+        styles={{ body: { maxHeight: '72vh', overflowY: 'auto' } }}
       >
         <Form
           form={routeForm}
+          disabled={routeFormDisabled}
           layout="vertical"
           initialValues={{
-            accessZone: 'INTERNAL',
+            accessZones: ['INTERNAL'],
             enabled: true,
-            operationExternalAccessible: false,
-            protocol: 'HTTP',
-            method: 'GET',
+            httpMethod: 'GET',
             priority: 0,
             advancedContent: '{}',
           }}
-          onFinish={(values) => saveRoute.mutate(values)}
+          onFinish={submitRoute}
         >
           <Form.Item name="routeId" label="Route ID" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="operationId" label="Operation ID" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="accessZone" label="Listener / Access Zone" rules={[{ required: true }]}>
-            <Select options={['INTERNAL', 'PUBLIC'].map((value) => ({ value }))} />
+          <Form.Item
+            name="operationId"
+            label="Operation ID"
+            rules={[{ required: true, message: 'Operation ID 不能为空' }]}
+          >
+            <Input
+              onChange={(event) => {
+                if (routeOperation?.operationId !== event.target.value.trim()) {
+                  operationRequest.current += 1
+                  routeValidationRequest.current += 1
+                  setValidatingRoute(false)
+                  setRouteOperation(undefined)
+                }
+              }}
+              onBlur={(event) => {
+                const operationId = event.target.value.trim()
+                const operationLoaded = routeOperation?.operationId === operationId
+                  && Boolean(routeOperation.protocol || routeOperation.loading)
+                if (validatingRoute || operationLoaded) return
+                void loadRouteOperation(operationId)
+              }}
+            />
           </Form.Item>
-          <Form.Item name="operationExternalAccessible" label="Operation 允许外部访问" valuePropName="checked">
-            <Switch />
+          {currentOperation?.loading && (
+            <Alert type="info" showIcon message="正在从服务端读取 Operation Protocol…" />
+          )}
+          {currentOperation?.error && (
+            <Alert type="error" showIcon message={currentOperation.error} />
+          )}
+          {currentOperation?.protocol && (
+            <Alert
+              type={currentOperation.protocol === 'HTTP' ? 'success' : 'info'}
+              showIcon
+              message={`Operation Protocol：${currentOperation.protocol === 'RPC' ? 'RPC / gRPC' : 'HTTP'}`}
+              description={currentOperation.protocol === 'RPC'
+                ? '协议来自服务端 Operation；RPC 保持既有聚合路径，不能选择 WebSocket 或 Streaming Transport。'
+                : `协议来自服务端 Operation；外部访问：${currentOperation.externalAccessible ? '允许' : '不允许'}`}
+            />
+          )}
+          {!currentOperation && currentOperationId && (
+            <Alert type="info" showIcon message="移出 Operation ID 输入框后读取服务端协议。" />
+          )}
+          <Form.Item
+            name="host"
+            label="Host"
+            rules={[{
+              required: true,
+              message: legacyHostMissing
+                ? '历史草稿缺少 Host，请补录'
+                : 'Host 不能为空',
+            }]}
+          >
+            <Input placeholder="api.example.com" />
+          </Form.Item>
+          <Form.Item
+            name="accessZones"
+            label="Access Zones"
+            rules={[{ required: true, message: '至少选择一个 Access Zone' }]}
+          >
+            <Select
+              mode="multiple"
+              options={['INTERNAL', 'PUBLIC'].map((value) => ({ value }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="httpMethod"
+            label="HTTP Method"
+            rules={[{ required: true, message: 'HTTP Method 不能为空' }]}
+          >
+            <Select
+              options={['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
+                .map((value) => ({ value }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="pathPattern"
+            label="Path Pattern"
+            rules={[
+              { required: true, message: 'Path Pattern 不能为空' },
+              { pattern: /^\//, message: 'Path Pattern 必须以 / 开头' },
+            ]}
+          >
+            <Input placeholder="/v1/**" />
           </Form.Item>
           <Alert
             type="warning"
             showIcon
             message="Provider 只能通过注册中心发现，本表单不提供静态 URL。"
           />
-          <Form.Item name="protocol" label="协议" rules={[{ required: true }]}>
-            <Select options={['HTTP', 'RPC'].map((value) => ({ value }))} />
-          </Form.Item>
-          <Form.Item noStyle shouldUpdate={(previous, current) => previous.protocol !== current.protocol}>
-            {({ getFieldValue }) => getFieldValue('protocol') === 'HTTP' ? (
-              <>
-                <Form.Item name="method" label="HTTP Method" rules={[{ required: true }]}>
-                  <Select options={['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map((value) => ({ value }))} />
-                </Form.Item>
-                <Form.Item name="path" label="Path" rules={[{ required: true }]}><Input /></Form.Item>
-              </>
-            ) : (
-              <Form.Item name="fullMethodName" label="RPC Full Method" rules={[{ required: true }]}>
-                <Input />
+
+          {currentTransportState.transportEditable && (
+            <Card size="small" title="Transport Policy">
+              <Form.Item
+                name={['transportPolicy', 'profile']}
+                label="Route Profile"
+                extra="未显式覆盖的 Profile 默认值仅用于展示，不会自动固化到 Route JSON。"
+              >
+                <Select
+                  allowClear
+                  placeholder="DEFAULT（不写入 Profile）"
+                  options={['DEFAULT', 'OPENAI_HTTP'].map((value) => ({ value }))}
+                />
               </Form.Item>
-            )}
+              {currentTransportPolicy?.profile === 'OPENAI_HTTP' && (
+                <Alert
+                  type="info"
+                  showIcon
+                  message="OPENAI_HTTP 只提供透明流式传输默认值"
+                  description="Route Override 优先；未覆盖值来自 Profile，保存时不会展开为完整默认配置。"
+                />
+              )}
+              <Form.Item
+                name={['transportPolicy', 'transportProtocol']}
+                label="Transport Protocol"
+                extra={transportFieldExtra(currentTransportPolicy, 'transportProtocol')}
+              >
+                <Select
+                  allowClear
+                  placeholder={displayTransportValue(
+                    transportFieldPresentation(
+                      currentTransportPolicy,
+                      'transportProtocol',
+                    ).value,
+                  )}
+                  options={['HTTP', 'WEBSOCKET'].map((value) => ({ value }))}
+                />
+              </Form.Item>
+
+              {currentTransportState.bodyModesVisible && (
+                <>
+                  <Form.Item
+                    name={['transportPolicy', 'requestBodyMode']}
+                    label="Request Body Mode"
+                    extra={transportFieldExtra(currentTransportPolicy, 'requestBodyMode')}
+                  >
+                    <Select
+                      allowClear
+                      placeholder={displayTransportValue(
+                        transportFieldPresentation(
+                          currentTransportPolicy,
+                          'requestBodyMode',
+                        ).value,
+                      )}
+                      options={['AGGREGATED', 'STREAMING'].map((value) => ({ value }))}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name={['transportPolicy', 'responseMode']}
+                    label="Response Mode"
+                    extra={transportFieldExtra(currentTransportPolicy, 'responseMode')}
+                  >
+                    <Select
+                      allowClear
+                      placeholder={displayTransportValue(
+                        transportFieldPresentation(currentTransportPolicy, 'responseMode').value,
+                      )}
+                      options={['STANDARD', 'AUTO_STREAM', 'SSE', 'BINARY_STREAM']
+                        .map((value) => ({ value }))}
+                    />
+                  </Form.Item>
+                </>
+              )}
+
+              {currentTransportState.transparentResponseNotice && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={currentTransportState.transparentResponseNotice}
+                />
+              )}
+
+              <Form.Item
+                name={['transportPolicy', 'maxRequestBodyBytes']}
+                label="最大请求体（bytes）"
+                extra={transportFieldExtra(currentTransportPolicy, 'maxRequestBodyBytes')}
+              >
+                <InputNumber min={1} max={1_073_741_824} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'connectTimeoutMs']}
+                label="Connect Timeout（ms）"
+                extra={transportFieldExtra(currentTransportPolicy, 'connectTimeoutMs')}
+              >
+                <InputNumber min={100} max={60_000} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'responseHeaderTimeoutMs']}
+                label="Response Header Timeout（ms）"
+                extra={transportFieldExtra(currentTransportPolicy, 'responseHeaderTimeoutMs')}
+              >
+                <InputNumber min={1_000} max={600_000} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'streamIdleTimeoutMs']}
+                label="Stream Idle Timeout（ms）"
+                extra={transportFieldExtra(currentTransportPolicy, 'streamIdleTimeoutMs')}
+              >
+                <InputNumber min={1_000} max={1_800_000} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'totalTimeoutMs']}
+                label="Total Timeout（ms）"
+                extra={transportFieldExtra(currentTransportPolicy, 'totalTimeoutMs')}
+              >
+                <InputNumber min={1_000} max={7_200_000} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'websocketIdleTimeoutMs']}
+                label="WebSocket Idle Timeout（ms）"
+                extra={transportFieldExtra(currentTransportPolicy, 'websocketIdleTimeoutMs')}
+              >
+                <InputNumber min={1_000} max={7_200_000} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'websocketMaxFrameBytes']}
+                label="WebSocket 最大 Frame（bytes）"
+                extra={transportFieldExtra(currentTransportPolicy, 'websocketMaxFrameBytes')}
+              >
+                <InputNumber min={1_024} max={67_108_864} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'bodyLogEnabled']}
+                label="Body 日志 Override"
+                extra={transportFieldExtra(currentTransportPolicy, 'bodyLogEnabled')}
+                getValueProps={(value: boolean | undefined) => ({
+                  value: value === undefined ? undefined : String(value),
+                })}
+                normalize={(value: string | undefined) =>
+                  value === undefined ? undefined : value === 'true'}
+              >
+                <Select
+                  allowClear
+                  placeholder="继承 Profile"
+                  options={[
+                    { value: 'false', label: '关闭' },
+                    { value: 'true', label: '开启' },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item
+                name={['transportPolicy', 'retryEnabled']}
+                label="重试 Override"
+                extra={transportFieldExtra(currentTransportPolicy, 'retryEnabled')}
+                getValueProps={(value: boolean | undefined) => ({
+                  value: value === undefined ? undefined : String(value),
+                })}
+                normalize={(value: string | undefined) =>
+                  value === undefined ? undefined : value === 'true'}
+              >
+                <Select
+                  allowClear
+                  placeholder="继承 Profile / Traffic Policy"
+                  options={[
+                    { value: 'false', label: '关闭' },
+                    { value: 'true', label: '允许' },
+                  ]}
+                />
+              </Form.Item>
+              {currentTransportState.retryNotice && (
+                <Alert type="warning" showIcon message={currentTransportState.retryNotice} />
+              )}
+            </Card>
+          )}
+
+          <Form.Item name="priority" label="优先级"><InputNumber style={{ width: '100%' }} /></Form.Item>
+          <Form.Item
+            name="advancedContent"
+            label="高级扩展 JSON"
+            rules={[{
+              validator: async (_, value: string) => {
+                try {
+                  json(value || '{}')
+                } catch {
+                  throw new Error('高级扩展内容必须是 JSON Object')
+                }
+              },
+            }]}
+          >
+            <Input.TextArea rows={5} />
           </Form.Item>
-          <Form.Item name="providerServiceName" label="Provider Service" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="priority" label="优先级"><Input type="number" /></Form.Item>
-          <Form.Item name="advancedContent" label="高级扩展 JSON"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
           <Form.Item name="changeReason" label="变更原因" rules={[{ required: true }]}><Input /></Form.Item>
         </Form>

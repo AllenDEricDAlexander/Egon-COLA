@@ -1,10 +1,37 @@
+import type { GatewayRouteTransportPolicy } from '../../api/types'
+
 export const validatePublicRoute = (
-  accessZone: string,
+  accessZone: string | string[] | undefined,
   operationExternalAccessible: boolean,
-): string | undefined =>
-  accessZone === 'PUBLIC' && !operationExternalAccessible
+): string | undefined => {
+  const zones = Array.isArray(accessZone) ? accessZone : [accessZone]
+  return zones.includes('PUBLIC') && !operationExternalAccessible
     ? 'PUBLIC Route 不能引用 externalAccessible=false 的内部接口'
     : undefined
+}
+
+export type TransportFormState = {
+  transportEditable: boolean
+  bodyModesVisible: boolean
+  transparentResponseNotice?: string
+  retryNotice?: string
+}
+
+export const transportFormState = (
+  operationProtocol: string | undefined,
+  policy: GatewayRouteTransportPolicy | undefined,
+): TransportFormState => ({
+  transportEditable: operationProtocol === 'HTTP',
+  bodyModesVisible:
+    operationProtocol === 'HTTP' && policy?.transportProtocol !== 'WEBSOCKET',
+  transparentResponseNotice:
+    policy?.responseMode === 'SSE' || policy?.responseMode === 'BINARY_STREAM'
+      ? '透明响应，禁止聚合、缓存或内容转换。'
+      : undefined,
+  retryNotice: policy?.retryEnabled === true
+    ? '允许重试仍受 Operation 幂等、请求体可重放和响应提交点限制。'
+    : undefined,
+})
 
 export const policyWarnings = (
   policyType: string,

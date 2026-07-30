@@ -6,10 +6,15 @@ import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
+import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;
+import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
+import top.egon.cola.component.gateway.contract.rule.GatewayRouteTransportPolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
+import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
+import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 
 import java.time.Instant;
 import java.util.List;
@@ -230,6 +235,209 @@ class GatewayRuleCompilerTest {
         assertFalse(release.snapshotJson().contains("\"parameters\""));
     }
 
+    @Test
+    void typedTransportPolicyEntersTheCanonicalSnapshot() {
+        GatewayRouteTransportPolicy policy = new GatewayRouteTransportPolicy(
+                GatewayRouteProfile.OPENAI_HTTP,
+                null,
+                GatewayRequestBodyMode.STREAMING,
+                GatewayTransportResponseMode.AUTO_STREAM,
+                null,
+                10_000L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                false
+        );
+        GatewayRuntimeRoute route = new GatewayRuntimeRoute(
+                "orders",
+                "orders",
+                "api.example.com",
+                "POST",
+                "/v1/**",
+                Set.of(AccessZone.PUBLIC),
+                0,
+                true,
+                policy
+        );
+
+        CompiledGatewayRelease release = compiler.compile(
+                "release-1",
+                Instant.parse("2026-07-25T00:00:00Z"),
+                content(
+                        List.of(operation("orders", true)),
+                        List.of(route)
+                )
+        );
+
+        assertEquals(
+                policy,
+                release.snapshot().content().routes().getFirst()
+                        .transportPolicy()
+        );
+        assertTrue(release.snapshotJson().contains(
+                "\"transportPolicy\":{"
+                        + "\"bodyLogEnabled\":false,"
+                        + "\"connectTimeoutMs\":10000,"
+                        + "\"profile\":\"OPENAI_HTTP\","
+                        + "\"requestBodyMode\":\"STREAMING\","
+                        + "\"responseMode\":\"AUTO_STREAM\","
+                        + "\"retryEnabled\":false}"
+        ));
+        canonicalizer.verify(release.snapshot());
+    }
+
+    @Test
+    void compilerRejectsWebSocketForRpcWhenDraftValidationIsBypassed() {
+        GatewayRuntimeOperation operation = operation(
+                "orders",
+                GatewayProtocol.RPC,
+                "TRANSPARENT"
+        );
+        GatewayRuntimeRoute route = new GatewayRuntimeRoute(
+                "orders",
+                "orders",
+                "api.example.com",
+                "GET",
+                "/v1/**",
+                Set.of(AccessZone.PUBLIC),
+                0,
+                true,
+                new GatewayRouteTransportPolicy(
+                        null,
+                        GatewayTransportProtocol.WEBSOCKET,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        300_000L,
+                        16_777_216L,
+                        false,
+                        false
+                )
+        );
+
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> compiler.compile(
+                        "release-1",
+                        Instant.now(),
+                        content(List.of(operation), List.of(route))
+                )
+        );
+
+        assertTrue(failure.getMessage().contains(
+                "RPC_TRANSPORT_UNSUPPORTED"
+        ));
+    }
+
+    @Test
+    void compilerRejectsStreamingForWrappedOperation() {
+        GatewayRuntimeOperation operation = operation(
+                "orders",
+                GatewayProtocol.HTTP,
+                "WRAPPED"
+        );
+        GatewayRuntimeRoute route = new GatewayRuntimeRoute(
+                "orders",
+                "orders",
+                "api.example.com",
+                "POST",
+                "/v1/**",
+                Set.of(AccessZone.PUBLIC),
+                0,
+                true,
+                new GatewayRouteTransportPolicy(
+                        null,
+                        null,
+                        GatewayRequestBodyMode.STREAMING,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        false
+                )
+        );
+
+        IllegalArgumentException failure = assertThrows(
+                IllegalArgumentException.class,
+                () -> compiler.compile(
+                        "release-1",
+                        Instant.now(),
+                        content(List.of(operation), List.of(route))
+                )
+        );
+
+        assertTrue(failure.getMessage().contains(
+                "WRAPPED_TRANSPORT_UNSUPPORTED"
+        ));
+    }
+
+    @Test
+    void compilerPublishesWebSocketForATransparentHttpOperation() {
+        GatewayRouteTransportPolicy policy =
+                new GatewayRouteTransportPolicy(
+                        GatewayRouteProfile.OPENAI_HTTP,
+                        GatewayTransportProtocol.WEBSOCKET,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        300_000L,
+                        16_777_216L,
+                        false,
+                        false
+                );
+        GatewayRuntimeRoute route = new GatewayRuntimeRoute(
+                "realtime",
+                "realtime",
+                "api.example.com",
+                "GET",
+                "/v1/realtime",
+                Set.of(AccessZone.PUBLIC),
+                0,
+                true,
+                policy
+        );
+
+        CompiledGatewayRelease release = compiler.compile(
+                "release-ws",
+                Instant.parse("2026-07-30T00:00:00Z"),
+                content(
+                        List.of(operation(
+                                "realtime",
+                                GatewayProtocol.HTTP,
+                                "TRANSPARENT"
+                        )),
+                        List.of(route)
+                )
+        );
+
+        assertEquals(
+                policy,
+                release.snapshot().content().routes().getFirst()
+                        .transportPolicy()
+        );
+        assertTrue(release.snapshotJson().contains(
+                "\"transportProtocol\":\"WEBSOCKET\""
+        ));
+        canonicalizer.verify(release.snapshot());
+    }
+
     private GatewayRuleContent content(
             List<GatewayRuntimeOperation> operations,
             List<GatewayRuntimeRoute> routes) {
@@ -267,6 +475,26 @@ class GatewayRuleCompilerTest {
         );
     }
 
+    private GatewayRuntimeOperation operation(
+            String id,
+            GatewayProtocol protocol,
+            String responseMode) {
+        return new GatewayRuntimeOperation(
+                id,
+                id,
+                protocol,
+                "POST /" + id,
+                "{}",
+                "{}",
+                true,
+                service(protocol),
+                responseMode,
+                Set.of(),
+                Map.of(),
+                false
+        );
+    }
+
     private GatewayRuntimeRoute route(String id, String operationId) {
         return new GatewayRuntimeRoute(
                 id,
@@ -281,14 +509,18 @@ class GatewayRuleCompilerTest {
     }
 
     private GatewayProviderServiceRef service() {
+        return service(GatewayProtocol.HTTP);
+    }
+
+    private GatewayProviderServiceRef service(GatewayProtocol protocol) {
         return new GatewayProviderServiceRef(
                 "local",
                 "default",
-                GatewayProtocol.HTTP,
+                protocol,
                 "orders",
                 "default",
                 "v1",
-                "http"
+                protocol == GatewayProtocol.HTTP ? "http" : "grpc"
         );
     }
 }

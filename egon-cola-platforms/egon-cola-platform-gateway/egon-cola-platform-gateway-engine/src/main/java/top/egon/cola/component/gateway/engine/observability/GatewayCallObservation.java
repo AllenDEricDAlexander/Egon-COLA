@@ -173,6 +173,20 @@ public final class GatewayCallObservation {
         this.namespace = safe(namespace);
     }
 
+    /**
+     * Adds passive transport facts without changing the v1 event contract.
+     */
+    public void transport(
+            String transportMode,
+            String commitPoint,
+            String terminationReason) {
+        telemetry.transport(
+                transportMode,
+                commitPoint,
+                terminationReason
+        );
+    }
+
     public void provider(
             String providerInstanceId,
             Map<String, Object> providerServiceIdentity) {

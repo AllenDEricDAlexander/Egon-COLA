@@ -74,6 +74,26 @@ public final class GatewayAdminTestClient {
                 + "/catalog");
     }
 
+    public JsonNode createManualInterfaceGroup(
+            String applicationId,
+            Object request) throws IOException, InterruptedException {
+        return post(
+                API + "/applications/" + segment(applicationId)
+                        + "/manual-interface-groups",
+                request
+        );
+    }
+
+    public JsonNode createManualOperation(
+            String interfaceGroupId,
+            Object request) throws IOException, InterruptedException {
+        return post(
+                API + "/interface-groups/" + segment(interfaceGroupId)
+                        + "/manual-operations",
+                request
+        );
+    }
+
     public JsonNode createGroup(Object request)
             throws IOException, InterruptedException {
         return post(API + "/gateway-groups", request);

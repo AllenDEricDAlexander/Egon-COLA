@@ -10,6 +10,7 @@ import top.egon.cola.component.gateway.core.filter.DefaultGatewayFilterChain;
 import top.egon.cola.component.gateway.core.filter.GatewayFilter;
 import top.egon.cola.component.gateway.core.filter.GatewayFilterChain;
 import top.egon.cola.component.gateway.core.filter.GatewayFilterStage;
+import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketHandshakeResult;
 
 import java.util.List;
 
@@ -51,6 +52,12 @@ public final class GatewayHttpExecutionPipeline {
             AbstractGatewayHttpStageExchange exchange) {
         return Mono.from(executor.execute(exchange))
                 .map(ignored -> exchange.outbound());
+    }
+
+    public Mono<GatewayWebSocketHandshakeResult> executeWebSocket(
+            AbstractGatewayHttpStageExchange exchange) {
+        return Mono.from(executor.execute(exchange))
+                .map(ignored -> exchange.webSocketResult());
     }
 
     private GatewayFilter filter(

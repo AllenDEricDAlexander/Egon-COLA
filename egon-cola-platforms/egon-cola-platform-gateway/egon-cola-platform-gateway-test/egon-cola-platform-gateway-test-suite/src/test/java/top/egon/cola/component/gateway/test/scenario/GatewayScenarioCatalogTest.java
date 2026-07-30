@@ -22,6 +22,12 @@ class GatewayScenarioCatalogTest {
                         "security-extension",
                         "trace-kafka",
                         "failure-recovery",
+                        "openai-http-json",
+                        "sse-stream",
+                        "multipart-upload",
+                        "binary-stream",
+                        "realtime-websocket",
+                        "transport-lifecycle-safety",
                         "rpc-slot-invariant"
                 )
                 .noneMatch(code -> code.contains("mock"));

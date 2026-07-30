@@ -20,6 +20,8 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayD
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
+import top.egon.cola.component.gateway.admin.rule.GatewayRouteDraftMapper;
+import top.egon.cola.component.gateway.admin.rule.GatewayRouteTransportPolicyValidator;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCompiler;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuntimeParameterMapper;
@@ -32,6 +34,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
+import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -67,6 +70,12 @@ public class GatewayReleaseService {
 
     private final GatewayRuleCompiler compiler =
             new GatewayRuleCompiler(canonicalizer);
+
+    private final GatewayRouteDraftMapper routeMapper =
+            new GatewayRouteDraftMapper();
+
+    private final GatewayRouteTransportPolicyValidator transportValidator =
+            new GatewayRouteTransportPolicyValidator();
 
     private final Clock clock;
 
@@ -427,10 +436,20 @@ public class GatewayReleaseService {
                         policyRefs(operation.id(), policies)
                 ))
                 .toList();
+        Map<String, GatewayRuntimeOperation> runtimeOperationsById =
+                runtimeOperations.stream().collect(
+                        java.util.stream.Collectors.toUnmodifiableMap(
+                                GatewayRuntimeOperation::operationId,
+                                java.util.function.Function.identity()
+                        )
+                );
         List<GatewayRuntimeRoute> runtimeRoutes = draft.routes()
                 .stream()
                 .filter(GatewayDraftStore.RouteDraft::enabled)
-                .map(this::route)
+                .map(route -> route(
+                        route,
+                        runtimeOperationsById.get(route.operationId())
+                ))
                 .toList();
         List<GatewayRuntimePolicy> provider = policies.stream()
                 .filter(policy -> Set.of(
@@ -546,8 +565,30 @@ public class GatewayReleaseService {
         );
     }
 
-    private GatewayRuntimeRoute route(GatewayDraftStore.RouteDraft route) {
-        Map<String, Object> content = route.content();
+    private GatewayRuntimeRoute route(
+            GatewayDraftStore.RouteDraft route,
+            GatewayRuntimeOperation operation) {
+        Map<String, Object> content = routeMapper.canonicalize(
+                route.content()
+        );
+        List<GatewayRouteTransportPolicyValidator.ValidationIssue> issues =
+                transportValidator.validate(
+                        content,
+                        operation.protocol(),
+                        GatewayResponseMode.valueOf(operation.responseMode())
+                );
+        if (!issues.isEmpty()) {
+            GatewayRouteTransportPolicyValidator.ValidationIssue issue =
+                    issues.getFirst();
+            throw new IllegalArgumentException(
+                    "GATEWAY_RELEASE_VALIDATION_FAILED: "
+                            + issue.code()
+                            + " at "
+                            + issue.path()
+                            + ": "
+                            + issue.message()
+            );
+        }
         return new GatewayRuntimeRoute(
                 route.routeId(),
                 route.operationId(),
@@ -560,7 +601,8 @@ public class GatewayReleaseService {
                         ))
                         .collect(java.util.stream.Collectors.toUnmodifiableSet()),
                 number(content.get("priority"), 0),
-                route.enabled()
+                route.enabled(),
+                routeMapper.transportPolicy(content)
         );
     }
 

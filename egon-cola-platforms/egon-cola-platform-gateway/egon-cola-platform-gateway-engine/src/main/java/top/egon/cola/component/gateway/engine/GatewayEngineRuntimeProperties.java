@@ -139,9 +139,27 @@ public class GatewayEngineRuntimeProperties {
 
         private long maxBodyBytes = 2L * 1024 * 1024;
 
+        private long absoluteMaxRequestBodyBytes = 1024L * 1024 * 1024;
+
+        private int bodyLogSampleBytes = 8 * 1024;
+
+        private int absoluteMaxBodyLogSampleBytes = 64 * 1024;
+
         private Duration idleTimeout = Duration.ofSeconds(30);
 
         private Duration upstreamTimeout = Duration.ofSeconds(5);
+
+        private Duration maxConnectTimeout = Duration.ofSeconds(60);
+
+        private Duration maxResponseHeaderTimeout = Duration.ofMinutes(10);
+
+        private Duration maxStreamIdleTimeout = Duration.ofMinutes(30);
+
+        private Duration maxTotalTimeout = Duration.ofHours(2);
+
+        private Duration maxWebsocketIdleTimeout = Duration.ofHours(2);
+
+        private long maxWebsocketFrameBytes = 64L * 1024 * 1024;
 
         private Duration drainTimeout = Duration.ofSeconds(10);
 
@@ -225,6 +243,33 @@ public class GatewayEngineRuntimeProperties {
             this.maxBodyBytes = maxBodyBytes;
         }
 
+        public long getAbsoluteMaxRequestBodyBytes() {
+            return absoluteMaxRequestBodyBytes;
+        }
+
+        public void setAbsoluteMaxRequestBodyBytes(
+                long absoluteMaxRequestBodyBytes) {
+            this.absoluteMaxRequestBodyBytes = absoluteMaxRequestBodyBytes;
+        }
+
+        public int getBodyLogSampleBytes() {
+            return bodyLogSampleBytes;
+        }
+
+        public void setBodyLogSampleBytes(int bodyLogSampleBytes) {
+            this.bodyLogSampleBytes = bodyLogSampleBytes;
+        }
+
+        public int getAbsoluteMaxBodyLogSampleBytes() {
+            return absoluteMaxBodyLogSampleBytes;
+        }
+
+        public void setAbsoluteMaxBodyLogSampleBytes(
+                int absoluteMaxBodyLogSampleBytes) {
+            this.absoluteMaxBodyLogSampleBytes =
+                    absoluteMaxBodyLogSampleBytes;
+        }
+
         public Duration getIdleTimeout() {
             return idleTimeout;
         }
@@ -239,6 +284,56 @@ public class GatewayEngineRuntimeProperties {
 
         public void setUpstreamTimeout(Duration upstreamTimeout) {
             this.upstreamTimeout = upstreamTimeout;
+        }
+
+        public Duration getMaxConnectTimeout() {
+            return maxConnectTimeout;
+        }
+
+        public void setMaxConnectTimeout(Duration maxConnectTimeout) {
+            this.maxConnectTimeout = maxConnectTimeout;
+        }
+
+        public Duration getMaxResponseHeaderTimeout() {
+            return maxResponseHeaderTimeout;
+        }
+
+        public void setMaxResponseHeaderTimeout(
+                Duration maxResponseHeaderTimeout) {
+            this.maxResponseHeaderTimeout = maxResponseHeaderTimeout;
+        }
+
+        public Duration getMaxStreamIdleTimeout() {
+            return maxStreamIdleTimeout;
+        }
+
+        public void setMaxStreamIdleTimeout(Duration maxStreamIdleTimeout) {
+            this.maxStreamIdleTimeout = maxStreamIdleTimeout;
+        }
+
+        public Duration getMaxTotalTimeout() {
+            return maxTotalTimeout;
+        }
+
+        public void setMaxTotalTimeout(Duration maxTotalTimeout) {
+            this.maxTotalTimeout = maxTotalTimeout;
+        }
+
+        public Duration getMaxWebsocketIdleTimeout() {
+            return maxWebsocketIdleTimeout;
+        }
+
+        public void setMaxWebsocketIdleTimeout(
+                Duration maxWebsocketIdleTimeout) {
+            this.maxWebsocketIdleTimeout = maxWebsocketIdleTimeout;
+        }
+
+        public long getMaxWebsocketFrameBytes() {
+            return maxWebsocketFrameBytes;
+        }
+
+        public void setMaxWebsocketFrameBytes(long maxWebsocketFrameBytes) {
+            this.maxWebsocketFrameBytes = maxWebsocketFrameBytes;
         }
 
         public Duration getDrainTimeout() {

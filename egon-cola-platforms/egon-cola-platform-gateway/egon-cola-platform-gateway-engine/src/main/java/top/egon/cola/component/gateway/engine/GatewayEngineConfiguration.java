@@ -27,6 +27,8 @@ import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvid
 import top.egon.cola.component.gateway.core.security.GatewayAuthorizationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
 import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
+import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
+import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
 import top.egon.cola.component.gateway.engine.discovery.DdcProviderServiceRegistryAdapter;
 import top.egon.cola.component.gateway.engine.discovery.DirectoryProviderSelector;
 import top.egon.cola.component.gateway.engine.discovery.ActiveHealthProbePolicy;
@@ -42,6 +44,9 @@ import top.egon.cola.component.gateway.engine.http.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.ReactorNettyHttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.http.RuleBackedHttpGatewaySecurityProcessor;
+import top.egon.cola.component.gateway.engine.http.proxy.AggregatedHttpProxyStrategy;
+import top.egon.cola.component.gateway.engine.http.proxy.GatewayHttpProxyStrategySelector;
+import top.egon.cola.component.gateway.engine.http.proxy.StreamingHttpProxyStrategy;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallAccessLogger;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallEventDispatcher;
@@ -72,11 +77,17 @@ import top.egon.cola.component.gateway.engine.security.TrustedClientAddressResol
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
 import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketExecutor;
+import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
+import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
+import top.egon.cola.component.gateway.engine.websocket.ReactorNettyWebSocketUpstreamAdapter;
 
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 
 @Configuration(proxyBeanMethods = false)
@@ -110,6 +121,72 @@ public class GatewayEngineConfiguration {
                 authentications.orderedStream().toList(),
                 authorizations.orderedStream().toList(),
                 identityMappers.orderedStream().toList()
+        );
+    }
+
+    @Bean
+    public GatewayTransportDefaults gatewayTransportDefaults(
+            GatewayEngineRuntimeProperties properties) {
+        GatewayEngineRuntimeProperties.Http http = properties.getHttp();
+        return new GatewayTransportDefaults(
+                http.getMaxBodyBytes(),
+                OptionalLong.of(4L * 1024 * 1024),
+                Duration.ofSeconds(30),
+                http.getUpstreamTimeout(),
+                http.getUpstreamTimeout(),
+                Optional.empty(),
+                false,
+                true
+        );
+    }
+
+    @Bean
+    public GatewayTransportSafetyLimits gatewayTransportSafetyLimits(
+            GatewayHttpEngineProperties http) {
+        return new GatewayTransportSafetyLimits(
+                http.absoluteMaxRequestBodyBytes(),
+                http.maxConnectTimeout(),
+                http.maxResponseHeaderTimeout(),
+                http.maxStreamIdleTimeout(),
+                http.maxTotalTimeout(),
+                http.maxWebsocketIdleTimeout(),
+                http.maxWebsocketFrameBytes()
+        );
+    }
+
+    @Bean
+    public GatewayHttpEngineProperties gatewayHttpEngineProperties(
+            GatewayEngineRuntimeProperties properties) {
+        GatewayEngineRuntimeProperties.Http http = properties.getHttp();
+        return new GatewayHttpEngineProperties(
+                new GatewayHttpEngineProperties.Listener(
+                        http.isPublicEnabled(),
+                        http.getPublicHost(),
+                        http.getPublicPort(),
+                        transportSecurity(http.getPublicTls())
+                ),
+                new GatewayHttpEngineProperties.Listener(
+                        http.isInternalEnabled(),
+                        http.getInternalHost(),
+                        http.getInternalPort(),
+                        transportSecurity(http.getInternalTls())
+                ),
+                http.getMaxHeaderCount(),
+                http.getMaxHeaderBytes(),
+                http.getMaxBodyBytes(),
+                http.getIdleTimeout(),
+                http.getDrainTimeout(),
+                http.getUpstreamMaxConnections(),
+                http.getUpstreamPendingAcquireMaxCount(),
+                http.getAbsoluteMaxRequestBodyBytes(),
+                http.getBodyLogSampleBytes(),
+                http.getAbsoluteMaxBodyLogSampleBytes(),
+                http.getMaxConnectTimeout(),
+                http.getMaxResponseHeaderTimeout(),
+                http.getMaxStreamIdleTimeout(),
+                http.getMaxTotalTimeout(),
+                http.getMaxWebsocketIdleTimeout(),
+                http.getMaxWebsocketFrameBytes()
         );
     }
 
@@ -171,6 +248,8 @@ public class GatewayEngineConfiguration {
     public GatewayRuleActivationApplier gatewayRuleActivationApplier(
             DdcConfigApplierRegistry applierRegistry,
             GatewaySecurityCapabilityRegistry capabilities,
+            GatewayTransportDefaults transportDefaults,
+            GatewayTransportSafetyLimits transportSafetyLimits,
             GatewayRuleChunkStore chunks,
             ProviderDirectory providerDirectory,
             GatewayEngineRuntimeProperties properties,
@@ -179,7 +258,11 @@ public class GatewayEngineConfiguration {
         GatewayRuleActivationApplier activation =
                 new GatewayRuleActivationApplier(
                         new GatewayRuleJsonCodec(),
-                        new EngineGatewayRuleCompiler(capabilities),
+                        new EngineGatewayRuleCompiler(
+                                capabilities,
+                                transportDefaults,
+                                transportSafetyLimits
+                        ),
                         chunks,
                         providerDirectory,
                         new GatewayRuleLkgRepository(
@@ -287,6 +370,21 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
+    public GatewayTransportDispatcher gatewayTransportDispatcher() {
+        return new GatewayTransportDispatcher(
+                new GatewayHttpProxyStrategySelector(
+                        new AggregatedHttpProxyStrategy(),
+                        new StreamingHttpProxyStrategy()
+                ),
+                new GatewayWebSocketProxy(
+                        new ReactorNettyWebSocketUpstreamAdapter(
+                                reactor.netty.http.client.HttpClient.create()
+                        )
+                )
+        );
+    }
+
+    @Bean
     public GatewayCallCompletionListener gatewayCallCompletionListener(
             MeterRegistry meterRegistry,
             ObjectProvider<GatewayCallEventDispatcher> dispatcher) {
@@ -328,6 +426,7 @@ public class GatewayEngineConfiguration {
     @Bean
     public GatewayHttpServer gatewayHttpServer(
             GatewayEngineRuntimeProperties properties,
+            GatewayHttpEngineProperties engineProperties,
             GatewayRuleActivationApplier activation,
             DirectoryProviderSelector providerSelector,
             ReactorNettyHttpUpstreamAdapter upstream,
@@ -337,30 +436,9 @@ public class GatewayEngineConfiguration {
             GatewayTrafficGovernance trafficGovernance,
             HttpRpcUpstreamAdapter httpRpcUpstream,
             PassiveHealthTracker passiveHealth,
-            GatewayTelemetry telemetry) {
+            GatewayTelemetry telemetry,
+            GatewayTransportDispatcher transportDispatcher) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
-        GatewayHttpEngineProperties engineProperties =
-                new GatewayHttpEngineProperties(
-                        new GatewayHttpEngineProperties.Listener(
-                                http.isPublicEnabled(),
-                                http.getPublicHost(),
-                                http.getPublicPort(),
-                                transportSecurity(http.getPublicTls())
-                        ),
-                        new GatewayHttpEngineProperties.Listener(
-                                http.isInternalEnabled(),
-                                http.getInternalHost(),
-                                http.getInternalPort(),
-                                transportSecurity(http.getInternalTls())
-                        ),
-                        http.getMaxHeaderCount(),
-                        http.getMaxHeaderBytes(),
-                        http.getMaxBodyBytes(),
-                        http.getIdleTimeout(),
-                        http.getDrainTimeout(),
-                        http.getUpstreamMaxConnections(),
-                        http.getUpstreamPendingAcquireMaxCount()
-                );
         var emptyRoutes = new HttpRouteCompiler().compile(List.of());
         var security = new RuleBackedHttpGatewaySecurityProcessor(
                 new GatewaySecurityChain(capabilities),
@@ -393,7 +471,10 @@ public class GatewayEngineConfiguration {
                         : activation.active().corsPolicies(),
                 telemetry,
                 properties.getEnv(),
-                properties.getNamespace()
+                properties.getNamespace(),
+                transportDispatcher,
+                engineProperties.bodyLogSampleBytes(),
+                null
         );
         return new GatewayHttpServer(engineProperties, handler);
     }

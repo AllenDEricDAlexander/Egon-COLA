@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.engine.http;
 
+import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 
 import java.net.InetSocketAddress;
@@ -13,7 +14,7 @@ public record GatewayInboundHttpRequest(
         String uri,
         Map<String, List<String>> headers,
         InetSocketAddress remoteAddress,
-        Flux<byte[]> body
+        Flux<DataBuffer> body
 ) {
 
     public GatewayInboundHttpRequest {
