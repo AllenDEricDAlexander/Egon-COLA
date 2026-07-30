@@ -54,9 +54,13 @@ class Rbac3FlywayPostgresqlIT {
             insertBoundaryFixtures(connection, schema);
             assertCrossTenantAssignmentRejected(connection, schema);
             assertCrossApplicationInheritanceRejected(connection, schema);
+            assertCrossApplicationServicePermissionRejected(connection, schema);
+            assertApiMappingIdentityRejected(connection, schema);
+            assertCrossTenantPositionAutoAssignmentRejected(connection, schema);
+            assertImmutableFactsRejected(connection, schema);
             assertAuditIsAppendOnly(connection, schema);
         } finally {
-            if (schemaCreated) {
+            if (ownsGeneratedSchema(schema, schemaCreated)) {
                 dropGeneratedSchema(url, user, password, schema);
             }
         }
@@ -108,6 +112,103 @@ class Rbac3FlywayPostgresqlIT {
                     (2000, 2, 20, 'ROLE_TWO', 'Role Two', 'PUBLIC', 'LOW', false,
                      'ACTIVE', 1000, 0, now(), 'it', now(), 'it');
 
+                insert into rbac3_permission (
+                    id, tenant_id, application_id, permission_code,
+                    permission_name, risk_level, status, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values
+                    (5000, 1, 10, 'permission:one', 'Permission One',
+                     'LOW', 'ACTIVE', 0, now(), 'it', now(), 'it'),
+                    (5100, 1, 11, 'permission:other', 'Permission Other',
+                     'LOW', 'ACTIVE', 0, now(), 'it', now(), 'it');
+
+                insert into rbac3_service_principal (
+                    id, tenant_id, service_code, application_code, display_name,
+                    status, allowed_envs, allowed_namespaces, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values
+                    (6000, 1, 'service-one', 'app-one', 'Service One',
+                     'ACTIVE', '[]'::jsonb, '[]'::jsonb, 0,
+                     now(), 'it', now(), 'it'),
+                    (6001, 1, 'service-other', 'app-other', 'Service Other',
+                     'ACTIVE', '[]'::jsonb, '[]'::jsonb, 0,
+                     now(), 'it', now(), 'it');
+
+                insert into rbac3_service_permission (
+                    id, tenant_id, application_id, principal_id, permission_id,
+                    application_code, valid_from, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    6100, 1, 10, 6000, 5000, 'app-one', now(), 0,
+                    now(), 'it', now(), 'it'
+                );
+
+                insert into rbac3_resource_manifest (
+                    id, tenant_id, application_id, schema_version,
+                    artifact_version, build_id, manifest_version, checksum,
+                    status, payload, validation_result, received_at, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    7000, 1, 10, 1, '1.0.0', 'build-one', 1,
+                    'sha256:manifest-one', 'PENDING_VALIDATION', '{}'::jsonb,
+                    '{}'::jsonb, now(), 0, now(), 'it', now(), 'it'
+                );
+
+                insert into rbac3_resource (
+                    id, tenant_id, application_id, resource_type,
+                    resource_code, resource_name, status, mechanical_facts,
+                    display_metadata, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values
+                    (7100, 1, 10, 'API', 'api-one', 'API One', 'ACTIVE',
+                     '{}'::jsonb, '{}'::jsonb, 0,
+                     now(), 'it', now(), 'it'),
+                    (7101, 1, 10, 'API', 'api-two', 'API Two', 'ACTIVE',
+                     '{}'::jsonb, '{}'::jsonb, 0,
+                     now(), 'it', now(), 'it'),
+                    (7102, 1, 10, 'ACTION', 'action-one', 'Action One', 'ACTIVE',
+                     '{}'::jsonb, '{}'::jsonb, 0,
+                     now(), 'it', now(), 'it');
+
+                insert into rbac3_permission_resource (
+                    id, tenant_id, application_id, permission_id, resource_id,
+                    resource_type, definition_set_id, gateway_operation_id,
+                    mapping_version, status, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    7200, 1, 10, 5000, 7100, 'API', 'definition-one',
+                    'operation-one', 1, 'ACTIVE', 0,
+                    now(), 'it', now(), 'it'
+                );
+
+                insert into rbac3_directory_snapshot (
+                    id, tenant_id, provider_code, snapshot_version, checksum,
+                    status, generated_at, received_at, payload, counts, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    8000, 2, 'directory-two', 1, 'sha256:snapshot-two',
+                    'ACTIVE', now(), now(), '{}'::jsonb, '{}'::jsonb, 0,
+                    now(), 'it', now(), 'it'
+                );
+
+                insert into rbac3_org_unit (
+                    id, tenant_id, snapshot_id, unit_type, code, name, path,
+                    depth, status, valid_from, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    8100, 2, 8000, 'ORG', 'org-two', 'Org Two', '/org-two',
+                    0, 'ACTIVE', now(), 0, now(), 'it', now(), 'it'
+                );
+
+                insert into rbac3_position (
+                    id, tenant_id, snapshot_id, code, name, org_unit_id,
+                    status, valid_from, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    8200, 2, 8000, 'position-two', 'Position Two', 8100,
+                    'ACTIVE', now(), 0, now(), 'it', now(), 'it'
+                );
+
                 insert into rbac3_audit_log (
                     id, tenant_id, event_type, outcome, severity, actor_type,
                     actor_id, target_type, target_id, request_id, trace_id,
@@ -136,6 +237,165 @@ class Rbac3FlywayPostgresqlIT {
                 """))
                 .isInstanceOf(SQLException.class)
                 .hasMessageContaining("foreign key");
+    }
+
+    private void assertCrossApplicationServicePermissionRejected(
+            Connection connection,
+            String schema
+    ) {
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_service_permission (
+                    id, tenant_id, application_id, principal_id, permission_id,
+                    application_code, valid_from, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    6200, 1, 11, 6000, 5100, 'app-other', now(), 0,
+                    now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("foreign key");
+
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_service_permission (
+                    id, tenant_id, application_id, principal_id, permission_id,
+                    application_code, valid_from, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    6202, 1, 10, 6001, 5000, 'app-other', now(), 0,
+                    now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("foreign key");
+
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_service_permission (
+                    id, tenant_id, application_id, principal_id, permission_id,
+                    application_code, valid_from, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    6201, 1, 10, 6000, 5100, 'app-one', now(), 0,
+                    now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("foreign key");
+    }
+
+    private void assertApiMappingIdentityRejected(
+            Connection connection,
+            String schema
+    ) {
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_permission_resource (
+                    id, tenant_id, application_id, permission_id, resource_id,
+                    resource_type, mapping_version, status, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    7201, 1, 10, 5000, 7101, 'API', 2, 'ACTIVE', 0,
+                    now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("check constraint");
+
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_permission_resource (
+                    id, tenant_id, application_id, permission_id, resource_id,
+                    resource_type, definition_set_id, gateway_operation_id,
+                    mapping_version, status, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    7204, 1, 10, 5000, 7102, 'ACTION', 'definition-one',
+                    'operation-one', 2, 'ACTIVE', 0,
+                    now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("check constraint");
+
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_permission_resource (
+                    id, tenant_id, application_id, permission_id, resource_id,
+                    resource_type, definition_set_id, mapping_version,
+                    status, version, created_at, created_by, updated_at, updated_by
+                ) values (
+                    7202, 1, 10, 5000, 7101, 'API', 'definition-one', 2,
+                    'ACTIVE', 0, now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("check constraint");
+
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_permission_resource (
+                    id, tenant_id, application_id, permission_id, resource_id,
+                    resource_type, definition_set_id, gateway_operation_id,
+                    mapping_version, status, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    7203, 1, 10, 5000, 7101, 'API', 'definition-one',
+                    'operation-one', 1, 'ACTIVE', 0,
+                    now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("unique constraint");
+    }
+
+    private void assertCrossTenantPositionAutoAssignmentRejected(
+            Connection connection,
+            String schema
+    ) {
+        assertThatThrownBy(() -> execute(connection, schema, """
+                insert into rbac3_auto_assignment_rule (
+                    id, tenant_id, rule_code, match_type, match_ref_id, role_id,
+                    status, valid_from, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values (
+                    8300, 1, 'cross-tenant-position', 'POSITION', 8200, 1000,
+                    'ACTIVE', now(), 0, now(), 'it', now(), 'it'
+                )
+                """))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("foreign key");
+    }
+
+    private void assertImmutableFactsRejected(
+            Connection connection,
+            String schema
+    ) {
+        assertImmutableUpdateRejected(
+                connection, schema,
+                "update rbac3_directory_snapshot set checksum = 'changed' where id = 8000"
+        );
+        assertImmutableUpdateRejected(
+                connection, schema,
+                "update rbac3_resource_manifest set checksum = 'changed' where id = 7000"
+        );
+        assertImmutableUpdateRejected(
+                connection, schema,
+                "update rbac3_permission set permission_code = 'changed' where id = 5000"
+        );
+        assertImmutableUpdateRejected(
+                connection, schema,
+                "update rbac3_role set privileged = true where id = 1000"
+        );
+        assertImmutableUpdateRejected(
+                connection, schema,
+                "update rbac3_permission_resource set gateway_operation_id = 'changed' where id = 7200"
+        );
+    }
+
+    private void assertImmutableUpdateRejected(
+            Connection connection,
+            String schema,
+            String sql
+    ) {
+        assertThatThrownBy(() -> execute(connection, schema, sql))
+                .isInstanceOf(SQLException.class)
+                .hasMessageContaining("immutable");
     }
 
     private void assertCrossApplicationInheritanceRejected(
@@ -203,7 +463,12 @@ class Rbac3FlywayPostgresqlIT {
         return schema;
     }
 
-    private void requireSafeSchema(String schema) {
+    static boolean ownsGeneratedSchema(String schema, boolean schemaCreated) {
+        requireSafeSchema(schema);
+        return schemaCreated;
+    }
+
+    static void requireSafeSchema(String schema) {
         if (!SAFE_SCHEMA.matcher(schema).matches()) {
             throw new IllegalArgumentException("unsafe RBAC3 integration schema");
         }

@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class Rbac3MigrationContractTest {
 
@@ -151,8 +152,7 @@ class Rbac3MigrationContractTest {
                 .contains("check (status in ('pending', 'active', 'suspended', 'expired', 'revoked'))");
         assertThat(tables.get("rbac3_session"))
                 .contains("check (idle_expires_at > authenticated_at)")
-                .contains("check (absolute_expires_at > authenticated_at)")
-                .contains("check (status in ('active', 'revoked', 'expired'))");
+                .contains("check (absolute_expires_at > authenticated_at)");
         assertThat(tables.get("rbac3_authorization_mutation"))
                 .contains("check (scope_type <> 'session' or session_id is not null)")
                 .contains("check (status in ('preparing', 'committed', 'projected', 'completed', 'aborted', 'recovery_required'))");
@@ -179,6 +179,131 @@ class Rbac3MigrationContractTest {
                 .contains("on rbac3_audit_log (tenant_id, created_at desc)");
     }
 
+    @Test
+    void usesExactApprovedSecurityEnumSets() throws IOException {
+        Map<String, String> tables = tableBodies(migrationSql());
+
+        assertThat(checkValues(tables, "rbac3_tenant", "status"))
+                .containsExactlyInAnyOrder(
+                        "initializing", "active", "suspended", "closed"
+                );
+        assertThat(checkValues(tables, "rbac3_user", "status"))
+                .containsExactlyInAnyOrder(
+                        "invited", "active", "locked", "disabled", "archived"
+                );
+        assertThat(checkValues(tables, "rbac3_session", "status"))
+                .containsExactlyInAnyOrder(
+                        "active", "logged_out", "revoked", "expired", "compromised"
+                );
+        assertThat(checkValues(tables, "rbac3_refresh_token", "status"))
+                .containsExactlyInAnyOrder(
+                        "active", "rotated", "reused_detected", "revoked", "expired"
+                );
+        assertThat(checkValues(tables, "rbac3_permission", "status"))
+                .containsExactlyInAnyOrder("active", "deprecated", "archived");
+        assertThat(checkValues(tables, "rbac3_resource", "resource_type"))
+                .containsExactlyInAnyOrder("app", "menu", "route", "action", "api");
+        assertThat(checkValues(tables, "rbac3_resource", "status"))
+                .containsExactlyInAnyOrder(
+                        "pending_validation", "active", "stale", "archived"
+                );
+        assertThat(checkValues(tables, "rbac3_resource_manifest", "status"))
+                .containsExactlyInAnyOrder(
+                        "pending_validation", "active", "superseded"
+                );
+        assertThat(checkValues(tables, "rbac3_field_definition", "sensitivity"))
+                .containsExactlyInAnyOrder(
+                        "normal", "internal", "confidential", "high"
+                );
+        assertThat(checkValues(tables, "rbac3_field_definition", "default_access"))
+                .containsExactlyInAnyOrder("none", "masked_read", "read");
+        assertThat(checkValues(tables, "rbac3_field_rule", "access_level"))
+                .containsExactlyInAnyOrder(
+                        "none", "masked_read", "read", "write"
+                );
+    }
+
+    @Test
+    void servicePermissionBindsPrincipalPermissionAndApplicationTogether()
+            throws IOException {
+        String sql = migrationSql();
+        Map<String, String> tables = tableBodies(sql);
+
+        assertThat(tables.get("rbac3_application"))
+                .contains("unique (tenant_id, id, application_code)");
+        assertThat(tables.get("rbac3_service_principal"))
+                .contains("unique (tenant_id, application_code, id)");
+        assertThat(tables.get("rbac3_service_permission"))
+                .contains("application_id bigint not null")
+                .contains("foreign key (tenant_id, application_code, principal_id)")
+                .contains("references rbac3_service_principal(tenant_id, application_code, id)");
+        assertThat(sql)
+                .contains("foreign key (tenant_id, application_id, application_code) references rbac3_application(tenant_id, id, application_code)")
+                .contains("foreign key (tenant_id, application_id, permission_id)")
+                .contains("references rbac3_permission(tenant_id, application_id, id)");
+    }
+
+    @Test
+    void apiMappingsRequireCompleteUniqueOperationIdentity()
+            throws IOException {
+        Map<String, String> tables = tableBodies(migrationSql());
+        String sql = migrationSql();
+
+        assertThat(tables.get("rbac3_resource"))
+                .contains("unique (tenant_id, application_id, id, resource_type)");
+        assertThat(tables.get("rbac3_permission_resource"))
+                .contains("resource_type varchar(32) not null")
+                .contains("foreign key (tenant_id, application_id, resource_id, resource_type)")
+                .contains("references rbac3_resource(tenant_id, application_id, id, resource_type)")
+                .contains("resource_type = 'api' and definition_set_id is not null")
+                .contains("gateway_operation_id is not null")
+                .contains("resource_type <> 'api' and definition_set_id is null")
+                .contains("gateway_operation_id is null");
+        assertThat(sql)
+                .contains("create unique index uk_rbac3_permission_resource_api_operation")
+                .contains("tenant_id, definition_set_id, gateway_operation_id, mapping_version")
+                .contains("where definition_set_id is not null and gateway_operation_id is not null");
+    }
+
+    @Test
+    void positionAutoAssignmentAndImmutableFactsAreDatabaseProtected()
+            throws IOException {
+        Map<String, String> tables = tableBodies(migrationSql());
+        String sql = migrationSql();
+
+        assertThat(tables.get("rbac3_auto_assignment_rule"))
+                .contains("foreign key (tenant_id, match_ref_id)")
+                .contains("references rbac3_position(tenant_id, id)");
+        assertThat(sql)
+                .contains("create function rbac3_reject_immutable_column_change()")
+                .contains("create trigger trg_rbac3_directory_snapshot_immutable")
+                .contains("'provider_code', 'snapshot_version', 'checksum', 'generated_at', 'payload'")
+                .contains("create trigger trg_rbac3_resource_manifest_immutable")
+                .contains("'application_id', 'schema_version', 'artifact_version', 'build_id'")
+                .contains("'manifest_version', 'checksum', 'payload'")
+                .contains("create trigger trg_rbac3_permission_code_immutable")
+                .contains("'permission_code'")
+                .contains("create trigger trg_rbac3_role_identity_immutable")
+                .contains("'application_id', 'role_type', 'privileged'")
+                .contains("create trigger trg_rbac3_permission_resource_mapping_immutable")
+                .contains("'application_id', 'permission_id', 'resource_id', 'resource_type'")
+                .contains("'definition_set_id', 'gateway_operation_id', 'security_policy_id', 'mapping_version'");
+    }
+
+    @Test
+    void integrationCleanupOnlyOwnsGeneratedRbac3Schemas() {
+        assertThatThrownBy(() ->
+                Rbac3FlywayPostgresqlIT.ownsGeneratedSchema("public", true)
+        ).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("unsafe RBAC3 integration schema");
+        assertThat(Rbac3FlywayPostgresqlIT.ownsGeneratedSchema(
+                "rbac3_it_0123456789abcdef", false
+        )).isFalse();
+        assertThat(Rbac3FlywayPostgresqlIT.ownsGeneratedSchema(
+                "rbac3_it_0123456789abcdef", true
+        )).isTrue();
+    }
+
     private Map<String, String> tableBodies(String sql) {
         Matcher matcher = TABLE_PATTERN.matcher(sql);
         Map<String, String> tables = new LinkedHashMap<>();
@@ -186,6 +311,24 @@ class Rbac3MigrationContractTest {
             tables.put(normalize(matcher.group(1)), normalize(matcher.group(2)));
         }
         return tables;
+    }
+
+    private Set<String> checkValues(
+            Map<String, String> tables,
+            String table,
+            String column
+    ) {
+        Pattern pattern = Pattern.compile(
+                "check \\(" + Pattern.quote(column) + " in \\(([^)]*)\\)\\)"
+        );
+        Matcher matcher = pattern.matcher(tables.get(table));
+        assertThat(matcher.find())
+                .as("%s.%s enum constraint", table, column)
+                .isTrue();
+        return Arrays.stream(matcher.group(1).split(","))
+                .map(String::trim)
+                .map(value -> value.replace("'", ""))
+                .collect(java.util.stream.Collectors.toSet());
     }
 
     private String migrationSql() throws IOException {

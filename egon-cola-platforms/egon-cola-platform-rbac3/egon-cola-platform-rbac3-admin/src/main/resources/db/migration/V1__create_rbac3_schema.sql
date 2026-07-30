@@ -12,7 +12,7 @@ CREATE TABLE rbac3_tenant (
     updated_by VARCHAR(128) NOT NULL,
     CONSTRAINT uq_rbac3_tenant_id UNIQUE (id),
     CONSTRAINT ck_rbac3_tenant_status
-        CHECK (status IN ('ACTIVE', 'SUSPENDED', 'CLOSED')),
+        CHECK (status IN ('INITIALIZING', 'ACTIVE', 'SUSPENDED', 'CLOSED')),
     CONSTRAINT ck_rbac3_tenant_policy_version CHECK (policy_version >= 0),
     CONSTRAINT ck_rbac3_tenant_version CHECK (version >= 0)
 );
@@ -45,7 +45,7 @@ CREATE TABLE rbac3_user (
     CONSTRAINT fk_rbac3_user_tenant
         FOREIGN KEY (tenant_id) REFERENCES rbac3_tenant(id),
     CONSTRAINT ck_rbac3_user_status
-        CHECK (status IN ('ACTIVE', 'DISABLED', 'LOCKED', 'ARCHIVED')),
+        CHECK (status IN ('INVITED', 'ACTIVE', 'LOCKED', 'DISABLED', 'ARCHIVED')),
     CONSTRAINT ck_rbac3_user_auth_version CHECK (auth_version >= 0),
     CONSTRAINT ck_rbac3_user_directory_version
         CHECK (directory_snapshot_version >= 0),
@@ -290,6 +290,8 @@ CREATE TABLE rbac3_service_principal (
     updated_at TIMESTAMPTZ NOT NULL,
     updated_by VARCHAR(128) NOT NULL,
     CONSTRAINT uq_rbac3_service_principal_tenant_id UNIQUE (tenant_id, id),
+    CONSTRAINT uq_rbac3_service_principal_application_id
+        UNIQUE (tenant_id, application_code, id),
     CONSTRAINT uq_rbac3_service_principal_code
         UNIQUE (tenant_id, service_code),
     CONSTRAINT fk_rbac3_service_principal_tenant
@@ -344,6 +346,7 @@ CREATE INDEX idx_rbac3_service_credential_principal
 CREATE TABLE rbac3_service_permission (
     id BIGINT PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
+    application_id BIGINT NOT NULL,
     principal_id BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
     application_code VARCHAR(128) NOT NULL,
@@ -358,8 +361,8 @@ CREATE TABLE rbac3_service_permission (
     CONSTRAINT uq_rbac3_service_permission_fact
         UNIQUE (tenant_id, principal_id, permission_id, application_code),
     CONSTRAINT fk_rbac3_service_permission_principal
-        FOREIGN KEY (tenant_id, principal_id)
-        REFERENCES rbac3_service_principal(tenant_id, id),
+        FOREIGN KEY (tenant_id, application_code, principal_id)
+        REFERENCES rbac3_service_principal(tenant_id, application_code, id),
     CONSTRAINT ck_rbac3_service_permission_window
         CHECK (valid_to IS NULL OR valid_to > valid_from),
     CONSTRAINT ck_rbac3_service_permission_version CHECK (version >= 0)
@@ -384,6 +387,8 @@ CREATE TABLE rbac3_application (
     updated_at TIMESTAMPTZ NOT NULL,
     updated_by VARCHAR(128) NOT NULL,
     CONSTRAINT uq_rbac3_application_tenant_id UNIQUE (tenant_id, id),
+    CONSTRAINT uq_rbac3_application_identity
+        UNIQUE (tenant_id, id, application_code),
     CONSTRAINT uq_rbac3_application_code
         UNIQUE (tenant_id, application_code),
     CONSTRAINT fk_rbac3_application_tenant
@@ -430,7 +435,7 @@ CREATE TABLE rbac3_resource_manifest (
         FOREIGN KEY (tenant_id, application_id)
         REFERENCES rbac3_application(tenant_id, id),
     CONSTRAINT ck_rbac3_manifest_status
-        CHECK (status IN ('RECEIVED', 'VALIDATED', 'ACTIVE', 'REJECTED', 'ARCHIVED')),
+        CHECK (status IN ('PENDING_VALIDATION', 'ACTIVE', 'SUPERSEDED')),
     CONSTRAINT ck_rbac3_manifest_versions CHECK (
         schema_version > 0 AND manifest_version >= 0 AND version >= 0
     )
@@ -463,6 +468,8 @@ CREATE TABLE rbac3_resource (
     CONSTRAINT uq_rbac3_resource_tenant_id UNIQUE (tenant_id, id),
     CONSTRAINT uq_rbac3_resource_application_id
         UNIQUE (tenant_id, application_id, id),
+    CONSTRAINT uq_rbac3_resource_application_type_id
+        UNIQUE (tenant_id, application_id, id, resource_type),
     CONSTRAINT uq_rbac3_resource_code
         UNIQUE (tenant_id, application_id, resource_type, resource_code),
     CONSTRAINT fk_rbac3_resource_application
@@ -475,9 +482,9 @@ CREATE TABLE rbac3_resource (
         FOREIGN KEY (tenant_id, application_id, source_manifest_id)
         REFERENCES rbac3_resource_manifest(tenant_id, application_id, id),
     CONSTRAINT ck_rbac3_resource_type
-        CHECK (resource_type IN ('APP', 'MENU', 'ROUTE', 'ACTION', 'API', 'DATA', 'FIELD')),
+        CHECK (resource_type IN ('APP', 'MENU', 'ROUTE', 'ACTION', 'API')),
     CONSTRAINT ck_rbac3_resource_status
-        CHECK (status IN ('ACTIVE', 'STALE', 'DISABLED', 'ARCHIVED')),
+        CHECK (status IN ('PENDING_VALIDATION', 'ACTIVE', 'STALE', 'ARCHIVED')),
     CONSTRAINT ck_rbac3_resource_version CHECK (version >= 0)
 );
 
@@ -510,7 +517,7 @@ CREATE TABLE rbac3_permission (
     CONSTRAINT ck_rbac3_permission_risk
         CHECK (risk_level IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
     CONSTRAINT ck_rbac3_permission_status
-        CHECK (status IN ('ACTIVE', 'DISABLED', 'ARCHIVED')),
+        CHECK (status IN ('ACTIVE', 'DEPRECATED', 'ARCHIVED')),
     CONSTRAINT ck_rbac3_permission_version CHECK (version >= 0)
 );
 
@@ -523,6 +530,7 @@ CREATE TABLE rbac3_permission_resource (
     application_id BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
     resource_id BIGINT NOT NULL,
+    resource_type VARCHAR(32) NOT NULL,
     definition_set_id VARCHAR(64),
     gateway_operation_id VARCHAR(64),
     security_policy_id VARCHAR(128),
@@ -536,22 +544,31 @@ CREATE TABLE rbac3_permission_resource (
     CONSTRAINT uq_rbac3_permission_resource_tenant_id UNIQUE (tenant_id, id),
     CONSTRAINT uq_rbac3_permission_resource_mapping
         UNIQUE (tenant_id, resource_id, mapping_version),
-    CONSTRAINT uq_rbac3_permission_resource_operation
-        UNIQUE (
-            tenant_id, definition_set_id, gateway_operation_id, mapping_version
-        ),
     CONSTRAINT fk_rbac3_permission_resource_permission
         FOREIGN KEY (tenant_id, application_id, permission_id)
         REFERENCES rbac3_permission(tenant_id, application_id, id),
     CONSTRAINT fk_rbac3_permission_resource_resource
-        FOREIGN KEY (tenant_id, application_id, resource_id)
-        REFERENCES rbac3_resource(tenant_id, application_id, id),
+        FOREIGN KEY (tenant_id, application_id, resource_id, resource_type)
+        REFERENCES rbac3_resource(tenant_id, application_id, id, resource_type),
+    CONSTRAINT ck_rbac3_permission_resource_api_identity CHECK (
+        (resource_type = 'API'
+            AND definition_set_id IS NOT NULL
+            AND gateway_operation_id IS NOT NULL)
+        OR (resource_type <> 'API'
+            AND definition_set_id IS NULL
+            AND gateway_operation_id IS NULL)
+    ),
     CONSTRAINT ck_rbac3_permission_resource_status
         CHECK (status IN ('ACTIVE', 'STALE', 'DISABLED')),
     CONSTRAINT ck_rbac3_permission_resource_version
         CHECK (mapping_version >= 0 AND version >= 0)
 );
 
+CREATE UNIQUE INDEX uk_rbac3_permission_resource_api_operation
+    ON rbac3_permission_resource (
+        tenant_id, definition_set_id, gateway_operation_id, mapping_version
+    )
+    WHERE definition_set_id IS NOT NULL AND gateway_operation_id IS NOT NULL;
 CREATE INDEX idx_rbac3_permission_resource_operation
     ON rbac3_permission_resource
         (tenant_id, gateway_operation_id, definition_set_id, status);
@@ -785,9 +802,9 @@ CREATE TABLE rbac3_field_definition (
     CONSTRAINT ck_rbac3_field_definition_type
         CHECK (data_type IN ('STRING', 'NUMBER', 'BOOLEAN', 'DATE', 'DATETIME', 'OBJECT', 'ARRAY')),
     CONSTRAINT ck_rbac3_field_definition_sensitivity
-        CHECK (sensitivity IN ('PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED')),
+        CHECK (sensitivity IN ('NORMAL', 'INTERNAL', 'CONFIDENTIAL', 'HIGH')),
     CONSTRAINT ck_rbac3_field_definition_access
-        CHECK (default_access IN ('NONE', 'MASKED', 'READ', 'WRITE')),
+        CHECK (default_access IN ('NONE', 'MASKED_READ', 'READ')),
     CONSTRAINT ck_rbac3_field_definition_status
         CHECK (status IN ('ACTIVE', 'STALE', 'DISABLED', 'ARCHIVED')),
     CONSTRAINT ck_rbac3_field_definition_version CHECK (version >= 0)
@@ -826,7 +843,7 @@ CREATE TABLE rbac3_field_rule (
         FOREIGN KEY (tenant_id, application_id, field_definition_id)
         REFERENCES rbac3_field_definition(tenant_id, application_id, id),
     CONSTRAINT ck_rbac3_field_rule_access
-        CHECK (access_level IN ('NONE', 'MASKED', 'READ', 'WRITE')),
+        CHECK (access_level IN ('NONE', 'MASKED_READ', 'READ', 'WRITE')),
     CONSTRAINT ck_rbac3_field_rule_status
         CHECK (status IN ('ACTIVE', 'DISABLED', 'EXPIRED')),
     CONSTRAINT ck_rbac3_field_rule_window
@@ -901,6 +918,9 @@ CREATE TABLE rbac3_auto_assignment_rule (
     CONSTRAINT fk_rbac3_auto_assignment_role
         FOREIGN KEY (tenant_id, role_id)
         REFERENCES rbac3_role(tenant_id, id),
+    CONSTRAINT fk_rbac3_auto_assignment_position
+        FOREIGN KEY (tenant_id, match_ref_id)
+        REFERENCES rbac3_position(tenant_id, id),
     CONSTRAINT ck_rbac3_auto_assignment_match CHECK (
         (match_type = 'ALL_ACTIVE_USERS' AND match_ref_id IS NULL)
         OR (match_type = 'POSITION' AND match_ref_id IS NOT NULL)
@@ -1260,7 +1280,7 @@ CREATE TABLE rbac3_session (
         FOREIGN KEY (tenant_id, user_id)
         REFERENCES rbac3_user(tenant_id, id),
     CONSTRAINT ck_rbac3_session_status
-        CHECK (status IN ('ACTIVE', 'REVOKED', 'EXPIRED')),
+        CHECK (status IN ('ACTIVE', 'LOGGED_OUT', 'REVOKED', 'EXPIRED', 'COMPROMISED')),
     CONSTRAINT ck_rbac3_session_auth_strength
         CHECK (auth_strength IN ('PASSWORD', 'MFA', 'STRONG')),
     CONSTRAINT ck_rbac3_session_idle_expiry
@@ -1339,7 +1359,7 @@ CREATE TABLE rbac3_refresh_token (
         FOREIGN KEY (tenant_id, replaced_by_id)
         REFERENCES rbac3_refresh_token(tenant_id, id),
     CONSTRAINT ck_rbac3_refresh_token_status
-        CHECK (status IN ('ACTIVE', 'ROTATED', 'REVOKED', 'EXPIRED', 'REUSE_DETECTED')),
+        CHECK (status IN ('ACTIVE', 'ROTATED', 'REUSED_DETECTED', 'REVOKED', 'EXPIRED')),
     CONSTRAINT ck_rbac3_refresh_token_expiry CHECK (expires_at > issued_at),
     CONSTRAINT ck_rbac3_refresh_token_generation CHECK (generation >= 0),
     CONSTRAINT ck_rbac3_refresh_token_version CHECK (version >= 0)
@@ -1509,11 +1529,11 @@ ALTER TABLE rbac3_service_principal
 
 ALTER TABLE rbac3_service_permission
     ADD CONSTRAINT fk_rbac3_service_permission_application
-    FOREIGN KEY (tenant_id, application_code)
-    REFERENCES rbac3_application(tenant_id, application_code),
+    FOREIGN KEY (tenant_id, application_id, application_code)
+    REFERENCES rbac3_application(tenant_id, id, application_code),
     ADD CONSTRAINT fk_rbac3_service_permission_permission
-    FOREIGN KEY (tenant_id, permission_id)
-    REFERENCES rbac3_permission(tenant_id, id);
+    FOREIGN KEY (tenant_id, application_id, permission_id)
+    REFERENCES rbac3_permission(tenant_id, application_id, id);
 
 ALTER TABLE rbac3_application
     ADD CONSTRAINT fk_rbac3_application_current_manifest
@@ -1524,6 +1544,58 @@ ALTER TABLE rbac3_resource
     ADD CONSTRAINT fk_rbac3_resource_required_permission
     FOREIGN KEY (tenant_id, application_id, required_permission_id)
     REFERENCES rbac3_permission(tenant_id, application_id, id);
+
+CREATE FUNCTION rbac3_reject_immutable_column_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    column_name TEXT;
+BEGIN
+    FOREACH column_name IN ARRAY TG_ARGV LOOP
+        IF (to_jsonb(NEW) -> column_name)
+                IS DISTINCT FROM (to_jsonb(OLD) -> column_name) THEN
+            RAISE EXCEPTION '% column %.% is immutable',
+                TG_OP, TG_TABLE_NAME, column_name
+                USING ERRCODE = '55000';
+        END IF;
+    END LOOP;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_rbac3_directory_snapshot_immutable
+    BEFORE UPDATE ON rbac3_directory_snapshot
+    FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
+        'provider_code', 'snapshot_version', 'checksum', 'generated_at', 'payload'
+    );
+
+CREATE TRIGGER trg_rbac3_resource_manifest_immutable
+    BEFORE UPDATE ON rbac3_resource_manifest
+    FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
+        'application_id', 'schema_version', 'artifact_version', 'build_id',
+        'manifest_version', 'checksum', 'payload'
+    );
+
+CREATE TRIGGER trg_rbac3_permission_code_immutable
+    BEFORE UPDATE ON rbac3_permission
+    FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
+        'permission_code'
+    );
+
+CREATE TRIGGER trg_rbac3_role_identity_immutable
+    BEFORE UPDATE ON rbac3_role
+    FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
+        'application_id', 'role_type', 'privileged'
+    );
+
+CREATE TRIGGER trg_rbac3_permission_resource_mapping_immutable
+    BEFORE UPDATE ON rbac3_permission_resource
+    FOR EACH ROW EXECUTE FUNCTION rbac3_reject_immutable_column_change(
+        'application_id', 'permission_id', 'resource_id', 'resource_type',
+        'definition_set_id', 'gateway_operation_id', 'security_policy_id',
+        'mapping_version'
+    );
 
 CREATE FUNCTION rbac3_reject_append_only_change()
 RETURNS TRIGGER
