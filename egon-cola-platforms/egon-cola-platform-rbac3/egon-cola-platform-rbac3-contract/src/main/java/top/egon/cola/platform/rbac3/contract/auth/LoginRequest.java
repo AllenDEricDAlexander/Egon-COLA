@@ -12,8 +12,19 @@ public record LoginRequest(
     public LoginRequest {
         tenantCode = required(tenantCode, "tenantCode");
         username = required(username, "username");
-        password = required(password, "password");
+        password = requiredSecret(password, "password");
         device = Objects.requireNonNull(device, "device");
+    }
+
+    @Override
+    public String toString() {
+        return "LoginRequest[tenantCode="
+                + tenantCode
+                + ", username="
+                + username
+                + ", password=<redacted>, device="
+                + device
+                + "]";
     }
 
     public record Device(
@@ -32,5 +43,12 @@ public record LoginRequest(
             throw new IllegalArgumentException(fieldName + " is required");
         }
         return value.trim();
+    }
+
+    private static String requiredSecret(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " is required");
+        }
+        return value;
     }
 }

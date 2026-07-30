@@ -27,6 +27,11 @@ public record Rbac3ErrorResponse(
         public Error {
             code = Objects.requireNonNull(code, "code");
             message = required(message, "message");
+            if (retryable != code.retryable()) {
+                throw new IllegalArgumentException(
+                        "retryable must match error code"
+                );
+            }
             details = List.copyOf(Objects.requireNonNull(
                     details,
                     "details"

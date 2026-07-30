@@ -44,6 +44,7 @@ public record ResourceManifest(
     public record FieldDefinition(
             String resourceCode,
             String fieldCode,
+            String jsonPath,
             String dataType,
             String sensitivity,
             String defaultAccess,
@@ -55,6 +56,7 @@ public record ResourceManifest(
         public FieldDefinition {
             resourceCode = required(resourceCode, "resourceCode");
             fieldCode = required(fieldCode, "fieldCode");
+            jsonPath = required(jsonPath, "jsonPath");
             dataType = required(dataType, "dataType");
             sensitivity = required(sensitivity, "sensitivity");
             defaultAccess = required(defaultAccess, "defaultAccess");

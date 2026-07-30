@@ -33,6 +33,31 @@ public record RefreshResult(
         }
     }
 
+    @Override
+    public String toString() {
+        return "RefreshResult[tokenType="
+                + tokenType
+                + ", accessToken=<redacted>, expiresIn="
+                + expiresIn
+                + ", refreshToken=<redacted>, refreshExpiresIn="
+                + refreshExpiresIn
+                + ", sessionId="
+                + sessionId
+                + ", authVersion="
+                + authVersion
+                + ", sessionVersion="
+                + sessionVersion
+                + ", policyVersion="
+                + policyVersion
+                + ", roleActivationRequired="
+                + roleActivationRequired
+                + ", activationReasonCode="
+                + activationReasonCode
+                + ", bootstrapRequired="
+                + bootstrapRequired
+                + "]";
+    }
+
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");

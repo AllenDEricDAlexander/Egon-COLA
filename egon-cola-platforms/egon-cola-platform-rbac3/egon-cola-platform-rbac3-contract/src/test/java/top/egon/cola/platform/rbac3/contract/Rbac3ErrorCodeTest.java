@@ -2,12 +2,15 @@ package top.egon.cola.platform.rbac3.contract;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
+import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class Rbac3ErrorCodeTest {
 
@@ -98,6 +101,28 @@ class Rbac3ErrorCodeTest {
         assertEquals(
                 false,
                 Rbac3ErrorCode.ROLE_APPLICATION_MISMATCH.retryable()
+        );
+    }
+
+    @Test
+    void errorEnvelopeCannotOverrideStableRetrySemantics() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Rbac3ErrorResponse.Error(
+                        Rbac3ErrorCode.PERMISSION_DENIED,
+                        "Permission denied",
+                        true,
+                        List.of()
+                )
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Rbac3ErrorResponse.Error(
+                        Rbac3ErrorCode.AUTH_RUNTIME_UNAVAILABLE,
+                        "Authorization runtime unavailable",
+                        false,
+                        List.of()
+                )
         );
     }
 }

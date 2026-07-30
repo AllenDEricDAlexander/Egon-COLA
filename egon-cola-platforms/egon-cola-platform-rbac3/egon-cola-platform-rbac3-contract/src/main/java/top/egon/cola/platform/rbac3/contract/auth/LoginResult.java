@@ -31,6 +31,27 @@ public record LoginResult(
         );
     }
 
+    @Override
+    public String toString() {
+        return "LoginResult[tokenType="
+                + tokenType
+                + ", accessToken=<redacted>, expiresIn="
+                + expiresIn
+                + ", refreshToken=<redacted>, refreshExpiresIn="
+                + refreshExpiresIn
+                + ", sessionId="
+                + sessionId
+                + ", roleActivationRequired="
+                + roleActivationRequired
+                + ", activationCandidateCount="
+                + activationCandidateCount
+                + ", activationCandidatesUrl="
+                + activationCandidatesUrl
+                + ", bootstrapRequired="
+                + bootstrapRequired
+                + "]";
+    }
+
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");

@@ -10,11 +10,13 @@ public record ReplaceActiveRolesRequest(
 ) {
 
     public ReplaceActiveRolesRequest {
-        roleIds = List.copyOf(Objects.requireNonNull(roleIds, "roleIds"));
+        roleIds = Objects.requireNonNull(roleIds, "roleIds")
+                .stream()
+                .map(ReplaceActiveRolesRequest::canonicalRoleId)
+                .toList();
         if (roleIds.isEmpty()) {
             throw new IllegalArgumentException("roleIds is required");
         }
-        roleIds.forEach(roleId -> required(roleId, "roleIds"));
         if (Set.copyOf(roleIds).size() != roleIds.size()) {
             throw new IllegalArgumentException(
                     "roleIds must not contain duplicates"
@@ -27,10 +29,30 @@ public record ReplaceActiveRolesRequest(
         }
     }
 
-    private static String required(String value, String fieldName) {
+    private static String canonicalRoleId(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required");
+            throw new IllegalArgumentException("roleIds is required");
         }
-        return value.trim();
+        String candidate = value.trim();
+        if (!candidate.chars().allMatch(
+                character -> character >= '0' && character <= '9')) {
+            throw new IllegalArgumentException(
+                    "roleIds must contain decimal identifiers"
+            );
+        }
+        try {
+            long identifier = Long.parseLong(candidate);
+            if (identifier <= 0L) {
+                throw new IllegalArgumentException(
+                        "roleIds must contain positive identifiers"
+                );
+            }
+            return Long.toString(identifier);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(
+                    "roleIds must contain valid decimal identifiers",
+                    exception
+            );
+        }
     }
 }

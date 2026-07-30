@@ -45,6 +45,18 @@ public record DataScopeDecision(
                     "selfUserId is required when includeSelf is true"
             );
         }
+        if (decision == Decision.ALLOW
+                && ("NONE".equals(scopeType)
+                || !hasConcreteScope(
+                        allInTenant,
+                        allowedOrgIds,
+                        allowedDeptIds,
+                        allowedUserIds,
+                        includeSelf))) {
+            throw new IllegalArgumentException(
+                    "ALLOW requires a concrete data scope"
+            );
+        }
         directorySnapshotVersion = required(
                 directorySnapshotVersion,
                 "directorySnapshotVersion"
@@ -89,6 +101,19 @@ public record DataScopeDecision(
             );
         }
         return value.trim();
+    }
+
+    private static boolean hasConcreteScope(
+            boolean allInTenant,
+            Set<String> allowedOrgIds,
+            Set<String> allowedDeptIds,
+            Set<String> allowedUserIds,
+            boolean includeSelf) {
+        return allInTenant
+                || !allowedOrgIds.isEmpty()
+                || !allowedDeptIds.isEmpty()
+                || !allowedUserIds.isEmpty()
+                || includeSelf;
     }
 
     private static void nonNegative(long value, String fieldName) {
