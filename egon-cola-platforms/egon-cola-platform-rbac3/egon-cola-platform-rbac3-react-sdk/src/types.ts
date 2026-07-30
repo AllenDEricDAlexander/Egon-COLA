@@ -315,6 +315,7 @@ export interface ManifestResource {
 export interface ResourceFieldDefinition {
   readonly resourceCode: string
   readonly fieldCode: string
+  readonly jsonPath: string
   readonly dataType: string
   readonly sensitivity: string
   readonly defaultAccess: string

@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import type {
   ActivationRoot,
   ReplaceActiveRolesRequest,
+  ResourceFieldDefinition,
   Rbac3TokenClaims,
 } from './types'
 import {
@@ -31,6 +32,22 @@ describe('RBAC3 TypeScript contracts', () => {
 
     expect(typeof root.roleId).toBe('string')
     expect(typeof root.applicationId).toBe('string')
+  })
+
+  it('keeps manifest field definitions aligned with the Java contract', () => {
+    const field: ResourceFieldDefinition = {
+      resourceCode: 'payment-detail',
+      fieldCode: 'bank-account-no',
+      jsonPath: '$.bankAccountNo',
+      dataType: 'STRING',
+      sensitivity: 'HIGH',
+      defaultAccess: 'MASKED_READ',
+      maskingStrategy: 'BANK_ACCOUNT',
+      writable: false,
+      exportable: false,
+    }
+
+    expect(field.jsonPath).toBe('$.bankAccountNo')
   })
 
   it('keeps token claims free of authorization collections', () => {
