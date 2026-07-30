@@ -1,13 +1,15 @@
 package top.egon.cola.component.gateway.engine.http;
 
-import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
+import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferOwnership;
 import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
 
 import javax.net.ssl.SSLException;
@@ -19,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class GatewayHttpListener implements AutoCloseable {
+
+    private static final NettyDataBufferFactory BUFFER_FACTORY =
+            new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT);
 
     private final AccessZone accessZone;
 
@@ -86,7 +91,12 @@ public final class GatewayHttpListener implements AutoCloseable {
                                     headers,
                                     remoteAddress(request.remoteAddress()),
                                     request.receive()
-                                            .map(ByteBufUtil::getBytes)
+                                            .map(buffer ->
+                                                    GatewayDataBufferOwnership
+                                                            .retainAndWrap(
+                                                                    BUFFER_FACTORY,
+                                                                    buffer
+                                                            ))
                             );
                     return handler.handle(accessZone, inbound)
                             .flatMap(outbound -> {
@@ -96,7 +106,14 @@ public final class GatewayHttpListener implements AutoCloseable {
                                                 response.header(name, value)
                                         )
                                 );
-                                return response.sendByteArray(outbound.body())
+                                return response.send(outbound.body().map(
+                                                buffer ->
+                                                        GatewayDataBufferOwnership
+                                                                .transferToNetty(
+                                                                        buffer,
+                                                                        response.alloc()
+                                                                )
+                                        ))
                                         .then();
                             });
                 })

@@ -11,9 +11,9 @@ import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -57,16 +57,15 @@ class ReactorNettyHttpUpstreamAdapterTest {
                                     "x-test",
                                     List.of("safe")
                             ),
-                            Flux.just("hello".getBytes(StandardCharsets.UTF_8)),
+                            GatewayDataBufferTestSupport.body("hel", "lo"),
                             Duration.ofSeconds(3)
                     )
             ).block();
 
-            String body = response.body()
-                    .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
-                    .collectList()
-                    .map(parts -> String.join("", parts))
-                    .block();
+            String body = GatewayDataBufferTestSupport.joinUtf8(
+                    response.body(),
+                    64
+            );
             assertEquals(200, response.status());
             assertEquals("missing:hello", body);
         } finally {
@@ -123,12 +122,64 @@ class ReactorNettyHttpUpstreamAdapterTest {
             chunks.tryEmitNext("first");
             chunks.tryEmitNext("second");
             chunks.tryEmitComplete();
-            String body = response.body()
-                    .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
-                    .collectList()
-                    .map(parts -> String.join("", parts))
-                    .block(Duration.ofSeconds(1));
+            String body = GatewayDataBufferTestSupport.joinUtf8(
+                    response.body(),
+                    64
+            );
             assertEquals("firstsecond", body);
+        } finally {
+            adapter.close();
+            provider.disposeNow();
+        }
+    }
+
+    @Test
+    void preservesRawResponseBytesAcrossNettyBoundary() {
+        byte[] first = new byte[]{0, 1, 2, (byte) 0xff};
+        byte[] second = new byte[]{3, 4, (byte) 0x80, 5};
+        byte[] expected = Arrays.copyOf(first, first.length + second.length);
+        System.arraycopy(
+                second,
+                0,
+                expected,
+                first.length,
+                second.length
+        );
+        DisposableServer provider = HttpServer.create()
+                .host("127.0.0.1")
+                .port(0)
+                .handle((request, response) -> response.send(
+                        Flux.just(
+                                response.alloc().buffer().writeBytes(first),
+                                response.alloc().buffer().writeBytes(second)
+                        )
+                ))
+                .bindNow();
+        ReactorNettyHttpUpstreamAdapter adapter =
+                new ReactorNettyHttpUpstreamAdapter(
+                        4,
+                        4,
+                        Duration.ofSeconds(30)
+                );
+        try {
+            GatewayOutboundHttpResponse response = adapter.invoke(
+                    new HttpUpstreamRequest(
+                            provider(provider.port()),
+                            "GET",
+                            "/raw",
+                            Map.of(),
+                            Flux.empty(),
+                            Duration.ofSeconds(3)
+                    )
+            ).block();
+
+            assertEquals(
+                    GatewayDataBufferTestSupport.sha256(
+                            GatewayDataBufferTestSupport.body(expected),
+                            64
+                    ),
+                    GatewayDataBufferTestSupport.sha256(response.body(), 64)
+            );
         } finally {
             adapter.close();
             provider.disposeNow();

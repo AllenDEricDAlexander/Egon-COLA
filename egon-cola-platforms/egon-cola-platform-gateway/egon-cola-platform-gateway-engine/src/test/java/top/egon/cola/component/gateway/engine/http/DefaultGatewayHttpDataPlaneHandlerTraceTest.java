@@ -67,7 +67,7 @@ class DefaultGatewayHttpDataPlaneHandlerTraceTest {
                 )
         ).block();
 
-        response.body().collectList().block();
+        GatewayDataBufferTestSupport.join(response.body(), 1024);
 
         assertEquals(1, events.size());
         assertNull(response.headers().get("x-trace-id"));

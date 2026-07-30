@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.engine.http;
 
+import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 
@@ -13,7 +14,7 @@ public record HttpUpstreamRequest(
         String method,
         String pathAndQuery,
         Map<String, List<String>> headers,
-        Flux<byte[]> body,
+        Flux<DataBuffer> body,
         Duration timeout
 ) {
 

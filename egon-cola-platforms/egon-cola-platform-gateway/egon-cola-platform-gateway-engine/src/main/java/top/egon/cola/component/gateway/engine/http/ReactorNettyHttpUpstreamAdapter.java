@@ -1,11 +1,15 @@
 package top.egon.cola.component.gateway.engine.http;
 
-import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.codec.http.HttpMethod;
-import reactor.core.publisher.Mono;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
+import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferOwnership;
+import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferPipeline;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -17,6 +21,9 @@ import java.util.Set;
 
 public final class ReactorNettyHttpUpstreamAdapter
         implements HttpUpstreamAdapter, AutoCloseable {
+
+    private static final NettyDataBufferFactory BUFFER_FACTORY =
+            new NettyDataBufferFactory(PooledByteBufAllocator.DEFAULT);
 
     private static final Set<String> FORBIDDEN = Set.of(
             "connection",
@@ -76,14 +83,30 @@ public final class ReactorNettyHttpUpstreamAdapter
                         + request.provider().port()
                         + request.pathAndQuery())
                 .send((ignored, outbound) ->
-                        outbound.sendByteArray(request.body()))
+                        outbound.send(
+                                GatewayDataBufferPipeline
+                                        .releaseOnDiscardOrCancel(
+                                                request.body()
+                                        )
+                                        .map(buffer ->
+                                                GatewayDataBufferOwnership
+                                                        .transferToNetty(
+                                                                buffer,
+                                                                outbound.alloc()
+                                                        ))
+                        ))
                 .responseConnection((response, connection) ->
                         Flux.just(new GatewayOutboundHttpResponse(
                                 response.status().code(),
                                 responseHeaders(response.responseHeaders()),
                                 connection.inbound()
                                         .receive()
-                                        .map(ByteBufUtil::getBytes)
+                                        .<DataBuffer>map(buffer ->
+                                                GatewayDataBufferOwnership
+                                                        .retainAndWrap(
+                                                                BUFFER_FACTORY,
+                                                                buffer
+                                                        ))
                                         .timeout(request.timeout())
                                         .doFinally(ignored ->
                                                 connection.dispose())

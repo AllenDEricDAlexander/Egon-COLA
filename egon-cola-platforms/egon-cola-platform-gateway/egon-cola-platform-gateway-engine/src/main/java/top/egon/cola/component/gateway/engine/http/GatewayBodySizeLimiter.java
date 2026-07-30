@@ -1,26 +1,39 @@
 package top.egon.cola.component.gateway.engine.http;
 
+import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferOwnership;
+import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferPipeline;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 public final class GatewayBodySizeLimiter {
 
-    public Mono<byte[]> aggregateRequest(Flux<byte[]> body, long limit) {
+    public Mono<byte[]> aggregateRequest(
+            Flux<DataBuffer> body,
+            long limit) {
         requirePositive(limit);
-        return body.collect(
+        Flux<DataBuffer> releasable =
+                GatewayDataBufferPipeline.releaseOnDiscardOrCancel(body);
+        return releasable.collect(
                 ByteArrayOutputStream::new,
-                (output, bytes) -> {
-                    if ((long) output.size() + bytes.length > limit) {
-                        throw new GatewayRequestBodyTooLargeException(
-                                "request body exceeds configured limit"
-                        );
+                (output, buffer) -> {
+                    try {
+                        int readableBytes = buffer.readableByteCount();
+                        if ((long) output.size() + readableBytes > limit) {
+                            throw new GatewayRequestBodyTooLargeException(
+                                    "request body exceeds configured limit"
+                            );
+                        }
+                        byte[] chunk = new byte[readableBytes];
+                        buffer.read(chunk);
+                        output.writeBytes(chunk);
+                    } finally {
+                        GatewayDataBufferOwnership.release(buffer);
                     }
-                    output.writeBytes(bytes);
                 }
         ).map(ByteArrayOutputStream::toByteArray);
     }
@@ -46,19 +59,15 @@ public final class GatewayBodySizeLimiter {
                     "response content-length exceeds configured limit"
             );
         }
-        AtomicLong received = new AtomicLong();
-        Flux<byte[]> limitedBody = response.body().handle(
-                (bytes, sink) -> {
-                    if (received.addAndGet(bytes.length) > limit) {
-                        sink.error(
-                                new GatewayResponseBodyTooLargeException(
+        Flux<DataBuffer> limitedBody =
+                GatewayDataBufferPipeline.releaseOnDiscardOrCancel(
+                        GatewayDataBufferPipeline.limitBytes(
+                                response.body(),
+                                limit,
+                                () -> new GatewayResponseBodyTooLargeException(
                                         "response body exceeds configured limit"
                                 )
-                        );
-                    } else {
-                        sink.next(bytes);
-                    }
-                }
+                        )
         );
         return new GatewayOutboundHttpResponse(
                 response.status(),

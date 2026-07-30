@@ -7,6 +7,7 @@ import io.grpc.ClientCall;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.rule.GatewayRpcDescriptor;
 import top.egon.cola.component.gateway.core.http.NormalizedHttpRequest;
@@ -83,7 +84,9 @@ public final class HttpRpcUpstreamAdapter {
                             List.of("application/json; charset=UTF-8")
                     ),
                     reactor.core.publisher.Flux.just(
-                            json.getBytes(StandardCharsets.UTF_8)
+                            DefaultDataBufferFactory.sharedInstance.wrap(
+                                    json.getBytes(StandardCharsets.UTF_8)
+                            )
                     )
             );
         }).onErrorMap(

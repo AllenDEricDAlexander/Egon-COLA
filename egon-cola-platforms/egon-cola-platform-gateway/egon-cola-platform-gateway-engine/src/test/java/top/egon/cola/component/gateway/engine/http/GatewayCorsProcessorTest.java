@@ -89,10 +89,10 @@ class GatewayCorsProcessorTest {
                 List.of("https://app.example.com"),
                 response.headers().get("access-control-allow-origin")
         );
-        assertEquals("ok", new String(
-                response.body().blockFirst(),
-                java.nio.charset.StandardCharsets.UTF_8
-        ));
+        assertEquals(
+                "ok",
+                GatewayDataBufferTestSupport.joinUtf8(response.body(), 16)
+        );
     }
 
     @Test

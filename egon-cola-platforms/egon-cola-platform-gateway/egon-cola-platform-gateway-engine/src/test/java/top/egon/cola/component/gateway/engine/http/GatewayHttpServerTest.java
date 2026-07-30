@@ -6,7 +6,6 @@ import reactor.core.publisher.Sinks;
 import reactor.netty.http.client.HttpClient;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +75,80 @@ class GatewayHttpServerTest {
 
             assertEquals("PUBLIC", publicBody);
             assertEquals("INTERNAL", internalBody);
+        } finally {
+            server.close();
+        }
+    }
+
+    @Test
+    void preservesRawRequestBytesAcrossListenerBoundary() {
+        GatewayHttpEngineProperties properties =
+                new GatewayHttpEngineProperties(
+                        new GatewayHttpEngineProperties.Listener(
+                                true,
+                                "127.0.0.1",
+                                0
+                        ),
+                        new GatewayHttpEngineProperties.Listener(
+                                false,
+                                "127.0.0.1",
+                                0
+                        ),
+                        64,
+                        8192,
+                        1024,
+                        Duration.ofSeconds(30),
+                        Duration.ofSeconds(5),
+                        10,
+                        10
+                );
+        GatewayHttpServer server = new GatewayHttpServer(
+                properties,
+                (zone, request) -> GatewayDataBufferTestSupport.sha256Mono(
+                                request.body(),
+                                1024
+                        )
+                        .map(checksum -> GatewayOutboundHttpResponse.text(
+                                200,
+                                checksum
+                        ))
+        );
+        byte[] first = new byte[]{0, 1, (byte) 0xff, 2};
+        byte[] second = new byte[]{3, (byte) 0x80, 4};
+        byte[] complete = new byte[first.length + second.length];
+        System.arraycopy(first, 0, complete, 0, first.length);
+        System.arraycopy(
+                second,
+                0,
+                complete,
+                first.length,
+                second.length
+        );
+        server.start();
+        try {
+            String checksum = HttpClient.create()
+                    .post()
+                    .uri("http://127.0.0.1:"
+                            + server.publicPort()
+                            + "/checksum")
+                    .send((request, outbound) -> outbound.send(
+                            reactor.core.publisher.Flux.just(
+                                    outbound.alloc().buffer()
+                                            .writeBytes(first),
+                                    outbound.alloc().buffer()
+                                            .writeBytes(second)
+                            )
+                    ))
+                    .responseSingle((response, body) -> body.asString())
+                    .block();
+
+            assertEquals(
+                    GatewayDataBufferTestSupport.sha256(
+                            GatewayDataBufferTestSupport.body(complete),
+                            1024
+                    ),
+                    checksum
+            );
         } finally {
             server.close();
         }

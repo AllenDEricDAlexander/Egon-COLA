@@ -1,6 +1,11 @@
 package top.egon.cola.component.gateway.engine.http;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.NettyDataBuffer;
+import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,7 +34,6 @@ import top.egon.cola.component.gateway.engine.traffic
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
 
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -49,6 +53,13 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
         AtomicInteger upstreamCalls = new AtomicInteger();
         AtomicInteger drainedResponses = new AtomicInteger();
         List<ProviderCallOutcome> outcomes = new ArrayList<>();
+        NettyDataBuffer retryBody = new NettyDataBufferFactory(
+                PooledByteBufAllocator.DEFAULT
+        ).allocateBuffer(5);
+        retryBody.write("retry".getBytes(
+                java.nio.charset.StandardCharsets.UTF_8
+        ));
+        ByteBuf retryNative = retryBody.getNativeBuffer();
         DefaultGatewayHttpDataPlaneHandler handler =
                 new DefaultGatewayHttpDataPlaneHandler(
                         new HttpRequestNormalizer(32, 8192),
@@ -67,14 +78,10 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
                                         new GatewayOutboundHttpResponse(
                                                 503,
                                                 Map.of(),
-                                                Flux.just(
-                                                        "retry".getBytes(
-                                                                StandardCharsets
-                                                                        .UTF_8
-                                                        )
-                                                ).doFinally(ignored ->
-                                                        drainedResponses
-                                                                .incrementAndGet())
+                                                Flux.<DataBuffer>just(retryBody)
+                                                        .doFinally(ignored ->
+                                                                drainedResponses
+                                                                        .incrementAndGet())
                                         )
                                 );
                             }
@@ -110,30 +117,16 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
                         Flux.empty()
                 )
         ).block();
-        String body = new String(
-                response.body()
-                        .reduce(new byte[0], (left, right) -> {
-                            byte[] joined = java.util.Arrays.copyOf(
-                                    left,
-                                    left.length + right.length
-                            );
-                            System.arraycopy(
-                                    right,
-                                    0,
-                                    joined,
-                                    left.length,
-                                    right.length
-                            );
-                            return joined;
-                        })
-                        .block(),
-                StandardCharsets.UTF_8
+        String body = GatewayDataBufferTestSupport.joinUtf8(
+                response.body(),
+                1024
         );
 
         assertEquals(200, response.status());
         assertEquals("response", body);
         assertEquals(2, upstreamCalls.get());
         assertEquals(1, drainedResponses.get());
+        assertEquals(0, retryNative.refCnt());
         assertEquals(
                 List.of(
                         ProviderCallOutcome.RETRYABLE_FAILURE,

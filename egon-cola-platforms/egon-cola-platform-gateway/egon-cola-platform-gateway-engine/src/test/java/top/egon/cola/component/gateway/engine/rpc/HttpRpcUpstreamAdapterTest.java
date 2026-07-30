@@ -21,6 +21,7 @@ import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
+import top.egon.cola.component.gateway.engine.http.GatewayDataBufferTestSupport;
 import top.egon.cola.component.gateway.engine.rule.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleJsonCodec;
 
@@ -117,22 +118,10 @@ class HttpRpcUpstreamAdapterTest {
                             Map.of(),
                             Duration.ofSeconds(2)
                     )
-                    .flatMapMany(value -> value.body())
-                    .reduce(new byte[0], (left, right) -> {
-                        byte[] joined = java.util.Arrays.copyOf(
-                                left,
-                                left.length + right.length
-                        );
-                        System.arraycopy(
-                                right,
-                                0,
-                                joined,
-                                left.length,
-                                right.length
-                        );
-                        return joined;
-                    })
-                    .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                    .map(value -> GatewayDataBufferTestSupport.joinUtf8(
+                            value.body(),
+                            1024
+                    ))
                     .block();
 
             assertTrue(response.contains("\"value\": \"hello\""));

@@ -4,8 +4,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferWrapper;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
+import org.springframework.core.io.buffer.PooledDataBuffer;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -86,9 +89,89 @@ class GatewayDataBufferOwnershipTest {
         }
     }
 
+    @Test
+    void transferToNettyMovesNativeOwnershipWithoutAnotherRetain() {
+        NettyDataBuffer buffer = bufferFactory.allocateBuffer(3);
+        buffer.write(new byte[]{1, 2, 3});
+        ByteBuf nativeBuffer = buffer.getNativeBuffer();
+
+        try {
+            ByteBuf transferred = GatewayDataBufferOwnership.transferToNetty(
+                    buffer,
+                    PooledByteBufAllocator.DEFAULT
+            );
+
+            assertSame(nativeBuffer, transferred);
+            assertEquals(1, nativeBuffer.refCnt());
+            assertTrue(transferred.release());
+            assertEquals(0, nativeBuffer.refCnt());
+        } finally {
+            releaseRemaining(nativeBuffer);
+        }
+    }
+
+    @Test
+    void transferToNettyCopiesAndReleasesNonNettyChunk() {
+        TrackingPooledDataBuffer input = new TrackingPooledDataBuffer(
+                DefaultDataBufferFactory.sharedInstance.wrap(
+                        new byte[]{4, 5, 6}
+                )
+        );
+        ByteBuf transferred = GatewayDataBufferOwnership.transferToNetty(
+                input,
+                PooledByteBufAllocator.DEFAULT
+        );
+        try {
+            byte[] bytes = new byte[transferred.readableBytes()];
+            transferred.getBytes(transferred.readerIndex(), bytes);
+
+            assertArrayEquals(new byte[]{4, 5, 6}, bytes);
+            assertFalse(input.isAllocated());
+        } finally {
+            transferred.release();
+        }
+    }
+
     private void releaseRemaining(ByteBuf buffer) {
         while (buffer.refCnt() > 0) {
             buffer.release();
+        }
+    }
+
+    private static final class TrackingPooledDataBuffer
+            extends DataBufferWrapper implements PooledDataBuffer {
+
+        private boolean allocated = true;
+
+        private TrackingPooledDataBuffer(DataBuffer delegate) {
+            super(delegate);
+        }
+
+        @Override
+        public boolean isAllocated() {
+            return allocated;
+        }
+
+        @Override
+        public PooledDataBuffer retain() {
+            if (!allocated) {
+                throw new IllegalStateException("buffer already released");
+            }
+            return this;
+        }
+
+        @Override
+        public PooledDataBuffer touch(Object hint) {
+            return this;
+        }
+
+        @Override
+        public boolean release() {
+            if (!allocated) {
+                return false;
+            }
+            allocated = false;
+            return true;
         }
     }
 }

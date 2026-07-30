@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.engine.http;
 
 import org.reactivestreams.Publisher;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Mono;
@@ -21,6 +22,7 @@ import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecorder;
 import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
+import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferOwnership;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
@@ -51,6 +53,9 @@ import java.util.function.Supplier;
 
 public final class DefaultGatewayHttpDataPlaneHandler
         implements GatewayHttpDataPlaneHandler {
+
+    private static final DefaultDataBufferFactory BUFFER_FACTORY =
+            DefaultDataBufferFactory.sharedInstance;
 
     private final HttpRequestNormalizer normalizer;
 
@@ -705,7 +710,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                             ? ""
                             : "?" + normalized.rawQuery()),
                     headers,
-                    reactor.core.publisher.Flux.just(body),
+                    reactor.core.publisher.Flux.defer(() ->
+                            reactor.core.publisher.Flux.just(
+                                    BUFFER_FACTORY.wrap(body)
+                            )),
                     requestPermit.timeout()
             ));
         }
@@ -723,6 +731,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                             && attemptNumber
                             < requestPermit.retryPolicy().maxAttempts()) {
                         return tracked.body()
+                                .doOnNext(
+                                        GatewayDataBufferOwnership::release
+                                )
                                 .then(Mono.error(
                                         new RetryableHttpStatusException(
                                                 response.status()
@@ -816,7 +827,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         List.of("application/json; charset=UTF-8")
                 ),
                 reactor.core.publisher.Flux.just(
-                        body.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                        BUFFER_FACTORY.wrap(body.getBytes(
+                                java.nio.charset.StandardCharsets.UTF_8
+                        ))
                 )
         );
     }
@@ -892,8 +905,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 response.status(),
                 headers,
                 response.body()
-                        .doOnNext(bytes -> observation.addResponseBytes(
-                                bytes.length
+                        .doOnNext(buffer -> observation.addResponseBytes(
+                                buffer.readableByteCount()
                         ))
                         .doOnComplete(() -> publish(
                                 observation,

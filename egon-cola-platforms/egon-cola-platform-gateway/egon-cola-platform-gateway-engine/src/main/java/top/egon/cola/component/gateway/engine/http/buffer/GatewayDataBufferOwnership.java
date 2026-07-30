@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.engine.http.buffer;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.NettyDataBuffer;
@@ -46,6 +47,36 @@ public final class GatewayDataBufferOwnership {
         return DataBufferUtils.release(
                 Objects.requireNonNull(buffer, "buffer")
         );
+    }
+
+    /**
+     * Transfers a native Netty buffer as-is. Other DataBuffer implementations
+     * are copied one chunk at a time into the target allocator and released as
+     * soon as that chunk has been copied. The caller must not release the input
+     * after this method returns successfully because outbound owns the result.
+     */
+    public static ByteBuf transferToNetty(
+            DataBuffer buffer,
+            ByteBufAllocator allocator) {
+        Objects.requireNonNull(buffer, "buffer");
+        Objects.requireNonNull(allocator, "allocator");
+        if (buffer instanceof NettyDataBuffer nettyBuffer) {
+            return nettyBuffer.getNativeBuffer();
+        }
+        int readableBytes = buffer.readableByteCount();
+        ByteBuf copy = allocator.buffer(readableBytes, readableBytes);
+        try (DataBuffer.ByteBufferIterator byteBuffers =
+                     buffer.readableByteBuffers()) {
+            while (byteBuffers.hasNext()) {
+                copy.writeBytes(byteBuffers.next());
+            }
+            return copy;
+        } catch (RuntimeException | Error failure) {
+            copy.release();
+            throw failure;
+        } finally {
+            release(buffer);
+        }
     }
 
     /**
