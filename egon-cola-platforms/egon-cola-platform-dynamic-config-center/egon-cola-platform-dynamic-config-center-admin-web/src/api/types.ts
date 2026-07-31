@@ -90,3 +90,59 @@ export type DdcNamespace = {
   createdAt?: string
   updatedAt?: string
 }
+
+export type DdcPublishTask = {
+  id: string
+  changeId: string
+  configId?: string
+  appCode?: string
+  env?: string
+  namespace?: string
+  configKey?: string
+  targetVersion?: number
+  publishMode?: string
+  contentChecksum?: string
+  attemptCount?: number
+  dispatchedAt?: string
+  completedAt?: string
+  failureStage?: string
+  status: string
+  targetCount?: number
+  ackCount?: number
+  failedCount?: number
+  ignoredCount?: number
+  timeoutCount?: number
+  timeoutMs?: number
+  operator?: string
+  errorMessage?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type DdcInstance = {
+  id: string
+  instanceId: string
+  appCode: string
+  env: string
+  namespace: string
+  host: string
+  port: number
+  pid?: string
+  sdkVersion?: string
+  leaseId?: string
+  leaseExpireAt?: string
+  status: string
+  lastHeartbeatAt?: string
+  createdAt?: string
+  updatedAt?: string
+  runtimeMetadata?: Record<string, string>
+}
+
+export type DdcCacheCheckRow = {
+  configKey: string
+  databaseValue?: string
+  redisValue?: string
+  databaseVersion?: number
+  redisVersion?: number
+  matched: boolean
+}

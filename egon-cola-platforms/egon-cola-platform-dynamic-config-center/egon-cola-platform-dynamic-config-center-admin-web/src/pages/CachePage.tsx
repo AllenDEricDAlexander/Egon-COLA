@@ -1,3 +1,120 @@
+import { useRef, useState } from 'react'
+import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd'
+import { ddcApi } from '../api/client'
+import type { DdcCacheCheckRow } from '../api/types'
+import { buildQuery } from '../lib/query'
+
+type CacheFilter = { appCode: string; env: string; namespace: string }
+
 export default function CachePage() {
-  return <div data-testid="page-cache">Cache</div>
+  const [draft, setDraft] = useState<CacheFilter>({ appCode: '', env: '', namespace: '' })
+  const [rows, setRows] = useState<DdcCacheCheckRow[]>([])
+  const [checking, setChecking] = useState(false)
+  const [rebuilding, setRebuilding] = useState(false)
+  const filterRef = useRef<CacheFilter>({ appCode: '', env: '', namespace: '' })
+
+  const scopeReady = () => {
+    const scope = filterRef.current
+    return scope.appCode.trim() !== '' && scope.env.trim() !== '' && scope.namespace.trim() !== ''
+  }
+
+  const check = async () => {
+    filterRef.current = { ...draft }
+    if (!scopeReady()) {
+      message.warning('请填写 appCode / env / namespace')
+      return
+    }
+    setChecking(true)
+    try {
+      const data = await ddcApi<DdcCacheCheckRow[]>(`/api/v1/ddc/cache/check?${buildQuery(filterRef.current)}`)
+      setRows(data ?? [])
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  const rebuild = async () => {
+    filterRef.current = { ...draft }
+    if (!scopeReady()) {
+      message.warning('请填写 appCode / env / namespace')
+      return
+    }
+    if (!window.confirm('确认重建该作用域下的缓存？')) return
+    setRebuilding(true)
+    try {
+      const count = await ddcApi<number>(`/api/v1/ddc/cache/rebuild?${buildQuery(filterRef.current)}`, {
+        method: 'POST',
+      })
+      message.success(`已重建 ${count ?? 0} 项缓存`)
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setRebuilding(false)
+    }
+  }
+
+  const columns = [
+    { title: '配置 Key', dataIndex: 'configKey', key: 'configKey', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
+    {
+      title: '一致性',
+      dataIndex: 'matched',
+      key: 'matched',
+      render: (matched: boolean) => <Tag color={matched ? 'green' : 'red'}>{matched ? '一致' : '不一致'}</Tag>,
+    },
+    { title: 'DB 版本', dataIndex: 'databaseVersion', key: 'databaseVersion' },
+    { title: 'Redis 版本', dataIndex: 'redisVersion', key: 'redisVersion' },
+    {
+      title: 'DB 值',
+      dataIndex: 'databaseValue',
+      key: 'databaseValue',
+      render: (value?: string) => <Typography.Text code ellipsis style={{ maxWidth: 200 }}>{value ?? '—'}</Typography.Text>,
+    },
+    {
+      title: 'Redis 值',
+      dataIndex: 'redisValue',
+      key: 'redisValue',
+      render: (value?: string) => <Typography.Text code ellipsis style={{ maxWidth: 200 }}>{value ?? '—'}</Typography.Text>,
+    },
+  ]
+
+  return (
+    <div>
+      <Typography.Title level={3}>缓存管理</Typography.Title>
+      <Card size="small" style={{ marginBottom: 16 }}>
+        <Space wrap>
+          <Input
+            placeholder="appCode"
+            value={draft.appCode}
+            onChange={(event) => setDraft({ ...draft, appCode: event.target.value })}
+            style={{ width: 180 }}
+          />
+          <Input
+            placeholder="env"
+            value={draft.env}
+            onChange={(event) => setDraft({ ...draft, env: event.target.value })}
+            style={{ width: 140 }}
+          />
+          <Input
+            placeholder="namespace"
+            value={draft.namespace}
+            onChange={(event) => setDraft({ ...draft, namespace: event.target.value })}
+            style={{ width: 140 }}
+          />
+          <Button type="primary" loading={checking} onClick={() => void check()}>检查缓存</Button>
+          <Button danger loading={rebuilding} onClick={() => void rebuild()}>重建缓存</Button>
+        </Space>
+      </Card>
+      <Card size="small" title={`检查结果（${rows.length}）`}>
+        <Table<DdcCacheCheckRow>
+          rowKey={(row) => row.configKey}
+          columns={columns}
+          dataSource={rows}
+          size="small"
+          pagination={{ pageSize: 10, size: 'small' }}
+        />
+      </Card>
+    </div>
+  )
 }
