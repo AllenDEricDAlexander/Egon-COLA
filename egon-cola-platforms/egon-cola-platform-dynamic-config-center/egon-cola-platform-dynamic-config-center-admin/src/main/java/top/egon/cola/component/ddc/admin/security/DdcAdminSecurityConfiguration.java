@@ -71,7 +71,13 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/configs",
                                 "/api/v1/ddc/configs/*/versions",
                                 "/api/v1/ddc/apps",
+                                "/api/v1/ddc/apps/*",
+                                "/api/v1/ddc/bizs",
+                                "/api/v1/ddc/bizs/*",
+                                "/api/v1/ddc/envs",
+                                "/api/v1/ddc/envs/*",
                                 "/api/v1/ddc/namespaces",
+                                "/api/v1/ddc/namespaces/*",
                                 "/api/v1/ddc/instances",
                                 "/api/v1/ddc/registry/**",
                                 "/api/v1/ddc/publish-tasks",
@@ -85,6 +91,8 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/configs",
                                 "/api/v1/ddc/configs/*/rollback",
                                 "/api/v1/ddc/apps",
+                                "/api/v1/ddc/bizs",
+                                "/api/v1/ddc/envs",
                                 "/api/v1/ddc/namespaces"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
@@ -92,14 +100,26 @@ public class DdcAdminSecurityConfiguration {
                         )
                         .requestMatchers(
                                 HttpMethod.PUT,
-                                "/api/v1/ddc/configs/*"
+                                "/api/v1/ddc/configs/*",
+                                "/api/v1/ddc/apps/*",
+                                "/api/v1/ddc/apps/*/enabled",
+                                "/api/v1/ddc/bizs/*",
+                                "/api/v1/ddc/bizs/*/enabled",
+                                "/api/v1/ddc/envs/*",
+                                "/api/v1/ddc/envs/*/enabled",
+                                "/api/v1/ddc/namespaces/*",
+                                "/api/v1/ddc/namespaces/*/enabled"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
                                 HttpMethod.DELETE,
-                                "/api/v1/ddc/configs/*"
+                                "/api/v1/ddc/configs/*",
+                                "/api/v1/ddc/apps/*",
+                                "/api/v1/ddc/bizs/*",
+                                "/api/v1/ddc/envs/*",
+                                "/api/v1/ddc/namespaces/*"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()
