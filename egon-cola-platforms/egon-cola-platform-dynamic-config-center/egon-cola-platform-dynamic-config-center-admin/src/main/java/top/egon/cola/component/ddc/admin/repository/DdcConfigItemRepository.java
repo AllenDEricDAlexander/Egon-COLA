@@ -23,6 +23,10 @@ public interface DdcConfigItemRepository extends JpaRepository<DdcConfigItemEnti
             String namespace,
             String configKey);
 
+    boolean existsByEnv(String env);
+
+    boolean existsByAppCodeAndNamespace(String appCode, String namespace);
+
     List<DdcConfigItemEntity> findByAppCodeAndEnvAndNamespace(String appCode, String env, String namespace);
 
     List<DdcConfigItemEntity> findByAppCodeAndEnvAndNamespaceAndDeletedFalse(String appCode, String env, String namespace);
