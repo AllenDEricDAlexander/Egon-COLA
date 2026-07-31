@@ -9,6 +9,8 @@ export type ResultRecord<T> = {
 }
 
 export type RegistryService = {
+  bizCode: string
+  appCode: string
   serviceKind: string
   protocol: string
   serviceName: string
@@ -69,9 +71,30 @@ export type DdcConfigVersion = {
   createdAt?: string
 }
 
+export type DdcBiz = {
+  id: string
+  bizCode: string
+  bizName: string
+  description?: string
+  enabled: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type DdcEnv = {
+  id: string
+  envCode: string
+  description?: string
+  sortOrder: number
+  enabled: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
 export type DdcApp = {
   id: string
   appCode: string
+  bizCode: string
   appName: string
   owner?: string
   description?: string
@@ -83,7 +106,6 @@ export type DdcApp = {
 export type DdcNamespace = {
   id: string
   appCode: string
-  env: string
   namespace: string
   description?: string
   enabled: boolean
