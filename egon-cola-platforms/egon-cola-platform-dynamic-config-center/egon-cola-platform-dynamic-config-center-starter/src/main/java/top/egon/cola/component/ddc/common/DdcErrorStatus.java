@@ -16,6 +16,17 @@ public enum DdcErrorStatus implements ErrorStatus {
     SIGNATURE_INVALID(56021, "DDC_SIGNATURE_INVALID", "signature invalid"),
     SIGNATURE_EXPIRED(56022, "DDC_SIGNATURE_EXPIRED", "signature expired"),
     SIGNATURE_REPLAY(56023, "DDC_SIGNATURE_REPLAY", "signature nonce replayed"),
+    BIZ_NOT_FOUND(56030, "DDC_BIZ_NOT_FOUND", "biz not found"),
+    BIZ_CODE_EXISTS(56031, "DDC_BIZ_CODE_EXISTS", "biz code already exists"),
+    BIZ_IN_USE(56032, "DDC_BIZ_IN_USE", "biz still has apps"),
+    APP_NOT_FOUND(56033, "DDC_APP_NOT_FOUND", "app not found"),
+    APP_IN_USE(56034, "DDC_APP_IN_USE", "app still has namespaces"),
+    NAMESPACE_NOT_FOUND(56035, "DDC_NAMESPACE_NOT_FOUND", "namespace not found"),
+    NAMESPACE_IN_USE(56036, "DDC_NAMESPACE_IN_USE", "namespace still has configs"),
+    ENV_NOT_FOUND(56037, "DDC_ENV_NOT_FOUND", "env not found"),
+    ENV_CODE_EXISTS(56038, "DDC_ENV_CODE_EXISTS", "env code already exists"),
+    ENV_IN_USE(56039, "DDC_ENV_IN_USE", "env is still referenced"),
+    SCOPE_DISABLED(56040, "DDC_SCOPE_DISABLED", "scope disabled"),
     INTERNAL_FAILURE(56999, "DDC_INTERNAL_FAILURE", "DDC internal failure");
 
     private final int code;

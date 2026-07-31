@@ -10,5 +10,9 @@ public interface DdcAppRepository extends JpaRepository<DdcAppEntity, String> {
 
     Optional<DdcAppEntity> findByAppCode(String appCode);
 
+    boolean existsByAppCode(String appCode);
+
+    boolean existsByBizCode(String bizCode);
+
     List<DdcAppEntity> findAllByAppCodeIn(List<String> appCodes);
 }
