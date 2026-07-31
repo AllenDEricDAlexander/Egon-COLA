@@ -1,44 +1,62 @@
 import { Space } from 'antd'
 import AppSelect from './AppSelect'
+import BizSelect from './BizSelect'
 import EnvSelect from './EnvSelect'
 import NamespaceSelect from './NamespaceSelect'
 
-export type ScopeValue = { appCode: string; env: string; namespace: string }
+export type ScopeValue = { bizCode: string; appCode: string; env: string; namespace: string }
 
 type Props = {
   value: ScopeValue
   onChange: (value: ScopeValue) => void
   includeApp?: boolean
+  includeEnv?: boolean
   disabled?: boolean
 }
 
-export default function ScopeSelects({ value, onChange, includeApp = true, disabled = false }: Props) {
+export default function ScopeSelects({
+  value,
+  onChange,
+  includeApp = true,
+  includeEnv = true,
+  disabled = false,
+}: Props) {
   return (
     <Space wrap>
       <span style={{ width: 200, display: 'inline-block' }}>
-        <NamespaceSelect
-          value={value.namespace}
+        <BizSelect
+          value={value.bizCode}
           disabled={disabled}
-          onChange={(namespace) => onChange({ ...value, namespace, appCode: '' })}
+          onChange={(bizCode) => onChange({ ...value, bizCode, appCode: '', namespace: '' })}
         />
       </span>
       {includeApp && (
         <span style={{ width: 200, display: 'inline-block' }}>
           <AppSelect
             value={value.appCode}
-            namespace={value.namespace}
+            biz={value.bizCode}
             disabled={disabled}
-            onChange={(appCode) => onChange({ ...value, appCode })}
+            onChange={(appCode) => onChange({ ...value, appCode, namespace: '' })}
           />
         </span>
       )}
-      <span style={{ width: 140, display: 'inline-block' }}>
-        <EnvSelect
-          value={value.env}
+      <span style={{ width: 200, display: 'inline-block' }}>
+        <NamespaceSelect
+          value={value.namespace}
+          appCode={value.appCode}
           disabled={disabled}
-          onChange={(env) => onChange({ ...value, env })}
+          onChange={(namespace) => onChange({ ...value, namespace })}
         />
       </span>
+      {includeEnv && (
+        <span style={{ width: 140, display: 'inline-block' }}>
+          <EnvSelect
+            value={value.env}
+            disabled={disabled}
+            onChange={(env) => onChange({ ...value, env })}
+          />
+        </span>
+      )}
     </Space>
   )
 }

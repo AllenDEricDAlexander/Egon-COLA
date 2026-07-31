@@ -1,5 +1,5 @@
 import { Select, type SelectProps } from 'antd'
-import { ENV_OPTIONS } from './useScopeOptions'
+import { useScopeOptions } from './useScopeOptions'
 
 type Props = {
   value?: string
@@ -16,6 +16,7 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
 export default function EnvSelect({ value, onChange, disabled, placeholder = '请选择或输入环境' }: Props) {
+  const { envs, loading } = useScopeOptions('', '')
   return (
     <Select
       mode="tags"
@@ -23,8 +24,9 @@ export default function EnvSelect({ value, onChange, disabled, placeholder = '�
       showSearch
       value={toArray(value)}
       onChange={(values) => onChange?.(toValue(values))}
-      options={ENV_OPTIONS.map((item) => ({ value: item, label: item }))}
+      options={envs.map((option) => ({ value: option.value, label: option.label }))}
       filterOption={filterOption}
+      loading={loading}
       disabled={disabled}
       placeholder={placeholder}
       style={{ width: '100%' }}

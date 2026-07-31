@@ -21,7 +21,7 @@ const fetchOptions = (path: string): Promise<ScopeOption[]> => {
       if (typeof item === 'string') return { value: item, label: item }
       const record = item as Record<string, unknown>
       const name = String(record.bizName ?? record.appName ?? record.namespace ?? record.description ?? '').trim()
-      const code = String(record.bizCode ?? record.appCode ?? record.namespace ?? record.envCode ?? '')
+      const code = String(record.appCode ?? record.bizCode ?? record.namespace ?? record.envCode ?? '')
       return { value: code, label: name ? `${code}（${name}）` : code }
     })
   })

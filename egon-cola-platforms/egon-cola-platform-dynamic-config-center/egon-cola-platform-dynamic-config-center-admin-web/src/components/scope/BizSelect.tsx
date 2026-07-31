@@ -1,10 +1,9 @@
 import { Select, type SelectProps } from 'antd'
-import { useScopeOptions, type ScopeOption } from './useScopeOptions'
+import { useScopeOptions } from './useScopeOptions'
 
 type Props = {
   value?: string
   onChange?: (value: string) => void
-  biz?: string
   disabled?: boolean
   placeholder?: string
 }
@@ -16,8 +15,8 @@ const toValue = (values: string[]): string => values[0] ?? ''
 const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
-export default function AppSelect({ value, onChange, biz = '', disabled, placeholder = '请选择或输入应用' }: Props) {
-  const { apps, loading } = useScopeOptions(biz, '')
+export default function BizSelect({ value, onChange, disabled, placeholder = '请选择或输入业务域' }: Props) {
+  const { bizs, loading } = useScopeOptions('', '')
   return (
     <Select
       mode="tags"
@@ -25,7 +24,7 @@ export default function AppSelect({ value, onChange, biz = '', disabled, placeho
       showSearch
       value={toArray(value)}
       onChange={(values) => onChange?.(toValue(values))}
-      options={apps.map((option: ScopeOption) => ({ value: option.value, label: option.label }))}
+      options={bizs.map((option) => ({ value: option.value, label: option.label }))}
       filterOption={filterOption}
       loading={loading}
       disabled={disabled}
