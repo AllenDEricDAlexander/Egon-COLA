@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Card, Input, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import { useAuth } from './AuthContext'
+import { setSessionToken } from './tokenStore'
 
 export default function LoginPage() {
   const { setToken } = useAuth()
@@ -9,10 +10,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   const submit = async () => {
+    const candidate = accessToken.trim()
     setLoading(true)
     try {
+      // 验证前先进入内存态，ddcApi 才能带上候选 token；验证成功后才持久化
+      setSessionToken(candidate)
       await ddcApi('/api/v1/ddc/apps')
-      setToken(accessToken.trim())
+      setToken(candidate)
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error))
     } finally {
