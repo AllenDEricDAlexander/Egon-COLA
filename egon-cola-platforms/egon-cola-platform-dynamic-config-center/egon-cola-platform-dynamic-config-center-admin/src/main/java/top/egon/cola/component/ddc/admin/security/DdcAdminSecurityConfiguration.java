@@ -72,6 +72,7 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/configs/*/versions",
                                 "/api/v1/ddc/apps",
                                 "/api/v1/ddc/namespaces",
+                                "/api/v1/ddc/namespaces/domains",
                                 "/api/v1/ddc/instances",
                                 "/api/v1/ddc/registry/**",
                                 "/api/v1/ddc/publish-tasks",
