@@ -5,10 +5,11 @@ import { useAuth } from '../auth/AuthContext'
 const menuItems = [
   { key: 'registry', label: '服务注册' },
   { key: 'configs', label: '配置管理' },
+  { key: 'bizs', label: '业务域' },
+  { key: 'envs', label: '环境' },
   { key: 'apps', label: '应用' },
   { key: 'namespaces', label: '命名空间' },
   { key: 'publish-tasks', label: '发布任务' },
-  { key: 'instances', label: '实例' },
   { key: 'cache', label: '缓存' },
 ]
 

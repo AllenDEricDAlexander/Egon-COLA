@@ -1,36 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, Form, Input, Modal, Switch, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcNamespace } from '../api/types'
 import AppSelect from '../components/scope/AppSelect'
-import EnvSelect from '../components/scope/EnvSelect'
-import { buildQuery, formatTime } from '../lib/query'
+import { formatTime } from '../lib/query'
 
-type NamespaceFilter = { appCode: string; env: string }
+type NamespaceFilter = { appCode: string; keyword: string }
 
 type NamespaceFormValues = {
   appCode: string
-  env: string
   namespace: string
   description?: string
   enabled: boolean
 }
 
 export default function NamespacesPage() {
-  const [draft, setDraft] = useState<NamespaceFilter>({ appCode: '', env: '' })
+  const [draft, setDraft] = useState<NamespaceFilter>({ appCode: '', keyword: '' })
   const [namespaces, setNamespaces] = useState<DdcNamespace[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
-  const filterRef = useRef<NamespaceFilter>({ appCode: '', env: '' })
+  const [editing, setEditing] = useState<DdcNamespace | null>(null)
+  const filterRef = useRef<NamespaceFilter>({ appCode: '', keyword: '' })
   const [form] = Form.useForm<NamespaceFormValues>()
 
   const loadNamespaces = useCallback(async () => {
-    const scope = filterRef.current
-    if (scope.appCode.trim() === '' || scope.env.trim() === '') {
-      setNamespaces([])
-      return
-    }
-    const data = await ddcApi<DdcNamespace[]>(`/api/v1/ddc/namespaces?${buildQuery(scope)}`)
+    const { appCode, keyword } = filterRef.current
+    const params = new URLSearchParams()
+    if (appCode.trim() !== '') params.set('appCode', appCode.trim())
+    if (keyword.trim() !== '') params.set('keyword', keyword.trim())
+    const query = params.toString()
+    const data = await ddcApi<DdcNamespace[]>(
+      `/api/v1/ddc/namespaces${query === '' ? '' : `?${query}`}`,
+    )
     setNamespaces(data ?? [])
   }, [])
 
@@ -52,8 +53,25 @@ export default function NamespacesPage() {
   }
 
   const applyFilter = () => {
-    filterRef.current = { appCode: draft.appCode, env: draft.env }
+    filterRef.current = { ...draft }
     void refresh()
+  }
+
+  const openCreate = () => {
+    setEditing(null)
+    form.resetFields()
+    setOpen(true)
+  }
+
+  const openEdit = (item: DdcNamespace) => {
+    setEditing(item)
+    form.setFieldsValue({
+      appCode: item.appCode,
+      namespace: item.namespace,
+      description: item.description ?? '',
+      enabled: item.enabled,
+    })
+    setOpen(true)
   }
 
   const save = async () => {
@@ -64,19 +82,42 @@ export default function NamespacesPage() {
       return
     }
     try {
-      await ddcApi('/api/v1/ddc/namespaces', {
-        method: 'POST',
-        body: {
-          appCode: values.appCode,
-          env: values.env,
-          namespace: values.namespace,
-          description: values.description ?? '',
-          enabled: values.enabled,
-        },
-      })
+      if (editing) {
+        await ddcApi(`/api/v1/ddc/namespaces/${encodeURIComponent(editing.id)}`, {
+          method: 'PUT',
+          body: { ...values },
+        })
+      } else {
+        await ddcApi('/api/v1/ddc/namespaces', {
+          method: 'POST',
+          body: { ...values },
+        })
+      }
       message.success('命名空间已保存')
       setOpen(false)
-      form.resetFields()
+      await refresh()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  const toggleEnabled = async (item: DdcNamespace, enabled: boolean) => {
+    try {
+      await ddcApi(`/api/v1/ddc/namespaces/${encodeURIComponent(item.id)}/enabled?enabled=${enabled}`, {
+        method: 'PUT',
+      })
+      await refresh()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  const remove = async (item: DdcNamespace) => {
+    try {
+      await ddcApi(`/api/v1/ddc/namespaces/${encodeURIComponent(item.id)}`, {
+        method: 'DELETE',
+      })
+      message.success('命名空间已删除')
       await refresh()
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error))
@@ -85,40 +126,52 @@ export default function NamespacesPage() {
 
   const columns = [
     { title: '应用编码', dataIndex: 'appCode', key: 'appCode', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
-    { title: '环境', dataIndex: 'env', key: 'env' },
     { title: '命名空间', dataIndex: 'namespace', key: 'namespace' },
+    { title: '描述', dataIndex: 'description', key: 'description' },
     {
       title: '启用',
-      dataIndex: 'enabled',
       key: 'enabled',
-      render: (enabled: boolean) => <Tag color={enabled ? 'green' : 'default'}>{enabled ? '是' : '否'}</Tag>,
+      render: (_: unknown, row: DdcNamespace) => (
+        <Switch checked={row.enabled} onChange={(checked) => void toggleEnabled(row, checked)} />
+      ),
     },
-    { title: '描述', dataIndex: 'description', key: 'description' },
     { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', render: formatTime },
+    {
+      title: '操作',
+      key: 'actions',
+      render: (_: unknown, row: DdcNamespace) => (
+        <Space>
+          <Button size="small" onClick={() => openEdit(row)}>编辑</Button>
+          <Popconfirm title={`确认删除命名空间 ${row.namespace}？`} onConfirm={() => void remove(row)}>
+            <Button size="small" danger>删除</Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
   ]
 
   return (
     <div>
       <Typography.Title level={3}>命名空间管理</Typography.Title>
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Button type="primary" onClick={() => setOpen(true)}>新建命名空间</Button>
-      </Card>
-      <Card size="small" title={`命名空间（${namespaces.length}）`}>
-        <div style={{ marginBottom: 12 }}>
-          <span style={{ display: 'inline-block', width: 200, marginRight: 8 }}>
+        <Space wrap>
+          <span style={{ width: 200, display: 'inline-block' }}>
             <AppSelect
               value={draft.appCode}
               onChange={(appCode) => setDraft({ ...draft, appCode })}
             />
           </span>
-          <span style={{ display: 'inline-block', width: 140, marginRight: 8 }}>
-            <EnvSelect
-              value={draft.env}
-              onChange={(env) => setDraft({ ...draft, env })}
-            />
-          </span>
+          <Input
+            placeholder="命名空间模糊查询"
+            value={draft.keyword}
+            onChange={(event) => setDraft({ ...draft, keyword: event.target.value })}
+            style={{ width: 200 }}
+          />
           <Button type="primary" onClick={applyFilter}>查询</Button>
-        </div>
+          <Button onClick={openCreate}>新建命名空间</Button>
+        </Space>
+      </Card>
+      <Card size="small" title={`命名空间（${namespaces.length}）`}>
         <Table<DdcNamespace>
           rowKey={(row) => row.id}
           columns={columns}
@@ -130,18 +183,15 @@ export default function NamespacesPage() {
       </Card>
       <Modal
         open={open}
-        title="新建命名空间"
+        title={editing ? '编辑命名空间' : '新建命名空间'}
         onCancel={() => setOpen(false)}
         onOk={() => void save()}
         okText="保存"
         destroyOnHidden
       >
         <Form<NamespaceFormValues> form={form} layout="vertical" initialValues={{ enabled: true }}>
-          <Form.Item name="appCode" label="应用编码" rules={[{ required: true }]}>
-            <AppSelect />
-          </Form.Item>
-          <Form.Item name="env" label="环境" rules={[{ required: true }]}>
-            <EnvSelect />
+          <Form.Item name="appCode" label="应用" rules={[{ required: true }]}>
+            <AppSelect disabled={Boolean(editing)} />
           </Form.Item>
           <Form.Item name="namespace" label="命名空间" rules={[{ required: true }]}>
             <Input />

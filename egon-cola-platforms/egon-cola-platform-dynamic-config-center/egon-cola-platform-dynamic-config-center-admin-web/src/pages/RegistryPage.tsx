@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, Col, Row, Statistic, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Col, Drawer, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { RegistryInstance, RegistryService } from '../api/types'
+import AppSelect from '../components/scope/AppSelect'
+import BizSelect from '../components/scope/BizSelect'
 import EnvSelect from '../components/scope/EnvSelect'
 import NamespaceSelect from '../components/scope/NamespaceSelect'
 import { buildQuery, formatTime } from '../lib/query'
@@ -15,58 +17,50 @@ const serviceQueries = [
 
 type ServiceRow = RegistryService & { label: string }
 
+type AppRow = {
+  appCode: string
+  bizCode: string
+  services: ServiceRow[]
+}
+
 const serviceIdentity = (service: RegistryService): string =>
-  [service.serviceKind, service.protocol, service.serviceName, service.group ?? '', service.version ?? ''].join('|')
+  [service.bizCode, service.appCode, service.serviceKind, service.protocol, service.serviceName, service.group ?? '', service.version ?? ''].join('|')
 
 export default function RegistryPage() {
-  const [draft, setDraft] = useState({ env: '', namespace: '' })
-  const [services, setServices] = useState<ServiceRow[]>([])
-  const [instances, setInstances] = useState<RegistryInstance[]>([])
-  const [selected, setSelected] = useState<ServiceRow | null>(null)
+  const [draft, setDraft] = useState({ bizCode: '', appCode: '', env: '', namespace: '' })
+  const [rows, setRows] = useState<AppRow[]>([])
+  const [instanceGroups, setInstanceGroups] = useState<{ service: ServiceRow; instances: RegistryInstance[] }[]>([])
   const [loading, setLoading] = useState(false)
-  const filterRef = useRef({ env: '', namespace: '' })
-  const selectedRef = useRef<ServiceRow | null>(null)
-
-  const loadInstances = useCallback(async (service: ServiceRow) => {
-    const scope = filterRef.current
-    const data = await ddcApi<{ instances: RegistryInstance[] }>(
-      `/api/v1/ddc/registry/instances?${buildQuery({
-        ...scope,
-        serviceKind: service.serviceKind,
-        protocol: service.protocol,
-        serviceName: service.serviceName,
-        group: service.group,
-        version: service.version,
-      })}`,
-    )
-    setInstances(data?.instances ?? [])
-  }, [])
+  const [drawerApp, setDrawerApp] = useState<AppRow | null>(null)
+  const [drawerLoading, setDrawerLoading] = useState(false)
+  const filterRef = useRef({ bizCode: '', appCode: '', env: '', namespace: '' })
 
   const loadRegistry = useCallback(async () => {
     const scope = filterRef.current
     const snapshots = await Promise.all(serviceQueries.map(async (item) => {
       const data = await ddcApi<{ services: RegistryService[] }>(
-        `/api/v1/ddc/registry/services?${buildQuery({ ...scope, serviceKind: item.serviceKind, protocol: item.protocol })}`,
+        `/api/v1/ddc/registry/services?${buildQuery({
+          ...scope,
+          serviceKind: item.serviceKind,
+          protocol: item.protocol,
+        })}`,
       )
       return (data?.services ?? []).map((service) => ({ ...service, label: item.label }))
     }))
     const unique = new Map<string, ServiceRow>()
     snapshots.flat().forEach((service) => unique.set(serviceIdentity(service), service))
-    const next = [...unique.values()].sort((left, right) =>
-      `${left.serviceKind}:${left.serviceName}`.localeCompare(`${right.serviceKind}:${right.serviceName}`))
-    setServices(next)
-    const current = selectedRef.current
-    if (current) {
-      const found = next.find((item) => serviceIdentity(item) === serviceIdentity(current))
-      if (found) {
-        selectedRef.current = found
-        setSelected(found)
-        await loadInstances(found)
+    const byApp = new Map<string, AppRow>()
+    unique.forEach((service) => {
+      const key = `${service.bizCode}|${service.appCode}`
+      const existing = byApp.get(key)
+      if (existing) {
+        existing.services.push(service)
       } else {
-        setInstances([])
+        byApp.set(key, { appCode: service.appCode, bizCode: service.bizCode, services: [service] })
       }
-    }
-  }, [loadInstances])
+    })
+    setRows([...byApp.values()].sort((left, right) => left.appCode.localeCompare(right.appCode)))
+  }, [])
 
   useEffect(() => {
     loadRegistry().catch((error) => {
@@ -86,121 +80,125 @@ export default function RegistryPage() {
   }
 
   const applyFilter = () => {
-    filterRef.current = { env: draft.env, namespace: draft.namespace }
+    filterRef.current = { ...draft }
     void refresh()
   }
 
-  const selectService = (service: ServiceRow) => {
-    selectedRef.current = service
-    setSelected(service)
-    loadInstances(service).catch((error) => {
+  const openDrawer = async (app: AppRow) => {
+    setDrawerApp(app)
+    setDrawerLoading(true)
+    setInstanceGroups([])
+    try {
+      const scope = filterRef.current
+      const snapshots = await Promise.all(app.services.map(async (service) => {
+        const data = await ddcApi<{ instances: RegistryInstance[] }>(
+          `/api/v1/ddc/registry/instances?${buildQuery({
+            ...scope,
+            serviceKind: service.serviceKind,
+            protocol: service.protocol,
+            serviceName: service.serviceName,
+            group: service.group,
+            version: service.version,
+          })}`,
+        )
+        return { service, instances: data?.instances ?? [] }
+      }))
+      setInstanceGroups(snapshots)
+    } catch (error) {
       message.error(error instanceof Error ? error.message : String(error))
-    })
+    } finally {
+      setDrawerLoading(false)
+    }
   }
 
-  const httpCount = services.filter((item) => item.serviceKind === 'HTTP_PROVIDER').length
-  const rpcCount = services.filter((item) => item.serviceKind === 'RPC_PROVIDER').length
-  const gatewayCount = services.filter((item) => item.serviceKind === 'INTERNAL_GATEWAY').length
-  const onlineCount = instances.filter((item) => item.status === 'ONLINE').length
+  const serviceCount = rows.reduce((sum, row) => sum + row.services.length, 0)
+  const onlineCount = instanceGroups.reduce(
+    (sum, group) => sum + group.instances.filter((item) => item.status === 'ONLINE').length,
+    0,
+  )
 
-  const serviceColumns = [
-    { title: '类型', dataIndex: 'label', key: 'label' },
-    { title: '服务名', dataIndex: 'serviceName', key: 'serviceName' },
-    { title: '协议', dataIndex: 'protocol', key: 'protocol' },
+  const columns = [
+    { title: '业务域', dataIndex: 'bizCode', key: 'bizCode', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
+    { title: '应用', dataIndex: 'appCode', key: 'appCode', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
     {
-      title: '分组 / 版本',
-      key: 'group',
-      render: (_: unknown, row: ServiceRow) => `${row.group || '—'} / ${row.version || '—'}`,
+      title: '服务数',
+      key: 'serviceCount',
+      render: (_: unknown, row: AppRow) => row.services.length,
     },
-  ]
-
-  const instanceColumns = [
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => (
-        <Tag color={status === 'ONLINE' ? 'green' : 'default'}>{status ?? 'UNKNOWN'}</Tag>
-      ),
-    },
-    {
-      title: '实例',
-      dataIndex: 'instanceId',
-      key: 'instanceId',
-      render: (instanceId: string, row: RegistryInstance) => (
-        <span>
-          <Typography.Text code>{instanceId}</Typography.Text>
-          {row.metadata?.buildId && (
-            <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
-              {row.metadata.buildId}
-            </Typography.Text>
-          )}
-        </span>
-      ),
-    },
-    {
-      title: '地址',
-      key: 'address',
-      render: (_: unknown, row: RegistryInstance) => (
-        <Typography.Text code>{`${row.secure ? 'tls://' : ''}${row.host}:${row.port}`}</Typography.Text>
-      ),
-    },
-    { title: '最近心跳', dataIndex: 'lastHeartbeatAt', key: 'lastHeartbeatAt', render: formatTime },
-    { title: '过期时间', dataIndex: 'expireAt', key: 'expireAt', render: formatTime },
   ]
 
   return (
     <div>
       <Typography.Title level={3}>服务注册目录</Typography.Title>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col>
-          <span style={{ width: 140, display: 'inline-block' }}>
-            <EnvSelect
-              value={draft.env}
-              onChange={(env) => setDraft({ ...draft, env })}
-            />
-          </span>
-        </Col>
-        <Col>
-          <span style={{ width: 200, display: 'inline-block' }}>
-            <NamespaceSelect
-              value={draft.namespace}
-              onChange={(namespace) => setDraft({ ...draft, namespace })}
-            />
-          </span>
-        </Col>
-        <Col>
-          <Button type="primary" onClick={applyFilter}>刷新</Button>
-        </Col>
+        <Col><span style={{ width: 200, display: 'inline-block' }}><BizSelect value={draft.bizCode} onChange={(bizCode) => setDraft({ ...draft, bizCode, appCode: '', namespace: '' })} /></span></Col>
+        <Col><span style={{ width: 200, display: 'inline-block' }}><AppSelect value={draft.appCode} biz={draft.bizCode} onChange={(appCode) => setDraft({ ...draft, appCode, namespace: '' })} /></span></Col>
+        <Col><span style={{ width: 200, display: 'inline-block' }}><NamespaceSelect value={draft.namespace} appCode={draft.appCode} onChange={(namespace) => setDraft({ ...draft, namespace })} /></span></Col>
+        <Col><span style={{ width: 140, display: 'inline-block' }}><EnvSelect value={draft.env} onChange={(env) => setDraft({ ...draft, env })} /></span></Col>
+        <Col><Button type="primary" onClick={applyFilter}>刷新</Button></Col>
       </Row>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card size="small"><Statistic title="HTTP Provider" value={httpCount} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="RPC Provider" value={rpcCount} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="Internal Gateway" value={gatewayCount} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="在线实例" value={onlineCount} /></Card></Col>
+        <Col span={8}><Card size="small"><Statistic title="应用数" value={rows.length} /></Card></Col>
+        <Col span={8}><Card size="small"><Statistic title="服务数" value={serviceCount} /></Card></Col>
+        <Col span={8}><Card size="small"><Statistic title="在线实例（当前抽屉）" value={onlineCount} /></Card></Col>
       </Row>
-      <Card size="small" title={`服务（${services.length}）`} style={{ marginBottom: 16 }}>
-        <Table<ServiceRow>
-          rowKey={serviceIdentity}
-          columns={serviceColumns}
-          dataSource={services}
+      <Card size="small" title={`应用（${rows.length}）`}>
+        <Table<AppRow>
+          rowKey={(row) => `${row.bizCode}|${row.appCode}`}
+          columns={columns}
+          dataSource={rows}
           loading={loading}
           size="small"
           pagination={{ pageSize: 10, size: 'small' }}
-          rowClassName={(row) => (selected && serviceIdentity(selected) === serviceIdentity(row) ? 'ant-table-row-selected' : '')}
-          onRow={(row) => ({ onClick: () => selectService(row), style: { cursor: 'pointer' } })}
+          onRow={(row) => ({ onClick: () => void openDrawer(row), style: { cursor: 'pointer' } })}
         />
       </Card>
-      <Card size="small" title={`实例（${instances.length}）`}>
-        <Table<RegistryInstance>
-          rowKey={(row) => row.instanceId}
-          columns={instanceColumns}
-          dataSource={instances}
-          size="small"
-          pagination={{ pageSize: 10, size: 'small' }}
-          locale={{ emptyText: selected ? '暂无实例' : '选择左侧服务查看实例' }}
-        />
-      </Card>
+      <Drawer
+        open={drawerApp !== null}
+        title={`${drawerApp?.appCode ?? ''} 实例`}
+        onClose={() => setDrawerApp(null)}
+        width={860}
+      >
+        {drawerApp && (
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            {instanceGroups.map(({ service, instances: groupInstances }) => (
+              <Card
+                key={serviceIdentity(service)}
+                size="small"
+                title={`${service.label} / ${service.serviceName}（${service.group ?? '—'} / ${service.version ?? '—'}）`}
+              >
+                <Table<RegistryInstance>
+                  rowKey={(row) => row.instanceId}
+                  size="small"
+                  loading={drawerLoading}
+                  pagination={{ pageSize: 10, size: 'small' }}
+                  dataSource={groupInstances}
+                  columns={[
+                    {
+                      title: '状态',
+                      dataIndex: 'status',
+                      key: 'status',
+                      render: (status: string) => (
+                        <Tag color={status === 'ONLINE' ? 'green' : 'default'}>{status ?? 'UNKNOWN'}</Tag>
+                      ),
+                    },
+                    { title: '实例 ID', dataIndex: 'instanceId', key: 'instanceId', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
+                    {
+                      title: '地址',
+                      key: 'address',
+                      render: (_: unknown, row: RegistryInstance) => (
+                        <Typography.Text code>{`${row.secure ? 'tls://' : ''}${row.host}:${row.port}`}</Typography.Text>
+                      ),
+                    },
+                    { title: '最近心跳', dataIndex: 'lastHeartbeatAt', key: 'lastHeartbeatAt', render: formatTime },
+                    { title: '过期时间', dataIndex: 'expireAt', key: 'expireAt', render: formatTime },
+                  ]}
+                />
+              </Card>
+            ))}
+          </Space>
+        )}
+      </Drawer>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
+import { clearScopeOptionsCache } from '../components/scope/useScopeOptions'
 import NamespacesPage from './NamespacesPage'
 
 const record = (data: unknown) => ({
@@ -12,56 +13,48 @@ const jsonResponse = (body: unknown) =>
 
 describe('NamespacesPage', () => {
   beforeEach(() => {
+    clearScopeOptionsCache()
     setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })
 
-  it('renders namespaces and creates a new one', async () => {
-    vi.mocked(fetch).mockImplementation((input) => {
+  it('renders namespaces and creates one without env', async () => {
+    vi.mocked(fetch).mockImplementation((input, init) => {
       const url = String(input)
-      if (url.includes('/namespaces/domains')) {
-        return Promise.resolve(jsonResponse(record([])))
+      if (url.includes('/apps')) {
+        return Promise.resolve(jsonResponse(record([
+          { id: 'a1', appCode: 'orders', bizCode: 'pay-biz', appName: '', owner: 'ops', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
+        ])))
+      }
+      if (url.includes('/namespaces') && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body))
+        expect(body).toMatchObject({ appCode: 'orders', namespace: 'primary', enabled: true })
+        expect(body).not.toHaveProperty('env')
+        return Promise.resolve(jsonResponse(record({ id: 'n2', ...body, createdAt: '2026-07-02T00:00:00Z', updatedAt: '2026-07-02T00:00:00Z' })))
       }
       if (url.includes('/namespaces')) {
         return Promise.resolve(jsonResponse(record([{
-          id: 'n1', appCode: 'orders', env: 'dev', namespace: 'default', description: '',
+          id: 'n1', appCode: 'orders', namespace: 'default', description: '',
           enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z',
         }])))
       }
-      if (url.includes('/apps')) {
-        return Promise.resolve(jsonResponse(record([])))
-      }
-      return Promise.resolve(jsonResponse(record([])))
+      return Promise.resolve(jsonResponse(record(null)))
     })
 
     render(<NamespacesPage />)
-    const scopeInputs = () =>
-      Array.from(document.querySelectorAll('input.ant-select-input')) as HTMLInputElement[]
-    const typeAndEnter = (input: HTMLInputElement, value: string) => {
-      fireEvent.change(input, { target: { value } })
-      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 })
-    }
-    typeAndEnter(scopeInputs()[0], 'orders')
-    typeAndEnter(scopeInputs()[1], 'dev')
-    fireEvent.click(screen.getByRole('button', { name: /查\s*询/ }))
     await waitFor(() => expect(screen.getByText('default')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: /新\s*建\s*命\s*名\s*空\s*间/ }))
-    // 新建对话框：应用编码/环境为可选下拉（输入路径），命名空间手输
-    const modalInputs = () =>
-      Array.from(document.querySelectorAll('.ant-modal input.ant-select-input')) as HTMLInputElement[]
-    typeAndEnter(modalInputs()[0], 'billing')
-    typeAndEnter(modalInputs()[1], 'prod')
+    const scopeInputs = () => Array.from(document.querySelectorAll('.ant-modal input.ant-select-input')) as HTMLInputElement[]
+    fireEvent.change(scopeInputs()[0], { target: { value: 'orders' } })
+    fireEvent.keyDown(scopeInputs()[0], { key: 'Enter', code: 'Enter', keyCode: 13 })
     fireEvent.change(screen.getByLabelText('命名空间'), { target: { value: 'primary' } })
     fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
 
     await waitFor(() => {
-      const calls = vi.mocked(fetch).mock.calls
-      const create = calls.find(([url, init]) => String(url).includes('/namespaces') && init?.method === 'POST')
+      const create = vi.mocked(fetch).mock.calls.find(([url, init]) => String(url).includes('/namespaces') && init?.method === 'POST')
       expect(create).toBeDefined()
-      const body = JSON.parse(String(create![1]?.body))
-      expect(body).toMatchObject({ appCode: 'billing', env: 'prod', namespace: 'primary', enabled: true })
     })
   })
 })
