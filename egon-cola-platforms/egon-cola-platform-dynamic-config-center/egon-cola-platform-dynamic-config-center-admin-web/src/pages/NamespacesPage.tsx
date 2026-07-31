@@ -125,7 +125,7 @@ export default function NamespacesPage() {
   }
 
   const columns = [
-    { title: '应用编码', dataIndex: 'appCode', key: 'appCode', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
+    { title: '归属应用', dataIndex: 'appCode', key: 'appCode', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
     { title: '命名空间', dataIndex: 'namespace', key: 'namespace' },
     { title: '描述', dataIndex: 'description', key: 'description' },
     {
@@ -190,7 +190,7 @@ export default function NamespacesPage() {
         destroyOnHidden
       >
         <Form<NamespaceFormValues> form={form} layout="vertical" initialValues={{ enabled: true }}>
-          <Form.Item name="appCode" label="应用" rules={[{ required: true }]}>
+          <Form.Item name="appCode" label="归属应用" rules={[{ required: true }]}>
             <AppSelect disabled={Boolean(editing)} />
           </Form.Item>
           <Form.Item name="namespace" label="命名空间" rules={[{ required: true }]}>
