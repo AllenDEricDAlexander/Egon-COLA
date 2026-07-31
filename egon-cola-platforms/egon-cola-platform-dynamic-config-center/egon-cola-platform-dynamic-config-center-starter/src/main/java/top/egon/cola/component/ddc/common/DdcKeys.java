@@ -95,17 +95,21 @@ public final class DdcKeys {
         return v2(configTag(appCode, env, namespace), "lease", "instances");
     }
 
-    public static String registryInstance(String env,
+    public static String registryInstance(String bizCode,
+                                          String appCode,
+                                          String env,
                                           String namespace,
                                           DdcServiceKind kind,
                                           String instanceId) {
-        return join("lease", "instance", env, namespace, kind.name(), instanceId);
+        return join("lease", "instance", bizCode, appCode, env, namespace, kind.name(), instanceId);
     }
 
     public static String registryService(DdcServiceKey serviceKey) {
         return join(
                 "registry",
                 "service",
+                serviceKey.bizCode(),
+                serviceKey.appCode(),
                 serviceKey.env(),
                 serviceKey.namespace(),
                 serviceKey.serviceKind().name(),
@@ -117,6 +121,8 @@ public final class DdcKeys {
         return join(
                 "registry",
                 "revision",
+                serviceKey.bizCode(),
+                serviceKey.appCode(),
                 serviceKey.env(),
                 serviceKey.namespace(),
                 serviceKey.serviceKind().name(),
@@ -124,20 +130,26 @@ public final class DdcKeys {
         );
     }
 
-    public static String registryCatalog(String env,
+    public static String registryCatalog(String bizCode,
+                                         String appCode,
+                                         String env,
                                          String namespace,
                                          DdcServiceKind kind,
                                          String protocol) {
-        return join("registry", "catalog", env, namespace, kind.name(), protocol);
+        return join("registry", "catalog", bizCode, appCode, env, namespace, kind.name(), protocol);
     }
 
-    public static String registryCatalogRevision(String env,
+    public static String registryCatalogRevision(String bizCode,
+                                                 String appCode,
+                                                 String env,
                                                  String namespace,
                                                  DdcServiceKind kind,
                                                  String protocol) {
         return join(
                 "registry",
                 "catalog-revision",
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 kind.name(),
@@ -145,16 +157,20 @@ public final class DdcKeys {
         );
     }
 
-    public static String registryTopic(String env,
+    public static String registryTopic(String bizCode,
+                                       String appCode,
+                                       String env,
                                        String namespace,
                                        DdcServiceKind kind,
                                        String protocol) {
-        return join("registry", "topic", env, namespace, kind.name(), protocol);
+        return join("registry", "topic", bizCode, appCode, env, namespace, kind.name(), protocol);
     }
 
     public static String v2RegistryInstance(DdcServiceKey serviceKey, String instanceId) {
         return v2(
                 registryTag(
+                        serviceKey.bizCode(),
+                        serviceKey.appCode(),
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind()
@@ -168,6 +184,8 @@ public final class DdcKeys {
     public static String v2RegistryService(DdcServiceKey serviceKey) {
         return v2(
                 registryTag(
+                        serviceKey.bizCode(),
+                        serviceKey.appCode(),
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind()
@@ -181,6 +199,8 @@ public final class DdcKeys {
     public static String v2RegistryRevision(DdcServiceKey serviceKey) {
         return v2(
                 registryTag(
+                        serviceKey.bizCode(),
+                        serviceKey.appCode(),
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind()
@@ -191,36 +211,42 @@ public final class DdcKeys {
         );
     }
 
-    public static String v2RegistryCatalog(String env,
+    public static String v2RegistryCatalog(String bizCode,
+                                           String appCode,
+                                           String env,
                                            String namespace,
                                            DdcServiceKind kind,
                                            String protocol) {
         return v2(
-                registryTag(env, namespace, kind),
+                registryTag(bizCode, appCode, env, namespace, kind),
                 "registry",
                 "catalog",
                 protocol
         );
     }
 
-    public static String v2RegistryCatalogRevision(String env,
+    public static String v2RegistryCatalogRevision(String bizCode,
+                                                   String appCode,
+                                                   String env,
                                                    String namespace,
                                                    DdcServiceKind kind,
                                                    String protocol) {
         return v2(
-                registryTag(env, namespace, kind),
+                registryTag(bizCode, appCode, env, namespace, kind),
                 "registry",
                 "catalog-revision",
                 protocol
         );
     }
 
-    public static String v2RegistryTopic(String env,
+    public static String v2RegistryTopic(String bizCode,
+                                         String appCode,
+                                         String env,
                                          String namespace,
                                          DdcServiceKind kind,
                                          String protocol) {
         return v2(
-                registryTag(env, namespace, kind),
+                registryTag(bizCode, appCode, env, namespace, kind),
                 "registry",
                 "topic",
                 protocol
@@ -231,10 +257,12 @@ public final class DdcKeys {
         return tag(appCode + "\n" + env + "\n" + namespace);
     }
 
-    private static String registryTag(String env,
+    private static String registryTag(String bizCode,
+                                      String appCode,
+                                      String env,
                                       String namespace,
                                       DdcServiceKind kind) {
-        return tag(env + "\n" + namespace + "\n" + kind.name());
+        return tag(bizCode + "\n" + appCode + "\n" + env + "\n" + namespace + "\n" + kind.name());
     }
 
     private static String tag(String value) {

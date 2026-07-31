@@ -39,6 +39,8 @@ class DdcRegistryAdminControllerTest {
         );
 
         mockMvc.perform(get("/api/v1/ddc/registry/services")
+                        .param("bizCode", "pay-biz")
+                        .param("appCode", "orders-app")
                         .param("env", "dev")
                         .param("namespace", "codex-local")
                         .param("serviceKind", "RPC_PROVIDER")
@@ -73,6 +75,8 @@ class DdcRegistryAdminControllerTest {
         );
 
         mockMvc.perform(get("/api/v1/ddc/registry/instances")
+                        .param("bizCode", "pay-biz")
+                        .param("appCode", "orders-app")
                         .param("env", "dev")
                         .param("namespace", "codex-local")
                         .param("serviceKind", "RPC_PROVIDER")

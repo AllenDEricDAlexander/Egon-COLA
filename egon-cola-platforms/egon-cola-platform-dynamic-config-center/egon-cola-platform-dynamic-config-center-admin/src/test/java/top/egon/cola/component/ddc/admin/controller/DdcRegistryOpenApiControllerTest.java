@@ -51,6 +51,8 @@ class DdcRegistryOpenApiControllerTest {
                                 {
                                   "instanceId":"provider-1",
                                   "serviceKey":{
+                                    "bizCode":"pay-biz",
+                                    "appCode":"orders-app",
                                     "env":"dev",
                                     "namespace":"default",
                                     "serviceKind":"RPC_PROVIDER",
@@ -80,6 +82,8 @@ class DdcRegistryOpenApiControllerTest {
         });
 
         mockMvc.perform(get("/api/v1/ddc/openapi/registry/services")
+                        .param("bizCode", "pay-biz")
+                        .param("appCode", "orders-app")
                         .param("env", "dev")
                         .param("namespace", "default")
                         .param("serviceKind", DdcServiceKind.RPC_PROVIDER.name())

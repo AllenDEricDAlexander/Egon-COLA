@@ -3,6 +3,8 @@ package top.egon.cola.component.ddc.model.registry;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 
 public record DdcServiceQuery(
+        String bizCode,
+        String appCode,
         String env,
         String namespace,
         DdcServiceKind serviceKind,
@@ -13,6 +15,12 @@ public record DdcServiceQuery(
 ) {
 
     public DdcServiceQuery {
+        if (bizCode == null || bizCode.isBlank()) {
+            throw new IllegalArgumentException("bizCode is required");
+        }
+        if (appCode == null || appCode.isBlank()) {
+            throw new IllegalArgumentException("appCode is required");
+        }
         if (env == null || env.isBlank()) {
             throw new IllegalArgumentException("env is required");
         }
@@ -29,7 +37,9 @@ public record DdcServiceQuery(
     }
 
     public boolean matches(DdcServiceKey key) {
-        return env.equals(key.env())
+        return bizCode.equals(key.bizCode())
+                && appCode.equals(key.appCode())
+                && env.equals(key.env())
                 && namespace.equals(key.namespace())
                 && serviceKind == key.serviceKind()
                 && protocol.equals(key.protocol())

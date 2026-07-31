@@ -145,6 +145,8 @@ public class DdcManagementOpenApiController {
 
     @GetMapping("/registry/services")
     public ResultRecord<DdcManagementServiceCatalog> services(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -154,6 +156,8 @@ public class DdcManagementOpenApiController {
             @RequestParam(value = "version", required = false) String version
     ) {
         return ResultRecord.success(facade.getServiceKeys(new DdcManagementServiceQuery(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,
@@ -166,6 +170,8 @@ public class DdcManagementOpenApiController {
 
     @GetMapping("/registry/instances")
     public ResultRecord<DdcManagementServiceSnapshot> serviceInstances(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -175,6 +181,8 @@ public class DdcManagementOpenApiController {
             @RequestParam(value = "version", required = false) String version
     ) {
         return ResultRecord.success(facade.getInstances(new DdcManagementServiceQuery(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,

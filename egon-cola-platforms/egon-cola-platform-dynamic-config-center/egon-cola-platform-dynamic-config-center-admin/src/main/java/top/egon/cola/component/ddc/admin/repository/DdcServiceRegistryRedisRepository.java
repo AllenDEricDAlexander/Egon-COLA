@@ -173,6 +173,8 @@ public class DdcServiceRegistryRedisRepository {
                                                     Instant now) {
         Set<String> members = redissonClient.<String>getSet(
                 DdcKeys.v2RegistryCatalog(
+                        query.bizCode(),
+                        query.appCode(),
                         query.env(),
                         query.namespace(),
                         query.serviceKind(),
@@ -192,6 +194,8 @@ public class DdcServiceRegistryRedisRepository {
             serviceKeys.add(serviceKey);
         }
         long revision = redissonClient.getAtomicLong(DdcKeys.v2RegistryCatalogRevision(
+                query.bizCode(),
+                query.appCode(),
                 query.env(),
                 query.namespace(),
                 query.serviceKind(),
@@ -238,18 +242,24 @@ public class DdcServiceRegistryRedisRepository {
                 DdcKeys.v2RegistryService(serviceKey),
                 DdcKeys.v2RegistryRevision(serviceKey),
                 DdcKeys.v2RegistryCatalog(
+                        serviceKey.bizCode(),
+                        serviceKey.appCode(),
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind(),
                         serviceKey.protocol()
                 ),
                 DdcKeys.v2RegistryCatalogRevision(
+                        serviceKey.bizCode(),
+                        serviceKey.appCode(),
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind(),
                         serviceKey.protocol()
                 ),
                 DdcKeys.v2RegistryTopic(
+                        serviceKey.bizCode(),
+                        serviceKey.appCode(),
                         serviceKey.env(),
                         serviceKey.namespace(),
                         serviceKey.serviceKind(),
@@ -260,6 +270,8 @@ public class DdcServiceRegistryRedisRepository {
 
     private String legacyTopic(DdcServiceKey serviceKey) {
         return DdcKeys.registryTopic(
+                serviceKey.bizCode(),
+                serviceKey.appCode(),
                 serviceKey.env(),
                 serviceKey.namespace(),
                 serviceKey.serviceKind(),

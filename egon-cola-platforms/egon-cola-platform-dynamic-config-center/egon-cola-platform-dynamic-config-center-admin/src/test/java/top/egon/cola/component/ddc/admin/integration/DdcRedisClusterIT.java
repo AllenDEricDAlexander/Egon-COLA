@@ -211,6 +211,8 @@ class DdcRedisClusterIT {
 
     private DdcServiceInstance instance() {
         DdcServiceKey serviceKey = new DdcServiceKey(
+                "pay-biz",
+                "orders-app",
                 "test",
                 "default",
                 DdcServiceKind.RPC_PROVIDER,

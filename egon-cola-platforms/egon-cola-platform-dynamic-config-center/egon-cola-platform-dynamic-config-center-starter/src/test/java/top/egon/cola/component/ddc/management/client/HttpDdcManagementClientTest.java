@@ -155,6 +155,8 @@ class HttpDdcManagementClientTest {
 
         DdcManagementServiceSnapshot snapshot = fixture.client().getInstances(
                 new DdcManagementServiceQuery(
+                        "pay-biz",
+                        "orders-app",
                         "dev",
                         "rpc/internal",
                         "INTERNAL_GATEWAY",

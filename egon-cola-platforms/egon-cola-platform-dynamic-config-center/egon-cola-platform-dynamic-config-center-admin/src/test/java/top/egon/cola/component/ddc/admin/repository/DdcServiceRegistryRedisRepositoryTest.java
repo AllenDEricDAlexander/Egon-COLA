@@ -130,6 +130,8 @@ class DdcServiceRegistryRedisRepositoryTest {
     }
 
     private static final DdcServiceKey SERVICE_KEY = new DdcServiceKey(
+            "pay-biz",
+            "orders-app",
             "dev",
             "default",
             DdcServiceKind.RPC_PROVIDER,

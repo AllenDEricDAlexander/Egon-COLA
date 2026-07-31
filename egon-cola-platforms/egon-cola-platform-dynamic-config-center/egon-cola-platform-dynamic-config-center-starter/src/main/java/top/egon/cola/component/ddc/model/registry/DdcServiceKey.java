@@ -5,6 +5,8 @@ import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import java.util.Comparator;
 
 public record DdcServiceKey(
+        String bizCode,
+        String appCode,
         String env,
         String namespace,
         DdcServiceKind serviceKind,
@@ -15,7 +17,9 @@ public record DdcServiceKey(
 ) implements Comparable<DdcServiceKey> {
 
     private static final Comparator<DdcServiceKey> ORDER = Comparator
-            .comparing(DdcServiceKey::env)
+            .comparing(DdcServiceKey::bizCode)
+            .thenComparing(DdcServiceKey::appCode)
+            .thenComparing(DdcServiceKey::env)
             .thenComparing(DdcServiceKey::namespace)
             .thenComparing(DdcServiceKey::serviceKind)
             .thenComparing(DdcServiceKey::protocol)
@@ -24,6 +28,8 @@ public record DdcServiceKey(
             .thenComparing(DdcServiceKey::version);
 
     public DdcServiceKey {
+        bizCode = require(bizCode, "bizCode");
+        appCode = require(appCode, "appCode");
         env = require(env, "env");
         namespace = require(namespace, "namespace");
         if (serviceKind == null) {
@@ -45,6 +51,8 @@ public record DdcServiceKey(
     public String canonicalValue() {
         return String.join(
                 "\n",
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind.name(),
@@ -60,17 +68,19 @@ public record DdcServiceKey(
             throw new IllegalArgumentException("canonical service key is required");
         }
         String[] parts = canonicalValue.split("\n", -1);
-        if (parts.length != 7) {
+        if (parts.length != 9) {
             throw new IllegalArgumentException("invalid canonical service key");
         }
         return new DdcServiceKey(
                 parts[0],
                 parts[1],
-                DdcServiceKind.valueOf(parts[2]),
-                parts[4],
-                parts[5],
+                parts[2],
+                parts[3],
+                DdcServiceKind.valueOf(parts[4]),
                 parts[6],
-                parts[3]
+                parts[7],
+                parts[8],
+                parts[5]
         );
     }
 

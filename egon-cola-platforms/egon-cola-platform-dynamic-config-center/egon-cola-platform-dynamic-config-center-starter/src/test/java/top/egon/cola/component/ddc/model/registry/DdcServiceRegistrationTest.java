@@ -60,7 +60,9 @@ class DdcServiceRegistrationTest {
         return new DdcServiceRegistration(
                 "provider-1",
                 new DdcServiceKey(
-                        "test",
+                        "pay-biz",
+                        "orders-app",
+                        "dev",
                         "default",
                         DdcServiceKind.RPC_PROVIDER,
                         "egon.rpc.test.Echo",

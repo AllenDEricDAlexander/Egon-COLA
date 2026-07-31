@@ -48,6 +48,8 @@ public class DdcRegistryOpenApiController {
 
     @GetMapping("/instances")
     public ResultRecord<DdcServiceSnapshot> instances(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") DdcServiceKind serviceKind,
@@ -56,6 +58,8 @@ public class DdcRegistryOpenApiController {
             @RequestParam(value = "version", required = false) String version,
             @RequestParam("protocol") String protocol) {
         return ResultRecord.success(registryService.getInstances(new DdcServiceKey(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,
@@ -68,6 +72,8 @@ public class DdcRegistryOpenApiController {
 
     @GetMapping("/services")
     public ResultRecord<DdcServiceCatalogSnapshot> services(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") DdcServiceKind serviceKind,
@@ -76,6 +82,8 @@ public class DdcRegistryOpenApiController {
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version) {
         return ResultRecord.success(registryService.getServiceKeys(new DdcServiceQuery(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,

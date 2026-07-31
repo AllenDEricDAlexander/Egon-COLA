@@ -67,13 +67,13 @@ class DdcRegistrySubscriptionManagerTest {
         assertThat(order.subList(0, 3)).containsExactly("subscribe", "subscribe", "pull");
         verify(topic.redisson()).getTopic(
                 DdcKeys.v2RegistryTopic(
-                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE
         );
         verify(topic.redisson()).getTopic(
                 DdcKeys.registryTopic(
-                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE
         );
@@ -315,9 +315,11 @@ class DdcRegistrySubscriptionManagerTest {
     }
 
     private static final DdcServiceKey SERVICE_KEY = new DdcServiceKey(
-            "dev",
-            "default",
-            DdcServiceKind.RPC_PROVIDER,
+                        "pay-biz",
+                        "orders-app",
+                        "dev",
+                        "default",
+                        DdcServiceKind.RPC_PROVIDER,
             "order.v1.OrderQueryService",
             "default",
             "1.0.0",

@@ -14,9 +14,11 @@ class DdcHttpProviderRegistrationTest {
     @Test
     void httpProviderKeyDefaultsOptionalIdentityAndRoundTrips() {
         DdcServiceKey serviceKey = new DdcServiceKey(
-                "test",
-                "default",
-                DdcServiceKind.HTTP_PROVIDER,
+                        "pay-biz",
+                        "orders-app",
+                        "dev",
+                        "default",
+                        DdcServiceKind.HTTP_PROVIDER,
                 "order-provider",
                 null,
                 null,
@@ -60,7 +62,9 @@ class DdcHttpProviderRegistrationTest {
         return new DdcServiceRegistration(
                 "http-provider-1",
                 new DdcServiceKey(
-                        "test",
+                        "pay-biz",
+                        "orders-app",
+                        "dev",
                         "default",
                         DdcServiceKind.HTTP_PROVIDER,
                         "order-provider",

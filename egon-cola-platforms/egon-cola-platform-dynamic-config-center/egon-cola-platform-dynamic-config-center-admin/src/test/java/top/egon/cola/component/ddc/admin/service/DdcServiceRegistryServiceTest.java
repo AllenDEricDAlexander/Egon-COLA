@@ -92,6 +92,8 @@ class DdcServiceRegistryServiceTest {
         return new DdcServiceRegistration(
                 "provider-1",
                 new DdcServiceKey(
+                        "pay-biz",
+                        "orders-app",
                         "dev",
                         "default",
                         DdcServiceKind.RPC_PROVIDER,

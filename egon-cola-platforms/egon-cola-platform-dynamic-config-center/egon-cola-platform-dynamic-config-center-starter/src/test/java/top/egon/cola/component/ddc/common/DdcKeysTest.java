@@ -53,9 +53,11 @@ class DdcKeysTest {
     @Test
     void buildsClusterSafeRegistryKeysWithOneKindScopeTag() {
         DdcServiceKey serviceKey = new DdcServiceKey(
-                "dev",
-                "default",
-                DdcServiceKind.RPC_PROVIDER,
+                        "pay-biz",
+                        "orders-app",
+                        "dev",
+                        "default",
+                        DdcServiceKind.RPC_PROVIDER,
                 "order.v1.OrderQueryService",
                 "default",
                 "1.0.0",
@@ -66,13 +68,13 @@ class DdcKeysTest {
                 .isEqualTo(hashTag(DdcKeys.v2RegistryService(serviceKey)))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryRevision(serviceKey)))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryCatalog(
-                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
                 )))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryCatalogRevision(
-                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
                 )))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryTopic(
-                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
                 )));
     }
 

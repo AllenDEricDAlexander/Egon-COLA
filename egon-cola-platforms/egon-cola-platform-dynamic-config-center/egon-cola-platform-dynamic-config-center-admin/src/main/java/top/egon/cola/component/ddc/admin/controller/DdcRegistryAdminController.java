@@ -22,6 +22,8 @@ public class DdcRegistryAdminController {
 
     @GetMapping("/services")
     public ResultRecord<DdcManagementServiceCatalog> services(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -32,6 +34,8 @@ public class DdcRegistryAdminController {
             @RequestParam(value = "version", required = false) String version
     ) {
         return ResultRecord.success(facade.getServiceKeys(query(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,
@@ -44,6 +48,8 @@ public class DdcRegistryAdminController {
 
     @GetMapping("/instances")
     public ResultRecord<DdcManagementServiceSnapshot> instances(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
             @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") String serviceKind,
@@ -53,6 +59,8 @@ public class DdcRegistryAdminController {
             @RequestParam(value = "version", required = false) String version
     ) {
         return ResultRecord.success(facade.getInstances(query(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,
@@ -64,6 +72,8 @@ public class DdcRegistryAdminController {
     }
 
     private DdcManagementServiceQuery query(
+            String bizCode,
+            String appCode,
             String env,
             String namespace,
             String serviceKind,
@@ -73,6 +83,8 @@ public class DdcRegistryAdminController {
             String version
     ) {
         return new DdcManagementServiceQuery(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,

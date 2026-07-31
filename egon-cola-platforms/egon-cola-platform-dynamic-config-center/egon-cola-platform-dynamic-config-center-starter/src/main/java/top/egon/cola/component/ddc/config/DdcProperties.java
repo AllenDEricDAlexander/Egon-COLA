@@ -14,6 +14,8 @@ public class DdcProperties {
 
     private String appCode = "default-app";
 
+    private String bizCode;
+
     private String env = "dev";
 
     private String namespace = "default";
@@ -42,6 +44,14 @@ public class DdcProperties {
 
     public void setAppCode(String appCode) {
         this.appCode = appCode;
+    }
+
+    public String getBizCode() {
+        return bizCode;
+    }
+
+    public void setBizCode(String bizCode) {
+        this.bizCode = bizCode;
     }
 
     public String getEnv() {

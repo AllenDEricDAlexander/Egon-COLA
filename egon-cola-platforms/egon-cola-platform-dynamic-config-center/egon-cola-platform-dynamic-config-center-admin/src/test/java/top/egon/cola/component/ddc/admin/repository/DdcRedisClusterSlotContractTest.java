@@ -84,10 +84,10 @@ class DdcRedisClusterSlotContractTest {
         assertOneSlot(keys);
         assertThat(arguments.get())
                 .contains(DdcKeys.registryTopic(
-                        "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ));
         assertThat(keys).doesNotContain(DdcKeys.registryTopic(
-                "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
         ));
     }
 
@@ -118,6 +118,8 @@ class DdcRedisClusterSlotContractTest {
 
     private DdcServiceInstance instance() {
         DdcServiceKey serviceKey = new DdcServiceKey(
+                "pay-biz",
+                "orders-app",
                 "dev",
                 "default",
                 DdcServiceKind.RPC_PROVIDER,

@@ -243,12 +243,16 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         private void start() {
             start(List.of(
                     DdcKeys.v2RegistryTopic(
+                            serviceKey.bizCode(),
+                            serviceKey.appCode(),
                             serviceKey.env(),
                             serviceKey.namespace(),
                             serviceKey.serviceKind(),
                             serviceKey.protocol()
                     ),
                     DdcKeys.registryTopic(
+                            serviceKey.bizCode(),
+                            serviceKey.appCode(),
                             serviceKey.env(),
                             serviceKey.namespace(),
                             serviceKey.serviceKind(),
@@ -316,12 +320,16 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         private void start() {
             start(List.of(
                     DdcKeys.v2RegistryTopic(
+                            query.bizCode(),
+                            query.appCode(),
                             query.env(),
                             query.namespace(),
                             query.serviceKind(),
                             query.protocol()
                     ),
                     DdcKeys.registryTopic(
+                            query.bizCode(),
+                            query.appCode(),
                             query.env(),
                             query.namespace(),
                             query.serviceKind(),

@@ -234,6 +234,8 @@ public class DdcManagementFacade {
         require(query, "service query");
         DdcServiceKind kind = serviceKind(query.serviceKind());
         DdcServiceKey key = new DdcServiceKey(
+                requireText(query.bizCode(), "bizCode"),
+                requireText(query.appCode(), "appCode"),
                 requireText(query.env(), "env"),
                 requireText(query.namespace(), "namespace"),
                 kind,
@@ -344,6 +346,8 @@ public class DdcManagementFacade {
             throw new DdcAdminException("service query is required");
         }
         return new DdcServiceQuery(
+                requireText(query.bizCode(), "bizCode"),
+                requireText(query.appCode(), "appCode"),
                 requireText(query.env(), "env"),
                 requireText(query.namespace(), "namespace"),
                 serviceKind(query.serviceKind()),
