@@ -47,6 +47,14 @@ Set `DDC_ADMIN_API_BASE_URL` to point at the admin backend:
 Keep credentials out of committed `.env` files. TLS termination and the DDC
 Admin authorization policy remain deployment responsibilities.
 
+## Scope selects
+
+The scope filters (business domain, application, environment) are selectable
+dropdowns: the domain list is derived from existing namespace data, the
+application list is filtered by the selected domain, and the environment
+select offers the fixed dev/test/sit/gray/prod options. Every select also
+accepts typed values for new entries.
+
 ## Deployment
 
 ```bash

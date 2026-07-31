@@ -523,6 +523,12 @@ git commit -m "feat(ddc-admin-web): add scope options hook with session cache"
 
 - [ ] **Step 1: 写失败的组件测试 `ScopeSelects.test.tsx`**
 
+> 环境说明（实施时确认）：jsdom + React 19 下 antd 下拉 portal 的选项点击事件无法
+> 送达 React（React 只在 portal 首次挂载时挂监听，antd 下拉是延迟挂载）。测试改为：
+> 下拉选项只做**渲染断言**（mouseDown 打开 → 断言 option 出现 → Escape 关闭），
+> 交互走**输入 + Enter** 路径（即可输入新值兜底的真实用户路径）；更换已选值时先点击
+> tag 的移除按钮（在组件树内，事件正常）；涉及重渲染的用例用 useState harness。
+
 ```tsx
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
