@@ -18,6 +18,8 @@ import java.util.Optional;
 @Service
 public class DdcAppService {
 
+    private final DdcScopeGate scopeGate;
+
     private final DdcAppRepository appRepository;
 
     private final DdcBizRepository bizRepository;
@@ -26,10 +28,12 @@ public class DdcAppService {
 
     public DdcAppService(DdcAppRepository appRepository,
                          DdcBizRepository bizRepository,
-                         DdcNamespaceRepository namespaceRepository) {
+                         DdcNamespaceRepository namespaceRepository,
+                         DdcScopeGate scopeGate) {
         this.appRepository = appRepository;
         this.bizRepository = bizRepository;
         this.namespaceRepository = namespaceRepository;
+        this.scopeGate = scopeGate;
     }
 
     public List<DdcAppEntity> list(String bizCode, String keyword) {
@@ -95,6 +99,8 @@ public class DdcAppService {
             throw new CommonException(DdcErrorStatus.APP_IN_USE);
         }
         appRepository.delete(existing);
+        scopeGate.invalidate("app:" + appCode);
+        scopeGate.invalidate("app-biz:" + appCode);
     }
 
     @Transactional
@@ -102,7 +108,10 @@ public class DdcAppService {
         DdcAppEntity existing = require(appCode);
         existing.setEnabled(enabled);
         existing.setUpdatedAt(LocalDateTime.now());
-        return appRepository.save(existing);
+        DdcAppEntity saved = appRepository.save(existing);
+        scopeGate.invalidate("app:" + appCode);
+        scopeGate.invalidate("app-biz:" + appCode);
+        return saved;
     }
 
     private DdcAppEntity require(String appCode) {

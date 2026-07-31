@@ -56,13 +56,16 @@ public class DdcManagementFacade {
 
     private final DdcServiceRegistryService registryService;
 
+    private final DdcScopeGate scopeGate;
+
     public DdcManagementFacade(
             DdcConfigService configService,
             DdcPublishService publishService,
             DdcPublishTaskRepository publishTaskRepository,
             DdcPublishAckRepository publishAckRepository,
             DdcInstanceAdminService instanceAdminService,
-            DdcServiceRegistryService registryService
+            DdcServiceRegistryService registryService,
+            DdcScopeGate scopeGate
     ) {
         this.configService = configService;
         this.publishService = publishService;
@@ -70,9 +73,15 @@ public class DdcManagementFacade {
         this.publishAckRepository = publishAckRepository;
         this.instanceAdminService = instanceAdminService;
         this.registryService = registryService;
+        this.scopeGate = scopeGate;
     }
 
     public DdcManagementConfig findConfig(DdcManagementConfigQuery query) {
+        scopeGate.assertEnabledByApp(
+                requireText(query.appCode(), "appCode"),
+                requireText(query.env(), "env"),
+                requireText(query.namespace(), "namespace")
+        );
         require(query, "config query");
         validateScope(
                 query.appCode(),

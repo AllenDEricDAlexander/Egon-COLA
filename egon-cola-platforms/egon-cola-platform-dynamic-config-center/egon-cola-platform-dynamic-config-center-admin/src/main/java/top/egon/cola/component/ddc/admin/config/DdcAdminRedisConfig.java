@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
+import top.egon.cola.component.ddc.admin.service.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
@@ -106,10 +107,12 @@ public class DdcAdminRedisConfig {
     @ConditionalOnMissingBean
     public DdcServiceRegistryService ddcServiceRegistryService(
             DdcServiceRegistryRedisRepository repository,
-            DdcAdminProperties properties) {
+            DdcAdminProperties properties,
+            DdcScopeGate scopeGate) {
         return new DdcServiceRegistryService(
                 repository,
-                new DdcLeaseValidator(properties)
+                new DdcLeaseValidator(properties),
+                scopeGate
         );
     }
 

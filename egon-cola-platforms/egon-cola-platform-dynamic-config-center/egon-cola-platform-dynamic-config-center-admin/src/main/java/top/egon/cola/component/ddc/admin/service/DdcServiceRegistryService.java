@@ -24,27 +24,39 @@ public class DdcServiceRegistryService {
 
     private final DdcLeaseValidator leaseValidator;
 
+    private final DdcScopeGate scopeGate;
+
     private final Clock clock;
 
     private final Supplier<String> leaseIdSupplier;
 
     public DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
-                                     DdcLeaseValidator leaseValidator) {
-        this(repository, leaseValidator, Clock.systemUTC(), UuidV7::simpleString);
+                                     DdcLeaseValidator leaseValidator,
+                                     DdcScopeGate scopeGate) {
+        this(repository, leaseValidator, scopeGate, Clock.systemUTC(), UuidV7::simpleString);
     }
 
     DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
                               DdcLeaseValidator leaseValidator,
+                              DdcScopeGate scopeGate,
                               Clock clock,
                               Supplier<String> leaseIdSupplier) {
         this.repository = repository;
         this.leaseValidator = leaseValidator;
+        this.scopeGate = scopeGate;
         this.clock = clock;
         this.leaseIdSupplier = leaseIdSupplier;
     }
 
     public DdcLeaseSession register(DdcServiceRegistration registration) {
         validateRegistration(registration);
+        DdcServiceKey serviceKey = registration.serviceKey();
+        scopeGate.assertEnabled(
+                serviceKey.bizCode(),
+                serviceKey.appCode(),
+                serviceKey.env(),
+                serviceKey.namespace()
+        );
         Instant now = clock.instant();
         DdcLeaseSession session = new DdcLeaseSession(
                 registration.instanceId(),

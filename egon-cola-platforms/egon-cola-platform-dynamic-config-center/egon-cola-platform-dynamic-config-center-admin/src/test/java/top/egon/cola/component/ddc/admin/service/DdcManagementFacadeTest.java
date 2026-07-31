@@ -50,7 +50,8 @@ class DdcManagementFacadeTest {
                 publishTaskRepository,
                 publishAckRepository,
                 mock(DdcInstanceAdminService.class),
-                mock(DdcServiceRegistryService.class)
+                mock(DdcServiceRegistryService.class),
+                mock(DdcScopeGate.class)
         );
     }
 

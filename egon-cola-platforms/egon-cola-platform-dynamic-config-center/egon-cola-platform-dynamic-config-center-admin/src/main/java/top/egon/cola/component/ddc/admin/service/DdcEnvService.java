@@ -17,6 +17,8 @@ import java.util.List;
 @Service
 public class DdcEnvService {
 
+    private final DdcScopeGate scopeGate;
+
     private final DdcEnvRepository envRepository;
 
     private final DdcConfigItemRepository configItemRepository;
@@ -25,10 +27,12 @@ public class DdcEnvService {
 
     public DdcEnvService(DdcEnvRepository envRepository,
                          DdcConfigItemRepository configItemRepository,
-                         ObjectProvider<RedissonClient> redissonProvider) {
+                         ObjectProvider<RedissonClient> redissonProvider,
+                         DdcScopeGate scopeGate) {
         this.envRepository = envRepository;
         this.configItemRepository = configItemRepository;
         this.redissonProvider = redissonProvider;
+        this.scopeGate = scopeGate;
     }
 
     public List<DdcEnvEntity> list(String keyword) {
@@ -90,6 +94,7 @@ public class DdcEnvService {
             throw new CommonException(DdcErrorStatus.ENV_IN_USE);
         }
         envRepository.delete(existing);
+        scopeGate.invalidate("env:" + envCode);
     }
 
     @Transactional
@@ -97,7 +102,9 @@ public class DdcEnvService {
         DdcEnvEntity existing = require(envCode);
         existing.setEnabled(enabled);
         existing.setUpdatedAt(LocalDateTime.now());
-        return envRepository.save(existing);
+        DdcEnvEntity saved = envRepository.save(existing);
+        scopeGate.invalidate("env:" + envCode);
+        return saved;
     }
 
     private DdcEnvEntity require(String envCode) {

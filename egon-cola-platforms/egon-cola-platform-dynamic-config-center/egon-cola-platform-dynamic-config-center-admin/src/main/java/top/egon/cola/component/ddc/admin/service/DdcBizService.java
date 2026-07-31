@@ -16,13 +16,18 @@ import java.util.List;
 @Service
 public class DdcBizService {
 
+    private final DdcScopeGate scopeGate;
+
     private final DdcBizRepository bizRepository;
 
     private final DdcAppRepository appRepository;
 
-    public DdcBizService(DdcBizRepository bizRepository, DdcAppRepository appRepository) {
+    public DdcBizService(DdcBizRepository bizRepository,
+                         DdcAppRepository appRepository,
+                         DdcScopeGate scopeGate) {
         this.bizRepository = bizRepository;
         this.appRepository = appRepository;
+        this.scopeGate = scopeGate;
     }
 
     public List<DdcBizEntity> list(String keyword) {
@@ -75,6 +80,7 @@ public class DdcBizService {
             throw new CommonException(DdcErrorStatus.BIZ_IN_USE);
         }
         bizRepository.delete(existing);
+        scopeGate.invalidate("biz:" + bizCode);
     }
 
     @Transactional
@@ -82,7 +88,9 @@ public class DdcBizService {
         DdcBizEntity existing = require(bizCode);
         existing.setEnabled(enabled);
         existing.setUpdatedAt(LocalDateTime.now());
-        return bizRepository.save(existing);
+        DdcBizEntity saved = bizRepository.save(existing);
+        scopeGate.invalidate("biz:" + bizCode);
+        return saved;
     }
 
     private DdcBizEntity require(String bizCode) {

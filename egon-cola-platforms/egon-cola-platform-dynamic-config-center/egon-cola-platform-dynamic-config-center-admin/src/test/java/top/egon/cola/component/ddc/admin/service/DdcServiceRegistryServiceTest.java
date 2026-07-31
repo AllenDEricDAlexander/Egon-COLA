@@ -83,6 +83,7 @@ class DdcServiceRegistryServiceTest {
         return new DdcServiceRegistryService(
                 repository,
                 new DdcLeaseValidator(),
+                mock(DdcScopeGate.class),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 leaseIds
         );
