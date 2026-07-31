@@ -24,6 +24,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 900,
   },
   test: {
+    globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     exclude: ['e2e/**', 'node_modules/**', 'dist/**'],

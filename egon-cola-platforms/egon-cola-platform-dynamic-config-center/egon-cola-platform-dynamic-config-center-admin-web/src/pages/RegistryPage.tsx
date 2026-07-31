@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Card, Col, Input, Row, Statistic, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { RegistryInstance, RegistryService } from '../api/types'
+import { buildQuery, formatTime } from '../lib/query'
 
 const serviceQueries = [
   { serviceKind: 'HTTP_PROVIDER', protocol: 'http', label: 'HTTP Provider' },
@@ -12,24 +13,8 @@ const serviceQueries = [
 
 type ServiceRow = RegistryService & { label: string }
 
-const query = (values: Record<string, string | undefined>) => {
-  const params = new URLSearchParams()
-  Object.entries(values).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value.trim() !== '') {
-      params.set(key, value.trim())
-    }
-  })
-  return params.toString()
-}
-
 const serviceIdentity = (service: RegistryService): string =>
   [service.serviceKind, service.protocol, service.serviceName, service.group ?? '', service.version ?? ''].join('|')
-
-const formatTime = (value?: string): string => {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false })
-}
 
 export default function RegistryPage() {
   const [draft, setDraft] = useState({ env: '', namespace: '' })
@@ -43,7 +28,7 @@ export default function RegistryPage() {
   const loadInstances = useCallback(async (service: ServiceRow) => {
     const scope = filterRef.current
     const data = await ddcApi<{ instances: RegistryInstance[] }>(
-      `/api/v1/ddc/registry/instances?${query({
+      `/api/v1/ddc/registry/instances?${buildQuery({
         ...scope,
         serviceKind: service.serviceKind,
         protocol: service.protocol,
@@ -59,7 +44,7 @@ export default function RegistryPage() {
     const scope = filterRef.current
     const snapshots = await Promise.all(serviceQueries.map(async (item) => {
       const data = await ddcApi<{ services: RegistryService[] }>(
-        `/api/v1/ddc/registry/services?${query({ ...scope, serviceKind: item.serviceKind, protocol: item.protocol })}`,
+        `/api/v1/ddc/registry/services?${buildQuery({ ...scope, serviceKind: item.serviceKind, protocol: item.protocol })}`,
       )
       return (data?.services ?? []).map((service) => ({ ...service, label: item.label }))
     }))
