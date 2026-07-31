@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, Descriptions, Input, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Descriptions, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcInstance } from '../api/types'
+import ScopeSelects, { type ScopeValue as InstanceFilter } from '../components/scope/ScopeSelects'
 import { buildQuery, formatTime } from '../lib/query'
-
-type InstanceFilter = { appCode: string; env: string; namespace: string }
 
 export default function InstancesPage() {
   const [draft, setDraft] = useState<InstanceFilter>({ appCode: '', env: '', namespace: '' })
@@ -70,23 +69,9 @@ export default function InstancesPage() {
     <div>
       <Typography.Title level={3}>实例管理</Typography.Title>
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Input
-          placeholder="appCode"
-          value={draft.appCode}
-          onChange={(event) => setDraft({ ...draft, appCode: event.target.value })}
-          style={{ width: 180, marginRight: 8 }}
-        />
-        <Input
-          placeholder="env"
-          value={draft.env}
-          onChange={(event) => setDraft({ ...draft, env: event.target.value })}
-          style={{ width: 140, marginRight: 8 }}
-        />
-        <Input
-          placeholder="namespace"
-          value={draft.namespace}
-          onChange={(event) => setDraft({ ...draft, namespace: event.target.value })}
-          style={{ width: 140, marginRight: 8 }}
+        <ScopeSelects
+          value={{ appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
+          onChange={(scope) => setDraft({ ...draft, ...scope })}
         />
         <Button type="primary" onClick={applyFilter}>查询</Button>
       </Card>

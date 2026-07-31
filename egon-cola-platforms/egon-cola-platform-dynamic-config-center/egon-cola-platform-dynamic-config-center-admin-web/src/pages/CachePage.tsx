@@ -1,10 +1,9 @@
 import { useRef, useState } from 'react'
-import { Button, Card, Input, Space, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Space, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcCacheCheckRow } from '../api/types'
+import ScopeSelects, { type ScopeValue as CacheFilter } from '../components/scope/ScopeSelects'
 import { buildQuery } from '../lib/query'
-
-type CacheFilter = { appCode: string; env: string; namespace: string }
 
 export default function CachePage() {
   const [draft, setDraft] = useState<CacheFilter>({ appCode: '', env: '', namespace: '' })
@@ -84,23 +83,9 @@ export default function CachePage() {
       <Typography.Title level={3}>缓存管理</Typography.Title>
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
-          <Input
-            placeholder="appCode"
-            value={draft.appCode}
-            onChange={(event) => setDraft({ ...draft, appCode: event.target.value })}
-            style={{ width: 180 }}
-          />
-          <Input
-            placeholder="env"
-            value={draft.env}
-            onChange={(event) => setDraft({ ...draft, env: event.target.value })}
-            style={{ width: 140 }}
-          />
-          <Input
-            placeholder="namespace"
-            value={draft.namespace}
-            onChange={(event) => setDraft({ ...draft, namespace: event.target.value })}
-            style={{ width: 140 }}
+          <ScopeSelects
+            value={{ appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
+            onChange={(scope) => setDraft({ ...draft, ...scope })}
           />
           <Button type="primary" loading={checking} onClick={() => void check()}>检查缓存</Button>
           <Button danger loading={rebuilding} onClick={() => void rebuild()}>重建缓存</Button>
