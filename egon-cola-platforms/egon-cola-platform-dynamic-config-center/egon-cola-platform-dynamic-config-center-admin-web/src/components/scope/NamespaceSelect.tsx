@@ -16,7 +16,7 @@ const toValue = (values: string[]): string => values[0] ?? ''
 const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
-export default function NamespaceSelect({ value, onChange, appCode = '', disabled, placeholder = '请选择或输入业务域' }: Props) {
+export default function NamespaceSelect({ value, onChange, appCode = '', disabled, placeholder = '请选择或输入命名空间' }: Props) {
   const { namespaces, loading } = useScopeOptions('', appCode)
   return (
     <Select
