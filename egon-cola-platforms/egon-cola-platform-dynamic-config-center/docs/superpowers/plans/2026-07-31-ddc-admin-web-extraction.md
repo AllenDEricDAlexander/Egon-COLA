@@ -1574,9 +1574,9 @@ mockMvc.perform(get("/ddc-admin/index.html"))
 ).permitAll()
 ```
 
-- [ ] **Step 5: bump admin 版本**
+- [ ] **Step 5: 提交前确认（无版本变更）**
 
-`admin/pom.xml`：`<version>5.3.2</version>` → `<version>5.4.0</version>`（parent 引用不改，DDC parent 仍为 5.3.2；仅本模块 artifact 版本上浮，表示破坏性变更）。
+用户决定：admin 模块版本保持 `5.3.2` 不变，版本迭代由用户自行控制；跳过原计划的 5.4.0 bump，`admin/pom.xml` 不做任何修改。
 
 - [ ] **Step 6: 运行 admin 侧测试**
 
