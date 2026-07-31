@@ -16,6 +16,7 @@ type Props = {
 }
 
 type FormValues = {
+  bizCode: string
   appCode: string
   env: string
   namespace: string
@@ -28,12 +29,16 @@ type FormValues = {
 }
 
 const ensureAppAndNamespace = async (scope: ConfigScope) => {
+  if (scope.bizCode.trim() === '') {
+    throw new Error('请先选择业务域')
+  }
   const apps = await ddcApi<DdcApp[]>('/api/v1/ddc/apps')
   if (!apps.some((app) => app.appCode === scope.appCode)) {
     await ddcApi('/api/v1/ddc/apps', {
       method: 'POST',
       body: {
         appCode: scope.appCode,
+        bizCode: scope.bizCode,
         appName: scope.appCode,
         owner: 'local-admin',
         description: 'Created by DDC Admin Web',
@@ -41,14 +46,13 @@ const ensureAppAndNamespace = async (scope: ConfigScope) => {
       },
     })
   }
-  const params = new URLSearchParams({ appCode: scope.appCode, env: scope.env })
+  const params = new URLSearchParams({ appCode: scope.appCode })
   const namespaces = await ddcApi<DdcNamespace[]>(`/api/v1/ddc/namespaces?${params.toString()}`)
   if (!namespaces.some((item) => item.namespace === scope.namespace)) {
     await ddcApi('/api/v1/ddc/namespaces', {
       method: 'POST',
       body: {
         appCode: scope.appCode,
-        env: scope.env,
         namespace: scope.namespace,
         description: 'Created by DDC Admin Web',
         enabled: true,
@@ -66,7 +70,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
   useEffect(() => {
     if (!open) return
     const scope = editing && config
-      ? { appCode: config.appCode, env: config.env, namespace: config.namespace }
+      ? { bizCode: '', appCode: config.appCode, env: config.env, namespace: config.namespace }
       : defaultScope
     const valueEditor = prepareConfigEditor({
       configKey: config?.configKey ?? '',
@@ -75,6 +79,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
     })
     setEditor(valueEditor)
     form.setFieldsValue({
+      bizCode: scope.bizCode,
       appCode: scope.appCode,
       env: scope.env,
       namespace: scope.namespace,
@@ -109,11 +114,12 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
     // scope 三字段经 ScopeSelects 写入表单但未注册 Form.Item，需手动校验
     const allValues = form.getFieldsValue() as FormValues
     const scope = {
+      bizCode: allValues.bizCode ?? '',
       appCode: allValues.appCode ?? '',
       env: allValues.env ?? '',
       namespace: allValues.namespace ?? '',
     }
-    if (scope.appCode.trim() === '' || scope.env.trim() === '' || scope.namespace.trim() === '') {
+    if (scope.bizCode.trim() === '' || scope.appCode.trim() === '' || scope.env.trim() === '' || scope.namespace.trim() === '') {
       message.warning('请填写业务域 / 应用 / 环境')
       return
     }
@@ -178,6 +184,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
           {() => (
             <ScopeSelects
               value={{
+                bizCode: form.getFieldValue('bizCode') ?? '',
                 appCode: form.getFieldValue('appCode') ?? '',
                 env: form.getFieldValue('env') ?? '',
                 namespace: form.getFieldValue('namespace') ?? '',

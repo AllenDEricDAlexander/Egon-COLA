@@ -11,10 +11,10 @@ import ConfigEditorDialog, { type ConfigScope } from './ConfigEditorDialog'
 type ConfigFilter = ScopeValue & { configKey: string }
 
 export default function ConfigsPage() {
-  const [draft, setDraft] = useState<ConfigFilter>({ appCode: '', env: '', namespace: '', configKey: '' })
+  const [draft, setDraft] = useState<ConfigFilter>({ bizCode: '', appCode: '', env: '', namespace: '', configKey: '' })
   const [configs, setConfigs] = useState<DdcConfig[]>([])
   const [loading, setLoading] = useState(false)
-  const filterRef = useRef<ConfigFilter>({ appCode: '', env: '', namespace: '', configKey: '' })
+  const filterRef = useRef<ConfigFilter>({ bizCode: '', appCode: '', env: '', namespace: '', configKey: '' })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingConfig, setEditingConfig] = useState<DdcConfig | null>(null)
   const [versionsConfig, setVersionsConfig] = useState<DdcConfig | null>(null)
@@ -62,6 +62,7 @@ export default function ConfigsPage() {
   }
 
   const defaultScope: ConfigScope = {
+    bizCode: draft.bizCode,
     appCode: draft.appCode,
     env: draft.env,
     namespace: draft.namespace,
@@ -176,7 +177,7 @@ export default function ConfigsPage() {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
           <ScopeSelects
-            value={{ appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
+            value={{ bizCode: draft.bizCode, appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
             onChange={(scope) => setDraft({ ...draft, ...scope })}
           />
           <Input placeholder="configKey" value={draft.configKey} onChange={(event) => setDraft({ ...draft, configKey: event.target.value })} style={{ width: 180 }} />

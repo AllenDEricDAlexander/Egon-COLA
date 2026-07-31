@@ -6,11 +6,11 @@ import ScopeSelects, { type ScopeValue as CacheFilter } from '../components/scop
 import { buildQuery } from '../lib/query'
 
 export default function CachePage() {
-  const [draft, setDraft] = useState<CacheFilter>({ appCode: '', env: '', namespace: '' })
+  const [draft, setDraft] = useState<CacheFilter>({ bizCode: '', appCode: '', env: '', namespace: '' })
   const [rows, setRows] = useState<DdcCacheCheckRow[]>([])
   const [checking, setChecking] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
-  const filterRef = useRef<CacheFilter>({ appCode: '', env: '', namespace: '' })
+  const filterRef = useRef<CacheFilter>({ bizCode: '', appCode: '', env: '', namespace: '' })
 
   const scopeReady = () => {
     const scope = filterRef.current
@@ -84,7 +84,7 @@ export default function CachePage() {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
           <ScopeSelects
-            value={{ appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
+            value={{ bizCode: draft.bizCode, appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
             onChange={(scope) => setDraft({ ...draft, ...scope })}
           />
           <Button type="primary" loading={checking} onClick={() => void check()}>检查缓存</Button>
