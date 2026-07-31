@@ -323,6 +323,8 @@ public class DdcManagementFacade {
 
     private DdcManagementServiceKey serviceKey(DdcServiceKey value) {
         return new DdcManagementServiceKey(
+                value.bizCode(),
+                value.appCode(),
                 value.env(),
                 value.namespace(),
                 value.serviceKind().name(),

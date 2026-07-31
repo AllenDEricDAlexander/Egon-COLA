@@ -97,6 +97,8 @@ class DdcRegistryAdminControllerTest {
 
     private DdcManagementServiceKey key() {
         return new DdcManagementServiceKey(
+                "pay-biz",
+                "orders-app",
                 "dev",
                 "codex-local",
                 "RPC_PROVIDER",
