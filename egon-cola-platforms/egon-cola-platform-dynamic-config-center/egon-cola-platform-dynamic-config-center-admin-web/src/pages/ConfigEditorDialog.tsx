@@ -157,6 +157,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
       title={editing ? '编辑配置' : '新建配置'}
       onCancel={onClose}
       onOk={() => void save()}
+      okText="保存"
       confirmLoading={saving}
       destroyOnHidden
       width={720}
