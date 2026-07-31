@@ -28,6 +28,11 @@ public class DdcNamespaceController {
         return ResultRecord.success(namespaceService.list(appCode, env));
     }
 
+    @GetMapping("/domains")
+    public ResultRecord<List<String>> domains() {
+        return ResultRecord.success(namespaceService.findDomains());
+    }
+
     @PostMapping
     public ResultRecord<DdcNamespaceEntity> save(@RequestBody DdcNamespaceEntity request) {
         return ResultRecord.success(namespaceService.save(request));

@@ -37,6 +37,10 @@ public class DdcNamespaceService {
         return namespaceRepository.findByAppCodeAndEnvAndNamespace(appCode, env, namespace);
     }
 
+    public List<String> findDomains() {
+        return namespaceRepository.findDistinctNamespaces();
+    }
+
     public List<DdcNamespaceEntity> list(String appCode, String env) {
         return namespaceRepository.findByAppCodeAndEnv(appCode, env);
     }
