@@ -47,12 +47,18 @@ Set `DDC_ADMIN_API_BASE_URL` to point at the admin backend:
 Keep credentials out of committed `.env` files. TLS termination and the DDC
 Admin authorization policy remain deployment responsibilities.
 
-## Scope selects
+## Scope model
 
-The scope filters (business domain, application, environment) are selectable
-dropdowns: the domain list is derived from existing namespace data, the
-application list is filtered by the selected domain, and the environment
-select offers the fixed dev/test/sit/gray/prod options. Every select also
+The scope hierarchy is biz (business domain) → app → namespace → env. The
+registry identity is always biz-ns-env-app; business domains, applications,
+namespaces and environments are managed entities with their own pages, and
+disabling any of them rejects new registrations and configuration pulls for
+that scope (`DDC_SCOPE_DISABLED`).
+
+The scope filters are selectable dropdowns loaded from the backend: the
+business domain list comes from `/bizs`, the application list is filtered by
+the selected domain, the namespace list by the selected application, and the
+environment list comes from the managed `/envs` entity. Every select also
 accepts typed values for new entries.
 
 ## Deployment
