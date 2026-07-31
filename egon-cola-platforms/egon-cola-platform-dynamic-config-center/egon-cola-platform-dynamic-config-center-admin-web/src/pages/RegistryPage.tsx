@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, Col, Input, Row, Statistic, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Col, Row, Statistic, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { RegistryInstance, RegistryService } from '../api/types'
+import EnvSelect from '../components/scope/EnvSelect'
+import NamespaceSelect from '../components/scope/NamespaceSelect'
 import { buildQuery, formatTime } from '../lib/query'
 
 const serviceQueries = [
@@ -152,19 +154,15 @@ export default function RegistryPage() {
       <Typography.Title level={3}>服务注册目录</Typography.Title>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col>
-          <Input
-            placeholder="env"
+          <EnvSelect
             value={draft.env}
-            onChange={(event) => setDraft({ ...draft, env: event.target.value })}
-            style={{ width: 160 }}
+            onChange={(env) => setDraft({ ...draft, env })}
           />
         </Col>
         <Col>
-          <Input
-            placeholder="namespace"
+          <NamespaceSelect
             value={draft.namespace}
-            onChange={(event) => setDraft({ ...draft, namespace: event.target.value })}
-            style={{ width: 160 }}
+            onChange={(namespace) => setDraft({ ...draft, namespace })}
           />
         </Col>
         <Col>

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Card, Form, Input, Modal, Switch, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcNamespace } from '../api/types'
+import AppSelect from '../components/scope/AppSelect'
+import EnvSelect from '../components/scope/EnvSelect'
 import { buildQuery, formatTime } from '../lib/query'
 
 type NamespaceFilter = { appCode: string; env: string }
@@ -103,18 +105,18 @@ export default function NamespacesPage() {
       </Card>
       <Card size="small" title={`命名空间（${namespaces.length}）`}>
         <div style={{ marginBottom: 12 }}>
-          <Input
-            placeholder="appCode"
-            value={draft.appCode}
-            onChange={(event) => setDraft({ ...draft, appCode: event.target.value })}
-            style={{ width: 180, marginRight: 8 }}
-          />
-          <Input
-            placeholder="env"
-            value={draft.env}
-            onChange={(event) => setDraft({ ...draft, env: event.target.value })}
-            style={{ width: 140, marginRight: 8 }}
-          />
+          <span style={{ display: 'inline-block', width: 200, marginRight: 8 }}>
+            <AppSelect
+              value={draft.appCode}
+              onChange={(appCode) => setDraft({ ...draft, appCode })}
+            />
+          </span>
+          <span style={{ display: 'inline-block', width: 160, marginRight: 8 }}>
+            <EnvSelect
+              value={draft.env}
+              onChange={(env) => setDraft({ ...draft, env })}
+            />
+          </span>
           <Button type="primary" onClick={applyFilter}>查询</Button>
         </div>
         <Table<DdcNamespace>
@@ -136,10 +138,10 @@ export default function NamespacesPage() {
       >
         <Form<NamespaceFormValues> form={form} layout="vertical" initialValues={{ enabled: true }}>
           <Form.Item name="appCode" label="应用编码" rules={[{ required: true }]}>
-            <Input />
+            <AppSelect />
           </Form.Item>
           <Form.Item name="env" label="环境" rules={[{ required: true }]}>
-            <Input />
+            <EnvSelect />
           </Form.Item>
           <Form.Item name="namespace" label="命名空间" rules={[{ required: true }]}>
             <Input />

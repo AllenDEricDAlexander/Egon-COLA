@@ -20,6 +20,12 @@ describe('RegistryPage', () => {
   it('loads and renders the four service kinds with dedup', async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = String(input)
+      if (url.includes('/namespaces/domains')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
+      if (url.includes('/apps')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
       if (url.includes('/registry/services')) {
         return Promise.resolve(jsonResponse(record({ services: [
           { serviceKind: 'HTTP_PROVIDER', protocol: 'http', serviceName: 'orders', group: 'g', version: 'v1' },
@@ -38,6 +44,12 @@ describe('RegistryPage', () => {
   it('loads instances when a service row is selected', async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = String(input)
+      if (url.includes('/namespaces/domains')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
+      if (url.includes('/apps')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
       if (url.includes('/registry/instances')) {
         return Promise.resolve(jsonResponse(record({ instances: [
           { instanceId: 'i-1', host: '10.0.0.1', port: 8080, secure: false, status: 'ONLINE', lastHeartbeatAt: '2026-07-31T10:00:00Z', expireAt: '2026-07-31T11:00:00Z', metadata: { buildId: 'b-1' } },
