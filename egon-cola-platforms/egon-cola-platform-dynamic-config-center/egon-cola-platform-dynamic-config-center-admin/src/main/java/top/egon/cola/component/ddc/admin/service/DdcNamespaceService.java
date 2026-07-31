@@ -68,6 +68,9 @@ public class DdcNamespaceService {
         if (!appRepository.existsByAppCode(namespace.getAppCode())) {
             throw new CommonException(DdcErrorStatus.APP_NOT_FOUND);
         }
+        if (namespaceRepository.existsByNamespaceCode(namespace.getNamespaceCode())) {
+            throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);
+        }
         if (namespaceRepository.existsByAppCodeAndNamespace(
                 namespace.getAppCode(), namespace.getNamespace())) {
             throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);

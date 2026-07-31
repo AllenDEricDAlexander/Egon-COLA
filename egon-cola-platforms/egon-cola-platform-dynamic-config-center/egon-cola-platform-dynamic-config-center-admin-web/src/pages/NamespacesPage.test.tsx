@@ -29,13 +29,13 @@ describe('NamespacesPage', () => {
       }
       if (url.includes('/namespaces') && init?.method === 'POST') {
         const body = JSON.parse(String(init.body))
-        expect(body).toMatchObject({ appCode: 'orders', namespace: 'primary', enabled: true })
+        expect(body).toMatchObject({ appCode: 'orders', namespaceCode: 'ns-primary', namespace: 'primary', enabled: true })
         expect(body).not.toHaveProperty('env')
         return Promise.resolve(jsonResponse(record({ id: 'n2', ...body, createdAt: '2026-07-02T00:00:00Z', updatedAt: '2026-07-02T00:00:00Z' })))
       }
       if (url.includes('/namespaces')) {
         return Promise.resolve(jsonResponse(record([{
-          id: 'n1', appCode: 'orders', namespace: 'default', description: '',
+          id: 'n1', appCode: 'orders', namespaceCode: 'ns-default', namespace: 'default', description: '',
           enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z',
         }])))
       }
@@ -49,7 +49,8 @@ describe('NamespacesPage', () => {
     const scopeInputs = () => Array.from(document.querySelectorAll('.ant-modal input.ant-select-input')) as HTMLInputElement[]
     fireEvent.change(scopeInputs()[0], { target: { value: 'orders' } })
     fireEvent.keyDown(scopeInputs()[0], { key: 'Enter', code: 'Enter', keyCode: 13 })
-    fireEvent.change(screen.getByLabelText('命名空间'), { target: { value: 'primary' } })
+    fireEvent.change(screen.getByLabelText('编码'), { target: { value: 'ns-primary' } })
+    fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'primary' } })
     fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
 
     await waitFor(() => {

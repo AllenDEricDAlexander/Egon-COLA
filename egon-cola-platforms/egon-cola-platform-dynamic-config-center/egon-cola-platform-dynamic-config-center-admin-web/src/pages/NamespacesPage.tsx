@@ -9,6 +9,7 @@ type NamespaceFilter = { appCode: string; keyword: string }
 
 type NamespaceFormValues = {
   appCode: string
+  namespaceCode: string
   namespace: string
   description?: string
   enabled: boolean
@@ -67,6 +68,7 @@ export default function NamespacesPage() {
     setEditing(item)
     form.setFieldsValue({
       appCode: item.appCode,
+      namespaceCode: item.namespaceCode,
       namespace: item.namespace,
       description: item.description ?? '',
       enabled: item.enabled,
@@ -126,7 +128,8 @@ export default function NamespacesPage() {
 
   const columns = [
     { title: '归属应用', dataIndex: 'appCode', key: 'appCode', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
-    { title: '命名空间', dataIndex: 'namespace', key: 'namespace' },
+    { title: '编码', dataIndex: 'namespaceCode', key: 'namespaceCode', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
+    { title: '名称', dataIndex: 'namespace', key: 'namespace' },
     { title: '描述', dataIndex: 'description', key: 'description' },
     {
       title: '启用',
@@ -193,7 +196,10 @@ export default function NamespacesPage() {
           <Form.Item name="appCode" label="归属应用" rules={[{ required: true }]}>
             <AppSelect disabled={Boolean(editing)} />
           </Form.Item>
-          <Form.Item name="namespace" label="命名空间" rules={[{ required: true }]}>
+          <Form.Item name="namespaceCode" label="编码" rules={[{ required: true }]}>
+            <Input disabled={Boolean(editing)} placeholder="全局唯一" />
+          </Form.Item>
+          <Form.Item name="namespace" label="名称" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item name="description" label="描述">

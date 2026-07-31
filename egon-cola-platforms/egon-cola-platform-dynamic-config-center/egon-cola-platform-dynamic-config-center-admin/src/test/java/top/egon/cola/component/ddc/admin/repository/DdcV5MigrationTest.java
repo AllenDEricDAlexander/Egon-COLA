@@ -39,6 +39,9 @@ class DdcV5MigrationTest {
             execute(connection, script(
                     "db/sqlite/V5__add_biz_env_and_detach_namespace_env.sql"
             ));
+            execute(connection, script(
+                    "db/sqlite/V6__add_namespace_code.sql"
+            ));
 
             assertThat(queryObject(connection, """
                     select biz_code from ddc_app where app_code = 'orders'
@@ -62,6 +65,14 @@ class DdcV5MigrationTest {
             assertThat(queryLong(connection, """
                     select count(*) from sqlite_master
                      where type = 'index' and name = 'uk_ddc_namespace_key'
+                    """)).isEqualTo(1L);
+            // V6：namespace_code 回填为 namespace 名且全局唯一
+            assertThat(queryObject(connection, """
+                    select namespace_code from ddc_namespace where id = 'ns-1'
+                    """)).isEqualTo("default");
+            assertThat(queryLong(connection, """
+                    select count(*) from sqlite_master
+                     where type = 'index' and name = 'uk_ddc_namespace_code'
                     """)).isEqualTo(1L);
         }
     }

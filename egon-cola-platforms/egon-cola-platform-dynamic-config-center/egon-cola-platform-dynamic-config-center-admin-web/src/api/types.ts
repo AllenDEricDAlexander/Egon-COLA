@@ -106,6 +106,7 @@ export type DdcApp = {
 export type DdcNamespace = {
   id: string
   appCode: string
+  namespaceCode: string
   namespace: string
   description?: string
   enabled: boolean

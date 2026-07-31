@@ -16,6 +16,10 @@ public interface DdcNamespaceRepository extends JpaRepository<DdcNamespaceEntity
 
     boolean existsByAppCodeAndNamespaceAndIdNot(String appCode, String namespace, String id);
 
+    boolean existsByNamespaceCode(String namespaceCode);
+
+    boolean existsByNamespaceCodeAndIdNot(String namespaceCode, String id);
+
     Optional<DdcNamespaceEntity> findByAppCodeAndNamespace(String appCode, String namespace);
 
     List<DdcNamespaceEntity> findByAppCode(String appCode);
