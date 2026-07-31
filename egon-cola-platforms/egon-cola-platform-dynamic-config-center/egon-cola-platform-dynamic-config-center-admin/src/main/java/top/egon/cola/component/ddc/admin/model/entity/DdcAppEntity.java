@@ -21,6 +21,9 @@ public class DdcAppEntity {
     @Column(name = "app_code", nullable = false, unique = true, length = 128)
     private String appCode;
 
+    @Column(name = "biz_code", nullable = false, length = 128)
+    private String bizCode;
+
     @Column(name = "app_name", nullable = false, length = 128)
     private String appName;
 

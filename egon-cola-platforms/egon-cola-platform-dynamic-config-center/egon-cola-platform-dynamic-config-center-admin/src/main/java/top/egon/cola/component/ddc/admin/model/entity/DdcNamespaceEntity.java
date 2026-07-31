@@ -21,9 +21,6 @@ public class DdcNamespaceEntity {
     @Column(name = "app_code", nullable = false, length = 128)
     private String appCode;
 
-    @Column(nullable = false, length = 32)
-    private String env;
-
     @Column(nullable = false, length = 128)
     private String namespace;
 

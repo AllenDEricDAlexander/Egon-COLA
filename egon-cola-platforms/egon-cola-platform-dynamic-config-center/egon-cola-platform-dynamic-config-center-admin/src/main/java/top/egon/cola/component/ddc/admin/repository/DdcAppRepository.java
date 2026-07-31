@@ -14,5 +14,11 @@ public interface DdcAppRepository extends JpaRepository<DdcAppEntity, String> {
 
     boolean existsByBizCode(String bizCode);
 
-    List<DdcAppEntity> findAllByAppCodeIn(List<String> appCodes);
+    List<DdcAppEntity> findByBizCode(String bizCode);
+
+    List<DdcAppEntity> findByAppCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase(
+            String appCode, String appName);
+
+    List<DdcAppEntity> findByBizCodeAndAppCodeContainingIgnoreCaseOrBizCodeAndAppNameContainingIgnoreCase(
+            String bizCode, String appCode, String bizCode2, String appName);
 }

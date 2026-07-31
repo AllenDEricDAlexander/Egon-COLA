@@ -10,13 +10,16 @@ import java.util.Optional;
 
 public interface DdcNamespaceRepository extends JpaRepository<DdcNamespaceEntity, String> {
 
-    Optional<DdcNamespaceEntity> findByAppCodeAndEnvAndNamespace(String appCode, String env, String namespace);
+    boolean existsByAppCode(String appCode);
 
-    List<DdcNamespaceEntity> findByAppCodeAndEnv(String appCode, String env);
+    boolean existsByAppCodeAndNamespace(String appCode, String namespace);
 
-    @Query("SELECT DISTINCT n.namespace FROM DdcNamespaceEntity n ORDER BY n.namespace")
-    List<String> findDistinctNamespaces();
+    boolean existsByAppCodeAndNamespaceAndIdNot(String appCode, String namespace, String id);
 
-    @Query("SELECT DISTINCT n.appCode FROM DdcNamespaceEntity n WHERE n.namespace = :namespace")
-    List<String> findDistinctAppCodesByNamespace(@Param("namespace") String namespace);
+    Optional<DdcNamespaceEntity> findByAppCodeAndNamespace(String appCode, String namespace);
+
+    List<DdcNamespaceEntity> findByAppCode(String appCode);
+
+    List<DdcNamespaceEntity> findByAppCodeAndNamespaceContainingIgnoreCase(
+            String appCode, String namespace);
 }

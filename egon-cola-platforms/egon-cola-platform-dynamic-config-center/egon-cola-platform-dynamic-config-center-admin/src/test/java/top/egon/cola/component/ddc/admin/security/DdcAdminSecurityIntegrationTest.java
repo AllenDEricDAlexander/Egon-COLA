@@ -114,15 +114,6 @@ class DdcAdminSecurityIntegrationTest {
     }
 
     @Test
-    void protectsNamespacesDomainsWithReadCapability() throws Exception {
-        mockMvc.perform(get("/api/v1/ddc/namespaces/domains"))
-                .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/v1/ddc/namespaces/domains")
-                        .with(authority("CAP_DDC_READ")))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     void rejectsDdcAdminPageAfterWebExtraction() throws Exception {
         mockMvc.perform(get("/ddc-admin/index.html"))
                 .andExpect(status().is4xxClientError());
