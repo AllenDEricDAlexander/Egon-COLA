@@ -114,9 +114,9 @@ class DdcAdminSecurityIntegrationTest {
     }
 
     @Test
-    void permitsDdcAdminPageWithoutBearerToken() throws Exception {
+    void rejectsDdcAdminPageAfterWebExtraction() throws Exception {
         mockMvc.perform(get("/ddc-admin/index.html"))
-                .andExpect(status().isOk());
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
