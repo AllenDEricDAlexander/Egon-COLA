@@ -45,7 +45,13 @@ ACK, operation, and configuration-client projection data.
 |---|---|
 | `egon-cola-platform-dynamic-config-center-starter` | The only consumer SDK: `@DdcValue`, typed management APIs, startup synchronization, refresh, ACK, CONFIG_CLIENT leases, HMAC, and service-registry contracts |
 | `egon-cola-platform-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
+| `egon-cola-platform-dynamic-config-center-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
 | `egon-cola-platform-dynamic-config-center-test` | Starter-only sample and black-box consumer verification; it has no Admin dependency |
+
+The Admin web UI has been extracted from the jar (`/ddc-admin` is no longer served
+by Admin). The console deploys as its own container, points at Admin via
+`DDC_ADMIN_API_BASE_URL`, and proxies `/api` same-origin through its static
+server, so Admin needs no CORS configuration.
 
 Applications add only the Starter. `egon.cola.component.ddc.enabled=true` explicitly
 starts the `CONFIG_CLIENT` registration, default-report, pull, Redis subscription,

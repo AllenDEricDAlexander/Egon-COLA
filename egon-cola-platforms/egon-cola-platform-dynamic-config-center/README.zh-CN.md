@@ -39,7 +39,12 @@ Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL
 |---|---|
 | `egon-cola-platform-dynamic-config-center-starter` | 唯一业务侧 SDK：`@DdcValue`、类型化管理 API、启动同步、刷新、ACK、CONFIG_CLIENT 租约、HMAC 和服务注册契约 |
 | `egon-cola-platform-dynamic-config-center-admin` | 独立 REST Admin、PostgreSQL 持久化、Redis 缓存与租约、注册中心 API 和同步发布状态机 |
+| `egon-cola-platform-dynamic-config-center-admin-web` | 独立管理控制台（React + antd + Vite，纯 Node 工程，不进 Maven reactor）；构建与部署说明见 `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
 | `egon-cola-platform-dynamic-config-center-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
+
+Admin 的 webui 已从 jar 中摘出（`/ddc-admin` 不再由 Admin 提供服务）：管理控制台以
+独立容器部署，经 `DDC_ADMIN_API_BASE_URL` 指向 Admin，`/api` 请求由 static-server
+同源反代，Admin 侧无需 CORS 配置。
 
 业务应用只引入 Starter。`egon.cola.component.ddc.enabled=true` 会显式启动
 `CONFIG_CLIENT` 注册、默认值上报、配置拉取、Redis 订阅、心跳和停机下线闭环；
