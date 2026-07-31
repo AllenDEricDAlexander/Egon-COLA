@@ -15,24 +15,30 @@ type Props = {
 export default function ScopeSelects({ value, onChange, includeApp = true, disabled = false }: Props) {
   return (
     <Space wrap>
-      <NamespaceSelect
-        value={value.namespace}
-        disabled={disabled}
-        onChange={(namespace) => onChange({ ...value, namespace, appCode: '' })}
-      />
-      {includeApp && (
-        <AppSelect
-          value={value.appCode}
-          namespace={value.namespace}
+      <span style={{ width: 200, display: 'inline-block' }}>
+        <NamespaceSelect
+          value={value.namespace}
           disabled={disabled}
-          onChange={(appCode) => onChange({ ...value, appCode })}
+          onChange={(namespace) => onChange({ ...value, namespace, appCode: '' })}
         />
+      </span>
+      {includeApp && (
+        <span style={{ width: 200, display: 'inline-block' }}>
+          <AppSelect
+            value={value.appCode}
+            namespace={value.namespace}
+            disabled={disabled}
+            onChange={(appCode) => onChange({ ...value, appCode })}
+          />
+        </span>
       )}
-      <EnvSelect
-        value={value.env}
-        disabled={disabled}
-        onChange={(env) => onChange({ ...value, env })}
-      />
+      <span style={{ width: 140, display: 'inline-block' }}>
+        <EnvSelect
+          value={value.env}
+          disabled={disabled}
+          onChange={(env) => onChange({ ...value, env })}
+        />
+      </span>
     </Space>
   )
 }

@@ -111,7 +111,7 @@ export default function NamespacesPage() {
               onChange={(appCode) => setDraft({ ...draft, appCode })}
             />
           </span>
-          <span style={{ display: 'inline-block', width: 160, marginRight: 8 }}>
+          <span style={{ display: 'inline-block', width: 140, marginRight: 8 }}>
             <EnvSelect
               value={draft.env}
               onChange={(env) => setDraft({ ...draft, env })}

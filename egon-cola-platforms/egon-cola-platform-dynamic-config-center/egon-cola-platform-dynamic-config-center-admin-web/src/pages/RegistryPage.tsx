@@ -154,16 +154,20 @@ export default function RegistryPage() {
       <Typography.Title level={3}>服务注册目录</Typography.Title>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col>
-          <EnvSelect
-            value={draft.env}
-            onChange={(env) => setDraft({ ...draft, env })}
-          />
+          <span style={{ width: 140, display: 'inline-block' }}>
+            <EnvSelect
+              value={draft.env}
+              onChange={(env) => setDraft({ ...draft, env })}
+            />
+          </span>
         </Col>
         <Col>
-          <NamespaceSelect
-            value={draft.namespace}
-            onChange={(namespace) => setDraft({ ...draft, namespace })}
-          />
+          <span style={{ width: 200, display: 'inline-block' }}>
+            <NamespaceSelect
+              value={draft.namespace}
+              onChange={(namespace) => setDraft({ ...draft, namespace })}
+            />
+          </span>
         </Col>
         <Col>
           <Button type="primary" onClick={applyFilter}>刷新</Button>
