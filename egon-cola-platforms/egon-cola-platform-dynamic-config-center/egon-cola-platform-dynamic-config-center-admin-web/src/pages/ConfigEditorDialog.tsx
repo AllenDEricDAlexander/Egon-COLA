@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Form, Input, Modal, Select, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcApp, DdcConfig, DdcNamespace } from '../api/types'
+import ScopeSelects, { type ScopeValue } from '../components/scope/ScopeSelects'
 import { prepareConfigEditor, serializeConfigEditor, type ConfigEditor } from '../lib/configFormat'
 
-export type ConfigScope = { appCode: string; env: string; namespace: string }
+export type ConfigScope = ScopeValue
 
 type Props = {
   open: boolean
@@ -105,6 +106,17 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
     } catch {
       return // antd 表单校验失败已就地展示
     }
+    // scope 三字段经 ScopeSelects 写入表单但未注册 Form.Item，需手动校验
+    const allValues = form.getFieldsValue() as FormValues
+    const scope = {
+      appCode: allValues.appCode ?? '',
+      env: allValues.env ?? '',
+      namespace: allValues.namespace ?? '',
+    }
+    if (scope.appCode.trim() === '' || scope.env.trim() === '' || scope.namespace.trim() === '') {
+      message.warning('请填写业务域 / 应用 / 环境')
+      return
+    }
     setSaving(true)
     try {
       const currentEditor = editor ?? prepareConfigEditor(values)
@@ -119,7 +131,6 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
           },
         })
       } else {
-        const scope = { appCode: values.appCode, env: values.env, namespace: values.namespace }
         await ensureAppAndNamespace(scope)
         let defaultValue = ''
         if (String(values.defaultValue ?? '').trim() !== '') {
@@ -163,17 +174,19 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
       width={720}
     >
       <Form<FormValues> form={form} layout="vertical">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <Form.Item name="appCode" label="应用编码" rules={[{ required: true }]}>
-            <Input disabled={editing} />
-          </Form.Item>
-          <Form.Item name="env" label="环境" rules={[{ required: true }]}>
-            <Input disabled={editing} />
-          </Form.Item>
-          <Form.Item name="namespace" label="命名空间" rules={[{ required: true }]}>
-            <Input disabled={editing} />
-          </Form.Item>
-        </div>
+        <Form.Item label="业务域 / 应用 / 环境" required shouldUpdate>
+          {() => (
+            <ScopeSelects
+              value={{
+                appCode: form.getFieldValue('appCode') ?? '',
+                env: form.getFieldValue('env') ?? '',
+                namespace: form.getFieldValue('namespace') ?? '',
+              }}
+              onChange={(scope) => form.setFieldsValue(scope)}
+              disabled={editing}
+            />
+          )}
+        </Form.Item>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
           <Form.Item name="configKey" label="配置 Key" rules={[{ required: true }]}>
             <Input disabled={editing} />

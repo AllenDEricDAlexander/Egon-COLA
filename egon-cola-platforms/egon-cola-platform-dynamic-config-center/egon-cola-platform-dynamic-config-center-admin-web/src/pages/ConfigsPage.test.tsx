@@ -27,6 +27,12 @@ describe('ConfigsPage', () => {
   it('renders config rows with format badge and actions', async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = String(input)
+      if (url.includes('/namespaces/domains')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
+      if (url.includes('/apps')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
       if (url.includes('/configs')) return Promise.resolve(jsonResponse(record([configRow])))
       return Promise.resolve(jsonResponse(record(null)))
     })
@@ -41,6 +47,12 @@ describe('ConfigsPage', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(fetch).mockImplementation((input, init) => {
       const url = String(input)
+      if (url.includes('/namespaces/domains')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
+      if (url.includes('/apps')) {
+        return Promise.resolve(jsonResponse(record([])))
+      }
       if (url.includes('/publish')) {
         const body = JSON.parse(String(init?.body))
         expect(body.changeId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)

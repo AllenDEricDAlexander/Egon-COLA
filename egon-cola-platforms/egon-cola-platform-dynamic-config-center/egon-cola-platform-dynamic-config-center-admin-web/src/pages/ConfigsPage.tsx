@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Card, Input, Modal, Space, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcConfig, DdcConfigVersion, DdcPublishResult } from '../api/types'
+import ScopeSelects, { type ScopeValue } from '../components/scope/ScopeSelects'
 import { prepareConfigEditor, detectConfigFormat } from '../lib/configFormat'
 import { buildQuery, formatTime } from '../lib/query'
 import { uuidV7 } from '../lib/uuid'
 import ConfigEditorDialog, { type ConfigScope } from './ConfigEditorDialog'
 
-type ConfigFilter = { appCode: string; env: string; namespace: string; configKey: string }
+type ConfigFilter = ScopeValue & { configKey: string }
 
 export default function ConfigsPage() {
   const [draft, setDraft] = useState<ConfigFilter>({ appCode: '', env: '', namespace: '', configKey: '' })
@@ -174,9 +175,10 @@ export default function ConfigsPage() {
       <Typography.Title level={3}>配置中心管理</Typography.Title>
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
-          <Input placeholder="appCode" value={draft.appCode} onChange={(event) => setDraft({ ...draft, appCode: event.target.value })} style={{ width: 160 }} />
-          <Input placeholder="env" value={draft.env} onChange={(event) => setDraft({ ...draft, env: event.target.value })} style={{ width: 140 }} />
-          <Input placeholder="namespace" value={draft.namespace} onChange={(event) => setDraft({ ...draft, namespace: event.target.value })} style={{ width: 140 }} />
+          <ScopeSelects
+            value={{ appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
+            onChange={(scope) => setDraft({ ...draft, ...scope })}
+          />
           <Input placeholder="configKey" value={draft.configKey} onChange={(event) => setDraft({ ...draft, configKey: event.target.value })} style={{ width: 180 }} />
           <Button type="primary" onClick={applyFilter}>查询</Button>
           <Button onClick={openNewDialog}>新建配置</Button>
