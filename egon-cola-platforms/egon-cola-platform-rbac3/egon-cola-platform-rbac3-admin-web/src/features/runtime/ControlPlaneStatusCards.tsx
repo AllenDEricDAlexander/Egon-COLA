@@ -4,7 +4,7 @@ import type { ControlPlaneRuntimeStatus } from './runtime.api'
 const statusColor = (status: string) => ['ACCEPTED', 'ACTIVE', 'READY', 'REGISTERED', 'ROUTABLE', 'UP_TO_DATE', 'HEALTHY'].includes(status) ? 'green' : ['MISSING', 'FAILED', 'STALE', 'LAGGING', 'DEGRADED'].includes(status) ? 'red' : 'orange'
 
 export const ControlPlaneStatusCards = ({ status }: { readonly status: ControlPlaneRuntimeStatus }) => (
-  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+  <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     <Row gutter={16}>
       <Col span={6}><StatusCard title="DDC Config Client" status={status.ddcConfigClient.state} detail={`${status.ddcConfigClient.instanceId ?? '-'} · ${status.ddcConfigClient.leaseIdFingerprint ?? '无租约指纹'} · ${status.ddcConfigClient.leaseExpireAt ?? '无有效租约'}${status.ddcConfigClient.lastApplyFailureCode ? ` · ${status.ddcConfigClient.lastApplyFailureCode}` : ''}`} /></Col>
       <Col span={6}><StatusCard title="Gateway Definition" status={status.definition.status} detail={status.definition.definitionSetId ?? '-'} /></Col>
@@ -27,7 +27,7 @@ export const ControlPlaneStatusCards = ({ status }: { readonly status: ControlPl
 
 const StatusCard = ({ title, status, detail }: { readonly title: string; readonly status: string; readonly detail?: string }) => (
   <Card size="small" title={title}>
-    <Space direction="vertical">
+    <Space orientation="vertical">
       <Tag color={statusColor(status)}>{status}</Tag>
       {detail && <Typography.Text type="secondary">{detail}</Typography.Text>}
     </Space>

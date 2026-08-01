@@ -52,7 +52,7 @@ export const AuthorizationSimulationPage = () => {
       </Form>
       <PageState loading={false} error={simulation.error} empty={!simulation.data} emptyDescription="填写条件后执行模拟">
         {simulation.data && (
-          <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 16 }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%', marginTop: 16 }}>
             <Row gutter={16}>
               <Col span={12}><DecisionCard title="当前判断" bundle={simulation.data.current} /></Col>
               <Col span={12}><DecisionCard title="假设判断" bundle={simulation.data.hypothetical} /></Col>

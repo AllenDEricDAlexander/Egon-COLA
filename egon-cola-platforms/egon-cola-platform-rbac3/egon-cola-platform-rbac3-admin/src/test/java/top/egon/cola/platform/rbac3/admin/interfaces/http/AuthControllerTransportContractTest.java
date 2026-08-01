@@ -69,7 +69,7 @@ class AuthControllerTransportContractTest {
     }
 
     @Test
-    void refreshRejectsAmbiguousOrMissingCredentialSources() {
+    void refreshRejectsAmbiguousCredentialSources() {
         AuthController controller = controller(
                 mock(RefreshFacade.class), mock(DatabaseClock.class));
 
@@ -77,9 +77,16 @@ class AuthControllerTransportContractTest {
                 new AuthController.RefreshRequest("body-token"), "cookie-token"))
                 .isInstanceOf(Rbac3RuleViolation.class)
                 .hasMessageContaining("REQUEST_INVALID");
+    }
+
+    @Test
+    void refreshRequiresAuthenticationWhenCredentialSourcesAreMissing() {
+        AuthController controller = controller(
+                mock(RefreshFacade.class), mock(DatabaseClock.class));
+
         assertThatThrownBy(() -> controller.refresh(null, null))
                 .isInstanceOf(Rbac3RuleViolation.class)
-                .hasMessageContaining("REQUEST_INVALID");
+                .hasMessageContaining("AUTHENTICATION_REQUIRED");
     }
 
     private AuthController controller(

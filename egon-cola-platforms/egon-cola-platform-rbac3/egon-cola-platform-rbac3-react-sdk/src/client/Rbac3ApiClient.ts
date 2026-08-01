@@ -70,6 +70,10 @@ export class Rbac3ApiClient implements Rbac3Client {
       await this.request<unknown>('/api/rbac3/v1/auth/logout', {
         method: 'POST',
       }, false)
+    } catch (error) {
+      if (!(error instanceof Rbac3RequestError) || error.status !== 401) {
+        throw error
+      }
     } finally {
       this.tokenStore.clear()
     }

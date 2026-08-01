@@ -167,7 +167,10 @@ public class AuthController {
             String refreshCookie) {
         String bodyToken = request == null ? null : normalized(request.refreshToken());
         String cookieToken = normalized(refreshCookie);
-        if ((bodyToken == null) == (cookieToken == null)) {
+        if (bodyToken == null && cookieToken == null) {
+            throw new Rbac3RuleViolation("AUTHENTICATION_REQUIRED");
+        }
+        if (bodyToken != null && cookieToken != null) {
             throw new Rbac3RuleViolation("REQUEST_INVALID");
         }
         return bodyToken == null ? cookieToken : bodyToken;

@@ -67,7 +67,7 @@ export const ManifestDetailPage = ({ manifestId }: ManifestDetailPageProps) => {
         empty={!query.data}
       >
         {query.data && (
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Descriptions bordered column={2}>
               <Descriptions.Item label="Manifest ID">{query.data.manifestId}</Descriptions.Item>
               <Descriptions.Item label="状态"><Tag>{query.data.status}</Tag></Descriptions.Item>

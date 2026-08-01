@@ -168,6 +168,28 @@ describe('Rbac3Provider', () => {
     })
     expect(fetcher).toHaveBeenCalledTimes(1)
   })
+
+  it('treats an unauthorized logout as an already closed session', async () => {
+    const store = new InMemoryAccessTokenStore('expired-access')
+    const fetcher = vi.fn(async () => jsonResponse({
+      error: {
+        code: 'AUTHENTICATION_REQUIRED',
+        message: 'login required',
+        retryable: false,
+        details: [],
+      },
+      meta: { traceId: 'trace-logout' },
+    }, 401))
+    const sdk = new Rbac3ApiClient({
+      accessTokenStore: store,
+      fetch: fetcher as typeof fetch,
+    })
+
+    await expect(sdk.logout()).resolves.toBeUndefined()
+
+    expect(store.get()).toBeNull()
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
 })
 
 const jsonResponse = (body: unknown, status = 200) => new Response(

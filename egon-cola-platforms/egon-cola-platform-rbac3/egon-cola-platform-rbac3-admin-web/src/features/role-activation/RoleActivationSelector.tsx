@@ -25,12 +25,12 @@ export const findDsdConflict = (
 export const RoleActivationSelector = ({ candidates, selectedRoleIds, disabled, onChange }: RoleActivationSelectorProps) => {
   const conflict = findDsdConflict(candidates, selectedRoleIds)
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       {conflict && <Alert type="error" showIcon message="同一 APP 下角色互斥" description={`互斥集合 ${conflict} 中只能激活一个根角色。`} />}
       {candidates.applications.map((application) => (
         <Card key={application.applicationId} size="small" title={`${application.applicationCode} · APP ${application.applicationId}`}>
           <div role="group" aria-label={`${application.applicationCode} 激活角色`}>
-            <Space direction="vertical">
+            <Space orientation="vertical">
               {application.candidates.map((candidate) => (
                 <Checkbox
                   key={candidate.rootRoleId}

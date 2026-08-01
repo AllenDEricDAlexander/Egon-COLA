@@ -10,7 +10,7 @@ export interface AuthenticationShellProps extends PropsWithChildren { readonly a
 export const AuthenticationShell = ({ authApi, children }: AuthenticationShellProps) => {
   const session = useRbac3Session()
   if (['UNINITIALIZED', 'LOADING_BOOTSTRAP', 'REFRESHING_VERSION'].includes(session.status)) {
-    return <main className="rbac3-centered"><Spin size="large" tip="正在重建安全会话" /></main>
+    return <main className="rbac3-centered"><Spin size="large" description="正在重建安全会话" /></main>
   }
   if (session.status === 'AUTHENTICATION_REQUIRED') return <LoginPage authApi={authApi} onAuthenticated={session.retry} />
   if (['ACTIVATION_REQUIRED', 'REPLACING_ACTIVE_ROLES'].includes(session.status)) {

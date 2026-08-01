@@ -31,7 +31,7 @@ const Snapshot = ({ title, value }: { readonly title: string; readonly value: Re
 export const AuditDetailDrawer = ({ audit, onClose }: AuditDetailDrawerProps) => (
   <Drawer title="审计详情" open={audit !== null} width={720} onClose={onClose} destroyOnHidden>
     {audit && (
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         <Descriptions bordered column={2}>
           <Descriptions.Item label="Event"><Tag>{audit.eventType}</Tag></Descriptions.Item>
           <Descriptions.Item label="Outcome"><Tag>{audit.outcome}</Tag></Descriptions.Item>
