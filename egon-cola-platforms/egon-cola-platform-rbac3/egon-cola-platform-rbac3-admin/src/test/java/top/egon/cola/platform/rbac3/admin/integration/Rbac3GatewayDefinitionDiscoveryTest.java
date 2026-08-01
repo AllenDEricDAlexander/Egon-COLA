@@ -20,11 +20,13 @@ import top.egon.cola.platform.rbac3.admin.interfaces.http.RuntimeController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.SessionController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.TenantUserDirectoryController;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class Rbac3GatewayDefinitionDiscoveryTest {
@@ -57,6 +59,11 @@ class Rbac3GatewayDefinitionDiscoveryTest {
                 if (operation != null) {
                     assertTrue(operationNames.add(operation.name()),
                             () -> "duplicate gateway operation: " + operation.name());
+                    assertTrue(operation.name().matches(
+                            "rbac3(?:-[a-z0-9]+)+-v\\d+"));
+                    assertFalse(operation.summary().isBlank());
+                    assertTrue(Arrays.asList(operation.tags()).contains("rbac3"));
+                    assertTrue(operation.tags().length >= 2);
                 }
             }
         }
