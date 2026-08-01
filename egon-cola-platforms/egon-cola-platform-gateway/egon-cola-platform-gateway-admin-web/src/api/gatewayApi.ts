@@ -160,6 +160,7 @@ export const gatewayApi = {
     apiRequest<Application[]>(`${admin}/applications?${query(scope)}`, { signal }),
   createApplication: (
     application: {
+      bizCode: string
       applicationCode: string
       displayName: string
       env: string

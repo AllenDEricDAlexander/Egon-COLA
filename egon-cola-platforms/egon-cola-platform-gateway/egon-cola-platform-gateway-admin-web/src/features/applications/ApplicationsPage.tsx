@@ -14,6 +14,7 @@ import {
 } from 'antd'
 import { useState } from 'react'
 import { gatewayApi } from '../../api/gatewayApi'
+import { GatewayApiError } from '../../api/client'
 import type { Application, Credential, IssuedCredential } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { JsonPanel } from '../../components/JsonPanel'
@@ -39,23 +40,33 @@ export const ApplicationsPage = () => {
     enabled: Boolean(application),
   })
   const save = useMutation({
-    mutationFn: (values: any) => editing
+    mutationFn: (values: any) => editing?.id
       ? gatewayApi.updateApplication(editing.id, {
           displayName: values.displayName,
           description: values.description,
           expectedRevision: editing.revision,
         })
       : gatewayApi.createApplication({
-        ...values,
         bizCode: scope.bizCode,
-        env: scope.env,
         namespace: scope.namespace,
+        env: scope.env,
+        applicationCode: scope.appCode,
+        displayName: values.displayName,
+        description: values.description,
       }),
     onSuccess: async () => {
       setEditing(undefined)
       form.resetFields()
       await queryClient.invalidateQueries({ queryKey: ['applications', scope] })
       void message.success('Application 已保存')
+    },
+    onError: async (error) => {
+      if (error instanceof GatewayApiError
+        && error.code === 'GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS') {
+        await queryClient.invalidateQueries({
+          queryKey: ['applications', scope],
+        })
+      }
     },
   })
   const createCredential = useMutation({
@@ -94,6 +105,7 @@ export const ApplicationsPage = () => {
           type="primary"
           disabled={!canWrite}
           onClick={() => {
+            save.reset()
             setEditing({} as Application)
             form.resetFields()
           }}
@@ -132,16 +144,31 @@ export const ApplicationsPage = () => {
       <Modal
         title={editing?.id ? '编辑 Application' : '新建 Application'}
         open={Boolean(editing)}
-        onCancel={() => setEditing(undefined)}
+        onCancel={() => {
+          save.reset()
+          setEditing(undefined)
+        }}
         onOk={() => form.submit()}
         confirmLoading={save.isPending}
         destroyOnHidden
       >
+        {save.error && <QueryFailure error={save.error} />}
         <Form form={form} layout="vertical" onFinish={(values) => save.mutate(values)}>
           {!editing?.id && (
-            <Form.Item name="applicationCode" label="Application Code" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
+            <>
+              <Form.Item label="业务域">
+                <Input value={scope.bizCode} disabled />
+              </Form.Item>
+              <Form.Item label="命名空间">
+                <Input value={scope.namespace} disabled />
+              </Form.Item>
+              <Form.Item label="环境">
+                <Input value={scope.env} disabled />
+              </Form.Item>
+              <Form.Item label="应用">
+                <Input value={scope.appCode} disabled />
+              </Form.Item>
+            </>
           )}
           <Form.Item name="displayName" label="名称" rules={[{ required: true }]}>
             <Input />

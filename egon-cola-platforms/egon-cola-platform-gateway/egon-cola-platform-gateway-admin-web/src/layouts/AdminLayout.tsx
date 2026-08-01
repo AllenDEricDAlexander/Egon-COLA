@@ -15,11 +15,18 @@ import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useScope } from '../hooks/useScope'
-import { scopeOptions } from '../hooks/scopeDefaults'
+import { optionsFor, type ScopeField } from '../hooks/scopeDefaults'
 import { useAuth } from '../auth/AuthContext'
 import { useCapability, type Capability } from '../app/capabilities'
 
 const { Header, Sider, Content } = Layout
+
+const selectors: Array<[ScopeField, string]> = [
+  ['bizCode', '业务域'],
+  ['namespace', '命名空间'],
+  ['env', '环境'],
+  ['appCode', '应用'],
+]
 
 const navigation: Array<{
   key: string
@@ -61,7 +68,7 @@ export const AdminLayout = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { scope, setScope } = useScope()
+  const { scope, bindings, changeScope: selectScope } = useScope()
   const auth = useAuth()
   const canRead = useCapability('gateway:read')
   const items = canRead
@@ -73,14 +80,16 @@ export const AdminLayout = () => {
     : []
 
   const changeScope = (
-    field: 'bizCode' | 'appCode' | 'env' | 'namespace',
+    field: ScopeField,
     value: string,
   ) => {
     if (!window.confirm('切换作用域会清空当前缓存和未保存表单，是否继续？')) {
       return
     }
-    setScope({ ...scope, [field]: value })
-    queryClient.clear()
+    selectScope(field, value)
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[0] !== 'gateway-scopes',
+    })
     navigate('/dashboard')
   }
 
@@ -104,37 +113,15 @@ export const AdminLayout = () => {
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed((value) => !value)}
             />
-            <Select
-              aria-label="业务域"
-              value={scope.bizCode}
-              options={scopeOptions(scope.bizCode, ['default'], 'Biz')}
-              onChange={(value) => changeScope('bizCode', value)}
-            />
-            <Select
-              aria-label="应用"
-              value={scope.appCode}
-              options={scopeOptions(scope.appCode, ['default-app'], 'App')}
-              onChange={(value) => changeScope('appCode', value)}
-            />
-            <Select
-              aria-label="环境"
-              value={scope.env}
-              options={scopeOptions(
-                scope.env,
-                ['dev', 'test', 'staging', 'prod'],
-                'Env',
-              )}
-              onChange={(value) => changeScope('env', value)}
-            />
-            <Select
-              aria-label="命名空间"
-              value={scope.namespace}
-              options={scopeOptions(
-                scope.namespace,
-                ['default', 'public', 'internal'],
-              )}
-              onChange={(value) => changeScope('namespace', value)}
-            />
+            {selectors.map(([field, label]) => (
+              <Select
+                key={field}
+                aria-label={label}
+                value={scope[field]}
+                options={optionsFor(bindings, scope, field)}
+                onChange={(value) => changeScope(field, value)}
+              />
+            ))}
           </Space>
           <Space>
             <Badge status="processing" text="Admin API" />

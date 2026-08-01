@@ -32,11 +32,12 @@ export type GatewayGroup = Scope & {
   updatedAt?: string
 }
 
-export type Application = Scope & {
+export type Application = Omit<Scope, 'appCode'> & {
   id: string
   applicationCode: string
   displayName: string
   description?: string
+  ddcMatched: boolean
   revision: number
 }
 

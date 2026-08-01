@@ -99,10 +99,3 @@ export const configuredInitialScope = configuredScope(
   import.meta.env.VITE_GATEWAY_ADMIN_DEFAULT_ENV,
   import.meta.env.VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE,
 )
-
-export const scopeOptions = (
-  _current: string,
-  values: string[],
-  label = 'Namespace',
-) => [...new Set(values.map((value) => value.trim()).filter(Boolean))]
-  .map((value) => ({ value, label: `${label}: ${value}` }))

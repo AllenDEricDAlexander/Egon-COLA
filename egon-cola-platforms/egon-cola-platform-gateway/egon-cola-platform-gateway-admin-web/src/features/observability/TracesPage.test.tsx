@@ -3,13 +3,23 @@ import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { gatewayApi } from '../../api/gatewayApi'
 import type { Page, TraceSummary } from '../../api/types'
-import { ScopeProvider } from '../../hooks/useScope'
 import { TracesPage } from './TracesPage'
 
 vi.mock('../../api/gatewayApi', () => ({
   gatewayApi: {
     traces: vi.fn(),
   },
+}))
+
+vi.mock('../../hooks/useScope', () => ({
+  useScope: () => ({
+    scope: {
+      bizCode: 'retail',
+      namespace: 'default',
+      env: 'local',
+      appCode: 'order',
+    },
+  }),
 }))
 
 const emptyPage: Page<TraceSummary> = {
@@ -72,9 +82,7 @@ it('shows a gateway call that arrives after the page was opened', async () => {
   })
   render(
     <QueryClientProvider client={queryClient}>
-      <ScopeProvider>
-        <TracesPage />
-      </ScopeProvider>
+      <TracesPage />
     </QueryClientProvider>,
   )
 
