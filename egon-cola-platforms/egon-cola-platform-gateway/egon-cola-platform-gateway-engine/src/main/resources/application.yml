@@ -53,6 +53,17 @@ egon:
         registry:
           enabled: ${DDC_REGISTRY_ENABLED:true}
       gateway:
+        provider:
+          http:
+            enabled: ${GATEWAY_ENGINE_DDC_REGISTRATION_ENABLED:true}
+            instance-id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}
+            service-name: egon-cola-gateway-engine
+            version: ${GATEWAY_ENGINE_VERSION:5.3.2}
+            protocol: http
+            advertised-host: ${GATEWAY_ENGINE_DDC_ADVERTISED_HOST:127.0.0.1}
+            port: ${GATEWAY_ENGINE_DDC_ADVERTISED_PORT:18081}
+            metadata:
+              gateway.component: engine
         engine:
           http:
             public-tls:

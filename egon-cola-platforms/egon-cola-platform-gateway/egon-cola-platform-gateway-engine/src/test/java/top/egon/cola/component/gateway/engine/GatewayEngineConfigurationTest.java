@@ -46,6 +46,14 @@ class GatewayEngineConfigurationTest {
                 .getProperty("egon.cola.component.ddc.env"));
         assertEquals("${DDC_APP_CODE:ge}", loader.getObject()
                 .getProperty("egon.cola.component.ddc.app-code"));
+        assertEquals("${GATEWAY_ENGINE_DDC_REGISTRATION_ENABLED:true}",
+                loader.getObject().getProperty(
+                        "egon.cola.component.gateway.provider.http.enabled"));
+        assertEquals("egon-cola-gateway-engine", loader.getObject()
+                .getProperty(
+                        "egon.cola.component.gateway.provider.http.service-name"));
+        assertEquals("engine", loader.getObject().getProperty(
+                "egon.cola.component.gateway.provider.http.metadata.gateway.component"));
     }
 
     @Test
