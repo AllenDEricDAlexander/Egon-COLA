@@ -98,7 +98,6 @@ class RpcProcessIT {
                 );
                 DdcServiceKey providerKey = serviceKey(
                         env,
-                        namespace,
                         DdcServiceKind.RPC_PROVIDER,
                         "egon.rpc.test.v1.EchoService"
                 );
@@ -139,7 +138,6 @@ class RpcProcessIT {
                 );
                 DdcServiceKey gatewayKey = serviceKey(
                         env,
-                        namespace,
                         DdcServiceKind.INTERNAL_GATEWAY,
                         "egon-internal-rpc-gateway"
                 );
@@ -315,14 +313,12 @@ class RpcProcessIT {
 
     private DdcServiceKey serviceKey(
             String env,
-            String namespace,
             DdcServiceKind kind,
             String serviceName) {
         return new DdcServiceKey(
                 "test-biz",
-                "test-app",
                 env,
-                namespace,
+                "test-app",
                 kind,
                 serviceName,
                 "default",

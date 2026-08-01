@@ -59,7 +59,6 @@ class RpcTcpCallTest {
             gateway = new MockRpcGateway(
                     gatewayRegistry,
                     "test",
-                    "default",
                     "mock-gateway-1",
                     MockGatewayProperties.defaults(),
                     List.of(EchoServiceGrpc.getEchoMethod()

@@ -50,7 +50,6 @@ class RpcMultiProviderDirectoryTest {
         MockRpcGateway gateway = new MockRpcGateway(
                 new InMemoryDdcServiceRegistryClient(backend),
                 "test",
-                "default",
                 "mock-gateway-multi",
                 MockGatewayProperties.defaults(),
                 List.of(EchoServiceGrpc.getEchoMethod().getFullMethodName())
@@ -171,9 +170,8 @@ class RpcMultiProviderDirectoryTest {
                 instanceId,
                 new DdcServiceKey(
                         "test-biz",
-                        "test-app",
                         "test",
-                        "default",
+                        "test-app",
                         DdcServiceKind.RPC_PROVIDER,
                         "egon.rpc.test.v1.EchoService",
                         "default",

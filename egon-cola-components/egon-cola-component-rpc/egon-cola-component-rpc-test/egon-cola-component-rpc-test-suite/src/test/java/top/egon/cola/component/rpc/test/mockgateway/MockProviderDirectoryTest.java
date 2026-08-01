@@ -31,7 +31,6 @@ class MockProviderDirectoryTest {
         MockProviderDirectory directory = new MockProviderDirectory(
                 registry,
                 "test",
-                "default",
                 retained::set
         );
 
@@ -62,9 +61,8 @@ class MockProviderDirectoryTest {
 
         private final DdcServiceKey key = new DdcServiceKey(
                 "test-biz",
-                "test-app",
                 "test",
-                "default",
+                "test-app",
                 DdcServiceKind.RPC_PROVIDER,
                 "egon.rpc.test.v1.EchoService",
                 "default",

@@ -59,6 +59,8 @@ class RpcProviderLifecycleTest {
                     .isEqualTo("retail-biz");
             assertThat(registryClient.registration.serviceKey().appCode())
                     .isEqualTo("orders-app");
+            assertThat(registryClient.registration.serviceKey().env())
+                    .isEqualTo("test");
             assertThat(registryClient.registration.instanceId())
                     .isEqualTo("provider-process");
 
@@ -345,7 +347,7 @@ class RpcProviderLifecycleTest {
         DdcProperties properties = new DdcProperties();
         properties.setBizCode("retail-biz");
         properties.setAppCode("orders-app");
-        properties.setEnv("test");
+        properties.setEnv("factory-default");
         properties.setNamespace("default");
         return new DdcServiceKeyFactory(properties);
     }

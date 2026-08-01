@@ -35,8 +35,6 @@ public final class MockRpcGateway implements AutoCloseable {
 
     private final String env;
 
-    private final String namespace;
-
     private final String instanceId;
 
     private final MockGatewayProperties properties;
@@ -67,19 +65,16 @@ public final class MockRpcGateway implements AutoCloseable {
     public MockRpcGateway(
             DdcServiceRegistryClient registryClient,
             String env,
-            String namespace,
             String instanceId,
             MockGatewayProperties properties,
             List<String> fullMethodNames) {
         this.registryClient = registryClient;
         this.env = env;
-        this.namespace = namespace;
         this.instanceId = instanceId;
         this.properties = properties;
         this.directory = new MockProviderDirectory(
                 registryClient,
                 env,
-                namespace,
                 channelFactory::retain
         );
         fullMethodNames.forEach(method -> handlers.register(
@@ -189,9 +184,8 @@ public final class MockRpcGateway implements AutoCloseable {
         );
         DdcServiceKey serviceKey = new DdcServiceKey(
                 "test-biz",
-                "test-app",
                 env,
-                namespace,
+                "test-app",
                 DdcServiceKind.RPC_PROVIDER,
                 serviceName,
                 group,
@@ -258,9 +252,8 @@ public final class MockRpcGateway implements AutoCloseable {
     private DdcServiceKey gatewayKey() {
         return new DdcServiceKey(
                 "test-biz",
-                "test-app",
                 env,
-                namespace,
+                "test-app",
                 DdcServiceKind.INTERNAL_GATEWAY,
                 properties.serviceName(),
                 properties.group(),

@@ -52,6 +52,7 @@ class RpcConsumerGatewayManagerTest {
                 .isEqualTo("platform-biz");
         assertThat(registry.subscriptionKey.appCode())
                 .isEqualTo("gateway-app");
+        assertThat(registry.subscriptionKey.env()).isEqualTo("test");
 
         registry.publish(snapshot(
                 instance("gateway-1", "lease-1", 19090),
@@ -279,9 +280,8 @@ class RpcConsumerGatewayManagerTest {
     private DdcServiceKey gatewayKey() {
         return new DdcServiceKey(
                 "platform-biz",
-                "gateway-app",
                 "test",
-                "default",
+                "gateway-app",
                 DdcServiceKind.INTERNAL_GATEWAY,
                 "egon-internal-rpc-gateway",
                 "default",

@@ -56,7 +56,6 @@ class RpcTcpDeadlineTest {
         MockRpcGateway gateway = new MockRpcGateway(
                 new InMemoryDdcServiceRegistryClient(backend),
                 "test",
-                "default",
                 "mock-gateway-deadline",
                 MockGatewayProperties.defaults(),
                 List.of(EchoServiceGrpc.getEchoMethod().getFullMethodName())
@@ -154,9 +153,8 @@ class RpcTcpDeadlineTest {
                 "deadline-provider",
                 new DdcServiceKey(
                         "test-biz",
-                        "test-app",
                         "test",
-                        "default",
+                        "test-app",
                         DdcServiceKind.RPC_PROVIDER,
                         "egon.rpc.test.v1.EchoService",
                         "default",

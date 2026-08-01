@@ -30,7 +30,6 @@ public final class RpcMockGatewayApplication {
         MockRpcGateway gateway = new MockRpcGateway(
                 registry,
                 properties.getEnv(),
-                properties.getNamespace(),
                 "mock-gateway:" + ProcessHandle.current().pid(),
                 new MockGatewayProperties(
                         "egon-internal-rpc-gateway",

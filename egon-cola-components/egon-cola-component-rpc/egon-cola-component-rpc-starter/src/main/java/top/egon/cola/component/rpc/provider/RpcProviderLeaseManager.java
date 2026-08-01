@@ -89,6 +89,7 @@ public class RpcProviderLeaseManager {
         for (RpcProviderBinding provider : providers) {
             RpcServiceIdentity service = provider.serviceIdentity();
             var serviceKey = serviceKeyFactory.fromScope(
+                    processIdentity.env(),
                     DdcServiceKind.RPC_PROVIDER,
                     service.serviceName(),
                     service.group(),
