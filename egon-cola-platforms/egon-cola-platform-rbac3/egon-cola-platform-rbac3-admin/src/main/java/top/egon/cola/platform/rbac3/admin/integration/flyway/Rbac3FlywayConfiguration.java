@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.integration.flyway;
 
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -70,6 +71,8 @@ public class Rbac3FlywayConfiguration {
                 .dataSource(dataSource)
                 .locations("classpath:db/transactional-outbox/postgresql")
                 .table("flyway_schema_history_outbox")
+                .baselineOnMigrate(true)
+                .baselineVersion(MigrationVersion.fromVersion("0"))
                 .validateMigrationNaming(true)
                 .load();
     }

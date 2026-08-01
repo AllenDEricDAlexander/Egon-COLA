@@ -17,6 +17,7 @@ import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfi
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.outbox.Rbac3RuntimeProjectionDeliveryHandler;
 import top.egon.cola.platform.rbac3.admin.integration.outbox.TransactionalOutboxAuthorizationEventAdapter;
 
@@ -124,14 +125,8 @@ class OutboxTransactionRollbackIT {
                     + "currentSchema=" + schema;
             DriverManagerDataSource dataSource = new DriverManagerDataSource(
                     schemaUrl, user, password);
-            Flyway rbac3 = Flyway.configure().dataSource(dataSource)
-                    .defaultSchema(schema).schemas(schema)
-                    .table("flyway_schema_history_rbac3")
-                    .locations("classpath:db/migration").load();
-            Flyway outbox = Flyway.configure().dataSource(dataSource)
-                    .defaultSchema(schema).schemas(schema)
-                    .table("flyway_schema_history_outbox")
-                    .locations("classpath:db/transactional-outbox/postgresql").load();
+            Flyway rbac3 = Rbac3FlywayConfiguration.buildRbac3Flyway(dataSource);
+            Flyway outbox = Rbac3FlywayConfiguration.buildOutboxFlyway(dataSource);
             assertThat(rbac3.migrate().migrationsExecuted).isEqualTo(2);
             assertThat(outbox.migrate().migrationsExecuted).isEqualTo(1);
 
@@ -187,7 +182,12 @@ class OutboxTransactionRollbackIT {
         context.registerBean("transactionManager",
                 org.springframework.transaction.PlatformTransactionManager.class,
                 () -> transactionManager);
-        context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
+        context.registerBean(ObjectMapper.class,
+                () -> new ObjectMapper().findAndRegisterModules());
+        context.registerBean(Rbac3RuntimeProjectionDeliveryHandler.class,
+                () -> new Rbac3RuntimeProjectionDeliveryHandler(
+                        envelope -> Rbac3RuntimeProjectionDeliveryHandler
+                                .ProjectionOutcome.APPLIED));
         context.register(TransactionalOutboxAutoConfiguration.class);
         context.refresh();
         return context;

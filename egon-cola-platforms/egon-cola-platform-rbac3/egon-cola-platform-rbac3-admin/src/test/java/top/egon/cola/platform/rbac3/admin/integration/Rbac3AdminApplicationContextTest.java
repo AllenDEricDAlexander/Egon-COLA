@@ -45,6 +45,9 @@ class Rbac3AdminApplicationContextTest {
         assertThat(outbox.getConfiguration().getLocations())
                 .extracting(Object::toString)
                 .containsExactly("classpath:db/transactional-outbox/postgresql");
+        assertThat(outbox.getConfiguration().isBaselineOnMigrate()).isTrue();
+        assertThat(outbox.getConfiguration().getBaselineVersion().getVersion())
+                .isEqualTo("0");
     }
 
     @Test
