@@ -6,6 +6,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryServic
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,6 +19,10 @@ class RuntimeQueryServiceTest {
     @Test
     void exposesDefinitionLeaseAndReleaseAsThreeIndependentStates() {
         var expected = new ControlPlaneRuntimeStatusPort.RuntimeStatus(
+                new ControlPlaneRuntimeStatusPort.DdcConfigClientStatus(
+                        "READY", "instance-config", "a1b2c3d4e5f6",
+                        NOW.plusSeconds(30), Map.of("rbac3.maximum-active-roots", 3L),
+                        null, null, null),
                 new ControlPlaneRuntimeStatusPort.DefinitionStatus(
                         "ACCEPTED_WITH_WARNINGS", "definition-7", List.of("deprecated field")),
                 new ControlPlaneRuntimeStatusPort.ProviderLeaseStatus(
@@ -33,6 +38,8 @@ class RuntimeQueryServiceTest {
                         new RuntimeQueryService.RetryResult(mutationId, "RECOVERY_REQUESTED"));
 
         assertThat(service.status()).isEqualTo(expected);
+        assertThat(service.gatewayDdcStatus().ddcConfigClient())
+                .isEqualTo(expected.ddcConfigClient());
         assertThat(service.gatewayDdcStatus().definition()).isEqualTo(expected.definition());
         assertThat(service.gatewayDdcStatus().providerLease()).isEqualTo(expected.providerLease());
         assertThat(service.gatewayDdcStatus().gatewayRelease()).isEqualTo(expected.gatewayRelease());

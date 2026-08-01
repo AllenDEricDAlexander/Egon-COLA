@@ -1,14 +1,15 @@
 import { Card, Col, Descriptions, Row, Space, Tag, Typography } from 'antd'
 import type { ControlPlaneRuntimeStatus } from './runtime.api'
 
-const statusColor = (status: string) => ['ACCEPTED', 'ACTIVE', 'ROUTABLE', 'UP_TO_DATE', 'HEALTHY'].includes(status) ? 'green' : ['MISSING', 'FAILED', 'STALE', 'LAGGING', 'DEGRADED'].includes(status) ? 'red' : 'orange'
+const statusColor = (status: string) => ['ACCEPTED', 'ACTIVE', 'READY', 'REGISTERED', 'ROUTABLE', 'UP_TO_DATE', 'HEALTHY'].includes(status) ? 'green' : ['MISSING', 'FAILED', 'STALE', 'LAGGING', 'DEGRADED'].includes(status) ? 'red' : 'orange'
 
 export const ControlPlaneStatusCards = ({ status }: { readonly status: ControlPlaneRuntimeStatus }) => (
   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
     <Row gutter={16}>
-      <Col span={8}><StatusCard title="Gateway Definition" status={status.definition.status} detail={status.definition.definitionSetId ?? '-'} /></Col>
-      <Col span={8}><StatusCard title="DDC HTTP Provider Lease" status={status.providerLease.state} detail={`${status.providerLease.instanceId ?? '-'} · ${status.providerLease.leaseExpireAt ?? '无有效租约'}`} /></Col>
-      <Col span={8}><StatusCard title="Gateway Release" status={status.gatewayRelease.status} detail={`${status.gatewayRelease.releaseId ?? '-'} · ${status.gatewayRelease.observedByEngineVersion ?? '未观测'}`} /></Col>
+      <Col span={6}><StatusCard title="DDC Config Client" status={status.ddcConfigClient.state} detail={`${status.ddcConfigClient.instanceId ?? '-'} · ${status.ddcConfigClient.leaseIdFingerprint ?? '无租约指纹'} · ${status.ddcConfigClient.leaseExpireAt ?? '无有效租约'}${status.ddcConfigClient.lastApplyFailureCode ? ` · ${status.ddcConfigClient.lastApplyFailureCode}` : ''}`} /></Col>
+      <Col span={6}><StatusCard title="Gateway Definition" status={status.definition.status} detail={status.definition.definitionSetId ?? '-'} /></Col>
+      <Col span={6}><StatusCard title="DDC HTTP Provider Lease" status={status.providerLease.state} detail={`${status.providerLease.instanceId ?? '-'} · ${status.providerLease.leaseExpireAt ?? '无有效租约'}`} /></Col>
+      <Col span={6}><StatusCard title="Gateway Release" status={status.gatewayRelease.status} detail={`${status.gatewayRelease.releaseId ?? '-'} · ${status.gatewayRelease.observedByEngineVersion ?? '未观测'}`} /></Col>
     </Row>
     <Row gutter={16}>
       <Col span={6}><StatusCard title="RBAC3 Flyway History" status={status.flyway?.rbac3History ?? 'UNKNOWN'} /></Col>

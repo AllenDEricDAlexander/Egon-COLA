@@ -1,6 +1,16 @@
 import type { FeatureApiClient } from '../shared/FeatureApi'
 
 export interface ControlPlaneRuntimeStatus {
+  readonly ddcConfigClient: {
+    readonly state: string
+    readonly instanceId: string | null
+    readonly leaseIdFingerprint: string | null
+    readonly leaseExpireAt: string | null
+    readonly configVersions: Readonly<Record<string, number>>
+    readonly lastApplyFailureKey: string | null
+    readonly lastApplyFailureVersion: number | null
+    readonly lastApplyFailureCode: string | null
+  }
   readonly definition: { readonly status: string; readonly definitionSetId: string | null; readonly warnings: readonly string[] }
   readonly providerLease: { readonly state: string; readonly instanceId: string | null; readonly leaseExpireAt: string | null }
   readonly gatewayRelease: { readonly releaseId: string | null; readonly status: string; readonly observedByEngineVersion: string | null }

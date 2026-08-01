@@ -3,14 +3,20 @@ package top.egon.cola.platform.rbac3.admin.integration;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
+import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcValueDeclarations;
 import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
+import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3PlatformIntegrationConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3ReadinessIndicator;
 
 import javax.sql.DataSource;
@@ -102,5 +108,24 @@ class Rbac3AdminApplicationContextTest {
                                 .isInstanceOf(Rbac3DdcPolicyApplier.class);
                     }
                 });
+    }
+
+    @Test
+    void replacesTheDefaultProviderListenerOnlyWhenDdcIsEnabled()
+            throws NoSuchMethodException {
+        var method = Rbac3PlatformIntegrationConfiguration.class.getDeclaredMethod(
+                "gatewayHttpProviderServerReadyListener",
+                DdcRuntimeCoordinator.class,
+                HttpProviderLeaseRuntime.class,
+                GatewayHttpProviderProperties.class);
+
+        assertThat(method.getAnnotation(Bean.class).name())
+                .containsExactly("gatewayHttpProviderServerReadyListener");
+        ConditionalOnProperty condition = method.getAnnotation(
+                ConditionalOnProperty.class);
+        assertThat(condition.prefix()).isEqualTo("egon.cola.component.ddc");
+        assertThat(condition.name()).containsExactly("enabled");
+        assertThat(condition.havingValue()).isEqualTo("true");
+        assertThat(condition.matchIfMissing()).isFalse();
     }
 }

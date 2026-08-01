@@ -2,6 +2,7 @@ package top.egon.cola.platform.rbac3.admin.runtime.application;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Read-only boundary for Gateway definition, DDC lease and release observations.
@@ -12,6 +13,7 @@ public interface ControlPlaneRuntimeStatusPort {
     RuntimeStatus status();
 
     record RuntimeStatus(
+            DdcConfigClientStatus ddcConfigClient,
             DefinitionStatus definition,
             ProviderLeaseStatus providerLease,
             GatewayReleaseStatus gatewayRelease,
@@ -21,17 +23,53 @@ public interface ControlPlaneRuntimeStatusPort {
             OutboxStatus outbox,
             Instant checkedAt) {
 
+        public RuntimeStatus {
+            ddcConfigClient = ddcConfigClient == null
+                    ? DdcConfigClientStatus.unknown()
+                    : ddcConfigClient;
+        }
+
         public RuntimeStatus(
                 DefinitionStatus definition,
                 ProviderLeaseStatus providerLease,
                 GatewayReleaseStatus gatewayRelease,
                 Instant checkedAt) {
-            this(definition, providerLease, gatewayRelease,
+            this(DdcConfigClientStatus.unknown(), definition, providerLease,
+                    gatewayRelease, checkedAt);
+        }
+
+        public RuntimeStatus(
+                DdcConfigClientStatus ddcConfigClient,
+                DefinitionStatus definition,
+                ProviderLeaseStatus providerLease,
+                GatewayReleaseStatus gatewayRelease,
+                Instant checkedAt) {
+            this(ddcConfigClient, definition, providerLease, gatewayRelease,
                     new FlywayStatus("UNKNOWN", "UNKNOWN"),
                     new RedisProjectionStatus("UNKNOWN", 0L),
                     new FenceMutationStatus("UNKNOWN", 0L, 0L, 0L),
                     new OutboxStatus("UNKNOWN", 0L, 0L),
                     checkedAt);
+        }
+    }
+
+    record DdcConfigClientStatus(
+            String state,
+            String instanceId,
+            String leaseIdFingerprint,
+            Instant leaseExpireAt,
+            Map<String, Long> configVersions,
+            String lastApplyFailureKey,
+            Long lastApplyFailureVersion,
+            String lastApplyFailureCode) {
+
+        public DdcConfigClientStatus {
+            configVersions = configVersions == null ? Map.of() : Map.copyOf(configVersions);
+        }
+
+        public static DdcConfigClientStatus unknown() {
+            return new DdcConfigClientStatus(
+                    "UNKNOWN", null, null, null, Map.of(), null, null, null);
         }
     }
 

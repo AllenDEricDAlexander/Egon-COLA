@@ -28,7 +28,7 @@ export const RuntimeStatusPage = () => {
   })
   return (
     <Card title="RBAC3 运行状态">
-      <Alert type="info" showIcon message="Definition、DDC Lease 与 Gateway Release 是独立事实；任一缺失都不能由其他绿色状态替代。" />
+      <Alert type="info" showIcon message="DDC Config Client、Definition、HTTP Provider Lease、Gateway Release 与运维状态是独立事实；任一缺失都不能由其他绿色状态替代。" />
       <PageState loading={status.isPending || mutations.isPending} error={status.error ?? mutations.error ?? retry.error} empty={!status.data}>
         {status.data && (
           <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 16 }}>

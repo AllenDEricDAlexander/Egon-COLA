@@ -10,16 +10,20 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
+import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcProviderLeaseStatusService;
+import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;
 import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminControlPlaneStatusClient;
 import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminStatusCredentialProvider;
@@ -112,6 +116,17 @@ public class Rbac3PlatformIntegrationConfiguration {
         return new DdcProviderLeaseStatusService(runtime, identity);
     }
 
+    @Bean(name = "gatewayHttpProviderServerReadyListener")
+    @ConditionalOnProperty(prefix = "egon.cola.component.ddc",
+            name = "enabled", havingValue = "true")
+    ApplicationListener<ApplicationEvent> gatewayHttpProviderServerReadyListener(
+            DdcRuntimeCoordinator coordinator,
+            HttpProviderLeaseRuntime providerRuntime,
+            GatewayHttpProviderProperties providerProperties) {
+        return new Rbac3HttpProviderPublicationGate(
+                coordinator, providerRuntime, providerProperties);
+    }
+
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
@@ -129,6 +144,7 @@ public class Rbac3PlatformIntegrationConfiguration {
     @Primary
     ControlPlaneRuntimeStatusPort rbac3ControlPlaneRuntimeStatusPort(
             ObjectProvider<GatewayDdcRuntimeStatusService> runtimeStatus,
+            ObjectProvider<DdcConfigClientStatusService> ddcConfigStatus,
             Rbac3OperationalRuntimeStatusService operationalStatus,
             Clock clock) {
         return () -> {
@@ -144,7 +160,12 @@ public class Rbac3PlatformIntegrationConfiguration {
                             null, "UNKNOWN", null),
                     clock.instant());
             var operational = operationalStatus.status();
+            DdcConfigClientStatusService availableDdcConfig =
+                    ddcConfigStatus.getIfAvailable();
             return new ControlPlaneRuntimeStatusPort.RuntimeStatus(
+                    availableDdcConfig == null
+                            ? ControlPlaneRuntimeStatusPort.DdcConfigClientStatus.unknown()
+                            : availableDdcConfig.status(),
                     controlPlane.definition(), controlPlane.providerLease(),
                     controlPlane.gatewayRelease(), operational.flyway(),
                     operational.redisProjection(), operational.fence(),
@@ -163,6 +184,7 @@ public class Rbac3PlatformIntegrationConfiguration {
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient runtimeRedis,
             GatewayDefinitionStatusService definition,
             DdcProviderLeaseStatusService lease,
+            ObjectProvider<DdcConfigClientStatusService> ddcConfigStatus,
             GatewayDdcRuntimeStatusService runtimeStatus,
             GatewayReportingProperties reportingProperties) {
         boolean production = !List.of("local", "test").contains(
@@ -182,7 +204,10 @@ public class Rbac3PlatformIntegrationConfiguration {
                         "gatewayDefinition", () -> definition.status().accepted()),
                 new Rbac3ReadinessIndicator.ReadinessCheck(
                         "ddcProviderLease", () -> !production
-                                || "REGISTERED".equals(lease.status().state()))),
+                                || "REGISTERED".equals(lease.status().state())),
+                new Rbac3ReadinessIndicator.ReadinessCheck(
+                        "ddcConfigClient", () -> !production
+                                || ddcConfigReady(ddcConfigStatus))),
                 () -> runtimeStatus.status().gatewayRelease().status());
     }
 
@@ -201,5 +226,11 @@ public class Rbac3PlatformIntegrationConfiguration {
     private static boolean redisAvailable(RedissonClient redisson) {
         redisson.getKeys().count();
         return true;
+    }
+
+    private static boolean ddcConfigReady(
+            ObjectProvider<DdcConfigClientStatusService> status) {
+        DdcConfigClientStatusService available = status.getIfAvailable();
+        return available != null && available.ready();
     }
 }
