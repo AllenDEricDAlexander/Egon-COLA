@@ -1,6 +1,6 @@
 # RBAC3 接入 DDC 配置中心与 Gateway 文档/路由中心设计
 
-> 状态：待用户审核
+> 状态：已批准（2026-08-01）
 > 日期：2026-08-01
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
 > 适用模块：`egon-cola-platforms/egon-cola-platform-rbac3`
