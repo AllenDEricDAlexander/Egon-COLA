@@ -70,9 +70,10 @@ class DdcScopeGateTest {
     @Test
     void passesWhenAllScopeEntitiesAreEnabled() {
         when(bizRepository.findByBizCode("pay-biz")).thenReturn(Optional.of(biz(true)));
-        when(appRepository.findByAppCode("orders-app")).thenReturn(Optional.of(app(true)));
+        when(appRepository.findByBizCodeAndAppCode("pay-biz", "orders-app"))
+                .thenReturn(Optional.of(app(true)));
         when(envRepository.findByEnvCode("dev")).thenReturn(Optional.of(env(true)));
-        when(namespaceRepository.findByAppCodeAndNamespace("orders-app", "default"))
+        when(namespaceRepository.findByBizCodeAndNamespaceCode("pay-biz", "default"))
                 .thenReturn(Optional.of(ns(true)));
 
         assertThatCode(() -> gate.assertEnabled("pay-biz", "orders-app", "dev", "default"))
@@ -82,9 +83,10 @@ class DdcScopeGateTest {
     @Test
     void rejectsWhenAppIsDisabled() {
         when(bizRepository.findByBizCode("pay-biz")).thenReturn(Optional.of(biz(true)));
-        when(appRepository.findByAppCode("orders-app")).thenReturn(Optional.of(app(false)));
+        when(appRepository.findByBizCodeAndAppCode("pay-biz", "orders-app"))
+                .thenReturn(Optional.of(app(false)));
         when(envRepository.findByEnvCode("dev")).thenReturn(Optional.of(env(true)));
-        when(namespaceRepository.findByAppCodeAndNamespace("orders-app", "default"))
+        when(namespaceRepository.findByBizCodeAndNamespaceCode("pay-biz", "default"))
                 .thenReturn(Optional.of(ns(true)));
 
         assertThatThrownBy(() -> gate.assertEnabled("pay-biz", "orders-app", "dev", "default"))
@@ -95,7 +97,8 @@ class DdcScopeGateTest {
     @Test
     void rejectsWhenEntityIsMissing() {
         when(bizRepository.findByBizCode("pay-biz")).thenReturn(Optional.of(biz(true)));
-        when(appRepository.findByAppCode("missing-app")).thenReturn(Optional.empty());
+        when(appRepository.findByBizCodeAndAppCode("pay-biz", "missing-app"))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> gate.assertEnabled("pay-biz", "missing-app", "dev", "default"))
                 .isInstanceOfSatisfying(CommonException.class,
@@ -105,31 +108,35 @@ class DdcScopeGateTest {
     @Test
     void cachesForFiveSecondsWithoutRequerying() {
         when(bizRepository.findByBizCode("pay-biz")).thenReturn(Optional.of(biz(true)));
-        when(appRepository.findByAppCode("orders-app")).thenReturn(Optional.of(app(true)));
+        when(appRepository.findByBizCodeAndAppCode("pay-biz", "orders-app"))
+                .thenReturn(Optional.of(app(true)));
         when(envRepository.findByEnvCode("dev")).thenReturn(Optional.of(env(true)));
-        when(namespaceRepository.findByAppCodeAndNamespace("orders-app", "default"))
+        when(namespaceRepository.findByBizCodeAndNamespaceCode("pay-biz", "default"))
                 .thenReturn(Optional.of(ns(true)));
 
         gate.assertEnabled("pay-biz", "orders-app", "dev", "default");
         gate.assertEnabled("pay-biz", "orders-app", "dev", "default");
 
         verify(bizRepository, times(1)).findByBizCode("pay-biz");
-        verify(appRepository, times(1)).findByAppCode("orders-app");
+        verify(appRepository, times(1))
+                .findByBizCodeAndAppCode("pay-biz", "orders-app");
     }
 
     @Test
     void invalidateForcesRequery() {
         when(bizRepository.findByBizCode("pay-biz")).thenReturn(Optional.of(biz(true)));
-        when(appRepository.findByAppCode("orders-app")).thenReturn(Optional.of(app(true)));
+        when(appRepository.findByBizCodeAndAppCode("pay-biz", "orders-app"))
+                .thenReturn(Optional.of(app(true)));
         when(envRepository.findByEnvCode("dev")).thenReturn(Optional.of(env(true)));
-        when(namespaceRepository.findByAppCodeAndNamespace("orders-app", "default"))
+        when(namespaceRepository.findByBizCodeAndNamespaceCode("pay-biz", "default"))
                 .thenReturn(Optional.of(ns(true)));
 
         gate.assertEnabled("pay-biz", "orders-app", "dev", "default");
-        gate.invalidate("app:orders-app");
+        gate.invalidate("app:pay-biz:orders-app");
         gate.assertEnabled("pay-biz", "orders-app", "dev", "default");
 
-        verify(appRepository, times(2)).findByAppCode("orders-app");
+        verify(appRepository, times(2))
+                .findByBizCodeAndAppCode("pay-biz", "orders-app");
     }
 
     private void assertThatThrownByStatus(CommonException e) {

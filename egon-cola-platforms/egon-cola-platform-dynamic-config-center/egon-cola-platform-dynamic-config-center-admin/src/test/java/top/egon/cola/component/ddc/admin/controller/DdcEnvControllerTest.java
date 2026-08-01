@@ -29,7 +29,7 @@ class DdcEnvControllerTest {
 
     @Test
     void listDelegatesToService() throws Exception {
-        when(envService.list(null)).thenReturn(java.util.List.of());
+        when(envService.list(null, null, null)).thenReturn(java.util.List.of());
 
         mockMvc.perform(get("/api/v1/ddc/envs"))
                 .andExpect(status().isOk())

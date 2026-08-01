@@ -18,10 +18,10 @@ public class DdcNamespaceEntity {
     @Id
     private String id;
 
-    @Column(name = "app_code", nullable = false, length = 128)
-    private String appCode;
+    @Column(name = "biz_code", nullable = false, length = 128)
+    private String bizCode;
 
-    @Column(name = "namespace_code", nullable = false, unique = true, length = 128)
+    @Column(name = "namespace_code", nullable = false, length = 128)
     private String namespaceCode;
 
     @Column(nullable = false, length = 128)

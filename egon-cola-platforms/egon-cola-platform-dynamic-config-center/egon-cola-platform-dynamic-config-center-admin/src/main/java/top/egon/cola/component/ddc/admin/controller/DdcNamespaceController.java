@@ -27,9 +27,9 @@ public class DdcNamespaceController {
 
     @GetMapping
     public ResultRecord<List<DdcNamespaceEntity>> list(
-            @RequestParam(value = "appCode", required = false) String appCode,
+            @RequestParam(value = "bizCode", required = false) String bizCode,
             @RequestParam(value = "keyword", required = false) String keyword) {
-        return ResultRecord.success(namespaceService.list(appCode, keyword));
+        return ResultRecord.success(namespaceService.list(bizCode, keyword));
     }
 
     @PostMapping

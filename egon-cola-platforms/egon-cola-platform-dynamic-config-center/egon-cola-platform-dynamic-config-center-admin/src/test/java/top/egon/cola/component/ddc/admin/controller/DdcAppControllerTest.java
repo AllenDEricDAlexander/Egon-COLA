@@ -41,11 +41,14 @@ class DdcAppControllerTest {
     }
 
     @Test
-    void listWithBizAndKeywordDelegatesToService() throws Exception {
-        when(appService.list("pay-biz", "orders")).thenReturn(List.of(app("orders")));
+    void listWithVisibilityScopeDelegatesToService() throws Exception {
+        when(appService.list("pay-biz", "ops", "prod", "orders"))
+                .thenReturn(List.of(app("orders")));
 
         mockMvc.perform(get("/api/v1/ddc/apps")
-                        .param("biz", "pay-biz")
+                        .param("bizCode", "pay-biz")
+                        .param("namespaceCode", "ops")
+                        .param("env", "prod")
                         .param("keyword", "orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -55,7 +58,8 @@ class DdcAppControllerTest {
 
     @Test
     void listWithoutParamsReturnsAllApps() throws Exception {
-        when(appService.list(null, null)).thenReturn(List.of(app("orders"), app("billing")));
+        when(appService.list(null, null, null, null))
+                .thenReturn(List.of(app("orders"), app("billing")));
 
         mockMvc.perform(get("/api/v1/ddc/apps"))
                 .andExpect(status().isOk())
@@ -66,9 +70,9 @@ class DdcAppControllerTest {
     @Test
     void deleteInUseReturnsFailureCode() throws Exception {
         doThrow(new CommonException(DdcErrorStatus.APP_IN_USE))
-                .when(appService).delete("orders");
+                .when(appService).delete("app-orders");
 
-        mockMvc.perform(delete("/api/v1/ddc/apps/orders"))
+        mockMvc.perform(delete("/api/v1/ddc/apps/app-orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.APP_IN_USE.getCode()));

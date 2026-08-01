@@ -1,8 +1,6 @@
 package top.egon.cola.component.ddc.admin.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
 
 import java.util.List;
@@ -10,20 +8,22 @@ import java.util.Optional;
 
 public interface DdcNamespaceRepository extends JpaRepository<DdcNamespaceEntity, String> {
 
-    boolean existsByAppCode(String appCode);
+    boolean existsByBizCode(String bizCode);
 
-    boolean existsByAppCodeAndNamespace(String appCode, String namespace);
+    boolean existsByBizCodeAndNamespace(String bizCode, String namespace);
 
-    boolean existsByAppCodeAndNamespaceAndIdNot(String appCode, String namespace, String id);
+    boolean existsByBizCodeAndNamespaceAndIdNot(String bizCode, String namespace, String id);
 
-    boolean existsByNamespaceCode(String namespaceCode);
+    boolean existsByBizCodeAndNamespaceCode(String bizCode, String namespaceCode);
 
-    boolean existsByNamespaceCodeAndIdNot(String namespaceCode, String id);
+    boolean existsByBizCodeAndNamespaceCodeAndIdNot(
+            String bizCode, String namespaceCode, String id);
 
-    Optional<DdcNamespaceEntity> findByAppCodeAndNamespace(String appCode, String namespace);
+    Optional<DdcNamespaceEntity> findByBizCodeAndNamespaceCode(
+            String bizCode, String namespaceCode);
 
-    List<DdcNamespaceEntity> findByAppCode(String appCode);
+    List<DdcNamespaceEntity> findByBizCode(String bizCode);
 
-    List<DdcNamespaceEntity> findByAppCodeAndNamespaceContainingIgnoreCase(
-            String appCode, String namespace);
+    List<DdcNamespaceEntity> findByBizCodeAndNamespaceContainingIgnoreCaseOrBizCodeAndNamespaceCodeContainingIgnoreCase(
+            String bizCode, String namespace, String bizCode2, String namespaceCode);
 }

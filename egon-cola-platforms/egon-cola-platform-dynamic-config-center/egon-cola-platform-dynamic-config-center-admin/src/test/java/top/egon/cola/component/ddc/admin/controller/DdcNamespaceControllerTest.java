@@ -28,11 +28,12 @@ class DdcNamespaceControllerTest {
     private DdcNamespaceService namespaceService;
 
     @Test
-    void listWithAppAndKeywordDelegatesToService() throws Exception {
-        when(namespaceService.list("orders", "default")).thenReturn(java.util.List.of());
+    void listWithBizAndKeywordDelegatesToService() throws Exception {
+        when(namespaceService.list("pay-biz", "default"))
+                .thenReturn(java.util.List.of());
 
         mockMvc.perform(get("/api/v1/ddc/namespaces")
-                        .param("appCode", "orders")
+                        .param("bizCode", "pay-biz")
                         .param("keyword", "default"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));

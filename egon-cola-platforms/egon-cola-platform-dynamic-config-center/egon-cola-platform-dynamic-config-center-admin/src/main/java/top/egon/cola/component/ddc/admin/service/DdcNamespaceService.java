@@ -6,8 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
-import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
-import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcBizRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceRepository;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 
@@ -20,39 +20,48 @@ public class DdcNamespaceService {
 
     private final DdcNamespaceRepository namespaceRepository;
 
-    private final DdcAppRepository appRepository;
+    private final DdcBizRepository bizRepository;
 
-    private final DdcConfigItemRepository configItemRepository;
+    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
 
     public DdcNamespaceService(DdcNamespaceRepository namespaceRepository,
-                               DdcAppRepository appRepository,
-                               DdcConfigItemRepository configItemRepository) {
+                               DdcBizRepository bizRepository,
+                               DdcNamespaceEnvAppBindingRepository bindingRepository) {
         this.namespaceRepository = namespaceRepository;
-        this.appRepository = appRepository;
-        this.configItemRepository = configItemRepository;
+        this.bizRepository = bizRepository;
+        this.bindingRepository = bindingRepository;
     }
 
-    public List<DdcNamespaceEntity> list(String appCode, String keyword) {
-        boolean hasApp = appCode != null && !appCode.isBlank();
+    public List<DdcNamespaceEntity> list(String bizCode, String keyword) {
+        boolean hasBiz = bizCode != null && !bizCode.isBlank();
         boolean hasKeyword = keyword != null && !keyword.isBlank();
-        if (!hasApp && !hasKeyword) {
-            return namespaceRepository.findAll(Sort.by(Sort.Direction.ASC, "appCode"));
+        if (!hasBiz && !hasKeyword) {
+            return namespaceRepository.findAll(Sort.by(
+                    Sort.Direction.ASC, "bizCode", "namespaceCode"));
         }
-        if (hasApp && hasKeyword) {
-            return namespaceRepository.findByAppCodeAndNamespaceContainingIgnoreCase(
-                    appCode.trim(), keyword.trim());
+        if (hasBiz && hasKeyword) {
+            return namespaceRepository
+                    .findByBizCodeAndNamespaceContainingIgnoreCaseOrBizCodeAndNamespaceCodeContainingIgnoreCase(
+                            bizCode.trim(), keyword.trim(),
+                            bizCode.trim(), keyword.trim());
         }
-        if (hasApp) {
-            return namespaceRepository.findByAppCode(appCode.trim());
+        if (hasBiz) {
+            return namespaceRepository.findByBizCode(bizCode.trim());
         }
-        return namespaceRepository.findAll(Sort.by(Sort.Direction.ASC, "appCode"))
+        String value = keyword.trim().toLowerCase();
+        return namespaceRepository.findAll(Sort.by(
+                        Sort.Direction.ASC, "bizCode", "namespaceCode"))
                 .stream()
-                .filter(item -> item.getNamespace().toLowerCase().contains(keyword.trim().toLowerCase()))
+                .filter(item -> item.getNamespace().toLowerCase().contains(value)
+                        || item.getNamespaceCode().toLowerCase().contains(value))
                 .toList();
     }
 
-    public Optional<DdcNamespaceEntity> find(String appCode, String namespace) {
-        return namespaceRepository.findByAppCodeAndNamespace(appCode, namespace);
+    public Optional<DdcNamespaceEntity> find(
+            String bizCode,
+            String namespaceCode) {
+        return namespaceRepository.findByBizCodeAndNamespaceCode(
+                bizCode, namespaceCode);
     }
 
     @Transactional
@@ -65,14 +74,15 @@ public class DdcNamespaceService {
         if (namespace.getEnabled() == null) {
             namespace.setEnabled(true);
         }
-        if (!appRepository.existsByAppCode(namespace.getAppCode())) {
-            throw new CommonException(DdcErrorStatus.APP_NOT_FOUND);
+        if (!bizRepository.existsByBizCode(namespace.getBizCode())) {
+            throw new CommonException(DdcErrorStatus.BIZ_NOT_FOUND);
         }
-        if (namespaceRepository.existsByNamespaceCode(namespace.getNamespaceCode())) {
+        if (namespaceRepository.existsByBizCodeAndNamespaceCode(
+                namespace.getBizCode(), namespace.getNamespaceCode())) {
             throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);
         }
-        if (namespaceRepository.existsByAppCodeAndNamespace(
-                namespace.getAppCode(), namespace.getNamespace())) {
+        if (namespaceRepository.existsByBizCodeAndNamespace(
+                namespace.getBizCode(), namespace.getNamespace())) {
             throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);
         }
         namespace.setUpdatedAt(now);
@@ -82,8 +92,8 @@ public class DdcNamespaceService {
     @Transactional
     public DdcNamespaceEntity update(String id, DdcNamespaceEntity request) {
         DdcNamespaceEntity existing = require(id);
-        if (namespaceRepository.existsByAppCodeAndNamespaceAndIdNot(
-                existing.getAppCode(), request.getNamespace(), existing.getId())) {
+        if (namespaceRepository.existsByBizCodeAndNamespaceAndIdNot(
+                existing.getBizCode(), request.getNamespace(), existing.getId())) {
             throw new CommonException(DdcErrorStatus.NAMESPACE_CODE_EXISTS);
         }
         existing.setNamespace(request.getNamespace());
@@ -95,8 +105,7 @@ public class DdcNamespaceService {
     @Transactional
     public void delete(String id) {
         DdcNamespaceEntity existing = require(id);
-        if (configItemRepository.existsByAppCodeAndNamespace(
-                existing.getAppCode(), existing.getNamespace())) {
+        if (bindingRepository.existsByNamespaceId(existing.getId())) {
             throw new CommonException(DdcErrorStatus.NAMESPACE_IN_USE);
         }
         namespaceRepository.delete(existing);

@@ -27,8 +27,11 @@ public class DdcEnvController {
 
     @GetMapping
     public ResultRecord<List<DdcEnvEntity>> list(
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "namespaceCode", required = false) String namespaceCode,
             @RequestParam(value = "keyword", required = false) String keyword) {
-        return ResultRecord.success(envService.list(keyword));
+        return ResultRecord.success(envService.list(
+                bizCode, namespaceCode, keyword));
     }
 
     @GetMapping("/{code}")

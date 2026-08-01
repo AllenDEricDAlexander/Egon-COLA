@@ -48,15 +48,17 @@ public class DdcScopeGate {
 
     public void assertEnabled(String bizCode, String appCode, String env, String namespace) {
         assertPhysicalEnabled(bizCode, appCode, env);
-        requireEnabled("namespace", namespace,
-                () -> namespaceRepository.findByAppCodeAndNamespace(appCode, namespace)
+        requireEnabled("namespace", bizCode + ":" + namespace,
+                () -> namespaceRepository.findByBizCodeAndNamespaceCode(
+                                bizCode, namespace)
                         .map(DdcNamespaceEntity::getEnabled));
     }
 
     public void assertPhysicalEnabled(String bizCode, String appCode, String env) {
         requireEnabled("biz", bizCode, () -> bizRepository.findByBizCode(bizCode)
                 .map(DdcBizEntity::getEnabled));
-        requireEnabled("app", appCode, () -> appRepository.findByAppCode(appCode)
+        requireEnabled("app", bizCode + ":" + appCode,
+                () -> appRepository.findByBizCodeAndAppCode(bizCode, appCode)
                 .map(DdcAppEntity::getEnabled));
         requireEnabled("env", env, () -> envRepository.findByEnvCode(env)
                 .map(DdcEnvEntity::getEnabled));
@@ -67,7 +69,8 @@ public class DdcScopeGate {
      * configuration pull requests that do not carry the biz dimension.
      */
     public void assertEnabledByApp(String appCode, String env, String namespace) {
-        String bizCode = cachedValue("app-biz:" + appCode, () -> appRepository.findByAppCode(appCode)
+        String bizCode = cachedValue("app-biz:" + appCode,
+                () -> appRepository.findFirstByAppCodeOrderByBizCodeAsc(appCode)
                 .map(DdcAppEntity::getBizCode)
                 .orElse(null));
         assertEnabled(bizCode, appCode, env, namespace);

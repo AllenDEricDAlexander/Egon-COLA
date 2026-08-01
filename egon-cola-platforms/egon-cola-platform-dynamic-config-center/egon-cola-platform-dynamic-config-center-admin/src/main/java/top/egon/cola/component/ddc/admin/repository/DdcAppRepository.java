@@ -8,13 +8,17 @@ import java.util.Optional;
 
 public interface DdcAppRepository extends JpaRepository<DdcAppEntity, String> {
 
-    Optional<DdcAppEntity> findByAppCode(String appCode);
+    Optional<DdcAppEntity> findByBizCodeAndAppCode(String bizCode, String appCode);
 
-    boolean existsByAppCode(String appCode);
+    Optional<DdcAppEntity> findFirstByAppCodeOrderByBizCodeAsc(String appCode);
+
+    boolean existsByBizCodeAndAppCode(String bizCode, String appCode);
 
     boolean existsByBizCode(String bizCode);
 
     List<DdcAppEntity> findByBizCode(String bizCode);
+
+    List<DdcAppEntity> findAllByIdIn(List<String> ids);
 
     List<DdcAppEntity> findByAppCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase(
             String appCode, String appName);

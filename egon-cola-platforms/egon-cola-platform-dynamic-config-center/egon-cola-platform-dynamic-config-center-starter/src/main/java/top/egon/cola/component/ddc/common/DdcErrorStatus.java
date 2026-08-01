@@ -29,6 +29,16 @@ public enum DdcErrorStatus implements ErrorStatus {
     ENV_CODE_EXISTS(56040, "DDC_ENV_CODE_EXISTS", "env code already exists"),
     ENV_IN_USE(56041, "DDC_ENV_IN_USE", "env is still referenced"),
     SCOPE_DISABLED(56042, "DDC_SCOPE_DISABLED", "scope disabled"),
+    NAMESPACE_BINDING_EXISTS(
+            56043,
+            "DDC_NAMESPACE_BINDING_EXISTS",
+            "namespace environment app binding already exists"
+    ),
+    NAMESPACE_BINDING_NOT_FOUND(
+            56044,
+            "DDC_NAMESPACE_BINDING_NOT_FOUND",
+            "namespace environment app binding not found"
+    ),
     INTERNAL_FAILURE(56999, "DDC_INTERNAL_FAILURE", "DDC internal failure");
 
     private final int code;

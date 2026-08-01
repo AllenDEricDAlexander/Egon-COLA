@@ -12,24 +12,20 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "ddc_app")
-public class DdcAppEntity {
+@Table(name = "ddc_namespace_env_app")
+public class DdcNamespaceEnvAppBindingEntity {
 
     @Id
     private String id;
 
-    @Column(name = "app_code", nullable = false, length = 128)
-    private String appCode;
+    @Column(name = "namespace_id", nullable = false, length = 64)
+    private String namespaceId;
 
-    @Column(name = "biz_code", nullable = false, length = 128)
-    private String bizCode;
+    @Column(name = "env_code", nullable = false, length = 32)
+    private String envCode;
 
-    @Column(name = "app_name", nullable = false, length = 128)
-    private String appName;
-
-    private String owner;
-
-    private String description;
+    @Column(name = "app_id", nullable = false, length = 64)
+    private String appId;
 
     private Boolean enabled;
 

@@ -1,7 +1,5 @@
 package top.egon.cola.component.ddc.admin.service;
 
-import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
@@ -9,6 +7,7 @@ import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcEnvEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcEnvRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 
 import java.time.LocalDateTime;
@@ -23,19 +22,34 @@ public class DdcEnvService {
 
     private final DdcConfigItemRepository configItemRepository;
 
-    private final ObjectProvider<RedissonClient> redissonProvider;
+    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
+
+    private final DdcNamespaceEnvAppBindingService bindingService;
 
     public DdcEnvService(DdcEnvRepository envRepository,
                          DdcConfigItemRepository configItemRepository,
-                         ObjectProvider<RedissonClient> redissonProvider,
+                         DdcNamespaceEnvAppBindingRepository bindingRepository,
+                         DdcNamespaceEnvAppBindingService bindingService,
                          DdcScopeGate scopeGate) {
         this.envRepository = envRepository;
         this.configItemRepository = configItemRepository;
-        this.redissonProvider = redissonProvider;
+        this.bindingRepository = bindingRepository;
+        this.bindingService = bindingService;
         this.scopeGate = scopeGate;
     }
 
-    public List<DdcEnvEntity> list(String keyword) {
+    public List<DdcEnvEntity> list(
+            String bizCode,
+            String namespaceCode,
+            String keyword) {
+        if (hasText(bizCode) && hasText(namespaceCode)) {
+            List<String> visible = bindingService.visibleEnvCodes(
+                    bizCode.trim(), namespaceCode.trim());
+            return filterKeyword(envRepository.findAllByOrderBySortOrderAsc()
+                    .stream()
+                    .filter(env -> visible.contains(env.getEnvCode()))
+                    .toList(), keyword);
+        }
         if (keyword == null || keyword.isBlank()) {
             return envRepository.findAllByOrderBySortOrderAsc();
         }
@@ -87,10 +101,7 @@ public class DdcEnvService {
         if (configItemRepository.existsByEnv(envCode)) {
             throw new CommonException(DdcErrorStatus.ENV_IN_USE);
         }
-        RedissonClient redisson = redissonProvider.getIfAvailable();
-        if (redisson != null && redisson.getKeys()
-                .getKeysByPattern("ddc:registry:catalog:*:*:" + envCode + ":*")
-                .iterator().hasNext()) {
+        if (bindingRepository.existsByEnvCode(envCode)) {
             throw new CommonException(DdcErrorStatus.ENV_IN_USE);
         }
         envRepository.delete(existing);
@@ -110,5 +121,23 @@ public class DdcEnvService {
     private DdcEnvEntity require(String envCode) {
         return envRepository.findByEnvCode(envCode)
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.ENV_NOT_FOUND));
+    }
+
+    private List<DdcEnvEntity> filterKeyword(
+            List<DdcEnvEntity> envs,
+            String keyword) {
+        if (!hasText(keyword)) {
+            return envs;
+        }
+        String value = keyword.trim().toLowerCase();
+        return envs.stream()
+                .filter(env -> env.getEnvCode().toLowerCase().contains(value)
+                        || env.getDescription() != null
+                        && env.getDescription().toLowerCase().contains(value))
+                .toList();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

@@ -27,14 +27,17 @@ public class DdcAppController {
 
     @GetMapping
     public ResultRecord<List<DdcAppEntity>> list(
-            @RequestParam(value = "biz", required = false) String bizCode,
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "namespaceCode", required = false) String namespaceCode,
+            @RequestParam(value = "env", required = false) String env,
             @RequestParam(value = "keyword", required = false) String keyword) {
-        return ResultRecord.success(appService.list(bizCode, keyword));
+        return ResultRecord.success(appService.list(
+                bizCode, namespaceCode, env, keyword));
     }
 
-    @GetMapping("/{appCode}")
-    public ResultRecord<DdcAppEntity> detail(@PathVariable("appCode") String appCode) {
-        return ResultRecord.success(appService.findByAppCode(appCode).orElse(null));
+    @GetMapping("/{id}")
+    public ResultRecord<DdcAppEntity> detail(@PathVariable("id") String id) {
+        return ResultRecord.success(appService.findById(id).orElse(null));
     }
 
     @PostMapping
@@ -42,23 +45,23 @@ public class DdcAppController {
         return ResultRecord.success(appService.save(request));
     }
 
-    @PutMapping("/{appCode}")
+    @PutMapping("/{id}")
     public ResultRecord<DdcAppEntity> update(
-            @PathVariable("appCode") String appCode,
+            @PathVariable("id") String id,
             @RequestBody DdcAppEntity request) {
-        return ResultRecord.success(appService.update(appCode, request));
+        return ResultRecord.success(appService.update(id, request));
     }
 
-    @DeleteMapping("/{appCode}")
-    public ResultRecord<Void> delete(@PathVariable("appCode") String appCode) {
-        appService.delete(appCode);
+    @DeleteMapping("/{id}")
+    public ResultRecord<Void> delete(@PathVariable("id") String id) {
+        appService.delete(id);
         return ResultRecord.success(null);
     }
 
-    @PutMapping("/{appCode}/enabled")
+    @PutMapping("/{id}/enabled")
     public ResultRecord<DdcAppEntity> setEnabled(
-            @PathVariable("appCode") String appCode,
+            @PathVariable("id") String id,
             @RequestParam("enabled") boolean enabled) {
-        return ResultRecord.success(appService.setEnabled(appCode, enabled));
+        return ResultRecord.success(appService.setEnabled(id, enabled));
     }
 }
