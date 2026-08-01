@@ -71,6 +71,7 @@ services:
       context: ../../egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin
     environment:
       SERVER_PORT: 18080
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "1"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_ddc
       SPRING_DATASOURCE_USERNAME: gateway
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -101,6 +102,7 @@ services:
       context: ../egon-cola-platform-gateway-admin
     environment:
       SERVER_PORT: 18080
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "2"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_admin
       SPRING_DATASOURCE_USERNAME: gateway
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
@@ -129,7 +131,9 @@ services:
       context: ../egon-cola-platform-gateway-engine
     environment:
       SERVER_PORT: 18083
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "10"
       EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_BIZ_CODE: ${GATEWAY_BIZ_CODE}
       EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-engine-${GATEWAY_GROUP_CODE:-default}
       EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
       EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
@@ -176,7 +180,9 @@ services:
       context: ../egon-cola-platform-gateway-engine
     environment:
       SERVER_PORT: 18083
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "11"
       EGON_COLA_COMPONENT_DDC_ENABLED: "true"
+      EGON_COLA_COMPONENT_DDC_BIZ_CODE: ${GATEWAY_BIZ_CODE}
       EGON_COLA_COMPONENT_DDC_APP_CODE: gateway-engine-${GATEWAY_GROUP_CODE:-default}
       EGON_COLA_COMPONENT_DDC_ENV: ${GATEWAY_ENV:-local}
       EGON_COLA_COMPONENT_DDC_NAMESPACE: ${GATEWAY_NAMESPACE:-default}

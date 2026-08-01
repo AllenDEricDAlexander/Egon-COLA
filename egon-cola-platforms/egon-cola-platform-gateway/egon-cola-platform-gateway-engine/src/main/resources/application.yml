@@ -32,6 +32,7 @@ egon:
     component:
       ddc:
         enabled: true
+        biz-code: ${DDC_BIZ_CODE:default}
         app-code: egon-cola-gateway-engine
         admin:
           endpoint: ${DDC_ADMIN_ENDPOINT:http://127.0.0.1:18080}

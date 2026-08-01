@@ -26,6 +26,18 @@ npm run build
 `npm run dev` proxies `/api` to a local DDC Admin at
 `http://127.0.0.1:18080` (override with `DDC_ADMIN_PROXY`).
 
+The registry page sends an exact four-part scope on its first request. Set its
+build-time defaults when the local scope differs from `default / default-app /
+dev / default`:
+
+```bash
+VITE_DDC_ADMIN_DEFAULT_BIZ_CODE=retail \
+VITE_DDC_ADMIN_DEFAULT_APP_CODE=orders \
+VITE_DDC_ADMIN_DEFAULT_ENV=local \
+VITE_DDC_ADMIN_DEFAULT_NAMESPACE=default \
+npm run dev
+```
+
 Run `npm run e2e` only with a reachable DDC Admin and a valid token in
 `DDC_E2E_TOKEN` (the upstream URL can be overridden with `DDC_E2E_ADMIN_URL`).
 The command is not a substitute for the DDC live Maven suite.
@@ -59,7 +71,8 @@ The scope filters are selectable dropdowns loaded from the backend: the
 business domain list comes from `/bizs`, the application list is filtered by
 the selected domain, the namespace list by the selected application, and the
 environment list comes from the managed `/envs` entity. Every select also
-accepts typed values for new entries.
+accepts typed values for new entries. Registry queries always use a complete
+four-part scope; the build-time defaults above initialize the first query.
 
 ## Deployment
 

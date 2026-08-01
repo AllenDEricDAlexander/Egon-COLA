@@ -24,6 +24,17 @@ npm run build
 `npm run dev` 会把 `/api` 代理到本机 DDC Admin（默认
 `http://127.0.0.1:18080`，可用 `DDC_ADMIN_PROXY` 覆盖）。
 
+注册中心首次请求会携带完整四级作用域。本地作用域不是
+`default / default-app / dev / default` 时，可设置以下构建时默认值：
+
+```bash
+VITE_DDC_ADMIN_DEFAULT_BIZ_CODE=retail \
+VITE_DDC_ADMIN_DEFAULT_APP_CODE=orders \
+VITE_DDC_ADMIN_DEFAULT_ENV=local \
+VITE_DDC_ADMIN_DEFAULT_NAMESPACE=default \
+npm run dev
+```
+
 `npm run e2e` 仅在存在可达的 DDC Admin 且 `DDC_E2E_TOKEN` 配置了有效 token
 时运行（上游地址可用 `DDC_E2E_ADMIN_URL` 覆盖）。该命令不能替代 DDC 的
 Maven 测试套件。
@@ -52,7 +63,7 @@ Maven 测试套件。
 
 作用域筛选为可选下拉，选项来自后端：业务域列表来自 `/bizs`，应用列表按所选
 业务域过滤，命名空间列表按所选应用过滤，环境列表来自受管实体 `/envs`；
-所有下拉均支持直接输入新值。
+所有下拉均支持直接输入新值。注册查询始终携带完整四级作用域，首次查询使用上述构建时默认值。
 
 ## 部署
 

@@ -99,7 +99,7 @@ command_init() {
   chmod 600 "${runtime_dir}/admin.jwt"
   : >"${runtime_dir}/applications.tsv"
   while IFS= read -r application; do
-    request="$(jq --arg env "${GATEWAY_ENV:-local}" --arg namespace "${GATEWAY_NAMESPACE:-default}" '. + {env:$env,namespace:$namespace}' <<<"${application}")"
+    request="$(jq --arg bizCode "${GATEWAY_BIZ_CODE:-default}" --arg env "${GATEWAY_ENV:-local}" --arg namespace "${GATEWAY_NAMESPACE:-default}" '. + {bizCode:$bizCode,env:$env,namespace:$namespace}' <<<"${application}")"
     created="$(api POST /api/v1/gateway/admin/applications "${request}")"
     app_id="$(jq -er '.id' <<<"${created}")"
     app_code="$(jq -er '.applicationCode' <<<"${created}")"

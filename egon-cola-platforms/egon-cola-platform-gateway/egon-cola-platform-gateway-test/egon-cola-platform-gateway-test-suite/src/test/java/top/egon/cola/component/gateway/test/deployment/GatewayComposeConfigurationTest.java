@@ -80,9 +80,25 @@ class GatewayComposeConfigurationTest {
         Properties environment = deploymentEnvironment();
 
         assertThat(environment)
+                .containsEntry("GATEWAY_BIZ_CODE", "default")
                 .containsEntry("GATEWAY_RPC_SERVICE_NAME", "egon-gateway-rpc")
                 .containsEntry("GATEWAY_RPC_GROUP", "default")
                 .containsEntry("GATEWAY_RPC_VERSION", "1.0.0");
+    }
+
+    @Test
+    void servicesUseDistinctExplicitMachineIds() throws IOException {
+        Map<String, Object> services = map(compose().get("services"));
+        assertMachineId(services, "ddc-admin", "1");
+        assertMachineId(services, "gateway-admin", "2");
+        assertMachineId(services, "gateway-engine", "10");
+        assertMachineId(services, "gateway-engine-2", "11");
+
+        Map<String, Object> haServices = map(
+                compose("compose.ha.yml").get("services")
+        );
+        assertMachineId(haServices, "ddc-admin-2", "3");
+        assertMachineId(haServices, "gateway-admin-2", "4");
     }
 
     @Test
@@ -161,11 +177,28 @@ class GatewayComposeConfigurationTest {
         )).isEqualTo("2.0.0-test");
     }
 
+    private void assertMachineId(
+            Map<String, Object> services,
+            String serviceName,
+            String expectedMachineId) {
+        Map<String, Object> environment = map(
+                map(services.get(serviceName)).get("environment")
+        );
+        assertThat(environment).containsEntry(
+                "EGON_COLA_COMPONENT_ID_MACHINE_ID",
+                expectedMachineId
+        );
+    }
+
     private void assertEngineCoordinates(
             Map<String, Object> service,
             String advertisedHost) throws IOException {
         Map<String, Object> environment = map(service.get("environment"));
         assertThat(environment)
+                .containsEntry(
+                        "EGON_COLA_COMPONENT_DDC_BIZ_CODE",
+                        "${GATEWAY_BIZ_CODE}"
+                )
                 .containsEntry("EGON_COLA_COMPONENT_DDC_REDIS_HOST", "ddc-redis")
                 .containsEntry("EGON_COLA_COMPONENT_DDC_REDIS_PORT", 6379)
                 .containsEntry(
@@ -211,6 +244,7 @@ class GatewayComposeConfigurationTest {
                         "Gateway Engine Compose environment did not bind"
                 ));
 
+        assertThat(ddc.getBizCode()).isEqualTo("default");
         assertThat(ddc.getRedis().getHost()).isEqualTo("ddc-redis");
         assertThat(ddc.getRedis().getPort()).isEqualTo(6379);
         assertThat(engine.getRpc().getAdvertisedHost())

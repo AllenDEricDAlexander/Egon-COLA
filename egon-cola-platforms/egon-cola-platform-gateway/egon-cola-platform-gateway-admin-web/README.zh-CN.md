@@ -43,6 +43,8 @@ Origin；留空时使用当前 Origin。Actor 与 capabilities 由已鉴权的 S
 部署环境可设置管理页首次进入时使用的作用域；该作用域也会进入页面顶部的可选列表：
 
 ```text
+VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE=default
+VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE=default-app
 VITE_GATEWAY_ADMIN_DEFAULT_ENV=dev
 VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE=default
 ```

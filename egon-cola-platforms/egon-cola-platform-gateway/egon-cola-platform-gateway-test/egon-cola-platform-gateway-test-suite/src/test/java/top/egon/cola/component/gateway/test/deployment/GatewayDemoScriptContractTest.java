@@ -5,8 +5,10 @@ import org.junit.jupiter.api.io.TempDir;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -95,6 +97,26 @@ class GatewayDemoScriptContractTest {
                         "EGON_COLA_COMPONENT_RPC_PROVIDER_ADVERTISED_HOST",
                         "rpc-provider"
                 );
+    }
+
+    @Test
+    void tokenScriptSupportsSecretsWithRepeatedByteLines() throws Exception {
+        String secret = Base64.getEncoder().encodeToString(
+                "0123456789abcdef0123456789abcdef"
+                        .getBytes(StandardCharsets.UTF_8)
+        );
+        Process process = new ProcessBuilder(
+                "bash",
+                DEPLOYMENT.resolve("scripts/demo-token.sh").toString(),
+                secret
+        ).redirectErrorStream(true).start();
+        String output = new String(
+                process.getInputStream().readAllBytes(),
+                StandardCharsets.UTF_8
+        ).trim();
+
+        assertThat(process.waitFor()).isZero();
+        assertThat(output).matches("[^.]+\\.[^.]+\\.[^.]+");
     }
 
     private ProcessResult run(String command, boolean fakeDocker)

@@ -45,6 +45,8 @@ The deployment can set the scope selected when the admin page first opens. The c
 values are also added to the scope selectors in the page header:
 
 ```text
+VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE=default
+VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE=default-app
 VITE_GATEWAY_ADMIN_DEFAULT_ENV=dev
 VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE=default
 ```

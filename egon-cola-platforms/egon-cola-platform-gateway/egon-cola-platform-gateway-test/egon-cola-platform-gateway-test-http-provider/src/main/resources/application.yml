@@ -30,6 +30,8 @@ egon:
         enabled: false
       ddc:
         enabled: false
+        biz-code: ${DDC_BIZ_CODE:test-biz}
+        app-code: ${DDC_APP_CODE:gateway-test-http-provider}
         env: test
         namespace: gateway-test
         registry:
@@ -37,6 +39,8 @@ egon:
       gateway:
         reporting:
           enabled: false
+          biz-code: ${DDC_BIZ_CODE:test-biz}
+          application-code: ${DDC_APP_CODE:gateway-test-http-provider}
           artifact-version: ${gateway.test.service-version}
         provider:
           http:
