@@ -260,6 +260,19 @@ public class Rbac3IdentitySessionQueryStore implements
                 user.getDirectorySnapshotVersion());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public TenantUserDirectoryController.TenantView findTenant(String tenantId) {
+        TenantEntity tenant = entityManager.find(
+                TenantEntity.class, Long.valueOf(tenantId));
+        if (tenant == null) {
+            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
+        }
+        return new TenantUserDirectoryController.TenantView(
+                tenant.getId().toString(), tenant.getCode(), tenant.getName(),
+                tenant.getStatus().name());
+    }
+
     private UserEntity requireUser(Long tenantId, Long userId) {
         UserEntity user = entityManager.find(UserEntity.class, userId);
         if (user == null || !tenantId.equals(user.getTenantId())) {

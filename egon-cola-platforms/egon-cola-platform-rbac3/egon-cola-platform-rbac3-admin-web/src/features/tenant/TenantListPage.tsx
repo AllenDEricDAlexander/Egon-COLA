@@ -32,7 +32,7 @@ export const TenantListPage = () => {
       </PermissionGuard>
       {targetTenantId && (
         <Typography.Paragraph type="warning" style={{ marginTop: 12 }}>
-          当前正在管理目标租户 {effectiveTenantId}；所有查询键和请求头均包含该租户。
+          平台 Tenant 专用接口将以目标租户 {targetTenantId} 执行；普通租户接口仍使用登录租户。
         </Typography.Paragraph>
       )}
     </Card>

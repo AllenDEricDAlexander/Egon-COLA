@@ -15,12 +15,13 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/rbac3/v1/directory")
+@RequestMapping("/api/rbac3/v1")
 @GatewayInterfaceGroup(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
@@ -45,7 +46,7 @@ public class TenantUserDirectoryController {
         this.queryPort = queryPort;
     }
 
-    @PostMapping("/snapshots")
+    @PostMapping("/directory/snapshots")
     @RequiresRbac3Permission(permission = "system:directory:sync")
     @GatewayOperation(
             name = "rbac3-directory-snapshot-submit-v1",
@@ -58,7 +59,7 @@ public class TenantUserDirectoryController {
                 TenantContext.requireCurrent().effectiveTenantId(), command));
     }
 
-    @GetMapping("/users/{userId}")
+    @GetMapping("/directory/users/{userId}")
     @RequiresRbac3Permission(permission = "system:user:read")
     @GatewayOperation(
             name = "rbac3-directory-user-get-v1",
@@ -70,16 +71,32 @@ public class TenantUserDirectoryController {
                 TenantContext.requireCurrent().effectiveTenantId(), userId));
     }
 
+    @GetMapping("/platform/tenants/{tenantId}")
+    @RequiresRbac3Permission(permission = "system:tenant:read")
+    @GatewayOperation(
+            name = "rbac3-platform-tenant-get-v1",
+            summary = "读取平台目标租户",
+            externalAccessible = true,
+            tags = {"rbac3", "tenant"})
+    public ApiEnvelope<TenantView> tenant(@PathVariable String tenantId) {
+        TenantContext context = TenantContext.requireCurrent();
+        if (!context.effectiveTenantId().equals(tenantId)) {
+            throw new Rbac3RuleViolation("TENANT_CONTEXT_INVALID");
+        }
+        return ApiEnvelope.success(queryPort.findTenant(tenantId));
+    }
+
     @FunctionalInterface
     public interface DirectoryCommandPort {
 
         DirectorySyncView submit(String tenantId, DirectorySnapshotCommand command);
     }
 
-    @FunctionalInterface
     public interface DirectoryQueryPort {
 
         UserDirectoryView findUser(String tenantId, String userId);
+
+        TenantView findTenant(String tenantId);
     }
 
     public record DirectorySnapshotCommand(
@@ -106,6 +123,14 @@ public class TenantUserDirectoryController {
             String status,
             long authVersion,
             long directorySnapshotVersion
+    ) {
+    }
+
+    public record TenantView(
+            String tenantId,
+            String tenantCode,
+            String tenantName,
+            String status
     ) {
     }
 }

@@ -90,6 +90,10 @@ public class TenantEntity {
         return code;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public Status getStatus() {
         return status;
     }

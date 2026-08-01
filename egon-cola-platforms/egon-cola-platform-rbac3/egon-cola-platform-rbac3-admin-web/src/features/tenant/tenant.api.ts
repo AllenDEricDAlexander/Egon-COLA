@@ -9,6 +9,6 @@ export interface TenantView {
 
 export const tenantApi = (client: FeatureApiClient) => ({
   detail: (tenantId: string) => client.request<TenantView>(
-    `/api/rbac3/v1/tenants/${encodeURIComponent(tenantId)}`,
+    `/api/rbac3/v1/platform/tenants/${encodeURIComponent(tenantId)}`,
   ),
 })

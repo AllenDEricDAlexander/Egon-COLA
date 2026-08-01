@@ -34,12 +34,12 @@ export interface FeatureApiProviderProps extends PropsWithChildren {
 export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps) => {
   const { bootstrap, refresh } = useRbac3Session()
   const [targetTenantId, setTargetTenant] = useState<string | null>(null)
-  const effectiveTenantId = targetTenantId ?? bootstrap?.user.tenantId ?? null
+  const effectiveTenantId = bootstrap?.user.tenantId ?? null
   const tenantClient = useMemo<FeatureApiClient>(() => ({
     request: async <T,>(path: string, request: FeatureApiRequest = {}) => {
-      const tenantRequest = targetTenantId === null
+      const tenantRequest = targetTenantId === null || !path.startsWith('/api/rbac3/v1/platform/')
         ? request
-        : { ...request, headers: { ...request.headers, 'X-Target-Tenant-Id': targetTenantId } }
+        : { ...request, headers: { ...request.headers, 'X-RBAC3-Target-Tenant': targetTenantId } }
       try {
         return await client.request<T>(path, tenantRequest)
       } catch (error) {
