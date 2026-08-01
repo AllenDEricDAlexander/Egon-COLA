@@ -373,6 +373,15 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                     true
             );
         }
+        if (segments.length == 2
+                && "scope-bindings".equals(segments[1])
+                && "GET".equals(method)) {
+            return optionalQueryScope(
+                    request,
+                    "MANAGEMENT",
+                    "MANAGEMENT_SCOPE_READ"
+            );
+        }
         if (segments.length == 3
                 && "registry".equals(segments[1])
                 && ("services".equals(segments[2])
