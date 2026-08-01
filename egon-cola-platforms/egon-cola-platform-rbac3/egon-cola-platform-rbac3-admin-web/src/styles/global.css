@@ -1,0 +1,16 @@
+:root {
+  color: #172033;
+  background: #f4f7fb;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+body { margin: 0; min-width: 1120px; min-height: 100vh; background: #f4f7fb; }
+.rbac3-centered { min-height: 100vh; display: grid; place-items: center; }
+.rbac3-auth-page { min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at top, #e7f0ff, #f6f8fc 55%); }
+.rbac3-login-card { width: 420px; box-shadow: 0 18px 52px rgb(24 52 92 / 12%); }
+.rbac3-activation-page { max-width: 1080px; margin: 0 auto; padding: 40px 24px; }
+.rbac3-app-layout { min-height: 100vh; }
+.rbac3-sidebar { border-right: 1px solid #e7eaf0; }
+.rbac3-brand { padding: 20px 24px 8px; margin: 0 !important; }
+.rbac3-header { display: flex; justify-content: flex-end; align-items: center; background: #fff; border-bottom: 1px solid #e7eaf0; padding-inline: 24px; }
+.rbac3-content { padding: 24px; overflow: auto; }

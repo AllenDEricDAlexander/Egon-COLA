@@ -32,23 +32,23 @@ export interface FeatureApiProviderProps extends PropsWithChildren {
 }
 
 export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps) => {
-  const { bootstrap } = useRbac3Session()
+  const { bootstrap, refresh } = useRbac3Session()
   const [targetTenantId, setTargetTenant] = useState<string | null>(null)
   const effectiveTenantId = targetTenantId ?? bootstrap?.user.tenantId ?? null
   const tenantClient = useMemo<FeatureApiClient>(() => ({
-    request: <T,>(path: string, request: FeatureApiRequest = {}) => client.request<T>(
-      path,
-      targetTenantId === null
+    request: async <T,>(path: string, request: FeatureApiRequest = {}) => {
+      const tenantRequest = targetTenantId === null
         ? request
-        : {
-            ...request,
-            headers: {
-              ...request.headers,
-              'X-Target-Tenant-Id': targetTenantId,
-            },
-          },
-    ),
-  }), [client, targetTenantId])
+        : { ...request, headers: { ...request.headers, 'X-Target-Tenant-Id': targetTenantId } }
+      try {
+        return await client.request<T>(path, tenantRequest)
+      } catch (error) {
+        if (!isUnauthorized(error)) throw error
+        await refresh()
+        return client.request<T>(path, tenantRequest)
+      }
+    },
+  }), [client, refresh, targetTenantId])
   const setTargetTenantId = (tenantId: string | null) => {
     const normalized = tenantId?.trim() || null
     setTargetTenant(normalized)
@@ -61,6 +61,11 @@ export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps
   }), [effectiveTenantId, targetTenantId, tenantClient])
   return <FeatureApiContext.Provider value={value}>{children}</FeatureApiContext.Provider>
 }
+
+const isUnauthorized = (error: unknown): boolean => typeof error === 'object'
+  && error !== null
+  && 'status' in error
+  && error.status === 401
 
 export const useFeatureApi = (): FeatureApiClient => {
   const value = useContext(FeatureApiContext)
