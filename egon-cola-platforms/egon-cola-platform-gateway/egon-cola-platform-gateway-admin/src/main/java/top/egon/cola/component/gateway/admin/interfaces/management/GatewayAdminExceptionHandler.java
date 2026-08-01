@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminIdempotencyConflictException;
+import top.egon.cola.component.gateway.admin.application.GatewayApplicationAlreadyExistsException;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
 
 import java.time.Instant;
@@ -16,6 +17,20 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GatewayAdminExceptionHandler {
+
+    @ExceptionHandler(GatewayApplicationAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> applicationExists(
+            GatewayApplicationAlreadyExistsException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                new ErrorResponse(
+                        "GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS",
+                        error.getMessage(),
+                        null,
+                        List.of(),
+                        Instant.now()
+                )
+        );
+    }
 
     @ExceptionHandler(GatewayAdminRevisionConflictException.class)
     public ResponseEntity<ErrorResponse> revision(

@@ -11,10 +11,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.admin.application.GatewayApplicationService;
 import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
+import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.util.List;
@@ -31,8 +33,17 @@ public class GatewayApplicationController {
     }
 
     @GetMapping
-    public List<GatewayApplicationService.GatewayApplicationView> list() {
-        return service.list();
+    public List<GatewayApplicationService.GatewayApplicationView> list(
+            @RequestParam(required = false) String bizCode,
+            @RequestParam(required = false) String namespace,
+            @RequestParam(required = false) String env,
+            @RequestParam(required = false) String appCode) {
+        return service.list(new GatewayScopeService.ScopeQuery(
+                bizCode,
+                namespace,
+                env,
+                appCode
+        ));
     }
 
     @PostMapping

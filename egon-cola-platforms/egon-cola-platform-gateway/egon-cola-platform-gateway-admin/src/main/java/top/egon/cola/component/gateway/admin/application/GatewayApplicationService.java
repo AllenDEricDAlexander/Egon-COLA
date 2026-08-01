@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
+import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
@@ -13,8 +15,10 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayA
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class GatewayApplicationService {
@@ -23,21 +27,26 @@ public class GatewayApplicationService {
 
     private final GatewayAuditLogRepository audits;
 
+    private final GatewayScopeService scopes;
+
     private final Clock clock;
 
     @Autowired
     public GatewayApplicationService(
             GatewayApplicationRepository applications,
-            GatewayAuditLogRepository audits) {
-        this(applications, audits, Clock.systemUTC());
+            GatewayAuditLogRepository audits,
+            GatewayScopeService scopes) {
+        this(applications, audits, scopes, Clock.systemUTC());
     }
 
     GatewayApplicationService(
             GatewayApplicationRepository applications,
             GatewayAuditLogRepository audits,
+            GatewayScopeService scopes,
             Clock clock) {
         this.applications = applications;
         this.audits = audits;
+        this.scopes = scopes;
         this.clock = clock;
     }
 
@@ -46,39 +55,89 @@ public class GatewayApplicationService {
             CreateGatewayApplication command,
             AdminActor actor,
             RequestAuditContext request) {
+        GatewayScopeService.ScopeQuery scope =
+                new GatewayScopeService.ScopeQuery(
+                        required(command.bizCode(), "bizCode"),
+                        required(command.namespace(), "namespace"),
+                        required(command.env(), "env"),
+                        required(command.applicationCode(), "applicationCode")
+                );
+        DdcManagementScopeBinding binding = scopes.requireEnabled(scope);
+        GatewayApplicationEntity existing = applications
+                .findByBizCodeAndApplicationCodeAndEnvAndDeletedFalse(
+                        scope.bizCode(),
+                        scope.appCode(),
+                        scope.env()
+                )
+                .orElse(null);
+        if (existing != null) {
+            throw new GatewayApplicationAlreadyExistsException(
+                    existing.getId()
+            );
+        }
         Instant now = clock.instant();
         GatewayApplicationEntity application = new GatewayApplicationEntity(
                 UuidV7.simpleString(),
-                required(command.bizCode(), "bizCode"),
-                required(command.applicationCode(), "applicationCode"),
+                scope.bizCode(),
+                scope.appCode(),
                 required(command.displayName(), "displayName"),
-                required(command.env(), "env"),
-                required(command.namespace(), "namespace"),
+                scope.env(),
+                scope.namespace(),
                 command.description(),
                 actor.actorId(),
                 now
         );
-        applications.save(application);
+        applications.saveAndFlush(application);
         audit(actor, request, application.getId(), "CREATE", Map.of(
-                "bizCode", application.getBizCode(),
-                "applicationCode", application.getApplicationCode(),
-                "env", application.getEnv(),
-                "namespace", application.getNamespace()
+                "bindingId", binding.bindingId(),
+                "bizCode", scope.bizCode(),
+                "applicationCode", scope.appCode(),
+                "env", scope.env(),
+                "namespace", scope.namespace()
         ));
-        return view(application);
+        return view(application, scope.namespace(), true);
     }
 
     @Transactional(readOnly = true)
     public List<GatewayApplicationView> list() {
+        return list(new GatewayScopeService.ScopeQuery(
+                null,
+                null,
+                null,
+                null
+        ));
+    }
+
+    @Transactional(readOnly = true)
+    public List<GatewayApplicationView> list(
+            GatewayScopeService.ScopeQuery query) {
+        List<DdcManagementScopeBinding> bindings = scopes.bindings(query);
+        Map<GatewayScopeService.PhysicalApplicationKey,
+                List<DdcManagementScopeBinding>> bindingsByApplication =
+                bindings.stream().collect(Collectors.groupingBy(
+                        GatewayApplicationService::physicalKey,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
         return applications.findAllByDeletedFalseOrderByCreatedAtDesc()
                 .stream()
-                .map(this::view)
+                .filter(application -> query.empty()
+                        || bindingsByApplication.containsKey(
+                        physicalKey(application)))
+                .map(application -> scopedView(
+                        application,
+                        query,
+                        bindingsByApplication.getOrDefault(
+                                physicalKey(application),
+                                List.of()
+                        )
+                ))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public GatewayApplicationView get(String id) {
-        return view(required(id));
+        return view(required(id), null, false);
     }
 
     @Transactional
@@ -104,7 +163,7 @@ public class GatewayApplicationService {
                 "displayName", application.getDisplayName(),
                 "revision", application.getRevision()
         ));
-        return view(application);
+        return view(application, null, false);
     }
 
     private GatewayApplicationEntity required(String id) {
@@ -140,19 +199,66 @@ public class GatewayApplicationService {
         ));
     }
 
+    private GatewayApplicationView scopedView(
+            GatewayApplicationEntity application,
+            GatewayScopeService.ScopeQuery query,
+            List<DdcManagementScopeBinding> bindings) {
+        String namespace = application.getNamespace();
+        if (!query.empty()) {
+            namespace = query.namespace() == null
+                    || query.namespace().isBlank()
+                    ? matchedNamespace(application, bindings)
+                    : query.namespace().trim();
+        }
+        return view(application, namespace, !bindings.isEmpty());
+    }
+
+    private String matchedNamespace(
+            GatewayApplicationEntity application,
+            List<DdcManagementScopeBinding> bindings) {
+        return bindings.stream()
+                .map(DdcManagementScopeBinding::namespaceCode)
+                .filter(application.getNamespace()::equals)
+                .findFirst()
+                .orElseGet(() -> bindings.isEmpty()
+                        ? application.getNamespace()
+                        : bindings.getFirst().namespaceCode());
+    }
+
     private GatewayApplicationView view(
-            GatewayApplicationEntity application) {
+            GatewayApplicationEntity application,
+            String namespace,
+            boolean ddcMatched) {
         return new GatewayApplicationView(
                 application.getId(),
                 application.getBizCode(),
                 application.getApplicationCode(),
                 application.getDisplayName(),
                 application.getEnv(),
-                application.getNamespace(),
+                namespace == null ? application.getNamespace() : namespace,
                 application.getDescription(),
+                ddcMatched,
                 application.getRevision(),
                 application.getCreatedAt(),
                 application.getUpdatedAt()
+        );
+    }
+
+    private static GatewayScopeService.PhysicalApplicationKey physicalKey(
+            DdcManagementScopeBinding binding) {
+        return new GatewayScopeService.PhysicalApplicationKey(
+                binding.bizCode(),
+                binding.env(),
+                binding.appCode()
+        );
+    }
+
+    private static GatewayScopeService.PhysicalApplicationKey physicalKey(
+            GatewayApplicationEntity application) {
+        return new GatewayScopeService.PhysicalApplicationKey(
+                application.getBizCode(),
+                application.getEnv(),
+                application.getApplicationCode()
         );
     }
 
@@ -188,6 +294,7 @@ public class GatewayApplicationService {
             String env,
             String namespace,
             String description,
+            boolean ddcMatched,
             long revision,
             Instant createdAt,
             Instant updatedAt
