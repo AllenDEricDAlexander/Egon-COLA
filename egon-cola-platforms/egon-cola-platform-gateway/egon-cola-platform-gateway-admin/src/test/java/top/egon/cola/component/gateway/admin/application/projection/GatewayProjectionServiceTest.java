@@ -312,6 +312,85 @@ class GatewayProjectionServiceTest {
     }
 
     @Test
+    void ignoresExpiredHistoricalEnginesWhenCheckingRuntimeConsistency() {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
+        GatewayReleaseService releases = mock(GatewayReleaseService.class);
+        GatewayGroupEntity group = new GatewayGroupEntity(
+                "group-1",
+                "edge",
+                "Edge",
+                "test",
+                "gateway",
+                null,
+                "admin",
+                now
+        );
+        when(groups.findByIdAndDeletedFalse("group-1"))
+                .thenReturn(java.util.Optional.of(group));
+        GatewayReleaseStore.TargetRecord target =
+                new GatewayReleaseStore.TargetRecord(
+                        "engine-current",
+                        "lease-current",
+                        "SUCCESS",
+                        12L,
+                        "artifact-sha",
+                        null,
+                        now.minusSeconds(5)
+                );
+        when(releases.history("group-1")).thenReturn(List.of(
+                release("release-1", target, now)
+        ));
+        Map<String, String> currentMetadata = Map.of(
+                "activeReleaseId", "release-1",
+                "activeRuleVersion", "12",
+                "activeRuleChecksum", "artifact-sha",
+                "lastApplyStatus", "ACK_SUCCESS",
+                "lastAckAt", now.minusSeconds(1).toString()
+        );
+        DdcManagementConfigClientInstance expired =
+                new DdcManagementConfigClientInstance(
+                        "infra", "test", "ge", "engine-expired",
+                        "lease-expired", "127.0.0.2", 18080,
+                        "CONFIG_CLIENT", "ONLINE",
+                        now.minusSeconds(90), now.minusSeconds(60),
+                        now.minusSeconds(30), Map.of()
+                );
+        DdcManagementConfigClientInstance current =
+                new DdcManagementConfigClientInstance(
+                        "infra", "test", "ge", "engine-current",
+                        "lease-current", "127.0.0.1", 18080,
+                        "CONFIG_CLIENT", "ONLINE",
+                        now.minusSeconds(30), now.minusSeconds(2),
+                        now.plusSeconds(30), currentMetadata
+                );
+        GatewayProjectionService service = new GatewayProjectionService(
+                groups,
+                releases,
+                new StubClient(
+                        now,
+                        null,
+                        null,
+                        List.of(expired, current)
+                ),
+                Clock.fixed(now, ZoneOffset.UTC)
+        );
+
+        var consistency = service.runtimeConsistency("group-1");
+
+        assertThat(consistency.engineNodeCount()).isEqualTo(1);
+        assertThat(consistency.readyEngineNodeCount()).isEqualTo(1);
+        assertThat(consistency.consistent()).isTrue();
+        assertThat(consistency.nodes()).singleElement()
+                .extracting(
+                        GatewayProjectionService.EngineNodeConsistency
+                                ::instanceId,
+                        GatewayProjectionService.EngineNodeConsistency::status
+                )
+                .containsExactly("engine-current", "CONSISTENT");
+    }
+
+    @Test
     void identifiesOnlineEngineWithStaleRelease() {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);

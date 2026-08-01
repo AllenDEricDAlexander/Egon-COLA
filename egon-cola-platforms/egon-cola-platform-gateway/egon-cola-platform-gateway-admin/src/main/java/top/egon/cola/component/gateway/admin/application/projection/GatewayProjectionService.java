@@ -165,6 +165,7 @@ public class GatewayProjectionService {
         );
         RuleExpectation expectation = expectation(attempt);
         List<EngineNodeConsistency> nodeStates = nodes.value().stream()
+                .filter(this::online)
                 .map(node -> nodeConsistency(
                         node,
                         target,
@@ -177,12 +178,12 @@ public class GatewayProjectionService {
         return new RuntimeConsistency(
                 target == null ? null : target.releaseId(),
                 target == null ? null : target.status().name(),
-                nodes.value().size(),
+                nodeStates.size(),
                 ready,
                 target != null
                         && "SUCCESS".equals(target.status().name())
-                        && !nodes.value().isEmpty()
-                        && ready == nodes.value().size(),
+                        && !nodeStates.isEmpty()
+                        && ready == nodeStates.size(),
                 nodes.observedAt(),
                 nodes.source(),
                 nodes.stale(),
