@@ -9,11 +9,11 @@ public class DdcPublishRequest {
 
     private String changeId;
 
-    private String appCode;
+    private String bizCode;
 
     private String env;
 
-    private String namespace;
+    private String appCode;
 
     private String configKey;
 

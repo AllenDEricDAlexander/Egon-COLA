@@ -77,8 +77,10 @@ public class DdcInstanceAdminService {
         return result;
     }
 
-    public List<DdcInstanceEntity> list(String appCode, String env, String namespace) {
-        return instanceRepository.findByAppCodeAndEnvAndNamespace(appCode, env, namespace);
+    public List<DdcInstanceEntity> list(
+            String bizCode, String env, String appCode) {
+        return instanceRepository.findByBizCodeAndEnvAndAppCode(
+                bizCode, env, appCode);
     }
 
     private LocalDateTime localTime(Instant value) {
@@ -94,9 +96,9 @@ public class DdcInstanceAdminService {
     }
 
     private void fillInstance(DdcInstanceEntity instance, DdcInstanceRegisterRequest request) {
+        instance.setBizCode(request.getBizCode());
         instance.setAppCode(request.getAppCode());
         instance.setEnv(request.getEnv());
-        instance.setNamespace(request.getNamespace());
         instance.setHost(request.getHost());
         instance.setPort(request.getPort());
         instance.setPid(request.getPid());

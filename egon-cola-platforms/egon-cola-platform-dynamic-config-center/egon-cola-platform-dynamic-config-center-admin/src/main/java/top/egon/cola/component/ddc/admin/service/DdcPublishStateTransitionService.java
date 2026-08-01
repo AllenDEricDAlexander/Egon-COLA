@@ -272,9 +272,9 @@ public class DdcPublishStateTransitionService {
 
     private DdcConfigResourceKey resourceKey(DdcPublishTaskEntity task) {
         return new DdcConfigResourceKey(
-                task.getAppCode(),
+                task.getBizCode(),
                 task.getEnv(),
-                task.getNamespace(),
+                task.getAppCode(),
                 task.getConfigKey()
         );
     }

@@ -21,9 +21,11 @@ public class DdcInstanceController {
     }
 
     @GetMapping
-    public ResultRecord<List<DdcInstanceEntity>> list(@RequestParam("appCode") String appCode,
-                                                @RequestParam("env") String env,
-                                                @RequestParam("namespace") String namespace) {
-        return ResultRecord.success(instanceAdminService.list(appCode, env, namespace));
+    public ResultRecord<List<DdcInstanceEntity>> list(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("env") String env,
+            @RequestParam("appCode") String appCode) {
+        return ResultRecord.success(instanceAdminService.list(
+                bizCode, env, appCode));
     }
 }

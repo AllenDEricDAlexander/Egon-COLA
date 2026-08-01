@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.admin.service;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -19,6 +20,7 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVersionVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 
@@ -36,25 +38,46 @@ public class DdcConfigService {
 
     private final DdcOperationLogRepository operationLogRepository;
 
+    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
+
     private final DdcConfigValueGuard valueGuard;
 
-    public DdcConfigService(DdcConfigItemRepository configItemRepository,
-                            DdcConfigVersionRepository versionRepository,
-                            DdcOperationLogRepository operationLogRepository,
-                            ObjectProvider<DdcAdminProperties> propertiesProvider) {
+    @Autowired
+    public DdcConfigService(
+            DdcConfigItemRepository configItemRepository,
+            DdcConfigVersionRepository versionRepository,
+            DdcOperationLogRepository operationLogRepository,
+            ObjectProvider<DdcAdminProperties> propertiesProvider,
+            DdcNamespaceEnvAppBindingRepository bindingRepository) {
         this.configItemRepository = configItemRepository;
         this.versionRepository = versionRepository;
         this.operationLogRepository = operationLogRepository;
+        this.bindingRepository = bindingRepository;
         DdcAdminProperties properties =
                 propertiesProvider.getIfAvailable(DdcAdminProperties::new);
         this.valueGuard = new DdcConfigValueGuard(properties.getMaxValueBytes());
     }
 
+    public DdcConfigService(
+            DdcConfigItemRepository configItemRepository,
+            DdcConfigVersionRepository versionRepository,
+            DdcOperationLogRepository operationLogRepository,
+            ObjectProvider<DdcAdminProperties> propertiesProvider) {
+        this(
+                configItemRepository,
+                versionRepository,
+                operationLogRepository,
+                propertiesProvider,
+                null
+        );
+    }
+
     @Transactional
     public DdcConfigVO create(DdcConfigCreateRequest request, String operator) {
         validateDraft(request);
-        configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                        request.getAppCode(), request.getEnv(), request.getNamespace(), request.getConfigKey())
+        configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                        request.getBizCode(), request.getEnv(),
+                        request.getAppCode(), request.getConfigKey())
                 .ifPresent(item -> {
                     throw new DdcAdminException("config item already exists");
                 });
@@ -69,10 +92,10 @@ public class DdcConfigService {
     ) {
         validateDraft(request);
         DdcConfigItemEntity existing =
-                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                        request.getAppCode(),
+                configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                        request.getBizCode(),
                         request.getEnv(),
-                        request.getNamespace(),
+                        request.getAppCode(),
                         request.getConfigKey()
                 ).orElse(null);
         if (existing == null) {
@@ -119,9 +142,9 @@ public class DdcConfigService {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
         entity.setId(UuidV7.simpleString());
+        entity.setBizCode(request.getBizCode());
         entity.setAppCode(request.getAppCode());
         entity.setEnv(request.getEnv());
-        entity.setNamespace(request.getNamespace());
         entity.setConfigKey(request.getConfigKey());
         entity.setConfigValue(request.getConfigValue());
         entity.setDefaultValue(request.getDefaultValue());
@@ -170,19 +193,19 @@ public class DdcConfigService {
 
     @Transactional
     public DdcConfigVO delete(
-            String appCode,
+            String bizCode,
             String env,
-            String namespace,
+            String appCode,
             String configKey,
             Long expectedVersion,
             String operator,
             String reason
     ) {
         DdcConfigItemEntity entity =
-                configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                        appCode,
+                configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                        bizCode,
                         env,
-                        namespace,
+                        appCode,
                         configKey
                 ).orElse(null);
         if (entity == null) {
@@ -233,12 +256,18 @@ public class DdcConfigService {
     }
 
     public List<DdcConfigVO> list(DdcConfigQueryRequest request) {
-        List<DdcConfigItemEntity> items = configItemRepository.findByAppCodeAndEnvAndNamespace(
-                request.getAppCode(), request.getEnv(), request.getNamespace());
-        return items.stream()
-                .filter(item -> request.isIncludeDeleted() || !Boolean.TRUE.equals(item.getDeleted()))
-                .filter(item -> request.getConfigKey() == null || item.getConfigKey().contains(request.getConfigKey()))
-                .map(DdcConfigVO::from)
+        DdcConfigQueryRequest query = request == null
+                ? new DdcConfigQueryRequest()
+                : request;
+        return configItemRepository.search(
+                        optional(query.getBizCode()),
+                        optional(query.getNamespaceCode()),
+                        optional(query.getEnv()),
+                        optional(query.getAppCode()),
+                        optional(query.getConfigKey()),
+                        query.isIncludeDeleted()
+                ).stream()
+                .map(this::config)
                 .toList();
     }
 
@@ -247,22 +276,22 @@ public class DdcConfigService {
     }
 
     public Optional<DdcConfigVO> find(
-            String appCode,
+            String bizCode,
             String env,
-            String namespace,
+            String appCode,
             String configKey
     ) {
-        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                appCode,
+        return configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                bizCode,
                 env,
-                namespace,
+                appCode,
                 configKey
-        ).map(DdcConfigVO::from);
+        ).map(this::config);
     }
 
-    public List<DdcConfigValue> pull(String appCode, String env, String namespace) {
-        return configItemRepository.findByAppCodeAndEnvAndNamespace(
-                        appCode, env, namespace
+    public List<DdcConfigValue> pull(String bizCode, String env, String appCode) {
+        return configItemRepository.findByBizCodeAndEnvAndAppCode(
+                        bizCode, env, appCode
                 ).stream()
                 .map(this::publishedVersion)
                 .flatMap(Optional::stream)
@@ -271,8 +300,10 @@ public class DdcConfigService {
                 .toList();
     }
 
-    public DdcConfigValue value(String appCode, String env, String namespace, String configKey) {
-        return configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(appCode, env, namespace, configKey)
+    public DdcConfigValue value(
+            String bizCode, String env, String appCode, String configKey) {
+        return configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                        bizCode, env, appCode, configKey)
                 .flatMap(this::publishedVersion)
                 .filter(this::isRuntimeValue)
                 .map(this::toConfigValue)
@@ -287,8 +318,9 @@ public class DdcConfigService {
         request.getConfigs().forEach(config ->
                 valueGuard.check(config.getDefaultValue()));
         for (DdcDefaultReportRequest.DdcConfigValueRequest config : request.getConfigs()) {
-            configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                            request.getAppCode(), request.getEnv(), request.getNamespace(), config.getConfigKey())
+            configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                            request.getBizCode(), request.getEnv(),
+                            request.getAppCode(), config.getConfigKey())
                     .orElseGet(() -> createDefaultConfig(request, config));
         }
     }
@@ -309,9 +341,10 @@ public class DdcConfigService {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
         version.setId(UuidV7.simpleString());
         version.setConfigId(entity.getId());
+        version.setBizCode(entity.getBizCode());
         version.setAppCode(entity.getAppCode());
         version.setEnv(entity.getEnv());
-        version.setNamespace(entity.getNamespace());
+        version.setNamespace(null);
         version.setConfigKey(entity.getConfigKey());
         version.setVersion(entity.getCurrentVersion());
         version.setOldValue(oldValue);
@@ -327,9 +360,10 @@ public class DdcConfigService {
     private void saveOperation(DdcConfigItemEntity entity, ChangeType changeType, String operator, String content) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
         log.setId(UuidV7.simpleString());
+        log.setBizCode(entity.getBizCode());
         log.setAppCode(entity.getAppCode());
         log.setEnv(entity.getEnv());
-        log.setNamespace(entity.getNamespace());
+        log.setNamespace(null);
         log.setConfigKey(entity.getConfigKey());
         log.setOperationType(changeType.name());
         log.setOperator(operator);
@@ -343,9 +377,9 @@ public class DdcConfigService {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
         entity.setId(UuidV7.simpleString());
+        entity.setBizCode(request.getBizCode());
         entity.setAppCode(request.getAppCode());
         entity.setEnv(request.getEnv());
-        entity.setNamespace(request.getNamespace());
         entity.setConfigKey(config.getConfigKey());
         entity.setConfigValue(config.getDefaultValue());
         entity.setDefaultValue(config.getDefaultValue());
@@ -400,11 +434,27 @@ public class DdcConfigService {
         if (request == null) {
             throw new DdcAdminException("config request is required");
         }
+        requireText(request.getBizCode(), "bizCode");
         requireText(request.getAppCode(), "appCode");
         requireText(request.getEnv(), "env");
-        requireText(request.getNamespace(), "namespace");
         requireText(request.getConfigKey(), "configKey");
         requireText(request.getValueType(), "valueType");
         valueGuard.check(request.getConfigValue());
+    }
+
+    private DdcConfigVO config(DdcConfigItemEntity entity) {
+        DdcConfigVO value = DdcConfigVO.from(entity);
+        if (bindingRepository != null) {
+            value.setVisibleNamespaces(bindingRepository.findVisibleNamespaceCodes(
+                    entity.getBizCode(),
+                    entity.getEnv(),
+                    entity.getAppCode()
+            ));
+        }
+        return value;
+    }
+
+    private String optional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

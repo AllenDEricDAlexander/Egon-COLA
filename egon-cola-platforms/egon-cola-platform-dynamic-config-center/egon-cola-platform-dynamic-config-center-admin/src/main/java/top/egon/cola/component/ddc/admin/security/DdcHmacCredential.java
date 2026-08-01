@@ -14,7 +14,7 @@ public record DdcHmacCredential(
         String clientType,
         Set<String> appCodePatterns,
         Set<String> envPatterns,
-        Set<String> namespacePatterns,
+        Set<String> bizCodePatterns,
         Set<String> allowedOperations
 ) {
 
@@ -26,7 +26,7 @@ public record DdcHmacCredential(
                 .toUpperCase(Locale.ROOT);
         appCodePatterns = values(appCodePatterns, false);
         envPatterns = values(envPatterns, false);
-        namespacePatterns = values(namespacePatterns, false);
+        bizCodePatterns = values(bizCodePatterns, false);
         allowedOperations = values(allowedOperations, true);
     }
 
@@ -35,7 +35,7 @@ public record DdcHmacCredential(
             String operation,
             String appCode,
             String env,
-            String namespace) {
+            String bizCode) {
         return ("*".equals(clientType)
                 || clientType.equalsIgnoreCase(expectedClientType))
                 && (allowedOperations.contains("*")
@@ -44,23 +44,23 @@ public record DdcHmacCredential(
                 )))
                 && matches(appCodePatterns, appCode)
                 && matches(envPatterns, env)
-                && matches(namespacePatterns, namespace);
+                && matches(bizCodePatterns, bizCode);
     }
 
     public DdcServicePrincipal principal(
             String appCode,
             String env,
-            String namespace) {
+            String bizCode) {
         return new DdcServicePrincipal(
                 credentialId,
                 clientType,
                 appCodePatterns,
                 envPatterns,
-                namespacePatterns,
+                bizCodePatterns,
                 allowedOperations,
                 appCode,
                 env,
-                namespace
+                bizCode
         );
     }
 

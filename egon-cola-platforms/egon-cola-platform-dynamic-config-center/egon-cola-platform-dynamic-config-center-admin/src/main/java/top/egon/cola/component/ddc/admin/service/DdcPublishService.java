@@ -356,19 +356,19 @@ public class DdcPublishService {
 
         DdcConfigItemEntity config =
                 configItemRepository
-                        .findForPublishByAppCodeAndEnvAndNamespaceAndConfigKey(
-                                request.getAppCode(),
+                        .findForPublishByBizCodeAndEnvAndAppCodeAndConfigKey(
+                                request.getBizCode(),
                                 request.getEnv(),
-                                request.getNamespace(),
+                                request.getAppCode(),
                                 request.getConfigKey()
                         )
                         .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
                         .orElseThrow(() -> new DdcAdminException("config item not found"));
         if (publishTaskRepository
-                .findFirstByAppCodeAndEnvAndNamespaceAndConfigKeyAndStatusIn(
-                        request.getAppCode(),
+                .findFirstByBizCodeAndEnvAndAppCodeAndConfigKeyAndStatusIn(
+                        request.getBizCode(),
                         request.getEnv(),
-                        request.getNamespace(),
+                        request.getAppCode(),
                         request.getConfigKey(),
                         ACTIVE_STATUSES
                 )
@@ -387,9 +387,9 @@ public class DdcPublishService {
         saveVersion(config, oldValue, request.getConfigValue(), operator);
 
         List<DdcPublishTarget> targets = leaseService.activeTargets(
-                request.getAppCode(),
+                request.getBizCode(),
                 request.getEnv(),
-                request.getNamespace()
+                request.getAppCode()
         ).stream()
                 .sorted(Comparator
                         .comparing(DdcPublishTarget::instanceId)
@@ -436,9 +436,9 @@ public class DdcPublishService {
                 ))
                 .toList();
         if (!leaseService.areActiveTargets(
-                task.getAppCode(),
+                task.getBizCode(),
                 task.getEnv(),
-                task.getNamespace(),
+                task.getAppCode(),
                 targets
         )) {
             stateTransitions.markTargetLeaseExpired(changeId, RETRYABLE_STATUSES);
@@ -468,9 +468,10 @@ public class DdcPublishService {
         task.setId(UuidV7.simpleString());
         task.setChangeId(request.getChangeId());
         task.setConfigId(config.getId());
+        task.setBizCode(config.getBizCode());
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
-        task.setNamespace(config.getNamespace());
+        task.setNamespace(null);
         task.setConfigKey(config.getConfigKey());
         task.setTargetVersion(config.getCurrentVersion());
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
@@ -497,9 +498,10 @@ public class DdcPublishService {
         ack.setInstanceId(target.instanceId());
         ack.setLeaseId(target.leaseId());
         ack.setContentChecksum(task.getContentChecksum());
+        ack.setBizCode(task.getBizCode());
         ack.setAppCode(task.getAppCode());
         ack.setEnv(task.getEnv());
-        ack.setNamespace(task.getNamespace());
+        ack.setNamespace(null);
         ack.setConfigKey(task.getConfigKey());
         ack.setTargetVersion(task.getTargetVersion());
         return ack;
@@ -512,9 +514,10 @@ public class DdcPublishService {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
         version.setId(UuidV7.simpleString());
         version.setConfigId(config.getId());
+        version.setBizCode(config.getBizCode());
         version.setAppCode(config.getAppCode());
         version.setEnv(config.getEnv());
-        version.setNamespace(config.getNamespace());
+        version.setNamespace(null);
         version.setConfigKey(config.getConfigKey());
         version.setVersion(config.getCurrentVersion());
         version.setOldValue(oldValue);
@@ -532,9 +535,10 @@ public class DdcPublishService {
                                       String operator) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
         log.setId(UuidV7.simpleString());
+        log.setBizCode(config.getBizCode());
         log.setAppCode(config.getAppCode());
         log.setEnv(config.getEnv());
-        log.setNamespace(config.getNamespace());
+        log.setNamespace(null);
         log.setConfigKey(config.getConfigKey());
         log.setOperationType("PUBLISH");
         log.setOperator(operator);
@@ -548,9 +552,9 @@ public class DdcPublishService {
             throw new DdcAdminException("publish request is required");
         }
         requireUuidV7(request.getChangeId());
-        requireText(request.getAppCode(), "appCode");
+        requireText(request.getBizCode(), "bizCode");
         requireText(request.getEnv(), "env");
-        requireText(request.getNamespace(), "namespace");
+        requireText(request.getAppCode(), "appCode");
         requireText(request.getConfigKey(), "configKey");
         valueGuard.check(request.getConfigValue());
         if (request.getExpectedVersion() == null || request.getExpectedVersion() < 0) {
@@ -576,9 +580,9 @@ public class DdcPublishService {
     private void validateIdempotentRequest(DdcPublishTaskEntity task,
                                            DdcPublishRequest request,
                                            long timeoutMs) {
-        boolean matches = Objects.equals(task.getAppCode(), request.getAppCode())
+        boolean matches = Objects.equals(task.getBizCode(), request.getBizCode())
+                && Objects.equals(task.getAppCode(), request.getAppCode())
                 && Objects.equals(task.getEnv(), request.getEnv())
-                && Objects.equals(task.getNamespace(), request.getNamespace())
                 && Objects.equals(task.getConfigKey(), request.getConfigKey())
                 && Objects.equals(task.getContentChecksum(),
                 DdcChecksum.content(request.getConfigValue()))
@@ -633,9 +637,9 @@ public class DdcPublishService {
         try {
             failureRecorder.recordFailure(
                     request.getChangeId(),
-                    request.getAppCode(),
+                    request.getBizCode(),
                     request.getEnv(),
-                    request.getNamespace(),
+                    request.getAppCode(),
                     request.getConfigKey(),
                     exception.getMessage()
             );
@@ -651,18 +655,18 @@ public class DdcPublishService {
 
     private DdcConfigResourceKey resourceKey(DdcPublishRequest request) {
         return new DdcConfigResourceKey(
-                request.getAppCode(),
+                request.getBizCode(),
                 request.getEnv(),
-                request.getNamespace(),
+                request.getAppCode(),
                 request.getConfigKey()
         );
     }
 
     private DdcConfigResourceKey resourceKey(DdcPublishTaskEntity task) {
         return new DdcConfigResourceKey(
-                task.getAppCode(),
+                task.getBizCode(),
                 task.getEnv(),
-                task.getNamespace(),
+                task.getAppCode(),
                 task.getConfigKey()
         );
     }

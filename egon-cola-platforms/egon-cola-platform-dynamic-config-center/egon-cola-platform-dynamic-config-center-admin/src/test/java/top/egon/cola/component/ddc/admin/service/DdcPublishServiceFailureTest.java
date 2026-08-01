@@ -56,9 +56,9 @@ class DdcPublishServiceFailureTest {
     void transactionFailureCreatesFailedRecordAndThrows() {
         DdcPublishRequest request = new DdcPublishRequest();
         request.setChangeId(UuidV7.simpleString());
+        request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setNamespace("default");
         request.setConfigKey("switch");
         request.setConfigValue("true");
         request.setExpectedVersion(1L);

@@ -31,9 +31,9 @@ class DdcRepositoryTest {
     void savesAndFindsConfigItemByNaturalKey() {
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
         entity.setId(UuidV7.simpleString());
+        entity.setBizCode("default");
         entity.setAppCode("demo");
         entity.setEnv("dev");
-        entity.setNamespace("default");
         entity.setConfigKey("switch");
         entity.setConfigValue("true");
         entity.setValueType("BOOLEAN");
@@ -45,7 +45,7 @@ class DdcRepositoryTest {
 
         configItemRepository.save(entity);
 
-        assertThat(configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey("demo", "dev", "default", "switch"))
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey("default", "dev", "demo", "switch"))
                 .isPresent();
     }
 }

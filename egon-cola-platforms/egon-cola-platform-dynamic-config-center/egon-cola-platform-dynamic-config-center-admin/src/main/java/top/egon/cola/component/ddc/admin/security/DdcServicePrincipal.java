@@ -8,11 +8,11 @@ public record DdcServicePrincipal(
         String clientType,
         Set<String> appCodePatterns,
         Set<String> envPatterns,
-        Set<String> namespacePatterns,
+        Set<String> bizCodePatterns,
         Set<String> allowedOperations,
         String appCode,
         String env,
-        String namespace
+        String bizCode
 ) implements Principal {
 
     public static final String REQUEST_ATTRIBUTE =

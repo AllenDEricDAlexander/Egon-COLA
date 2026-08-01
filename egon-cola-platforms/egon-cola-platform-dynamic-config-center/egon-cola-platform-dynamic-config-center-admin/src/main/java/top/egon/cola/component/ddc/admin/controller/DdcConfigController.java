@@ -82,9 +82,9 @@ public class DdcConfigController {
                                               @RequestParam(name = "operator", defaultValue = "system") String operator,
                                               Authentication authentication) {
         DdcConfigVO config = configService.get(id);
+        request.setBizCode(config.getBizCode());
         request.setAppCode(config.getAppCode());
         request.setEnv(config.getEnv());
-        request.setNamespace(config.getNamespace());
         request.setConfigKey(config.getConfigKey());
         return ResultRecord.success(publishService.publish(
                 request,

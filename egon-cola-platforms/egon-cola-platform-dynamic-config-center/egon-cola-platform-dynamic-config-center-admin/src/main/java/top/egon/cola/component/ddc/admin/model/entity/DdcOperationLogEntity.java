@@ -18,6 +18,9 @@ public class DdcOperationLogEntity {
     @Id
     private String id;
 
+    @Column(name = "biz_code", length = 128)
+    private String bizCode;
+
     @Column(name = "app_code", length = 128)
     private String appCode;
 

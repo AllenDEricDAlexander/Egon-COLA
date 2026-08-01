@@ -14,9 +14,11 @@ public interface DdcInstanceRepository extends JpaRepository<DdcInstanceEntity, 
 
     Optional<DdcInstanceEntity> findByInstanceId(String instanceId);
 
-    List<DdcInstanceEntity> findByAppCodeAndEnvAndNamespace(String appCode, String env, String namespace);
+    List<DdcInstanceEntity> findByBizCodeAndEnvAndAppCode(
+            String bizCode, String env, String appCode);
 
-    List<DdcInstanceEntity> findByAppCodeAndEnvAndNamespaceAndStatus(String appCode, String env, String namespace, String status);
+    List<DdcInstanceEntity> findByBizCodeAndEnvAndAppCodeAndStatus(
+            String bizCode, String env, String appCode, String status);
 
     List<DdcInstanceEntity> findByStatusAndLeaseExpireAtLessThanEqual(String status, LocalDateTime leaseExpireAt);
 

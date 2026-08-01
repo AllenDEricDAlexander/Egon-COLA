@@ -109,14 +109,14 @@ class DdcConfigLeaseServiceTest {
     @Test
     void publishTargetsComeOnlyFromCurrentRedisLeases() {
         DdcConfigLeaseRedisRepository repository = mock(DdcConfigLeaseRedisRepository.class);
-        when(repository.activeTargets("demo", "dev", "default", NOW))
+        when(repository.activeTargets("default", "dev", "demo", NOW))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         DdcConfigLeaseService service = service(repository);
 
-        assertThat(service.activeTargets("demo", "dev", "default"))
+        assertThat(service.activeTargets("default", "dev", "demo"))
                 .containsExactly(new DdcPublishTarget("instance-1", "lease-1"));
 
-        verify(repository).activeTargets("demo", "dev", "default", NOW);
+        verify(repository).activeTargets("default", "dev", "demo", NOW);
     }
 
     private DdcConfigLeaseService service(DdcConfigLeaseRedisRepository repository) {
@@ -132,9 +132,9 @@ class DdcConfigLeaseServiceTest {
     private DdcInstanceRegisterRequest registerRequest() {
         DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
         request.setInstanceId("instance-1");
+        request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setNamespace("default");
         request.setHost("127.0.0.1");
         request.setPort(8080);
         request.setPid("100");
@@ -148,9 +148,9 @@ class DdcConfigLeaseServiceTest {
         DdcHeartbeatRequest request = new DdcHeartbeatRequest();
         request.setInstanceId("instance-1");
         request.setLeaseId(leaseId);
+        request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setNamespace("default");
         return request;
     }
 }

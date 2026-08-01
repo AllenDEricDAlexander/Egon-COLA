@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.admin.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
@@ -10,6 +11,7 @@ import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
@@ -40,6 +42,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class DdcManagementFacade {
@@ -58,6 +62,29 @@ public class DdcManagementFacade {
 
     private final DdcScopeGate scopeGate;
 
+    private final DdcNamespaceEnvAppBindingRepository bindingRepository;
+
+    @Autowired
+    public DdcManagementFacade(
+            DdcConfigService configService,
+            DdcPublishService publishService,
+            DdcPublishTaskRepository publishTaskRepository,
+            DdcPublishAckRepository publishAckRepository,
+            DdcInstanceAdminService instanceAdminService,
+            DdcServiceRegistryService registryService,
+            DdcScopeGate scopeGate,
+            DdcNamespaceEnvAppBindingRepository bindingRepository
+    ) {
+        this.configService = configService;
+        this.publishService = publishService;
+        this.publishTaskRepository = publishTaskRepository;
+        this.publishAckRepository = publishAckRepository;
+        this.instanceAdminService = instanceAdminService;
+        this.registryService = registryService;
+        this.scopeGate = scopeGate;
+        this.bindingRepository = bindingRepository;
+    }
+
     public DdcManagementFacade(
             DdcConfigService configService,
             DdcPublishService publishService,
@@ -67,32 +94,35 @@ public class DdcManagementFacade {
             DdcServiceRegistryService registryService,
             DdcScopeGate scopeGate
     ) {
-        this.configService = configService;
-        this.publishService = publishService;
-        this.publishTaskRepository = publishTaskRepository;
-        this.publishAckRepository = publishAckRepository;
-        this.instanceAdminService = instanceAdminService;
-        this.registryService = registryService;
-        this.scopeGate = scopeGate;
+        this(
+                configService,
+                publishService,
+                publishTaskRepository,
+                publishAckRepository,
+                instanceAdminService,
+                registryService,
+                scopeGate,
+                null
+        );
     }
 
     public DdcManagementConfig findConfig(DdcManagementConfigQuery query) {
-        scopeGate.assertEnabledByApp(
-                requireText(query.appCode(), "appCode"),
-                requireText(query.env(), "env"),
-                requireText(query.namespace(), "namespace")
-        );
         require(query, "config query");
+        scopeGate.assertPhysicalEnabled(
+                requireText(query.bizCode(), "bizCode"),
+                requireText(query.appCode(), "appCode"),
+                requireText(query.env(), "env")
+        );
         validateScope(
-                query.appCode(),
+                query.bizCode(),
                 query.env(),
-                query.namespace(),
+                query.appCode(),
                 query.configKey()
         );
         return config(configService.find(
-                query.appCode(),
+                query.bizCode(),
                 query.env(),
-                query.namespace(),
+                query.appCode(),
                 query.configKey()
         ).orElseThrow(() -> new DdcAdminException(
                 DdcManagementErrorCode.CONFIG_NOT_FOUND
@@ -102,17 +132,18 @@ public class DdcManagementFacade {
     public DdcManagementConfig upsert(DdcManagementConfigUpsertRequest request) {
         require(request, "config upsert request");
         validateScope(
-                request.appCode(),
+                request.bizCode(),
                 request.env(),
-                request.namespace(),
+                request.appCode(),
                 request.configKey()
         );
         requireText(request.operator(), "operator");
         DdcConfigVO saved = configService.upsert(
                 new DdcConfigCreateRequest(
-                        request.appCode(),
+                        request.bizCode(),
                         request.env(),
-                        request.namespace(),
+                        request.appCode(),
+                        null,
                         request.configKey(),
                         request.configValue(),
                         null,
@@ -128,16 +159,16 @@ public class DdcManagementFacade {
     public void delete(DdcManagementConfigDeleteRequest request) {
         require(request, "config delete request");
         validateScope(
-                request.appCode(),
+                request.bizCode(),
                 request.env(),
-                request.namespace(),
+                request.appCode(),
                 request.configKey()
         );
         requireText(request.operator(), "operator");
         configService.delete(
-                request.appCode(),
+                request.bizCode(),
                 request.env(),
-                request.namespace(),
+                request.appCode(),
                 request.configKey(),
                 request.expectedVersion(),
                 request.operator(),
@@ -148,17 +179,17 @@ public class DdcManagementFacade {
     public DdcManagementPublishResult publish(DdcManagementPublishRequest request) {
         require(request, "publish request");
         validateScope(
-                request.appCode(),
+                request.bizCode(),
                 request.env(),
-                request.namespace(),
+                request.appCode(),
                 request.configKey()
         );
         requireText(request.operator(), "operator");
         DdcPublishRequest command = new DdcPublishRequest();
         command.setChangeId(request.changeId());
-        command.setAppCode(request.appCode());
+        command.setBizCode(request.bizCode());
         command.setEnv(request.env());
-        command.setNamespace(request.namespace());
+        command.setAppCode(request.appCode());
         command.setConfigKey(request.configKey());
         command.setConfigValue(request.configValue());
         command.setExpectedVersion(request.expectedVersion());
@@ -211,13 +242,13 @@ public class DdcManagementFacade {
             DdcManagementInstanceQuery query
     ) {
         require(query, "instance query");
+        requireText(query.bizCode(), "bizCode");
         requireText(query.appCode(), "appCode");
         requireText(query.env(), "env");
-        requireText(query.namespace(), "namespace");
         return instanceAdminService.list(
-                        query.appCode(),
+                        query.bizCode(),
                         query.env(),
-                        query.namespace()
+                        query.appCode()
                 ).stream()
                 .sorted(Comparator.comparing(DdcInstanceEntity::getInstanceId))
                 .map(this::configClient)
@@ -230,10 +261,15 @@ public class DdcManagementFacade {
         DdcServiceQuery serviceQuery = serviceQuery(query);
         DdcServiceCatalogSnapshot snapshot =
                 registryService.getServiceKeys(serviceQuery);
+        Set<String> visibleScopes = visibleScopes(query);
         return new DdcManagementServiceCatalog(
                 snapshot.revision(),
                 snapshot.observedAt(),
-                snapshot.serviceKeys().stream().map(this::serviceKey).toList()
+                snapshot.serviceKeys().stream()
+                        .filter(key -> visibleScopes == null
+                                || visibleScopes.contains(scope(key)))
+                        .map(this::serviceKey)
+                        .toList()
         );
     }
 
@@ -244,9 +280,8 @@ public class DdcManagementFacade {
         DdcServiceKind kind = serviceKind(query.serviceKind());
         DdcServiceKey key = new DdcServiceKey(
                 requireText(query.bizCode(), "bizCode"),
-                requireText(query.appCode(), "appCode"),
                 requireText(query.env(), "env"),
-                requireText(query.namespace(), "namespace"),
+                requireText(query.appCode(), "appCode"),
                 kind,
                 requireText(query.serviceName(), "serviceName"),
                 query.group(),
@@ -279,9 +314,9 @@ public class DdcManagementFacade {
 
     private DdcManagementConfig config(DdcConfigVO value) {
         return new DdcManagementConfig(
-                value.getAppCode(),
+                value.getBizCode(),
                 value.getEnv(),
-                value.getNamespace(),
+                value.getAppCode(),
                 value.getConfigKey(),
                 value.getConfigValue(),
                 value.getValueType(),
@@ -305,9 +340,9 @@ public class DdcManagementFacade {
 
     private DdcManagementConfigClientInstance configClient(DdcInstanceEntity value) {
         return new DdcManagementConfigClientInstance(
-                value.getAppCode(),
+                value.getBizCode(),
                 value.getEnv(),
-                value.getNamespace(),
+                value.getAppCode(),
                 value.getInstanceId(),
                 value.getLeaseId(),
                 value.getHost(),
@@ -324,9 +359,9 @@ public class DdcManagementFacade {
     private DdcManagementServiceKey serviceKey(DdcServiceKey value) {
         return new DdcManagementServiceKey(
                 value.bizCode(),
-                value.appCode(),
                 value.env(),
-                value.namespace(),
+                value.appCode(),
+                value.serviceId(),
                 value.serviceKind().name(),
                 value.serviceName(),
                 value.group(),
@@ -357,12 +392,11 @@ public class DdcManagementFacade {
             throw new DdcAdminException("service query is required");
         }
         return new DdcServiceQuery(
-                requireText(query.bizCode(), "bizCode"),
-                requireText(query.appCode(), "appCode"),
-                requireText(query.env(), "env"),
-                requireText(query.namespace(), "namespace"),
-                serviceKind(query.serviceKind()),
-                requireText(query.protocol(), "protocol"),
+                query.bizCode(),
+                query.env(),
+                query.appCode(),
+                optionalServiceKind(query.serviceKind()),
+                query.protocol(),
                 query.serviceName(),
                 query.group(),
                 query.version()
@@ -379,6 +413,10 @@ public class DdcManagementFacade {
         }
     }
 
+    private DdcServiceKind optionalServiceKind(String value) {
+        return value == null || value.isBlank() ? null : serviceKind(value);
+    }
+
     private DdcManagementPublishStatus status(String value) {
         try {
             return DdcManagementPublishStatus.valueOf(value);
@@ -388,14 +426,14 @@ public class DdcManagementFacade {
     }
 
     private void validateScope(
-            String appCode,
+            String bizCode,
             String env,
-            String namespace,
+            String appCode,
             String configKey
     ) {
+        requireText(bizCode, "bizCode");
         requireText(appCode, "appCode");
         requireText(env, "env");
-        requireText(namespace, "namespace");
         String exactKey = requireText(configKey, "configKey");
         if (exactKey.contains("*") || exactKey.contains("?")) {
             throw new DdcAdminException("an exact configKey is required");
@@ -424,5 +462,32 @@ public class DdcManagementFacade {
         return value == null
                 ? null
                 : value.atZone(ZoneId.systemDefault()).toInstant();
+    }
+
+    private Set<String> visibleScopes(DdcManagementServiceQuery query) {
+        if (query.namespaceCode() == null || query.namespaceCode().isBlank()) {
+            return null;
+        }
+        if (bindingRepository == null) {
+            return Set.of();
+        }
+        String bizCode = query.bizCode() == null || query.bizCode().isBlank()
+                ? null
+                : query.bizCode().trim();
+        return bindingRepository.findVisiblePhysicalScopes(
+                        bizCode,
+                        query.namespaceCode().trim()
+                ).stream()
+                .map(row -> String.join(
+                        "\n",
+                        String.valueOf(row[0]),
+                        String.valueOf(row[1]),
+                        String.valueOf(row[2])
+                ))
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    private String scope(DdcServiceKey key) {
+        return String.join("\n", key.bizCode(), key.env(), key.appCode());
     }
 }

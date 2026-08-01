@@ -114,7 +114,7 @@ class DdcSyncPublishFlowTest {
                 new DdcPublishTarget("instance-2", "lease-2"),
                 new DdcPublishTarget("instance-1", "lease-1")
         );
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(targets);
         LinkedBlockingQueue<DdcPublishMessage> published =
                 capturePublishedMessages();
@@ -141,7 +141,7 @@ class DdcSyncPublishFlowTest {
     @Test
     void sameResourceRejectsConcurrentPublishWithoutBlockingAck() throws Exception {
         saveConfig("resource-lock");
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         LinkedBlockingQueue<DdcPublishMessage> published =
                 capturePublishedMessages();
@@ -167,7 +167,7 @@ class DdcSyncPublishFlowTest {
     @Test
     void exposesUncertainRedisDispatchWithoutAdvancingPublishedPointer() {
         saveConfig("dispatch-failure");
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         doThrow(new IllegalStateException("redis unavailable"))
                 .when(redisRepository)
@@ -184,8 +184,8 @@ class DdcSyncPublishFlowTest {
                     assertThat(task.getStatus()).isEqualTo("UNKNOWN");
                     assertThat(task.getFailureStage()).isEqualTo("REDIS_DISPATCH");
                 });
-        assertThat(configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                "demo", "dev", "default", "dispatch-failure"
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                "default", "dev", "demo", "dispatch-failure"
         )).get()
                 .extracting(DdcConfigItemEntity::getPublishedVersion)
                 .isNull();
@@ -194,7 +194,7 @@ class DdcSyncPublishFlowTest {
     @Test
     void restartRecoveryReplaysTheSameEvent() throws Exception {
         saveConfig("restart-unknown");
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         LinkedBlockingQueue<DdcPublishMessage> published =
                 capturePublishedMessages();
@@ -233,12 +233,12 @@ class DdcSyncPublishFlowTest {
         List<DdcPublishTarget> originalTargets = List.of(
                 new DdcPublishTarget("instance-1", "lease-1")
         );
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(originalTargets);
         when(leaseService.areActiveTargets(
-                eq("demo"),
-                eq("dev"),
                 eq("default"),
+                eq("dev"),
+                eq("demo"),
                 anyList()
         )).thenReturn(true);
         LinkedBlockingQueue<DdcPublishMessage> published =
@@ -286,9 +286,9 @@ class DdcSyncPublishFlowTest {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(UuidV7.simpleString());
+        config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setNamespace("default");
         config.setConfigKey(configKey);
         config.setConfigValue("false");
         config.setDefaultValue("false");
@@ -306,9 +306,9 @@ class DdcSyncPublishFlowTest {
                                       long timeoutMs) {
         DdcPublishRequest request = new DdcPublishRequest();
         request.setChangeId(UuidV7.simpleString());
+        request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setNamespace("default");
         request.setConfigKey(configKey);
         request.setConfigValue(value);
         request.setExpectedVersion(1L);

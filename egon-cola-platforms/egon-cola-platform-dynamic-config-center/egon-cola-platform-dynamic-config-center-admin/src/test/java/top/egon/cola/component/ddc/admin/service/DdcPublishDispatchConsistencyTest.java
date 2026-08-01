@@ -111,7 +111,7 @@ class DdcPublishDispatchConsistencyTest {
                 .extracting(DdcConfigItemEntity::getPublishedVersion)
                 .isEqualTo(1L);
         assertThat(configService.value(
-                "demo", "dev", "default", task.getConfigKey()
+                "default", "dev", "demo", task.getConfigKey()
         )).extracting(DdcConfigValue::getVersion, DdcConfigValue::getConfigValue)
                 .containsExactly(1L, "old");
     }
@@ -219,9 +219,9 @@ class DdcPublishDispatchConsistencyTest {
         String configId = UuidV7.simpleString();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(configId);
+        config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setNamespace("default");
         config.setConfigKey(configKey);
         config.setConfigValue("new");
         config.setDefaultValue("old");
@@ -241,9 +241,10 @@ class DdcPublishDispatchConsistencyTest {
         task.setId(UuidV7.simpleString());
         task.setChangeId(UuidV7.simpleString());
         task.setConfigId(configId);
+        task.setBizCode(config.getBizCode());
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
-        task.setNamespace(config.getNamespace());
+        task.setNamespace(null);
         task.setConfigKey(configKey);
         task.setTargetVersion(2L);
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
@@ -267,6 +268,7 @@ class DdcPublishDispatchConsistencyTest {
         target.setInstanceId("instance-1");
         target.setLeaseId("lease-1");
         target.setContentChecksum(task.getContentChecksum());
+        target.setBizCode(task.getBizCode());
         target.setAppCode(task.getAppCode());
         target.setEnv(task.getEnv());
         target.setNamespace(task.getNamespace());
@@ -284,9 +286,10 @@ class DdcPublishDispatchConsistencyTest {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
         version.setId(UuidV7.simpleString());
         version.setConfigId(config.getId());
+        version.setBizCode(config.getBizCode());
         version.setAppCode(config.getAppCode());
         version.setEnv(config.getEnv());
-        version.setNamespace(config.getNamespace());
+        version.setNamespace(null);
         version.setConfigKey(config.getConfigKey());
         version.setVersion(versionNumber);
         version.setOldValue(oldValue);

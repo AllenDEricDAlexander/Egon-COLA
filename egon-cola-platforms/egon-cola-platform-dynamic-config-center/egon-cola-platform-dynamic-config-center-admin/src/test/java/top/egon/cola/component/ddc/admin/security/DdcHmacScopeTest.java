@@ -49,7 +49,7 @@ class DdcHmacScopeTest {
                         "SDK",
                         List.of("app-a"),
                         List.of("dev"),
-                        List.of("ns-*"),
+                        List.of("biz-*"),
                         List.of(
                                 "CONFIG_PULL",
                                 "PUBLISH_ACK"
@@ -62,7 +62,7 @@ class DdcHmacScopeTest {
                         "REGISTRY",
                         List.of("*"),
                         List.of("dev"),
-                        List.of("ns-a"),
+                        List.of("biz-a"),
                         List.of(
                                 "REGISTRY_REGISTER",
                                 "REGISTRY_HEARTBEAT"
@@ -75,7 +75,7 @@ class DdcHmacScopeTest {
                         "MANAGEMENT",
                         List.of("app-a"),
                         List.of("dev"),
-                        List.of("ns-a"),
+                        List.of("biz-a"),
                         List.of(
                                 "MANAGEMENT_CONFIG_READ",
                                 "MANAGEMENT_CONFIG_WRITE",
@@ -99,7 +99,7 @@ class DdcHmacScopeTest {
                 Map.of(
                         "appCode", List.of("app-a"),
                         "env", List.of("dev"),
-                        "namespace", List.of("ns-a")
+                        "bizCode", List.of("biz-a")
                 ),
                 new byte[0],
                 "sdk-access",
@@ -112,7 +112,7 @@ class DdcHmacScopeTest {
                 Map.of(),
                 json("""
                         {"appCode":"app-a","env":"dev",
-                         "namespace":"ns-b"}
+                         "bizCode":"biz-b"}
                         """),
                 "sdk-access",
                 "sdk-secret",
@@ -124,7 +124,8 @@ class DdcHmacScopeTest {
     void permitsRegistryRegisterAndHeartbeatInsideCredentialScope()
             throws Exception {
         byte[] body = json("""
-                {"serviceKey":{"env":"dev","namespace":"ns-a"}}
+                {"serviceKey":{"bizCode":"biz-a","env":"dev",
+                 "appCode":"registry-app"}}
                 """);
         assertAllowed(signed(
                 "POST",
@@ -149,7 +150,7 @@ class DdcHmacScopeTest {
     @Test
     void permitsExactManagementReadUpsertAndPublish() throws Exception {
         String configPath = "/api/v1/ddc/openapi/management/configs/"
-                + "app-a/dev/ns-a/gateway.routes";
+                + "biz-a/dev/app-a/gateway.routes";
         assertAllowed(signed(
                 "GET",
                 configPath,
@@ -188,7 +189,7 @@ class DdcHmacScopeTest {
                 Map.of(
                         "appCode", List.of("app-b"),
                         "env", List.of("dev"),
-                        "namespace", List.of("ns-a")
+                        "bizCode", List.of("biz-a")
                 ),
                 new byte[0],
                 "sdk-access",
@@ -201,7 +202,7 @@ class DdcHmacScopeTest {
                 Map.of(
                         "appCode", List.of("app-a"),
                         "env", List.of("dev"),
-                        "namespace", List.of("ns-a")
+                        "bizCode", List.of("biz-a")
                 ),
                 new byte[0],
                 "management-access",
@@ -214,7 +215,7 @@ class DdcHmacScopeTest {
                 Map.of(),
                 json("""
                         {"appCode":"app-a","env":"dev",
-                         "namespace":"ns-a"}
+                         "bizCode":"biz-a"}
                         """),
                 "sdk-access",
                 "sdk-secret",
@@ -235,7 +236,7 @@ class DdcHmacScopeTest {
                 new byte[0],
                 "sdk-access",
                 "sdk-secret",
-                "missing-namespace"
+                "missing-biz-code"
         ));
     }
 
@@ -252,18 +253,18 @@ class DdcHmacScopeTest {
                         "MANAGEMENT",
                         Set.of("app-a"),
                         Set.of("dev"),
-                        Set.of("ns-a"),
+                        Set.of("biz-a"),
                         Set.of("MANAGEMENT_CONFIG_WRITE"),
                         "app-a",
                         "dev",
-                        "ns-a"
+                        "biz-a"
                 )
         );
 
         controller.upsert(
-                "app-a",
+                "biz-a",
                 "dev",
-                "ns-a",
+                "app-a",
                 "gateway.routes",
                 new DdcManagementConfigUpsertRequest(
                         null,
@@ -297,7 +298,7 @@ class DdcHmacScopeTest {
             String clientType,
             List<String> appCodes,
             List<String> envs,
-            List<String> namespaces,
+            List<String> bizCodes,
             List<String> operations) {
         DdcAdminProperties.Credential credential =
                 new DdcAdminProperties.Credential();
@@ -307,7 +308,7 @@ class DdcHmacScopeTest {
         credential.setClientType(clientType);
         credential.setAppCodePatterns(appCodes);
         credential.setEnvPatterns(envs);
-        credential.setNamespacePatterns(namespaces);
+        credential.setBizCodePatterns(bizCodes);
         credential.setAllowedOperations(operations);
         return credential;
     }

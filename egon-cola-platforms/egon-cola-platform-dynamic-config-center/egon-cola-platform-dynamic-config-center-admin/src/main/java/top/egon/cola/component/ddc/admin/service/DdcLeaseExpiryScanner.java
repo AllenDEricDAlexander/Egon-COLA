@@ -61,9 +61,9 @@ public class DdcLeaseExpiryScanner {
                         databaseNow
                 ).stream()
                 .filter(instance -> leaseRepository.removeExpiredProjection(
-                        instance.getAppCode(),
+                        instance.getBizCode(),
                         instance.getEnv(),
-                        instance.getNamespace(),
+                        instance.getAppCode(),
                         instance.getInstanceId(),
                         instance.getLeaseId(),
                         now

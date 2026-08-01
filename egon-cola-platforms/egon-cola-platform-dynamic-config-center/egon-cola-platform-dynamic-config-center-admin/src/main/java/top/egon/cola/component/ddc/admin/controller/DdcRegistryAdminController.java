@@ -22,12 +22,14 @@ public class DdcRegistryAdminController {
 
     @GetMapping("/services")
     public ResultRecord<DdcManagementServiceCatalog> services(
-            @RequestParam("bizCode") String bizCode,
-            @RequestParam("appCode") String appCode,
-            @RequestParam("env") String env,
-            @RequestParam("namespace") String namespace,
-            @RequestParam("serviceKind") String serviceKind,
-            @RequestParam("protocol") String protocol,
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "namespaceCode", required = false)
+            String namespaceCode,
+            @RequestParam(value = "env", required = false) String env,
+            @RequestParam(value = "appCode", required = false) String appCode,
+            @RequestParam(value = "serviceKind", required = false)
+            String serviceKind,
+            @RequestParam(value = "protocol", required = false) String protocol,
             @RequestParam(value = "serviceName", required = false)
             String serviceName,
             @RequestParam(value = "group", required = false) String group,
@@ -35,9 +37,9 @@ public class DdcRegistryAdminController {
     ) {
         return ResultRecord.success(facade.getServiceKeys(query(
                 bizCode,
-                appCode,
+                namespaceCode,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 protocol,
                 serviceName,
@@ -49,9 +51,8 @@ public class DdcRegistryAdminController {
     @GetMapping("/instances")
     public ResultRecord<DdcManagementServiceSnapshot> instances(
             @RequestParam("bizCode") String bizCode,
-            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
-            @RequestParam("namespace") String namespace,
+            @RequestParam("appCode") String appCode,
             @RequestParam("serviceKind") String serviceKind,
             @RequestParam("protocol") String protocol,
             @RequestParam("serviceName") String serviceName,
@@ -60,9 +61,9 @@ public class DdcRegistryAdminController {
     ) {
         return ResultRecord.success(facade.getInstances(query(
                 bizCode,
-                appCode,
+                null,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 protocol,
                 serviceName,
@@ -73,9 +74,9 @@ public class DdcRegistryAdminController {
 
     private DdcManagementServiceQuery query(
             String bizCode,
-            String appCode,
+            String namespaceCode,
             String env,
-            String namespace,
+            String appCode,
             String serviceKind,
             String protocol,
             String serviceName,
@@ -84,9 +85,9 @@ public class DdcRegistryAdminController {
     ) {
         return new DdcManagementServiceQuery(
                 bizCode,
-                appCode,
+                namespaceCode,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 protocol,
                 serviceName,

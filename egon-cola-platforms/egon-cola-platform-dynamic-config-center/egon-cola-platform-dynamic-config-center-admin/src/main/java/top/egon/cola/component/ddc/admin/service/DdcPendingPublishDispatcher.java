@@ -195,9 +195,9 @@ public class DdcPendingPublishDispatcher {
         return new DdcAtomicPublishCommand(
                 task.getConfigId(),
                 task.getChangeId(),
-                task.getAppCode(),
+                task.getBizCode(),
                 task.getEnv(),
-                task.getNamespace(),
+                task.getAppCode(),
                 task.getConfigKey(),
                 config.getPublishedVersion(),
                 task.getTargetVersion(),
@@ -213,9 +213,9 @@ public class DdcPendingPublishDispatcher {
             List<DdcPublishAckEntity> targets) {
         DdcPublishMessage message = new DdcPublishMessage();
         message.setChangeId(task.getChangeId());
+        message.setBizCode(task.getBizCode());
         message.setAppCode(task.getAppCode());
         message.setEnv(task.getEnv());
-        message.setNamespace(task.getNamespace());
         message.setConfigKey(task.getConfigKey());
         message.setConfigValue(version.getNewValue());
         message.setValueType(version.getValueType());

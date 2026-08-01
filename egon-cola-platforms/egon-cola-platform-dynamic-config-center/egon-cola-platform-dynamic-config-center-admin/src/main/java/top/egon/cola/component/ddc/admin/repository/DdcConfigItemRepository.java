@@ -13,23 +13,56 @@ import java.util.Optional;
 
 public interface DdcConfigItemRepository extends JpaRepository<DdcConfigItemEntity, String> {
 
-    Optional<DdcConfigItemEntity> findByAppCodeAndEnvAndNamespaceAndConfigKey(String appCode, String env, String namespace, String configKey);
+    Optional<DdcConfigItemEntity> findByBizCodeAndEnvAndAppCodeAndConfigKey(
+            String bizCode, String env, String appCode, String configKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<DdcConfigItemEntity>
-    findForPublishByAppCodeAndEnvAndNamespaceAndConfigKey(
-            String appCode,
+    findForPublishByBizCodeAndEnvAndAppCodeAndConfigKey(
+            String bizCode,
             String env,
-            String namespace,
+            String appCode,
             String configKey);
 
     boolean existsByEnv(String env);
 
-    boolean existsByAppCodeAndNamespace(String appCode, String namespace);
+    boolean existsByBizCodeAndAppCode(String bizCode, String appCode);
 
-    List<DdcConfigItemEntity> findByAppCodeAndEnvAndNamespace(String appCode, String env, String namespace);
+    List<DdcConfigItemEntity> findByBizCodeAndEnvAndAppCode(
+            String bizCode, String env, String appCode);
 
-    List<DdcConfigItemEntity> findByAppCodeAndEnvAndNamespaceAndDeletedFalse(String appCode, String env, String namespace);
+    List<DdcConfigItemEntity> findByBizCodeAndEnvAndAppCodeAndDeletedFalse(
+            String bizCode, String env, String appCode);
+
+    @Query(value = """
+            select distinct c.*
+              from ddc_config_item c
+             where (:bizCode is null or c.biz_code = :bizCode)
+               and (:env is null or c.env = :env)
+               and (:appCode is null or c.app_code = :appCode)
+               and (:configKey is null or c.config_key like ('%' || :configKey || '%'))
+               and (:includeDeleted = true or c.deleted = false)
+               and (:namespaceCode is null or exists (
+                   select 1
+                     from ddc_namespace_env_app b
+                     join ddc_namespace n on n.id = b.namespace_id
+                     join ddc_app a on a.id = b.app_id
+                    where b.enabled = true
+                      and n.enabled = true
+                      and n.namespace_code = :namespaceCode
+                      and n.biz_code = c.biz_code
+                      and a.biz_code = c.biz_code
+                      and a.app_code = c.app_code
+                      and b.env_code = c.env))
+             order by c.biz_code, c.env, c.app_code, c.config_key
+            """, nativeQuery = true)
+    List<DdcConfigItemEntity> search(
+            @Param("bizCode") String bizCode,
+            @Param("namespaceCode") String namespaceCode,
+            @Param("env") String env,
+            @Param("appCode") String appCode,
+            @Param("configKey") String configKey,
+            @Param("includeDeleted") boolean includeDeleted);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""

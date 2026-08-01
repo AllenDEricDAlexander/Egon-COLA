@@ -7,11 +7,13 @@ import lombok.Setter;
 @Setter
 public class DdcConfigQueryRequest {
 
-    private String appCode;
+    private String bizCode;
+
+    private String namespaceCode;
 
     private String env;
 
-    private String namespace;
+    private String appCode;
 
     private String configKey;
 

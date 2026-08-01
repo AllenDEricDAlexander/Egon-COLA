@@ -30,6 +30,9 @@ public class DdcPublishAckEntity {
     @Column(name = "content_checksum", length = 64)
     private String contentChecksum;
 
+    @Column(name = "biz_code", length = 128)
+    private String bizCode;
+
     @Column(name = "app_code", length = 128)
     private String appCode;
 

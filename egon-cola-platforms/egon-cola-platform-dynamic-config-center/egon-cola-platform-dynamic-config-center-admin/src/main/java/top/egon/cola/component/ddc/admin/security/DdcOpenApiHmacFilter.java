@@ -159,7 +159,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 scope.operation(),
                 scope.appCode(),
                 scope.env(),
-                scope.namespace()
+                scope.bizCode()
         )) {
             rejectScope(response);
             return;
@@ -194,7 +194,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 credential.principal(
                         scope.appCode(),
                         scope.env(),
-                        scope.namespace()
+                        scope.bizCode()
                 )
         );
         try {
@@ -313,11 +313,10 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
         if ("GET".equals(method)
                 && ("registry/instances".equals(relative)
                 || "registry/services".equals(relative))) {
-            return queryScope(
+            return optionalQueryScope(
                     request,
                     "REGISTRY",
-                    "REGISTRY_READ",
-                    false
+                    "REGISTRY_READ"
             );
         }
         return null;
@@ -347,9 +346,9 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             return requiredScope(
                     "MANAGEMENT",
                     operation,
-                    decode(segments[2]),
-                    decode(segments[3]),
                     decode(segments[4]),
+                    decode(segments[3]),
+                    decode(segments[2]),
                     true
             );
         }
@@ -379,11 +378,10 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 && ("services".equals(segments[2])
                 || "instances".equals(segments[2]))
                 && "GET".equals(method)) {
-            return queryScope(
+            return optionalQueryScope(
                     request,
                     "MANAGEMENT",
-                    "MANAGEMENT_REGISTRY_READ",
-                    false
+                    "MANAGEMENT_REGISTRY_READ"
             );
         }
         return null;
@@ -398,7 +396,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 operation,
                 text(body, "appCode"),
                 text(body, "env"),
-                text(body, "namespace"),
+                text(body, "bizCode"),
                 true
         );
     }
@@ -410,10 +408,10 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
         return requiredScope(
                 "REGISTRY",
                 operation,
-                null,
+                firstText(serviceKey, body, "appCode"),
                 firstText(serviceKey, body, "env"),
-                firstText(serviceKey, body, "namespace"),
-                false
+                firstText(serviceKey, body, "bizCode"),
+                true
         );
     }
 
@@ -429,8 +427,21 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                         ? request.getParameter("appCode")
                         : null,
                 request.getParameter("env"),
-                request.getParameter("namespace"),
+                request.getParameter("bizCode"),
                 includeAppCode
+        );
+    }
+
+    private RequestScope optionalQueryScope(
+            HttpServletRequest request,
+            String clientType,
+            String operation) {
+        return new RequestScope(
+                clientType,
+                operation,
+                request.getParameter("appCode"),
+                request.getParameter("env"),
+                request.getParameter("bizCode")
         );
     }
 
@@ -439,11 +450,11 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             String operation,
             String appCode,
             String env,
-            String namespace,
+            String bizCode,
             boolean appCodeRequired) {
         if (appCodeRequired && !hasText(appCode)
                 || !hasText(env)
-                || !hasText(namespace)) {
+                || !hasText(bizCode)) {
             return null;
         }
         return new RequestScope(
@@ -451,7 +462,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 operation,
                 appCode,
                 env,
-                namespace
+                bizCode
         );
     }
 
@@ -579,6 +590,6 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             String operation,
             String appCode,
             String env,
-            String namespace) {
+            String bizCode) {
     }
 }

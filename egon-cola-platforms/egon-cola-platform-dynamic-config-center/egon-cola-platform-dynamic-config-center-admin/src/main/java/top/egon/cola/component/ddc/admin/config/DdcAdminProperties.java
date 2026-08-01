@@ -284,6 +284,8 @@ public class DdcAdminProperties {
 
         private List<String> envPatterns = new ArrayList<>();
 
+        private List<String> bizCodePatterns = new ArrayList<>();
+
         private List<String> namespacePatterns = new ArrayList<>();
 
         private List<String> allowedOperations = new ArrayList<>();
@@ -334,6 +336,14 @@ public class DdcAdminProperties {
 
         public void setEnvPatterns(List<String> envPatterns) {
             this.envPatterns = envPatterns;
+        }
+
+        public List<String> getBizCodePatterns() {
+            return bizCodePatterns;
+        }
+
+        public void setBizCodePatterns(List<String> bizCodePatterns) {
+            this.bizCodePatterns = bizCodePatterns;
         }
 
         public List<String> getNamespacePatterns() {

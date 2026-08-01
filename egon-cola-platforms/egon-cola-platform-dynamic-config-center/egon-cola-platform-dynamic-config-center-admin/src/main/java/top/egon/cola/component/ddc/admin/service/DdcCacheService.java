@@ -33,18 +33,18 @@ public class DdcCacheService {
         this.redisRepository = redisRepository;
     }
 
-    public int rebuild(String appCode, String env, String namespace) {
+    public int rebuild(String bizCode, String env, String appCode) {
         List<DdcConfigItemEntity> items = configItemRepository
-                .findByAppCodeAndEnvAndNamespace(appCode, env, namespace);
+                .findByBizCodeAndEnvAndAppCode(bizCode, env, appCode);
         List<DdcConfigVersionEntity> published = items.stream()
                 .map(this::publishedVersion)
                 .flatMap(Optional::stream)
                 .filter(this::isRuntimeValue)
                 .toList();
         published.forEach(version -> redisRepository.writeConfig(
-                appCode,
+                bizCode,
                 env,
-                namespace,
+                appCode,
                 version.getConfigKey(),
                 version.getNewValue(),
                 version.getVersion()
@@ -52,28 +52,29 @@ public class DdcCacheService {
         return published.size();
     }
 
-    public List<DdcCacheCheckRow> check(String appCode, String env, String namespace) {
-        return configItemRepository.findByAppCodeAndEnvAndNamespace(
-                        appCode, env, namespace
+    public List<DdcCacheCheckRow> check(
+            String bizCode, String env, String appCode) {
+        return configItemRepository.findByBizCodeAndEnvAndAppCode(
+                        bizCode, env, appCode
                 ).stream()
                 .map(this::publishedVersion)
                 .flatMap(Optional::stream)
                 .filter(this::isRuntimeValue)
-                .map(version -> checkVersion(appCode, env, namespace, version))
+                .map(version -> checkVersion(bizCode, env, appCode, version))
                 .toList();
     }
 
     private DdcCacheCheckRow checkVersion(
-            String appCode,
+            String bizCode,
             String env,
-            String namespace,
+            String appCode,
             DdcConfigVersionEntity version
     ) {
         String redisValue = redisRepository.readConfigValue(
-                appCode, env, namespace, version.getConfigKey()
+                bizCode, env, appCode, version.getConfigKey()
         );
         Long redisVersion = redisRepository.readConfigVersion(
-                appCode, env, namespace, version.getConfigKey()
+                bizCode, env, appCode, version.getConfigKey()
         );
         boolean matched = Objects.equals(version.getNewValue(), redisValue)
                 && Objects.equals(version.getVersion(), redisVersion);

@@ -52,7 +52,7 @@ public class DdcConfigLeaseRedisRepository {
                 RScript.Mode.READ_WRITE,
                 REGISTER_SCRIPT,
                 RScript.ReturnType.INTEGER,
-                keys(identity.env(), identity.namespace(), identity.appCode(), identity.instanceId()),
+                keys(identity.bizCode(), identity.env(), identity.appCode(), identity.instanceId()),
                 toJson(identity, session, lastHeartbeatAt),
                 identity.instanceId(),
                 session.leaseSeconds()
@@ -67,7 +67,7 @@ public class DdcConfigLeaseRedisRepository {
                 RScript.Mode.READ_WRITE,
                 HEARTBEAT_SCRIPT,
                 RScript.ReturnType.MULTI,
-                keys(request.getEnv(), request.getNamespace(), request.getAppCode(), request.getInstanceId()),
+                keys(request.getBizCode(), request.getEnv(), request.getAppCode(), request.getInstanceId()),
                 request.getInstanceId(),
                 request.getLeaseId(),
                 heartbeatAt.toEpochMilli()
@@ -93,7 +93,7 @@ public class DdcConfigLeaseRedisRepository {
                 RScript.Mode.READ_WRITE,
                 DEREGISTER_SCRIPT,
                 RScript.ReturnType.INTEGER,
-                keys(request.getEnv(), request.getNamespace(), request.getAppCode(), request.getInstanceId()),
+                keys(request.getBizCode(), request.getEnv(), request.getAppCode(), request.getInstanceId()),
                 request.getInstanceId(),
                 request.getLeaseId()
         );
@@ -109,9 +109,9 @@ public class DdcConfigLeaseRedisRepository {
         throw new IllegalStateException("invalid DDC deregistration script status: " + result);
     }
 
-    public boolean removeExpiredProjection(String appCode,
+    public boolean removeExpiredProjection(String bizCode,
                                            String env,
-                                           String namespace,
+                                           String appCode,
                                            String instanceId,
                                            String leaseId,
                                            Instant now) {
@@ -119,7 +119,7 @@ public class DdcConfigLeaseRedisRepository {
                 RScript.Mode.READ_WRITE,
                 EXPIRE_SCRIPT,
                 RScript.ReturnType.INTEGER,
-                keys(env, namespace, appCode, instanceId),
+                keys(bizCode, env, appCode, instanceId),
                 instanceId,
                 leaseId,
                 now.toEpochMilli()
@@ -130,22 +130,22 @@ public class DdcConfigLeaseRedisRepository {
         return result.intValue() == 1;
     }
 
-    public List<DdcPublishTarget> activeTargets(String appCode,
+    public List<DdcPublishTarget> activeTargets(String bizCode,
                                                 String env,
-                                                String namespace,
+                                                String appCode,
                                                 Instant now) {
         Set<String> instanceIds =
                 redissonClient.<String>getSet(
-                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace),
+                                DdcKeys.v3ConfigLeaseInstances(bizCode, env, appCode),
                                 StringCodec.INSTANCE
                         )
                         .readAll();
         List<DdcPublishTarget> targets = new ArrayList<>();
         for (String instanceId : instanceIds) {
-            JsonNode lease = currentLease(appCode, env, namespace, instanceId);
-            if (!isActive(lease, appCode, env, namespace, now)) {
+            JsonNode lease = currentLease(bizCode, env, appCode, instanceId);
+            if (!isActive(lease, bizCode, env, appCode, now)) {
                 redissonClient.<String>getSet(
-                                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace),
+                                DdcKeys.v3ConfigLeaseInstances(bizCode, env, appCode),
                                 StringCodec.INSTANCE
                         )
                         .remove(instanceId);
@@ -162,27 +162,28 @@ public class DdcConfigLeaseRedisRepository {
                 .toList();
     }
 
-    public boolean isActiveTarget(String appCode,
+    public boolean isActiveTarget(String bizCode,
                                   String env,
-                                  String namespace,
+                                  String appCode,
                                   DdcPublishTarget target,
                                   Instant now) {
         JsonNode lease = currentLease(
-                appCode, env, namespace, target.instanceId()
+                bizCode, env, appCode, target.instanceId()
         );
-        return isActive(lease, appCode, env, namespace, now)
+        return isActive(lease, bizCode, env, appCode, now)
                 && target.leaseId().equals(lease.path("leaseId").asText());
     }
 
-    private List<Object> keys(String env, String namespace, String appCode, String instanceId) {
+    private List<Object> keys(
+            String bizCode, String env, String appCode, String instanceId) {
         return List.of(
-                DdcKeys.v2ConfigLeaseInstance(
-                        appCode,
+                DdcKeys.v3ConfigLeaseInstance(
+                        bizCode,
                         env,
-                        namespace,
+                        appCode,
                         instanceId
                 ),
-                DdcKeys.v2ConfigLeaseInstances(appCode, env, namespace)
+                DdcKeys.v3ConfigLeaseInstances(bizCode, env, appCode)
         );
     }
 
@@ -193,9 +194,9 @@ public class DdcConfigLeaseRedisRepository {
         value.put("instanceId", identity.instanceId());
         value.put("leaseId", session.leaseId());
         value.put("role", session.role().name());
+        value.put("bizCode", identity.bizCode());
         value.put("appCode", identity.appCode());
         value.put("env", identity.env());
-        value.put("namespace", identity.namespace());
         value.put("host", identity.host());
         value.put("port", identity.port());
         value.put("pid", identity.pid());
@@ -213,12 +214,12 @@ public class DdcConfigLeaseRedisRepository {
         }
     }
 
-    private JsonNode currentLease(String appCode,
+    private JsonNode currentLease(String bizCode,
                                   String env,
-                                  String namespace,
+                                  String appCode,
                                   String instanceId) {
         String value = redissonClient.<String>getBucket(
-                DdcKeys.v2ConfigLeaseInstance(appCode, env, namespace, instanceId),
+                DdcKeys.v3ConfigLeaseInstance(bizCode, env, appCode, instanceId),
                 StringCodec.INSTANCE
         ).get();
         if (value == null) {
@@ -232,17 +233,17 @@ public class DdcConfigLeaseRedisRepository {
     }
 
     private boolean isActive(JsonNode lease,
-                             String appCode,
+                             String bizCode,
                              String env,
-                             String namespace,
+                             String appCode,
                              Instant now) {
         return lease != null
                 && lease.hasNonNull("instanceId")
                 && lease.hasNonNull("leaseId")
                 && DdcLeaseRole.CONFIG_CLIENT.name().equals(lease.path("role").asText())
+                && bizCode.equals(lease.path("bizCode").asText())
                 && appCode.equals(lease.path("appCode").asText())
                 && env.equals(lease.path("env").asText())
-                && namespace.equals(lease.path("namespace").asText())
                 && "ONLINE".equals(lease.path("status").asText())
                 && lease.path("leaseExpireAt").canConvertToLong()
                 && lease.path("leaseExpireAt").asLong() > now.toEpochMilli();

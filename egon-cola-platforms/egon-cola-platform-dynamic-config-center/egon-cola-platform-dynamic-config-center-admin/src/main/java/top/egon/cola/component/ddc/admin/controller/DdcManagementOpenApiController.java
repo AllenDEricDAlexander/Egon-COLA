@@ -38,34 +38,34 @@ public class DdcManagementOpenApiController {
         this.facade = facade;
     }
 
-    @GetMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
+    @GetMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}")
     public ResultRecord<DdcManagementConfig> config(
-            @PathVariable("appCode") String appCode,
+            @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
-            @PathVariable("namespace") String namespace,
+            @PathVariable("appCode") String appCode,
             @PathVariable("configKey") String configKey
     ) {
         return ResultRecord.success(facade.findConfig(new DdcManagementConfigQuery(
-                appCode,
+                bizCode,
                 env,
-                namespace,
+                appCode,
                 configKey
         )));
     }
 
-    @PutMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
+    @PutMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}")
     public ResultRecord<DdcManagementConfig> upsert(
-            @PathVariable("appCode") String appCode,
+            @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
-            @PathVariable("namespace") String namespace,
+            @PathVariable("appCode") String appCode,
             @PathVariable("configKey") String configKey,
             @RequestBody DdcManagementConfigUpsertRequest request,
             HttpServletRequest servletRequest
     ) {
         return ResultRecord.success(facade.upsert(new DdcManagementConfigUpsertRequest(
-                appCode,
+                bizCode,
                 env,
-                namespace,
+                appCode,
                 configKey,
                 request.configValue(),
                 request.valueType(),
@@ -75,19 +75,19 @@ public class DdcManagementOpenApiController {
         )));
     }
 
-    @DeleteMapping("/configs/{appCode}/{env}/{namespace}/{configKey}")
+    @DeleteMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}")
     public ResultRecord<Void> delete(
-            @PathVariable("appCode") String appCode,
+            @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
-            @PathVariable("namespace") String namespace,
+            @PathVariable("appCode") String appCode,
             @PathVariable("configKey") String configKey,
             @RequestBody DdcManagementConfigDeleteRequest request,
             HttpServletRequest servletRequest
     ) {
         facade.delete(new DdcManagementConfigDeleteRequest(
-                appCode,
+                bizCode,
                 env,
-                namespace,
+                appCode,
                 configKey,
                 request.expectedVersion(),
                 trustedOperator(servletRequest, request.operator()),
@@ -96,19 +96,19 @@ public class DdcManagementOpenApiController {
         return ResultRecord.success(null);
     }
 
-    @PostMapping("/configs/{appCode}/{env}/{namespace}/{configKey}/publish")
+    @PostMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}/publish")
     public ResultRecord<DdcManagementPublishResult> publish(
-            @PathVariable("appCode") String appCode,
+            @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
-            @PathVariable("namespace") String namespace,
+            @PathVariable("appCode") String appCode,
             @PathVariable("configKey") String configKey,
             @RequestBody DdcManagementPublishRequest request,
             HttpServletRequest servletRequest
     ) {
         return ResultRecord.success(facade.publish(new DdcManagementPublishRequest(
-                appCode,
+                bizCode,
                 env,
-                namespace,
+                appCode,
                 configKey,
                 request.configValue(),
                 request.expectedVersion(),
@@ -134,32 +134,34 @@ public class DdcManagementOpenApiController {
 
     @GetMapping("/instances")
     public ResultRecord<List<DdcManagementConfigClientInstance>> configClients(
-            @RequestParam("appCode") String appCode,
+            @RequestParam("bizCode") String bizCode,
             @RequestParam("env") String env,
-            @RequestParam("namespace") String namespace
+            @RequestParam("appCode") String appCode
     ) {
         return ResultRecord.success(facade.getConfigClients(
-                new DdcManagementInstanceQuery(appCode, env, namespace)
+                new DdcManagementInstanceQuery(bizCode, env, appCode)
         ));
     }
 
     @GetMapping("/registry/services")
     public ResultRecord<DdcManagementServiceCatalog> services(
-            @RequestParam("bizCode") String bizCode,
-            @RequestParam("appCode") String appCode,
-            @RequestParam("env") String env,
-            @RequestParam("namespace") String namespace,
-            @RequestParam("serviceKind") String serviceKind,
-            @RequestParam("protocol") String protocol,
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "namespaceCode", required = false)
+            String namespaceCode,
+            @RequestParam(value = "env", required = false) String env,
+            @RequestParam(value = "appCode", required = false) String appCode,
+            @RequestParam(value = "serviceKind", required = false)
+            String serviceKind,
+            @RequestParam(value = "protocol", required = false) String protocol,
             @RequestParam(value = "serviceName", required = false) String serviceName,
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version
     ) {
         return ResultRecord.success(facade.getServiceKeys(new DdcManagementServiceQuery(
                 bizCode,
-                appCode,
+                namespaceCode,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 protocol,
                 serviceName,
@@ -171,9 +173,8 @@ public class DdcManagementOpenApiController {
     @GetMapping("/registry/instances")
     public ResultRecord<DdcManagementServiceSnapshot> serviceInstances(
             @RequestParam("bizCode") String bizCode,
-            @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
-            @RequestParam("namespace") String namespace,
+            @RequestParam("appCode") String appCode,
             @RequestParam("serviceKind") String serviceKind,
             @RequestParam("protocol") String protocol,
             @RequestParam("serviceName") String serviceName,
@@ -182,9 +183,9 @@ public class DdcManagementOpenApiController {
     ) {
         return ResultRecord.success(facade.getInstances(new DdcManagementServiceQuery(
                 bizCode,
-                appCode,
+                null,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 protocol,
                 serviceName,

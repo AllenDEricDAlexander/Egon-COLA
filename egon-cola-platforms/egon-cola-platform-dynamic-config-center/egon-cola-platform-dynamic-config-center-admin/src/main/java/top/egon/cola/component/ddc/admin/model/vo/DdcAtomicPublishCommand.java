@@ -5,9 +5,9 @@ import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 public record DdcAtomicPublishCommand(
         String configId,
         String changeId,
-        String appCode,
+        String bizCode,
         String env,
-        String namespace,
+        String appCode,
         String configKey,
         Long expectedPublishedVersion,
         Long targetVersion,

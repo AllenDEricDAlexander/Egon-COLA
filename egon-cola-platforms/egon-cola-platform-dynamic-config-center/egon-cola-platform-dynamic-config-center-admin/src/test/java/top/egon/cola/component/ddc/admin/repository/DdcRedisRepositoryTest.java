@@ -39,9 +39,9 @@ class DdcRedisRepositoryTest {
         DdcAtomicPublishCommand command = new DdcAtomicPublishCommand(
                 "config-1",
                 "change-1",
-                "demo",
-                "dev",
                 "default",
+                "dev",
+                "demo",
                 "switch",
                 1L,
                 2L,
@@ -56,52 +56,38 @@ class DdcRedisRepositoryTest {
     }
 
     @Test
-    void writesBothV2AndLegacyConfigProjections() {
+    void writesOnlyV3ConfigProjection() {
         RedissonClient redisson = mock(RedissonClient.class);
-        RBucket<String> v2Value = bucket();
-        RBucket<Long> v2Version = bucket();
-        RBucket<String> legacyValue = bucket();
-        RBucket<Long> legacyVersion = bucket();
-        when(redisson.<String>getBucket(DdcKeys.v2Config(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(v2Value);
-        when(redisson.<Long>getBucket(DdcKeys.v2Version(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(v2Version);
-        when(redisson.<String>getBucket(DdcKeys.config(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(legacyValue);
-        when(redisson.<Long>getBucket(DdcKeys.version(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(legacyVersion);
+        RBucket<String> value = bucket();
+        RBucket<Long> version = bucket();
+        when(redisson.<String>getBucket(DdcKeys.v3Config(
+                "default", "dev", "demo", "switch"
+        ))).thenReturn(value);
+        when(redisson.<Long>getBucket(DdcKeys.v3Version(
+                "default", "dev", "demo", "switch"
+        ))).thenReturn(version);
 
         new DdcRedisRepository(redisson)
-                .writeConfig("demo", "dev", "default", "switch", "on", 2L);
+                .writeConfig("default", "dev", "demo", "switch", "on", 2L);
 
-        verify(v2Value).set("on");
-        verify(v2Version).set(2L);
-        verify(legacyValue).set("on");
-        verify(legacyVersion).set(2L);
+        verify(value).set("on");
+        verify(version).set(2L);
     }
 
     @Test
-    void publishesBothV2AndLegacyChangeTopics() {
+    void publishesOnlyV3ChangeTopic() {
         RedissonClient redisson = mock(RedissonClient.class);
-        RTopic v2 = mock(RTopic.class);
-        RTopic legacy = mock(RTopic.class);
+        RTopic topic = mock(RTopic.class);
         DdcPublishMessage message = mock(DdcPublishMessage.class);
+        when(message.getBizCode()).thenReturn("default");
         when(message.getAppCode()).thenReturn("demo");
         when(message.getEnv()).thenReturn("dev");
-        when(message.getNamespace()).thenReturn("default");
-        when(redisson.getTopic(DdcKeys.v2Topic("demo", "dev", "default")))
-                .thenReturn(v2);
-        when(redisson.getTopic(DdcKeys.topic("demo", "dev", "default")))
-                .thenReturn(legacy);
+        when(redisson.getTopic(DdcKeys.v3Topic("default", "dev", "demo")))
+                .thenReturn(topic);
 
         new DdcRedisRepository(redisson).publish(message);
 
-        verify(v2).publish(message);
-        verify(legacy).publish(message);
+        verify(topic).publish(message);
     }
 
     @SuppressWarnings("unchecked")

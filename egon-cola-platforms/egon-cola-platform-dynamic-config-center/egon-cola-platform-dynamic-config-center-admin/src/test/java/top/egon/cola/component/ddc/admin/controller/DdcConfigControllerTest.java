@@ -39,9 +39,9 @@ class DdcConfigControllerTest {
     void createReturnsConfigResult() throws Exception {
         DdcConfigVO vo = new DdcConfigVO();
         vo.setId("cfg1");
+        vo.setBizCode("default");
         vo.setAppCode("demo");
         vo.setEnv("dev");
-        vo.setNamespace("default");
         vo.setConfigKey("switch");
         when(configService.create(
                 any(DdcConfigCreateRequest.class),
@@ -52,7 +52,7 @@ class DdcConfigControllerTest {
                         .principal(authentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"appCode":"demo","env":"dev","namespace":"default","configKey":"switch","configValue":"true","defaultValue":"false","valueType":"BOOLEAN"}
+                                {"bizCode":"default","appCode":"demo","env":"dev","configKey":"switch","configValue":"true","defaultValue":"false","valueType":"BOOLEAN"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -63,9 +63,9 @@ class DdcConfigControllerTest {
     void publishAcceptsCallerChangeIdExpectedVersionAndTimeout() throws Exception {
         DdcConfigVO config = new DdcConfigVO();
         config.setId("cfg1");
+        config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setNamespace("default");
         config.setConfigKey("switch");
         when(configService.get("cfg1")).thenReturn(config);
         DdcPublishResultVO result = new DdcPublishResultVO();

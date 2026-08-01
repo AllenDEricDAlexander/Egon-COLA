@@ -55,18 +55,20 @@ public class DdcOpenApiController {
     }
 
     @GetMapping("/configs/pull")
-    public ResultRecord<List<DdcConfigValue>> pull(@RequestParam("appCode") String appCode,
-                                             @RequestParam("env") String env,
-                                             @RequestParam("namespace") String namespace) {
-        return ResultRecord.success(configService.pull(appCode, env, namespace));
+    public ResultRecord<List<DdcConfigValue>> pull(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("env") String env,
+            @RequestParam("appCode") String appCode) {
+        return ResultRecord.success(configService.pull(bizCode, env, appCode));
     }
 
     @GetMapping("/configs/{key}")
-    public ResultRecord<DdcConfigValue> value(@RequestParam("appCode") String appCode,
-                                        @RequestParam("env") String env,
-                                        @RequestParam("namespace") String namespace,
-                                        @PathVariable("key") String key) {
-        return ResultRecord.success(configService.value(appCode, env, namespace, key));
+    public ResultRecord<DdcConfigValue> value(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("env") String env,
+            @RequestParam("appCode") String appCode,
+            @PathVariable("key") String key) {
+        return ResultRecord.success(configService.value(bizCode, env, appCode, key));
     }
 
     @PostMapping("/publish/ack")

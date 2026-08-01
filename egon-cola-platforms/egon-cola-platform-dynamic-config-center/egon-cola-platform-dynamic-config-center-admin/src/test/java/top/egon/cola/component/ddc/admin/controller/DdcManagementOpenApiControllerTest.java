@@ -36,9 +36,9 @@ class DdcManagementOpenApiControllerTest {
     @Test
     void pathScopeOverridesDuplicatedBodyIdentity() throws Exception {
         when(facade.upsert(any())).thenReturn(new DdcManagementConfig(
-                "gateway",
+                "infra",
                 "dev",
-                "runtime",
+                "gateway",
                 "gateway.routes",
                 "{}",
                 "JSON",
@@ -50,14 +50,14 @@ class DdcManagementOpenApiControllerTest {
 
         mockMvc.perform(put(
                         "/api/v1/ddc/openapi/management/configs"
-                                + "/gateway/dev/runtime/gateway.routes"
+                                + "/infra/dev/gateway/gateway.routes"
                 )
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "bizCode":"forged-biz",
                                   "appCode":"forged",
                                   "env":"prod",
-                                  "namespace":"other",
                                   "configKey":"other.key",
                                   "configValue":"{}",
                                   "valueType":"JSON",

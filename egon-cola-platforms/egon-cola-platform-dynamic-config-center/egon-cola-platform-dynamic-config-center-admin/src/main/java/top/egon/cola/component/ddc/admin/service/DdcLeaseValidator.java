@@ -27,9 +27,9 @@ public class DdcLeaseValidator {
         }
         validateIdentity(
                 request.getInstanceId(),
-                request.getAppCode(),
+                request.getBizCode(),
                 request.getEnv(),
-                request.getNamespace()
+                request.getAppCode()
         );
         if (isBlank(request.getHost())) {
             throw invalid("host is required");
@@ -49,9 +49,9 @@ public class DdcLeaseValidator {
         }
         validateIdentity(
                 request.getInstanceId(),
-                request.getAppCode(),
+                request.getBizCode(),
                 request.getEnv(),
-                request.getNamespace()
+                request.getAppCode()
         );
         if (isBlank(request.getLeaseId())) {
             throw invalid("leaseId is required");
@@ -74,18 +74,19 @@ public class DdcLeaseValidator {
         }
     }
 
-    private void validateIdentity(String instanceId, String appCode, String env, String namespace) {
+    private void validateIdentity(
+            String instanceId, String bizCode, String env, String appCode) {
         if (isBlank(instanceId)) {
             throw invalid("instanceId is required");
+        }
+        if (isBlank(bizCode)) {
+            throw invalid("bizCode is required");
         }
         if (isBlank(appCode)) {
             throw invalid("appCode is required");
         }
         if (isBlank(env)) {
             throw invalid("env is required");
-        }
-        if (isBlank(namespace)) {
-            throw invalid("namespace is required");
         }
     }
 

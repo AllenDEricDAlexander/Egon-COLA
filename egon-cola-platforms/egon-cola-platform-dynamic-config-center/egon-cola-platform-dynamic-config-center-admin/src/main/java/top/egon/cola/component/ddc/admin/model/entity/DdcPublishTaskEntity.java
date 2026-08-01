@@ -24,6 +24,9 @@ public class DdcPublishTaskEntity {
     @Column(name = "config_id", length = 64)
     private String configId;
 
+    @Column(name = "biz_code", length = 128)
+    private String bizCode;
+
     @Column(name = "app_code", length = 128)
     private String appCode;
 

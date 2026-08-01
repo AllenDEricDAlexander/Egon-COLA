@@ -107,7 +107,7 @@ class HttpDdcManagementClientTest {
         ClientFixture fixture = fixture("ak", "sk");
         String expectedUrl = "http://ddc.test/api/v1/ddc/openapi/management/registry/instances"
                 + "?appCode=orders-app&bizCode=pay-biz&env=dev"
-                + "&namespace=rpc%2Finternal&protocol=grpc"
+                + "&namespaceCode=rpc%2Finternal&protocol=grpc"
                 + "&serviceKind=INTERNAL_GATEWAY&serviceName=order%20service";
         fixture.server().expect(requestTo(expectedUrl))
                 .andExpect(method(HttpMethod.GET))
@@ -119,7 +119,7 @@ class HttpDdcManagementClientTest {
                                     "appCode", List.of("orders-app"),
                                     "bizCode", List.of("pay-biz"),
                                     "env", List.of("dev"),
-                                    "namespace", List.of("rpc/internal"),
+                                    "namespaceCode", List.of("rpc/internal"),
                                     "protocol", List.of("grpc"),
                                     "serviceKind", List.of("INTERNAL_GATEWAY"),
                                     "serviceName", List.of("order service")
@@ -141,8 +141,10 @@ class HttpDdcManagementClientTest {
                           "message": "success",
                           "data": {
                             "serviceKey": {
+                              "bizCode": "pay-biz",
                               "env": "dev",
-                              "namespace": "rpc/internal",
+                              "appCode": "orders-app",
+                              "serviceId": "svc-order",
                               "serviceKind": "INTERNAL_GATEWAY",
                               "serviceName": "order service",
                               "group": null,
@@ -159,9 +161,9 @@ class HttpDdcManagementClientTest {
         DdcManagementServiceSnapshot snapshot = fixture.client().getInstances(
                 new DdcManagementServiceQuery(
                         "pay-biz",
-                        "orders-app",
-                        "dev",
                         "rpc/internal",
+                        "dev",
+                        "orders-app",
                         "INTERNAL_GATEWAY",
                         "grpc",
                         "order service",

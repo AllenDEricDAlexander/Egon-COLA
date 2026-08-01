@@ -1,16 +1,16 @@
 package top.egon.cola.component.ddc.admin.model.vo;
 
 public record DdcConfigResourceKey(
-        String appCode,
+        String bizCode,
         String env,
-        String namespace,
+        String appCode,
         String configKey
 ) {
 
     public DdcConfigResourceKey {
-        appCode = require(appCode, "appCode");
+        bizCode = require(bizCode, "bizCode");
         env = require(env, "env");
-        namespace = require(namespace, "namespace");
+        appCode = require(appCode, "appCode");
         configKey = require(configKey, "configKey");
     }
 

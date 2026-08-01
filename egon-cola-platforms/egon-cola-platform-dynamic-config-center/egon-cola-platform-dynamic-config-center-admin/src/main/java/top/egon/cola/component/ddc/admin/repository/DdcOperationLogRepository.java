@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface DdcOperationLogRepository extends JpaRepository<DdcOperationLogEntity, String> {
 
-    List<DdcOperationLogEntity> findByAppCodeAndEnvAndNamespace(String appCode, String env, String namespace);
+    List<DdcOperationLogEntity> findByBizCodeAndEnvAndAppCode(
+            String bizCode, String env, String appCode);
 }

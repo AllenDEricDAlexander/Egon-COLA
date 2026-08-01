@@ -212,9 +212,9 @@ class DdcManagementFacadeTest {
             boolean deleted
     ) {
         DdcConfigVO value = new DdcConfigVO();
+        value.setBizCode(namespace);
         value.setAppCode(appCode);
         value.setEnv(env);
-        value.setNamespace(namespace);
         value.setConfigKey(key);
         value.setConfigValue("{}");
         value.setValueType("JSON");

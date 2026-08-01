@@ -11,11 +11,13 @@ import lombok.Setter;
 @AllArgsConstructor
 public class DdcConfigCreateRequest {
 
-    private String appCode;
+    private String bizCode;
 
     private String env;
 
-    private String namespace;
+    private String appCode;
+
+    private String namespaceCode;
 
     private String configKey;
 

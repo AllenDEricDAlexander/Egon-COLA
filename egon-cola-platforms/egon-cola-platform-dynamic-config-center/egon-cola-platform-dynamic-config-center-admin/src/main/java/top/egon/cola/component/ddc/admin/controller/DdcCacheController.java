@@ -22,16 +22,20 @@ public class DdcCacheController {
     }
 
     @PostMapping("/rebuild")
-    public ResultRecord<Integer> rebuild(@RequestParam("appCode") String appCode,
-                                   @RequestParam("env") String env,
-                                   @RequestParam("namespace") String namespace) {
-        return ResultRecord.success(cacheService.rebuild(appCode, env, namespace));
+    public ResultRecord<Integer> rebuild(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("env") String env,
+            @RequestParam("appCode") String appCode) {
+        return ResultRecord.success(cacheService.rebuild(
+                bizCode, env, appCode));
     }
 
     @GetMapping("/check")
-    public ResultRecord<List<DdcCacheCheckRow>> check(@RequestParam("appCode") String appCode,
-                                                @RequestParam("env") String env,
-                                                @RequestParam("namespace") String namespace) {
-        return ResultRecord.success(cacheService.check(appCode, env, namespace));
+    public ResultRecord<List<DdcCacheCheckRow>> check(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("env") String env,
+            @RequestParam("appCode") String appCode) {
+        return ResultRecord.success(cacheService.check(
+                bizCode, env, appCode));
     }
 }

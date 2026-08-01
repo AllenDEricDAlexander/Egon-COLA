@@ -24,7 +24,7 @@ class DdcCacheServiceTest {
         DdcConfigVersionRepository versionRepository = mock(DdcConfigVersionRepository.class);
         DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
         DdcConfigItemEntity item = item("switch", "draft", 2L, 1L);
-        when(configItemRepository.findByAppCodeAndEnvAndNamespace("demo", "dev", "default"))
+        when(configItemRepository.findByBizCodeAndEnvAndAppCode("default", "dev", "demo"))
                 .thenReturn(List.of(item));
         when(versionRepository.findByConfigIdAndVersion("config-switch", 1L))
                 .thenReturn(java.util.Optional.of(version("switch", "true", 1L)));
@@ -32,10 +32,10 @@ class DdcCacheServiceTest {
         DdcCacheService service = new DdcCacheService(
                 configItemRepository, versionRepository, redisRepository
         );
-        int count = service.rebuild("demo", "dev", "default");
+        int count = service.rebuild("default", "dev", "demo");
 
         assertThat(count).isEqualTo(1);
-        verify(redisRepository).writeConfig("demo", "dev", "default", "switch", "true", 1L);
+        verify(redisRepository).writeConfig("default", "dev", "demo", "switch", "true", 1L);
     }
 
     @Test
@@ -43,17 +43,17 @@ class DdcCacheServiceTest {
         DdcConfigItemRepository configItemRepository = mock(DdcConfigItemRepository.class);
         DdcConfigVersionRepository versionRepository = mock(DdcConfigVersionRepository.class);
         DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
-        when(configItemRepository.findByAppCodeAndEnvAndNamespace("demo", "dev", "default"))
+        when(configItemRepository.findByBizCodeAndEnvAndAppCode("default", "dev", "demo"))
                 .thenReturn(List.of(item("switch", "draft", 2L, 1L)));
         when(versionRepository.findByConfigIdAndVersion("config-switch", 1L))
                 .thenReturn(java.util.Optional.of(version("switch", "true", 1L)));
-        when(redisRepository.readConfigValue("demo", "dev", "default", "switch")).thenReturn("false");
-        when(redisRepository.readConfigVersion("demo", "dev", "default", "switch")).thenReturn(1L);
+        when(redisRepository.readConfigValue("default", "dev", "demo", "switch")).thenReturn("false");
+        when(redisRepository.readConfigVersion("default", "dev", "demo", "switch")).thenReturn(1L);
 
         DdcCacheService service = new DdcCacheService(
                 configItemRepository, versionRepository, redisRepository
         );
-        List<DdcCacheCheckRow> rows = service.check("demo", "dev", "default");
+        List<DdcCacheCheckRow> rows = service.check("default", "dev", "demo");
 
         assertThat(rows).singleElement().satisfies(row -> {
             assertThat(row.getDatabaseValue()).isEqualTo("true");
@@ -67,14 +67,14 @@ class DdcCacheServiceTest {
         DdcConfigItemRepository configItemRepository = mock(DdcConfigItemRepository.class);
         DdcConfigVersionRepository versionRepository = mock(DdcConfigVersionRepository.class);
         DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
-        when(configItemRepository.findByAppCodeAndEnvAndNamespace(
-                "demo", "dev", "default"
+        when(configItemRepository.findByBizCodeAndEnvAndAppCode(
+                "default", "dev", "demo"
         )).thenReturn(List.of(item("switch", "draft", 1L, null)));
         DdcCacheService service = new DdcCacheService(
                 configItemRepository, versionRepository, redisRepository
         );
 
-        assertThat(service.rebuild("demo", "dev", "default")).isZero();
+        assertThat(service.rebuild("default", "dev", "demo")).isZero();
         verifyNoInteractions(versionRepository, redisRepository);
     }
 

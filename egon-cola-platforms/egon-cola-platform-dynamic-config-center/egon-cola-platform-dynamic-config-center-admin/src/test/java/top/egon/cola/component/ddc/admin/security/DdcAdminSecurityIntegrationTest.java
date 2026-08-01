@@ -67,7 +67,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "egon.cola.component.ddc.admin.openapi.credentials[0].client-type=SDK",
         "egon.cola.component.ddc.admin.openapi.credentials[0].app-code-patterns[0]=app-a",
         "egon.cola.component.ddc.admin.openapi.credentials[0].env-patterns[0]=dev",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].namespace-patterns[0]=ns-a",
+        "egon.cola.component.ddc.admin.openapi.credentials[0].biz-code-patterns[0]=biz-a",
         "egon.cola.component.ddc.admin.openapi.credentials[0].allowed-operations[0]=CONFIG_PULL"
 })
 class DdcAdminSecurityIntegrationTest {
@@ -121,7 +121,7 @@ class DdcAdminSecurityIntegrationTest {
 
     @Test
     void acceptsValidHmacOpenApiRequestWithoutJwt() throws Exception {
-        when(configService.pull("app-a", "dev", "ns-a"))
+        when(configService.pull("biz-a", "dev", "app-a"))
                 .thenReturn(List.of());
 
         mockMvc.perform(signedPull())
@@ -167,13 +167,13 @@ class DdcAdminSecurityIntegrationTest {
         mockMvc.perform(get("/api/v1/ddc/cache/check")
                         .param("appCode", "app-a")
                         .param("env", "dev")
-                        .param("namespace", "ns-a")
+                        .param("bizCode", "biz-a")
                         .with(authority("CAP_DDC_READ")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/v1/ddc/cache/check")
                         .param("appCode", "app-a")
                         .param("env", "dev")
-                        .param("namespace", "ns-a")
+                        .param("bizCode", "biz-a")
                         .with(authority("CAP_DDC_CACHE")))
                 .andExpect(status().isOk());
     }
@@ -223,7 +223,7 @@ class DdcAdminSecurityIntegrationTest {
         Map<String, List<String>> query = Map.of(
                 "appCode", List.of("app-a"),
                 "env", List.of("dev"),
-                "namespace", List.of("ns-a")
+                "bizCode", List.of("biz-a")
         );
         DdcCanonicalRequest canonical = new DdcCanonicalRequest(
                 "GET",
@@ -237,7 +237,7 @@ class DdcAdminSecurityIntegrationTest {
         return get(path)
                 .param("appCode", "app-a")
                 .param("env", "dev")
-                .param("namespace", "ns-a")
+                .param("bizCode", "biz-a")
                 .header(DdcRequestSigner.ACCESS_KEY_HEADER, "sdk-access")
                 .header(
                         DdcRequestSigner.TIMESTAMP_HEADER,
@@ -260,9 +260,9 @@ class DdcAdminSecurityIntegrationTest {
     private String configBody() {
         return """
                 {
+                  "bizCode":"biz-a",
                   "appCode":"app-a",
                   "env":"dev",
-                  "namespace":"ns-a",
                   "configKey":"feature.enabled",
                   "configValue":"true",
                   "valueType":"BOOLEAN"

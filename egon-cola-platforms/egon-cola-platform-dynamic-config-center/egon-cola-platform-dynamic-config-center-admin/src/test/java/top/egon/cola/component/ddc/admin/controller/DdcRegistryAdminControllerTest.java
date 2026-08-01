@@ -1,20 +1,25 @@
 package top.egon.cola.component.ddc.admin.controller;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import top.egon.cola.component.ddc.admin.config.DdcGlobalExceptionHandler;
 import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceInstance;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceKey;
+import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,6 +31,7 @@ class DdcRegistryAdminControllerTest {
 
     private final MockMvc mockMvc = MockMvcBuilders
             .standaloneSetup(new DdcRegistryAdminController(facade))
+            .setControllerAdvice(new DdcGlobalExceptionHandler())
             .build();
 
     @Test
@@ -42,7 +48,7 @@ class DdcRegistryAdminControllerTest {
                         .param("bizCode", "pay-biz")
                         .param("appCode", "orders-app")
                         .param("env", "dev")
-                        .param("namespace", "codex-local")
+                        .param("namespaceCode", "codex-local")
                         .param("serviceKind", "RPC_PROVIDER")
                         .param("protocol", "grpc"))
                 .andExpect(status().isOk())
@@ -78,7 +84,6 @@ class DdcRegistryAdminControllerTest {
                         .param("bizCode", "pay-biz")
                         .param("appCode", "orders-app")
                         .param("env", "dev")
-                        .param("namespace", "codex-local")
                         .param("serviceKind", "RPC_PROVIDER")
                         .param("protocol", "grpc")
                         .param(
@@ -95,12 +100,40 @@ class DdcRegistryAdminControllerTest {
                         .value(19101));
     }
 
+    @Test
+    void serviceCatalogAcceptsNoFilters() throws Exception {
+        when(facade.getServiceKeys(any())).thenReturn(
+                new DdcManagementServiceCatalog(0L, Instant.EPOCH, List.of())
+        );
+
+        mockMvc.perform(get("/api/v1/ddc/registry/services"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        ArgumentCaptor<DdcManagementServiceQuery> query =
+                ArgumentCaptor.forClass(DdcManagementServiceQuery.class);
+        verify(facade).getServiceKeys(query.capture());
+        assertThat(query.getValue().bizCode()).isNull();
+        assertThat(query.getValue().namespaceCode()).isNull();
+        assertThat(query.getValue().appCode()).isNull();
+    }
+
+    @Test
+    void exactInstanceQueryReportsInvalidRequestInsteadOfInternalFailure()
+            throws Exception {
+        mockMvc.perform(get("/api/v1/ddc/registry/instances"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value(56000))
+                .andExpect(jsonPath("$.status").value("DDC_INVALID_REQUEST"));
+    }
+
     private DdcManagementServiceKey key() {
         return new DdcManagementServiceKey(
                 "pay-biz",
-                "orders-app",
                 "dev",
-                "codex-local",
+                "orders-app",
+                "svc-orders-rpc",
                 "RPC_PROVIDER",
                 "egon.gateway.test.v1.EchoService",
                 "default",

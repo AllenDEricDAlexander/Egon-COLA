@@ -7,12 +7,21 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
+import top.egon.cola.component.ddc.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigUpdateRequest;
+import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
+import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcNamespaceRepository;
+
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,9 +52,42 @@ class DdcConfigServiceTest {
     @Autowired
     private DdcConfigItemRepository configItemRepository;
 
+    @Autowired
+    private DdcAppRepository appRepository;
+
+    @Autowired
+    private DdcNamespaceRepository namespaceRepository;
+
+    @Autowired
+    private DdcNamespaceEnvAppBindingRepository bindingRepository;
+
+    @Test
+    void optionalFiltersReturnAllAndNamespaceRestrictsOnlyVisibility() {
+        configService.create(config("commerce", "dev", "orders", "orders.limit"),
+                "tester");
+        configService.create(config("commerce", "dev", "inventory", "stock.limit"),
+                "tester");
+        bind("commerce", "team-a", "dev", "orders");
+
+        assertThat(configService.list(new DdcConfigQueryRequest()))
+                .extracting(DdcConfigVO::getAppCode)
+                .containsExactly("inventory", "orders");
+
+        DdcConfigQueryRequest query = new DdcConfigQueryRequest();
+        query.setNamespaceCode("team-a");
+        assertThat(configService.list(query))
+                .singleElement()
+                .satisfies(value -> {
+                    assertThat(value.getAppCode()).isEqualTo("orders");
+                    assertThat(value.getVisibleNamespaces())
+                            .containsExactly("team-a");
+                });
+    }
+
     @Test
     void updateCreatesNewVersion() {
-        DdcConfigCreateRequest create = new DdcConfigCreateRequest("demo", "dev", "default",
+        DdcConfigCreateRequest create = new DdcConfigCreateRequest(
+                "default", "dev", "demo", null,
                 "switch", "false", "false", "BOOLEAN", "switch");
         DdcConfigVO created = configService.create(create, "tester");
 
@@ -60,9 +102,10 @@ class DdcConfigServiceTest {
     @Test
     void scopedUpsertAndDeleteUseExpectedVersionAndDeleteIsIdempotent() {
         DdcConfigCreateRequest request = new DdcConfigCreateRequest(
-                "gateway",
+                "infra",
                 "dev",
-                "runtime",
+                "gateway",
+                null,
                 "gateway.routes",
                 "{}",
                 null,
@@ -72,9 +115,10 @@ class DdcConfigServiceTest {
         DdcConfigVO created = configService.upsert(request, null, "gateway-admin");
         DdcConfigVO updated = configService.upsert(
                 new DdcConfigCreateRequest(
-                        "gateway",
+                        "infra",
                         "dev",
-                        "runtime",
+                        "gateway",
+                        null,
                         "gateway.routes",
                         "{\"enabled\":true}",
                         null,
@@ -87,9 +131,9 @@ class DdcConfigServiceTest {
 
         assertThat(updated.getCurrentVersion()).isEqualTo(2L);
         assertThatThrownBy(() -> configService.delete(
-                "gateway",
+                "infra",
                 "dev",
-                "runtime",
+                "gateway",
                 "gateway.routes",
                 1L,
                 "gateway-admin",
@@ -97,18 +141,18 @@ class DdcConfigServiceTest {
         )).hasMessageContaining("version");
 
         DdcConfigVO deleted = configService.delete(
-                "gateway",
+                "infra",
                 "dev",
-                "runtime",
+                "gateway",
                 "gateway.routes",
                 updated.getCurrentVersion(),
                 "gateway-admin",
                 "release removed"
         );
         DdcConfigVO repeated = configService.delete(
-                "gateway",
+                "infra",
                 "dev",
-                "runtime",
+                "gateway",
                 "gateway.routes",
                 deleted.getCurrentVersion(),
                 "gateway-admin",
@@ -127,9 +171,10 @@ class DdcConfigServiceTest {
     @Test
     void pullReturnsPublishedVersionInsteadOfNewerDraft() {
         DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
-                "orders",
+                "commerce",
                 "test",
-                "default",
+                "orders",
+                null,
                 "feature.rules",
                 "{\"version\":1}",
                 null,
@@ -137,9 +182,10 @@ class DdcConfigServiceTest {
                 "rules"
         ), "tester");
         configService.upsert(new DdcConfigCreateRequest(
-                "orders",
+                "commerce",
                 "test",
-                "default",
+                "orders",
+                null,
                 "feature.rules",
                 "version: 2",
                 null,
@@ -151,7 +197,7 @@ class DdcConfigServiceTest {
         item.setPublishedVersion(1L);
         configItemRepository.saveAndFlush(item);
 
-        assertThat(configService.pull("orders", "test", "default"))
+        assertThat(configService.pull("commerce", "test", "orders"))
                 .singleElement()
                 .satisfies(value -> {
                     assertThat(value.getConfigValue()).isEqualTo("{\"version\":1}");
@@ -159,7 +205,7 @@ class DdcConfigServiceTest {
                     assertThat(value.getVersion()).isEqualTo(1L);
                 });
         assertThat(configService.value(
-                "orders", "test", "default", "feature.rules"
+                "commerce", "test", "orders", "feature.rules"
         )).satisfies(value -> {
             assertThat(value.getConfigValue()).isEqualTo("{\"version\":1}");
             assertThat(value.getVersion()).isEqualTo(1L);
@@ -169,9 +215,10 @@ class DdcConfigServiceTest {
     @Test
     void newDraftIsNotVisibleToRuntimeReadsBeforePublish() {
         configService.create(new DdcConfigCreateRequest(
-                "orders",
+                "commerce",
                 "test",
-                "default",
+                "orders",
+                null,
                 "new.draft",
                 "draft",
                 null,
@@ -179,18 +226,19 @@ class DdcConfigServiceTest {
                 "new draft"
         ), "tester");
 
-        assertThat(configService.pull("orders", "test", "default")).isEmpty();
+        assertThat(configService.pull("commerce", "test", "orders")).isEmpty();
         assertThat(configService.value(
-                "orders", "test", "default", "new.draft"
+                "commerce", "test", "orders", "new.draft"
         )).isNull();
     }
 
     @Test
     void draftDeleteDoesNotHidePreviouslyPublishedValue() {
         DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
-                "orders",
+                "commerce",
                 "test",
-                "default",
+                "orders",
+                null,
                 "stable.value",
                 "published",
                 null,
@@ -208,12 +256,12 @@ class DdcConfigServiceTest {
 
         assertThat(deleted.getDeleted()).isTrue();
         assertThat(configService.value(
-                "orders", "test", "default", "stable.value"
+                "commerce", "test", "orders", "stable.value"
         )).satisfies(value -> {
             assertThat(value.getConfigValue()).isEqualTo("published");
             assertThat(value.getVersion()).isEqualTo(1L);
         });
-        assertThat(configService.pull("orders", "test", "default"))
+        assertThat(configService.pull("commerce", "test", "orders"))
                 .singleElement()
                 .satisfies(value -> assertThat(value.getConfigKey())
                         .isEqualTo("stable.value"));
@@ -221,6 +269,56 @@ class DdcConfigServiceTest {
         item = configItemRepository.findById(created.getId()).orElseThrow();
         item.setPublishedVersion(2L);
         configItemRepository.saveAndFlush(item);
-        assertThat(configService.pull("orders", "test", "default")).isEmpty();
+        assertThat(configService.pull("commerce", "test", "orders")).isEmpty();
+    }
+
+    private DdcConfigCreateRequest config(
+            String bizCode, String env, String appCode, String configKey) {
+        return new DdcConfigCreateRequest(
+                bizCode,
+                env,
+                appCode,
+                null,
+                configKey,
+                "1",
+                null,
+                "INTEGER",
+                configKey
+        );
+    }
+
+    private void bind(
+            String bizCode, String namespaceCode, String env, String appCode) {
+        LocalDateTime now = LocalDateTime.now();
+        DdcNamespaceEntity namespace = new DdcNamespaceEntity();
+        namespace.setId("ns-" + namespaceCode);
+        namespace.setBizCode(bizCode);
+        namespace.setNamespaceCode(namespaceCode);
+        namespace.setNamespace(namespaceCode);
+        namespace.setEnabled(true);
+        namespace.setCreatedAt(now);
+        namespace.setUpdatedAt(now);
+        namespaceRepository.save(namespace);
+
+        DdcAppEntity app = new DdcAppEntity();
+        app.setId("app-" + appCode);
+        app.setBizCode(bizCode);
+        app.setAppCode(appCode);
+        app.setAppName(appCode);
+        app.setEnabled(true);
+        app.setCreatedAt(now);
+        app.setUpdatedAt(now);
+        appRepository.save(app);
+
+        DdcNamespaceEnvAppBindingEntity binding =
+                new DdcNamespaceEnvAppBindingEntity();
+        binding.setId("binding-" + namespaceCode + "-" + appCode);
+        binding.setNamespaceId(namespace.getId());
+        binding.setEnvCode(env);
+        binding.setAppId(app.getId());
+        binding.setEnabled(true);
+        binding.setCreatedAt(now);
+        binding.setUpdatedAt(now);
+        bindingRepository.save(binding);
     }
 }

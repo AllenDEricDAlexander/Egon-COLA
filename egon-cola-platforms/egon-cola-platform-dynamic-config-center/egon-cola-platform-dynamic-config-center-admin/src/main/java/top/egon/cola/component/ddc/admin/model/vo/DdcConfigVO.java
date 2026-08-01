@@ -5,6 +5,7 @@ import lombok.Setter;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -12,11 +13,13 @@ public class DdcConfigVO {
 
     private String id;
 
-    private String appCode;
+    private String bizCode;
 
     private String env;
 
-    private String namespace;
+    private String appCode;
+
+    private List<String> visibleNamespaces = List.of();
 
     private String configKey;
 
@@ -39,9 +42,9 @@ public class DdcConfigVO {
     public static DdcConfigVO from(DdcConfigItemEntity entity) {
         DdcConfigVO vo = new DdcConfigVO();
         vo.setId(entity.getId());
+        vo.setBizCode(entity.getBizCode());
         vo.setAppCode(entity.getAppCode());
         vo.setEnv(entity.getEnv());
-        vo.setNamespace(entity.getNamespace());
         vo.setConfigKey(entity.getConfigKey());
         vo.setConfigValue(entity.getConfigValue());
         vo.setDefaultValue(entity.getDefaultValue());

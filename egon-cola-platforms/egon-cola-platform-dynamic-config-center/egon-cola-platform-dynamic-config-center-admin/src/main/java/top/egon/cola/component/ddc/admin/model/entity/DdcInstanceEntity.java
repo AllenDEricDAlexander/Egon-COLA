@@ -24,14 +24,14 @@ public class DdcInstanceEntity {
     @Column(name = "instance_id", nullable = false, unique = true, length = 256)
     private String instanceId;
 
+    @Column(name = "biz_code", nullable = false, length = 128)
+    private String bizCode;
+
     @Column(name = "app_code", length = 128)
     private String appCode;
 
     @Column(length = 32)
     private String env;
-
-    @Column(length = 128)
-    private String namespace;
 
     private String host;
 

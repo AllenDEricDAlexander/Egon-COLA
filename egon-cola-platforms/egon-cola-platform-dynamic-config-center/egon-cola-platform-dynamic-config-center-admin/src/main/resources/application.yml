@@ -53,6 +53,7 @@ egon:
                 client-type: ${DDC_OPENAPI_CLIENT_TYPE:}
                 app-code-patterns: ${DDC_OPENAPI_APP_CODE_PATTERNS:}
                 env-patterns: ${DDC_OPENAPI_ENV_PATTERNS:}
+                biz-code-patterns: ${DDC_OPENAPI_BIZ_CODE_PATTERNS:}
                 namespace-patterns: ${DDC_OPENAPI_NAMESPACE_PATTERNS:}
                 allowed-operations: ${DDC_OPENAPI_ALLOWED_OPERATIONS:}
             allowed-clock-skew-seconds: 300

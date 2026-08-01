@@ -66,23 +66,22 @@ public class DdcConfigLeaseService {
         return repository.deregister(request);
     }
 
-    public List<DdcPublishTarget> activeTargets(String appCode,
-                                                String env,
-                                                String namespace) {
-        return repository.activeTargets(appCode, env, namespace, clock.instant());
+    public List<DdcPublishTarget> activeTargets(
+            String bizCode, String env, String appCode) {
+        return repository.activeTargets(bizCode, env, appCode, clock.instant());
     }
 
-    public boolean areActiveTargets(String appCode,
+    public boolean areActiveTargets(String bizCode,
                                     String env,
-                                    String namespace,
+                                    String appCode,
                                     List<DdcPublishTarget> targets) {
         Instant now = clock.instant();
         return targets != null
                 && !targets.isEmpty()
                 && targets.stream().allMatch(target -> repository.isActiveTarget(
-                        appCode,
+                        bizCode,
                         env,
-                        namespace,
+                        appCode,
                         target,
                         now
                 ));

@@ -32,7 +32,7 @@ class DdcLeaseExpiryScannerTest {
                 LocalDateTime.ofInstant(NOW, ZoneOffset.UTC)
         )).thenReturn(List.of(expired));
         when(leaseRepository.removeExpiredProjection(
-                "demo", "dev", "default", "instance-1", "lease-1", NOW
+                "default", "dev", "demo", "instance-1", "lease-1", NOW
         )).thenReturn(true);
         when(instanceRepository.markOfflineIfLeaseMatches(
                 "instance-1",
@@ -62,7 +62,7 @@ class DdcLeaseExpiryScannerTest {
                 LocalDateTime.ofInstant(NOW, ZoneOffset.UTC)
         )).thenReturn(List.of(expired));
         when(leaseRepository.removeExpiredProjection(
-                "demo", "dev", "default", "instance-1", "lease-1", NOW
+                "default", "dev", "demo", "instance-1", "lease-1", NOW
         )).thenReturn(false);
         DdcLeaseExpiryScanner scanner = scanner(instanceRepository, leaseRepository);
 
@@ -89,9 +89,9 @@ class DdcLeaseExpiryScannerTest {
         DdcInstanceEntity instance = new DdcInstanceEntity();
         instance.setInstanceId("instance-1");
         instance.setLeaseId("lease-1");
+        instance.setBizCode("default");
         instance.setAppCode("demo");
         instance.setEnv("dev");
-        instance.setNamespace("default");
         instance.setStatus(InstanceStatus.ONLINE.name());
         instance.setLeaseExpireAt(LocalDateTime.ofInstant(NOW.minusSeconds(1), ZoneOffset.UTC));
         return instance;

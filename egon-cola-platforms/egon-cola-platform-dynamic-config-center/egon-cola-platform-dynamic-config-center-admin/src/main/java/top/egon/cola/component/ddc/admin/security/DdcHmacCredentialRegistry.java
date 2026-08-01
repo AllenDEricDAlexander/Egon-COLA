@@ -45,7 +45,7 @@ public final class DdcHmacCredentialRegistry {
                     value.getClientType(),
                     Set.copyOf(value.getAppCodePatterns()),
                     Set.copyOf(value.getEnvPatterns()),
-                    Set.copyOf(value.getNamespacePatterns()),
+                    bizCodePatterns(value),
                     Set.copyOf(value.getAllowedOperations())
             );
             if (result.putIfAbsent(
@@ -77,5 +77,14 @@ public final class DdcHmacCredentialRegistry {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private Set<String> bizCodePatterns(
+            DdcAdminProperties.Credential credential) {
+        List<String> configured = credential.getBizCodePatterns();
+        if (configured == null || configured.isEmpty()) {
+            configured = credential.getNamespacePatterns();
+        }
+        return configured == null ? Set.of() : Set.copyOf(configured);
     }
 }

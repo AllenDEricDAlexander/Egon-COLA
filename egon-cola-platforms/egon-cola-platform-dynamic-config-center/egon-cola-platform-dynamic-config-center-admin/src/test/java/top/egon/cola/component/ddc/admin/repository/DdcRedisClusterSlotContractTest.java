@@ -38,12 +38,12 @@ class DdcRedisClusterSlotContractTest {
     @Test
     void configKeysAndLeaseScriptKeysShareTheScopeSlot() {
         List<String> projectionKeys = List.of(
-                DdcKeys.v2Config("demo", "dev", "default", "switch"),
-                DdcKeys.v2Version("demo", "dev", "default", "switch"),
-                DdcKeys.v2PublishIdempotency(
-                        "demo", "dev", "default", "change-1"
+                DdcKeys.v3Config("retail", "dev", "demo", "switch"),
+                DdcKeys.v3Version("retail", "dev", "demo", "switch"),
+                DdcKeys.v3PublishIdempotency(
+                        "retail", "dev", "demo", "change-1"
                 ),
-                DdcKeys.v2Topic("demo", "dev", "default")
+                DdcKeys.v3Topic("retail", "dev", "demo")
         );
         AtomicReference<List<Object>> scriptKeys = new AtomicReference<>();
         RedissonClient redisson = scriptingClient(scriptKeys, 1L);

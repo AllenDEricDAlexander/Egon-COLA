@@ -114,7 +114,7 @@ class DdcPublishPreparationTest {
                 new DdcPublishTarget("instance-2", "lease-2"),
                 new DdcPublishTarget("instance-1", "lease-1")
         );
-        when(leaseService.activeTargets("demo", "dev", "default")).thenReturn(targets);
+        when(leaseService.activeTargets("default", "dev", "demo")).thenReturn(targets);
         CountDownLatch published = new CountDownLatch(1);
         doAnswer(invocation -> {
             published.countDown();
@@ -151,23 +151,23 @@ class DdcPublishPreparationTest {
 
             assertThat(result.get(2, TimeUnit.SECONDS).getStatus()).isEqualTo("SUCCESS");
         }
-        assertThat(configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                "demo", "dev", "default", "switch-all"
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                "default", "dev", "demo", "switch-all"
         )).get().extracting(DdcConfigItemEntity::getCurrentVersion).isEqualTo(2L);
     }
 
     @Test
     void noLiveRedisLeaseRollsBackConfigAndNeverReadsDatabaseOnlineState() {
         saveConfig("switch-no-live");
-        when(leaseService.activeTargets("demo", "dev", "default")).thenReturn(List.of());
+        when(leaseService.activeTargets("default", "dev", "demo")).thenReturn(List.of());
         DdcPublishRequest request = request("switch-no-live", "true");
 
         assertThatThrownBy(() -> publishService.publish(request, "tester"))
                 .isInstanceOf(DdcAdminException.class)
                 .hasMessageContaining("no live config instance");
 
-        assertThat(configItemRepository.findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                "demo", "dev", "default", "switch-no-live"
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                "default", "dev", "demo", "switch-no-live"
         )).get().satisfies(config -> {
             assertThat(config.getCurrentVersion()).isEqualTo(1L);
             assertThat(config.getConfigValue()).isEqualTo("false");
@@ -177,7 +177,7 @@ class DdcPublishPreparationTest {
     @Test
     void rejectsAnotherChangeForTheSameResourceWithoutBlockingAck() throws Exception {
         saveConfig("switch-lock");
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         CountDownLatch published = new CountDownLatch(1);
         doAnswer(invocation -> {
@@ -209,6 +209,7 @@ class DdcPublishPreparationTest {
         var active = new DdcPublishTaskEntity();
         active.setId(UuidV7.simpleString());
         active.setChangeId(UuidV7.simpleString());
+        active.setBizCode("default");
         active.setAppCode("demo");
         active.setEnv("dev");
         active.setNamespace("default");
@@ -235,7 +236,7 @@ class DdcPublishPreparationTest {
     void observesTerminalStateWrittenByAnotherAdminWithoutLocalSignal()
             throws Exception {
         saveConfig("shared-admin-ack");
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(
                         new DdcPublishTarget("instance-1", "lease-1")
                 ));
@@ -271,7 +272,7 @@ class DdcPublishPreparationTest {
     void preparesDifferentResourcesInParallel() throws Exception {
         saveConfig("parallel-a");
         saveConfig("parallel-b");
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         CountDownLatch published = new CountDownLatch(2);
         doAnswer(invocation -> {
@@ -301,7 +302,7 @@ class DdcPublishPreparationTest {
     @Test
     void uncertainDispatchFailureKeepsRecoverableTaskAndReleasesResource() {
         saveConfig("dispatch-failure");
-        when(leaseService.activeTargets("demo", "dev", "default"))
+        when(leaseService.activeTargets("default", "dev", "demo"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         doThrow(new IllegalStateException("redis unavailable"))
                 .when(redisRepository)
@@ -332,10 +333,10 @@ class DdcPublishPreparationTest {
 
         assertThat(taskRepository.findByChangeId(request.getChangeId())).isEmpty();
         assertThat(configItemRepository
-                .findByAppCodeAndEnvAndNamespaceAndConfigKey(
-                        "demo",
-                        "dev",
+                .findByBizCodeAndEnvAndAppCodeAndConfigKey(
                         "default",
+                        "dev",
+                        "demo",
                         "oversized"
                 ))
                 .get()
@@ -348,9 +349,9 @@ class DdcPublishPreparationTest {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(UuidV7.simpleString());
+        config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setNamespace("default");
         config.setConfigKey(configKey);
         config.setConfigValue("false");
         config.setDefaultValue("false");
@@ -366,9 +367,9 @@ class DdcPublishPreparationTest {
     private DdcPublishRequest request(String configKey, String value) {
         DdcPublishRequest request = new DdcPublishRequest();
         request.setChangeId(UuidV7.simpleString());
+        request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setNamespace("default");
         request.setConfigKey(configKey);
         request.setConfigValue(value);
         request.setExpectedVersion(1L);

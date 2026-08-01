@@ -21,13 +21,16 @@ public class DdcConfigVersionEntity {
     @Column(name = "config_id", nullable = false, length = 64)
     private String configId;
 
+    @Column(name = "biz_code", nullable = false, length = 128)
+    private String bizCode;
+
     @Column(name = "app_code", nullable = false, length = 128)
     private String appCode;
 
     @Column(nullable = false, length = 32)
     private String env;
 
-    @Column(nullable = false, length = 128)
+    @Column(length = 128)
     private String namespace;
 
     @Column(name = "config_key", nullable = false, length = 256)

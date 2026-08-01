@@ -203,9 +203,9 @@ class DdcAckServiceTest {
         String configId = UuidV7.simpleString();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(configId);
+        config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setNamespace("default");
         config.setConfigKey(configKey);
         config.setConfigValue("true");
         config.setDefaultValue("false");
@@ -221,6 +221,7 @@ class DdcAckServiceTest {
         task.setId(UuidV7.simpleString());
         task.setChangeId(UuidV7.simpleString());
         task.setConfigId(configId);
+        task.setBizCode("default");
         task.setAppCode("demo");
         task.setEnv("dev");
         task.setNamespace("default");
@@ -249,6 +250,7 @@ class DdcAckServiceTest {
         target.setChangeId(task.getChangeId());
         target.setInstanceId(instanceId);
         target.setLeaseId(leaseId);
+        target.setBizCode(task.getBizCode());
         target.setAppCode(task.getAppCode());
         target.setEnv(task.getEnv());
         target.setNamespace(task.getNamespace());
