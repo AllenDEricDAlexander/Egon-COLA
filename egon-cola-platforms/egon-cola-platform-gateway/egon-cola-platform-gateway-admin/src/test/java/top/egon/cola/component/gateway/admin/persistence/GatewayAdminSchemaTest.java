@@ -19,7 +19,7 @@ class GatewayAdminSchemaTest {
                              "src/main/resources",
                              root
                      ))) {
-            assertEquals(5, migrations.filter(
+            assertEquals(6, migrations.filter(
                     path -> path.getFileName().toString().endsWith(".sql")
             ).count());
         }
