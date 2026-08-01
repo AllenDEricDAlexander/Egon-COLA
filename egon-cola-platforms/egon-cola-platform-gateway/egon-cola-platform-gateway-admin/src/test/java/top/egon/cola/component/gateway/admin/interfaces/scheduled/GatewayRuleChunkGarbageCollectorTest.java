@@ -45,9 +45,9 @@ class GatewayRuleChunkGarbageCollectorTest {
         collector.collectOnce();
 
         verify(client).delete(new DdcManagementConfigDeleteRequest(
-                "gateway-engine-orders",
+                "infra",
                 "test",
-                "default",
+                "ge",
                 "chunk.old.0",
                 3L,
                 "gateway_rule_chunk_gc",
@@ -72,9 +72,9 @@ class GatewayRuleChunkGarbageCollectorTest {
                 .delete(any());
         when(client.findConfig(any())).thenReturn(Optional.of(
                 new DdcManagementConfig(
-                        "gateway-engine-orders",
+                        "infra",
                         "test",
-                        "default",
+                        "ge",
                         "chunk.old.1",
                         "value",
                         "STRING",

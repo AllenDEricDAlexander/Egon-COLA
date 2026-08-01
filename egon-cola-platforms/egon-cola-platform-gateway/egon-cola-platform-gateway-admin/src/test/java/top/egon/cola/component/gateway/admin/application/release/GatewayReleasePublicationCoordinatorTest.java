@@ -94,6 +94,16 @@ class GatewayReleasePublicationCoordinatorTest {
                                 0L
                         )
                 );
+        assertThat(client.upsertRequests).allSatisfy(request -> {
+            assertThat(request.bizCode()).isEqualTo("infra");
+            assertThat(request.env()).isEqualTo("test");
+            assertThat(request.appCode()).isEqualTo("ge");
+        });
+        assertThat(client.publishRequests).allSatisfy(request -> {
+            assertThat(request.bizCode()).isEqualTo("infra");
+            assertThat(request.env()).isEqualTo("test");
+            assertThat(request.appCode()).isEqualTo("ge");
+        });
         assertThat(journal.findAttempt("release-1", 1))
                 .hasSize(3)
                 .extracting(
@@ -199,7 +209,9 @@ class GatewayReleasePublicationCoordinatorTest {
                         client,
                         new GatewayDdcRulePublisher(client),
                         Clock.fixed(NOW, ZoneOffset.UTC),
-                        Duration.ofSeconds(30)
+                        Duration.ofSeconds(30),
+                        "infra",
+                        "ge"
                 );
 
         GatewayReleasePublicationCoordinator.PublicationOutcome outcome =
@@ -271,7 +283,9 @@ class GatewayReleasePublicationCoordinatorTest {
                 client,
                 new GatewayDdcRulePublisher(client),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                Duration.ofSeconds(30)
+                Duration.ofSeconds(30),
+                "infra",
+                "ge"
         );
     }
 
@@ -554,9 +568,9 @@ class GatewayReleasePublicationCoordinatorTest {
                 DdcManagementConfigUpsertRequest request) {
             upsertRequests.add(request);
             DdcManagementConfig config = new DdcManagementConfig(
-                    request.appCode(),
+                    request.bizCode(),
                     request.env(),
-                    request.namespace(),
+                    request.appCode(),
                     request.configKey(),
                     request.configValue(),
                     request.valueType(),
@@ -643,9 +657,9 @@ class GatewayReleasePublicationCoordinatorTest {
                 return List.of();
             }
             return List.of(new DdcManagementConfigClientInstance(
-                    query.appCode(),
+                    query.bizCode(),
                     query.env(),
-                    query.namespace(),
+                    query.appCode(),
                     "engine-1",
                     "lease-1",
                     "127.0.0.1",

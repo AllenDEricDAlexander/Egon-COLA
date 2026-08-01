@@ -32,8 +32,8 @@ egon:
         enabled: false
         biz-code: ${DDC_BIZ_CODE:test-biz}
         app-code: ${DDC_APP_CODE:gateway-test-http-provider}
-        env: test
-        namespace: gateway-test
+        env: ${DDC_ENV:test}
+        namespace: ${DDC_NAMESPACE:gateway-test}
         registry:
           enabled: false
       gateway:
@@ -45,8 +45,8 @@ egon:
         provider:
           http:
             enabled: true
-            instance-id: ${gateway.test.provider-id:http-provider-default}
-            service-name: gateway-test-http-provider
+            instance-id: ${GATEWAY_TEST_DDC_INSTANCE_ID:${gateway.test.provider-id:http-provider-default}}
+            service-name: ${GATEWAY_TEST_SERVICE_NAME:gateway-test-http-provider}
             group: default
             version: ${egon.cola.component.gateway.reporting.artifact-version}
             protocol: http

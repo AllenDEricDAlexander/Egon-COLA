@@ -104,6 +104,7 @@ public class GatewayAdminConfiguration {
             GatewayReleaseStore releases,
             DdcManagementClient client,
             GatewayDdcRulePublisher publisher,
+            GatewayAdminProperties properties,
             @Value("${gateway.admin.ddc.publish-timeout:PT30S}")
             Duration timeout) {
         return new GatewayReleasePublicationCoordinator(
@@ -112,7 +113,9 @@ public class GatewayAdminConfiguration {
                 client,
                 publisher,
                 Clock.systemUTC(),
-                timeout
+                timeout,
+                properties.getDdc().getTargetBizCode(),
+                properties.getDdc().getTargetAppCode()
         );
     }
 

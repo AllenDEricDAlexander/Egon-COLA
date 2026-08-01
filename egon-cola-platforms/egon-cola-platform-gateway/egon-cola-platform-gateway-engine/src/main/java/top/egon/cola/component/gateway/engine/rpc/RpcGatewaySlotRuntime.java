@@ -86,7 +86,9 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                         "gateway.engine-version",
                         properties.gatewayVersion(),
                         "gateway.group-code",
-                        properties.gatewayGroupCode()
+                        properties.gatewayGroupCode(),
+                        "gateway.component",
+                        "engine"
                 ),
                 properties.leaseSeconds(),
                 properties.heartbeatIntervalSeconds()

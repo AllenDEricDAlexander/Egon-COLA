@@ -15,9 +15,9 @@ import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseService;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
+import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
-import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -43,16 +43,23 @@ public class GatewayProjectionService {
 
     private final Clock clock;
 
+    private final String targetBizCode;
+
+    private final String targetAppCode;
+
     @Autowired
     public GatewayProjectionService(
             GatewayGroupRepository groups,
             GatewayReleaseService releases,
-            ObjectProvider<DdcManagementClient> client) {
+            ObjectProvider<DdcManagementClient> client,
+            GatewayAdminProperties properties) {
         this(
                 groups,
                 releases,
                 client.getIfAvailable(),
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                properties.getDdc().getTargetBizCode(),
+                properties.getDdc().getTargetAppCode()
         );
     }
 
@@ -61,10 +68,22 @@ public class GatewayProjectionService {
             GatewayReleaseService releases,
             DdcManagementClient client,
             Clock clock) {
+        this(groups, releases, client, clock, "infra", "ge");
+    }
+
+    GatewayProjectionService(
+            GatewayGroupRepository groups,
+            GatewayReleaseService releases,
+            DdcManagementClient client,
+            Clock clock,
+            String targetBizCode,
+            String targetAppCode) {
         this.groups = groups;
         this.releases = releases;
         this.client = client;
         this.clock = clock;
+        this.targetBizCode = required(targetBizCode, "targetBizCode");
+        this.targetAppCode = required(targetAppCode, "targetAppCode");
     }
 
     public ProjectionEnvelope<List<DdcManagementConfigClientInstance>>
@@ -73,11 +92,9 @@ public class GatewayProjectionService {
         String key = "engine:" + gatewayGroupId;
         return load(key, "DDC_CONFIG_CLIENT", () -> client()
                 .getConfigClients(new DdcManagementInstanceQuery(
-                        GatewayDdcRulePublisher.appCode(
-                                group.getGatewayGroupCode()
-                        ),
+                        targetBizCode,
                         group.getEnv(),
-                        group.getNamespace()
+                        targetAppCode
                 )));
     }
 
@@ -365,9 +382,9 @@ public class GatewayProjectionService {
         DdcManagementServiceCatalog catalog = client().getServiceKeys(
                 new DdcManagementServiceQuery(
                         bizCode,
-                        appCode,
-                        env,
                         namespace,
+                        env,
+                        appCode,
                         serviceKind,
                         protocol,
                         null,
@@ -379,9 +396,9 @@ public class GatewayProjectionService {
             DdcManagementServiceSnapshot snapshot = client().getInstances(
                     new DdcManagementServiceQuery(
                             service.bizCode(),
-                            service.appCode(),
+                            namespace,
                             service.env(),
-                            service.namespace(),
+                            service.appCode(),
                             service.serviceKind(),
                             service.protocol(),
                             service.serviceName(),
@@ -544,9 +561,9 @@ public class GatewayProjectionService {
             }
             return new DdcManagementServiceQuery(
                     bizCode,
-                    appCode,
-                    env,
                     namespace,
+                    env,
+                    appCode,
                     ddcServiceKind,
                     ddcProtocol,
                     serviceName,
@@ -616,6 +633,13 @@ public class GatewayProjectionService {
             Long version,
             String artifactSha256
     ) {
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " must not be blank");
+        }
+        return value.trim();
     }
 
     public record ProjectionCounts(

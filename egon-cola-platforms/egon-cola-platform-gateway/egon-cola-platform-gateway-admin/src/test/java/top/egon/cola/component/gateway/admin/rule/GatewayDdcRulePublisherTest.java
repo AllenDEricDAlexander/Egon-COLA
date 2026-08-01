@@ -35,9 +35,9 @@ class GatewayDdcRulePublisherTest {
         String changeId = UuidV7.string();
         GatewayDdcPublicationCommand command =
                 new GatewayDdcPublicationCommand(
-                        "gateway-engine-default",
+                        "infra",
                         "test",
-                        "default",
+                        "ge",
                         "gateway.rules.chunk.release-1.0",
                         "{\"releaseId\":\"release-1\"}",
                         1L,
@@ -51,8 +51,9 @@ class GatewayDdcRulePublisherTest {
         assertThat(result.status())
                 .isEqualTo(DdcManagementPublishStatus.SUCCESS);
         assertThat(client.requests).singleElement().satisfies(request -> {
+            assertThat(request.bizCode()).isEqualTo("infra");
             assertThat(request.appCode())
-                    .isEqualTo("gateway-engine-default");
+                    .isEqualTo("ge");
             assertThat(request.configKey())
                     .isEqualTo("gateway.rules.chunk.release-1.0");
             assertThat(request.expectedVersion()).isEqualTo(1L);
@@ -76,7 +77,7 @@ class GatewayDdcRulePublisherTest {
         assertThatThrownBy(() -> new GatewayDdcPublicationCommand(
                 " ",
                 "test",
-                "default",
+                "ge",
                 "gateway.rules.active",
                 "{}",
                 1L,
@@ -84,16 +85,16 @@ class GatewayDdcRulePublisherTest {
                 "admin",
                 Duration.ofSeconds(1)
         )).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("appCode");
+                .hasMessageContaining("bizCode");
     }
 
     @Test
     void preflightRequiresAnOnlineUnexpiredConfigClient() {
         RecordingClient client = new RecordingClient();
         client.targets = List.of(new DdcManagementConfigClientInstance(
-                "gateway-engine-default",
+                "infra",
                 "test",
-                "default",
+                "ge",
                 "engine-1",
                 "lease-1",
                 "127.0.0.1",
@@ -109,9 +110,9 @@ class GatewayDdcRulePublisherTest {
                 new GatewayDdcRulePublisher(client);
 
         assertThatThrownBy(() -> publisher.ensureReadyTarget(
-                "gateway-engine-default",
+                "infra",
                 "test",
-                "default"
+                "ge"
         )).isInstanceOf(IllegalStateException.class)
                 .hasMessage("GATEWAY_RELEASE_NO_READY_TARGET");
     }
@@ -120,9 +121,9 @@ class GatewayDdcRulePublisherTest {
             Long expectedVersion,
             String changeId) {
         return new GatewayDdcPublicationCommand(
-                "gateway-engine-default",
+                "infra",
                 "test",
-                "default",
+                "ge",
                 "gateway.rules.active",
                 "{}",
                 expectedVersion,
@@ -140,9 +141,9 @@ class GatewayDdcRulePublisherTest {
 
         private List<DdcManagementConfigClientInstance> targets = List.of(
                 new DdcManagementConfigClientInstance(
-                        "gateway-engine-default",
+                        "infra",
                         "test",
-                        "default",
+                        "ge",
                         "engine-1",
                         "lease-1",
                         "127.0.0.1",

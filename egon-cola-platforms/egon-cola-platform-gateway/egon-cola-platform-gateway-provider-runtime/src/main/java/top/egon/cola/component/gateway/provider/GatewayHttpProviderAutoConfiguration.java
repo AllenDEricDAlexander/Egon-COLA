@@ -48,14 +48,14 @@ public class GatewayHttpProviderAutoConfiguration {
             ObjectProvider<GatewayDefinitionIdentity> definitionIdentity,
             GatewayHttpProviderProperties properties,
             DdcProperties ddcProperties,
-            DdcInstanceIdentity ddcIdentity,
+            ObjectProvider<DdcInstanceIdentity> ddcIdentity,
             Environment environment) {
         GatewayDefinitionIdentity identity =
                 definitionIdentity.getIfAvailable();
         applyDefaults(
                 properties,
                 ddcProperties,
-                ddcIdentity,
+                ddcIdentity.getIfAvailable(),
                 identity,
                 environment
         );
@@ -93,7 +93,7 @@ public class GatewayHttpProviderAutoConfiguration {
         if (blank(properties.getNamespace())) {
             properties.setNamespace(ddcProperties.getNamespace());
         }
-        if (blank(properties.getInstanceId())) {
+        if (blank(properties.getInstanceId()) && ddcIdentity != null) {
             properties.setInstanceId(ddcIdentity.instanceId());
         }
         if (blank(properties.getServiceName())) {

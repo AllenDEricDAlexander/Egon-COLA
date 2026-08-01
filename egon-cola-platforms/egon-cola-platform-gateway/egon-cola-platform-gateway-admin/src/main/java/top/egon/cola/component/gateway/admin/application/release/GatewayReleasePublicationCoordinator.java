@@ -56,6 +56,10 @@ public final class GatewayReleasePublicationCoordinator {
 
     private final GatewayDdcRulePublisher publisher;
 
+    private final String targetBizCode;
+
+    private final String targetAppCode;
+
     private final Clock clock;
 
     private final Duration timeout;
@@ -66,13 +70,17 @@ public final class GatewayReleasePublicationCoordinator {
             DdcManagementClient client,
             GatewayDdcRulePublisher publisher,
             Clock clock,
-            Duration timeout) {
+            Duration timeout,
+            String targetBizCode,
+            String targetAppCode) {
         this.journal = Objects.requireNonNull(journal, "journal");
         this.releases = Objects.requireNonNull(releases, "releases");
         this.client = Objects.requireNonNull(client, "client");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.timeout = positive(timeout);
+        this.targetBizCode = required(targetBizCode, "targetBizCode");
+        this.targetAppCode = required(targetAppCode, "targetAppCode");
     }
 
     public PublicationOutcome resume(String releaseId, int attemptNo) {
@@ -97,9 +105,9 @@ public final class GatewayReleasePublicationCoordinator {
         if (operations.stream().anyMatch(operation ->
                 operation.status() != SUCCESS)) {
             publisher.ensureReadyTarget(
-                    scope.appCode(),
+                    scope.bizCode(),
                     scope.env(),
-                    scope.namespace()
+                    scope.appCode()
             );
         }
         int successfulPhases = 0;
@@ -247,9 +255,9 @@ public final class GatewayReleasePublicationCoordinator {
             GatewayReleasePublicationStore.PublicationRecord operation,
             String operator) {
         DdcManagementConfigQuery query = new DdcManagementConfigQuery(
-                scope.appCode(),
+                scope.bizCode(),
                 scope.env(),
-                scope.namespace(),
+                scope.appCode(),
                 operation.configKey()
         );
         DdcManagementConfig config = client.findConfig(query).orElse(null);
@@ -272,9 +280,9 @@ public final class GatewayReleasePublicationCoordinator {
             DdcManagementConfigQuery query) {
         try {
             client.upsert(new DdcManagementConfigUpsertRequest(
-                    scope.appCode(),
+                    scope.bizCode(),
                     scope.env(),
-                    scope.namespace(),
+                    scope.appCode(),
                     operation.configKey(),
                     operation.contentValue(),
                     operation.phaseType() == ACTIVATION ? "JSON" : "STRING",
@@ -323,9 +331,9 @@ public final class GatewayReleasePublicationCoordinator {
             GatewayReleasePublicationStore.PublicationRecord operation,
             String operator) {
         return new GatewayDdcPublicationCommand(
-                scope.appCode(),
+                scope.bizCode(),
                 scope.env(),
-                scope.namespace(),
+                scope.appCode(),
                 operation.configKey(),
                 operation.contentValue(),
                 operation.expectedVersion(),
@@ -536,11 +544,9 @@ public final class GatewayReleasePublicationCoordinator {
 
     private Scope scope(CompiledGatewayRelease compiled) {
         return new Scope(
-                GatewayDdcRulePublisher.appCode(
-                        compiled.snapshot().content().gatewayGroupCode()
-                ),
+                targetBizCode,
                 compiled.snapshot().content().env(),
-                compiled.snapshot().content().namespace()
+                targetAppCode
         );
     }
 
@@ -576,7 +582,7 @@ public final class GatewayReleasePublicationCoordinator {
         }
     }
 
-    private record Scope(String appCode, String env, String namespace) {
+    private record Scope(String bizCode, String env, String appCode) {
     }
 
     private record Artifact(

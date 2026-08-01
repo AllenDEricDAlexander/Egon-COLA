@@ -11,6 +11,8 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.env.MapPropertySource;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.traffic.RedisTokenBucketExecutor;
@@ -32,6 +34,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GatewayEngineConfigurationTest {
 
     private static final long MIB = 1024L * 1024L;
+
+    @Test
+    void configuresEngineDdcIdentityAsInfraLocalGe() {
+        YamlPropertiesFactoryBean loader = new YamlPropertiesFactoryBean();
+        loader.setResources(new ClassPathResource("application.yml"));
+
+        assertEquals("${DDC_BIZ_CODE:infra}", loader.getObject()
+                .getProperty("egon.cola.component.ddc.biz-code"));
+        assertEquals("${DDC_ENV:local}", loader.getObject()
+                .getProperty("egon.cola.component.ddc.env"));
+        assertEquals("${DDC_APP_CODE:ge}", loader.getObject()
+                .getProperty("egon.cola.component.ddc.app-code"));
+    }
 
     @Test
     void bindsLegacyUpstreamTimeoutAlongsideIndependentSafetyDefaults() {

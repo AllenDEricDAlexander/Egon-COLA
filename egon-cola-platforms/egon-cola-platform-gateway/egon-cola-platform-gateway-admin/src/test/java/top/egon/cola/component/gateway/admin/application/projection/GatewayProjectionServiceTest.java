@@ -63,9 +63,9 @@ class GatewayProjectionServiceTest {
 
         verify(client).getInstances(new DdcManagementServiceQuery(
                 "test-biz",
-                "orders",
-                "test",
                 "gateway",
+                "test",
+                "orders",
                 "RPC_PROVIDER",
                 "grpc",
                 "orders-rpc",
@@ -79,9 +79,9 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         DdcManagementServiceKey http = new DdcManagementServiceKey(
                 "test-biz",
-                "orders",
                 "test",
-                "gateway",
+                "orders",
+                "http-service-id",
                 "HTTP_PROVIDER",
                 "orders",
                 "default",
@@ -90,9 +90,9 @@ class GatewayProjectionServiceTest {
         );
         DdcManagementServiceKey rpc = new DdcManagementServiceKey(
                 "test-biz",
-                "orders",
                 "test",
-                "gateway",
+                "orders",
+                "rpc-service-id",
                 "RPC_PROVIDER",
                 "orders-rpc",
                 "default",
@@ -178,9 +178,9 @@ class GatewayProjectionServiceTest {
         ));
         DdcManagementConfigClientInstance engine =
                 new DdcManagementConfigClientInstance(
-                        "gateway-engine-edge",
+                        "infra",
                         "test",
-                        "gateway",
+                        "ge",
                         "engine-1",
                         "lease-1",
                         "127.0.0.1",
@@ -256,9 +256,9 @@ class GatewayProjectionServiceTest {
         );
         DdcManagementConfigClientInstance renewedLease =
                 new DdcManagementConfigClientInstance(
-                        "gateway-engine-edge",
+                        "infra",
                         "test",
-                        "gateway",
+                        "ge",
                         "engine-1",
                         "lease-2",
                         "127.0.0.1",
@@ -272,9 +272,9 @@ class GatewayProjectionServiceTest {
                 );
         DdcManagementConfigClientInstance scaledNode =
                 new DdcManagementConfigClientInstance(
-                        "gateway-engine-edge",
+                        "infra",
                         "test",
-                        "gateway",
+                        "ge",
                         "engine-2",
                         "lease-1",
                         "127.0.0.2",
@@ -343,9 +343,9 @@ class GatewayProjectionServiceTest {
         ));
         DdcManagementConfigClientInstance engine =
                 new DdcManagementConfigClientInstance(
-                        "gateway-engine-edge",
+                        "infra",
                         "test",
-                        "gateway",
+                        "ge",
                         "engine-1",
                         "lease-1",
                         "127.0.0.1",

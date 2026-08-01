@@ -90,9 +90,9 @@ public class GatewayRuleChunkGarbageCollector {
             GatewayReleasePublicationStore.ChunkCleanupCandidate candidate) {
         try {
             client.delete(new DdcManagementConfigDeleteRequest(
-                    candidate.appCode(),
+                    properties.getDdc().getTargetBizCode(),
                     candidate.env(),
-                    candidate.namespace(),
+                    properties.getDdc().getTargetAppCode(),
                     candidate.configKey(),
                     candidate.targetVersion(),
                     "gateway_rule_chunk_gc",
@@ -119,9 +119,9 @@ public class GatewayRuleChunkGarbageCollector {
             GatewayReleasePublicationStore.ChunkCleanupCandidate candidate) {
         try {
             return client.findConfig(new DdcManagementConfigQuery(
-                    candidate.appCode(),
+                    properties.getDdc().getTargetBizCode(),
                     candidate.env(),
-                    candidate.namespace(),
+                    properties.getDdc().getTargetAppCode(),
                     candidate.configKey()
             )).map(config -> config.deleted()).orElse(true);
         } catch (RuntimeException unavailable) {

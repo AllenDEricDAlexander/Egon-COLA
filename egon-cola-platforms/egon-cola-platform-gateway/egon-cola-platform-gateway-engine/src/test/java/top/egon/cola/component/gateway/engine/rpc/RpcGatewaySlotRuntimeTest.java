@@ -152,11 +152,16 @@ class RpcGatewaySlotRuntimeTest {
                 runtime.state()
         );
         assertEquals(1, registry.registrations.get());
-        assertEquals("platform-biz", registry.registration.serviceKey().bizCode());
-        assertEquals("gateway-engine", registry.registration.serviceKey().appCode());
+        assertEquals("infra", registry.registration.serviceKey().bizCode());
+        assertEquals("local", registry.registration.serviceKey().env());
+        assertEquals("ge", registry.registration.serviceKey().appCode());
         assertEquals(
                 "grpc",
                 registry.registration.metadata().get("egon.rpc.transport")
+        );
+        assertEquals(
+                "engine",
+                registry.registration.metadata().get("gateway.component")
         );
 
         runtime.beginDrain();
@@ -183,9 +188,9 @@ class RpcGatewaySlotRuntimeTest {
 
     private DdcServiceKeyFactory serviceKeyFactory() {
         DdcProperties properties = new DdcProperties();
-        properties.setBizCode("platform-biz");
-        properties.setAppCode("gateway-engine");
-        properties.setEnv("test");
+        properties.setBizCode("infra");
+        properties.setAppCode("ge");
+        properties.setEnv("local");
         properties.setNamespace("default");
         return new DdcServiceKeyFactory(properties);
     }

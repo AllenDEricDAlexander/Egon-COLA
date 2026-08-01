@@ -31,9 +31,10 @@ egon:
   cola:
     component:
       ddc:
-        enabled: true
-        biz-code: ${DDC_BIZ_CODE:default}
-        app-code: egon-cola-gateway-engine
+        enabled: ${DDC_ENABLED:true}
+        biz-code: ${DDC_BIZ_CODE:infra}
+        env: ${DDC_ENV:local}
+        app-code: ${DDC_APP_CODE:ge}
         admin:
           endpoint: ${DDC_ADMIN_ENDPOINT:http://127.0.0.1:18080}
           signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
@@ -50,7 +51,7 @@ egon:
           password: ${DDC_REDIS_PASSWORD:}
           database: ${DDC_REDIS_DATABASE:0}
         registry:
-          enabled: true
+          enabled: ${DDC_REGISTRY_ENABLED:true}
       gateway:
         engine:
           http:

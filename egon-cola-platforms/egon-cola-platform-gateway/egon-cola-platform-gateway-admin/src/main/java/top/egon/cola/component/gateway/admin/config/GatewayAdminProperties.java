@@ -9,12 +9,45 @@ public class GatewayAdminProperties {
 
     private RuleChunk ruleChunk = new RuleChunk();
 
+    private Ddc ddc = new Ddc();
+
     public RuleChunk getRuleChunk() {
         return ruleChunk;
     }
 
     public void setRuleChunk(RuleChunk ruleChunk) {
         this.ruleChunk = ruleChunk;
+    }
+
+    public Ddc getDdc() {
+        return ddc;
+    }
+
+    public void setDdc(Ddc ddc) {
+        this.ddc = ddc;
+    }
+
+    public static class Ddc {
+
+        private String targetBizCode = "infra";
+
+        private String targetAppCode = "ge";
+
+        public String getTargetBizCode() {
+            return targetBizCode;
+        }
+
+        public void setTargetBizCode(String targetBizCode) {
+            this.targetBizCode = targetBizCode;
+        }
+
+        public String getTargetAppCode() {
+            return targetAppCode;
+        }
+
+        public void setTargetAppCode(String targetAppCode) {
+            this.targetAppCode = targetAppCode;
+        }
     }
 
     public static class RuleChunk {

@@ -27,6 +27,10 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-platform-gateway-provider-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
         </dependency>
         <dependency>

@@ -25,9 +25,9 @@ public final class GatewayDdcRulePublisher {
             GatewayDdcPublicationCommand command) {
         Objects.requireNonNull(command, "command");
         return client.publish(new DdcManagementPublishRequest(
-                command.appCode(),
+                command.bizCode(),
                 command.env(),
-                command.namespace(),
+                command.appCode(),
                 command.configKey(),
                 command.value(),
                 command.expectedVersion(),
@@ -37,25 +37,15 @@ public final class GatewayDdcRulePublisher {
         ));
     }
 
-    public static String appCode(String gatewayGroupCode) {
-        if (gatewayGroupCode == null
-                || !gatewayGroupCode.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,63}")) {
-            throw new IllegalArgumentException(
-                    "gatewayGroupCode is not safe for a DDC scope"
-            );
-        }
-        return "gateway-engine-" + gatewayGroupCode;
-    }
-
     public void ensureReadyTarget(
-            String appCode,
+            String bizCode,
             String env,
-            String namespace) {
+            String appCode) {
         List<DdcManagementConfigClientInstance> targets =
                 client.getConfigClients(new DdcManagementInstanceQuery(
-                        appCode,
+                        bizCode,
                         env,
-                        namespace
+                        appCode
                 ));
         Instant now = Instant.now();
         boolean ready = targets != null && targets.stream()
