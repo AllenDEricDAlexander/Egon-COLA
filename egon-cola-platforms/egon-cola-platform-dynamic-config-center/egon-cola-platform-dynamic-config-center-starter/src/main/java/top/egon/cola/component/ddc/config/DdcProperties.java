@@ -380,9 +380,19 @@ public class DdcProperties {
 
     public static class Instance {
 
+        private String id;
+
         private int heartbeatIntervalSeconds = 10;
 
         private int leaseSeconds = 30;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
 
         public int getHeartbeatIntervalSeconds() {
             return heartbeatIntervalSeconds;

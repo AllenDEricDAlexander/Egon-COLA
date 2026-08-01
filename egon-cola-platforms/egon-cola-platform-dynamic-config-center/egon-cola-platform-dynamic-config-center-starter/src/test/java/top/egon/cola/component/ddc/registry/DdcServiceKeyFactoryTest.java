@@ -14,7 +14,6 @@ class DdcServiceKeyFactoryTest {
         properties.setBizCode("retail-biz");
         properties.setAppCode("orders-app");
         properties.setEnv("test");
-        properties.setNamespace("orders");
         DdcServiceKeyFactory factory = new DdcServiceKeyFactory(properties);
 
         var local = factory.fromScope(
@@ -28,7 +27,6 @@ class DdcServiceKeyFactoryTest {
                 "platform-biz",
                 "gateway-app",
                 "test",
-                "shared",
                 DdcServiceKind.INTERNAL_GATEWAY,
                 "egon-gateway-rpc",
                 "default",
@@ -41,6 +39,6 @@ class DdcServiceKeyFactoryTest {
         assertThat(gateway.bizCode()).isEqualTo("platform-biz");
         assertThat(gateway.appCode()).isEqualTo("gateway-app");
         assertThat(gateway.env()).isEqualTo("test");
-        assertThat(gateway.namespace()).isEqualTo("shared");
+        assertThat(local.serviceId()).isNotEqualTo(gateway.serviceId());
     }
 }

@@ -31,6 +31,7 @@ import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
 import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcInstanceIdentityFactory;
+import top.egon.cola.component.ddc.service.DdcInstanceIdProvider;
 import top.egon.cola.component.ddc.service.DdcInstanceService;
 import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
@@ -186,8 +187,13 @@ public class DdcAutoConfig {
     }
 
     @Bean
-    public DdcInstanceIdentity ddcInstanceIdentity(DdcProperties properties) {
-        return new DdcInstanceIdentityFactory(properties).create();
+    public DdcInstanceIdentity ddcInstanceIdentity(
+            DdcProperties properties,
+            ObjectProvider<DdcInstanceIdProvider> instanceIdProvider) {
+        return new DdcInstanceIdentityFactory(
+                properties,
+                instanceIdProvider.getIfAvailable()
+        ).create();
     }
 
     @Bean

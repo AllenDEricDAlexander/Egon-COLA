@@ -17,19 +17,23 @@ public class DdcInstanceIdentityFactory {
     private static final String VERSION_RESOURCE = "META-INF/egon-cola-ddc.properties";
 
     private final DdcProperties properties;
+    private final DdcInstanceIdProvider instanceIdProvider;
 
     public DdcInstanceIdentityFactory(DdcProperties properties) {
+        this(properties, null);
+    }
+
+    public DdcInstanceIdentityFactory(
+            DdcProperties properties,
+            DdcInstanceIdProvider instanceIdProvider) {
         this.properties = properties;
+        this.instanceIdProvider = instanceIdProvider;
     }
 
     public DdcInstanceIdentity create() {
         String host = host();
         String pid = pid();
-        String instanceId = properties.getAppCode()
-                + "-" + properties.getEnv()
-                + "-" + host
-                + "-" + pid
-                + "-" + UuidV7.simpleString().substring(0, 8);
+        String instanceId = instanceId();
         return new DdcInstanceIdentity(
                 instanceId,
                 properties.getAppCode(),
@@ -40,6 +44,25 @@ public class DdcInstanceIdentityFactory {
                 pid,
                 sdkVersion()
         );
+    }
+
+    private String instanceId() {
+        String configured = normalized(properties.getInstance().getId());
+        if (configured != null) {
+            return configured;
+        }
+        if (instanceIdProvider != null) {
+            String provided = normalized(instanceIdProvider.getInstanceId());
+            if (provided == null) {
+                throw new DdcException("custom DDC instance id must not be blank");
+            }
+            return provided;
+        }
+        return UuidV7.string();
+    }
+
+    private String normalized(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private String sdkVersion() {

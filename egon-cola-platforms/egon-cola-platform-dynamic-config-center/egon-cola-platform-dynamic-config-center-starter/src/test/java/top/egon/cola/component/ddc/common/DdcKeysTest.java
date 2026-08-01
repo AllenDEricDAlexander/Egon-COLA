@@ -68,14 +68,60 @@ class DdcKeysTest {
                 .isEqualTo(hashTag(DdcKeys.v2RegistryService(serviceKey)))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryRevision(serviceKey)))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryCatalog(
-                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "", DdcServiceKind.RPC_PROVIDER, "grpc"
                 )))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryCatalogRevision(
-                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "", DdcServiceKind.RPC_PROVIDER, "grpc"
                 )))
                 .isEqualTo(hashTag(DdcKeys.v2RegistryTopic(
-                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "", DdcServiceKind.RPC_PROVIDER, "grpc"
                 )));
+    }
+
+    @Test
+    void buildsV3ConfigKeysWithoutNamespace() {
+        String value = DdcKeys.v3Config(
+                "retail", "local", "order", "feature.enabled"
+        );
+        String version = DdcKeys.v3Version(
+                "retail", "local", "order", "feature.enabled"
+        );
+        String topic = DdcKeys.v3Topic("retail", "local", "order");
+        String lease = DdcKeys.v3ConfigLeaseInstance(
+                "retail", "local", "order", "instance-1"
+        );
+
+        assertThat(hashTag(value))
+                .isEqualTo(hashTag(version))
+                .isEqualTo(hashTag(topic))
+                .isEqualTo(hashTag(lease));
+        assertThat(value).startsWith("ddc:v3:{").endsWith(":config:feature.enabled");
+    }
+
+    @Test
+    void buildsV3RegistryKeysAndIndependentGlobalCatalog() {
+        DdcServiceKey key = new DdcServiceKey(
+                "retail",
+                "local",
+                "order",
+                DdcServiceKind.HTTP_PROVIDER,
+                "order-service",
+                "default",
+                "1.0.0",
+                "http"
+        );
+
+        assertThat(hashTag(DdcKeys.v3RegistryInstance(key, "instance-1")))
+                .isEqualTo(hashTag(DdcKeys.v3RegistryService(key)))
+                .isEqualTo(hashTag(DdcKeys.v3RegistryRevision(key)))
+                .isEqualTo(hashTag(DdcKeys.v3RegistryCatalog(
+                        "retail", "local", "order",
+                        DdcServiceKind.HTTP_PROVIDER, "http"
+                )));
+        assertThat(DdcKeys.v3GlobalRegistryCatalog())
+                .isEqualTo("ddc:v3:{registry-catalog}:services");
+        assertThat(DdcKeys.v3GlobalRegistryCatalogRevision())
+                .isEqualTo("ddc:v3:{registry-catalog}:revision");
     }
 
     private String hashTag(String key) {

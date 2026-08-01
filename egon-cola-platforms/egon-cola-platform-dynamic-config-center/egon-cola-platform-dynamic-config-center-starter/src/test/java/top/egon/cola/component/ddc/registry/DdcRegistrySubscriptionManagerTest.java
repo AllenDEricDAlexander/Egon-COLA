@@ -67,13 +67,13 @@ class DdcRegistrySubscriptionManagerTest {
         assertThat(order.subList(0, 3)).containsExactly("subscribe", "subscribe", "pull");
         verify(topic.redisson()).getTopic(
                 DdcKeys.v2RegistryTopic(
-                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE
         );
         verify(topic.redisson()).getTopic(
                 DdcKeys.registryTopic(
-                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+                        "pay-biz", "orders-app", "dev", "", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE
         );

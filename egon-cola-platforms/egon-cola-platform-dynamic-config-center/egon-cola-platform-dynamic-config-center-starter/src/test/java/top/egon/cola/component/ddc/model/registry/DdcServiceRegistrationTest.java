@@ -3,12 +3,53 @@ package top.egon.cola.component.ddc.model.registry;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 
+import java.util.HexFormat;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcServiceRegistrationTest {
+
+    @Test
+    void derivesOneServiceIdForReplicasWithoutNamespace() {
+        DdcServiceKey first = new DdcServiceKey(
+                "retail",
+                "local",
+                "order",
+                DdcServiceKind.HTTP_PROVIDER,
+                "order-service",
+                "default",
+                "1.0.0",
+                "http"
+        );
+        DdcServiceKey second = new DdcServiceKey(
+                "retail",
+                "local",
+                "order",
+                DdcServiceKind.HTTP_PROVIDER,
+                "order-service",
+                "default",
+                "1.0.0",
+                "http"
+        );
+
+        assertThat(first.canonicalValue()).isEqualTo(String.join(
+                "\n",
+                "ddc-service-key-v3",
+                "retail",
+                "local",
+                "order",
+                "HTTP_PROVIDER",
+                "http",
+                "order-service",
+                "default",
+                "1.0.0"
+        ));
+        assertThat(first.serviceId()).isEqualTo(second.serviceId());
+        assertThat(HexFormat.of().parseHex(first.serviceId())).hasSize(32);
+        assertThat(DdcServiceKey.parse(first.canonicalValue())).isEqualTo(first);
+    }
 
     @Test
     void shouldAcceptOnlyKnownRpcFrameworkMetadata() {

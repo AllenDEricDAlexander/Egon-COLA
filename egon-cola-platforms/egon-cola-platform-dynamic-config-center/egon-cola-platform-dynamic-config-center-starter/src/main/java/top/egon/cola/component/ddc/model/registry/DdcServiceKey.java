@@ -1,14 +1,14 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 
 import java.util.Comparator;
 
 public record DdcServiceKey(
         String bizCode,
-        String appCode,
         String env,
-        String namespace,
+        String appCode,
         DdcServiceKind serviceKind,
         String serviceName,
         String group,
@@ -18,9 +18,8 @@ public record DdcServiceKey(
 
     private static final Comparator<DdcServiceKey> ORDER = Comparator
             .comparing(DdcServiceKey::bizCode)
-            .thenComparing(DdcServiceKey::appCode)
             .thenComparing(DdcServiceKey::env)
-            .thenComparing(DdcServiceKey::namespace)
+            .thenComparing(DdcServiceKey::appCode)
             .thenComparing(DdcServiceKey::serviceKind)
             .thenComparing(DdcServiceKey::protocol)
             .thenComparing(DdcServiceKey::serviceName)
@@ -29,9 +28,8 @@ public record DdcServiceKey(
 
     public DdcServiceKey {
         bizCode = require(bizCode, "bizCode");
-        appCode = require(appCode, "appCode");
         env = require(env, "env");
-        namespace = require(namespace, "namespace");
+        appCode = require(appCode, "appCode");
         if (serviceKind == null) {
             throw new IllegalArgumentException("serviceKind is required");
         }
@@ -51,10 +49,10 @@ public record DdcServiceKey(
     public String canonicalValue() {
         return String.join(
                 "\n",
+                "ddc-service-key-v3",
                 bizCode,
-                appCode,
                 env,
-                namespace,
+                appCode,
                 serviceKind.name(),
                 protocol,
                 serviceName,
@@ -72,7 +70,6 @@ public record DdcServiceKey(
             throw new IllegalArgumentException("invalid canonical service key");
         }
         return new DdcServiceKey(
-                parts[0],
                 parts[1],
                 parts[2],
                 parts[3],
@@ -82,6 +79,36 @@ public record DdcServiceKey(
                 parts[8],
                 parts[5]
         );
+    }
+
+    public String serviceId() {
+        return Digests.sha256Hex(canonicalValue());
+    }
+
+    /**
+     * @deprecated namespace is an authorization view and is not part of the
+     * physical service identity.
+     */
+    @Deprecated(forRemoval = true)
+    public DdcServiceKey(
+            String bizCode,
+            String appCode,
+            String env,
+            String namespace,
+            DdcServiceKind serviceKind,
+            String serviceName,
+            String group,
+            String version,
+            String protocol) {
+        this(bizCode, env, appCode, serviceKind, serviceName, group, version, protocol);
+    }
+
+    /**
+     * @deprecated namespace is no longer part of the physical service key.
+     */
+    @Deprecated(forRemoval = true)
+    public String namespace() {
+        return "";
     }
 
     @Override

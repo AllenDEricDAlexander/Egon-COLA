@@ -4,9 +4,8 @@ import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 
 public record DdcServiceQuery(
         String bizCode,
-        String appCode,
         String env,
-        String namespace,
+        String appCode,
         DdcServiceKind serviceKind,
         String protocol,
         String serviceName,
@@ -15,40 +14,65 @@ public record DdcServiceQuery(
 ) {
 
     public DdcServiceQuery {
-        if (bizCode == null || bizCode.isBlank()) {
-            throw new IllegalArgumentException("bizCode is required");
-        }
-        if (appCode == null || appCode.isBlank()) {
-            throw new IllegalArgumentException("appCode is required");
-        }
-        if (env == null || env.isBlank()) {
-            throw new IllegalArgumentException("env is required");
-        }
-        if (namespace == null || namespace.isBlank()) {
-            throw new IllegalArgumentException("namespace is required");
-        }
-        if (serviceKind == null) {
-            throw new IllegalArgumentException("serviceKind is required");
-        }
-        if (protocol == null || protocol.isBlank()) {
-            throw new IllegalArgumentException("protocol is required");
-        }
-        protocol = protocol.toLowerCase(java.util.Locale.ROOT);
+        bizCode = normalized(bizCode);
+        env = normalized(env);
+        appCode = normalized(appCode);
+        protocol = normalized(protocol);
+        protocol = protocol == null ? null : protocol.toLowerCase(java.util.Locale.ROOT);
+        serviceName = normalized(serviceName);
+        group = normalized(group);
+        version = normalized(version);
     }
 
     public boolean matches(DdcServiceKey key) {
-        return bizCode.equals(key.bizCode())
-                && appCode.equals(key.appCode())
-                && env.equals(key.env())
-                && namespace.equals(key.namespace())
-                && serviceKind == key.serviceKind()
-                && protocol.equals(key.protocol())
+        return matches(bizCode, key.bizCode())
+                && matches(env, key.env())
+                && matches(appCode, key.appCode())
+                && (serviceKind == null || serviceKind == key.serviceKind())
+                && matches(protocol, key.protocol())
                 && matches(serviceName, key.serviceName())
                 && matches(group, key.group())
                 && matches(version, key.version());
     }
 
+    public boolean hasExactCatalogScope() {
+        return bizCode != null
+                && env != null
+                && appCode != null
+                && serviceKind != null
+                && protocol != null;
+    }
+
+    /**
+     * @deprecated namespace is an authorization view and is not a registry filter.
+     */
+    @Deprecated(forRemoval = true)
+    public DdcServiceQuery(
+            String bizCode,
+            String appCode,
+            String env,
+            String namespace,
+            DdcServiceKind serviceKind,
+            String protocol,
+            String serviceName,
+            String group,
+            String version) {
+        this(bizCode, env, appCode, serviceKind, protocol, serviceName, group, version);
+    }
+
+    /**
+     * @deprecated namespace is no longer part of registry discovery.
+     */
+    @Deprecated(forRemoval = true)
+    public String namespace() {
+        return "";
+    }
+
     private boolean matches(String expected, String actual) {
-        return expected == null || expected.isBlank() || expected.equals(actual);
+        return expected == null || expected.equals(actual);
+    }
+
+    private static String normalized(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

@@ -253,6 +253,109 @@ public final class DdcKeys {
         );
     }
 
+    public static String v3Config(String bizCode, String env, String appCode, String key) {
+        return v3(configV3Tag(bizCode, env, appCode), "config", key);
+    }
+
+    public static String v3Version(String bizCode, String env, String appCode, String key) {
+        return v3(configV3Tag(bizCode, env, appCode), "version", key);
+    }
+
+    public static String v3Topic(String bizCode, String env, String appCode) {
+        return v3(configV3Tag(bizCode, env, appCode), "topic");
+    }
+
+    public static String v3PublishIdempotency(
+            String bizCode,
+            String env,
+            String appCode,
+            String changeId) {
+        return v3(configV3Tag(bizCode, env, appCode), "publish", "idempotency", changeId);
+    }
+
+    public static String v3ConfigLeaseInstance(
+            String bizCode,
+            String env,
+            String appCode,
+            String instanceId) {
+        return v3(configV3Tag(bizCode, env, appCode), "lease", "instance", instanceId);
+    }
+
+    public static String v3ConfigLeaseInstances(String bizCode, String env, String appCode) {
+        return v3(configV3Tag(bizCode, env, appCode), "lease", "instances");
+    }
+
+    public static String v3RegistryInstance(DdcServiceKey serviceKey, String instanceId) {
+        return v3(registryV3Tag(serviceKey), "registry", "instance", instanceId);
+    }
+
+    public static String v3RegistryService(DdcServiceKey serviceKey) {
+        return v3(registryV3Tag(serviceKey), "registry", "service", serviceKey.serviceId());
+    }
+
+    public static String v3RegistryRevision(DdcServiceKey serviceKey) {
+        return v3(registryV3Tag(serviceKey), "registry", "revision", serviceKey.serviceId());
+    }
+
+    public static String v3RegistryCatalog(
+            String bizCode,
+            String env,
+            String appCode,
+            DdcServiceKind kind,
+            String protocol) {
+        return v3(registryV3Tag(bizCode, env, appCode, kind), "registry", "catalog", protocol);
+    }
+
+    public static String v3RegistryCatalogRevision(
+            String bizCode,
+            String env,
+            String appCode,
+            DdcServiceKind kind,
+            String protocol) {
+        return v3(
+                registryV3Tag(bizCode, env, appCode, kind),
+                "registry", "catalog-revision", protocol
+        );
+    }
+
+    public static String v3RegistryTopic(
+            String bizCode,
+            String env,
+            String appCode,
+            DdcServiceKind kind,
+            String protocol) {
+        return v3(registryV3Tag(bizCode, env, appCode, kind), "registry", "topic", protocol);
+    }
+
+    public static String v3GlobalRegistryCatalog() {
+        return PREFIX + ":v3:{registry-catalog}:services";
+    }
+
+    public static String v3GlobalRegistryCatalogRevision() {
+        return PREFIX + ":v3:{registry-catalog}:revision";
+    }
+
+    private static String configV3Tag(String bizCode, String env, String appCode) {
+        return tag(bizCode + "\n" + env + "\n" + appCode);
+    }
+
+    private static String registryV3Tag(DdcServiceKey serviceKey) {
+        return registryV3Tag(
+                serviceKey.bizCode(),
+                serviceKey.env(),
+                serviceKey.appCode(),
+                serviceKey.serviceKind()
+        );
+    }
+
+    private static String registryV3Tag(
+            String bizCode,
+            String env,
+            String appCode,
+            DdcServiceKind kind) {
+        return tag(bizCode + "\n" + env + "\n" + appCode + "\n" + kind.name());
+    }
+
     private static String configTag(String appCode, String env, String namespace) {
         return tag(appCode + "\n" + env + "\n" + namespace);
     }
@@ -279,6 +382,10 @@ public final class DdcKeys {
 
     private static String v2(String scopeTag, String... parts) {
         return PREFIX + ":v2:" + scopeTag + ":" + String.join(":", parts);
+    }
+
+    private static String v3(String scopeTag, String... parts) {
+        return PREFIX + ":v3:" + scopeTag + ":" + String.join(":", parts);
     }
 
     private static String join(String... parts) {

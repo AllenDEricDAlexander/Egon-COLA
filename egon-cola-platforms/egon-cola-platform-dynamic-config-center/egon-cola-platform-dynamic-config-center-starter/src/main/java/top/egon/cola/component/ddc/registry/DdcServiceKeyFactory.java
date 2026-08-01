@@ -7,7 +7,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 /**
  * Builds registry service keys from the SDK configuration so business callers
  * do not carry the biz/app scope themselves. The registry identity is always
- * biz-ns-env-app; without a configured biz-code the key cannot be built.
+ * biz-env-app; namespace only controls which authorization views expose it.
  */
 public final class DdcServiceKeyFactory {
 
@@ -25,9 +25,8 @@ public final class DdcServiceKeyFactory {
             String protocol) {
         return new DdcServiceKey(
                 requireBizCode(),
-                properties.getAppCode(),
                 properties.getEnv(),
-                properties.getNamespace(),
+                properties.getAppCode(),
                 serviceKind,
                 serviceName,
                 group,
@@ -38,7 +37,6 @@ public final class DdcServiceKeyFactory {
 
     public DdcServiceKey fromScope(
             String env,
-            String namespace,
             DdcServiceKind serviceKind,
             String serviceName,
             String group,
@@ -46,9 +44,8 @@ public final class DdcServiceKeyFactory {
             String protocol) {
         return new DdcServiceKey(
                 requireBizCode(),
-                properties.getAppCode(),
                 env,
-                namespace,
+                properties.getAppCode(),
                 serviceKind,
                 serviceName,
                 group,
@@ -61,7 +58,6 @@ public final class DdcServiceKeyFactory {
             String bizCode,
             String appCode,
             String env,
-            String namespace,
             DdcServiceKind serviceKind,
             String serviceName,
             String group,
@@ -69,14 +65,47 @@ public final class DdcServiceKeyFactory {
             String protocol) {
         return new DdcServiceKey(
                 bizCode,
-                appCode,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 serviceName,
                 group,
                 version,
                 protocol
+        );
+    }
+
+    /**
+     * @deprecated namespace is no longer part of the physical service key.
+     */
+    @Deprecated(forRemoval = true)
+    public DdcServiceKey fromScope(
+            String env,
+            String namespace,
+            DdcServiceKind serviceKind,
+            String serviceName,
+            String group,
+            String version,
+            String protocol) {
+        return fromScope(env, serviceKind, serviceName, group, version, protocol);
+    }
+
+    /**
+     * @deprecated namespace is no longer part of the physical service key.
+     */
+    @Deprecated(forRemoval = true)
+    public DdcServiceKey fromTargetScope(
+            String bizCode,
+            String appCode,
+            String env,
+            String namespace,
+            DdcServiceKind serviceKind,
+            String serviceName,
+            String group,
+            String version,
+            String protocol) {
+        return fromTargetScope(
+                bizCode, appCode, env, serviceKind, serviceName, group, version, protocol
         );
     }
 
