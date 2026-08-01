@@ -9,6 +9,8 @@ import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.management.model.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
@@ -34,6 +36,12 @@ public interface DdcManagementClient {
 
     List<DdcManagementConfigClientInstance> getConfigClients(
             DdcManagementInstanceQuery query);
+
+    default List<DdcManagementScopeBinding> getScopeBindings(
+            DdcManagementScopeQuery query) {
+        throw new UnsupportedOperationException(
+                "Scope binding lookup is not supported");
+    }
 
     DdcManagementServiceCatalog getServiceKeys(DdcManagementServiceQuery query);
 

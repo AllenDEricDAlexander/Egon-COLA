@@ -7,7 +7,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishTarget;
@@ -32,6 +34,9 @@ class DdcManagementOpenApiControllerTest {
 
     @MockBean
     private DdcManagementFacade facade;
+
+    @MockBean
+    private DdcNamespaceEnvAppBindingService bindingService;
 
     @Test
     void pathScopeOverridesDuplicatedBodyIdentity() throws Exception {
@@ -132,5 +137,31 @@ class DdcManagementOpenApiControllerTest {
                 .andExpect(jsonPath("$.data.changeId").value("change-1"))
                 .andExpect(jsonPath("$.data.targets[0].instanceId").value("engine-1"))
                 .andExpect(jsonPath("$.data.targets[0].leaseId").value("lease-1"));
+    }
+
+    @Test
+    void scopeBindingsAcceptAnySubsetOfFilters() throws Exception {
+        when(bindingService.list("retail", null, null, "order"))
+                .thenReturn(List.of(new DdcNamespaceEnvAppBindingVO(
+                        "binding-1",
+                        "retail",
+                        "ns-ops",
+                        "ops",
+                        "local",
+                        "app-order",
+                        "order",
+                        "Order",
+                        true
+                )));
+
+        mockMvc.perform(get(
+                        "/api/v1/ddc/openapi/management/scope-bindings"
+                )
+                        .param("bizCode", "retail")
+                        .param("appCode", "order"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].namespaceCode").value("ops"))
+                .andExpect(jsonPath("$.data[0].appCode").value("order"));
     }
 }

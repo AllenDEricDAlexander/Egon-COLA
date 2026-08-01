@@ -9,6 +9,8 @@ import org.springframework.web.client.RestClient;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.management.model.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
 import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
@@ -174,6 +176,44 @@ class HttpDdcManagementClientTest {
 
         assertThat(snapshot.generation()).isEqualTo(7L);
         assertThat(snapshot.instances()).isEmpty();
+        fixture.server().verify();
+    }
+
+    @Test
+    void scopeBindingsOmitBlankFiltersAndKeepSignedPartialQuery() {
+        ClientFixture fixture = fixture("ak", "sk");
+        fixture.server().expect(requestTo(
+                        "http://ddc.test/api/v1/ddc/openapi/management/scope-bindings"
+                                + "?bizCode=retail&namespaceCode=ops"
+                ))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("""
+                        {
+                          "success": true,
+                          "code": 0,
+                          "status": "SUCCESS",
+                          "message": "success",
+                          "data": [{
+                            "bindingId": "binding-1",
+                            "bizCode": "retail",
+                            "namespaceCode": "ops",
+                            "env": "local",
+                            "appId": "app-order",
+                            "appCode": "order",
+                            "appName": "Order",
+                            "enabled": true
+                          }]
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        List<DdcManagementScopeBinding> result = fixture.client()
+                .getScopeBindings(new DdcManagementScopeQuery(
+                        "retail", "ops", " ", null));
+
+        assertThat(result).singleElement().satisfies(binding -> {
+            assertThat(binding.bizCode()).isEqualTo("retail");
+            assertThat(binding.appCode()).isEqualTo("order");
+        });
         fixture.server().verify();
     }
 

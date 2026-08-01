@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.component.ddc.admin.controller.DdcManagementOpenApiController;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.security.DdcRequestSigner;
@@ -244,7 +245,10 @@ class DdcHmacScopeTest {
     void managementWriteUsesTrustedServiceOperator() {
         DdcManagementFacade facade = mock(DdcManagementFacade.class);
         DdcManagementOpenApiController controller =
-                new DdcManagementOpenApiController(facade);
+                new DdcManagementOpenApiController(
+                        facade,
+                        mock(DdcNamespaceEnvAppBindingService.class)
+                );
         MockHttpServletRequest servletRequest = new MockHttpServletRequest();
         servletRequest.setAttribute(
                 DdcServicePrincipal.REQUEST_ATTRIBUTE,

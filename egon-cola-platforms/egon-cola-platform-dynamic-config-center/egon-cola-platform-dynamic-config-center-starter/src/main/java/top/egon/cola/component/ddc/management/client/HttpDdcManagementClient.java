@@ -20,6 +20,8 @@ import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.management.model.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
@@ -199,6 +201,21 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     }
 
     @Override
+    public List<DdcManagementScopeBinding> getScopeBindings(
+            DdcManagementScopeQuery query) {
+        require(query, "query");
+        return exchange(
+                HttpMethod.GET,
+                MANAGEMENT_PATH + "/scope-bindings",
+                scopeQuery(query),
+                null,
+                new ParameterizedTypeReference<>() {
+                },
+                true
+        );
+    }
+
+    @Override
     public DdcManagementServiceCatalog getServiceKeys(DdcManagementServiceQuery query) {
         require(query, "query");
         return exchange(
@@ -314,6 +331,15 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
         putQuery(values, "serviceName", query.serviceName());
         putQuery(values, "group", query.group());
         putQuery(values, "version", query.version());
+        return values;
+    }
+
+    private Map<String, List<String>> scopeQuery(DdcManagementScopeQuery query) {
+        Map<String, List<String>> values = new LinkedHashMap<>();
+        putQuery(values, "bizCode", query.bizCode());
+        putQuery(values, "namespaceCode", query.namespaceCode());
+        putQuery(values, "env", query.env());
+        putQuery(values, "appCode", query.appCode());
         return values;
     }
 
