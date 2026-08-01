@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "pretest": "npm run build --workspace @egon-cola/rbac3-react-sdk",
     "test": "npm run test --workspaces --if-present --",
     "lint": "npm run lint --workspaces --if-present",
     "build": "npm run build --workspaces --if-present"
