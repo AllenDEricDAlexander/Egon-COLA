@@ -37,6 +37,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
         "egon.cola.component.ddc.enabled=true",
+        "egon.cola.component.ddc.biz-code=demo-biz",
         "egon.cola.component.ddc.app-code=demo-app",
         "egon.cola.component.ddc.env=dev",
         "egon.cola.component.ddc.namespace=default",
