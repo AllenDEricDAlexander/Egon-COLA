@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Map;
 
 public class DdcHeartbeatRequest {
@@ -7,6 +9,8 @@ public class DdcHeartbeatRequest {
     private String instanceId;
 
     private String leaseId;
+
+    private String bizCode;
 
     private String appCode;
 
@@ -40,6 +44,14 @@ public class DdcHeartbeatRequest {
         this.leaseId = leaseId;
     }
 
+    public String getBizCode() {
+        return bizCode;
+    }
+
+    public void setBizCode(String bizCode) {
+        this.bizCode = bizCode;
+    }
+
     public String getAppCode() {
         return appCode;
     }
@@ -56,10 +68,14 @@ public class DdcHeartbeatRequest {
         this.env = env;
     }
 
+    @JsonIgnore
+    @Deprecated(forRemoval = true)
     public String getNamespace() {
         return namespace;
     }
 
+    @JsonIgnore
+    @Deprecated(forRemoval = true)
     public void setNamespace(String namespace) {
         this.namespace = namespace;
     }

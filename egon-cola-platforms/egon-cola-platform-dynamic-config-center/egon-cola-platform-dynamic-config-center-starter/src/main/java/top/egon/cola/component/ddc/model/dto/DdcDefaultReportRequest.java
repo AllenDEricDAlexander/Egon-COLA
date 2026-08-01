@@ -1,9 +1,13 @@
 package top.egon.cola.component.ddc.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class DdcDefaultReportRequest {
+
+    private String bizCode;
 
     private String appCode;
 
@@ -14,6 +18,14 @@ public class DdcDefaultReportRequest {
     private String instanceId;
 
     private List<DdcConfigValueRequest> configs = new ArrayList<>();
+
+    public String getBizCode() {
+        return bizCode;
+    }
+
+    public void setBizCode(String bizCode) {
+        this.bizCode = bizCode;
+    }
 
     public String getAppCode() {
         return appCode;
@@ -31,10 +43,14 @@ public class DdcDefaultReportRequest {
         this.env = env;
     }
 
+    @JsonIgnore
+    @Deprecated(forRemoval = true)
     public String getNamespace() {
         return namespace;
     }
 
+    @JsonIgnore
+    @Deprecated(forRemoval = true)
     public void setNamespace(String namespace) {
         this.namespace = namespace;
     }

@@ -79,9 +79,9 @@ public class DdcInstanceService {
 
     private void fill(DdcHeartbeatRequest request) {
         request.setInstanceId(identity.instanceId());
+        request.setBizCode(identity.bizCode());
         request.setAppCode(identity.appCode());
         request.setEnv(identity.env());
-        request.setNamespace(identity.namespace());
         request.setHost(identity.host());
         request.setPort(identity.port());
         request.setPid(identity.pid());
@@ -91,9 +91,9 @@ public class DdcInstanceService {
 
     private void fill(DdcInstanceRegisterRequest request) {
         request.setInstanceId(identity.instanceId());
+        request.setBizCode(identity.bizCode());
         request.setAppCode(identity.appCode());
         request.setEnv(identity.env());
-        request.setNamespace(identity.namespace());
         request.setHost(identity.host());
         request.setPort(identity.port());
         request.setPid(identity.pid());

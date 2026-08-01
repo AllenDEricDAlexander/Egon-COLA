@@ -22,9 +22,9 @@ class DdcChecksumTest {
     private DdcPublishMessage message(String configValue) {
         DdcPublishMessage message = new DdcPublishMessage();
         message.setChangeId("c1");
+        message.setBizCode("retail");
         message.setAppCode("demo");
         message.setEnv("dev");
-        message.setNamespace("default");
         message.setConfigKey("switch");
         message.setConfigValue(configValue);
         message.setTargetVersion(2L);

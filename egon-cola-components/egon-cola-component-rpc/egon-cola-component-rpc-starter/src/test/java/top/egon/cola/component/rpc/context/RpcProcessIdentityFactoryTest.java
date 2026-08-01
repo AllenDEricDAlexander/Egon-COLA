@@ -16,9 +16,9 @@ class RpcProcessIdentityFactoryTest {
         properties.setEnv("test");
         DdcInstanceIdentity ddcIdentity = new DdcInstanceIdentity(
                 "019f-runtime-instance",
+                "retail",
                 "orders",
                 "test",
-                "default",
                 "127.0.0.1",
                 null,
                 "100",

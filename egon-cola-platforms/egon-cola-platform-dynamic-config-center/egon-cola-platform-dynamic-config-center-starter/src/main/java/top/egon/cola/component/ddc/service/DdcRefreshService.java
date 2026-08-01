@@ -247,9 +247,9 @@ public class DdcRefreshService {
         request.setChangeId(message.getChangeId());
         request.setInstanceId(session.instanceId());
         request.setLeaseId(session.leaseId());
+        request.setBizCode(message.getBizCode());
         request.setAppCode(message.getAppCode());
         request.setEnv(message.getEnv());
-        request.setNamespace(message.getNamespace());
         request.setConfigKey(message.getConfigKey());
         request.setTargetVersion(message.getTargetVersion());
         request.setCurrentVersion(outcome.currentVersion());

@@ -255,9 +255,9 @@ class GatewayHttpProviderAutoConfigurationTest {
     private DdcInstanceIdentity ddcInstanceIdentity() {
         return new DdcInstanceIdentity(
                 "ddc-runtime-1",
+                "test-biz",
                 "orders",
                 "test",
-                "gateway-test",
                 "127.0.0.1",
                 null,
                 "100",

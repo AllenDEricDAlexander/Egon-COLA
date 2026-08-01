@@ -14,9 +14,9 @@ public final class DdcChecksum {
     public static String sha256(DdcPublishMessage message) {
         return Digests.sha256Hex(String.join("|",
                 safe(message.getChangeId()),
+                safe(message.getBizCode()),
                 safe(message.getAppCode()),
                 safe(message.getEnv()),
-                safe(message.getNamespace()),
                 safe(message.getConfigKey()),
                 safe(message.getConfigValue()),
                 String.valueOf(message.getTargetVersion()),

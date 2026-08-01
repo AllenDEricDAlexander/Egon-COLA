@@ -80,9 +80,9 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
             return Optional.of(exchange(
                     HttpMethod.GET,
                     configPath(
-                            query.appCode(),
+                            query.bizCode(),
                             query.env(),
-                            query.namespace(),
+                            query.appCode(),
                             query.configKey()
                     ),
                     Map.of(),
@@ -105,9 +105,9 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
         return exchange(
                 HttpMethod.PUT,
                 configPath(
-                        request.appCode(),
+                        request.bizCode(),
                         request.env(),
-                        request.namespace(),
+                        request.appCode(),
                         request.configKey()
                 ),
                 Map.of(),
@@ -124,9 +124,9 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
         exchange(
                 HttpMethod.DELETE,
                 configPath(
-                        request.appCode(),
+                        request.bizCode(),
                         request.env(),
-                        request.namespace(),
+                        request.appCode(),
                         request.configKey()
                 ),
                 Map.of(),
@@ -143,9 +143,9 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
         return exchange(
                 HttpMethod.POST,
                 configPath(
-                        request.appCode(),
+                        request.bizCode(),
                         request.env(),
-                        request.namespace(),
+                        request.appCode(),
                         request.configKey()
                 ) + "/publish",
                 Map.of(),
@@ -282,24 +282,24 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     }
 
     private String configPath(
-            String appCode,
+            String bizCode,
             String env,
-            String namespace,
+            String appCode,
             String configKey
     ) {
         return MANAGEMENT_PATH
                 + "/configs/"
-                + segment(appCode, "appCode") + "/"
+                + segment(bizCode, "bizCode") + "/"
                 + segment(env, "env") + "/"
-                + segment(namespace, "namespace") + "/"
+                + segment(appCode, "appCode") + "/"
                 + segment(configKey, "configKey");
     }
 
     private Map<String, List<String>> configClientQuery(DdcManagementInstanceQuery query) {
         Map<String, List<String>> values = new LinkedHashMap<>();
-        putQuery(values, "appCode", query.appCode());
+        putQuery(values, "bizCode", query.bizCode());
         putQuery(values, "env", query.env());
-        putQuery(values, "namespace", query.namespace());
+        putQuery(values, "appCode", query.appCode());
         return values;
     }
 

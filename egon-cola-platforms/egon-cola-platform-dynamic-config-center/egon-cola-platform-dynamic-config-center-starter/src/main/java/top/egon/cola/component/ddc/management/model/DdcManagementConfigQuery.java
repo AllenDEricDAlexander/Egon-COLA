@@ -1,16 +1,16 @@
 package top.egon.cola.component.ddc.management.model;
 
 public record DdcManagementConfigQuery(
-        String appCode,
+        String bizCode,
         String env,
-        String namespace,
+        String appCode,
         String configKey
 ) {
 
     public DdcManagementConfigQuery {
-        appCode = required(appCode, "appCode");
+        bizCode = required(bizCode, "bizCode");
         env = required(env, "env");
-        namespace = required(namespace, "namespace");
+        appCode = required(appCode, "appCode");
         configKey = required(configKey, "configKey");
     }
 

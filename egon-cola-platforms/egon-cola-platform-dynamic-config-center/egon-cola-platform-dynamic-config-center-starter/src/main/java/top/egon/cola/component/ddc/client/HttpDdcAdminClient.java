@@ -132,9 +132,9 @@ public class HttpDdcAdminClient implements DdcAdminClient {
     public List<DdcConfigValue> pull() {
         String path = "/api/v1/ddc/openapi/configs/pull";
         Map<String, List<String>> query = new LinkedHashMap<>();
+        query.put("bizCode", List.of(properties.getBizCode()));
         query.put("appCode", List.of(properties.getAppCode()));
         query.put("env", List.of(properties.getEnv()));
-        query.put("namespace", List.of(properties.getNamespace()));
         DdcCanonicalRequest canonicalRequest = canonicalRequest("GET", path, query, new byte[0]);
         ResultRecord<List<DdcConfigValue>> result = restClient.get()
                 .uri(URI.create(path + "?" + canonicalRequest.canonicalQuery()))

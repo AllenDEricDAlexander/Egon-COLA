@@ -20,6 +20,10 @@ class DdcInstanceIdentityFactoryTest {
         ).create();
 
         assertThat(identity.instanceId()).isEqualTo("pod-uid-1");
+        assertThat(identity.bizCode()).isEqualTo("retail");
+        assertThat(identity.env()).isEqualTo("local");
+        assertThat(identity.appCode()).isEqualTo("order");
+        assertThat(identity.namespace()).isNull();
     }
 
     @Test

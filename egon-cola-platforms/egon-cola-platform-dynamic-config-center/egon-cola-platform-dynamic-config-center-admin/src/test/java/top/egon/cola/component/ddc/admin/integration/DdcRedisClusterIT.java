@@ -102,7 +102,7 @@ class DdcRedisClusterIT {
                 new ObjectMapper()
         );
         DdcInstanceIdentity identity = new DdcInstanceIdentity(
-                "config-client-1", "demo", "test", "default",
+                "config-client-1", "retail", "demo", "test",
                 "127.0.0.1", 8080, "100", "5.2.3"
         );
         DdcLeaseSession session = new DdcLeaseSession(

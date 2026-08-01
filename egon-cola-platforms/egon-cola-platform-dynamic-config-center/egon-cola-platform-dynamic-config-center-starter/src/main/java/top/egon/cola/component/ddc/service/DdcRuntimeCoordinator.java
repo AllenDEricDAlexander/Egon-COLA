@@ -256,9 +256,9 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
 
     private DdcDefaultReportRequest defaultReport() {
         DdcDefaultReportRequest request = new DdcDefaultReportRequest();
+        request.setBizCode(properties.getBizCode());
         request.setAppCode(properties.getAppCode());
         request.setEnv(properties.getEnv());
-        request.setNamespace(properties.getNamespace());
         request.setInstanceId(instanceService.identity().instanceId());
         Map<String, DdcFieldBinding> defaults = new LinkedHashMap<>();
         repository.bindings().stream()
@@ -278,9 +278,9 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     }
 
     private void validateScope() {
+        requireText(properties.getBizCode(), "bizCode");
         requireText(properties.getAppCode(), "appCode");
         requireText(properties.getEnv(), "env");
-        requireText(properties.getNamespace(), "namespace");
         properties.getInstance().validate();
         if (properties.getConsistency().isReconcileEnabled()
                 && properties.getConsistency().getReconcileIntervalSeconds() <= 0) {

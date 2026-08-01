@@ -3,9 +3,9 @@ package top.egon.cola.component.ddc.management.model;
 import java.time.Instant;
 
 public record DdcManagementConfig(
-        String appCode,
+        String bizCode,
         String env,
-        String namespace,
+        String appCode,
         String configKey,
         String configValue,
         String valueType,

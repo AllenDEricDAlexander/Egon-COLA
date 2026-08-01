@@ -4,9 +4,9 @@ import java.time.Instant;
 import java.util.Map;
 
 public record DdcManagementConfigClientInstance(
-        String appCode,
+        String bizCode,
         String env,
-        String namespace,
+        String appCode,
         String instanceId,
         String leaseId,
         String host,

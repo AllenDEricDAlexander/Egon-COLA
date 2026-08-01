@@ -91,9 +91,9 @@ public class DdcConfigLeaseService {
     private DdcInstanceIdentity identity(DdcInstanceRegisterRequest request) {
         return new DdcInstanceIdentity(
                 request.getInstanceId(),
+                request.getBizCode(),
                 request.getAppCode(),
                 request.getEnv(),
-                request.getNamespace(),
                 request.getHost(),
                 request.getPort(),
                 request.getPid(),

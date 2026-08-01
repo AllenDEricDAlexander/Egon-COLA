@@ -15,36 +15,34 @@ import static org.mockito.Mockito.when;
 class DdcRedisConfigRepositoryTest {
 
     @Test
-    void readsV2ValueAndVersionWithoutTouchingLegacyKeys() {
+    void readsOnlyThePhysicalV3ValueAndVersion() {
         RedissonClient redisson = mock(RedissonClient.class);
-        RBucket<String> v2Value = bucket("v2");
-        RBucket<Long> v2Version = bucket(2L);
-        RBucket<String> legacyValue = bucket("legacy");
-        RBucket<Long> legacyVersion = bucket(1L);
-        stubBuckets(redisson, v2Value, v2Version, legacyValue, legacyVersion);
+        RBucket<String> value = bucket("v3");
+        RBucket<Long> version = bucket(3L);
+        stubBuckets(redisson, value, version);
 
         DdcRedisConfigRepository repository = repository(redisson);
 
-        assertThat(repository.readValue("switch")).isEqualTo("v2");
-        assertThat(repository.readVersion("switch")).isEqualTo(2L);
-        verifyNoInteractions(legacyValue, legacyVersion);
+        assertThat(repository.readValue("switch")).isEqualTo("v3");
+        assertThat(repository.readVersion("switch")).isEqualTo(3L);
     }
 
     @Test
-    void fallsBackToLegacyOnlyWhenV2ValueOrVersionIsAbsent() {
+    void deprecatedNamespaceDoesNotChangeThePhysicalConfigKey() {
         RedissonClient redisson = mock(RedissonClient.class);
-        RBucket<String> v2Value = bucket(null);
-        RBucket<Long> v2Version = bucket(null);
-        RBucket<String> legacyValue = bucket("legacy");
-        RBucket<Long> legacyVersion = bucket(1L);
-        stubBuckets(redisson, v2Value, v2Version, legacyValue, legacyVersion);
+        RBucket<String> value = bucket("same");
+        RBucket<Long> version = bucket(3L);
+        stubBuckets(redisson, value, version);
+        DdcProperties properties = properties();
+        DdcRedisConfigRepository repository =
+                new DdcRedisConfigRepository(redisson, properties);
 
-        DdcRedisConfigRepository repository = repository(redisson);
+        properties.setNamespace("namespace-a");
+        assertThat(repository.readValue("switch")).isEqualTo("same");
+        properties.setNamespace("namespace-b");
+        assertThat(repository.readValue("switch")).isEqualTo("same");
 
-        assertThat(repository.readValue("switch")).isEqualTo("legacy");
-        assertThat(repository.readVersion("switch")).isEqualTo(1L);
-        verify(legacyValue).get();
-        verify(legacyVersion).get();
+        verify(value, org.mockito.Mockito.times(2)).get();
     }
 
     @SuppressWarnings("unchecked")
@@ -55,29 +53,26 @@ class DdcRedisConfigRepositoryTest {
     }
 
     private void stubBuckets(RedissonClient redisson,
-                             RBucket<String> v2Value,
-                             RBucket<Long> v2Version,
-                             RBucket<String> legacyValue,
-                             RBucket<Long> legacyVersion) {
-        when(redisson.<String>getBucket(DdcKeys.v2Config(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(v2Value);
-        when(redisson.<Long>getBucket(DdcKeys.v2Version(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(v2Version);
-        when(redisson.<String>getBucket(DdcKeys.config(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(legacyValue);
-        when(redisson.<Long>getBucket(DdcKeys.version(
-                "demo", "dev", "default", "switch"
-        ))).thenReturn(legacyVersion);
+                             RBucket<String> value,
+                             RBucket<Long> version) {
+        when(redisson.<String>getBucket(DdcKeys.v3Config(
+                "retail", "dev", "demo", "switch"
+        ))).thenReturn(value);
+        when(redisson.<Long>getBucket(DdcKeys.v3Version(
+                "retail", "dev", "demo", "switch"
+        ))).thenReturn(version);
     }
 
     private DdcRedisConfigRepository repository(RedissonClient redisson) {
+        return new DdcRedisConfigRepository(redisson, properties());
+    }
+
+    private DdcProperties properties() {
         DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail");
         properties.setAppCode("demo");
         properties.setEnv("dev");
         properties.setNamespace("default");
-        return new DdcRedisConfigRepository(redisson, properties);
+        return properties;
     }
 }

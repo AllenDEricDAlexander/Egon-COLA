@@ -52,7 +52,7 @@ class DdcRedisClusterSlotContractTest {
 
         repository.register(
                 new DdcInstanceIdentity(
-                        "instance-1", "demo", "dev", "default",
+                        "instance-1", "retail", "demo", "dev",
                         "127.0.0.1", 8080, "100", "5.2.3"
                 ),
                 new DdcLeaseSession(

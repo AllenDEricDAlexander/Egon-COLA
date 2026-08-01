@@ -33,9 +33,9 @@ public class DdcRedisChangeListener implements MessageListener<DdcPublishMessage
     }
 
     private boolean matchesScope(DdcPublishMessage message) {
-        return properties.getAppCode().equals(message.getAppCode())
-                && properties.getEnv().equals(message.getEnv())
-                && properties.getNamespace().equals(message.getNamespace());
+        return properties.getBizCode().equals(message.getBizCode())
+                && properties.getAppCode().equals(message.getAppCode())
+                && properties.getEnv().equals(message.getEnv());
     }
 
     private boolean matchesChecksum(DdcPublishMessage message) {

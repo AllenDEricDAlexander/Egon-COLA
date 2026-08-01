@@ -36,9 +36,9 @@ public class DdcInstanceIdentityFactory {
         String instanceId = instanceId();
         return new DdcInstanceIdentity(
                 instanceId,
+                properties.getBizCode(),
                 properties.getAppCode(),
                 properties.getEnv(),
-                properties.getNamespace(),
                 host,
                 null,
                 pid,

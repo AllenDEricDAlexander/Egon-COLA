@@ -154,31 +154,20 @@ public class DdcAutoConfig {
     public RTopic ddcRedisTopic(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
                                 DdcProperties properties) {
         return redissonClient.getTopic(
-                DdcKeys.topic(properties.getAppCode(), properties.getEnv(), properties.getNamespace())
-        );
-    }
-
-    @Bean("ddcRedisV2Topic")
-    @ConditionalOnBean(name = "ddcRedissonClient")
-    public RTopic ddcRedisV2Topic(
-            @Qualifier("ddcRedissonClient") RedissonClient redissonClient,
-            DdcProperties properties) {
-        return redissonClient.getTopic(
-                DdcKeys.v2Topic(
-                        properties.getAppCode(),
+                DdcKeys.v3Topic(
+                        properties.getBizCode(),
                         properties.getEnv(),
-                        properties.getNamespace()
+                        properties.getAppCode()
                 )
         );
     }
 
     @Bean
-    @ConditionalOnBean(name = {"ddcRedisV2Topic", "ddcRedisTopic"})
+    @ConditionalOnBean(name = "ddcRedisTopic")
     public DdcRedisChangeSubscription ddcRedisChangeSubscription(
-            @Qualifier("ddcRedisV2Topic") RTopic v2Topic,
             @Qualifier("ddcRedisTopic") RTopic topic,
             DdcRedisChangeListener listener) {
-        return new DdcRedisChangeSubscription(List.of(v2Topic, topic), listener);
+        return new DdcRedisChangeSubscription(List.of(topic), listener);
     }
 
     @Bean

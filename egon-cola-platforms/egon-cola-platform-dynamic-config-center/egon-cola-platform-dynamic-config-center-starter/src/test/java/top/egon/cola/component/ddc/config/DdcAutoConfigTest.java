@@ -13,6 +13,7 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
+import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcAckDelivery;
 import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
@@ -25,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(OutputCaptureExtension.class)
@@ -156,6 +158,24 @@ class DdcAutoConfigTest {
                 )
                 .run(context -> assertThat(context.getBean(DdcAdminClient.class))
                         .isSameAs(client));
+    }
+
+    @Test
+    void subscribesOnlyToPhysicalV3Topic() {
+        RedissonClient client = mock(RedissonClient.class);
+        RTopic topic = mock(RTopic.class);
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail");
+        properties.setEnv("dev");
+        properties.setAppCode("order");
+        properties.setNamespace("namespace-a");
+        when(client.getTopic(DdcKeys.v3Topic("retail", "dev", "order")))
+                .thenReturn(topic);
+
+        RTopic result = new DdcAutoConfig().ddcRedisTopic(client, properties);
+
+        assertThat(result).isSameAs(topic);
+        verify(client).getTopic(DdcKeys.v3Topic("retail", "dev", "order"));
     }
 
     private RedissonClient dedicatedClient() {

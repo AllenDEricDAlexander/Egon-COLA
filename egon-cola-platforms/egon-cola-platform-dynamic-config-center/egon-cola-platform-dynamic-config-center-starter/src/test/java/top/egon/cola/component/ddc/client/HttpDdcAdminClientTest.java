@@ -147,6 +147,7 @@ class HttpDdcAdminClientTest {
     @Test
     void signedGetUsesTheSameCanonicalEncodedQueryAsTheRequestUri() {
         DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail");
         properties.setAppCode("demo app");
         properties.setEnv("dev");
         properties.setNamespace("a/b");
@@ -160,7 +161,7 @@ class HttpDdcAdminClientTest {
         DdcRequestSigner signer = new DdcRequestSigner();
         server.expect(requestTo(
                         "http://ddc.test/api/v1/ddc/openapi/configs/pull"
-                                + "?appCode=demo%20app&env=dev&namespace=a%2Fb"
+                                + "?appCode=demo%20app&bizCode=retail&env=dev"
                 ))
                 .andExpect(request -> {
                     long timestamp = Long.parseLong(
@@ -172,8 +173,8 @@ class HttpDdcAdminClientTest {
                             request.getURI().getPath(),
                             Map.of(
                                     "appCode", List.of("demo app"),
-                                    "env", List.of("dev"),
-                                    "namespace", List.of("a/b")
+                                    "bizCode", List.of("retail"),
+                                    "env", List.of("dev")
                             ),
                             timestamp,
                             nonce,

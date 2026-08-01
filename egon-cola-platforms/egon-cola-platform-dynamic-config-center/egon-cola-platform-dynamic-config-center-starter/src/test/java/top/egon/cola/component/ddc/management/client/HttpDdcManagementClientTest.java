@@ -37,7 +37,7 @@ class HttpDdcManagementClientTest {
         ClientFixture fixture = fixture("access-key", "secret-value");
         fixture.server().expect(requestTo(
                         "http://ddc.test/api/v1/ddc/openapi/management/configs"
-                                + "/gateway/dev/runtime/route%2Fa%20b"
+                                + "/infra/dev/gateway/route%2Fa%20b"
                 ))
                 .andExpect(method(HttpMethod.PUT))
                 .andExpect(request -> {
@@ -69,9 +69,9 @@ class HttpDdcManagementClientTest {
                           "status": "SUCCESS",
                           "message": "success",
                           "data": {
+                            "bizCode": "infra",
                             "appCode": "gateway",
                             "env": "dev",
-                            "namespace": "runtime",
                             "configKey": "route/a b",
                             "configValue": "{\\"enabled\\":true}",
                             "valueType": "JSON",
@@ -85,9 +85,9 @@ class HttpDdcManagementClientTest {
 
         DdcManagementConfig response = fixture.client().upsert(
                 new DdcManagementConfigUpsertRequest(
-                        "gateway",
+                        "infra",
                         "dev",
-                        "runtime",
+                        "gateway",
                         "route/a b",
                         "{\"enabled\":true}",
                         "JSON",
@@ -180,7 +180,7 @@ class HttpDdcManagementClientTest {
         ClientFixture fixture = fixture("ak", "sk");
         fixture.server().expect(requestTo(
                         "http://ddc.test/api/v1/ddc/openapi/management/configs"
-                                + "/gateway-engine-default/test/default/gateway.rules.active"
+                                + "/infra/test/gateway-engine-default/gateway.rules.active"
                 ))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess("""
@@ -190,9 +190,9 @@ class HttpDdcManagementClientTest {
                           "status": "SUCCESS",
                           "message": "success",
                           "data": {
+                            "bizCode": "infra",
                             "appCode": "gateway-engine-default",
                             "env": "test",
-                            "namespace": "default",
                             "configKey": "gateway.rules.active",
                             "configValue": "{}",
                             "valueType": "JSON",
@@ -206,17 +206,17 @@ class HttpDdcManagementClientTest {
 
         Optional<DdcManagementConfig> response = fixture.client().findConfig(
                 new DdcManagementConfigQuery(
-                        "gateway-engine-default",
+                        "infra",
                         "test",
-                        "default",
+                        "gateway-engine-default",
                         "gateway.rules.active"
                 )
         );
 
         assertThat(response).contains(new DdcManagementConfig(
-                "gateway-engine-default",
+                "infra",
                 "test",
-                "default",
+                "gateway-engine-default",
                 "gateway.rules.active",
                 "{}",
                 "JSON",
@@ -233,7 +233,7 @@ class HttpDdcManagementClientTest {
         ClientFixture fixture = fixture("ak", "sk");
         fixture.server().expect(requestTo(
                         "http://ddc.test/api/v1/ddc/openapi/management/configs"
-                                + "/gateway/test/default/gateway.rules.active"
+                                + "/infra/test/gateway/gateway.rules.active"
                 ))
                 .andRespond(withSuccess("""
                         {
@@ -246,7 +246,7 @@ class HttpDdcManagementClientTest {
                         """, MediaType.APPLICATION_JSON));
 
         assertThat(fixture.client().findConfig(new DdcManagementConfigQuery(
-                "gateway", "test", "default", "gateway.rules.active"
+                "infra", "test", "gateway", "gateway.rules.active"
         ))).isEmpty();
         fixture.server().verify();
     }
@@ -256,7 +256,7 @@ class HttpDdcManagementClientTest {
         ClientFixture fixture = fixture("ak", "sk");
         fixture.server().expect(requestTo(
                         "http://ddc.test/api/v1/ddc/openapi/management/configs"
-                                + "/gateway/test/default/gateway.rules.active"
+                                + "/infra/test/gateway/gateway.rules.active"
                 ))
                 .andRespond(withSuccess("""
                         {
@@ -270,7 +270,7 @@ class HttpDdcManagementClientTest {
 
         assertThatThrownBy(() -> fixture.client().findConfig(
                 new DdcManagementConfigQuery(
-                        "gateway", "test", "default", "gateway.rules.active"
+                        "infra", "test", "gateway", "gateway.rules.active"
                 )
         ))
                 .isInstanceOfSatisfying(DdcManagementClientException.class, exception -> {
@@ -283,7 +283,7 @@ class HttpDdcManagementClientTest {
     @Test
     void exactConfigQueryRejectsBlankCoordinateBeforeTransport() {
         assertThatThrownBy(() -> new DdcManagementConfigQuery(
-                "gateway", " ", "default", "gateway.rules.active"
+                "infra", " ", "gateway", "gateway.rules.active"
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("env");

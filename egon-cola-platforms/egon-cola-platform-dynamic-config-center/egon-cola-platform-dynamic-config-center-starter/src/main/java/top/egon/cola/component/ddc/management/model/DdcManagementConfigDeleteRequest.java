@@ -1,9 +1,9 @@
 package top.egon.cola.component.ddc.management.model;
 
 public record DdcManagementConfigDeleteRequest(
-        String appCode,
+        String bizCode,
         String env,
-        String namespace,
+        String appCode,
         String configKey,
         Long expectedVersion,
         String operator,

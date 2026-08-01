@@ -43,9 +43,9 @@ class DdcLeaseLifecycleTest {
                 adminClient,
                 new DdcInstanceIdentity(
                         "config-1",
+                        "retail",
                         "demo",
                         "dev",
-                        "default",
                         "127.0.0.1",
                         8080,
                         "100",
@@ -96,6 +96,7 @@ class DdcLeaseLifecycleTest {
 
     private DdcProperties properties() {
         DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail");
         properties.setAppCode("demo");
         properties.setEnv("dev");
         properties.setNamespace("default");

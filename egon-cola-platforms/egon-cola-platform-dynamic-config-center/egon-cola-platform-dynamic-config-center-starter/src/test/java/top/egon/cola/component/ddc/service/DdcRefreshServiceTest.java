@@ -311,9 +311,9 @@ class DdcRefreshServiceTest {
     private DdcPublishMessage message(String key, String value, long version) {
         DdcPublishMessage message = new DdcPublishMessage();
         message.setChangeId("c1");
+        message.setBizCode("retail");
         message.setAppCode("demo");
         message.setEnv("dev");
-        message.setNamespace("default");
         message.setConfigKey(key);
         message.setConfigValue(value);
         message.setTargetVersion(version);

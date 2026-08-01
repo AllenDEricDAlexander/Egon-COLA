@@ -1,8 +1,8 @@
 package top.egon.cola.component.ddc.management.model;
 
 public record DdcManagementInstanceQuery(
-        String appCode,
+        String bizCode,
         String env,
-        String namespace
+        String appCode
 ) {
 }

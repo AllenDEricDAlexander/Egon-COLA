@@ -266,6 +266,7 @@ class DdcRuntimeCoordinatorTest {
 
     private DdcProperties properties(boolean failFast) {
         DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail");
         properties.setAppCode("demo");
         properties.setEnv("dev");
         properties.setNamespace("default");
@@ -296,9 +297,9 @@ class DdcRuntimeCoordinatorTest {
         DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
         DdcInstanceIdentity identity = new DdcInstanceIdentity(
                 "instance-1",
+                "retail",
                 "demo",
                 "dev",
-                "default",
                 "127.0.0.1",
                 null,
                 "100",
