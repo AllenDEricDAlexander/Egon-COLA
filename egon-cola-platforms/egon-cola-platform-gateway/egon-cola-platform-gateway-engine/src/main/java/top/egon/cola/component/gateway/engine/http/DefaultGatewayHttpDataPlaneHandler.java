@@ -989,7 +989,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 attemptTrace,
                 security,
                 match.route().transportPolicy()
-                        .authorizationForwardingAllowed()
+                        .authorizationForwardingAllowed(),
+                provider.serviceKey().protocolType()
+                        == ProviderProtocolType.HTTP
         );
         Mono<GatewayOutboundHttpResponse> invocation;
         if (provider.serviceKey().protocolType()
@@ -1151,7 +1153,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayTraceContext trace,
             GatewayTelemetry.AttemptTrace attemptTrace,
             GatewayHttpSecurityProcessor.Outcome security,
-            boolean authorizationForwardingAllowed) {
+            boolean authorizationForwardingAllowed,
+            boolean forwardHttpCredential) {
         Map<String, List<String>> sanitized =
                 identitySanitizer.sanitizeHttp(
                 source,
@@ -1160,6 +1163,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 authorizationForwardingAllowed
         );
         Map<String, List<String>> result = new LinkedHashMap<>(sanitized);
+        restoreOriginalBearer(result, security, forwardHttpCredential);
         result.put(
                 "traceparent",
                 List.of(attemptTrace.traceparent())
@@ -1175,6 +1179,20 @@ public final class DefaultGatewayHttpDataPlaneHandler
             );
         }
         return Map.copyOf(result);
+    }
+
+    static void restoreOriginalBearer(
+            Map<String, List<String>> sanitized,
+            GatewayHttpSecurityProcessor.Outcome security,
+            boolean forwardHttpCredential
+    ) {
+        if (forwardHttpCredential && security.forwardingCredential() != null) {
+            sanitized.put(
+                    "authorization",
+                    List.of("Bearer "
+                            + security.forwardingCredential().tokenReference())
+            );
+        }
     }
 
     private GatewayOutboundHttpResponse error(
@@ -1820,7 +1838,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     attemptTrace,
                     security,
                     match.route().transportPolicy()
-                            .authorizationForwardingAllowed()
+                            .authorizationForwardingAllowed(),
+                    provider.serviceKey().protocolType()
+                            == ProviderProtocolType.HTTP
             );
             GatewayWebSocketProxyContext context =
                     new GatewayWebSocketProxyContext(

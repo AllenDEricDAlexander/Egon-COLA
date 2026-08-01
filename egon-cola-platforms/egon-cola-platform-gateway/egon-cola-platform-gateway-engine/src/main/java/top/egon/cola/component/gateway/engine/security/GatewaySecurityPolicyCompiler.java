@@ -4,6 +4,7 @@ import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.core.security.AuthenticationMode;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecisionMode;
+import top.egon.cola.component.gateway.core.security.CredentialForwardingMode;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
 
@@ -76,6 +77,11 @@ public final class GatewaySecurityPolicyCompiler {
                         config,
                         "failureMode",
                         "FAIL_CLOSED"
+                )),
+                CredentialForwardingMode.valueOf(string(
+                        config,
+                        "credentialForwardingMode",
+                        "NONE"
                 ))
         );
     }

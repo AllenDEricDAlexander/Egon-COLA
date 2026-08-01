@@ -1,0 +1,141 @@
+spring:
+  application:
+    name: rbac3-admin
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+  datasource:
+    url: ${RBAC3_POSTGRES_URL}
+    username: ${RBAC3_POSTGRES_USER}
+    password: ${RBAC3_POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: false
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+server:
+  port: ${RBAC3_ADVERTISED_PORT:0}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState,ping
+        readiness:
+          include: readinessState,rbac3Readiness
+
+egon:
+  rbac3:
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d
+    session-idle-timeout: 30m
+    session-absolute-timeout: 12h
+    maximum-active-roots: 16
+    component-keys: ${RBAC3_COMPONENT_KEYS}
+    runtime:
+      redis-enabled: true
+      redis-address: ${RBAC3_RUNTIME_REDIS_ADDRESS}
+      redis-database: ${RBAC3_RUNTIME_REDIS_DATABASE:0}
+      redis-timeout: ${RBAC3_RUNTIME_REDIS_TIMEOUT:2s}
+      redis-password-file: ${RBAC3_RUNTIME_REDIS_PASSWORD_FILE}
+    gateway-status:
+      admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
+      gateway-group-id: ${GATEWAY_GROUP_ID}
+      release-id: ${GATEWAY_RELEASE_ID}
+      oauth-token-file: ${GATEWAY_STATUS_OAUTH_TOKEN_FILE}
+      timeout: ${GATEWAY_STATUS_TIMEOUT:3s}
+    security:
+      jwt-private-key-file: ${RBAC3_JWT_PRIVATE_KEY_FILE}
+      jwt-public-key-file: ${RBAC3_JWT_PUBLIC_KEY_FILE}
+      jwt-kid: ${RBAC3_JWT_KID}
+      issuer: ${RBAC3_JWT_ISSUER}
+      audiences: ${RBAC3_JWT_AUDIENCES}
+      audit-cursor-secret-file: ${RBAC3_AUDIT_CURSOR_SECRET_FILE}
+    topology:
+      ddc-registry-client-bean: ddcRegistryRedissonClient
+      runtime-client-bean: rbac3RuntimeRedissonClient
+  cola:
+    component:
+      id:
+        enabled: true
+        machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID}
+      ddc:
+        enabled: false
+        app-code: rbac3-admin
+        env: ${DEPLOYMENT_ENV}
+        namespace: ${DEPLOYMENT_NAMESPACE}
+        admin:
+          endpoint: ${DDC_ADMIN_ENDPOINT}
+          signature-enabled: true
+          access-key: ${DDC_REPORT_ACCESS_KEY}
+          secret-key: ${DDC_REPORT_SECRET_KEY}
+        redis:
+          enabled: true
+          mode: ${DDC_REGISTRY_REDIS_MODE:SINGLE}
+          nodes: ${DDC_REGISTRY_REDIS_NODES:}
+          master-name: ${DDC_REGISTRY_REDIS_MASTER_NAME:}
+          host: ${DDC_REGISTRY_REDIS_HOST}
+          port: ${DDC_REGISTRY_REDIS_PORT:6379}
+          password: ${DDC_REGISTRY_REDIS_PASSWORD}
+          database: ${DDC_REGISTRY_REDIS_DATABASE:0}
+        registry:
+          enabled: true
+      gateway:
+        reporting:
+          enabled: true
+          admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
+          application-code: rbac3-admin
+          application-name: RBAC3 Permission Admin
+          env: ${DEPLOYMENT_ENV}
+          namespace: ${DEPLOYMENT_NAMESPACE}
+          artifact-version: ${RBAC3_ARTIFACT_VERSION}
+          build-id: ${RBAC3_BUILD_ID}
+          declared-hosts: ${RBAC3_DECLARED_HOSTS}
+          fail-fast: true
+          access-key: ${GATEWAY_REPORT_ACCESS_KEY}
+          secret-key: ${GATEWAY_REPORT_SECRET_KEY}
+          state-file: ${GATEWAY_REPORT_STATE_FILE}
+        provider:
+          http:
+            enabled: true
+            env: ${DEPLOYMENT_ENV}
+            namespace: ${DEPLOYMENT_NAMESPACE}
+            instance-id: ${RBAC3_INSTANCE_ID}
+            service-name: rbac3-admin
+            group: default
+            version: ${RBAC3_ARTIFACT_VERSION}
+            protocol: http
+            advertised-host: ${RBAC3_ADVERTISED_HOST}
+            port: ${RBAC3_ADVERTISED_PORT}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true
+
+      transactional-outbox:
+        enabled: true
+        node-id: ${RBAC3_INSTANCE_ID}
+        storage:
+          data-source-bean-name: dataSource
+          transaction-manager-bean-name: transactionManager
+          validate-schema: true
+        polling:
+          enabled: true
+          fixed-delay: 1s
+          batch-size: 100
+          concurrency: 4

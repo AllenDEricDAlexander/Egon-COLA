@@ -103,3 +103,46 @@ updates:
       semver-major-days: 14
       semver-minor-days: 3
       semver-patch-days: 1
+
+  # RBAC3 React SDK and Admin Web workspace
+  - package-ecosystem: "npm"
+    directory: "/egon-cola-platforms/egon-cola-platform-rbac3"
+
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+      timezone: "Asia/Singapore"
+
+    open-pull-requests-limit: 4
+    rebase-strategy: "auto"
+    versioning-strategy: "increase-if-necessary"
+
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "rbac3"
+
+    commit-message:
+      prefix: "build(deps)"
+      include: "scope"
+
+    groups:
+      rbac3-npm-minor-and-patch:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      rbac3-npm-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+      semver-minor-days: 3
+      semver-patch-days: 1

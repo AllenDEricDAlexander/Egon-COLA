@@ -1,0 +1,19 @@
+{
+  "name": "@egon-cola/rbac3-frontend-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "egon-cola-platform-rbac3-react-sdk",
+    "egon-cola-platform-rbac3-admin-web"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present --",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "engines": {
+    "node": "24.x",
+    "npm": ">=11 <12"
+  }
+}

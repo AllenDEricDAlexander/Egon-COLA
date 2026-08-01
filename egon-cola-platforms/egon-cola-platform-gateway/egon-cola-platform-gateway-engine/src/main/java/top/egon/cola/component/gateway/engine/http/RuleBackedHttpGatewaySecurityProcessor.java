@@ -122,7 +122,8 @@ public final class RuleBackedHttpGatewaySecurityProcessor
                 traceId,
                 requestId,
                 deadline,
-                current.snapshot().releaseId()
+                current.snapshot().releaseId(),
+                securityAttributes(route)
         );
         GatewayExchange exchange = new HttpExchange(
                 new HttpRequest(
@@ -142,8 +143,40 @@ public final class RuleBackedHttpGatewaySecurityProcessor
                 )
                 .map(result -> new Outcome(
                         result.trustedIdentity(),
-                        result.fieldsToRemove()
+                        result.fieldsToRemove(),
+                        result.forwardingCredential()
                 ));
+    }
+
+    private java.util.Map<String, String> securityAttributes(HttpRouteMatch route) {
+        java.util.Map<String, String> metadata = route.route().metadata();
+        java.util.Map<String, String> attributes = new java.util.LinkedHashMap<>();
+        copy(metadata, attributes, "applicationCode", "rbac3.application-code");
+        copy(metadata, attributes, "definitionSetId", "rbac3.definition-set-id");
+        if (!attributes.containsKey("rbac3.definition-set-id")) {
+            copy(metadata, attributes, "gateway.definition-set-id",
+                    "rbac3.definition-set-id");
+        }
+        copy(metadata, attributes, "mappingVersion", "rbac3.mapping-version");
+        if (!attributes.containsKey("rbac3.mapping-version")) {
+            copy(metadata, attributes, "publishedVersion", "rbac3.mapping-version");
+        }
+        if (!attributes.containsKey("rbac3.mapping-version")) {
+            copy(metadata, attributes, "definitionVersion", "rbac3.mapping-version");
+        }
+        return java.util.Map.copyOf(attributes);
+    }
+
+    private void copy(
+            java.util.Map<String, String> source,
+            java.util.Map<String, String> target,
+            String sourceName,
+            String targetName
+    ) {
+        String value = source.get(sourceName);
+        if (value != null && !value.isBlank()) {
+            target.put(targetName, value.trim());
+        }
     }
 
     private long contentLength(

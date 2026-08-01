@@ -1,0 +1,75 @@
+package top.egon.cola.platform.rbac3.contract.error;
+
+public enum Rbac3ErrorCode {
+    REQUEST_INVALID(400, false),
+    AUTHENTICATION_REQUIRED(401, false),
+    AUTHENTICATION_FAILED(401, false),
+    TOKEN_INVALID(401, false),
+    SESSION_INVALIDATED(401, false),
+    AUTH_VERSION_MISMATCH(401, false),
+    SESSION_VERSION_MISMATCH(401, false),
+    POLICY_VERSION_MISMATCH(401, false),
+    PERMISSION_DENIED(403, false),
+    MANAGEMENT_POLICY_DENIED(403, false),
+    MANAGED_USER_SCOPE_DENIED(403, false),
+    MANAGED_ROLE_SCOPE_DENIED(403, false),
+    MANAGEMENT_OPERATION_DENIED(403, false),
+    PRIVILEGED_ROLE_MANAGEMENT_DENIED(403, false),
+    SELF_PRIVILEGE_ESCALATION_DENIED(403, false),
+    ROLE_ACTIVATION_NOT_ELIGIBLE(403, false),
+    SSD_CONSTRAINT_VIOLATION(403, false),
+    OPERATION_SOD_VIOLATION(403, false),
+    DATA_SCOPE_DENIED(403, false),
+    FIELD_ACCESS_DENIED(403, false),
+    RESOURCE_MANIFEST_CONFLICT(409, false),
+    ROLE_PREREQUISITE_NOT_MET(409, false),
+    ROLE_CARDINALITY_EXCEEDED(409, false),
+    ROLE_INHERITANCE_CYCLE(409, false),
+    ASSIGNMENT_TIME_OVERLAP(409, false),
+    ROLE_ACTIVATION_REQUIRED(409, false),
+    ROLE_ACTIVATION_ROOT_AMBIGUOUS(409, false),
+    APP_ROLE_ACTIVATION_MUTEX_VIOLATION(409, false),
+    ROLE_ACTIVATION_VERSION_CONFLICT(409, true),
+    IDEMPOTENCY_CONFLICT(409, false),
+    ROLE_ACTIVATION_SET_INVALID(422, false),
+    ROLE_FAMILY_SIZE_LIMIT_EXCEEDED(422, false),
+    AUTH_RUNTIME_UNAVAILABLE(503, true),
+    AUTH_PROPAGATION_PENDING(503, true),
+    TENANT_CONTEXT_INVALID(400, false),
+    DIRECTORY_SNAPSHOT_INVALID(400, false),
+    USER_LOCKED(401, true),
+    REFRESH_TOKEN_REUSED(401, false),
+    STEP_UP_REQUIRED(401, true),
+    SERVICE_IDENTITY_DENIED(403, false),
+    APPLICATION_BINDING_DENIED(403, false),
+    RESOURCE_NOT_FOUND(404, false),
+    RESOURCE_VERSION_CONFLICT(409, true),
+    DIRECTORY_SNAPSHOT_CONFLICT(409, false),
+    DIRECTORY_SNAPSHOT_STALE(409, false),
+    ROLE_DISABLED(409, true),
+    AUTH_MUTATION_CONFLICT(409, true),
+    INVALID_STATE_TRANSITION(409, true),
+    ROLE_APPLICATION_MISMATCH(409, false),
+    MANAGEMENT_POLICY_INCOMPLETE(422, false),
+    RESOURCE_MANIFEST_INVALID(422, false),
+    RATE_LIMITED(429, true),
+    AUTH_SNAPSHOT_NOT_READY(503, true),
+    SIGNING_KEY_UNAVAILABLE(503, true),
+    DIRECTORY_RUNTIME_UNAVAILABLE(503, true);
+
+    private final int httpStatus;
+    private final boolean retryable;
+
+    Rbac3ErrorCode(int httpStatus, boolean retryable) {
+        this.httpStatus = httpStatus;
+        this.retryable = retryable;
+    }
+
+    public int httpStatus() {
+        return httpStatus;
+    }
+
+    public boolean retryable() {
+        return retryable;
+    }
+}
