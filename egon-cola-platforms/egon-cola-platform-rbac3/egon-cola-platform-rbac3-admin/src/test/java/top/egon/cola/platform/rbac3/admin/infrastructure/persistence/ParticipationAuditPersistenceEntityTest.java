@@ -1,6 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.infrastructure.persistence;
 
 import org.junit.jupiter.api.Test;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import top.egon.cola.platform.rbac3.admin.audit.domain.AuditLogEntity;
 import top.egon.cola.platform.rbac3.admin.participation.domain.BusinessParticipationEntity;
 
@@ -40,5 +42,15 @@ class ParticipationAuditPersistenceEntityTest {
         assertThat(entity.getBeforeSnapshot()).containsEntry("password", "<redacted>");
         assertThat(entity.getPayloadChecksum()).isEqualTo("sha256:audit");
         assertThat(entity.getCreatedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void bindsAuditClientAddressesAsPostgresqlInetValues() throws Exception {
+        JdbcTypeCode jdbcType = AuditLogEntity.class
+                .getDeclaredField("clientIp")
+                .getAnnotation(JdbcTypeCode.class);
+
+        assertThat(jdbcType).isNotNull();
+        assertThat(jdbcType.value()).isEqualTo(SqlTypes.INET);
     }
 }

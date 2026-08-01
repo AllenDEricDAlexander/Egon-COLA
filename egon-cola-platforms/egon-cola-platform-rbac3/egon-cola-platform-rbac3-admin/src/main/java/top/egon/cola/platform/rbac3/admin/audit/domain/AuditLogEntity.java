@@ -44,6 +44,7 @@ public class AuditLogEntity {
     private String requestId;
     @Column(name = "trace_id", nullable = false, length = 128)
     private String traceId;
+    @JdbcTypeCode(SqlTypes.INET)
     @Column(name = "client_ip", columnDefinition = "inet")
     private String clientIp;
     @Column(name = "user_agent", columnDefinition = "text")

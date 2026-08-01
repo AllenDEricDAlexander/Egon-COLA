@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.security;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +34,7 @@ public class Rbac3AdminSecurityConfiguration {
     }
 
     @Bean
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain rbac3SecurityFilterChain(
             HttpSecurity http,
             TenantContextFilter tenantFilter,
