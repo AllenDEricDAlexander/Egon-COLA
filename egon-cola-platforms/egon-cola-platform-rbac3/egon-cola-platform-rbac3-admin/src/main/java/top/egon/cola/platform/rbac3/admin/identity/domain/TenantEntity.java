@@ -69,12 +69,39 @@ public class TenantEntity {
         this.updatedBy = this.createdBy;
     }
 
+    public void configure(Map<String, Object> newSettings, String actorId, Instant now) {
+        settings = new LinkedHashMap<>(Objects.requireNonNull(newSettings, "newSettings"));
+        touch(actorId, now);
+    }
+
     public void activate(String actorId, Instant now) {
         if (status == Status.CLOSED) {
             throw new IllegalStateException("closed tenant cannot be activated");
         }
         status = Status.ACTIVE;
         touch(actorId, now);
+    }
+
+    public boolean changeStatus(
+            Status nextStatus,
+            long expectedVersion,
+            String reason,
+            String actorId,
+            Instant now) {
+        Objects.requireNonNull(nextStatus, "nextStatus");
+        required(reason, "reason");
+        if (version != expectedVersion) {
+            throw new IllegalStateException("tenant version conflict");
+        }
+        if (status == Status.CLOSED && nextStatus != Status.CLOSED) {
+            throw new IllegalStateException("closed tenant is terminal");
+        }
+        if (status == nextStatus) {
+            return false;
+        }
+        status = nextStatus;
+        touch(actorId, now);
+        return true;
     }
 
     public void incrementPolicyVersion(String actorId, Instant now) {
@@ -100,6 +127,14 @@ public class TenantEntity {
 
     public long getPolicyVersion() {
         return policyVersion;
+    }
+
+    public Map<String, Object> getSettings() {
+        return Map.copyOf(settings);
+    }
+
+    public long getVersion() {
+        return version;
     }
 
     private void touch(String actorId, Instant now) {

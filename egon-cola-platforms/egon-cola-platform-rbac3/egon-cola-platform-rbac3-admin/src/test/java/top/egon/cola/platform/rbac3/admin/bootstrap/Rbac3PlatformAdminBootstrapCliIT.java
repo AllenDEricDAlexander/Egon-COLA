@@ -31,6 +31,10 @@ class Rbac3PlatformAdminBootstrapCliIT {
                         "bootstrap-platform-admin", "--tenant-code", "platform",
                         "--username", "root", "--password", "leak"
                 }, new ByteArrayInputStream(new byte[0])));
+        assertThrows(IllegalArgumentException.class, () -> cli.run(new String[]{
+                        "bootstrap-platform-admin", "--tenant-code", "platform",
+                        "--username", "root"
+                }, new ByteArrayInputStream("short\n".getBytes(StandardCharsets.UTF_8))));
     }
 
     private static final class SingleUseBootstrapPort

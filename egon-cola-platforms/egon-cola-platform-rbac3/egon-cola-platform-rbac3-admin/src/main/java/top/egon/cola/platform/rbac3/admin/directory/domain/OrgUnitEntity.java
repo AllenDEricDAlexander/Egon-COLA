@@ -72,6 +72,25 @@ public class OrgUnitEntity extends TenantScopedEntity {
             Instant validTo,
             String actorId,
             Instant now) {
+        this(id, tenantId, snapshotId, unitType, code, name, parentId, path, depth,
+                null, validFrom, validTo, actorId, now);
+    }
+
+    public OrgUnitEntity(
+            Long id,
+            Long tenantId,
+            Long snapshotId,
+            UnitType unitType,
+            String code,
+            String name,
+            Long parentId,
+            String path,
+            int depth,
+            String externalId,
+            Instant validFrom,
+            Instant validTo,
+            String actorId,
+            Instant now) {
         if (depth < 0 || depth > MAX_DEPTH) {
             throw new IllegalArgumentException("depth must be between 0 and 20");
         }
@@ -88,9 +107,98 @@ public class OrgUnitEntity extends TenantScopedEntity {
         this.path = required(path, "path");
         this.depth = depth;
         this.status = Status.ACTIVE;
+        this.externalId = externalId;
         this.validFrom = Objects.requireNonNull(validFrom, "validFrom");
         this.validTo = validTo;
         markCreated(actorId, now);
+    }
+
+    public void applySnapshot(
+            Long nextSnapshotId,
+            UnitType nextType,
+            String nextName,
+            Long nextParentId,
+            String nextPath,
+            int nextDepth,
+            String nextExternalId,
+            Instant nextValidFrom,
+            Instant nextValidTo,
+            String actorId,
+            Instant now) {
+        if (nextDepth < 0 || nextDepth > MAX_DEPTH) {
+            throw new IllegalArgumentException("depth must be between 0 and 20");
+        }
+        if (nextValidTo != null && !nextValidTo.isAfter(nextValidFrom)) {
+            throw new IllegalArgumentException("validTo must be after validFrom");
+        }
+        snapshotId = Objects.requireNonNull(nextSnapshotId, "nextSnapshotId");
+        unitType = Objects.requireNonNull(nextType, "nextType");
+        name = required(nextName, "nextName");
+        parentId = nextParentId;
+        path = required(nextPath, "nextPath");
+        depth = nextDepth;
+        externalId = nextExternalId;
+        validFrom = Objects.requireNonNull(nextValidFrom, "nextValidFrom");
+        validTo = nextValidTo;
+        status = Status.ACTIVE;
+        markUpdated(actorId, now);
+    }
+
+    public boolean inactivate(String actorId, Instant now) {
+        if (status != Status.ACTIVE) {
+            return false;
+        }
+        status = Status.INACTIVE;
+        markUpdated(actorId, now);
+        return true;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Long getSnapshotId() {
+        return snapshotId;
+    }
+
+    public UnitType getUnitType() {
+        return unitType;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public int getDepth() {
+        return depth;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public Instant getValidFrom() {
+        return validFrom;
+    }
+
+    public Instant getValidTo() {
+        return validTo;
     }
 
     private static String required(String value, String fieldName) {

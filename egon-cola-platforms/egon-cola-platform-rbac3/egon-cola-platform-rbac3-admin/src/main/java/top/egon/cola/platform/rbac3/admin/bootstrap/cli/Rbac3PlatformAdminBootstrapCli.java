@@ -77,9 +77,10 @@ public final class Rbac3PlatformAdminBootstrapCli {
                 }
                 buffer[length++] = (char) value;
             }
-            if (length == 0) {
+            if (length < 12) {
                 Arrays.fill(buffer, '\0');
-                throw new IllegalArgumentException("password is required on standard input");
+                throw new IllegalArgumentException(
+                        "password must contain 12 to 64 characters");
             }
             char[] password = Arrays.copyOf(buffer, length);
             Arrays.fill(buffer, '\0');

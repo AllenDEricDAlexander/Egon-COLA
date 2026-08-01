@@ -62,6 +62,25 @@ class OutboxTransactionRollbackIT {
     }
 
     @Test
+    void mapsSessionRevocationToTheStableRuntimeDestination() {
+        AtomicReference<OutboxMessage> captured = new AtomicReference<>();
+        var adapter = new TransactionalOutboxAuthorizationEventAdapter(
+                message -> {
+                    captured.set(message);
+                    return new OutboxReceipt(message.messageId(), message.idempotencyKey(), true);
+                }, Clock.fixed(NOW, ZoneOffset.UTC));
+
+        adapter.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+                "7", "SESSION", "99", "SESSION_REVOKED",
+                Map.of("sessionVersion", "5", "reason", "ADMIN_REVOKE"),
+                "session:99:5"));
+
+        assertThat(captured.get().destination()).isEqualTo("rbac3.session.revoked.v1");
+        assertThat(captured.get().idempotencyKey())
+                .isEqualTo("7:rbac3.session.revoked.v1:99:5");
+    }
+
+    @Test
     void deliveryRejectsUnknownDestinationsAndTreatsDuplicateProjectionAsSuccess()
             throws Exception {
         AtomicReference<String> applied = new AtomicReference<>();
@@ -113,7 +132,7 @@ class OutboxTransactionRollbackIT {
                     .defaultSchema(schema).schemas(schema)
                     .table("flyway_schema_history_outbox")
                     .locations("classpath:db/transactional-outbox/postgresql").load();
-            assertThat(rbac3.migrate().migrationsExecuted).isEqualTo(1);
+            assertThat(rbac3.migrate().migrationsExecuted).isEqualTo(2);
             assertThat(outbox.migrate().migrationsExecuted).isEqualTo(1);
 
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);

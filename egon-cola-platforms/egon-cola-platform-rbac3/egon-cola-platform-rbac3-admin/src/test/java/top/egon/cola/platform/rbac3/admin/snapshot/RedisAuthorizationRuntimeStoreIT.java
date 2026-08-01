@@ -10,7 +10,10 @@ import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotPr
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -97,11 +100,23 @@ class RedisAuthorizationRuntimeStoreIT {
     void coldLoadsTheSessionAndExactImmutableSnapshot() {
         RBucket<String> sessionBucket = mock(RBucket.class);
         RBucket<String> snapshotBucket = mock(RBucket.class);
+        RBucket<String> authVersionBucket = mock(RBucket.class);
+        RBucket<String> policyVersionBucket = mock(RBucket.class);
+        RBucket<String> fenceBucket = mock(RBucket.class);
         RedissonClient redisson = mock(RedissonClient.class);
         when(redisson.<String>getBucket(
                 "rbac3:{7}:session:99", StringCodec.INSTANCE)).thenReturn(sessionBucket);
         when(redisson.<String>getBucket(
                 "rbac3:{7}:snapshot:99:1", StringCodec.INSTANCE)).thenReturn(snapshotBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:auth-version:9", StringCodec.INSTANCE))
+                .thenReturn(authVersionBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:policy-version", StringCodec.INSTANCE))
+                .thenReturn(policyVersionBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:fence:session:99", StringCodec.INSTANCE))
+                .thenReturn(fenceBucket);
         when(sessionBucket.get()).thenReturn("""
                 {"tenantId":"7","userId":"9","sessionId":"99","status":"ACTIVE",
                  "authVersion":3,"sessionVersion":1,"policyVersion":4,
@@ -112,16 +127,63 @@ class RedisAuthorizationRuntimeStoreIT {
                  "policyVersion":4,"appContexts":[],"checksum":"sha256:test",
                  "generatedAt":"2026-07-30T12:00:00Z"}
                 """);
+        when(authVersionBucket.get()).thenReturn("3");
+        when(policyVersionBucket.get()).thenReturn("4");
+        when(fenceBucket.isExists()).thenReturn(false);
         RedisAuthorizationRuntimeStore store = new RedisAuthorizationRuntimeStore(
                 redisson,
                 new ObjectMapper().findAndRegisterModules(),
-                new Rbac3RuntimeKeyFactory());
+                new Rbac3RuntimeKeyFactory(),
+                Clock.fixed(NOW, ZoneOffset.UTC));
 
         var loaded = store.load("7", "99");
 
         assertThat(loaded.tenantId()).isEqualTo("7");
         assertThat(loaded.userId()).isEqualTo("9");
         assertThat(loaded.snapshot().checksum()).isEqualTo("sha256:test");
+    }
+
+    @Test
+    void rejectsRuntimeWhenTheAuthoritativeVersionHasAdvanced() {
+        RBucket<String> sessionBucket = mock(RBucket.class);
+        RBucket<String> snapshotBucket = mock(RBucket.class);
+        RBucket<String> authVersionBucket = mock(RBucket.class);
+        RBucket<String> policyVersionBucket = mock(RBucket.class);
+        RBucket<String> fenceBucket = mock(RBucket.class);
+        RedissonClient redisson = mock(RedissonClient.class);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:session:99", StringCodec.INSTANCE)).thenReturn(sessionBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:snapshot:99:1", StringCodec.INSTANCE)).thenReturn(snapshotBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:auth-version:9", StringCodec.INSTANCE))
+                .thenReturn(authVersionBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:policy-version", StringCodec.INSTANCE))
+                .thenReturn(policyVersionBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:fence:session:99", StringCodec.INSTANCE))
+                .thenReturn(fenceBucket);
+        when(sessionBucket.get()).thenReturn("""
+                {"tenantId":"7","userId":"9","sessionId":"99","status":"ACTIVE",
+                 "authVersion":3,"sessionVersion":1,"policyVersion":4,
+                 "expiresAt":"2026-07-30T13:00:00Z"}
+                """);
+        when(snapshotBucket.get()).thenReturn("""
+                {"sessionId":"99","authVersion":3,"sessionVersion":1,
+                 "policyVersion":4,"appContexts":[],"checksum":"sha256:test",
+                 "generatedAt":"2026-07-30T12:00:00Z"}
+                """);
+        when(authVersionBucket.get()).thenReturn("4");
+        when(policyVersionBucket.get()).thenReturn("4");
+        when(fenceBucket.isExists()).thenReturn(false);
+        RedisAuthorizationRuntimeStore store = new RedisAuthorizationRuntimeStore(
+                redisson, new ObjectMapper().findAndRegisterModules(),
+                new Rbac3RuntimeKeyFactory(), Clock.fixed(NOW, ZoneOffset.UTC));
+
+        assertThatThrownBy(() -> store.load("7", "99"))
+                .isInstanceOf(Rbac3RuleViolation.class)
+                .hasMessageContaining("AUTH_VERSION_MISMATCH");
     }
 
     private RedisAuthorizationRuntimeStore.PublishCommand command() {

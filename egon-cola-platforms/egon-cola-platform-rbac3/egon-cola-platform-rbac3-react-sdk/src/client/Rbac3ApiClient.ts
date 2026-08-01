@@ -19,7 +19,6 @@ export interface Rbac3ApiClientOptions {
   readonly basePath?: string
   readonly fetch?: typeof globalThis.fetch
   readonly accessTokenStore: InMemoryAccessTokenStore
-  readonly idempotencyKey?: () => string
 }
 
 /** Typed HTTP adapter with one refresh retry and cookie-based refresh transport. */
@@ -27,30 +26,27 @@ export class Rbac3ApiClient implements Rbac3Client {
   private readonly basePath: string
   private readonly fetcher: typeof globalThis.fetch
   private readonly tokenStore: InMemoryAccessTokenStore
-  private readonly idempotencyKey: () => string
   private refreshPromise: Promise<RefreshResult> | null = null
 
   constructor(options: Rbac3ApiClientOptions) {
     this.basePath = normalizeBasePath(options.basePath ?? '')
     this.fetcher = options.fetch ?? globalThis.fetch.bind(globalThis)
     this.tokenStore = options.accessTokenStore
-    this.idempotencyKey = options.idempotencyKey ?? defaultIdempotencyKey
   }
 
   getActivationCandidates(): Promise<RoleActivationCandidateView> {
-    return this.request('/api/rbac3/v1/role-activation/candidates')
+    return this.request('/api/rbac3/v1/auth/role-activation-candidates')
   }
 
   getActiveRoles(): Promise<ActiveRoleSetView> {
-    return this.request('/api/rbac3/v1/role-activation/current')
+    return this.request('/api/rbac3/v1/auth/role-activations')
   }
 
   replaceActiveRoles(
     request: ReplaceActiveRolesRequest,
   ): Promise<ReplaceActiveRolesResult> {
-    return this.request('/api/rbac3/v1/role-activation/current', {
+    return this.request('/api/rbac3/v1/auth/role-activations', {
       method: 'PUT',
-      headers: { 'Idempotency-Key': this.idempotencyKey() },
       body: JSON.stringify(request),
     })
   }
@@ -82,7 +78,7 @@ export class Rbac3ApiClient implements Rbac3Client {
   private async refreshDirect(): Promise<RefreshResult> {
     const result = await this.request<RefreshResult>(
       '/api/rbac3/v1/auth/refresh',
-      { method: 'POST', body: '{}' },
+      { method: 'POST' },
       false,
       false,
     )
@@ -151,13 +147,6 @@ export class Rbac3ApiClient implements Rbac3Client {
 const normalizeBasePath = (value: string): string => {
   const trimmed = value.trim()
   return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed
-}
-
-const defaultIdempotencyKey = (): string => {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID()
-  }
-  throw new Error('crypto.randomUUID is required for RBAC3 mutation commands')
 }
 
 const readJson = async <T>(response: Response): Promise<T | null> => {

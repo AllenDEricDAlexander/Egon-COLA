@@ -127,13 +127,13 @@ public class Rbac3PlatformIntegrationConfiguration {
     @Primary
     ControlPlaneRuntimeStatusPort rbac3ControlPlaneRuntimeStatusPort(
             ObjectProvider<GatewayDdcRuntimeStatusService> runtimeStatus,
+            Rbac3OperationalRuntimeStatusService operationalStatus,
             Clock clock) {
         return () -> {
             GatewayDdcRuntimeStatusService available = runtimeStatus.getIfAvailable();
-            if (available != null) {
-                return available.status();
-            }
-            return new ControlPlaneRuntimeStatusPort.RuntimeStatus(
+            ControlPlaneRuntimeStatusPort.RuntimeStatus controlPlane = available != null
+                    ? available.status()
+                    : new ControlPlaneRuntimeStatusPort.RuntimeStatus(
                     new ControlPlaneRuntimeStatusPort.DefinitionStatus(
                             "UNKNOWN", null, List.of("CONTROL_PLANE_DISABLED")),
                     new ControlPlaneRuntimeStatusPort.ProviderLeaseStatus(
@@ -141,6 +141,12 @@ public class Rbac3PlatformIntegrationConfiguration {
                     new ControlPlaneRuntimeStatusPort.GatewayReleaseStatus(
                             null, "UNKNOWN", null),
                     clock.instant());
+            var operational = operationalStatus.status();
+            return new ControlPlaneRuntimeStatusPort.RuntimeStatus(
+                    controlPlane.definition(), controlPlane.providerLease(),
+                    controlPlane.gatewayRelease(), operational.flyway(),
+                    operational.redisProjection(), operational.fence(),
+                    operational.outbox(), clock.instant());
         };
     }
 

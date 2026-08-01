@@ -74,7 +74,9 @@ public class SessionActiveRoleRepository
                 command.tenantId(), command.userId(), command.sessionId(), current,
                 session.getAuthVersionAtIssue(), session.getSessionVersion(),
                 session.getPolicyVersionAtIssue(), session.getActiveRootChecksum(),
-                session.isActivationRequired(), session.getAbsoluteExpiresAt());
+                session.isActivationRequired(), session.getAbsoluteExpiresAt(),
+                session.getAuthenticationStrength().name(),
+                session.getStrongAuthenticatedAt());
         RoleActivationFacade.ResolvedActivation resolved = resolutionFactory.apply(state);
         Map<String, Set<String>> requested = resolved.resolution()
                 .activeRoleSet().rootsByApplication();

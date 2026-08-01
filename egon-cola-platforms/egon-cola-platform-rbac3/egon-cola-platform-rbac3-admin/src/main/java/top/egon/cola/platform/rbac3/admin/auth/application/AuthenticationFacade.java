@@ -20,16 +20,33 @@ public final class AuthenticationFacade {
     private final LoginStateSource loginStateSource;
     private final SessionFacade sessionFacade;
     private final JwtTokenService jwtTokenService;
+    private final LoginRuntimePublisher runtimePublisher;
+    private final LoginAuditRecorder auditRecorder;
 
     public AuthenticationFacade(
             IdentityAuthenticatorStrategy authenticator,
             LoginStateSource loginStateSource,
             SessionFacade sessionFacade,
-            JwtTokenService jwtTokenService) {
+            JwtTokenService jwtTokenService,
+            LoginRuntimePublisher runtimePublisher) {
+        this(authenticator, loginStateSource, sessionFacade, jwtTokenService,
+                runtimePublisher, audit -> {
+                });
+    }
+
+    public AuthenticationFacade(
+            IdentityAuthenticatorStrategy authenticator,
+            LoginStateSource loginStateSource,
+            SessionFacade sessionFacade,
+            JwtTokenService jwtTokenService,
+            LoginRuntimePublisher runtimePublisher,
+            LoginAuditRecorder auditRecorder) {
         this.authenticator = Objects.requireNonNull(authenticator, "authenticator");
         this.loginStateSource = Objects.requireNonNull(loginStateSource, "loginStateSource");
         this.sessionFacade = Objects.requireNonNull(sessionFacade, "sessionFacade");
         this.jwtTokenService = Objects.requireNonNull(jwtTokenService, "jwtTokenService");
+        this.runtimePublisher = Objects.requireNonNull(runtimePublisher, "runtimePublisher");
+        this.auditRecorder = Objects.requireNonNull(auditRecorder, "auditRecorder");
     }
 
     public LoginResult login(LoginRequest request, Instant now) {
@@ -54,6 +71,21 @@ public final class AuthenticationFacade {
                         session.sessionVersion(),
                         session.policyVersion()),
                 now);
+        try {
+            runtimePublisher.publish(session, now);
+            auditRecorder.record(new LoginAudit(
+                    state.tenantId(), identity.userId(), session.sessionId(),
+                    identity.authenticationMethod(), identity.authenticationStrength(),
+                    session.sessionVersion(), now));
+        } catch (RuntimeException publicationFailure) {
+            try {
+                sessionFacade.logout(
+                        state.tenantId(), identity.userId(), session.sessionId(), now);
+            } catch (RuntimeException compensationFailure) {
+                publicationFailure.addSuppressed(compensationFailure);
+            }
+            throw publicationFailure;
+        }
         return new LoginResult(
                 "Bearer",
                 accessToken.token(),
@@ -71,6 +103,29 @@ public final class AuthenticationFacade {
     public interface LoginStateSource {
 
         LoginState load(String tenantCode, String userId, Instant now);
+    }
+
+    @FunctionalInterface
+    public interface LoginRuntimePublisher {
+
+        void publish(SessionFacade.SessionRecord session, Instant generatedAt);
+    }
+
+    @FunctionalInterface
+    public interface LoginAuditRecorder {
+
+        void record(LoginAudit audit);
+    }
+
+    public record LoginAudit(
+            String tenantId,
+            String userId,
+            String sessionId,
+            String authenticationMethod,
+            int authenticationStrength,
+            long sessionVersion,
+            Instant occurredAt
+    ) {
     }
 
     public record LoginState(

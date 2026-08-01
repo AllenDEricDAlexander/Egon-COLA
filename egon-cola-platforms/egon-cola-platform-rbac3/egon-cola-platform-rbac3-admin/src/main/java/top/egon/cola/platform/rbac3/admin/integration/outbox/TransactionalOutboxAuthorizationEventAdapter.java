@@ -24,6 +24,7 @@ public final class TransactionalOutboxAuthorizationEventAdapter
     private static final Map<String, String> DESTINATIONS = Map.ofEntries(
             Map.entry("RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
                     "rbac3.role-activation.changed.v1"),
+            Map.entry("SESSION_REVOKED", "rbac3.session.revoked.v1"),
             Map.entry("ASSIGNMENT_CHANGED", "rbac3.assignment.changed.v1"),
             Map.entry("RESOURCE_MANIFEST_ACTIVATED", "rbac3.manifest.activated.v1"),
             Map.entry("RESOURCE_ARCHIVED", "rbac3.role.policy-changed.v1"),

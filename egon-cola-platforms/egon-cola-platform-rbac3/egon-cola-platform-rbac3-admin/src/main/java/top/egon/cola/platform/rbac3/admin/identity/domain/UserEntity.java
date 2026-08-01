@@ -84,6 +84,18 @@ public class UserEntity extends TenantScopedEntity {
         markUpdated(actorId, now);
     }
 
+    public void changeStatus(
+            Status nextStatus,
+            String reason,
+            long expectedAuthVersion,
+            String actorId,
+            Instant now) {
+        if (authVersion != expectedAuthVersion) {
+            throw new IllegalStateException("user authorization version conflict");
+        }
+        changeStatus(nextStatus, reason, actorId, now);
+    }
+
     public Long getId() {
         return id;
     }
@@ -110,6 +122,30 @@ public class UserEntity extends TenantScopedEntity {
 
     public long getDirectorySnapshotVersion() {
         return directorySnapshotVersion;
+    }
+
+    public Long getPrimaryOrgUnitId() {
+        return primaryOrgUnitId;
+    }
+
+    public Long getPrimaryPositionId() {
+        return primaryPositionId;
+    }
+
+    public void applyDirectorySnapshot(
+            long snapshotVersion,
+            Long nextPrimaryOrgUnitId,
+            Long nextPrimaryPositionId,
+            boolean authorizationChanged,
+            String actorId,
+            Instant now) {
+        directorySnapshotVersion = Math.max(directorySnapshotVersion, snapshotVersion);
+        primaryOrgUnitId = nextPrimaryOrgUnitId;
+        primaryPositionId = nextPrimaryPositionId;
+        if (authorizationChanged) {
+            authVersion = Math.incrementExact(authVersion);
+        }
+        markUpdated(actorId, now);
     }
 
     public long advanceAuthorizationVersion(

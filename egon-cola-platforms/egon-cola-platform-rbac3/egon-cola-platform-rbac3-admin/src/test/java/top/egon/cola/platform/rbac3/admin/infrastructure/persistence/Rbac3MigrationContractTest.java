@@ -22,6 +22,8 @@ class Rbac3MigrationContractTest {
 
     private static final String MIGRATION =
             "db/migration/V1__create_rbac3_schema.sql";
+    private static final String STRONG_AUTH_MIGRATION =
+            "db/migration/V2__add_session_strong_authentication_time.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -92,8 +94,13 @@ class Rbac3MigrationContractTest {
     }
 
     @Test
-    void onlyOneRbac3MigrationExists() throws Exception {
-        assertThat(listMigrationResources()).containsExactly(MIGRATION);
+    void migrationHistoryKeepsV1ImmutableAndAddsStrongAuthenticationTimeInV2()
+            throws Exception {
+        assertThat(listMigrationResources()).containsExactly(
+                MIGRATION, STRONG_AUTH_MIGRATION);
+        assertThat(resourceSql(STRONG_AUTH_MIGRATION))
+                .contains("add column strong_authenticated_at timestamptz")
+                .contains("ck_rbac3_session_strong_authentication_time");
     }
 
     @Test
@@ -335,8 +342,12 @@ class Rbac3MigrationContractTest {
     }
 
     private String migrationSql() throws IOException {
-        try (var input = getClass().getClassLoader().getResourceAsStream(MIGRATION)) {
-            assertThat(input).as("RBAC3 V1 migration resource").isNotNull();
+        return resourceSql(MIGRATION);
+    }
+
+    private String resourceSql(String resource) throws IOException {
+        try (var input = getClass().getClassLoader().getResourceAsStream(resource)) {
+            assertThat(input).as("RBAC3 migration resource " + resource).isNotNull();
             return normalize(new String(input.readAllBytes(), StandardCharsets.UTF_8));
         }
     }

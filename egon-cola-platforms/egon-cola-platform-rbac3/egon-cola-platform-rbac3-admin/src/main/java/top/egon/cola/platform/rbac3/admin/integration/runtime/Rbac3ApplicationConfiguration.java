@@ -10,6 +10,8 @@ import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationC
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.activation.infrastructure.RoleActivationFactStore;
 import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
+import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
+import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.assignment.infrastructure.AssignmentRepository;
 import top.egon.cola.platform.rbac3.admin.assignment.infrastructure.PostgresqlAssignmentLockStore;
@@ -19,10 +21,13 @@ import top.egon.cola.platform.rbac3.admin.audit.infrastructure.PostgresqlAuditSt
 import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
 import top.egon.cola.platform.rbac3.admin.auth.application.PasswordIdentityAuthenticator;
+import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.authorization.infrastructure.AuthorizationRuleRepository;
 import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.bootstrap.cli.Rbac3PlatformAdminBootstrapCli;
+import top.egon.cola.platform.rbac3.admin.bootstrap.infrastructure.PostgresqlPlatformAdminBootstrapStore;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3SecurityProperties;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
@@ -45,11 +50,14 @@ import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.AuthorizationMu
 import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.IdempotencyRepository;
 import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.application.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.application.SessionSecurityEventRecorder;
 import top.egon.cola.platform.rbac3.admin.session.infrastructure.JpaSessionStore;
 import top.egon.cola.platform.rbac3.admin.session.infrastructure.RefreshTokenRepository;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.simulation.infrastructure.PostgresqlRoleImpactSource;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.LoginRuntimeProjectionFactory;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.admin.worker.AuthorizationMutationRecoveryWorker;
 import top.egon.cola.platform.rbac3.admin.worker.Rbac3RuntimeProjectionRecovery;
@@ -61,6 +69,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -82,6 +91,23 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     SessionSnapshotProjector sessionSnapshotProjector() {
         return new SessionSnapshotProjector();
+    }
+
+    @Bean
+    LoginRuntimeProjectionFactory loginRuntimeProjectionFactory() {
+        return new LoginRuntimeProjectionFactory();
+    }
+
+    @Bean
+    AuthenticationFacade.LoginRuntimePublisher loginRuntimePublisher(
+            RedisAuthorizationRuntimeStore runtimeStore,
+            LoginRuntimeProjectionFactory projectionFactory) {
+        return (session, generatedAt) -> runtimeStore.publish(
+                new RedisAuthorizationRuntimeStore.PublishCommand(
+                        session.tenantId(), session.userId(), session.sessionId(),
+                        session.authVersion(), session.sessionVersion(),
+                        session.policyVersion(),
+                        projectionFactory.create(session, generatedAt)));
     }
 
     @Bean
@@ -201,6 +227,13 @@ public class Rbac3ApplicationConfiguration {
     }
 
     @Bean
+    SessionSecurityEventRecorder sessionSecurityEventRecorder(
+            AuditPort auditPort,
+            AuthorizationEventPort eventPort) {
+        return new SessionSecurityEventRecorder(auditPort, eventPort);
+    }
+
+    @Bean
     RefreshTokenService refreshTokenService(RefreshTokenRepository repository) {
         return new RefreshTokenService(repository);
     }
@@ -210,23 +243,47 @@ public class Rbac3ApplicationConfiguration {
             PasswordIdentityAuthenticator authenticator,
             Rbac3IdentitySessionQueryStore stateSource,
             SessionFacade sessionFacade,
-            JwtTokenService tokenService) {
+            JwtTokenService tokenService,
+            AuthenticationFacade.LoginRuntimePublisher runtimePublisher,
+            AuditPort auditPort) {
         return new AuthenticationFacade(
-                authenticator, stateSource, sessionFacade, tokenService);
+                authenticator, stateSource, sessionFacade, tokenService, runtimePublisher,
+                audit -> appendLoginAudit(auditPort, audit));
+    }
+
+    @Bean
+    StepUpFacade stepUpFacade(
+            PasswordIdentityAuthenticator authenticator,
+            Rbac3IdentitySessionQueryStore stateStore) {
+        return new StepUpFacade(authenticator, stateStore, stateStore);
     }
 
     @Bean
     RefreshFacade refreshFacade(
             RefreshTokenService refreshTokenService,
             Rbac3IdentitySessionQueryStore stateSource,
-            JwtTokenService tokenService) {
-        return new RefreshFacade(refreshTokenService, stateSource, tokenService);
+            JwtTokenService tokenService,
+            TransactionTemplate transactionTemplate,
+            SessionRuntimeSynchronizer runtimeSynchronizer,
+            AuditPort auditPort) {
+        return new RefreshFacade(
+                refreshTokenService, stateSource, tokenService,
+                work -> transactionTemplate.execute(status -> work.get()),
+                (state, generatedAt) -> runtimeSynchronizer.synchronize(
+                        state.tenantId(), state.userId(), state.sessionId(), generatedAt),
+                audit -> appendRefreshAudit(auditPort, audit));
     }
 
     @Bean
     BootstrapQueryService bootstrapQueryService(
             Rbac3IdentitySessionQueryStore source) {
         return new BootstrapQueryService(source);
+    }
+
+    @Bean
+    Rbac3PlatformAdminBootstrapCli rbac3PlatformAdminBootstrapCli(
+            PostgresqlPlatformAdminBootstrapStore store) {
+        return new Rbac3PlatformAdminBootstrapCli(store);
     }
 
     @Bean
@@ -281,5 +338,35 @@ public class Rbac3ApplicationConfiguration {
             AuthorizationMutationRepository mutations,
             AuthorizationMutationRecoveryWorker recovery) {
         return new RuntimeQueryService(status, mutations, recovery);
+    }
+
+    private static void appendLoginAudit(
+            AuditPort auditPort,
+            AuthenticationFacade.LoginAudit audit) {
+        String correlationId = "login:" + audit.sessionId()
+                + ':' + audit.sessionVersion();
+        auditPort.append(new AuditPort.AuditEvent(
+                audit.tenantId(), "LOGIN_SUCCEEDED", audit.userId(),
+                "SESSION", audit.sessionId(), correlationId, correlationId,
+                Map.of(
+                        "authenticationMethod", audit.authenticationMethod(),
+                        "authenticationStrength", Integer.toString(
+                                audit.authenticationStrength()),
+                        "sessionVersion", Long.toString(audit.sessionVersion())),
+                audit.occurredAt()));
+    }
+
+    private static void appendRefreshAudit(
+            AuditPort auditPort,
+            RefreshFacade.RefreshAudit audit) {
+        String correlationId = "refresh:" + audit.sessionId()
+                + ':' + audit.sessionVersion();
+        auditPort.append(new AuditPort.AuditEvent(
+                audit.tenantId(), "REFRESH_SUCCEEDED", audit.userId(),
+                "SESSION", audit.sessionId(), correlationId, correlationId,
+                Map.of(
+                        "sessionVersion", Long.toString(audit.sessionVersion()),
+                        "policyVersion", Long.toString(audit.policyVersion())),
+                audit.occurredAt()));
     }
 }

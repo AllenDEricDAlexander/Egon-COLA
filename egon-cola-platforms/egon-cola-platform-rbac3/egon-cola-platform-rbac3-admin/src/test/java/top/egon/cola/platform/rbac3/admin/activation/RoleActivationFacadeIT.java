@@ -86,6 +86,24 @@ class RoleActivationFacadeIT {
         assertThat(runtime.publications).hasValue(1);
     }
 
+    @Test
+    void criticalRoleActivationRequiresRecentStrongAuthentication() {
+        var facts = factsWithRisk(RoleNode.RiskLevel.CRITICAL);
+        var transaction = new InMemoryTransaction();
+        var runtime = new RecordingRuntimeStore();
+        RoleActivationFacade facade = facade(facts, transaction, runtime);
+
+        assertThatThrownBy(() -> facade.replace(
+                command(List.of("10"), 0, "command-critical")))
+                .isInstanceOf(Rbac3RuleViolation.class)
+                .hasMessageContaining("STEP_UP_REQUIRED");
+
+        transaction.authenticationStrength = "STRONG";
+        transaction.strongAuthenticatedAt = NOW.minusSeconds(599);
+        assertThat(facade.replace(command(List.of("10"), 0, "command-strong"))
+                .changed()).isTrue();
+    }
+
     private RoleActivationFacade facade(
             RoleActivationCandidateService.ActivationFacts facts,
             InMemoryTransaction transaction,
@@ -136,6 +154,21 @@ class RoleActivationFacadeIT {
                 NOW.minusSeconds(60), null);
     }
 
+    private static RoleActivationCandidateService.ActivationFacts factsWithRisk(
+            RoleNode.RiskLevel risk) {
+        RoleHierarchy hierarchy = new RoleHierarchy(
+                List.of(new RoleNode("10", "1", "ROOT_A", true,
+                        risk, false, null, 10)), List.of());
+        return new RoleActivationCandidateService.ActivationFacts(
+                "7", "9", hierarchy, List.of(assignment("101", "10")), List.of(),
+                new AuthorizationRuleFacts(
+                        List.of(), List.of(), List.of(), List.of(), List.of()),
+                3, 4, "directory:2",
+                Map.of("1", new RoleActivationCandidateService.ApplicationFact(
+                        "1", "finance", "Finance")),
+                Map.of("10", "Root A"));
+    }
+
     private static RoleNode role(String id, String code) {
         return new RoleNode(id, "1", code, true,
                 RoleNode.RiskLevel.LOW, false, null, 10);
@@ -146,6 +179,8 @@ class RoleActivationFacadeIT {
         private long sessionVersion;
         private Map<String, Set<String>> roots = Map.of();
         private String checksum;
+        private String authenticationStrength = "PASSWORD";
+        private Instant strongAuthenticatedAt;
         private final AtomicInteger recoveries = new AtomicInteger();
 
         @Override
@@ -160,7 +195,8 @@ class RoleActivationFacadeIT {
             }
             var resolved = factory.apply(new RoleActivationFacade.SessionState(
                     "7", "9", "99", roots, 3, sessionVersion, 4,
-                    checksum, roots.isEmpty(), NOW.plusSeconds(3600)));
+                    checksum, roots.isEmpty(), NOW.plusSeconds(3600),
+                    authenticationStrength, strongAuthenticatedAt));
             Map<String, Set<String>> next = resolved.resolution()
                     .activeRoleSet().rootsByApplication();
             boolean changed = !next.equals(roots);

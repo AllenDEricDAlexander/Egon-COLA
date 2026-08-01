@@ -67,7 +67,7 @@ Definition、Lease、Release 是三项独立状态，任何一项未知或不一
   多个根；同 APP 的互斥组合被拒绝。
 - 激活前验证 Assignment 证据、DSD、先决角色、禁用/过期状态和最大激活根数。
 - 激活成功后生成新的不可变快照并重签 Access Token；响应不确定时客户端用
-  `GET /role-activation/current` 恢复，而不是盲目重放。
+  `GET /auth/role-activations` 恢复，而不是盲目重放。
 
 ## 五、权限决策摘要
 
@@ -80,7 +80,27 @@ Operation SOD。任何必需数据缺失、版本不一致、Redis/密钥不可�
 `NONE`，不能因规则缺失自动放宽。Gateway 热路径只做一次决策，不访问 PostgreSQL，
 也不回调 Admin HTTP 接口。
 
-## 六、构建与验证
+## 六、首次管理员初始化
+
+首次部署只允许使用 Admin 制品内的 one-shot CLI，不提供创建首个管理员的 HTTP
+接口。命令自动选择 non-web Spring Context，成功或失败后都会退出，不启动 HTTP
+Server：
+
+```bash
+java -jar egon-cola-platform-rbac3-admin.jar \
+  bootstrap-platform-admin \
+  --tenant-code platform \
+  --username <username>
+```
+
+密码必须为 12～64 个字符，只从标准输入读取。部署脚本可以把受控 Secret FD
+重定向到标准输入；禁止把密码写入 argv、环境变量、普通配置或日志。CLI 在一个
+事务中取得 PostgreSQL Advisory Lock，创建平台 Tenant、`rbac3-system` APP、内置
+权限、`ROLE_PLATFORM_ADMIN`、User、Credential、Assignment、Audit 与 Outbox。
+已有有效平台管理员或同名平台 Tenant 时命令会拒绝；管理员遗失必须使用独立恢复
+runbook，不能重跑初始化命令静默创建第二个 root 账号。
+
+## 七、构建与验证
 
 要求 Java 21、Maven Wrapper，以及模块 `.node-version` 指定的 Node 24。
 
@@ -115,7 +135,7 @@ scripts/verification/cleanup-rbac3-fixture.sh --check-config
 Build ID、Snowflake machine-id、DDC/Gateway 地址、Release ID 和专用 Tenant。脚本在
 故障切换点暂停，由操作者改变外部状态；脚本本身不停止进程。
 
-## 七、文档入口
+## 八、文档入口
 
 - [架构、算法与设计模式](docs/architecture.md)
 - [API 与 Manifest 合同](docs/api-and-manifest.md)

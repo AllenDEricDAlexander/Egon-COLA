@@ -98,6 +98,14 @@ public class DirectorySnapshotEntity extends TenantScopedEntity {
         markUpdated(actorId, now);
     }
 
+    public void archive(String actorId, Instant now) {
+        if (status != Status.ACTIVE) {
+            throw new IllegalStateException("only active snapshot can be archived");
+        }
+        status = Status.ARCHIVED;
+        markUpdated(actorId, now);
+    }
+
     public Long getId() {
         return id;
     }
@@ -116,6 +124,22 @@ public class DirectorySnapshotEntity extends TenantScopedEntity {
 
     public Status getStatus() {
         return status;
+    }
+
+    public Instant getGeneratedAt() {
+        return generatedAt;
+    }
+
+    public Instant getReceivedAt() {
+        return receivedAt;
+    }
+
+    public Instant getActivatedAt() {
+        return activatedAt;
+    }
+
+    public Map<String, Object> getCounts() {
+        return Map.copyOf(counts);
     }
 
     private static String required(String value, String fieldName) {

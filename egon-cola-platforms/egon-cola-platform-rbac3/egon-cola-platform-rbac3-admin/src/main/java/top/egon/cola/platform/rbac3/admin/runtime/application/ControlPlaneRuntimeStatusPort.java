@@ -15,7 +15,24 @@ public interface ControlPlaneRuntimeStatusPort {
             DefinitionStatus definition,
             ProviderLeaseStatus providerLease,
             GatewayReleaseStatus gatewayRelease,
+            FlywayStatus flyway,
+            RedisProjectionStatus redisProjection,
+            FenceMutationStatus fence,
+            OutboxStatus outbox,
             Instant checkedAt) {
+
+        public RuntimeStatus(
+                DefinitionStatus definition,
+                ProviderLeaseStatus providerLease,
+                GatewayReleaseStatus gatewayRelease,
+                Instant checkedAt) {
+            this(definition, providerLease, gatewayRelease,
+                    new FlywayStatus("UNKNOWN", "UNKNOWN"),
+                    new RedisProjectionStatus("UNKNOWN", 0L),
+                    new FenceMutationStatus("UNKNOWN", 0L, 0L, 0L),
+                    new OutboxStatus("UNKNOWN", 0L, 0L),
+                    checkedAt);
+        }
     }
 
     record DefinitionStatus(
@@ -37,5 +54,24 @@ public interface ControlPlaneRuntimeStatusPort {
             String releaseId,
             String status,
             String observedByEngineVersion) {
+    }
+
+    record FlywayStatus(String rbac3History, String outboxHistory) {
+    }
+
+    record RedisProjectionStatus(String state, long checkpointLag) {
+    }
+
+    record FenceMutationStatus(
+            String state,
+            long pendingCount,
+            long recoveryRequiredCount,
+            long oldestAgeSeconds) {
+    }
+
+    record OutboxStatus(
+            String state,
+            long pendingCount,
+            long oldestAgeSeconds) {
     }
 }

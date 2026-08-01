@@ -5,7 +5,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
@@ -22,8 +21,13 @@ import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesReques
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
 @RestController
-@RequestMapping("/api/rbac3/v1/role-activation")
+@RequestMapping("/api/rbac3/v1/auth")
 @GatewayInterfaceGroup(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
@@ -52,7 +56,7 @@ public class RoleActivationController {
         this.databaseClock = databaseClock;
     }
 
-    @GetMapping("/candidates")
+    @GetMapping("/role-activation-candidates")
     @RequiresRbac3Permission(permission = "system:role-activation:read")
     @GatewayOperation(
             name = "rbac3-role-activation-candidates-v1",
@@ -66,7 +70,7 @@ public class RoleActivationController {
                 tenantId(), principal.userId(), databaseClock.transactionNow()));
     }
 
-    @GetMapping("/current")
+    @GetMapping("/role-activations")
     @RequiresRbac3Permission(permission = "system:role-activation:read")
     @GatewayOperation(
             name = "rbac3-role-activation-current-v1",
@@ -80,7 +84,7 @@ public class RoleActivationController {
                 tenantId(), principal.userId(), principal.sessionId()));
     }
 
-    @PutMapping("/current")
+    @PutMapping("/role-activations")
     @RequiresRbac3Permission(permission = "system:role-activation:use")
     @GatewayOperation(
             name = "rbac3-role-activation-replace-v1",
@@ -89,25 +93,33 @@ public class RoleActivationController {
             tags = {"rbac3", "role-activation"})
     public ApiEnvelope<ReplaceActiveRolesResult> replace(
             @Valid @RequestBody ReplaceActiveRolesRequest request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
-        requireCommandId(idempotencyKey);
+        String commandId = activationCommandId(principal.sessionId(), request);
         return ApiEnvelope.success(facade.replace(new RoleActivationFacade.ReplaceCommand(
                 tenantId(), principal.userId(), principal.sessionId(), request.roleIds(),
-                request.expectedSessionVersion(), principal.userId(), idempotencyKey)));
+                request.expectedSessionVersion(), principal.userId(), commandId)));
     }
 
     private static String tenantId() {
         return TenantContext.requireCurrent().effectiveTenantId();
     }
 
-    private static void requireCommandId(String value) {
-        if (value == null || value.isBlank() || value.length() > 128
-                || !value.chars().allMatch(character -> character >= 0x21
-                && character <= 0x7e)) {
-            throw new IllegalArgumentException(
-                    "Idempotency-Key must be 1-128 ASCII characters");
+    private static String activationCommandId(
+            String sessionId,
+            ReplaceActiveRolesRequest request) {
+        String canonicalRoles = request.roleIds().stream()
+                .sorted()
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
+        String canonical = sessionId + '|' + request.expectedSessionVersion()
+                + '|' + canonicalRoles;
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.getBytes(StandardCharsets.UTF_8));
+            return "role-activation:" + HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
     }
 }

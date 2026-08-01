@@ -61,6 +61,23 @@ public class UserPositionSnapshotEntity extends TenantScopedEntity {
             Instant validTo,
             String actorId,
             Instant now) {
+        this(id, tenantId, snapshotId, userId, positionId, orgUnitId, primary,
+                null, validFrom, validTo, actorId, now);
+    }
+
+    public UserPositionSnapshotEntity(
+            Long id,
+            Long tenantId,
+            Long snapshotId,
+            Long userId,
+            Long positionId,
+            Long orgUnitId,
+            boolean primary,
+            String externalAssignmentId,
+            Instant validFrom,
+            Instant validTo,
+            String actorId,
+            Instant now) {
         if (validTo != null && !validTo.isAfter(validFrom)) {
             throw new IllegalArgumentException("validTo must be after validFrom");
         }
@@ -74,7 +91,49 @@ public class UserPositionSnapshotEntity extends TenantScopedEntity {
         this.validFrom = Objects.requireNonNull(validFrom, "validFrom");
         this.validTo = validTo;
         this.status = Status.ACTIVE;
+        this.externalAssignmentId = externalAssignmentId;
         markCreated(actorId, now);
+    }
+
+    public boolean inactivate(String actorId, Instant now) {
+        if (status != Status.ACTIVE) {
+            return false;
+        }
+        status = Status.INACTIVE;
+        markUpdated(actorId, now);
+        return true;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Long getPositionId() {
+        return positionId;
+    }
+
+    public Long getOrgUnitId() {
+        return orgUnitId;
+    }
+
+    public boolean isPrimary() {
+        return primary;
+    }
+
+    public Instant getValidFrom() {
+        return validFrom;
+    }
+
+    public Instant getValidTo() {
+        return validTo;
+    }
+
+    public String getExternalAssignmentId() {
+        return externalAssignmentId;
+    }
+
+    public Status getStatus() {
+        return status;
     }
 
     public enum Status {

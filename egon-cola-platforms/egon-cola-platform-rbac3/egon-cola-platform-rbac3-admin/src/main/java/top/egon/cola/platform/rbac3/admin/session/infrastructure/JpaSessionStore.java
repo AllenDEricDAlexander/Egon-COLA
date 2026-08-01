@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.application.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.application.SessionSecurityEventRecorder;
 import top.egon.cola.platform.rbac3.admin.session.domain.RefreshTokenEntity;
 import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
 
@@ -17,10 +19,18 @@ public class JpaSessionStore implements SessionFacade.SessionStore {
 
     private final SessionRepository sessionRepository;
     private final EntityManager entityManager;
+    private final SessionRuntimeSynchronizer runtimeSynchronizer;
+    private final SessionSecurityEventRecorder securityEventRecorder;
 
-    public JpaSessionStore(SessionRepository sessionRepository, EntityManager entityManager) {
+    public JpaSessionStore(
+            SessionRepository sessionRepository,
+            EntityManager entityManager,
+            SessionRuntimeSynchronizer runtimeSynchronizer,
+            SessionSecurityEventRecorder securityEventRecorder) {
         this.sessionRepository = sessionRepository;
         this.entityManager = entityManager;
+        this.runtimeSynchronizer = runtimeSynchronizer;
+        this.securityEventRecorder = securityEventRecorder;
     }
 
     @Override
@@ -79,6 +89,18 @@ public class JpaSessionStore implements SessionFacade.SessionStore {
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
         tokens.forEach(token -> token.revoke(now, userId));
+        securityEventRecorder.record(termination(session, userId, now));
+        runtimeSynchronizer.synchronize(tenantId, userId, sessionId, now);
         return true;
+    }
+
+    private SessionSecurityEventRecorder.Termination termination(
+            SessionEntity session,
+            String actorId,
+            Instant occurredAt) {
+        return new SessionSecurityEventRecorder.Termination(
+                session.getTenantId().toString(), session.getUserId().toString(),
+                session.getSessionId().toString(), session.getSessionVersion(),
+                session.getStatus().name(), session.getRevokeReason(), actorId, occurredAt);
     }
 }

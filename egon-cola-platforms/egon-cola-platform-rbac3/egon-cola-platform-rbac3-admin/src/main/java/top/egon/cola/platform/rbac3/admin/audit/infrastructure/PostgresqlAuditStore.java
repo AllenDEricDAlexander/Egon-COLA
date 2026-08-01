@@ -44,9 +44,9 @@ public class PostgresqlAuditStore implements AuditPort, AuditQueryService.AuditS
         new AuditQueryService(
                 this, Clock.fixed(event.occurredAt(), ZoneOffset.UTC))
                 .record(new AuditQueryService.AuditCommand(
-                        event.tenantId(), event.eventType(), "SUCCESS", "INFO", "USER",
+                        event.tenantId(), event.eventType(), event.outcome(), event.severity(), "USER",
                         event.actorId(), event.targetType(), event.targetId(), null,
-                        "ALLOW", event.requestId(), event.traceId(), Map.of(),
+                        event.reasonCode(), event.requestId(), event.traceId(), Map.of(),
                         event.safeEvidence(), event.occurredAt()));
     }
 

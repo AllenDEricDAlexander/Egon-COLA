@@ -137,7 +137,29 @@ Gateway route as healthy merely because the JVM is alive.
 Never reuse an instance ID while a previous process may still own leases or
 worker records.
 
-## 5. Mutation, Fence and Outbox recovery
+## 5. First administrator bootstrap
+
+Run the packaged Admin command with deployment-managed PostgreSQL, Flyway,
+Outbox, ID generator and key configuration. The command selects a non-web
+Spring context and exits after the transaction:
+
+```bash
+java -jar egon-cola-platform-rbac3-admin.jar \
+  bootstrap-platform-admin \
+  --tenant-code platform \
+  --username <username>
+```
+
+Supply a 12-64 character password through interactive standard input or redirect
+a controlled secret file descriptor to standard input. Never place it in argv,
+environment variables, configuration files, evidence, or logs. The transaction
+uses a PostgreSQL advisory lock and creates the Tenant, built-in application,
+permissions, platform administrator role, user credential, assignment, audit and
+Outbox event. A pre-existing active platform administrator or Tenant is a hard
+stop. Account-loss recovery is a separate operator procedure requiring a reason,
+ticket and critical audit; do not rerun bootstrap as recovery.
+
+## 6. Mutation, Fence and Outbox recovery
 
 - A control-plane mutation is not externally effective until its immutable
   Redis snapshot is published and the matching Fence is opened.
@@ -151,7 +173,7 @@ worker records.
 - Investigate repeated failure codes before retry. Bounded backoff prevents a
   thundering herd; a stuck Fence must remain visible and fail closed.
 
-## 6. Backup and restore
+## 7. Backup and restore
 
 Back up:
 
@@ -169,7 +191,7 @@ then re-establish Definition, Lease, Release and routing in that order. Do not
 restore Redis snapshots from a different database point-in-time and assume they
 match PostgreSQL versions.
 
-## 7. Host-local verification fixture
+## 8. Host-local verification fixture
 
 The scripts use only explicit configuration. `--check-config` performs no
 network/database/Redis request. Preparation requires a strict run ID, schema
@@ -186,7 +208,7 @@ state externally. After both instances are unavailable it expects the explicitly
 configured Gateway error status, then asks the operator to restore both and
 verifies recovery.
 
-## 8. Observability and incident checklist
+## 9. Observability and incident checklist
 
 Record independently:
 
@@ -204,7 +226,7 @@ On an authorization incident, preserve signed/redacted audit evidence, mutation
 ID, Session ID, tenant/application IDs and policy versions. Never capture raw
 passwords, tokens, refresh cookies, private keys or unmasked sensitive fields.
 
-## 9. Evidence boundary
+## 10. Evidence boundary
 
 Maven tests and static scans prove source-level contracts. Mocked Redis and
 in-memory concurrency prove deterministic behavior but not external topology.

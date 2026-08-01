@@ -54,11 +54,11 @@ class Rbac3RoleActivationGatewayDiscoveryTest {
                         operation -> operation.name()));
 
         assertThat(namesByMethod).containsExactlyInAnyOrderEntriesOf(Map.of(
-                "GET /api/rbac3/v1/role-activation/candidates",
+                "GET /api/rbac3/v1/auth/role-activation-candidates",
                 "rbac3-role-activation-candidates-v1",
-                "GET /api/rbac3/v1/role-activation/current",
+                "GET /api/rbac3/v1/auth/role-activations",
                 "rbac3-role-activation-current-v1",
-                "PUT /api/rbac3/v1/role-activation/current",
+                "PUT /api/rbac3/v1/auth/role-activations",
                 "rbac3-role-activation-replace-v1"));
     }
 }

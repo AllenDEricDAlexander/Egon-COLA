@@ -28,7 +28,9 @@ verify() {
   check_config
   local migrations
   migrations="$(find "${RBAC3_MODULE_ROOT}" -path '*/src/main/resources/db/migration/V*__*.sql' -type f | wc -l | tr -d ' ')"
-  [[ "${migrations}" == '1' ]] || rbac3_die "expected exactly one RBAC3 Flyway migration, found ${migrations}"
+  [[ "${migrations}" == '2' ]] || rbac3_die "expected the immutable V1 and additive V2 RBAC3 migrations, found ${migrations}"
+  [[ -f "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V1__create_rbac3_schema.sql" ]]
+  [[ -f "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V2__add_session_strong_authentication_time.sql" ]]
   [[ ! -e "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-test" ]] \
     || rbac3_die "an independent RBAC3 test module is forbidden"
 

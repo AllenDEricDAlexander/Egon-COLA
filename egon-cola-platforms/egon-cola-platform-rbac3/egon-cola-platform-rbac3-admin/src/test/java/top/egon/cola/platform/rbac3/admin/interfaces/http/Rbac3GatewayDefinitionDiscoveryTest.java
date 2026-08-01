@@ -13,6 +13,7 @@ import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.JwtKeyRingService;
 import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
+import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
 
@@ -54,6 +55,9 @@ class Rbac3GatewayDefinitionDiscoveryTest {
     private JwtKeyRingService jwtKeyRingService;
 
     @MockitoBean
+    private StepUpFacade stepUpFacade;
+
+    @MockitoBean
     private DatabaseClock databaseClock;
 
     @MockitoBean
@@ -92,8 +96,8 @@ class Rbac3GatewayDefinitionDiscoveryTest {
         assertTrue(methodsByController.get(AuthController.class.getName())
                 .contains("GET /api/rbac3/v1/auth/jwks"));
         assertTrue(methodsByController.get(TenantUserDirectoryController.class.getName())
-                .contains("POST /api/rbac3/v1/directory/snapshots"));
+                .contains("POST /api/rbac3/v1/internal/directory-snapshots"));
         assertTrue(methodsByController.get(SessionController.class.getName())
-                .contains("DELETE /api/rbac3/v1/sessions/{sessionId}"));
+                .contains("POST /api/rbac3/v1/sessions/{sessionId}/revoke"));
     }
 }

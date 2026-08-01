@@ -28,6 +28,7 @@ import java.util.function.Function;
 public final class RoleActivationFacade {
 
     private static final Duration FENCE_TTL = Duration.ofMinutes(5);
+    private static final Duration STRONG_AUTHENTICATION_MAX_AGE = Duration.ofMinutes(10);
 
     private final RoleActivationCandidateService.ActivationFactSource factSource;
     private final ActivationTransaction transaction;
@@ -87,6 +88,7 @@ public final class RoleActivationFacade {
                     session.sessionVersion(),
                     facts.policyVersion(),
                     now));
+            requireAuthenticationStrength(session, resolution, facts, now);
             return new ResolvedActivation(resolution, facts);
         });
         if (result.changed()) {
@@ -168,6 +170,34 @@ public final class RoleActivationFacade {
                     application.code(), new ArrayList<>(new TreeSet<>(roots))));
         });
         return result;
+    }
+
+    private void requireAuthenticationStrength(
+            SessionState session,
+            RoleActivationResolution resolution,
+            RoleActivationCandidateService.ActivationFacts facts,
+            Instant now) {
+        int required = resolution.snapshot().effectiveRoleIds().stream()
+                .map(facts.hierarchy()::requireNode)
+                .map(node -> node.riskLevel())
+                .mapToInt(risk -> switch (risk) {
+                    case LOW, MEDIUM -> 0;
+                    case HIGH -> 1;
+                    case CRITICAL -> 2;
+                })
+                .max()
+                .orElse(0);
+        int actual = switch (session.authenticationStrength()) {
+            case "PASSWORD" -> 0;
+            case "MFA" -> 1;
+            case "STRONG" -> session.strongAuthenticatedAt() != null
+                    && session.strongAuthenticatedAt()
+                    .plus(STRONG_AUTHENTICATION_MAX_AGE).isAfter(now) ? 2 : 0;
+            default -> 0;
+        };
+        if (actual < required) {
+            throw new Rbac3RuleViolation("STEP_UP_REQUIRED");
+        }
     }
 
     public static AccessTokenIssuer jwtIssuer(JwtTokenService tokenService) {
@@ -263,8 +293,26 @@ public final class RoleActivationFacade {
             long policyVersion,
             String snapshotChecksum,
             boolean activationRequired,
-            Instant expiresAt
+            Instant expiresAt,
+            String authenticationStrength,
+            Instant strongAuthenticatedAt
     ) {
+
+        public SessionState(
+                String tenantId,
+                String userId,
+                String sessionId,
+                Map<String, Set<String>> rootsByApplication,
+                long authVersion,
+                long sessionVersion,
+                long policyVersion,
+                String snapshotChecksum,
+                boolean activationRequired,
+                Instant expiresAt) {
+            this(tenantId, userId, sessionId, rootsByApplication, authVersion,
+                    sessionVersion, policyVersion, snapshotChecksum,
+                    activationRequired, expiresAt, "PASSWORD", null);
+        }
     }
 
     public record ResolvedActivation(

@@ -108,7 +108,7 @@ public class AssignmentController {
                         request.assignmentType(), request.validFrom(), request.validTo(),
                         request.reason(), request.ticketNo(),
                         sessionStrengthPort.authenticationStrength(
-                                tenantId(), principal.sessionId()),
+                                tenantId(), principal.sessionId(), now),
                         principal.platformAdministrator(),
                         request.expectedUserAuthVersion(), claim.recordId(), now));
         return complete(claim, result, now);
@@ -191,7 +191,7 @@ public class AssignmentController {
                         tenantId(), principal.userId(), userId, assignmentId, operation,
                         request.reason(), request.ticketNo(),
                         sessionStrengthPort.authenticationStrength(
-                                tenantId(), principal.sessionId()),
+                                tenantId(), principal.sessionId(), now),
                         principal.platformAdministrator(),
                         request.expectedAssignmentVersion(),
                         request.expectedUserAuthVersion(), claim.recordId(), now));
@@ -241,7 +241,7 @@ public class AssignmentController {
 
     @FunctionalInterface
     public interface SessionStrengthPort {
-        String authenticationStrength(String tenantId, String sessionId);
+        String authenticationStrength(String tenantId, String sessionId, Instant now);
     }
 
     public record AssignRequest(

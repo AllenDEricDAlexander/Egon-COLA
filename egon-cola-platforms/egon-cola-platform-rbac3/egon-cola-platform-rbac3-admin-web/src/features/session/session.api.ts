@@ -10,9 +10,9 @@ export interface SessionView {
 }
 
 export const sessionApi = (client: FeatureApiClient) => ({
-  mine: () => client.request<readonly SessionView[]>('/api/rbac3/v1/sessions/mine'),
+  mine: () => client.request<readonly SessionView[]>('/api/rbac3/v1/sessions/me'),
   revoke: (sessionId: string) => client.request<{ readonly success: boolean; readonly stateChanged: boolean }>(
-    `/api/rbac3/v1/sessions/${encodeURIComponent(sessionId)}`,
-    { method: 'DELETE' },
+    `/api/rbac3/v1/sessions/${encodeURIComponent(sessionId)}/revoke`,
+    { method: 'POST' },
   ),
 })

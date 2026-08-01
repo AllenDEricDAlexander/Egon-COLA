@@ -5,7 +5,7 @@
 - Base path: `/api/rbac3/v1`.
 - IDs are decimal strings on JSON/TypeScript boundaries. Clients must not coerce
   them to JavaScript `number`.
-- Success envelope: `{ "success": true, "data": ... }`.
+- Success envelope: `{ "data": ..., "meta": { "requestId": "...", "traceId": "...", "timestamp": "..." } }`.
 - Error envelope contains stable `code`, safe `message`, `traceId`, `timestamp`
   and optional field violations; it never contains a stack trace or secret.
 - Tenant comes from the verified principal. Only platform administration routes
@@ -21,13 +21,15 @@
 | POST | `/auth/login` | Authenticate identity; create an empty-role Session |
 | POST | `/auth/refresh` | Rotate opaque Refresh cookie; replay compromises the token family |
 | POST | `/auth/logout` | Revoke current Session/Refresh family |
+| POST | `/auth/step-up` | Re-authenticate and strengthen only the current Session |
 | GET | `/auth/bootstrap` | Identity, candidate roots, navigation and current activation summary |
 | GET | `/auth/jwks` | Public reference-JWT verification keys |
-| GET | `/sessions/mine` | Redacted current-user Session list |
-| DELETE | `/sessions/{sessionId}` | Revoke one authorized Session |
-| GET | `/role-activation/candidates` | Assigned canonical roots and explanations |
-| GET | `/role-activation/current` | Current complete active-root set |
-| PUT | `/role-activation/current` | Atomically replace the complete active-root set |
+| GET | `/sessions/me` | Redacted current-user Session list |
+| POST | `/sessions/{sessionId}/revoke` | Revoke one authorized Session and its Refresh tokens |
+| POST | `/users/{userId}/sessions/revoke-all` | Revoke every Session and Refresh token for one tenant user |
+| GET | `/auth/role-activation-candidates` | Assigned canonical roots and explanations |
+| GET | `/auth/role-activations` | Current complete active-root set |
+| PUT | `/auth/role-activations` | Atomically replace the complete active-root set |
 
 Login does not accept a role ID. Activation accepts multiple role IDs, maps
 children to roots, expands whole families, and rejects same-APP mutually

@@ -41,7 +41,11 @@ const wrapper = (replaceActiveRoles: Rbac3Client['replaceActiveRoles']) => ({ ch
     replaceActiveRoles,
     getBootstrap: async () => ({ user: { id: '7', tenantId: '9' }, permissions: [], fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [] }),
   } as unknown as Rbac3Client
-  const api: FeatureApiClient = { request: async <T,>(path: string) => (path.endsWith('/candidates') ? candidates : activeRoles) as T }
+  const api: FeatureApiClient = {
+    request: async <T,>(path: string) => (
+      path.endsWith('/role-activation-candidates') ? candidates : activeRoles
+    ) as T,
+  }
   return (
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <Rbac3Provider client={sdk} accessTokenStore={new InMemoryAccessTokenStore()}>

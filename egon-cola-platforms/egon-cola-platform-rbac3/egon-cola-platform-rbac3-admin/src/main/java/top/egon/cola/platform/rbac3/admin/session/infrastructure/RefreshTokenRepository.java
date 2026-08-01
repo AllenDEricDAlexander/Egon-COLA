@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
+import top.egon.cola.platform.rbac3.admin.session.application.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.application.SessionSecurityEventRecorder;
 import top.egon.cola.platform.rbac3.admin.session.domain.RefreshTokenEntity;
 import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
 
@@ -22,14 +24,20 @@ public class RefreshTokenRepository implements RefreshTokenService.RefreshTokenS
     private final EntityManager entityManager;
     private final SessionRepository sessionRepository;
     private final LongIdGenerator idGenerator;
+    private final SessionRuntimeSynchronizer runtimeSynchronizer;
+    private final SessionSecurityEventRecorder securityEventRecorder;
 
     public RefreshTokenRepository(
             EntityManager entityManager,
             SessionRepository sessionRepository,
-            LongIdGenerator idGenerator) {
+            LongIdGenerator idGenerator,
+            SessionRuntimeSynchronizer runtimeSynchronizer,
+            SessionSecurityEventRecorder securityEventRecorder) {
         this.entityManager = entityManager;
         this.sessionRepository = sessionRepository;
         this.idGenerator = idGenerator;
+        this.runtimeSynchronizer = runtimeSynchronizer;
+        this.securityEventRecorder = securityEventRecorder;
     }
 
     @Override
@@ -99,7 +107,21 @@ public class RefreshTokenRepository implements RefreshTokenService.RefreshTokenS
         RefreshTokenEntity evidence = family.getFirst();
         sessionRepository.lockByTenantIdAndSessionId(
                         evidence.getTenantId(), evidence.getSessionId())
-                .ifPresent(session -> session.compromise(detectedAt, "refresh-replay"));
+                .ifPresent(session -> {
+                    if (session.compromise(detectedAt, "refresh-replay")) {
+                        securityEventRecorder.record(
+                                new SessionSecurityEventRecorder.Termination(
+                                        evidence.getTenantId().toString(),
+                                        session.getUserId().toString(),
+                                        evidence.getSessionId().toString(),
+                                        session.getSessionVersion(), session.getStatus().name(),
+                                        session.getRevokeReason(), "refresh-replay", detectedAt));
+                        runtimeSynchronizer.synchronize(
+                                evidence.getTenantId().toString(),
+                                session.getUserId().toString(),
+                                evidence.getSessionId().toString(), detectedAt);
+                    }
+                });
     }
 
     private RefreshTokenEntity findByHash(String tokenHash, LockModeType lockMode) {

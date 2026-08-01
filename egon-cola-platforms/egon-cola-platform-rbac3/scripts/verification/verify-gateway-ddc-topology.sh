@@ -75,7 +75,7 @@ assert_admin_status() {
   response="$(rbac3_bearer_get "${RBAC3_TOPOLOGY_ACCESS_TOKEN_FILE}" \
     "${base_url%/}/api/rbac3/v1/runtime/gateway-ddc-status")"
   jq -e --arg instance "${expected_instance}" --arg release "${GATEWAY_RELEASE_ID}" '
-    .success == true
+    (.data | type) == "object"
     and (.data.definition.status == "ACCEPTED" or .data.definition.status == "ACCEPTED_WITH_WARNINGS")
     and .data.definition.definitionSetId != null
     and .data.providerLease.state == "REGISTERED"

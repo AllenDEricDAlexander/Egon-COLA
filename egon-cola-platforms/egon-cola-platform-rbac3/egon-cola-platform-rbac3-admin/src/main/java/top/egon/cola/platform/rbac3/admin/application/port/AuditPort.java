@@ -16,8 +16,26 @@ public interface AuditPort {
             String requestId,
             String traceId,
             Map<String, String> safeEvidence,
-            Instant occurredAt
+            Instant occurredAt,
+            String outcome,
+            String severity,
+            String reasonCode
     ) {
+        public AuditEvent(
+                String tenantId,
+                String eventType,
+                String actorId,
+                String targetType,
+                String targetId,
+                String requestId,
+                String traceId,
+                Map<String, String> safeEvidence,
+                Instant occurredAt) {
+            this(tenantId, eventType, actorId, targetType, targetId,
+                    requestId, traceId, safeEvidence, occurredAt,
+                    "SUCCESS", "INFO", "ALLOW");
+        }
+
         public AuditEvent {
             safeEvidence = Map.copyOf(safeEvidence);
         }

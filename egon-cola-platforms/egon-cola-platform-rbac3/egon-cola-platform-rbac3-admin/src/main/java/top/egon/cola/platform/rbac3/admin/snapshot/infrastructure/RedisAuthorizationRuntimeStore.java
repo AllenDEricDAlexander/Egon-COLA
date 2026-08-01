@@ -6,6 +6,7 @@ import org.redisson.api.RBucket;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
@@ -18,6 +19,7 @@ import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -39,15 +41,27 @@ public class RedisAuthorizationRuntimeStore implements
     private final RedissonClient redisson;
     private final ObjectMapper objectMapper;
     private final Rbac3RuntimeKeyFactory keyFactory;
+    private final Clock clock;
 
     public RedisAuthorizationRuntimeStore(
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             ObjectMapper objectMapper,
             Rbac3RuntimeKeyFactory keyFactory
     ) {
+        this(redisson, objectMapper, keyFactory, Clock.systemUTC());
+    }
+
+    @Autowired
+    public RedisAuthorizationRuntimeStore(
+            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
+            ObjectMapper objectMapper,
+            Rbac3RuntimeKeyFactory keyFactory,
+            Clock clock
+    ) {
         this.redisson = Objects.requireNonNull(redisson, "redisson");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.keyFactory = Objects.requireNonNull(keyFactory, "keyFactory");
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     public PublishResult publish(PublishCommand command) {
@@ -137,8 +151,26 @@ public class RedisAuthorizationRuntimeStore implements
             }
             SessionSnapshotProjector.RuntimeSession session = objectMapper.readValue(
                     sessionJson, SessionSnapshotProjector.RuntimeSession.class);
-            if (!"ACTIVE".equals(session.status())) {
+            if (!tenantId.equals(session.tenantId())
+                    || !sessionId.equals(session.sessionId())
+                    || !"ACTIVE".equals(session.status())
+                    || !session.expiresAt().isAfter(clock.instant())) {
                 throw new Rbac3RuleViolation("SESSION_INVALIDATED");
+            }
+            if (version(redisson.getBucket(
+                    keyFactory.authVersion(tenantId, session.userId()),
+                    StringCodec.INSTANCE).get()) != session.authVersion()) {
+                throw new Rbac3RuleViolation("AUTH_VERSION_MISMATCH");
+            }
+            if (version(redisson.getBucket(
+                    keyFactory.policyVersion(tenantId),
+                    StringCodec.INSTANCE).get()) != session.policyVersion()) {
+                throw new Rbac3RuleViolation("POLICY_VERSION_MISMATCH");
+            }
+            if (redisson.getBucket(
+                    keyFactory.sessionFence(tenantId, sessionId),
+                    StringCodec.INSTANCE).isExists()) {
+                throw new Rbac3RuleViolation("AUTH_PROPAGATION_PENDING");
             }
             RBucket<String> snapshotBucket = redisson.getBucket(
                     keyFactory.snapshot(tenantId, sessionId, session.sessionVersion()),
@@ -149,6 +181,12 @@ public class RedisAuthorizationRuntimeStore implements
             }
             SessionAuthorizationSnapshot snapshot = objectMapper.readValue(
                     snapshotJson, SessionAuthorizationSnapshot.class);
+            if (!sessionId.equals(snapshot.sessionId())
+                    || snapshot.authVersion() != session.authVersion()
+                    || snapshot.sessionVersion() != session.sessionVersion()
+                    || snapshot.policyVersion() != session.policyVersion()) {
+                throw new Rbac3RuleViolation("SESSION_VERSION_MISMATCH");
+            }
             return new AuthorizationDecisionService.SnapshotRecord(
                     tenantId, session.userId(), snapshot);
         } catch (Rbac3RuleViolation error) {
@@ -169,6 +207,19 @@ public class RedisAuthorizationRuntimeStore implements
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("cannot encode RBAC3 runtime projection", exception);
         }
+    }
+
+    private long version(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String text) {
+            return Long.parseLong(text);
+        }
+        if (value instanceof java.util.Map<?, ?> map && map.get("value") != null) {
+            return version(map.get("value"));
+        }
+        throw new IllegalArgumentException("runtime version is missing");
     }
 
     private static String script(String location) {

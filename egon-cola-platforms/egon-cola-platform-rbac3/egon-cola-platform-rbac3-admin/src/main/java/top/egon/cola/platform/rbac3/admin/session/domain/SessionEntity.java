@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import top.egon.cola.platform.rbac3.admin.infrastructure.persistence.TenantScopedEntity;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.Objects;
 
 @Entity
@@ -55,6 +56,9 @@ public class SessionEntity extends TenantScopedEntity {
 
     @Column(name = "authenticated_at", nullable = false)
     private Instant authenticatedAt;
+
+    @Column(name = "strong_authenticated_at")
+    private Instant strongAuthenticatedAt;
 
     @Column(name = "last_seen_at", nullable = false)
     private Instant lastSeenAt;
@@ -171,15 +175,16 @@ public class SessionEntity extends TenantScopedEntity {
         return true;
     }
 
-    public void compromise(Instant now, String actorId) {
+    public boolean compromise(Instant now, String actorId) {
         if (status != Status.ACTIVE) {
-            return;
+            return false;
         }
         status = Status.COMPROMISED;
         sessionVersion = Math.incrementExact(sessionVersion);
         revokedAt = now;
         revokeReason = "REFRESH_TOKEN_REUSED";
         markUpdated(actorId, now);
+        return true;
     }
 
     public boolean revoke(String reason, String actorId, Instant now) {
@@ -192,6 +197,22 @@ public class SessionEntity extends TenantScopedEntity {
         revokeReason = required(reason, "reason");
         markUpdated(actorId, now);
         return true;
+    }
+
+    public void stepUp(String actorId, Instant now) {
+        requireActive(now);
+        authenticationStrength = AuthenticationStrength.STRONG;
+        strongAuthenticatedAt = now;
+        lastSeenAt = now;
+        markUpdated(actorId, now);
+    }
+
+    public boolean isStrongAuthenticationRecent(Instant now, Duration maximumAge) {
+        Objects.requireNonNull(now, "now");
+        Objects.requireNonNull(maximumAge, "maximumAge");
+        return authenticationStrength == AuthenticationStrength.STRONG
+                && strongAuthenticatedAt != null
+                && strongAuthenticatedAt.plus(maximumAge).isAfter(now);
     }
 
     public void requireActive(Instant now) {
@@ -247,6 +268,10 @@ public class SessionEntity extends TenantScopedEntity {
         return authenticatedAt;
     }
 
+    public Instant getStrongAuthenticatedAt() {
+        return strongAuthenticatedAt;
+    }
+
     public Instant getIdleExpiresAt() {
         return idleExpiresAt;
     }
@@ -257,6 +282,10 @@ public class SessionEntity extends TenantScopedEntity {
 
     public Instant getAbsoluteExpiresAt() {
         return absoluteExpiresAt;
+    }
+
+    public String getRevokeReason() {
+        return revokeReason;
     }
 
     private static String required(String value, String fieldName) {
