@@ -20,6 +20,9 @@ public final class JpaDatabaseClock implements DatabaseClock {
     public Instant transactionNow() {
         Object value = entityManager.createNativeQuery("select transaction_timestamp()")
                 .getSingleResult();
+        if (value instanceof Instant instant) {
+            return instant;
+        }
         if (value instanceof OffsetDateTime offsetDateTime) {
             return offsetDateTime.toInstant();
         }
