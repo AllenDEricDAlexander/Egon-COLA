@@ -123,8 +123,32 @@ public class AuthorizationMutationEntity extends TenantScopedEntity {
         return mutationId;
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Long getSessionId() {
+        return sessionId;
+    }
+
+    public ScopeType getScopeType() {
+        return scopeType;
+    }
+
+    public String getCommandId() {
+        return commandId;
+    }
+
     public Status getStatus() {
         return status;
+    }
+
+    public String getLastErrorCode() {
+        return lastErrorCode;
+    }
+
+    public int getAttempt() {
+        return attempt;
     }
 
     public enum ScopeType {

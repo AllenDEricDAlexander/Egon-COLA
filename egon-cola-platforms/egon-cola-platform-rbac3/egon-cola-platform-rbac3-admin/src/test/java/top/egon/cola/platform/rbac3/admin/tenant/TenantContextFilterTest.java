@@ -8,6 +8,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 
 import java.util.Set;
 
@@ -63,6 +64,26 @@ class TenantContextFilterTest {
 
         assertEquals(200, response.getStatus());
         assertEquals("tenant-2", request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+    }
+
+    @Test
+    void acceptsServicePrincipalOnlyForItsCredentialTenant() throws Exception {
+        CurrentRbac3ServicePrincipal principal = new CurrentRbac3ServicePrincipal(
+                "tenant-1", "finance-service", "finance-web",
+                "prod", "default", "credential-1",
+                Set.of("service:authorization:decide"));
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(
+                        principal, "n/a", principal.authorities()));
+        MockHttpServletRequest request = request(
+                "/api/rbac3/v1/internal/authorization/decisions");
+        request.addHeader("X-RBAC3-Tenant", "tenant-1");
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+        assertEquals("tenant-1",
+                request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
     }
 
     private MockHttpServletResponse execute(MockHttpServletRequest request)

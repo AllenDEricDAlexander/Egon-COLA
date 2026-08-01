@@ -1,0 +1,163 @@
+package top.egon.cola.platform.rbac3.admin.participation;
+
+import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
+import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class ParticipationConcurrencyIT {
+
+    private static final Instant NOW = Instant.parse("2026-07-30T12:00:00Z");
+
+    @Test
+    void participationConflictSurvivesSessionAndRoleChanges() {
+        InMemoryStore store = new InMemoryStore();
+        ParticipationFacade facade = facade(store);
+
+        facade.record(caller("finance-service"), "tenant-1", command("SUBMIT", "event-1"));
+
+        var conflict = facade.conflicts(
+                caller("finance-service"), "tenant-1",
+                new ParticipationFacade.ConflictQuery(
+                        "finance-service", "PAYMENT", "PAY-1", "user-1", "APPROVE"));
+        assertThat(conflict.allowed()).isFalse();
+        assertThat(conflict.reasonCode()).isEqualTo("OPERATION_SOD_CONSTRAINT_VIOLATION");
+        assertThat(conflict.evidenceIds()).containsExactly("participation-1");
+        assertThatThrownBy(() -> facade.record(
+                caller("finance-service"), "tenant-1", command("APPROVE", "event-2")))
+                .isInstanceOfSatisfying(Rbac3RuleViolation.class,
+                        error -> assertThat(error.reasonCode())
+                                .isEqualTo("OPERATION_SOD_VIOLATION"));
+    }
+
+    @Test
+    void concurrentStableBusinessEventCreatesOneAppendOnlyFact() throws Exception {
+        InMemoryStore store = new InMemoryStore();
+        ParticipationFacade facade = facade(store);
+        var executor = Executors.newFixedThreadPool(8);
+        try {
+            List<Callable<ParticipationFacade.RecordResult>> calls = new ArrayList<>();
+            for (int index = 0; index < 16; index++) {
+                calls.add(() -> facade.record(
+                        caller("finance-service"), "tenant-1",
+                        command("SUBMIT", "event-stable")));
+            }
+
+            var results = executor.invokeAll(calls).stream()
+                    .map(future -> {
+                        try {
+                            return future.get();
+                        } catch (Exception error) {
+                            throw new IllegalStateException(error);
+                        }
+                    })
+                    .toList();
+
+            assertThat(results).filteredOn(ParticipationFacade.RecordResult::created).hasSize(1);
+            assertThat(results).extracting(ParticipationFacade.RecordResult::participationId)
+                    .containsOnly("participation-1");
+            assertThat(store.facts).hasSize(1);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void servicePrincipalCannotWriteAnotherApplication() {
+        ParticipationFacade facade = facade(new InMemoryStore());
+
+        assertThatThrownBy(() -> facade.record(
+                caller("inventory-service"), "tenant-1", command("SUBMIT", "event-1")))
+                .isInstanceOfSatisfying(Rbac3RuleViolation.class,
+                        error -> assertThat(error.reasonCode())
+                                .isEqualTo("APPLICATION_BINDING_DENIED"));
+    }
+
+    private ParticipationFacade facade(InMemoryStore store) {
+        return new ParticipationFacade(
+                (tenantId, applicationCode, businessResource, laterAction, at) ->
+                        "APPROVE".equals(laterAction)
+                                ? List.of(new ParticipationFacade.PriorActionRule(
+                                        "sod-rule-1", "SUBMIT", Instant.EPOCH))
+                                : List.of(),
+                store,
+                Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private BusinessParticipationCommand command(String action, String eventId) {
+        return new BusinessParticipationCommand(
+                "finance-service", "PAYMENT", "PAY-1", "user-1",
+                action, eventId, NOW.minusSeconds(10), "trace-1");
+    }
+
+    private CurrentRbac3ServicePrincipal caller(String applicationCode) {
+        return new CurrentRbac3ServicePrincipal(
+                "tenant-1", "service-1", applicationCode,
+                "prod", "default", "credential-1",
+                Set.of("service:participation:write", "service:participation:read"));
+    }
+
+    private static final class InMemoryStore implements ParticipationFacade.ParticipationStore {
+        private final Map<String, ParticipationFacade.ParticipationRecord> byEvent =
+                new HashMap<>();
+        private final List<ParticipationFacade.ParticipationFact> facts = new ArrayList<>();
+
+        @Override
+        public synchronized ParticipationFacade.AppendResult appendAtomically(
+                ParticipationFacade.ParticipationRecord record,
+                List<ParticipationFacade.PriorActionRule> rules) {
+            ParticipationFacade.ParticipationRecord previous = byEvent.get(record.businessEventId());
+            if (previous != null) {
+                if (!previous.payloadDigest().equals(record.payloadDigest())) {
+                    throw new Rbac3RuleViolation("IDEMPOTENCY_CONFLICT");
+                }
+                return new ParticipationFacade.AppendResult(
+                        false, "participation-1", List.of());
+            }
+            List<String> conflicts = facts.stream()
+                    .filter(fact -> fact.tenantId().equals(record.tenantId()))
+                    .filter(fact -> fact.applicationCode().equals(record.applicationCode()))
+                    .filter(fact -> fact.businessResource().equals(record.businessResource()))
+                    .filter(fact -> fact.businessId().equals(record.businessId()))
+                    .filter(fact -> fact.actorUserId().equals(record.actorUserId()))
+                    .filter(fact -> rules.stream().anyMatch(rule ->
+                            rule.actionCode().equals(fact.actionCode())
+                                    && !fact.occurredAt().isBefore(rule.lookbackFrom())))
+                    .map(ParticipationFacade.ParticipationFact::participationId)
+                    .toList();
+            if (!conflicts.isEmpty()) {
+                return new ParticipationFacade.AppendResult(false, null, conflicts);
+            }
+            String id = "participation-" + (facts.size() + 1);
+            byEvent.put(record.businessEventId(), record);
+            facts.add(new ParticipationFacade.ParticipationFact(
+                    id, record.tenantId(), record.applicationCode(),
+                    record.businessResource(), record.businessId(), record.actorUserId(),
+                    record.actionCode(), record.businessEventId(), record.occurredAt()));
+            return new ParticipationFacade.AppendResult(true, id, List.of());
+        }
+
+        @Override
+        public synchronized List<ParticipationFacade.ParticipationFact> find(
+                ParticipationFacade.ConflictQuery query,
+                String tenantId,
+                Instant lookbackFrom) {
+            return List.copyOf(facts);
+        }
+    }
+}

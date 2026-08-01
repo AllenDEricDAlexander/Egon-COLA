@@ -10,8 +10,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -23,7 +26,10 @@ import java.util.Objects;
  * Publishes the session pointer and its immutable snapshot through one Redis script.
  */
 @Repository
-public class RedisAuthorizationRuntimeStore implements RoleActivationFacade.RuntimeStore {
+public class RedisAuthorizationRuntimeStore implements
+        RoleActivationFacade.RuntimeStore,
+        AuthorizationDecisionService.SnapshotSource,
+        AuthorizationDecisionService.FenceVerifier {
 
     private static final String PUBLISH_SCRIPT = script(
             "redis/publish-session-snapshot.lua");
@@ -110,6 +116,45 @@ public class RedisAuthorizationRuntimeStore implements RoleActivationFacade.Runt
                 RScript.ReturnType.INTEGER,
                 List.of(keyFactory.sessionFence(tenantId, sessionId)));
         return result != null && result.intValue() == 1;
+    }
+
+    @Override
+    public AuthorizationDecisionService.SnapshotRecord load(
+            String tenantId,
+            String sessionId) {
+        try {
+            RBucket<String> sessionBucket = redisson.getBucket(
+                    keyFactory.session(tenantId, sessionId), StringCodec.INSTANCE);
+            String sessionJson = sessionBucket.get();
+            if (sessionJson == null) {
+                throw new Rbac3RuleViolation("AUTH_SNAPSHOT_NOT_READY");
+            }
+            SessionSnapshotProjector.RuntimeSession session = objectMapper.readValue(
+                    sessionJson, SessionSnapshotProjector.RuntimeSession.class);
+            if (!"ACTIVE".equals(session.status())) {
+                throw new Rbac3RuleViolation("SESSION_INVALIDATED");
+            }
+            RBucket<String> snapshotBucket = redisson.getBucket(
+                    keyFactory.snapshot(tenantId, sessionId, session.sessionVersion()),
+                    StringCodec.INSTANCE);
+            String snapshotJson = snapshotBucket.get();
+            if (snapshotJson == null) {
+                throw new Rbac3RuleViolation("AUTH_SNAPSHOT_NOT_READY");
+            }
+            SessionAuthorizationSnapshot snapshot = objectMapper.readValue(
+                    snapshotJson, SessionAuthorizationSnapshot.class);
+            return new AuthorizationDecisionService.SnapshotRecord(
+                    tenantId, session.userId(), snapshot);
+        } catch (Rbac3RuleViolation error) {
+            throw error;
+        } catch (RuntimeException | JsonProcessingException error) {
+            throw new Rbac3RuleViolation("AUTH_RUNTIME_UNAVAILABLE");
+        }
+    }
+
+    @Override
+    public boolean isFenced(String tenantId, String sessionId) {
+        return isSessionFenced(tenantId, sessionId);
     }
 
     private String json(Object value) {

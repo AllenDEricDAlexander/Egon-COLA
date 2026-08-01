@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.snapshot;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RScript;
+import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
@@ -90,6 +91,37 @@ class RedisAuthorizationRuntimeStoreIT {
         var result = store.publish(command());
 
         assertThat(result.changed()).isFalse();
+    }
+
+    @Test
+    void coldLoadsTheSessionAndExactImmutableSnapshot() {
+        RBucket<String> sessionBucket = mock(RBucket.class);
+        RBucket<String> snapshotBucket = mock(RBucket.class);
+        RedissonClient redisson = mock(RedissonClient.class);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:session:99", StringCodec.INSTANCE)).thenReturn(sessionBucket);
+        when(redisson.<String>getBucket(
+                "rbac3:{7}:snapshot:99:1", StringCodec.INSTANCE)).thenReturn(snapshotBucket);
+        when(sessionBucket.get()).thenReturn("""
+                {"tenantId":"7","userId":"9","sessionId":"99","status":"ACTIVE",
+                 "authVersion":3,"sessionVersion":1,"policyVersion":4,
+                 "expiresAt":"2026-07-30T13:00:00Z"}
+                """);
+        when(snapshotBucket.get()).thenReturn("""
+                {"sessionId":"99","authVersion":3,"sessionVersion":1,
+                 "policyVersion":4,"appContexts":[],"checksum":"sha256:test",
+                 "generatedAt":"2026-07-30T12:00:00Z"}
+                """);
+        RedisAuthorizationRuntimeStore store = new RedisAuthorizationRuntimeStore(
+                redisson,
+                new ObjectMapper().findAndRegisterModules(),
+                new Rbac3RuntimeKeyFactory());
+
+        var loaded = store.load("7", "99");
+
+        assertThat(loaded.tenantId()).isEqualTo("7");
+        assertThat(loaded.userId()).isEqualTo("9");
+        assertThat(loaded.snapshot().checksum()).isEqualTo("sha256:test");
     }
 
     private RedisAuthorizationRuntimeStore.PublishCommand command() {

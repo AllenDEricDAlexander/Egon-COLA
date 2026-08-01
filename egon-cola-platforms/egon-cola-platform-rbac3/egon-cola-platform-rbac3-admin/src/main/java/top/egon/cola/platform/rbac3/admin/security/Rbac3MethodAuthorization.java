@@ -7,8 +7,13 @@ import org.springframework.stereotype.Component;
 public final class Rbac3MethodAuthorization {
 
     public boolean hasPermission(Authentication authentication, String permission) {
-        return authentication != null
-                && authentication.getPrincipal() instanceof CurrentRbac3Principal principal
-                && principal.hasPermission(permission);
+        if (authentication == null) {
+            return false;
+        }
+        return switch (authentication.getPrincipal()) {
+            case CurrentRbac3Principal principal -> principal.hasPermission(permission);
+            case CurrentRbac3ServicePrincipal principal -> principal.hasPermission(permission);
+            default -> false;
+        };
     }
 }

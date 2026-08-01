@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.tenant;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 
 public final class TenantContextResolver {
 
@@ -11,8 +12,13 @@ public final class TenantContextResolver {
     private static final String TARGET_PERMISSION = "system:tenant:target";
 
     public TenantContext resolve(HttpServletRequest request, Authentication authentication) {
-        if (authentication == null
-                || !(authentication.getPrincipal() instanceof CurrentRbac3Principal principal)) {
+        if (authentication == null) {
+            throw new TenantContextResolutionException(401, "AUTHENTICATION_REQUIRED");
+        }
+        if (authentication.getPrincipal() instanceof CurrentRbac3ServicePrincipal principal) {
+            return serviceContext(request, principal);
+        }
+        if (!(authentication.getPrincipal() instanceof CurrentRbac3Principal principal)) {
             throw new TenantContextResolutionException(401, "AUTHENTICATION_REQUIRED");
         }
         String assertedTenant = trimToNull(request.getHeader(TENANT_HEADER));
@@ -31,6 +37,19 @@ public final class TenantContextResolver {
             throw new TenantContextResolutionException(403, "PERMISSION_DENIED");
         }
         return new TenantContext(principal.tenantId(), targetTenant, true);
+    }
+
+    private TenantContext serviceContext(
+            HttpServletRequest request,
+            CurrentRbac3ServicePrincipal principal) {
+        String assertedTenant = trimToNull(request.getHeader(TENANT_HEADER));
+        if (assertedTenant != null && !assertedTenant.equals(principal.tenantId())) {
+            throw new TenantContextResolutionException(400, "TENANT_CONTEXT_INVALID");
+        }
+        if (trimToNull(request.getHeader(TARGET_HEADER)) != null) {
+            throw new TenantContextResolutionException(403, "PERMISSION_DENIED");
+        }
+        return new TenantContext(principal.tenantId(), principal.tenantId(), false);
     }
 
     private String trimToNull(String value) {
