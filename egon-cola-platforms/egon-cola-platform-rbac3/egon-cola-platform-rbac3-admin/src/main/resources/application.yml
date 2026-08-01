@@ -77,6 +77,7 @@ egon:
         machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID}
       ddc:
         enabled: false
+        biz-code: ${DDC_BIZ_CODE:rbac3}
         app-code: rbac3-admin
         env: ${DEPLOYMENT_ENV}
         namespace: ${DEPLOYMENT_NAMESPACE}
@@ -100,6 +101,7 @@ egon:
         reporting:
           enabled: true
           admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
+          biz-code: ${DDC_BIZ_CODE:rbac3}
           application-code: rbac3-admin
           application-name: RBAC3 Permission Admin
           env: ${DEPLOYMENT_ENV}

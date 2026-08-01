@@ -21,6 +21,7 @@ public final class GatewayDefinitionStatusService {
             GatewayReportingState state,
             GatewayReportingProperties properties) {
         this(state::snapshot, new GatewayDdcRuntimeStatusService.ServiceIdentity(
+                properties.getBizCode(), properties.getApplicationCode(),
                 properties.getEnv(), properties.getNamespace(), "HTTP_PROVIDER", "http",
                 properties.getApplicationCode(), "default", properties.getArtifactVersion()));
     }

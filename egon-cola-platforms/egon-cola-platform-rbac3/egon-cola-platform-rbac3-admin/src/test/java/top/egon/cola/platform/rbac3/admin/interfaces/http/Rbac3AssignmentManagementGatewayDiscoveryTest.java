@@ -50,6 +50,7 @@ class Rbac3AssignmentManagementGatewayDiscoveryTest {
     @Test
     void gatewayScannerDiscoversAssignmentAndManagementPolicyRoutes() {
         GatewayReportingProperties properties = new GatewayReportingProperties();
+        properties.setBizCode("rbac3");
         properties.setApplicationCode("rbac3-admin");
         properties.setEnv("test");
         properties.setNamespace("default");

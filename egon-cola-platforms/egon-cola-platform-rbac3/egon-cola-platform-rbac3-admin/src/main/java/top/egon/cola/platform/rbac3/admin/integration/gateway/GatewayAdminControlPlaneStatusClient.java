@@ -43,7 +43,8 @@ public final class GatewayAdminControlPlaneStatusClient {
             Clock clock,
             Duration timeout) {
         this(adminBaseUri, gatewayGroupId, releaseId, new ServiceKey(
-                        "prod", "default", "HTTP_PROVIDER", "http",
+                        "rbac3", "rbac3-admin", "prod", "default",
+                        "HTTP_PROVIDER", "http",
                         "rbac3-admin", "default", "1.0.0"),
                 credentials, new JdkTransport(timeout), objectMapper, clock, timeout);
     }
@@ -71,7 +72,8 @@ public final class GatewayAdminControlPlaneStatusClient {
             Clock clock,
             Duration timeout) {
         this(adminBaseUri, gatewayGroupId, releaseId, new ServiceKey(
-                        "prod", "default", "HTTP_PROVIDER", "http",
+                        "rbac3", "rbac3-admin", "prod", "default",
+                        "HTTP_PROVIDER", "http",
                         "rbac3-admin", "default", "1.0.0"),
                 credentials, transport, objectMapper, clock, timeout);
     }
@@ -129,7 +131,9 @@ public final class GatewayAdminControlPlaneStatusClient {
     }
 
     private ProviderObservation providers(String token) {
-        String query = "?env=" + encode(providerServiceKey.env())
+        String query = "?bizCode=" + encode(providerServiceKey.bizCode())
+                + "&appCode=" + encode(providerServiceKey.appCode())
+                + "&env=" + encode(providerServiceKey.env())
                 + "&namespace=" + encode(providerServiceKey.namespace())
                 + "&serviceKind=" + encode(providerServiceKey.serviceKind())
                 + "&protocol=" + encode(providerServiceKey.protocol())
@@ -189,6 +193,7 @@ public final class GatewayAdminControlPlaneStatusClient {
             target.add(new ProviderInstance(
                     text(node, "instanceId"), text(node, "status"),
                     new ServiceKey(
+                            text(serviceKey, "bizCode"), text(serviceKey, "appCode"),
                             text(serviceKey, "env"), text(serviceKey, "namespace"),
                             text(serviceKey, "serviceKind"), text(serviceKey, "protocol"),
                             text(serviceKey, "serviceName"), text(serviceKey, "group"),
@@ -372,6 +377,8 @@ public final class GatewayAdminControlPlaneStatusClient {
     }
 
     public record ServiceKey(
+            String bizCode,
+            String appCode,
             String env,
             String namespace,
             String serviceKind,
@@ -382,6 +389,8 @@ public final class GatewayAdminControlPlaneStatusClient {
 
         ServiceKey validated() {
             return new ServiceKey(
+                    required(bizCode, "serviceKey.bizCode"),
+                    required(appCode, "serviceKey.appCode"),
                     required(env, "serviceKey.env"),
                     required(namespace, "serviceKey.namespace"),
                     required(serviceKind, "serviceKey.serviceKind"),

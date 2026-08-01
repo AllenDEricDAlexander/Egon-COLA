@@ -78,6 +78,7 @@ window. Do not place access/refresh tokens or private keys in logs or evidence.
 | Variable | Rule |
 | --- | --- |
 | `GATEWAY_ADMIN_BASE_URL` | Explicit Gateway Admin URL |
+| `DDC_BIZ_CODE` | Exact DDC v3 business domain used by the Definition and provider identity |
 | `GATEWAY_REPORT_ACCESS_KEY` / `GATEWAY_REPORT_SECRET_KEY` | HMAC write credential scoped to `rbac3-admin` |
 | `GATEWAY_REPORT_STATE_FILE` | Durable instance-local receipt state |
 | `RBAC3_ARTIFACT_VERSION` / `RBAC3_BUILD_ID` | Traceable definition build identity |
@@ -93,12 +94,13 @@ credential for status reads. Status reads use the OAuth token file configured by
 | --- | --- |
 | `DDC_ADMIN_ENDPOINT` | Explicit DDC Admin endpoint |
 | `DDC_REPORT_ACCESS_KEY` / `DDC_REPORT_SECRET_KEY` | DDC signed reporting credential |
+| `DDC_BIZ_CODE` | DDC v3 business domain; must match Gateway Definition and provider queries |
 | `DEPLOYMENT_ENV` / `DEPLOYMENT_NAMESPACE` | Must match Gateway Definition and Release identity |
 | `RBAC3_ADVERTISED_HOST` / `RBAC3_ADVERTISED_PORT` | Address reachable by Gateway Engine |
 | `RBAC3_INSTANCE_ID` | Unique lease identity and Outbox node ID |
 
-The service registers as `HTTP_PROVIDER`, protocol `http`, service name
-`rbac3-admin`, group `default`, and the deployed artifact version. Lease is 30
+The service registers under `DDC_BIZ_CODE + rbac3-admin` as `HTTP_PROVIDER`,
+protocol `http`, service name `rbac3-admin`, group `default`, and the deployed artifact version. Lease is 30
 seconds with a 10-second heartbeat. DDC must not advertise the instance before
 the provider port is actually reachable.
 

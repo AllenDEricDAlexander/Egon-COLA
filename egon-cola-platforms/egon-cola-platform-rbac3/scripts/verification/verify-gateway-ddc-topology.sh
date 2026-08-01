@@ -17,7 +17,7 @@ Required identity variables:
   RBAC3_INSTANCE_1_ID, RBAC3_INSTANCE_2_ID, RBAC3_INSTANCE_1_PORT,
   RBAC3_INSTANCE_2_PORT, RBAC3_MACHINE_ID_1, RBAC3_MACHINE_ID_2,
   RBAC3_ARTIFACT_VERSION, RBAC3_BUILD_ID_1, RBAC3_BUILD_ID_2,
-  RBAC3_TENANT_ID, DEPLOYMENT_ENV, DEPLOYMENT_NAMESPACE.
+  RBAC3_TENANT_ID, DDC_BIZ_CODE, DEPLOYMENT_ENV, DEPLOYMENT_NAMESPACE.
 
 Required endpoints and credentials:
   RBAC3_ADMIN_1_BASE_URL, RBAC3_ADMIN_2_BASE_URL,
@@ -36,7 +36,7 @@ check_config() {
       RBAC3_INSTANCE_1_ID RBAC3_INSTANCE_2_ID RBAC3_INSTANCE_1_PORT \
       RBAC3_INSTANCE_2_PORT RBAC3_MACHINE_ID_1 RBAC3_MACHINE_ID_2 \
       RBAC3_ARTIFACT_VERSION RBAC3_BUILD_ID_1 RBAC3_BUILD_ID_2 \
-      RBAC3_TENANT_ID DEPLOYMENT_ENV DEPLOYMENT_NAMESPACE \
+      RBAC3_TENANT_ID DDC_BIZ_CODE DEPLOYMENT_ENV DEPLOYMENT_NAMESPACE \
       GATEWAY_GROUP_ID GATEWAY_RELEASE_ID GATEWAY_FAIL_CLOSED_STATUS; do
     rbac3_require_env "${name}"
   done
@@ -86,11 +86,13 @@ assert_admin_status() {
 }
 
 ddc_instances() {
-  local env namespace
+  local biz_code app_code env namespace
+  biz_code="$(encoded_query "${DDC_BIZ_CODE}")"
+  app_code="$(encoded_query 'rbac3-admin')"
   env="$(encoded_query "${DEPLOYMENT_ENV}")"
   namespace="$(encoded_query "${DEPLOYMENT_NAMESPACE}")"
   rbac3_bearer_get "${DDC_STATUS_ACCESS_TOKEN_FILE}" \
-    "${DDC_ADMIN_BASE_URL%/}/api/v1/ddc/registry/instances?env=${env}&namespace=${namespace}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=rbac3-admin&group=default&version=$(encoded_query "${RBAC3_ARTIFACT_VERSION}")"
+    "${DDC_ADMIN_BASE_URL%/}/api/v1/ddc/registry/instances?bizCode=${biz_code}&appCode=${app_code}&env=${env}&namespace=${namespace}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=rbac3-admin&group=default&version=$(encoded_query "${RBAC3_ARTIFACT_VERSION}")"
 }
 
 assert_ddc_count() {
@@ -103,7 +105,7 @@ assert_ddc_count() {
 }
 
 assert_gateway_control_plane() {
-  local token release providers consistency env namespace
+  local token release providers consistency biz_code app_code env namespace
   token="$(rbac3_read_secret "${GATEWAY_STATUS_OAUTH_TOKEN_FILE}")"
   release="$(curl --fail-with-body --silent --show-error --connect-timeout 3 --max-time 10 \
     --header "Authorization: Bearer ${token}" --header 'Accept: application/json' \
@@ -112,11 +114,13 @@ assert_gateway_control_plane() {
     (.releaseId // .id) == $release and .status == "SUCCESS"
   ' <<< "${release}" >/dev/null
 
+  biz_code="$(encoded_query "${DDC_BIZ_CODE}")"
+  app_code="$(encoded_query 'rbac3-admin')"
   env="$(encoded_query "${DEPLOYMENT_ENV}")"
   namespace="$(encoded_query "${DEPLOYMENT_NAMESPACE}")"
   providers="$(curl --fail-with-body --silent --show-error --connect-timeout 3 --max-time 10 \
     --header "Authorization: Bearer ${token}" --header 'Accept: application/json' \
-    "${GATEWAY_ADMIN_BASE_URL%/}/api/v1/gateway/admin/providers/instances?env=${env}&namespace=${namespace}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=rbac3-admin&group=default&version=$(encoded_query "${RBAC3_ARTIFACT_VERSION}")")"
+    "${GATEWAY_ADMIN_BASE_URL%/}/api/v1/gateway/admin/providers/instances?bizCode=${biz_code}&appCode=${app_code}&env=${env}&namespace=${namespace}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=rbac3-admin&group=default&version=$(encoded_query "${RBAC3_ARTIFACT_VERSION}")")"
   jq -e '[.. | objects | select(has("instanceId"))] | length >= 2' <<< "${providers}" >/dev/null
 
   consistency="$(curl --fail-with-body --silent --show-error --connect-timeout 3 --max-time 10 \

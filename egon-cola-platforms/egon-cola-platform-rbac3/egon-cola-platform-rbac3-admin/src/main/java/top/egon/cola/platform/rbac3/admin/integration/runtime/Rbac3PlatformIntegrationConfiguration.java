@@ -56,6 +56,7 @@ public class Rbac3PlatformIntegrationConfiguration {
     GatewayDdcRuntimeStatusService.ServiceIdentity rbac3ServiceIdentity(
             GatewayReportingProperties properties) {
         return new GatewayDdcRuntimeStatusService.ServiceIdentity(
+                properties.getBizCode(), properties.getApplicationCode(),
                 properties.getEnv(), properties.getNamespace(),
                 "HTTP_PROVIDER", "http", properties.getApplicationCode(),
                 "default", properties.getArtifactVersion());
@@ -86,6 +87,7 @@ public class Rbac3PlatformIntegrationConfiguration {
                 properties.requireGatewayGroupId(),
                 properties.requireReleaseId(),
                 new GatewayAdminControlPlaneStatusClient.ServiceKey(
+                        identity.bizCode(), identity.appCode(),
                         identity.env(), identity.namespace(), identity.serviceKind(),
                         identity.protocol(), identity.serviceName(), identity.group(),
                         identity.version()),

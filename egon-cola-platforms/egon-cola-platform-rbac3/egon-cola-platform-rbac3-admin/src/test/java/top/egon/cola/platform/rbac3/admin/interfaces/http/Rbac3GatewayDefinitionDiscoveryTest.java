@@ -72,6 +72,7 @@ class Rbac3GatewayDefinitionDiscoveryTest {
     @Test
     void gatewayScannerDiscoversEveryTaskSevenControllerAndStableOperationPath() {
         GatewayReportingProperties properties = new GatewayReportingProperties();
+        properties.setBizCode("rbac3");
         properties.setApplicationCode("rbac3-admin");
         properties.setEnv("test");
         properties.setNamespace("default");

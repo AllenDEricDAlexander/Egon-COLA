@@ -56,7 +56,8 @@ class GatewayAdminControlPlaneStatusClientTest {
                 if (uri.getPath().endsWith("/providers/instances")) {
                     return response(200, """
                             {"value":{"instances":[{"instanceId":"instance-1",
-                              "status":"UP","serviceKey":{"env":"prod",
+                              "status":"UP","serviceKey":{"bizCode":"rbac3",
+                              "appCode":"rbac3-admin","env":"prod",
                               "namespace":"default","serviceKind":"HTTP_PROVIDER",
                               "protocol":"http","serviceName":"rbac3-admin",
                               "group":"default","version":"1.0.0"},
@@ -77,12 +78,16 @@ class GatewayAdminControlPlaneStatusClientTest {
         assertThat(result.release().definitionSetId()).isEqualTo("definition-1");
         assertThat(result.providers().instances()).singleElement()
                 .satisfies(instance -> {
+                    assertThat(instance.serviceKey().bizCode()).isEqualTo("rbac3");
+                    assertThat(instance.serviceKey().appCode()).isEqualTo("rbac3-admin");
                     assertThat(instance.serviceKey().serviceName())
                             .isEqualTo("rbac3-admin");
                     assertThat(instance.definitionSetId()).isEqualTo("definition-1");
                 });
         assertThat(result.consistency().consistent()).isTrue();
         assertThat(calls).hasSize(3);
+        assertThat(calls.get(1).getQuery())
+                .contains("bizCode=rbac3", "appCode=rbac3-admin");
     }
 
     @Test

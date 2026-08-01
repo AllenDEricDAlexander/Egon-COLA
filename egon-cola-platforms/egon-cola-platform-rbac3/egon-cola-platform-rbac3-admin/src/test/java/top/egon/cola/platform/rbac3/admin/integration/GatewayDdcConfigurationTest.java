@@ -31,7 +31,8 @@ class GatewayDdcConfigurationTest {
     private static final Instant NOW = Instant.parse("2026-07-30T12:00:00Z");
     private static final GatewayDdcRuntimeStatusService.ServiceIdentity IDENTITY =
             new GatewayDdcRuntimeStatusService.ServiceIdentity(
-                    "prod", "default", "HTTP_PROVIDER", "http",
+                    "rbac3", "rbac3-admin", "prod", "default",
+                    "HTTP_PROVIDER", "http",
                     "rbac3-admin", "default", "1.0.0");
 
     @Test
@@ -49,7 +50,8 @@ class GatewayDdcConfigurationTest {
         if (Files.exists(yaml)) {
             assertThat(Files.readString(yaml))
                     .doesNotContain("localhost", "127.0.0.1")
-                    .contains("RBAC3_ADVERTISED_PORT", "ddcRegistryRedissonClient",
+                    .contains("DDC_BIZ_CODE", "RBAC3_ADVERTISED_PORT",
+                            "ddcRegistryRedissonClient",
                             "rbac3RuntimeRedissonClient");
         }
     }
@@ -86,8 +88,9 @@ class GatewayDdcConfigurationTest {
         assertThat(status.status().gatewayRelease().status()).isEqualTo("ROUTABLE");
 
         var wrongIdentity = new GatewayDdcRuntimeStatusService.ServiceIdentity(
-                "prod", "default", "HTTP_PROVIDER", "http",
-                "rbac3-admin", "default", "2.0.0");
+                "other-biz", "rbac3-admin", "prod", "default",
+                "HTTP_PROVIDER", "http",
+                "rbac3-admin", "default", "1.0.0");
         when(client.snapshot()).thenReturn(snapshot(
                 "definition-1", "1.0.0", wrongIdentity));
         assertThat(status.status().gatewayRelease().status()).isEqualTo("NOT_ROUTABLE");
@@ -116,6 +119,7 @@ class GatewayDdcConfigurationTest {
             String publishedVersion,
             GatewayDdcRuntimeStatusService.ServiceIdentity identity) {
         var key = new GatewayAdminControlPlaneStatusClient.ServiceKey(
+                identity.bizCode(), identity.appCode(),
                 identity.env(), identity.namespace(), identity.serviceKind(),
                 identity.protocol(), identity.serviceName(), identity.group(),
                 identity.version());

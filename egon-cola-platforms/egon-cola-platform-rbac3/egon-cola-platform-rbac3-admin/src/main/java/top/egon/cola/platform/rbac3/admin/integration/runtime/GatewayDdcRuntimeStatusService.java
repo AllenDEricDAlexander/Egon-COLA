@@ -104,6 +104,8 @@ public final class GatewayDdcRuntimeStatusService
     }
 
     public record ServiceIdentity(
+            String bizCode,
+            String appCode,
             String env,
             String namespace,
             String serviceKind,
@@ -113,6 +115,8 @@ public final class GatewayDdcRuntimeStatusService
             String version) {
 
         public ServiceIdentity {
+            bizCode = required(bizCode, "bizCode");
+            appCode = required(appCode, "appCode");
             env = required(env, "env");
             namespace = required(namespace, "namespace");
             serviceKind = required(serviceKind, "serviceKind");
@@ -124,6 +128,8 @@ public final class GatewayDdcRuntimeStatusService
 
         boolean matches(GatewayAdminControlPlaneStatusClient.ServiceKey key) {
             return key != null
+                    && bizCode.equals(key.bizCode())
+                    && appCode.equals(key.appCode())
                     && env.equals(key.env())
                     && namespace.equals(key.namespace())
                     && serviceKind.equals(key.serviceKind())

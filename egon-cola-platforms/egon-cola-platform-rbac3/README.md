@@ -49,8 +49,9 @@ There is no `rbac3-test` artifact and no aggregate runtime library.
    dedicated runtime Redis client; the Fence opens only after projection.
 5. Starter or Gateway verifies the reference JWT, exact Session/User/Tenant and
    policy versions, then applies Function, Data, Field and Participation rules.
-6. Admin reports interface Definitions to Gateway Admin, registers its
-   `HTTP_PROVIDER` lease in DDC, and observes the explicit Gateway Release.
+6. Admin reports interface Definitions to Gateway Admin with the exact DDC v3
+   `bizCode + appCode` identity, registers its `HTTP_PROVIDER` lease in DDC,
+   and observes the explicit Gateway Release.
 7. Gateway obtains provider instances from DDC and routes only when Definition,
    Lease, Release, consistency, Session snapshot and Fence checks all agree.
 

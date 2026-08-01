@@ -55,6 +55,7 @@ class Rbac3DecisionRuntimeGatewayDiscoveryTest {
     @Test
     void discoversInternalDecisionParticipationAuditSimulationAndRuntimeRoutes() {
         GatewayReportingProperties properties = new GatewayReportingProperties();
+        properties.setBizCode("rbac3");
         properties.setApplicationCode("rbac3-admin");
         properties.setEnv("test");
         properties.setNamespace("default");

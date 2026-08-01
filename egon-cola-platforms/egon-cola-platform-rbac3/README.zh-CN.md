@@ -47,8 +47,8 @@ Gateway/DDC 发布和服务发现。全部能力位于 `egon-cola-platforms` 下
 ```
 
 ```text
-RBAC3 Admin Definition Report -> Gateway Admin
-RBAC3 Admin HTTP_PROVIDER Lease -> DDC
+RBAC3 Admin Definition Report（DDC v3 bizCode + appCode）-> Gateway Admin
+RBAC3 Admin HTTP_PROVIDER Lease（同一 bizCode + appCode）-> DDC
 Gateway Release -> DDC 配置投影 -> Gateway Engine
 Gateway Engine -> 从 DDC 获取 RBAC3 实例 -> 路由请求
 ```

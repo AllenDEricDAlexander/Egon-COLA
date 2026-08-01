@@ -60,6 +60,7 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
     @Test
     void gatewayScannerDiscoversAllResourceRoleAndTypedConstraintRoutes() {
         GatewayReportingProperties properties = new GatewayReportingProperties();
+        properties.setBizCode("rbac3");
         properties.setApplicationCode("rbac3-admin");
         properties.setEnv("test");
         properties.setNamespace("default");

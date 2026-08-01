@@ -1008,6 +1008,7 @@ egon:
         reporting:
           enabled: true
           admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
+          biz-code: ${DDC_BIZ_CODE:rbac3}
           application-code: rbac3-admin
           application-name: Egon COLA RBAC3 Admin
           env: ${DEPLOY_ENV}
@@ -1080,6 +1081,7 @@ egon:
     component:
       ddc:
         enabled: true
+        biz-code: ${DDC_BIZ_CODE:rbac3}
         app-code: rbac3-admin
         env: ${DEPLOY_ENV}
         namespace: ${DEPLOY_NAMESPACE:default}
