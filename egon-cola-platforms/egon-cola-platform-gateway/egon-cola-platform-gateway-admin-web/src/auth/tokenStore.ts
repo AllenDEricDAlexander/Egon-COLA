@@ -74,6 +74,7 @@ export const tokenStore = {
 
 const tokenUrl = import.meta.env.VITE_GATEWAY_ADMIN_TOKEN_URL
 const clientId = import.meta.env.VITE_GATEWAY_ADMIN_CLIENT_ID
+export const oauthRefreshEnabled = Boolean(tokenUrl && clientId)
 let refreshInFlight: Promise<string> | undefined
 
 export const refreshAccessToken = async (): Promise<string> => {

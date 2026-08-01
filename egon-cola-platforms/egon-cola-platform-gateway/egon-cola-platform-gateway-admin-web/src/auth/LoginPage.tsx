@@ -2,6 +2,7 @@ import { Alert, Button, Card, Checkbox, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
+import { oauthRefreshEnabled } from './tokenStore'
 
 export const LoginPage = () => {
   const auth = useAuth()
@@ -14,7 +15,9 @@ export const LoginPage = () => {
       <Card className="login-card">
         <Typography.Title level={2}>Gateway Admin 登录</Typography.Title>
         <Typography.Paragraph type="secondary">
-          使用企业身份系统签发的 Bearer Token。Token 只保存在当前会话，除非明确勾选持久化。
+          {oauthRefreshEnabled
+            ? '使用企业身份系统签发的 Bearer Token。Token 只保存在当前会话，除非明确勾选持久化。'
+            : '本地模式仅需 Access Token。Token 只保存在当前会话，除非明确勾选持久化。'}
         </Typography.Paragraph>
         {error && <Alert type="error" showIcon message={error} />}
         <Form
@@ -22,9 +25,11 @@ export const LoginPage = () => {
           onFinish={async (values) => {
             setError(undefined)
             try {
-              await auth.login({
+              await auth.login(oauthRefreshEnabled ? {
                 accessToken: values.accessToken,
                 refreshToken: values.refreshToken,
+              } : {
+                accessToken: values.accessToken,
               }, values.remember)
               const target = (location.state as { from?: string } | undefined)?.from
               navigate(target ?? '/dashboard', { replace: true })
@@ -36,9 +41,11 @@ export const LoginPage = () => {
           <Form.Item name="accessToken" label="Access Token" rules={[{ required: true }]}>
             <Input.Password autoComplete="off" />
           </Form.Item>
-          <Form.Item name="refreshToken" label="Refresh Token（可选）">
-            <Input.Password autoComplete="off" />
-          </Form.Item>
+          {oauthRefreshEnabled && (
+            <Form.Item name="refreshToken" label="Refresh Token（可选）">
+              <Input.Password autoComplete="off" />
+            </Form.Item>
+          )}
           <Form.Item name="remember" valuePropName="checked">
             <Checkbox>在此浏览器持久化登录</Checkbox>
           </Form.Item>
