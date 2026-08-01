@@ -12,6 +12,16 @@ afterEach(() => {
 })
 
 describe('gateway API response adapters', () => {
+  it('loads the authoritative scope catalog without static filters', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await gatewayApi.scopes()
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/scopes')
+  })
+
   it('unwraps engine and provider projections without losing freshness', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({

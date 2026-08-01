@@ -5,6 +5,13 @@ export type Scope = {
   namespace: string
 }
 
+export type GatewayScopeBinding = Scope & {
+  bindingId: string
+  appName: string
+  connected: boolean
+  gatewayApplicationId?: string
+}
+
 export type AdminSession = {
   actorId: string
   displayName: string

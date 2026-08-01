@@ -1,35 +1,75 @@
 import { describe, expect, it } from 'vitest'
-import { resolveInitialScope, scopeOptions } from './scopeDefaults'
+import type { GatewayScopeBinding, Scope } from '../api/types'
+import {
+  changeScope,
+  optionsFor,
+  resolveInitialScope,
+} from './scopeDefaults'
 
-describe('Gateway Admin scope defaults', () => {
-  it('uses trimmed deployment scope values', () => {
+const defaultScope: Scope = {
+  bizCode: 'retail',
+  namespace: 'default',
+  env: 'local',
+  appCode: 'order',
+}
+
+const opsScope: Scope = {
+  ...defaultScope,
+  namespace: 'ops',
+}
+
+const configuredScope: Scope = {
+  ...defaultScope,
+  appCode: 'invoice',
+}
+
+const invalidScope: Scope = {
+  bizCode: 'missing',
+  namespace: 'missing',
+  env: 'missing',
+  appCode: 'missing',
+}
+
+const binding = (
+  scope: Scope,
+  connected: boolean,
+): GatewayScopeBinding => ({
+  ...scope,
+  bindingId: `${scope.namespace}-${scope.appCode}`,
+  appName: scope.appCode,
+  connected,
+})
+
+const bindings = [
+  binding(defaultScope, true),
+  binding(opsScope, true),
+  binding(configuredScope, false),
+]
+
+describe('Gateway Admin DDC scopes', () => {
+  it('uses last valid then configured then connected then first binding', () => {
+    expect(resolveInitialScope(bindings, opsScope, configuredScope))
+      .toEqual(opsScope)
+    expect(resolveInitialScope(bindings, invalidScope, configuredScope))
+      .toEqual(configuredScope)
+    expect(resolveInitialScope(bindings, invalidScope, undefined))
+      .toEqual(defaultScope)
     expect(resolveInitialScope(
-      ' retail ',
-      ' orders ',
-      ' dev ',
-      ' codex-local ',
-    )).toEqual({
-      bizCode: 'retail',
-      appCode: 'orders',
-      env: 'dev',
-      namespace: 'codex-local',
-    })
+      bindings.map((item) => ({ ...item, connected: false })),
+      undefined,
+      undefined,
+    )).toEqual(defaultScope)
   })
 
-  it('falls back when deployment scope values are blank', () => {
-    expect(resolveInitialScope(' ', undefined, ' ', undefined)).toEqual({
-      bizCode: 'default',
-      appCode: 'default-app',
-      env: 'dev',
-      namespace: 'default',
-    })
+  it('keeps valid descendants and otherwise resets to the first valid branch', () => {
+    expect(changeScope(bindings, defaultScope, 'namespace', 'ops'))
+      .toEqual(opsScope)
+    expect(optionsFor(bindings, opsScope, 'appCode')).toEqual([
+      { value: 'order', label: 'App: order' },
+    ])
   })
 
-  it('keeps a configured namespace selectable', () => {
-    expect(scopeOptions('codex-local', ['default', 'public', 'internal']))
-      .toContainEqual({
-        value: 'codex-local',
-        label: 'Namespace: codex-local',
-      })
+  it('returns undefined when no DDC binding exists', () => {
+    expect(resolveInitialScope([], undefined, undefined)).toBeUndefined()
   })
 })

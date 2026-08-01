@@ -12,6 +12,7 @@ import type {
   GatewayDraft,
   GatewayGroup,
   GatewayRelease,
+  GatewayScopeBinding,
   IssuedCredential,
   OperationDetail,
   Page,
@@ -87,6 +88,8 @@ const mapRelease = ({ releaseId, ...release }: ReleaseResponse): GatewayRelease 
 export const gatewayApi = {
   session: (signal?: AbortSignal) =>
     apiRequest<AdminSession>(`${admin}/session`, { signal }),
+  scopes: (signal?: AbortSignal) =>
+    apiRequest<GatewayScopeBinding[]>(`${admin}/scopes`, { signal }),
   dashboard: (scope: Scope, signal?: AbortSignal) =>
     apiRequest<DashboardSummary>(`${admin}/dashboard?${query(scope)}`, { signal }),
   groups: (scope: Scope, signal?: AbortSignal) =>
