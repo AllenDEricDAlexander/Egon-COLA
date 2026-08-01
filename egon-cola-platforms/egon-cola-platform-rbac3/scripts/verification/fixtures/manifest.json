@@ -1,0 +1,39 @@
+{
+  "applicationId": "replace-with-dedicated-application-id",
+  "definitionSetId": "rbac3-it-definition-v1",
+  "manifest": {
+    "schemaVersion": "rbac3-resource-manifest/v1",
+    "applicationCode": "rbac3-it-app",
+    "applicationName": "RBAC3 verification fixture",
+    "artifactVersion": "1.0.0-it",
+    "buildId": "replace-with-run-id",
+    "manifestVersion": 1,
+    "generatedAt": "2026-07-30T00:00:00Z",
+    "checksum": "replace-with-canonical-sha256",
+    "apps": [
+      {
+        "code": "rbac3-it-app",
+        "parentCode": null,
+        "name": "RBAC3 verification fixture",
+        "order": 0,
+        "path": null,
+        "componentKey": null,
+        "requiredPermissionCode": null,
+        "redirect": null,
+        "hidden": false,
+        "keepAlive": false,
+        "routeCode": null,
+        "gatewayOperationId": null,
+        "httpMethod": null,
+        "pathPattern": null,
+        "externalAccessible": false,
+        "metadata": {}
+      }
+    ],
+    "menus": [],
+    "routes": [],
+    "actions": [],
+    "apis": [],
+    "fieldDefinitions": []
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "description": "Operator-reviewed expectations for an existing RBAC3 Gateway release",
+  "gatewayGroupId": "replace-with-dedicated-gateway-group-id",
+  "releaseId": "replace-with-explicit-release-id",
+  "service": {
+    "env": "replace-with-environment",
+    "namespace": "replace-with-namespace",
+    "serviceKind": "HTTP_PROVIDER",
+    "protocol": "http",
+    "serviceName": "rbac3-admin",
+    "group": "default",
+    "artifactVersion": "replace-with-artifact-version"
+  },
+  "definitionReports": [
+    {
+      "instanceId": "replace-with-instance-1-id",
+      "buildId": "replace-with-build-1-id",
+      "definitionSetId": "replace-with-acknowledged-definition-set-id"
+    },
+    {
+      "instanceId": "replace-with-instance-2-id",
+      "buildId": "replace-with-build-2-id",
+      "definitionSetId": "replace-with-acknowledged-definition-set-id"
+    }
+  ]
+}
