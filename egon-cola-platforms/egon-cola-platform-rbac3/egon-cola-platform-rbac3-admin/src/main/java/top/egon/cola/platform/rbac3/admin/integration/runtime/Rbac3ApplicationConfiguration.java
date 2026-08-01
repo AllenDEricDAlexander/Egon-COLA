@@ -12,6 +12,7 @@ import top.egon.cola.platform.rbac3.admin.activation.infrastructure.RoleActivati
 import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.assignment.infrastructure.AssignmentRepository;
 import top.egon.cola.platform.rbac3.admin.assignment.infrastructure.PostgresqlAssignmentLockStore;
@@ -77,6 +78,11 @@ import java.util.Set;
  */
 @Configuration(proxyBeanMethods = false)
 public class Rbac3ApplicationConfiguration {
+
+    @Bean
+    AtomicRbac3RuntimePolicy rbac3RuntimePolicy(Rbac3AdminProperties properties) {
+        return new AtomicRbac3RuntimePolicy(properties);
+    }
 
     @Bean
     Rbac3RuntimeKeyFactory rbac3RuntimeKeyFactory() {
