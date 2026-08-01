@@ -1,6 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.worker;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
+import top.egon.cola.component.outbox.delivery.DeliveryContext;
+import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.platform.rbac3.admin.integration.outbox.Rbac3RuntimeProjectionDeliveryHandler;
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
 
@@ -14,10 +18,59 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AuthorizationWorkerRecoveryIT {
 
     private static final Instant NOW = Instant.parse("2026-07-30T12:00:00Z");
+
+    @Test
+    void deliveryHandlerDefersRebuildWorkerResolutionUntilDelivery()
+            throws NoSuchMethodException {
+        var factory = Rbac3WorkerConfiguration.class.getDeclaredMethod(
+                "rbac3RuntimeProjectionDeliveryHandler",
+                ObjectProvider.class,
+                ObjectMapper.class);
+
+        assertThat(factory.getParameterTypes())
+                .containsExactly(ObjectProvider.class,
+                        ObjectMapper.class);
+
+        AtomicInteger resolutions = new AtomicInteger();
+        var worker = new RuntimeSnapshotRebuildWorker(
+                new InMemoryCheckpointStore(), event -> {
+                });
+        @SuppressWarnings("unchecked")
+        ObjectProvider<RuntimeSnapshotRebuildWorker> provider =
+                mock(ObjectProvider.class);
+        when(provider.getObject()).thenAnswer(invocation -> {
+            resolutions.incrementAndGet();
+            return worker;
+        });
+        var handler = new Rbac3WorkerConfiguration()
+                .rbac3RuntimeProjectionDeliveryHandler(
+                        provider, new ObjectMapper().findAndRegisterModules());
+
+        assertThat(resolutions).hasValue(0);
+        DeliveryResult result = handler.deliver(new DeliveryContext(
+                "message-1", "rbac3-runtime",
+                "rbac3.role-activation.changed.v1",
+                """
+                        {"eventId":"event-1",
+                         "eventType":"rbac3.role-activation.changed.v1",
+                         "schemaVersion":1,
+                         "occurredAt":"2026-07-30T12:00:00Z",
+                         "tenantId":"7","aggregateType":"SESSION",
+                         "aggregateId":"99","aggregateVersion":4,
+                         "traceId":"trace-1","payload":{}}
+                        """,
+                "application/json", "1", Map.of(), "trace-1",
+                1, 10, NOW.plusSeconds(30)));
+
+        assertThat(result.kind()).isEqualTo(DeliveryResult.Kind.SUCCESS);
+        assertThat(resolutions).hasValue(1);
+    }
 
     @Test
     void mutationRecoveryIsAddressedByIdAndIsIdempotent() {

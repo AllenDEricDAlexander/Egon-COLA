@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.worker;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -58,10 +59,10 @@ public class Rbac3WorkerConfiguration {
 
     @Bean
     Rbac3RuntimeProjectionDeliveryHandler rbac3RuntimeProjectionDeliveryHandler(
-            RuntimeSnapshotRebuildWorker rebuildWorker,
+            ObjectProvider<RuntimeSnapshotRebuildWorker> rebuildWorker,
             ObjectMapper objectMapper) {
         return new Rbac3RuntimeProjectionDeliveryHandler(
-                rebuildWorker, objectMapper);
+                event -> rebuildWorker.getObject().project(event), objectMapper);
     }
 
     @Bean
