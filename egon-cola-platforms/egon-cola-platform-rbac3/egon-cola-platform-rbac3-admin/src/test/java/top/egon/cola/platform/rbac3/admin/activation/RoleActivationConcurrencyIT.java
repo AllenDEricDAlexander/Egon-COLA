@@ -57,7 +57,8 @@ class RoleActivationConcurrencyIT {
                     "7", "9", "99", List.of(roleId), 0, "9", commandId));
             return true;
         } catch (Rbac3RuleViolation violation) {
-            assertThat(violation.reasonCode()).isEqualTo("SESSION_VERSION_CONFLICT");
+            assertThat(violation.reasonCode())
+                    .isEqualTo("ROLE_ACTIVATION_VERSION_CONFLICT");
             return false;
         }
     }

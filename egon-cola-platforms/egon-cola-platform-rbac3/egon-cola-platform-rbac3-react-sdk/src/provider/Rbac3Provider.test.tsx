@@ -11,6 +11,7 @@ import type {
 } from '../types'
 import { InMemoryAccessTokenStore } from '../auth/InMemoryAccessTokenStore'
 import { Rbac3ApiClient } from '../client/Rbac3ApiClient'
+import { Rbac3RequestError } from '../errors'
 import { Rbac3Provider } from './Rbac3Provider'
 import { useRbac3Session } from '../hooks/useRbac3Session'
 
@@ -167,6 +168,65 @@ describe('Rbac3Provider', () => {
       code: 'PERMISSION_DENIED',
     })
     expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not refresh a step-up challenge', async () => {
+    const store = new InMemoryAccessTokenStore('access')
+    const fetcher = vi.fn(async () => jsonResponse({
+      error: {
+        code: 'STEP_UP_REQUIRED',
+        message: 'strong authentication required',
+        retryable: true,
+        details: [],
+      },
+      meta: { traceId: 'trace-step-up' },
+    }, 401))
+    const sdk = new Rbac3ApiClient({
+      accessTokenStore: store,
+      fetch: fetcher as typeof fetch,
+    })
+
+    await expect(sdk.replaceActiveRoles({
+      roleIds: ['50001'],
+      expectedSessionVersion: 1,
+    })).rejects.toMatchObject({
+      status: 401,
+      code: 'STEP_UP_REQUIRED',
+    })
+
+    expect(store.get()).toBe('access')
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps role activation recoverable while step-up is required', async () => {
+    const stepUp = new Rbac3RequestError({
+      status: 401,
+      code: 'STEP_UP_REQUIRED',
+      message: 'strong authentication required',
+      retryable: true,
+    })
+    const sdk = client({
+      refresh: vi.fn(async () => ({ ...refresh, roleActivationRequired: true })),
+      replaceActiveRoles: vi.fn(async () => { throw stepUp }),
+    })
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <Rbac3Provider client={sdk} accessTokenStore={new InMemoryAccessTokenStore()}>
+        {children}
+      </Rbac3Provider>
+    )
+    const { result } = renderHook(() => useRbac3Session(), { wrapper })
+    await waitFor(() => expect(result.current.status).toBe('ACTIVATION_REQUIRED'))
+
+    await act(async () => {
+      await expect(result.current.replaceActiveRoles({
+        roleIds: ['50001'],
+        expectedSessionVersion: 1,
+      })).rejects.toMatchObject({ code: 'STEP_UP_REQUIRED' })
+    })
+
+    expect(result.current.status).toBe('ACTIVATION_REQUIRED')
+    expect(result.current.errorCode).toBe('STEP_UP_REQUIRED')
+    expect(sdk.refresh).toHaveBeenCalledTimes(1)
   })
 
   it('treats an unauthorized logout as an already closed session', async () => {

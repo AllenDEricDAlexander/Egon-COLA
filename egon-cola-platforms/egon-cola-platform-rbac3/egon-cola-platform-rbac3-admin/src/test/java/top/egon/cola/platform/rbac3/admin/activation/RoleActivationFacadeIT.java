@@ -308,7 +308,7 @@ class RoleActivationFacadeIT {
                         RoleActivationFacade.ResolvedActivation> factory
         ) {
             if (command.expectedSessionVersion() != sessionVersion) {
-                throw new Rbac3RuleViolation("SESSION_VERSION_CONFLICT");
+                throw new Rbac3RuleViolation("ROLE_ACTIVATION_VERSION_CONFLICT");
             }
             var resolved = factory.apply(new RoleActivationFacade.SessionState(
                     "7", "9", "99", roots, 3, sessionVersion, 4,

@@ -65,7 +65,7 @@ public class SessionActiveRoleRepository
         SessionEntity session = locked(command.tenantId(), command.userId(),
                 command.sessionId(), now);
         if (session.getSessionVersion() != command.expectedSessionVersion()) {
-            throw new Rbac3RuleViolation("SESSION_VERSION_CONFLICT");
+            throw new Rbac3RuleViolation("ROLE_ACTIVATION_VERSION_CONFLICT");
         }
         List<SessionActiveRoleEntity> currentEntities = activeRoles(
                 Long.valueOf(command.tenantId()), Long.valueOf(command.sessionId()));
@@ -232,7 +232,7 @@ public class SessionActiveRoleRepository
                         Long.valueOf(tenantId), Long.valueOf(sessionId))
                 .orElseThrow(() -> new Rbac3RuleViolation("RESOURCE_NOT_FOUND"));
         if (session.getSessionVersion() != expectedSessionVersion) {
-            throw new Rbac3RuleViolation("SESSION_VERSION_CONFLICT");
+            throw new Rbac3RuleViolation("ROLE_ACTIVATION_VERSION_CONFLICT");
         }
         session.requireRoleReselection(actorId, now);
         activeRoles(Long.valueOf(tenantId), Long.valueOf(sessionId))

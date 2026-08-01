@@ -1,4 +1,5 @@
 import {
+  isRefreshableAuthenticationError,
   Rbac3RequestError,
   type Rbac3ErrorCode,
   type Rbac3ErrorResponse,
@@ -112,12 +113,13 @@ export class Rbac3ApiClient implements Rbac3Client {
       })
     }
 
-    if (response.status === 401 && allowRefresh) {
-      await this.refresh()
-      return this.request(path, init, false, withBearer)
-    }
     if (!response.ok) {
-      throw await toRequestError(response)
+      const error = await toRequestError(response)
+      if (allowRefresh && isRefreshableAuthenticationError(error)) {
+        await this.refresh()
+        return this.request(path, init, false, withBearer)
+      }
+      throw error
     }
 
     const envelope = await readJson<ApiEnvelope<T>>(response)

@@ -132,3 +132,18 @@ export class Rbac3RequestError extends Error {
     this.traceId = options.traceId ?? null
   }
 }
+
+const REFRESHABLE_AUTHENTICATION_CODES = new Set<string>([
+  'AUTHENTICATION_REQUIRED',
+  'TOKEN_INVALID',
+  'SESSION_INVALIDATED',
+  'AUTH_VERSION_MISMATCH',
+  'SESSION_VERSION_MISMATCH',
+  'POLICY_VERSION_MISMATCH',
+])
+
+export const isRefreshableAuthenticationError = (
+  error: unknown,
+): error is Rbac3RequestError => error instanceof Rbac3RequestError
+  && error.status === 401
+  && REFRESHABLE_AUTHENTICATION_CODES.has(error.code)

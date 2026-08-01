@@ -138,6 +138,10 @@ export const Rbac3Provider = ({
       return result
     } catch (error) {
       const classified = classifyError(error)
+      if (classified.code === 'STEP_UP_REQUIRED') {
+        dispatch({ type: 'REPLACE_STEP_UP_REQUIRED' })
+        throw error
+      }
       if (classified.retryable) {
         try {
           const refreshed = await client.refresh()

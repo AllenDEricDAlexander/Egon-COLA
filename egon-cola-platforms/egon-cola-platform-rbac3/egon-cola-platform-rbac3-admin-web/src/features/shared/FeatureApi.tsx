@@ -1,4 +1,4 @@
-import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
+import { isRefreshableAuthenticationError, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import {
   createContext,
   useContext,
@@ -43,7 +43,7 @@ export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps
       try {
         return await client.request<T>(path, tenantRequest)
       } catch (error) {
-        if (!isUnauthorized(error)) throw error
+        if (!isRefreshableAuthenticationError(error)) throw error
         await refresh()
         return client.request<T>(path, tenantRequest)
       }
@@ -61,11 +61,6 @@ export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps
   }), [effectiveTenantId, targetTenantId, tenantClient])
   return <FeatureApiContext.Provider value={value}>{children}</FeatureApiContext.Provider>
 }
-
-const isUnauthorized = (error: unknown): boolean => typeof error === 'object'
-  && error !== null
-  && 'status' in error
-  && error.status === 401
 
 export const useFeatureApi = (): FeatureApiClient => {
   const value = useContext(FeatureApiContext)

@@ -23,6 +23,7 @@ export type Rbac3MachineEvent =
     }
   | { readonly type: 'REPLACE_ACTIVE_ROLES' }
   | { readonly type: 'REFRESH_VERSION' }
+  | { readonly type: 'REPLACE_STEP_UP_REQUIRED' }
   | { readonly type: 'REPLACE_REJECTED'; readonly errorCode: string }
   | { readonly type: 'AUTHENTICATION_REQUIRED'; readonly errorCode?: string }
   | { readonly type: 'FORBIDDEN'; readonly errorCode: string }
@@ -64,6 +65,8 @@ export const transitionRbac3State = (
       return { ...state, status: 'REPLACING_ACTIVE_ROLES', errorCode: null }
     case 'REFRESH_VERSION':
       return { ...state, status: 'REFRESHING_VERSION', errorCode: null }
+    case 'REPLACE_STEP_UP_REQUIRED':
+      return { ...state, status: 'ACTIVATION_REQUIRED', errorCode: 'STEP_UP_REQUIRED' }
     case 'REPLACE_REJECTED':
       return {
         ...state,
