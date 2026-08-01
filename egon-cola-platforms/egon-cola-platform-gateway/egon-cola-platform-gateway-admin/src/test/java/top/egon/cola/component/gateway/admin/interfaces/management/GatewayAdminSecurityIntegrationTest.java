@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.gateway.admin.application.GatewayGroupService;
+import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService;
 import top.egon.cola.component.gateway.admin.infrastructure.security.GatewayAdminSecurityConfiguration;
 import top.egon.cola.component.gateway.admin.interfaces.openapi.GatewayReportHmacFilter;
 
@@ -24,7 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(
         controllers = {
                 GatewayGroupController.class,
-                GatewayAdminSessionController.class
+                GatewayAdminSessionController.class,
+                GatewayScopeController.class
         },
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
@@ -42,6 +44,9 @@ class GatewayAdminSecurityIntegrationTest {
 
     @MockBean
     private GatewayGroupService service;
+
+    @MockBean
+    private GatewayScopeService scopeService;
 
     @Test
     void rejectsForgedActorHeaderWithoutBearerToken() throws Exception {
@@ -69,6 +74,23 @@ class GatewayAdminSecurityIntegrationTest {
                                 .authorities(new SimpleGrantedAuthority(
                                         "CAP_gateway:read"
                                 ))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void rejectsUnauthenticatedScopeCatalogRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/gateway/admin/scopes"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void permitsScopeCatalogWithReadCapability() throws Exception {
+        when(scopeService.list()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/gateway/admin/scopes")
+                        .with(jwt().authorities(new SimpleGrantedAuthority(
+                                "CAP_gateway:read"
+                        ))))
                 .andExpect(status().isOk());
     }
 

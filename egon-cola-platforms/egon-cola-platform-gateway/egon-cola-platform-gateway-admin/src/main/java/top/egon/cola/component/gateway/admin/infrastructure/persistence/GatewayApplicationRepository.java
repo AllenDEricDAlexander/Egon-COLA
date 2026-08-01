@@ -17,4 +17,10 @@ public interface GatewayApplicationRepository
             String applicationCode,
             String env,
             String namespace);
+
+    Optional<GatewayApplicationEntity>
+    findByBizCodeAndApplicationCodeAndEnvAndDeletedFalse(
+            String bizCode,
+            String applicationCode,
+            String env);
 }
