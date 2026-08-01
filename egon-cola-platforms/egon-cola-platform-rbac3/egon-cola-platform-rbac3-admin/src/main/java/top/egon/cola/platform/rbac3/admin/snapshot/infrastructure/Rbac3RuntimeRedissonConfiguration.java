@@ -27,7 +27,7 @@ public class Rbac3RuntimeRedissonConfiguration {
     @ConditionalOnMissingBean(name = "rbac3RuntimeRedissonClient")
     public RedissonClient rbac3RuntimeRedissonClient(
             ObjectMapper objectMapper,
-            @Value("${egon.rbac3.runtime.redis-address:redis://127.0.0.1:6379}")
+            @Value("${egon.rbac3.runtime.redis-address}")
             String address,
             @Value("${egon.rbac3.runtime.redis-database:0}") int database,
             @Value("${egon.rbac3.runtime.redis-timeout:2s}") Duration timeout,

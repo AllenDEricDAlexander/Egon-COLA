@@ -35,7 +35,8 @@ public class Rbac3AdminSecurityConfiguration {
     @Bean
     SecurityFilterChain rbac3SecurityFilterChain(
             HttpSecurity http,
-            TenantContextFilter tenantFilter
+            TenantContextFilter tenantFilter,
+            Rbac3JwtAuthenticationConverter authenticationConverter
     ) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
@@ -49,7 +50,8 @@ public class Rbac3AdminSecurityConfiguration {
                                 "/api/rbac3/v1/auth/jwks")
                         .permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> { }))
+                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(
+                        jwt -> jwt.jwtAuthenticationConverter(authenticationConverter)))
                 .addFilterAfter(tenantFilter, AnonymousAuthenticationFilter.class)
                 .build();
     }

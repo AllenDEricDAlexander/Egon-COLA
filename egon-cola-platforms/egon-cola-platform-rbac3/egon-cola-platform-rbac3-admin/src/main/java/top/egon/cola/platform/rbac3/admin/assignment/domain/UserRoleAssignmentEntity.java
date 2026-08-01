@@ -103,6 +103,24 @@ public class UserRoleAssignmentEntity extends TenantScopedEntity {
         markUpdated(actorId, now);
     }
 
+    public void activate(String actorId, Instant now) {
+        if (status != Status.PENDING || validFrom.isAfter(now)
+                || validTo != null && !validTo.isAfter(now)) {
+            throw new IllegalStateException("assignment is not activatable");
+        }
+        status = Status.ACTIVE;
+        markUpdated(actorId, now);
+    }
+
+    public void expire(String actorId, Instant now) {
+        if (status != Status.ACTIVE && status != Status.SUSPENDED
+                || validTo == null || validTo.isAfter(now)) {
+            throw new IllegalStateException("assignment is not expirable");
+        }
+        status = Status.EXPIRED;
+        markUpdated(actorId, now);
+    }
+
     public Long getId() {
         return id;
     }

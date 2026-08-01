@@ -7,15 +7,19 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.AuthorizationMutationEntity;
+import top.egon.cola.platform.rbac3.admin.worker.AuthorizationMutationRecoveryWorker;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Repository
 public class AuthorizationMutationRepository implements
         AuthorizationMutationCoordinator.MutationStore,
-        RuntimeQueryService.MutationQueryPort {
+        RuntimeQueryService.MutationQueryPort,
+        AuthorizationMutationRecoveryWorker.RecoveryStore {
 
     private final EntityManager entityManager;
 
@@ -102,6 +106,73 @@ public class AuthorizationMutationRepository implements
                 pageRows.stream().map(this::toView).toList(), nextCursor);
     }
 
+    @Override
+    @Transactional
+    public Optional<AuthorizationMutationRecoveryWorker.MutationWork> claimById(
+            String tenantId,
+            String mutationId) {
+        List<AuthorizationMutationEntity> rows = entityManager.createQuery("""
+                        select m from AuthorizationMutationEntity m
+                         where m.tenantId = :tenantId
+                           and m.mutationId = :mutationId
+                        """, AuthorizationMutationEntity.class)
+                .setParameter("tenantId", Long.valueOf(tenantId))
+                .setParameter("mutationId", Long.valueOf(mutationId))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .setMaxResults(1)
+                .getResultList();
+        return rows.stream().findFirst().map(this::toWork);
+    }
+
+    @Override
+    @Transactional
+    public List<AuthorizationMutationRecoveryWorker.MutationWork> claimRecoverable(
+            int batchSize) {
+        @SuppressWarnings("unchecked")
+        List<Number> mutationIds = entityManager.createNativeQuery("""
+                        select mutation_id
+                          from rbac3_authorization_mutation
+                         where status in ('COMMITTED', 'PROJECTED', 'RECOVERY_REQUIRED')
+                         order by updated_at, mutation_id
+                         for update skip locked
+                         limit :batchSize
+                        """)
+                .setParameter("batchSize", batchSize)
+                .getResultList();
+        return mutationIds.stream()
+                .map(Number::longValue)
+                .map(id -> entityManager.find(AuthorizationMutationEntity.class, id))
+                .filter(java.util.Objects::nonNull)
+                .map(this::toWork)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void completed(String mutationId, Instant now, String actorId) {
+        AuthorizationMutationEntity mutation = locked(mutationId);
+        if (mutation.getStatus() == AuthorizationMutationEntity.Status.COMPLETED) {
+            return;
+        }
+        if (mutation.getStatus() != AuthorizationMutationEntity.Status.PROJECTED) {
+            mutation.projected(now, actorId);
+        }
+        mutation.completed(now, actorId);
+    }
+
+    @Override
+    @Transactional
+    public void failed(
+            String mutationId,
+            String reasonCode,
+            Instant now,
+            String actorId) {
+        AuthorizationMutationEntity mutation = locked(mutationId);
+        if (mutation.getStatus() != AuthorizationMutationEntity.Status.COMPLETED) {
+            mutation.recoveryRequired(reasonCode, now, actorId);
+        }
+    }
+
     private RuntimeQueryService.MutationView toView(
             AuthorizationMutationEntity mutation) {
         String scopeId = switch (mutation.getScopeType()) {
@@ -115,6 +186,31 @@ public class AuthorizationMutationRepository implements
                 mutation.getCommandId(), mutation.getStatus().name(),
                 mutation.getAttempt(), mutation.getLastErrorCode(),
                 mutation.getUpdatedAt());
+    }
+
+    private AuthorizationMutationRecoveryWorker.MutationWork toWork(
+            AuthorizationMutationEntity mutation) {
+        String scopeId = switch (mutation.getScopeType()) {
+            case USER -> String.valueOf(mutation.getUserId());
+            case SESSION -> String.valueOf(mutation.getSessionId());
+            case TENANT -> String.valueOf(mutation.getTenantId());
+        };
+        return new AuthorizationMutationRecoveryWorker.MutationWork(
+                mutation.getMutationId().toString(),
+                mutation.getTenantId().toString(),
+                mutation.getScopeType().name(),
+                scopeId,
+                mutation.getStatus().name());
+    }
+
+    private AuthorizationMutationEntity locked(String mutationId) {
+        AuthorizationMutationEntity mutation = entityManager.find(
+                AuthorizationMutationEntity.class, Long.valueOf(mutationId),
+                LockModeType.PESSIMISTIC_WRITE);
+        if (mutation == null) {
+            throw new IllegalStateException("authorization mutation is missing");
+        }
+        return mutation;
     }
 
     private static Long parseCursor(String cursor) {

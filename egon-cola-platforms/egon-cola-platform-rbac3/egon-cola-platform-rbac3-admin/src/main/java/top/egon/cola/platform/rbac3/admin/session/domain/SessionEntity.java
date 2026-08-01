@@ -182,6 +182,18 @@ public class SessionEntity extends TenantScopedEntity {
         markUpdated(actorId, now);
     }
 
+    public boolean revoke(String reason, String actorId, Instant now) {
+        if (status != Status.ACTIVE) {
+            return false;
+        }
+        status = Status.REVOKED;
+        sessionVersion = Math.incrementExact(sessionVersion);
+        revokedAt = now;
+        revokeReason = required(reason, "reason");
+        markUpdated(actorId, now);
+        return true;
+    }
+
     public void requireActive(Instant now) {
         if (status != Status.ACTIVE) {
             throw new IllegalStateException("session is not active");
@@ -229,6 +241,10 @@ public class SessionEntity extends TenantScopedEntity {
 
     public Instant getLastSeenAt() {
         return lastSeenAt;
+    }
+
+    public Instant getAuthenticatedAt() {
+        return authenticatedAt;
     }
 
     public Instant getIdleExpiresAt() {

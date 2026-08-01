@@ -1,0 +1,55 @@
+spring:
+  datasource:
+    url: ${RBAC3_POSTGRES_URL:jdbc:postgresql://localhost:5432/rbac3}
+    username: ${RBAC3_POSTGRES_USER:postgres}
+    password: ${RBAC3_POSTGRES_PASSWORD:postgres}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          public-key-location: ${RBAC3_JWT_PUBLIC_KEY_LOCATION:classpath:rbac3-local-public.pem}
+
+server:
+  port: ${RBAC3_ADVERTISED_PORT:0}
+
+egon:
+  rbac3:
+    component-keys: ${RBAC3_COMPONENT_KEYS:rbac3-page}
+    runtime:
+      redis-address: ${RBAC3_RUNTIME_REDIS_ADDRESS:redis://localhost:6379}
+      redis-password-file: ${RBAC3_RUNTIME_REDIS_PASSWORD_FILE:}
+    gateway-status:
+      admin-base-url: ${GATEWAY_ADMIN_BASE_URL:http://localhost:8088}
+      gateway-group-id: ${GATEWAY_GROUP_ID:local}
+      release-id: ${GATEWAY_RELEASE_ID:local}
+      oauth-token-file: ${GATEWAY_STATUS_OAUTH_TOKEN_FILE:build/local-gateway-status-token.json}
+    security:
+      jwt-private-key-file: ${RBAC3_JWT_PRIVATE_KEY_FILE:build/local-rbac3-private.pem}
+      jwt-public-key-file: ${RBAC3_JWT_PUBLIC_KEY_FILE:build/local-rbac3-public.pem}
+      jwt-kid: ${RBAC3_JWT_KID:rbac3-local}
+      issuer: ${RBAC3_JWT_ISSUER:http://localhost:8080}
+      audiences: ${RBAC3_JWT_AUDIENCES:rbac3-local}
+      audit-cursor-secret-file: ${RBAC3_AUDIT_CURSOR_SECRET_FILE:build/local-audit-secret}
+  cola:
+    component:
+      id:
+        machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID:0}
+      ddc:
+        env: local
+        registry:
+          enabled: false
+      gateway:
+        reporting:
+          enabled: false
+          env: local
+          namespace: default
+          application-code: rbac3-admin
+          artifact-version: local
+        provider:
+          http:
+            enabled: false
+            port: 0
+      transactional-outbox:
+        node-id: rbac3-local
+        polling:
+          enabled: false

@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
 import top.egon.cola.platform.rbac3.admin.session.domain.RefreshTokenEntity;
+import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
 
 import java.time.Instant;
 import java.util.List;
@@ -52,8 +53,13 @@ public class RefreshTokenRepository implements RefreshTokenService.RefreshTokenS
         var session = sessionRepository.lockByTenantIdAndSessionId(
                         current.getTenantId(), current.getSessionId())
                 .orElseThrow(() -> new IllegalStateException("refresh session is missing"));
+        TenantEntity tenant = entityManager.find(
+                TenantEntity.class, current.getTenantId(), LockModeType.PESSIMISTIC_READ);
+        if (tenant == null || tenant.getStatus() != TenantEntity.Status.ACTIVE) {
+            throw new IllegalStateException("refresh tenant is unavailable");
+        }
         session.refresh(
-                session.getPolicyVersionAtIssue(),
+                tenant.getPolicyVersion(),
                 oldToken.rotatedAt(),
                 oldToken.rotatedAt().plusSeconds(30 * 60L),
                 "refresh");

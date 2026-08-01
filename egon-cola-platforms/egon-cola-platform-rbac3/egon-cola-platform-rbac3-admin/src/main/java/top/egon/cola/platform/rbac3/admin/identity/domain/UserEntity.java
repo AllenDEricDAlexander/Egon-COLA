@@ -92,12 +92,24 @@ public class UserEntity extends TenantScopedEntity {
         return normalizedUsername;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
     public Status getStatus() {
         return status;
     }
 
     public long getAuthVersion() {
         return authVersion;
+    }
+
+    public long getDirectorySnapshotVersion() {
+        return directorySnapshotVersion;
     }
 
     public long advanceAuthorizationVersion(

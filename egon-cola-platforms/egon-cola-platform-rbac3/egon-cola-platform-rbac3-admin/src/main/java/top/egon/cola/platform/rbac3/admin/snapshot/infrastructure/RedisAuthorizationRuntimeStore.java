@@ -118,6 +118,12 @@ public class RedisAuthorizationRuntimeStore implements
         return result != null && result.intValue() == 1;
     }
 
+    public void removeSessionFence(String tenantId, String sessionId) {
+        redisson.getBucket(
+                keyFactory.sessionFence(tenantId, sessionId), StringCodec.INSTANCE)
+                .delete();
+    }
+
     @Override
     public AuthorizationDecisionService.SnapshotRecord load(
             String tenantId,
