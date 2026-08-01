@@ -12,6 +12,18 @@ export type Decision = 'ALLOW' | 'DENY' | 'INDETERMINATE'
 
 export type FieldAccessLevel = 'NONE' | 'MASKED_READ' | 'READ' | 'WRITE'
 
+export type Rbac3State =
+  | 'UNINITIALIZED'
+  | 'LOADING_BOOTSTRAP'
+  | 'ACTIVATION_REQUIRED'
+  | 'REPLACING_ACTIVE_ROLES'
+  | 'READY'
+  | 'REFRESHING_VERSION'
+  | 'AUTHENTICATION_REQUIRED'
+  | 'FORBIDDEN_NO_ROUTE'
+  | 'ERROR_RETRYABLE'
+  | 'ERROR_FATAL'
+
 export interface ActivationRoot {
   readonly roleId: BigintId
   readonly applicationId: BigintId
@@ -397,4 +409,24 @@ export interface BusinessParticipationCommand {
   readonly businessEventId: string
   readonly occurredAt: InstantString
   readonly traceId: string
+}
+
+export interface Rbac3Client {
+  getActivationCandidates(): Promise<RoleActivationCandidateView>
+  getActiveRoles(): Promise<ActiveRoleSetView>
+  replaceActiveRoles(
+    request: ReplaceActiveRolesRequest,
+  ): Promise<ReplaceActiveRolesResult>
+  getBootstrap(): Promise<BootstrapView>
+  refresh(): Promise<RefreshResult>
+  logout(): Promise<void>
+}
+
+export interface ApiEnvelope<T> {
+  readonly data: T
+  readonly meta: {
+    readonly requestId: string
+    readonly traceId: string
+    readonly timestamp: InstantString
+  }
 }

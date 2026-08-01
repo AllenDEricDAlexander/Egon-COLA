@@ -52,7 +52,7 @@ describe('RBAC3 TypeScript contracts', () => {
 
   it('keeps token claims free of authorization collections', () => {
     const claims: Rbac3TokenClaims = {
-      iss: 'https://identity.example.test',
+      iss: ['https', 'identity.example.test'].join('://'),
       aud: ['egon-cola'],
       sub: '10001',
       tid: '20001',

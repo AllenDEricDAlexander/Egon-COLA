@@ -110,3 +110,25 @@ export interface Rbac3ErrorResponse {
 
 export const getRbac3ErrorDefinition = (code: Rbac3ErrorCode) =>
   RBAC3_ERROR_DEFINITIONS[code]
+
+export class Rbac3RequestError extends Error {
+  readonly status: number
+  readonly code: Rbac3ErrorCode | 'NETWORK_ERROR' | 'INVALID_RESPONSE'
+  readonly retryable: boolean
+  readonly traceId: string | null
+
+  constructor(options: {
+    readonly status: number
+    readonly code: Rbac3ErrorCode | 'NETWORK_ERROR' | 'INVALID_RESPONSE'
+    readonly message: string
+    readonly retryable: boolean
+    readonly traceId?: string | null
+  }) {
+    super(options.message)
+    this.name = 'Rbac3RequestError'
+    this.status = options.status
+    this.code = options.code
+    this.retryable = options.retryable
+    this.traceId = options.traceId ?? null
+  }
+}
