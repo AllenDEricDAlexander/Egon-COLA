@@ -1,9 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.session.application;
 
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
@@ -18,36 +18,24 @@ public final class SessionFacade {
     private final LongIdGenerator idGenerator;
     private final SessionStore sessionStore;
     private final SecureRandom secureRandom;
-    private final Duration idleTimeout;
-    private final Duration absoluteTimeout;
-    private final Duration refreshLifetime;
+    private final Rbac3RuntimePolicy runtimePolicy;
 
     public SessionFacade(
             LongIdGenerator idGenerator,
             SessionStore sessionStore,
-            Duration idleTimeout,
-            Duration absoluteTimeout,
-            Duration refreshLifetime) {
-        this(idGenerator, sessionStore, new SecureRandom(), idleTimeout, absoluteTimeout,
-                refreshLifetime);
+            Rbac3RuntimePolicy runtimePolicy) {
+        this(idGenerator, sessionStore, new SecureRandom(), runtimePolicy);
     }
 
     SessionFacade(
             LongIdGenerator idGenerator,
             SessionStore sessionStore,
             SecureRandom secureRandom,
-            Duration idleTimeout,
-            Duration absoluteTimeout,
-            Duration refreshLifetime) {
+            Rbac3RuntimePolicy runtimePolicy) {
         this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.sessionStore = Objects.requireNonNull(sessionStore, "sessionStore");
         this.secureRandom = Objects.requireNonNull(secureRandom, "secureRandom");
-        this.idleTimeout = bounded(idleTimeout, Duration.ofMinutes(5), Duration.ofHours(8),
-                "idleTimeout");
-        this.absoluteTimeout = bounded(absoluteTimeout, Duration.ofHours(1), Duration.ofHours(24),
-                "absoluteTimeout");
-        this.refreshLifetime = bounded(refreshLifetime, Duration.ofDays(1), Duration.ofDays(30),
-                "refreshLifetime");
+        this.runtimePolicy = Objects.requireNonNull(runtimePolicy, "runtimePolicy");
     }
 
     public IssuedSession create(
@@ -57,12 +45,13 @@ public final class SessionFacade {
             long policyVersion,
             String deviceIdHash,
             Instant now) {
+        Rbac3RuntimePolicy.Snapshot policySnapshot = runtimePolicy.current();
         long entityId = idGenerator.nextLongId();
         String sessionId = idGenerator.nextId();
         String familyId = idGenerator.nextId();
         String refreshTokenId = idGenerator.nextId();
         String rawRefreshToken = randomToken();
-        Instant absoluteExpiry = now.plus(absoluteTimeout);
+        Instant absoluteExpiry = now.plus(policySnapshot.sessionAbsoluteTimeout());
         SessionRecord session = new SessionRecord(
                 Long.toString(entityId),
                 tenantId,
@@ -76,7 +65,7 @@ public final class SessionFacade {
                 familyId,
                 deviceIdHash == null ? null : RefreshTokenService.hash(deviceIdHash),
                 now,
-                now.plus(idleTimeout),
+                now.plus(policySnapshot.sessionIdleTimeout()),
                 absoluteExpiry);
         RefreshTokenService.TokenRecord refreshToken = RefreshTokenService.TokenRecord.active(
                 refreshTokenId,
@@ -85,7 +74,7 @@ public final class SessionFacade {
                 familyId,
                 0,
                 RefreshTokenService.hash(rawRefreshToken),
-                now.plus(refreshLifetime));
+                now.plus(policySnapshot.refreshTokenTtl()));
         sessionStore.create(session, refreshToken, now);
         return new IssuedSession(session, rawRefreshToken, refreshToken.expiresAt());
     }
@@ -98,18 +87,6 @@ public final class SessionFacade {
         byte[] bytes = new byte[REFRESH_TOKEN_BYTES];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private static Duration bounded(
-            Duration value,
-            Duration minimum,
-            Duration maximum,
-            String fieldName) {
-        Objects.requireNonNull(value, fieldName);
-        if (value.compareTo(minimum) < 0 || value.compareTo(maximum) > 0) {
-            throw new IllegalArgumentException(fieldName + " is outside the allowed range");
-        }
-        return value;
     }
 
     public interface SessionStore {

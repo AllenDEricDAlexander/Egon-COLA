@@ -12,6 +12,7 @@ import top.egon.cola.platform.rbac3.admin.activation.infrastructure.RoleActivati
 import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.assignment.infrastructure.AssignmentRepository;
@@ -226,10 +227,8 @@ public class Rbac3ApplicationConfiguration {
     SessionFacade sessionFacade(
             LongIdGenerator idGenerator,
             JpaSessionStore store,
-            Rbac3AdminProperties properties) {
-        return new SessionFacade(
-                idGenerator, store, properties.getSessionIdleTimeout(),
-                properties.getSessionAbsoluteTimeout(), properties.getRefreshTokenTtl());
+            Rbac3RuntimePolicy runtimePolicy) {
+        return new SessionFacade(idGenerator, store, runtimePolicy);
     }
 
     @Bean

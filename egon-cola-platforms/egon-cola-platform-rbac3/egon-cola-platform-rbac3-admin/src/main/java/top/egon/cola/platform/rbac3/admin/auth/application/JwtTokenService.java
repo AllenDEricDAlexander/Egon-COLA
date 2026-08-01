@@ -6,9 +6,9 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -23,7 +23,7 @@ public final class JwtTokenService {
     private final LongIdGenerator idGenerator;
     private final String issuer;
     private final List<String> audiences;
-    private final Duration accessTokenLifetime;
+    private final Rbac3RuntimePolicy runtimePolicy;
 
     public JwtTokenService(
             JwtEncoder jwtEncoder,
@@ -31,7 +31,7 @@ public final class JwtTokenService {
             LongIdGenerator idGenerator,
             String issuer,
             List<String> audiences,
-            Duration accessTokenLifetime) {
+            Rbac3RuntimePolicy runtimePolicy) {
         this.jwtEncoder = Objects.requireNonNull(jwtEncoder, "jwtEncoder");
         this.keyRing = Objects.requireNonNull(keyRing, "keyRing");
         this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
@@ -40,19 +40,15 @@ public final class JwtTokenService {
         if (this.audiences.isEmpty()) {
             throw new IllegalArgumentException("at least one audience is required");
         }
-        this.accessTokenLifetime = Objects.requireNonNull(
-                accessTokenLifetime, "accessTokenLifetime");
-        if (accessTokenLifetime.compareTo(Duration.ofMinutes(5)) < 0
-                || accessTokenLifetime.compareTo(Duration.ofMinutes(30)) > 0) {
-            throw new IllegalArgumentException("access token lifetime must be 5 to 30 minutes");
-        }
+        this.runtimePolicy = Objects.requireNonNull(runtimePolicy, "runtimePolicy");
     }
 
     public IssuedAccessToken issue(AccessTokenSubject subject, Instant now) {
         Objects.requireNonNull(subject, "subject");
         Objects.requireNonNull(now, "now");
+        Rbac3RuntimePolicy.Snapshot policySnapshot = runtimePolicy.current();
         JwtKeyRingService.KeyDescriptor signingKey = keyRing.signingKey();
-        Instant expiresAt = now.plus(accessTokenLifetime);
+        Instant expiresAt = now.plus(policySnapshot.accessTokenTtl());
         Rbac3TokenClaims claims = new Rbac3TokenClaims(
                 issuer,
                 audiences,
