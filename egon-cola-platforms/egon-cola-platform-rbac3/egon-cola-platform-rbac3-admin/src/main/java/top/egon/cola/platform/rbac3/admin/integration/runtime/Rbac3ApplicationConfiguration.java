@@ -130,10 +130,11 @@ public class Rbac3ApplicationConfiguration {
             SessionSnapshotProjector projector,
             RedisAuthorizationRuntimeStore runtimeStore,
             JwtTokenService tokenService,
+            Rbac3RuntimePolicy runtimePolicy,
             Clock clock) {
         return new RoleActivationFacade(
                 factStore, transaction, projector, runtimeStore,
-                RoleActivationFacade.jwtIssuer(tokenService), clock);
+                RoleActivationFacade.jwtIssuer(tokenService), runtimePolicy, clock);
     }
 
     @Bean

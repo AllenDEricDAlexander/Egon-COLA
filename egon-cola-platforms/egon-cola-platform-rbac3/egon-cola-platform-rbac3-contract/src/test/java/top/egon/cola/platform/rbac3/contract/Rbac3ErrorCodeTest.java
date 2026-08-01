@@ -52,6 +52,7 @@ class Rbac3ErrorCodeTest {
                 "ROLE_ACTIVATION_VERSION_CONFLICT",
                 "IDEMPOTENCY_CONFLICT",
                 "ROLE_ACTIVATION_SET_INVALID",
+                "ACTIVE_ROLE_ROOT_LIMIT_EXCEEDED",
                 "ROLE_FAMILY_SIZE_LIMIT_EXCEEDED",
                 "AUTH_RUNTIME_UNAVAILABLE",
                 "AUTH_PROPAGATION_PENDING",
@@ -102,6 +103,8 @@ class Rbac3ErrorCodeTest {
                 false,
                 Rbac3ErrorCode.ROLE_APPLICATION_MISMATCH.retryable()
         );
+        assertEquals(422, Rbac3ErrorCode.ACTIVE_ROLE_ROOT_LIMIT_EXCEEDED.httpStatus());
+        assertEquals(false, Rbac3ErrorCode.ACTIVE_ROLE_ROOT_LIMIT_EXCEEDED.retryable());
     }
 
     @Test

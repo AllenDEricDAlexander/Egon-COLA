@@ -33,6 +33,7 @@ class RoleActivationConcurrencyIT {
                 (tenantId, userId, sessionId, authVersion, sessionVersion,
                         policyVersion, now) -> new RoleActivationFacade.IssuedToken(
                         "token-" + sessionVersion, now.plusSeconds(900)),
+                RoleActivationFacadeIT.policy(),
                 Clock.fixed(Instant.parse("2026-07-30T12:00:00Z"), ZoneOffset.UTC));
         Callable<Boolean> first = () -> replace(facade, "10", "command-a");
         Callable<Boolean> second = () -> replace(facade, "20", "command-b");

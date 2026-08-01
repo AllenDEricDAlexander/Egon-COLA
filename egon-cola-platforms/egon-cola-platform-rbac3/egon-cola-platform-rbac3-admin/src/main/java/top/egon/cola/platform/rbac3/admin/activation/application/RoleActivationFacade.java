@@ -1,5 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.activation.application;
 
+import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
@@ -36,6 +37,7 @@ public final class RoleActivationFacade {
     private final SessionSnapshotProjector snapshotProjector;
     private final RuntimeStore runtimeStore;
     private final AccessTokenIssuer accessTokenIssuer;
+    private final Rbac3RuntimePolicy runtimePolicy;
     private final Clock clock;
 
     public RoleActivationFacade(
@@ -44,10 +46,11 @@ public final class RoleActivationFacade {
             SessionSnapshotProjector snapshotProjector,
             RuntimeStore runtimeStore,
             AccessTokenIssuer accessTokenIssuer,
+            Rbac3RuntimePolicy runtimePolicy,
             Clock clock
     ) {
         this(factSource, transaction, new DefaultRoleActivationResolver(),
-                snapshotProjector, runtimeStore, accessTokenIssuer, clock);
+                snapshotProjector, runtimeStore, accessTokenIssuer, runtimePolicy, clock);
     }
 
     RoleActivationFacade(
@@ -57,6 +60,7 @@ public final class RoleActivationFacade {
             SessionSnapshotProjector snapshotProjector,
             RuntimeStore runtimeStore,
             AccessTokenIssuer accessTokenIssuer,
+            Rbac3RuntimePolicy runtimePolicy,
             Clock clock
     ) {
         this.factSource = Objects.requireNonNull(factSource, "factSource");
@@ -67,6 +71,7 @@ public final class RoleActivationFacade {
         this.runtimeStore = Objects.requireNonNull(runtimeStore, "runtimeStore");
         this.accessTokenIssuer = Objects.requireNonNull(
                 accessTokenIssuer, "accessTokenIssuer");
+        this.runtimePolicy = Objects.requireNonNull(runtimePolicy, "runtimePolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -88,6 +93,7 @@ public final class RoleActivationFacade {
                     session.sessionVersion(),
                     facts.policyVersion(),
                     now));
+            requireWithinRootLimit(resolution);
             requireAuthenticationStrength(session, resolution, facts, now);
             return new ResolvedActivation(resolution, facts);
         });
@@ -197,6 +203,16 @@ public final class RoleActivationFacade {
         };
         if (actual < required) {
             throw new Rbac3RuleViolation("STEP_UP_REQUIRED");
+        }
+    }
+
+    private void requireWithinRootLimit(RoleActivationResolution resolution) {
+        int actual = resolution.activeRoleSet().rootIds().size();
+        int maximum = runtimePolicy.current().maximumActiveRoots();
+        if (actual > maximum) {
+            throw new Rbac3RuleViolation(
+                    "ACTIVE_ROLE_ROOT_LIMIT_EXCEEDED",
+                    List.of(Integer.toString(actual), Integer.toString(maximum)));
         }
     }
 
