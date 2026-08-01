@@ -6,6 +6,7 @@ import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayDefinitionS
 import top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntimeStatusPort;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -48,7 +49,9 @@ public final class GatewayDdcRuntimeStatusService
         var definitionStatus = definition.get();
         var leaseStatus = lease.get();
         var gateway = gatewayAdmin.snapshot();
-        String routeability = routeability(definitionStatus, leaseStatus, gateway);
+        Instant checkedAt = clock.instant();
+        String routeability = routeability(
+                definitionStatus, leaseStatus, gateway, checkedAt);
         return new RuntimeStatus(
                 new DefinitionStatus(
                         definitionStatus.status(), definitionStatus.definitionSetId(),
@@ -59,18 +62,21 @@ public final class GatewayDdcRuntimeStatusService
                 new GatewayReleaseStatus(
                         gateway.release().releaseId(), routeability,
                         gateway.consistency().observedVersion()),
-                clock.instant());
+                checkedAt);
     }
 
     private String routeability(
             GatewayDefinitionStatusService.DefinitionStatus definitionStatus,
             DdcProviderLeaseStatusService.ProviderLeaseStatus leaseStatus,
-            GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot gateway) {
+            GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot gateway,
+            Instant checkedAt) {
         if (unknown(gateway)) {
             return "UNKNOWN";
         }
         if (!definitionStatus.accepted()
                 || !"REGISTERED".equals(leaseStatus.state())
+                || leaseStatus.leaseExpireAt() == null
+                || !leaseStatus.leaseExpireAt().isAfter(checkedAt)
                 || !expectedIdentity.equals(definitionStatus.identity())
                 || !expectedIdentity.equals(leaseStatus.identity())
                 || !"SUCCESS".equals(gateway.release().releaseStatus())

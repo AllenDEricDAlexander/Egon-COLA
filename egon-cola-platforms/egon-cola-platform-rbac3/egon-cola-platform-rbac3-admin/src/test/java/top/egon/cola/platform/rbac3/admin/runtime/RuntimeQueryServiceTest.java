@@ -43,6 +43,11 @@ class RuntimeQueryServiceTest {
         assertThat(service.gatewayDdcStatus().definition()).isEqualTo(expected.definition());
         assertThat(service.gatewayDdcStatus().providerLease()).isEqualTo(expected.providerLease());
         assertThat(service.gatewayDdcStatus().gatewayRelease()).isEqualTo(expected.gatewayRelease());
+        assertThat(service.gatewayDdcStatus().ddcConfigClient().instanceId())
+                .isNotEqualTo(service.gatewayDdcStatus().providerLease().instanceId());
+        assertThat(service.gatewayDdcStatus().ddcConfigClient().state()).isEqualTo("READY");
+        assertThat(service.gatewayDdcStatus().providerLease().state())
+                .isEqualTo("RECOVERING");
     }
 
     @Test

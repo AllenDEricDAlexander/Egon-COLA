@@ -23,6 +23,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -132,15 +133,26 @@ class GatewayDdcConfigurationTest {
     @Test
     void routeabilityRequiresExactDefinitionLeaseProviderAndReleaseIdentity() {
         var definition = definition("definition-1");
-        var lease = new DdcProviderLeaseStatusService.ProviderLeaseStatus(
-                "REGISTERED", "instance-1", NOW.plusSeconds(30), IDENTITY);
+        var lease = new AtomicReference<>(
+                new DdcProviderLeaseStatusService.ProviderLeaseStatus(
+                        "REGISTERED", "instance-1", NOW.plusSeconds(30), IDENTITY));
         var client = mock(GatewayAdminControlPlaneStatusClient.class);
         when(client.snapshot()).thenReturn(snapshot("definition-1", "1.0.0", IDENTITY));
         var status = new GatewayDdcRuntimeStatusService(
-                () -> definition, () -> lease, client, IDENTITY,
+                () -> definition, lease::get, client, IDENTITY,
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
         assertThat(status.status().gatewayRelease().status()).isEqualTo("ROUTABLE");
+
+        when(client.snapshot()).thenReturn(snapshotWithReleaseStatus("ACTIVATING"));
+        assertThat(status.status().gatewayRelease().status()).isEqualTo("NOT_ROUTABLE");
+
+        when(client.snapshot()).thenReturn(snapshot("definition-1", "1.0.0", IDENTITY));
+        lease.set(new DdcProviderLeaseStatusService.ProviderLeaseStatus(
+                "REGISTERED", "instance-1", NOW.minusSeconds(1), IDENTITY));
+        assertThat(status.status().gatewayRelease().status()).isEqualTo("NOT_ROUTABLE");
+        lease.set(new DdcProviderLeaseStatusService.ProviderLeaseStatus(
+                "REGISTERED", "instance-1", NOW.plusSeconds(30), IDENTITY));
 
         var wrongIdentity = new GatewayDdcRuntimeStatusService.ServiceIdentity(
                 "other-biz", "rbac3-admin", "prod", "default",
@@ -162,6 +174,17 @@ class GatewayDdcConfigurationTest {
                                 "UNKNOWN", null, null, false, null,
                                 "GATEWAY_STATUS_UNAVAILABLE"), NOW)));
         assertThat(status.status().gatewayRelease().status()).isEqualTo("UNKNOWN");
+    }
+
+    private GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot
+    snapshotWithReleaseStatus(String releaseStatus) {
+        GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot routable =
+                snapshot("definition-1", "1.0.0", IDENTITY);
+        return new GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot(
+                new GatewayAdminControlPlaneStatusClient.ReleaseObservation(
+                        "SUCCESS", "release-1", releaseStatus,
+                        "definition-1", "1.0.0", null),
+                routable.providers(), routable.consistency(), NOW);
     }
 
     private GatewayDefinitionStatusService.DefinitionStatus definition(String id) {
