@@ -4,6 +4,8 @@ import { useScopeOptions } from './useScopeOptions'
 type Props = {
   value?: string
   onChange?: (value: string) => void
+  bizCode?: string
+  namespaceCode?: string
   disabled?: boolean
   placeholder?: string
 }
@@ -15,8 +17,8 @@ const toValue = (values: string[]): string => values[0] ?? ''
 const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
-export default function EnvSelect({ value, onChange, disabled, placeholder = '请选择或输入环境' }: Props) {
-  const { envs, loading } = useScopeOptions('', '')
+export default function EnvSelect({ value, onChange, bizCode = '', namespaceCode = '', disabled, placeholder = '请选择或输入环境' }: Props) {
+  const { envs, loading } = useScopeOptions(bizCode, namespaceCode, '')
   return (
     <Select
       mode="tags"

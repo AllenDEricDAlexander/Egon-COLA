@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { message } from 'antd'
 import { ddcApi } from '../../api/client'
-import type { DdcApp, DdcBiz, DdcEnv, DdcNamespace } from '../../api/types'
 
 export type ScopeOption = { value: string; label: string }
 
@@ -21,7 +20,7 @@ const fetchOptions = (path: string): Promise<ScopeOption[]> => {
       if (typeof item === 'string') return { value: item, label: item }
       const record = item as Record<string, unknown>
       const name = String(record.bizName ?? record.appName ?? record.namespace ?? record.description ?? '').trim()
-      const code = String(record.appCode ?? record.bizCode ?? record.namespace ?? record.envCode ?? '')
+      const code = String(record.appCode ?? record.bizCode ?? record.namespaceCode ?? record.envCode ?? '')
       return { value: code, label: name ? `${code}（${name}）` : code }
     })
   })
@@ -32,9 +31,14 @@ const fetchOptions = (path: string): Promise<ScopeOption[]> => {
   return promise
 }
 
-const withParam = (path: string, key: string, value: string): string => {
-  const trimmed = value.trim()
-  return trimmed === '' ? path : `${path}?${key}=${encodeURIComponent(trimmed)}`
+const withParams = (path: string, values: Record<string, string>): string => {
+  const params = new URLSearchParams()
+  Object.entries(values).forEach(([key, value]) => {
+    const trimmed = value.trim()
+    if (trimmed !== '') params.set(key, trimmed)
+  })
+  const query = params.toString()
+  return query === '' ? path : `${path}?${query}`
 }
 
 const messageError = (error: unknown): void => {
@@ -42,10 +46,14 @@ const messageError = (error: unknown): void => {
 }
 
 /**
- * 作用域选项加载：业务域 → 应用（按 biz 过滤）→ 命名空间（按 app 过滤），
- * 环境独立从后端实体拉取。级联变化时清空下级并重载。
+ * 作用域选项加载：业务域 → 命名空间 → 环境 → 应用。
+ * 每一级都使用已选择的上级作用域过滤；空值保留为可选筛选。
  */
-export function useScopeOptions(bizCode: string, appCode: string): {
+export function useScopeOptions(
+  bizCode: string,
+  namespaceCode: string,
+  env: string,
+): {
   bizs: ScopeOption[]
   apps: ScopeOption[]
   namespaces: ScopeOption[]
@@ -64,52 +72,56 @@ export function useScopeOptions(bizCode: string, appCode: string): {
     setBizs(options)
   }, [])
 
+  const namespacePath = withParams('/api/v1/ddc/namespaces', { bizCode })
+  const envPath = withParams('/api/v1/ddc/envs', { bizCode, namespaceCode })
+  const appPath = withParams('/api/v1/ddc/apps', { bizCode, namespaceCode, env })
+
+  const loadNamespaces = useCallback(async () => {
+    const options = await fetchOptions(namespacePath)
+    setNamespaces(options)
+  }, [namespacePath])
+
   const loadEnvs = useCallback(async () => {
-    const options = await fetchOptions('/api/v1/ddc/envs')
+    const options = await fetchOptions(envPath)
     setEnvs(options)
-  }, [])
+  }, [envPath])
 
   const loadApps = useCallback(async () => {
     setLoading(true)
     try {
-      const options = await fetchOptions(withParam('/api/v1/ddc/apps', 'biz', bizCode))
+      const options = await fetchOptions(appPath)
       setApps(options)
     } finally {
       setLoading(false)
     }
-  }, [bizCode])
-
-  const loadNamespaces = useCallback(async () => {
-    const options = await fetchOptions(withParam('/api/v1/ddc/namespaces', 'appCode', appCode))
-    setNamespaces(options)
-  }, [appCode])
+  }, [appPath])
 
   useEffect(() => {
-    loadBizs().catch(messageError)
+    void Promise.resolve().then(loadBizs).catch(messageError)
   }, [loadBizs])
 
   useEffect(() => {
-    loadEnvs().catch(messageError)
+    void Promise.resolve().then(loadEnvs).catch(messageError)
   }, [loadEnvs])
 
   useEffect(() => {
-    loadApps().catch(messageError)
+    void Promise.resolve().then(loadApps).catch(messageError)
   }, [loadApps])
 
   useEffect(() => {
-    loadNamespaces().catch(messageError)
+    void Promise.resolve().then(loadNamespaces).catch(messageError)
   }, [loadNamespaces])
 
   const reload = useCallback(() => {
     cache.delete('/api/v1/ddc/bizs')
-    cache.delete('/api/v1/ddc/envs')
-    cache.delete(withParam('/api/v1/ddc/apps', 'biz', bizCode))
-    cache.delete(withParam('/api/v1/ddc/namespaces', 'appCode', appCode))
+    cache.delete(namespacePath)
+    cache.delete(envPath)
+    cache.delete(appPath)
     void loadBizs().catch(messageError)
     void loadEnvs().catch(messageError)
     void loadApps().catch(messageError)
     void loadNamespaces().catch(messageError)
-  }, [bizCode, appCode, loadBizs, loadEnvs, loadApps, loadNamespaces])
+  }, [namespacePath, envPath, appPath, loadBizs, loadEnvs, loadApps, loadNamespaces])
 
   return { bizs, apps, namespaces, envs, loading, reload }
 }

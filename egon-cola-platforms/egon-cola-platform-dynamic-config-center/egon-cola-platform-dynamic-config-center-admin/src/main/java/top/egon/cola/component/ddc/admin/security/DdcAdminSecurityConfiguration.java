@@ -78,6 +78,7 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/envs/*",
                                 "/api/v1/ddc/namespaces",
                                 "/api/v1/ddc/namespaces/*",
+                                "/api/v1/ddc/namespace-env-app-bindings",
                                 "/api/v1/ddc/instances",
                                 "/api/v1/ddc/registry/**",
                                 "/api/v1/ddc/publish-tasks",
@@ -93,7 +94,8 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/apps",
                                 "/api/v1/ddc/bizs",
                                 "/api/v1/ddc/envs",
-                                "/api/v1/ddc/namespaces"
+                                "/api/v1/ddc/namespaces",
+                                "/api/v1/ddc/namespace-env-app-bindings"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()
@@ -108,7 +110,8 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/envs/*",
                                 "/api/v1/ddc/envs/*/enabled",
                                 "/api/v1/ddc/namespaces/*",
-                                "/api/v1/ddc/namespaces/*/enabled"
+                                "/api/v1/ddc/namespaces/*/enabled",
+                                "/api/v1/ddc/namespace-env-app-bindings/*"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()
@@ -119,7 +122,8 @@ public class DdcAdminSecurityConfiguration {
                                 "/api/v1/ddc/apps/*",
                                 "/api/v1/ddc/bizs/*",
                                 "/api/v1/ddc/envs/*",
-                                "/api/v1/ddc/namespaces/*"
+                                "/api/v1/ddc/namespaces/*",
+                                "/api/v1/ddc/namespace-env-app-bindings/*"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()

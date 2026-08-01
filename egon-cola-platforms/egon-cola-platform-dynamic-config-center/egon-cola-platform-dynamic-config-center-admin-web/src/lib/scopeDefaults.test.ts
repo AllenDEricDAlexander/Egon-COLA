@@ -10,18 +10,18 @@ describe('DDC Admin scope defaults', () => {
       ' default ',
     )).toEqual({
       bizCode: 'retail',
-      appCode: 'orders',
+      namespaceCode: 'default',
       env: 'local',
-      namespace: 'default',
+      appCode: 'orders',
     })
   })
 
   it('falls back when deployment scope values are blank', () => {
     expect(resolveInitialScope(' ', undefined, ' ', undefined)).toEqual({
-      bizCode: 'default',
-      appCode: 'default-app',
-      env: 'dev',
-      namespace: 'default',
+      bizCode: '',
+      namespaceCode: '',
+      env: '',
+      appCode: '',
     })
   })
 })

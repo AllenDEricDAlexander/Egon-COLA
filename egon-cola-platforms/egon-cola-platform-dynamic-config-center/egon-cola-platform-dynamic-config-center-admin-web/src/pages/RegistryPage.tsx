@@ -2,19 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Card, Col, Drawer, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { RegistryInstance, RegistryService } from '../api/types'
-import AppSelect from '../components/scope/AppSelect'
-import BizSelect from '../components/scope/BizSelect'
-import EnvSelect from '../components/scope/EnvSelect'
-import NamespaceSelect from '../components/scope/NamespaceSelect'
+import ScopeSelects from '../components/scope/ScopeSelects'
 import { buildQuery, formatTime } from '../lib/query'
-import { configuredInitialScope } from '../lib/scopeDefaults'
-
-const serviceQueries = [
-  { serviceKind: 'HTTP_PROVIDER', protocol: 'http', label: 'HTTP Provider' },
-  { serviceKind: 'HTTP_PROVIDER', protocol: 'https', label: 'HTTPS Provider' },
-  { serviceKind: 'RPC_PROVIDER', protocol: 'grpc', label: 'RPC Provider' },
-  { serviceKind: 'INTERNAL_GATEWAY', protocol: 'grpc', label: 'Internal Gateway' },
-]
+import { emptyScope } from '../lib/scopeDefaults'
 
 type ServiceRow = RegistryService & { label: string }
 
@@ -24,32 +14,31 @@ type AppRow = {
   services: ServiceRow[]
 }
 
-const serviceIdentity = (service: RegistryService): string =>
-  [service.bizCode, service.appCode, service.serviceKind, service.protocol, service.serviceName, service.group ?? '', service.version ?? ''].join('|')
+const serviceIdentity = (service: RegistryService): string => service.serviceId
+
+const serviceLabel = (service: RegistryService): string =>
+  `${service.serviceKind} / ${service.protocol}`
 
 export default function RegistryPage() {
-  const [draft, setDraft] = useState(() => ({ ...configuredInitialScope }))
+  const [draft, setDraft] = useState(() => ({ ...emptyScope }))
   const [rows, setRows] = useState<AppRow[]>([])
   const [instanceGroups, setInstanceGroups] = useState<{ service: ServiceRow; instances: RegistryInstance[] }[]>([])
   const [loading, setLoading] = useState(false)
   const [drawerApp, setDrawerApp] = useState<AppRow | null>(null)
   const [drawerLoading, setDrawerLoading] = useState(false)
-  const filterRef = useRef({ ...configuredInitialScope })
+  const filterRef = useRef({ ...emptyScope })
 
   const loadRegistry = useCallback(async () => {
     const scope = filterRef.current
-    const snapshots = await Promise.all(serviceQueries.map(async (item) => {
-      const data = await ddcApi<{ services: RegistryService[] }>(
-        `/api/v1/ddc/registry/services?${buildQuery({
-          ...scope,
-          serviceKind: item.serviceKind,
-          protocol: item.protocol,
-        })}`,
-      )
-      return (data?.services ?? []).map((service) => ({ ...service, label: item.label }))
-    }))
+    const query = buildQuery(scope)
+    const data = await ddcApi<{ services: RegistryService[] }>(
+      `/api/v1/ddc/registry/services${query === '' ? '' : `?${query}`}`,
+    )
     const unique = new Map<string, ServiceRow>()
-    snapshots.flat().forEach((service) => unique.set(serviceIdentity(service), service))
+    ;(data?.services ?? []).forEach((service) => unique.set(
+      serviceIdentity(service),
+      { ...service, label: serviceLabel(service) },
+    ))
     const byApp = new Map<string, AppRow>()
     unique.forEach((service) => {
       const key = `${service.bizCode}|${service.appCode}`
@@ -64,7 +53,7 @@ export default function RegistryPage() {
   }, [])
 
   useEffect(() => {
-    loadRegistry().catch((error) => {
+    void Promise.resolve().then(loadRegistry).catch((error) => {
       message.error(error instanceof Error ? error.message : String(error))
     })
   }, [loadRegistry])
@@ -90,11 +79,12 @@ export default function RegistryPage() {
     setDrawerLoading(true)
     setInstanceGroups([])
     try {
-      const scope = filterRef.current
       const snapshots = await Promise.all(app.services.map(async (service) => {
         const data = await ddcApi<{ instances: RegistryInstance[] }>(
           `/api/v1/ddc/registry/instances?${buildQuery({
-            ...scope,
+            bizCode: service.bizCode,
+            env: service.env,
+            appCode: service.appCode,
             serviceKind: service.serviceKind,
             protocol: service.protocol,
             serviceName: service.serviceName,
@@ -132,10 +122,7 @@ export default function RegistryPage() {
     <div>
       <Typography.Title level={3}>服务注册目录</Typography.Title>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col><span style={{ width: 200, display: 'inline-block' }}><BizSelect value={draft.bizCode} onChange={(bizCode) => setDraft({ ...draft, bizCode, appCode: '', namespace: '' })} /></span></Col>
-        <Col><span style={{ width: 200, display: 'inline-block' }}><AppSelect value={draft.appCode} biz={draft.bizCode} onChange={(appCode) => setDraft({ ...draft, appCode, namespace: '' })} /></span></Col>
-        <Col><span style={{ width: 200, display: 'inline-block' }}><NamespaceSelect value={draft.namespace} appCode={draft.appCode} onChange={(namespace) => setDraft({ ...draft, namespace })} /></span></Col>
-        <Col><span style={{ width: 140, display: 'inline-block' }}><EnvSelect value={draft.env} onChange={(env) => setDraft({ ...draft, env })} /></span></Col>
+        <Col><ScopeSelects value={draft} onChange={setDraft} /></Col>
         <Col><Button type="primary" onClick={applyFilter}>刷新</Button></Col>
       </Row>
       <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -167,6 +154,15 @@ export default function RegistryPage() {
                 key={serviceIdentity(service)}
                 size="small"
                 title={`${service.label} / ${service.serviceName}（${service.group ?? '—'} / ${service.version ?? '—'}）`}
+                extra={(
+                  <Typography.Text
+                    code
+                    copyable={{ text: service.serviceId }}
+                    title={service.serviceId}
+                  >
+                    {service.serviceId.slice(0, 12)}
+                  </Typography.Text>
+                )}
               >
                 <Table<RegistryInstance>
                   rowKey={(row) => row.instanceId}

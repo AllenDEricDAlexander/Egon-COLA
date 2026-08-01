@@ -18,7 +18,7 @@ describe('useScopeOptions', () => {
     vi.stubGlobal('fetch', vi.fn())
   })
 
-  it('loads bizs, envs and all apps without filters', async () => {
+  it('loads all scope levels without forcing defaults', async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = String(input)
       if (url.includes('/bizs')) {
@@ -38,13 +38,13 @@ describe('useScopeOptions', () => {
       }
       if (url.includes('/namespaces')) {
         return Promise.resolve(jsonResponse(record([
-          { id: 'n1', appCode: 'orders', namespace: 'default', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
+          { id: 'n1', bizCode: 'pay-biz', namespaceCode: 'default', namespace: '默认', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
         ])))
       }
       return Promise.resolve(jsonResponse(record(null)))
     })
 
-    const { result } = renderHook(() => useScopeOptions('', ''))
+    const { result } = renderHook(() => useScopeOptions('', '', ''))
     await waitFor(() => expect(result.current.bizs.length).toBe(1))
     await waitFor(() => expect(result.current.envs.length).toBe(1))
     await waitFor(() => expect(result.current.apps.length).toBe(1))
@@ -53,10 +53,10 @@ describe('useScopeOptions', () => {
     expect(result.current.envs[0]).toEqual({ value: 'dev', label: 'dev（开发环境）' })
     expect(result.current.apps[0]).toEqual({ value: 'orders', label: 'orders（订单服务）' })
     const appsCall = vi.mocked(fetch).mock.calls.find(([url]) => String(url).includes('/apps'))
-    expect(String(appsCall![0])).not.toContain('biz=')
+    expect(String(appsCall![0])).not.toContain('bizCode=')
   })
 
-  it('reloads apps by biz and namespaces by app when cascade changes', async () => {
+  it('reloads namespace, env and app options by cascade scope', async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = String(input)
       if (url.includes('/bizs')) return Promise.resolve(jsonResponse(record([])))
@@ -68,15 +68,15 @@ describe('useScopeOptions', () => {
       }
       if (url.includes('/namespaces')) {
         return Promise.resolve(jsonResponse(record([
-          { id: 'n1', appCode: 'orders', namespace: 'default', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
+          { id: 'n1', bizCode: 'pay-biz', namespaceCode: 'default', namespace: '默认', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
         ])))
       }
       return Promise.resolve(jsonResponse(record(null)))
     })
 
     const { rerender } = renderHook(
-      ({ biz, app }: { biz: string; app: string }) => useScopeOptions(biz, app),
-      { initialProps: { biz: '', app: '' } },
+      ({ biz, namespace, env }: { biz: string; namespace: string; env: string }) => useScopeOptions(biz, namespace, env),
+      { initialProps: { biz: '', namespace: '', env: '' } },
     )
     await waitFor(() => {
       const appsCall = vi.mocked(fetch).mock.calls.find(([url]) => String(url).includes('/apps'))
@@ -84,20 +84,22 @@ describe('useScopeOptions', () => {
     })
     const beforeCalls = vi.mocked(fetch).mock.calls.length
 
-    rerender({ biz: 'pay-biz', app: 'orders' })
+    rerender({ biz: 'pay-biz', namespace: 'default', env: 'dev' })
     await waitFor(() => {
       const filtered = vi.mocked(fetch).mock.calls
         .slice(beforeCalls)
         .find(([url]) => String(url).includes('/apps'))
       expect(filtered).toBeDefined()
-      expect(String(filtered![0])).toContain('biz=pay-biz')
+      expect(String(filtered![0])).toContain('bizCode=pay-biz')
+      expect(String(filtered![0])).toContain('namespaceCode=default')
+      expect(String(filtered![0])).toContain('env=dev')
     })
     await waitFor(() => {
       const nsCall = vi.mocked(fetch).mock.calls
         .slice(beforeCalls)
         .find(([url]) => String(url).includes('/namespaces'))
       expect(nsCall).toBeDefined()
-      expect(String(nsCall![0])).toContain('appCode=orders')
+      expect(String(nsCall![0])).toContain('bizCode=pay-biz')
     })
   })
 })

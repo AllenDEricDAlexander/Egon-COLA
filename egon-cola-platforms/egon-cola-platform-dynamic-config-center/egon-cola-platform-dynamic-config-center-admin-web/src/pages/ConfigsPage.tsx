@@ -11,10 +11,10 @@ import ConfigEditorDialog, { type ConfigScope } from './ConfigEditorDialog'
 type ConfigFilter = ScopeValue & { configKey: string }
 
 export default function ConfigsPage() {
-  const [draft, setDraft] = useState<ConfigFilter>({ bizCode: '', appCode: '', env: '', namespace: '', configKey: '' })
+  const [draft, setDraft] = useState<ConfigFilter>({ bizCode: '', namespaceCode: '', env: '', appCode: '', configKey: '' })
   const [configs, setConfigs] = useState<DdcConfig[]>([])
   const [loading, setLoading] = useState(false)
-  const filterRef = useRef<ConfigFilter>({ bizCode: '', appCode: '', env: '', namespace: '', configKey: '' })
+  const filterRef = useRef<ConfigFilter>({ bizCode: '', namespaceCode: '', env: '', appCode: '', configKey: '' })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingConfig, setEditingConfig] = useState<DdcConfig | null>(null)
   const [versionsConfig, setVersionsConfig] = useState<DdcConfig | null>(null)
@@ -26,7 +26,8 @@ export default function ConfigsPage() {
     const data = await ddcApi<DdcConfig[]>(
       `/api/v1/ddc/configs?${buildQuery({ ...scope, includeDeleted: false })}`,
     )
-    setConfigs(data ?? [])
+    const unique = new Map((data ?? []).map((config) => [config.id, config]))
+    setConfigs([...unique.values()])
   }, [])
 
   useEffect(() => {
@@ -63,9 +64,9 @@ export default function ConfigsPage() {
 
   const defaultScope: ConfigScope = {
     bizCode: draft.bizCode,
-    appCode: draft.appCode,
+    namespaceCode: draft.namespaceCode,
     env: draft.env,
-    namespace: draft.namespace,
+    appCode: draft.appCode,
   }
 
   const publish = async (config: DdcConfig) => {
@@ -133,6 +134,16 @@ export default function ConfigsPage() {
     { title: '配置 Key', dataIndex: 'configKey', key: 'configKey', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
     { title: '值类型', dataIndex: 'valueType', key: 'valueType' },
     {
+      title: '可见命名空间',
+      dataIndex: 'visibleNamespaces',
+      key: 'visibleNamespaces',
+      render: (values: string[] = []) => (
+        <Space size={[4, 4]} wrap>
+          {values.length === 0 ? '—' : values.map((value) => <Tag key={value}>{value}</Tag>)}
+        </Space>
+      ),
+    },
+    {
       title: '格式',
       key: 'format',
       render: (_: unknown, row: DdcConfig) => <Tag color="blue">{detectConfigFormat(row)}</Tag>,
@@ -177,7 +188,7 @@ export default function ConfigsPage() {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
           <ScopeSelects
-            value={{ bizCode: draft.bizCode, appCode: draft.appCode, env: draft.env, namespace: draft.namespace }}
+            value={{ bizCode: draft.bizCode, namespaceCode: draft.namespaceCode, env: draft.env, appCode: draft.appCode }}
             onChange={(scope) => setDraft({ ...draft, ...scope })}
           />
           <Input placeholder="configKey" value={draft.configKey} onChange={(event) => setDraft({ ...draft, configKey: event.target.value })} style={{ width: 180 }} />

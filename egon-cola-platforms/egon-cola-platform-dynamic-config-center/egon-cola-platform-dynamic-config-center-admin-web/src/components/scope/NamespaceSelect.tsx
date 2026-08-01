@@ -4,7 +4,7 @@ import { useScopeOptions } from './useScopeOptions'
 type Props = {
   value?: string
   onChange?: (value: string) => void
-  appCode?: string
+  bizCode?: string
   disabled?: boolean
   placeholder?: string
 }
@@ -16,8 +16,8 @@ const toValue = (values: string[]): string => values[0] ?? ''
 const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
-export default function NamespaceSelect({ value, onChange, appCode = '', disabled, placeholder = '请选择或输入命名空间' }: Props) {
-  const { namespaces, loading } = useScopeOptions('', appCode)
+export default function NamespaceSelect({ value, onChange, bizCode = '', disabled, placeholder = '请选择或输入命名空间' }: Props) {
+  const { namespaces, loading } = useScopeOptions(bizCode, '', '')
   return (
     <Select
       mode="tags"

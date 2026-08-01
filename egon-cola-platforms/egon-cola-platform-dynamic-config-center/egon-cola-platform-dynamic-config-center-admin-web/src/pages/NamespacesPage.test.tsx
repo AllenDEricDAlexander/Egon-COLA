@@ -19,23 +19,44 @@ describe('NamespacesPage', () => {
     vi.stubGlobal('fetch', vi.fn())
   })
 
-  it('renders namespaces and creates one without env', async () => {
+  it('creates a biz namespace and manages its env-app bindings', async () => {
     vi.mocked(fetch).mockImplementation((input, init) => {
       const url = String(input)
+      if (url.includes('/bizs')) {
+        return Promise.resolve(jsonResponse(record([
+          { id: 'b1', bizCode: 'pay-biz', bizName: '支付业务域', description: '', enabled: true },
+        ])))
+      }
+      if (url.includes('/envs')) {
+        return Promise.resolve(jsonResponse(record([
+          { id: 'e1', envCode: 'dev', description: '开发', sortOrder: 10, enabled: true },
+        ])))
+      }
       if (url.includes('/apps')) {
         return Promise.resolve(jsonResponse(record([
-          { id: 'a1', appCode: 'orders', bizCode: 'pay-biz', appName: '', owner: 'ops', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
+          { id: 'a1', appCode: 'orders', bizCode: 'pay-biz', appName: '订单服务', owner: 'ops', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
         ])))
+      }
+      if (url.includes('/namespace-env-app-bindings') && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body))
+        expect(body).toMatchObject({
+          bizCode: 'pay-biz', namespaceCode: 'ns-default', env: 'dev', appCode: 'orders', enabled: true,
+        })
+        return Promise.resolve(jsonResponse(record({ id: 'binding-1', ...body })))
+      }
+      if (url.includes('/namespace-env-app-bindings')) {
+        return Promise.resolve(jsonResponse(record([])))
       }
       if (url.includes('/namespaces') && init?.method === 'POST') {
         const body = JSON.parse(String(init.body))
-        expect(body).toMatchObject({ appCode: 'orders', namespaceCode: 'ns-primary', namespace: 'primary', enabled: true })
+        expect(body).toMatchObject({ bizCode: 'pay-biz', namespaceCode: 'ns-primary', namespace: 'primary', enabled: true })
+        expect(body).not.toHaveProperty('appCode')
         expect(body).not.toHaveProperty('env')
         return Promise.resolve(jsonResponse(record({ id: 'n2', ...body, createdAt: '2026-07-02T00:00:00Z', updatedAt: '2026-07-02T00:00:00Z' })))
       }
       if (url.includes('/namespaces')) {
         return Promise.resolve(jsonResponse(record([{
-          id: 'n1', appCode: 'orders', namespaceCode: 'ns-default', namespace: 'default', description: '',
+          id: 'n1', bizCode: 'pay-biz', namespaceCode: 'ns-default', namespace: 'default', description: '',
           enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z',
         }])))
       }
@@ -47,7 +68,7 @@ describe('NamespacesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /新\s*建\s*命\s*名\s*空\s*间/ }))
     const scopeInputs = () => Array.from(document.querySelectorAll('.ant-modal input.ant-select-input')) as HTMLInputElement[]
-    fireEvent.change(scopeInputs()[0], { target: { value: 'orders' } })
+    fireEvent.change(scopeInputs()[0], { target: { value: 'pay-biz' } })
     fireEvent.keyDown(scopeInputs()[0], { key: 'Enter', code: 'Enter', keyCode: 13 })
     fireEvent.change(screen.getByLabelText('编码'), { target: { value: 'ns-primary' } })
     fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'primary' } })
@@ -56,6 +77,16 @@ describe('NamespacesPage', () => {
     await waitFor(() => {
       const create = vi.mocked(fetch).mock.calls.find(([url, init]) => String(url).includes('/namespaces') && init?.method === 'POST')
       expect(create).toBeDefined()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /管\s*理\s*绑\s*定/ }))
+    await waitFor(() => expect(screen.getByLabelText('orders（订单服务）')).toBeInTheDocument())
+    fireEvent.click(screen.getByLabelText('orders（订单服务）'))
+    fireEvent.click(screen.getByRole('button', { name: /保\s*存\s*绑\s*定/ }))
+    await waitFor(() => {
+      const createBinding = vi.mocked(fetch).mock.calls.find(([url, init]) =>
+        String(url).includes('/namespace-env-app-bindings') && init?.method === 'POST')
+      expect(createBinding).toBeDefined()
     })
   })
 })

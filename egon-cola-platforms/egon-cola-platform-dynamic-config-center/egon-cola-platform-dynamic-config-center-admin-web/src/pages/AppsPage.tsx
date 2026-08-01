@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Form, Input, Modal, Popconfirm, Space, Switch, Table, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcApp } from '../api/types'
 import BizSelect from '../components/scope/BizSelect'
+import ScopeSelects, { type ScopeValue } from '../components/scope/ScopeSelects'
 import { formatTime } from '../lib/query'
 
-type AppFilter = { bizCode: string; keyword: string }
+type AppFilter = ScopeValue & { keyword: string }
+
+const emptyFilter: AppFilter = {
+  bizCode: '',
+  namespaceCode: '',
+  env: '',
+  appCode: '',
+  keyword: '',
+}
 
 type AppFormValues = {
   bizCode: string
@@ -17,18 +26,20 @@ type AppFormValues = {
 }
 
 export default function AppsPage() {
-  const [draft, setDraft] = useState<AppFilter>({ bizCode: '', keyword: '' })
+  const [draft, setDraft] = useState<AppFilter>(emptyFilter)
   const [apps, setApps] = useState<DdcApp[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<DdcApp | null>(null)
-  const filterRef = useRef<AppFilter>({ bizCode: '', keyword: '' })
+  const filterRef = useRef<AppFilter>(emptyFilter)
   const [form] = Form.useForm<AppFormValues>()
 
   const loadApps = useCallback(async () => {
-    const { bizCode, keyword } = filterRef.current
+    const { bizCode, namespaceCode, env, keyword } = filterRef.current
     const params = new URLSearchParams()
-    if (bizCode.trim() !== '') params.set('biz', bizCode.trim())
+    if (bizCode.trim() !== '') params.set('bizCode', bizCode.trim())
+    if (namespaceCode.trim() !== '') params.set('namespaceCode', namespaceCode.trim())
+    if (env.trim() !== '') params.set('env', env.trim())
     if (keyword.trim() !== '') params.set('keyword', keyword.trim())
     const query = params.toString()
     const data = await ddcApi<DdcApp[]>(`/api/v1/ddc/apps${query === '' ? '' : `?${query}`}`)
@@ -36,7 +47,7 @@ export default function AppsPage() {
   }, [])
 
   useEffect(() => {
-    loadApps().catch((error) => {
+    void Promise.resolve().then(loadApps).catch((error) => {
       message.error(error instanceof Error ? error.message : String(error))
     })
   }, [loadApps])
@@ -85,7 +96,7 @@ export default function AppsPage() {
     }
     try {
       if (editing) {
-        await ddcApi(`/api/v1/ddc/apps/${encodeURIComponent(editing.appCode)}`, {
+        await ddcApi(`/api/v1/ddc/apps/${encodeURIComponent(editing.id)}`, {
           method: 'PUT',
           body: { ...values },
         })
@@ -105,7 +116,7 @@ export default function AppsPage() {
 
   const toggleEnabled = async (app: DdcApp, enabled: boolean) => {
     try {
-      await ddcApi(`/api/v1/ddc/apps/${encodeURIComponent(app.appCode)}/enabled?enabled=${enabled}`, {
+      await ddcApi(`/api/v1/ddc/apps/${encodeURIComponent(app.id)}/enabled?enabled=${enabled}`, {
         method: 'PUT',
       })
       await refresh()
@@ -116,7 +127,7 @@ export default function AppsPage() {
 
   const remove = async (app: DdcApp) => {
     try {
-      await ddcApi(`/api/v1/ddc/apps/${encodeURIComponent(app.appCode)}`, {
+      await ddcApi(`/api/v1/ddc/apps/${encodeURIComponent(app.id)}`, {
         method: 'DELETE',
       })
       message.success('应用已删除')
@@ -158,12 +169,11 @@ export default function AppsPage() {
       <Typography.Title level={3}>应用管理</Typography.Title>
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
-          <span style={{ width: 200, display: 'inline-block' }}>
-            <BizSelect
-              value={draft.bizCode}
-              onChange={(bizCode) => setDraft({ ...draft, bizCode })}
-            />
-          </span>
+          <ScopeSelects
+            value={draft}
+            includeApp={false}
+            onChange={(scope) => setDraft({ ...draft, ...scope })}
+          />
           <Input
             placeholder="appCode / 名称模糊查询"
             value={draft.keyword}

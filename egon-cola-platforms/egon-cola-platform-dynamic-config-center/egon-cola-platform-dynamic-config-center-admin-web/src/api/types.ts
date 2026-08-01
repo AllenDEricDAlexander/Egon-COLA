@@ -10,7 +10,9 @@ export type ResultRecord<T> = {
 
 export type RegistryService = {
   bizCode: string
+  env: string
   appCode: string
+  serviceId: string
   serviceKind: string
   protocol: string
   serviceName: string
@@ -21,10 +23,12 @@ export type RegistryService = {
 
 export type RegistryInstance = {
   instanceId: string
+  leaseId?: string
   host: string
   port: number
   secure: boolean
   status: string
+  registeredAt?: string
   lastHeartbeatAt?: string
   expireAt?: string
   metadata?: { buildId?: string }
@@ -32,9 +36,10 @@ export type RegistryInstance = {
 
 export type DdcConfig = {
   id: string
+  bizCode: string
   appCode: string
   env: string
-  namespace: string
+  visibleNamespaces: string[]
   configKey: string
   configValue: string
   defaultValue?: string
@@ -105,7 +110,7 @@ export type DdcApp = {
 
 export type DdcNamespace = {
   id: string
-  appCode: string
+  bizCode: string
   namespaceCode: string
   namespace: string
   description?: string
@@ -118,9 +123,9 @@ export type DdcPublishTask = {
   id: string
   changeId: string
   configId?: string
+  bizCode?: string
   appCode?: string
   env?: string
-  namespace?: string
   configKey?: string
   targetVersion?: number
   publishMode?: string
@@ -145,9 +150,9 @@ export type DdcPublishTask = {
 export type DdcInstance = {
   id: string
   instanceId: string
+  bizCode: string
   appCode: string
   env: string
-  namespace: string
   host: string
   port: number
   pid?: string
@@ -168,4 +173,16 @@ export type DdcCacheCheckRow = {
   databaseVersion?: number
   redisVersion?: number
   matched: boolean
+}
+
+export type DdcNamespaceEnvAppBinding = {
+  id: string
+  bizCode: string
+  namespaceId: string
+  namespaceCode: string
+  env: string
+  appId: string
+  appCode: string
+  appName: string
+  enabled: boolean
 }

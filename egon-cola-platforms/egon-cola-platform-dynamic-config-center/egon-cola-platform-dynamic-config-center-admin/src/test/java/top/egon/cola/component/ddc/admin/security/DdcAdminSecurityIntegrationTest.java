@@ -13,6 +13,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.ddc.admin.controller.DdcCacheController;
@@ -50,7 +51,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DdcCacheController.class,
         DdcOpenApiController.class,
         DdcAdminSecurityIntegrationTest.HealthInfoController.class,
-        DdcAdminSecurityIntegrationTest.RegistryInfoController.class
+        DdcAdminSecurityIntegrationTest.RegistryInfoController.class,
+        DdcAdminSecurityIntegrationTest.BindingInfoController.class
 })
 @Import({
         DdcAdminSecurityConfiguration.class,
@@ -110,6 +112,22 @@ class DdcAdminSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/ddc/registry/services")
                         .with(authority("CAP_DDC_READ")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void protectsNamespaceBindingsWithReadAndWriteCapabilities()
+            throws Exception {
+        mockMvc.perform(get("/api/v1/ddc/namespace-env-app-bindings"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/ddc/namespace-env-app-bindings")
+                        .with(authority("CAP_DDC_READ")))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/ddc/namespace-env-app-bindings")
+                        .with(authority("CAP_DDC_READ")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/ddc/namespace-env-app-bindings")
+                        .with(authority("CAP_DDC_WRITE")))
                 .andExpect(status().isOk());
     }
 
@@ -286,6 +304,21 @@ class DdcAdminSecurityIntegrationTest {
         @GetMapping("/services")
         Map<String, Object> services() {
             return Map.of("services", List.of());
+        }
+    }
+
+    @RestController
+    @RequestMapping("/api/v1/ddc/namespace-env-app-bindings")
+    static class BindingInfoController {
+
+        @GetMapping
+        Map<String, Object> bindings() {
+            return Map.of("bindings", List.of());
+        }
+
+        @PostMapping
+        Map<String, String> createBinding() {
+            return Map.of("status", "created");
         }
     }
 

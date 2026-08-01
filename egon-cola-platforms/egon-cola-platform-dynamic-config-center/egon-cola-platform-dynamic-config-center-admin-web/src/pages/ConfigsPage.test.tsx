@@ -11,7 +11,8 @@ const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
 const configRow = {
-  id: 'cfg-1', appCode: 'orders', env: 'dev', namespace: 'default',
+  id: 'cfg-1', bizCode: 'pay-biz', appCode: 'orders', env: 'dev',
+  visibleNamespaces: ['default', 'ops'],
   configKey: 'feature.flags', configValue: '{"enabled":true}', defaultValue: '',
   valueType: 'JSON', currentVersion: 3, description: '功能开关',
   createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-02T00:00:00Z',
@@ -27,13 +28,11 @@ describe('ConfigsPage', () => {
   it('renders config rows with format badge and actions', async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = String(input)
-      if (url.includes('/namespaces/domains')) {
+      if (url.includes('/bizs') || url.includes('/namespaces')
+        || url.includes('/envs') || url.includes('/apps')) {
         return Promise.resolve(jsonResponse(record([])))
       }
-      if (url.includes('/apps')) {
-        return Promise.resolve(jsonResponse(record([])))
-      }
-      if (url.includes('/configs')) return Promise.resolve(jsonResponse(record([configRow])))
+      if (url.includes('/configs')) return Promise.resolve(jsonResponse(record([configRow, configRow])))
       return Promise.resolve(jsonResponse(record(null)))
     })
 
@@ -41,16 +40,23 @@ describe('ConfigsPage', () => {
     await waitFor(() => expect(screen.getByText('feature.flags')).toBeInTheDocument())
     expect(screen.getAllByText('JSON').length).toBeGreaterThan(0)
     expect(screen.getByText('功能开关')).toBeInTheDocument()
+    expect(screen.getByText('default')).toBeInTheDocument()
+    expect(screen.getByText('ops')).toBeInTheDocument()
+    expect(screen.getAllByText('feature.flags')).toHaveLength(1)
+    const listRequest = vi.mocked(fetch).mock.calls
+      .map(([input]) => String(input))
+      .find((url) => url.includes('/api/v1/ddc/configs?'))
+    expect(listRequest).toContain('includeDeleted=false')
+    expect(listRequest).not.toContain('bizCode=')
+    expect(listRequest).not.toContain('namespaceCode=')
   })
 
   it('publishes with uuid changeId and refreshes', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(fetch).mockImplementation((input, init) => {
       const url = String(input)
-      if (url.includes('/namespaces/domains')) {
-        return Promise.resolve(jsonResponse(record([])))
-      }
-      if (url.includes('/apps')) {
+      if (url.includes('/bizs') || url.includes('/namespaces')
+        || url.includes('/envs') || url.includes('/apps')) {
         return Promise.resolve(jsonResponse(record([])))
       }
       if (url.includes('/publish')) {

@@ -20,7 +20,7 @@ const appPayload = (code: string) => ({
   createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z',
 })
 
-// 渲染顺序固定：业务域(0) → 应用(1) → 命名空间(2) → 环境(3)
+// 渲染顺序固定：业务域(0) → 命名空间(1) → 环境(2) → 应用(3)
 const scopeInputs = (): HTMLInputElement[] =>
   Array.from(document.querySelectorAll('input.ant-select-input')) as HTMLInputElement[]
 
@@ -35,7 +35,7 @@ const mockScopeEndpoints = (bizs: string[], apps: string[], nss: string[], envs:
     if (url.includes('/bizs')) return Promise.resolve(jsonResponse(record(bizs.map((b) => ({ id: b, bizCode: b, bizName: b, description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' })))))
     if (url.includes('/envs')) return Promise.resolve(jsonResponse(record(envs.map((e) => ({ id: e, envCode: e, description: e, sortOrder: 10, enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' })))))
     if (url.includes('/apps')) return Promise.resolve(jsonResponse(record(apps.map(appPayload))))
-    if (url.includes('/namespaces')) return Promise.resolve(jsonResponse(record(nss.map((n) => ({ id: n, appCode: 'orders-app', namespace: n, description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' })))))
+    if (url.includes('/namespaces')) return Promise.resolve(jsonResponse(record(nss.map((n) => ({ id: n, bizCode: 'pay-biz', namespaceCode: n, namespace: n, description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' })))))
     return Promise.resolve(jsonResponse(record(null)))
   })
 }
@@ -51,51 +51,61 @@ describe('ScopeSelects', () => {
   it('renders four level selects with cascade clearing', async () => {
     mockScopeEndpoints(['pay-biz'], ['orders-app'], ['default'], ['dev'])
 
-    const value: ScopeValue = { bizCode: '', appCode: '', env: '', namespace: '' }
+    const value: ScopeValue = { bizCode: '', namespaceCode: '', env: '', appCode: '' }
     const onChange = vi.fn((next: ScopeValue) => Object.assign(value, next))
 
     render(<ScopeSelects value={value} onChange={onChange} />)
     await waitFor(() => expect(screen.getAllByText('请选择或输入业务域').length).toBeGreaterThan(0))
 
-    // 输入新业务域：清空 app 与 namespace
+    // 输入新业务域：清空所有下级
     typeAndEnter(scopeInputs()[0], 'pay-biz')
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ bizCode: 'pay-biz', appCode: '', namespace: '' }))
-
-    // 输入新应用：清空 namespace
-    typeAndEnter(scopeInputs()[1], 'orders-app')
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ appCode: 'orders-app', namespace: '' }))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ bizCode: 'pay-biz', namespaceCode: '', env: '', appCode: '' }))
 
     // 输入命名空间
-    typeAndEnter(scopeInputs()[2], 'default')
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ namespace: 'default' }))
+    typeAndEnter(scopeInputs()[1], 'default')
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ namespaceCode: 'default', env: '', appCode: '' }))
 
     // 输入环境
-    typeAndEnter(scopeInputs()[3], 'dev')
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ env: 'dev' }))
+    typeAndEnter(scopeInputs()[2], 'dev')
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ env: 'dev', appCode: '' }))
+
+    // 输入应用
+    typeAndEnter(scopeInputs()[3], 'orders-app')
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ appCode: 'orders-app' }))
   })
 
-  it('loads apps filtered by selected biz and namespaces by app', async () => {
+  it('loads namespace, env and app options by the selected parent scope', async () => {
     mockScopeEndpoints(['pay-biz'], ['orders-app'], ['default'], ['dev'])
 
-    render(<ScopeSelects value={{ bizCode: 'pay-biz', appCode: 'orders-app', env: '', namespace: '' }} onChange={() => {}} />)
+    render(<ScopeSelects value={{ bizCode: 'pay-biz', namespaceCode: 'default', env: 'dev', appCode: 'orders-app' }} onChange={() => {}} />)
     await waitFor(() => {
       const appsCall = vi.mocked(fetch).mock.calls
-        .find(([url]) => String(url).includes('/apps') && String(url).includes('biz=pay-biz'))
+        .find(([url]) => String(url).includes('/apps')
+          && String(url).includes('bizCode=pay-biz')
+          && String(url).includes('namespaceCode=default')
+          && String(url).includes('env=dev'))
       expect(appsCall).toBeDefined()
     })
     await waitFor(() => {
       const nsCall = vi.mocked(fetch).mock.calls
-        .find(([url]) => String(url).includes('/namespaces') && String(url).includes('appCode=orders-app'))
+        .find(([url]) => String(url).includes('/namespaces') && String(url).includes('bizCode=pay-biz'))
       expect(nsCall).toBeDefined()
+    })
+    await waitFor(() => {
+      const envCall = vi.mocked(fetch).mock.calls
+        .find(([url]) => String(url).includes('/envs')
+          && String(url).includes('bizCode=pay-biz')
+          && String(url).includes('namespaceCode=default'))
+      expect(envCall).toBeDefined()
     })
   })
 
-  it('clears app and namespace when biz changes', async () => {
+  it('clears namespace, env and app when biz changes', async () => {
     mockScopeEndpoints(['pay-biz', 'risk-biz'], ['orders-app'], ['default'], ['dev'])
 
     const onChange = vi.fn()
     const Harness = () => {
-      const [value, setValue] = useState<ScopeValue>({ bizCode: 'pay-biz', appCode: 'orders-app', env: 'dev', namespace: 'default' })
+      const [value, setValue] = useState<ScopeValue>({ bizCode: 'pay-biz', namespaceCode: 'default', env: 'dev', appCode: 'orders-app' })
       return (
         <ScopeSelects
           value={value}
@@ -114,6 +124,6 @@ describe('ScopeSelects', () => {
     const removeButton = document.querySelector('.ant-select-selection-item-remove') as HTMLElement
     fireEvent.click(removeButton)
     typeAndEnter(scopeInputs()[0], 'risk-biz')
-    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ bizCode: 'risk-biz', appCode: '', namespace: '' }))
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ bizCode: 'risk-biz', namespaceCode: '', env: '', appCode: '' }))
   })
 })

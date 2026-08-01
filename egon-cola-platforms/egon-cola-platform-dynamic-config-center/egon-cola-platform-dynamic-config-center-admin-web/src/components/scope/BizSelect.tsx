@@ -16,7 +16,7 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
 export default function BizSelect({ value, onChange, disabled, placeholder = '请选择或输入业务域' }: Props) {
-  const { bizs, loading } = useScopeOptions('', '')
+  const { bizs, loading } = useScopeOptions('', '', '')
   return (
     <Select
       mode="tags"

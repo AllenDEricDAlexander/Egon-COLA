@@ -1,13 +1,13 @@
 export type RegistryScope = {
   bizCode: string
-  appCode: string
+  namespaceCode: string
   env: string
-  namespace: string
+  appCode: string
 }
 
-const valueOr = (value: string | undefined, fallback: string) => {
-  const normalized = value?.trim()
-  return normalized ? normalized : fallback
+const normalized = (value?: string) => {
+  const trimmed = value?.trim()
+  return trimmed ?? ''
 }
 
 export const resolveInitialScope = (
@@ -16,11 +16,18 @@ export const resolveInitialScope = (
   configuredEnv?: string,
   configuredNamespace?: string,
 ): RegistryScope => ({
-  bizCode: valueOr(configuredBizCode, 'default'),
-  appCode: valueOr(configuredAppCode, 'default-app'),
-  env: valueOr(configuredEnv, 'dev'),
-  namespace: valueOr(configuredNamespace, 'default'),
+  bizCode: normalized(configuredBizCode),
+  namespaceCode: normalized(configuredNamespace),
+  env: normalized(configuredEnv),
+  appCode: normalized(configuredAppCode),
 })
+
+export const emptyScope: RegistryScope = {
+  bizCode: '',
+  namespaceCode: '',
+  env: '',
+  appCode: '',
+}
 
 export const configuredInitialScope = resolveInitialScope(
   import.meta.env.VITE_DDC_ADMIN_DEFAULT_BIZ_CODE,

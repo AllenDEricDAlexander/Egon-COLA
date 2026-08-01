@@ -4,7 +4,12 @@ import BizSelect from './BizSelect'
 import EnvSelect from './EnvSelect'
 import NamespaceSelect from './NamespaceSelect'
 
-export type ScopeValue = { bizCode: string; appCode: string; env: string; namespace: string }
+export type ScopeValue = {
+  bizCode: string
+  namespaceCode: string
+  env: string
+  appCode: string
+}
 
 type Props = {
   value: ScopeValue
@@ -27,33 +32,37 @@ export default function ScopeSelects({
         <BizSelect
           value={value.bizCode}
           disabled={disabled}
-          onChange={(bizCode) => onChange({ ...value, bizCode, appCode: '', namespace: '' })}
+          onChange={(bizCode) => onChange({ ...value, bizCode, namespaceCode: '', env: '', appCode: '' })}
         />
       </span>
-      {includeApp && (
-        <span style={{ width: 200, display: 'inline-block' }}>
-          <AppSelect
-            value={value.appCode}
-            biz={value.bizCode}
-            disabled={disabled}
-            onChange={(appCode) => onChange({ ...value, appCode, namespace: '' })}
-          />
-        </span>
-      )}
       <span style={{ width: 200, display: 'inline-block' }}>
         <NamespaceSelect
-          value={value.namespace}
-          appCode={value.appCode}
+          value={value.namespaceCode}
+          bizCode={value.bizCode}
           disabled={disabled}
-          onChange={(namespace) => onChange({ ...value, namespace })}
+          onChange={(namespaceCode) => onChange({ ...value, namespaceCode, env: '', appCode: '' })}
         />
       </span>
       {includeEnv && (
         <span style={{ width: 140, display: 'inline-block' }}>
           <EnvSelect
             value={value.env}
+            bizCode={value.bizCode}
+            namespaceCode={value.namespaceCode}
             disabled={disabled}
-            onChange={(env) => onChange({ ...value, env })}
+            onChange={(env) => onChange({ ...value, env, appCode: '' })}
+          />
+        </span>
+      )}
+      {includeApp && (
+        <span style={{ width: 200, display: 'inline-block' }}>
+          <AppSelect
+            value={value.appCode}
+            bizCode={value.bizCode}
+            namespaceCode={value.namespaceCode}
+            env={value.env}
+            disabled={disabled}
+            onChange={(appCode) => onChange({ ...value, appCode })}
           />
         </span>
       )}

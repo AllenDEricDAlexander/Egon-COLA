@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Card, Descriptions, Modal, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Descriptions, Modal, Spin, Table, Tag, Typography, message } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcPublishResult, DdcPublishTask } from '../api/types'
 import { formatTime } from '../lib/query'
@@ -25,7 +25,7 @@ export default function PublishTasksPage() {
   }, [])
 
   useEffect(() => {
-    loadTasks().catch((error) => {
+    void Promise.resolve().then(loadTasks).catch((error) => {
       message.error(error instanceof Error ? error.message : String(error))
     })
   }, [loadTasks])
@@ -91,7 +91,7 @@ export default function PublishTasksPage() {
       title: '作用域',
       key: 'scope',
       render: (_: unknown, row: DdcPublishTask) =>
-        [row.appCode, row.env, row.namespace].filter(Boolean).join(' / ') || '—',
+        [row.bizCode, row.env, row.appCode].filter(Boolean).join(' / ') || '—',
     },
     { title: '配置 Key', dataIndex: 'configKey', key: 'configKey' },
     { title: '目标版本', dataIndex: 'targetVersion', key: 'targetVersion' },
@@ -123,7 +123,7 @@ export default function PublishTasksPage() {
   const detailItems = detail
     ? [
         ['Change ID', detail.changeId],
-        ['作用域', [detail.appCode, detail.env, detail.namespace].filter(Boolean).join(' / ')],
+        ['作用域', [detail.bizCode, detail.env, detail.appCode].filter(Boolean).join(' / ')],
         ['配置 Key', detail.configKey ?? '—'],
         ['目标版本', String(detail.targetVersion ?? '—')],
         ['发布模式', detail.publishMode ?? '—'],
@@ -168,7 +168,9 @@ export default function PublishTasksPage() {
         footer={null}
         width={720}
       >
-        <Descriptions bordered size="small" column={2} items={detailItems} />
+        <Spin spinning={detailLoading}>
+          <Descriptions bordered size="small" column={2} items={detailItems} />
+        </Spin>
       </Modal>
     </div>
   )

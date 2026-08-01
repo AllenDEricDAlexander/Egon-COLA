@@ -12,7 +12,8 @@ const jsonResponse = (body: unknown) =>
   new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
 
 const servicePayload = (appCode: string, serviceName: string) => ({
-  bizCode: 'pay-biz', appCode, serviceKind: 'HTTP_PROVIDER', protocol: 'http',
+  bizCode: 'pay-biz', env: 'dev', appCode, serviceId: `service-${serviceName}`,
+  serviceKind: 'HTTP_PROVIDER', protocol: 'http',
   serviceName, group: 'default', version: '1.0.0',
 })
 
@@ -54,13 +55,11 @@ describe('RegistryPage', () => {
     const serviceRequests = vi.mocked(fetch).mock.calls
       .map(([input]) => String(input))
       .filter((url) => url.includes('/registry/services'))
-    expect(serviceRequests).toHaveLength(4)
-    serviceRequests.forEach((url) => {
-      expect(url).toContain('bizCode=default')
-      expect(url).toContain('appCode=default-app')
-      expect(url).toContain('env=dev')
-      expect(url).toContain('namespace=default')
-    })
+    expect(serviceRequests).toHaveLength(1)
+    expect(serviceRequests[0]).not.toContain('bizCode=')
+    expect(serviceRequests[0]).not.toContain('appCode=')
+    expect(serviceRequests[0]).not.toContain('env=')
+    expect(serviceRequests[0]).not.toContain('namespaceCode=')
     // 去重：orders 只有一行；billing 一行
     expect(screen.getAllByText('orders')).toHaveLength(1)
     expect(screen.getByText('billing')).toBeInTheDocument()
@@ -70,5 +69,13 @@ describe('RegistryPage', () => {
     await waitFor(() => expect(screen.getByText(/order-http/)).toBeInTheDocument())
     await waitFor(() => expect(screen.getByText('i-1')).toBeInTheDocument())
     expect(screen.getByText('10.0.0.1:8080')).toBeInTheDocument()
+    expect(screen.getByText('service-orde')).toBeInTheDocument()
+    const instanceRequest = vi.mocked(fetch).mock.calls
+      .map(([input]) => String(input))
+      .find((url) => url.includes('/registry/instances'))
+    expect(instanceRequest).toContain('bizCode=pay-biz')
+    expect(instanceRequest).toContain('env=dev')
+    expect(instanceRequest).toContain('appCode=orders')
+    expect(instanceRequest).not.toContain('namespaceCode=')
   })
 })
