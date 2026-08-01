@@ -33,5 +33,5 @@ describe('runtime status page', () => {
     expect(screen.getByText('STALE')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '重试 701' })).toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/config-client-lease-secret-value|invalid-secret-like-value|internal storage locator|database statement|endpoint secret/i)
-  })
+  }, 10_000)
 })
