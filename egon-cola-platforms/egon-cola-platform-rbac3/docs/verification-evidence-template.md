@@ -15,6 +15,8 @@ private keys, raw sensitive fields or full production payloads.
 | Environment/namespace | |
 | Dedicated tenant/application IDs | |
 | Gateway group/release IDs | |
+| DDC configuration scope (`biz/app/env/namespace`) | |
+| DDC HTTP Provider service scope (`kind/protocol/name/group/version`) | |
 
 ## 2. Topology identity
 
@@ -46,10 +48,14 @@ including logical database numbers without recording credentials.
 
 | Observation | Expected | Actual | Timestamp/trace |
 | --- | --- | --- | --- |
+| Admin 1 DDC Config Client state/session | READY / CONFIG_CLIENT | | |
+| Admin 2 DDC Config Client state/session | READY / CONFIG_CLIENT | | |
+| Admin 1 five config versions / last apply error code | recorded / none | | |
+| Admin 2 five config versions / last apply error code | recorded / none | | |
 | Admin 1 Definition status/set ID | accepted | | |
 | Admin 2 Definition status/set ID | accepted | | |
-| DDC lease Admin 1/expiry | registered | | |
-| DDC lease Admin 2/expiry | registered | | |
+| DDC HTTP Provider lease Admin 1/expiry | registered/unexpired | | |
+| DDC HTTP Provider lease Admin 2/expiry | registered/unexpired | | |
 | Gateway Release ID/status | explicit/success | | |
 | Gateway engine-observed version | matches release | | |
 | Runtime consistency | true | | |
@@ -57,6 +63,11 @@ including logical database numbers without recording credentials.
 | Five routed requests after instance 1 stopped | success | | |
 | Route after both instances stopped | configured fail-closed status | | |
 | Route after both instances restored | success | | |
+
+The five facts are DDC Config Client, Gateway Definition, DDC HTTP Provider
+lease, explicit Gateway Release/Engine consistency, and routed request evidence.
+Do not collapse them into one health result. Record only lease fingerprints and
+bounded error codes; never copy complete lease IDs or configuration values.
 
 ## 5. Data and cleanup isolation
 
@@ -77,6 +88,11 @@ Record status/error code and trace ID for: missing token, invalid signature,
 Tenant mismatch, same-APP mutually exclusive activation, stale Session version,
 Refresh replay, closed Fence, stale snapshot, forbidden field, unknown Gateway
 operation, DDC lease loss and no-provider Gateway route.
+
+For DDC LKG evidence, record the config key, previous/current/target versions,
+checksum result, fixed error code, failed ACK status and later higher successful
+version. Do not record the raw value. Explicitly confirm that an invalid update
+did not change the effective snapshot or repository metadata.
 
 ## 7. Evidence classification and limits
 

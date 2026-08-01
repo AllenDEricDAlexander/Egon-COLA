@@ -104,6 +104,65 @@ protocol `http`, service name `rbac3-admin`, group `default`, and the deployed a
 seconds with a 10-second heartbeat. DDC must not advertise the instance before
 the provider port is actually reachable.
 
+### 2.6 DDC configuration client and runtime policy
+
+Configuration scope is `bizCode + appCode + env + namespace + configKey`. It is
+consumed through a `CONFIG_CLIENT` lease. The provider registration above uses a
+different service scope: `bizCode + appCode + env + namespace + serviceKind +
+protocol + serviceName + group + version` and an `HTTP_PROVIDER` lease. The two
+leases have independent lease IDs, expiry, heartbeat, failure and recovery state.
+Never infer one from the other.
+
+| Key | Default | Range | Relationship/effect |
+| --- | ---: | ---: | --- |
+| `rbac3.access-token-ttl-seconds` | 900 | 300..1800 | New Access Tokens only |
+| `rbac3.refresh-token-ttl-seconds` | 604800 | 86400..2592000 | Must be at least Absolute; new Refresh Tokens/Sessions only |
+| `rbac3.session-idle-timeout-seconds` | 1800 | 300..28800 | Must not exceed Absolute; new/refreshed Sessions only |
+| `rbac3.session-absolute-timeout-seconds` | 43200 | 3600..86400 | Between Idle and Refresh; new/refreshed Sessions only |
+| `rbac3.maximum-active-roots` | 16 | 1..32 | New role-activation replacement commands only |
+
+Each DDC message updates one key. There is no cross-key transaction. Use the
+following safe publication order:
+
+- widening: publish Refresh, wait for successful ACK/version observation, then
+  Absolute, then Idle;
+- shrinking: publish Idle, wait for success, then Absolute, then adjust Refresh
+  only when `Absolute <= Refresh` remains true;
+- Access TTL and Maximum Active Roots are independent, but still change and
+  observe one key at a time.
+
+The declarations use `refreshable = false` to prevent reflective mutation;
+exact typed appliers validate the whole immutable policy snapshot instead. An
+invalid update produces a bounded FAILED ACK and records key/version/error code,
+while the previous policy and repository version/checksum remain last-known-good.
+Do not retry the same version with different content: DDC treats that as a
+checksum conflict. Correct the value and publish a higher version. A successful
+higher version clears the failure for that key.
+
+Dynamic configuration never rewrites already issued token expiry, already
+persisted Session expiry or already committed active-role sets. Reauthentication,
+Session refresh/creation or a new activation command is required to consume the
+new value.
+
+These five keys are scalar policy values, not a secret channel. Never publish
+passwords, access/secret keys, OAuth or refresh tokens, lease credentials,
+private keys, hashes, bootstrap administrator passwords or bootstrap commands
+through DDC. Do not put them in ACK evidence, status output, metrics or document
+examples.
+
+### 2.7 Gateway Interface Catalog and Release
+
+Spring MVC mappings provide Method, Path, Consumes, Produces and parameters;
+the existing `@EgonHttpService`, `@GatewayInterfaceGroup`, `@GatewayOperation`
+and schema-field annotations provide business documentation. Gateway Interface
+Catalog is the only API document center for RBAC3. Do not deploy a parallel
+Swagger/Springdoc catalog or add real credentials as schema examples.
+
+A Definition ACK proves only that Gateway Admin accepted the catalog. It does
+not publish traffic rules. An authorized operator must explicitly create/publish
+the intended Gateway Release, then verify Engine consistency and a routed
+request. RBAC3 never auto-publishes a Release.
+
 ## 3. Startup sequence
 
 1. Verify PostgreSQL and all three Redis roles are externally healthy.
@@ -112,11 +171,14 @@ the provider port is actually reachable.
    privilege.
 4. Start the first Admin instance through deployment tooling.
 5. Confirm both Flyway history tables, liveness and persistence readiness.
-6. Confirm Definition acknowledgement independently.
-7. Confirm its DDC `HTTP_PROVIDER` lease independently.
-8. Confirm the explicit Gateway Release and runtime consistency independently.
-9. Route a request through Gateway and record the result.
-10. Repeat for the second Admin instance using distinct port, instance ID,
+6. Confirm the DDC `CONFIG_CLIENT` session is `READY`, all five startup versions
+   are present, and there is no unresolved apply failure. The RBAC3 publication
+   gate will not publish the root HTTP port before this point.
+7. Confirm Definition acknowledgement independently.
+8. Confirm its separate, unexpired DDC `HTTP_PROVIDER` lease independently.
+9. Confirm the explicitly published Gateway Release and runtime consistency.
+10. Route a request through Gateway and record the result.
+11. Repeat for the second Admin instance using distinct port, instance ID,
     build ID and Snowflake machine ID.
 
 Readiness describes the process's ability to serve safely; it must not report a
@@ -218,11 +280,55 @@ Record independently:
 - RBAC3 and Outbox Flyway state;
 - runtime Redis availability, projection checkpoint, mutation backlog and Fence;
 - Outbox pending/retry/dead counts;
+- DDC Config Client state, instance ID, lease fingerprint/expiry, five current
+  config versions and last apply failure key/version/code;
 - Definition status/set ID and warnings;
-- DDC lease instance ID, expiry and last heartbeat;
+- DDC HTTP Provider lease instance ID, expiry and last heartbeat;
 - Gateway Release ID/status, engine-observed version and consistency;
 - routed request trace ID, response code and selected provider instance when
   available.
+
+Fixed low-cardinality metrics are:
+
+- `rbac3_ddc_config_apply_total{key,status}` where key is one of the five keys
+  and status is only `success|failed`;
+- `rbac3_ddc_config_snapshot_version{key}`;
+- `rbac3_ddc_config_ready`;
+- `rbac3_gateway_definition_operation_count`.
+
+Raw values, lease IDs and instance IDs are not metric labels.
+
+### 9.1 DDC/Gateway incident order and LKG recovery
+
+Always inspect in this order, without skipping a fact:
+
+```text
+DDC Config Client state/session
+  -> current five config versions / last apply error code
+  -> Gateway Definition status
+  -> DDC HTTP_PROVIDER lease and expiry
+  -> Gateway Release / Engine consistency
+  -> routed request evidence
+```
+
+- If the Config Client is not `READY` or lacks a `CONFIG_CLIENT` session, fix
+  DDC registration/connectivity first. Provider publication is intentionally
+  blocked; do not bypass the gate.
+- If a version did not advance, compare only key, target/current version,
+  checksum outcome and bounded error code. Do not print the raw value. Correct
+  range/relationship errors and publish a higher valid version. The previous
+  snapshot is still the LKG; a failed apply alone does not authorize changing
+  readiness to UP or DOWN by hand.
+- If Definition is rejected, fix the Mapping/annotation/schema contract and
+  report a new Definition. Do not create a second documentation source.
+- If the HTTP Provider lease is missing, recovering or expired, repair provider
+  registration/heartbeat after Config Ready. A `REGISTERED` string with an
+  expired lease is still `NOT_ROUTABLE`.
+- If Release or consistency is not successful, publish/repair the explicit
+  Release through Gateway operations. Definition acceptance and provider
+  presence are not release evidence.
+- Only a routed request with timestamp/trace and selected provider proves the
+  complete path at that moment.
 
 On an authorization incident, preserve signed/redacted audit evidence, mutation
 ID, Session ID, tenant/application IDs and policy versions. Never capture raw

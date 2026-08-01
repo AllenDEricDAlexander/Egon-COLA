@@ -29,6 +29,71 @@ Routed request             -- proves the complete route works at observation tim
 
 No single health flag substitutes for these observations.
 
+### 1.1 DDC configuration scope and service scope
+
+DDC configuration and service discovery use separate identities and separate
+leases. Configuration scope is:
+
+```text
+bizCode + appCode + env + namespace + configKey
+```
+
+The DDC runtime owns one `CONFIG_CLIENT` lease for this scope. Service scope is:
+
+```text
+bizCode + appCode + env + namespace + serviceKind + protocol
+  + serviceName + group + version
+```
+
+The Gateway provider runtime owns a different `HTTP_PROVIDER` lease for that
+scope. `CONFIG_CLIENT` and `HTTP_PROVIDER` may use the same process instance ID,
+but their lease IDs, roles, lifecycle, readiness and recovery state are never
+derived from one another. Gateway resolves providers only from the service scope;
+it does not use the configuration-client session as a provider registration.
+
+Startup uses a small state gate rather than another registry implementation:
+
+```text
+CONFIG_CLIENT register -> pull/apply snapshots -> DDC READY
+  + root WebServerInitializedEvent port
+  + ApplicationReadyEvent
+  -> publish the existing HTTP_PROVIDER runtime exactly once
+```
+
+The gate ignores management web-server events, rejects an explicit advertised
+port that differs from the root server port, and fails closed when DDC is not
+`READY` or no `CONFIG_CLIENT` session exists. It delegates registration,
+heartbeat, recovery and offline behavior to the existing Gateway provider
+runtime.
+
+### 1.2 Atomic runtime policy and document catalog
+
+Five exact DDC appliers adapt scalar configuration into one immutable policy
+snapshot. Each apply is serialized, builds and validates a complete candidate,
+then atomically swaps the reference. Readers take one snapshot per command, so
+they cannot observe mixed fields. Startup snapshot priority is Refresh, Absolute,
+then Idle for the related timeouts; DDC runtime publication remains per-key and
+is not a cross-key transaction.
+
+The constraints are `Idle <= Absolute <= Refresh` plus each key's fixed range.
+An invalid candidate records only key, target version and bounded error code.
+The active snapshot and DDC repository version/checksum remain at the
+last-known-good state. A later higher valid version recovers the key. Dynamic
+values govern only new token issuance, new/refreshed Sessions and new activation
+commands; they never rewrite already committed expiration or activation facts.
+
+Spring MVC remains the mechanical source for HTTP method, path, media types and
+parameters. Existing Gateway annotations add business grouping, stable operation
+name, summary, tags, accessibility and schema descriptions. The resulting
+Gateway Interface Catalog is the sole API document center. RBAC3 reports a
+Definition but never auto-publishes a Gateway Release.
+
+Routeability is evaluated from five facts without collapsing them: DDC Config
+Client, accepted Gateway Definition, unexpired HTTP Provider lease, explicit
+Release/engine consistency, and routed-request evidence. The first four are
+available from the runtime status API; the fifth must come from an actual routed
+request observation.
+
 ## 2. Role graph model
 
 Roles form a tenant- and APP-scoped directed acyclic graph (DAG). An edge points
@@ -157,7 +222,9 @@ the UI cannot issue a broad “retry everything” command.
 | Facade | Assignment, Manifest, Management Policy, activation, simulation | Keeps HTTP orchestration out of domain algorithms and provides one transaction boundary |
 | Ports and Adapters | Database clock, locks, query stores, Redis projection, DDC/Gateway status | Core/application code depends on capabilities, while infrastructure details remain replaceable in tests |
 | State | Session/refresh lifecycle, key-ring phases, mutation/fence status | Transitions and illegal moves are explicit rather than scattered boolean combinations |
-| Adapter | Starter PEP and Gateway Adapter | Both translate host runtime contracts into the same typed decision model without depending on Admin |
+| Adapter | Starter PEP, Gateway Adapter and five exact DDC policy appliers | Translates host/configuration contracts into typed policy behavior without duplicating their lifecycle algorithms |
+| Observer | Optional Micrometer apply observer | Adds fixed-cardinality success/failure evidence without making configuration delivery depend on metrics |
+| Immutable Snapshot | Runtime policy and authorization snapshot publication | One reference swap gives command-scoped consistency and preserves a last-known-good value on validation failure |
 
 A general-purpose rule engine, abstract factory hierarchy, event-sourced aggregate,
 and chain class per authorization step were rejected. The rule set is typed and

@@ -60,6 +60,54 @@ See [architecture.md](docs/architecture.md) for algorithms and design patterns,
 [security-boundaries.md](docs/security-boundaries.md) for trust boundaries, and
 [operations-runbook.md](docs/operations-runbook.md) for deployment.
 
+## DDC configuration and Gateway service integration
+
+Configuration scope and service scope are different identities:
+
+- Configuration scope is `bizCode + appCode + env + namespace + configKey`.
+  RBAC3 owns a `CONFIG_CLIENT` lease, pulls the five runtime-policy values, and
+  accepts only validated monotonically versioned snapshots.
+- Service scope is `bizCode + appCode + env + namespace + serviceKind + protocol
+  + serviceName + group + version`. RBAC3 owns a separate `HTTP_PROVIDER` lease;
+  Gateway obtains unexpired provider instances from this scope and routes to the
+  advertised host/port.
+
+The two leases may share an instance ID but never a lease credential or state.
+At startup, the configuration client must hold a `CONFIG_CLIENT` session and be
+`READY` before the root HTTP server is published as an `HTTP_PROVIDER`. Interface
+Definition reporting is independent of both leases. Spring MVC mappings plus the
+existing Gateway annotations feed the Gateway Interface Catalog, which is the
+only API document center. A Gateway Release is always an explicit operator action;
+RBAC3 never auto-publishes one.
+
+| DDC key | Default | Accepted range |
+| --- | ---: | ---: |
+| `rbac3.access-token-ttl-seconds` | 900 | 300..1800 |
+| `rbac3.refresh-token-ttl-seconds` | 604800 | 86400..2592000 |
+| `rbac3.session-idle-timeout-seconds` | 1800 | 300..28800 |
+| `rbac3.session-absolute-timeout-seconds` | 43200 | 3600..86400 |
+| `rbac3.maximum-active-roots` | 16 | 1..32 |
+
+Idle must not exceed absolute timeout, and absolute timeout must not exceed
+refresh-token TTL. Cross-key DDC publication is not transactional. When widening,
+publish Refresh, then Absolute, then Idle; when shrinking, publish Idle, then
+Absolute, then Refresh as the relationship permits. Access TTL and maximum roots
+are independent but should still be changed one key at a time.
+
+An accepted update atomically replaces one complete in-memory policy snapshot.
+It affects only newly issued access/refresh tokens, newly created/refreshed
+Sessions, and newly executed role-activation commands. Existing token expirations,
+Session expirations, and already committed active-role sets are not rewritten.
+Invalid values produce a failed ACK while the last-known-good policy and DDC
+repository metadata remain active; recovery requires a higher valid version.
+
+Operational routeability is five independent facts: DDC Config Client,
+Gateway Definition, unexpired DDC HTTP Provider lease, explicit Gateway
+Release/engine consistency, and an observed routed request. Status and metrics
+expose bounded versions, state, fingerprints, and error codes only—never raw
+configuration values, lease credentials, passwords, tokens, private keys, hashes,
+or bootstrap administrator secrets.
+
 ## Build and test
 
 Requirements: Java 21, the Maven Wrapper, and Node 24 from `.node-version`.

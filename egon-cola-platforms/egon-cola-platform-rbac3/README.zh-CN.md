@@ -56,7 +56,46 @@ Gateway Engine -> 从 DDC 获取 RBAC3 实例 -> 路由请求
 Definition、Lease、Release 是三项独立状态，任何一项未知或不一致都不能被合并解释
 为“可路由”。进程存活也不等于 Gateway 已可路由。
 
-## 四、角色激活规则摘要
+## 四、DDC 配置 scope、服务 scope 与 Gateway 文档中心
+
+配置 scope 与服务 scope 是两个不同的身份空间：
+
+- 配置 scope 为 `bizCode + appCode + env + namespace + configKey`。RBAC3 以
+  `CONFIG_CLIENT` Lease 拉取五个运行策略值，只接受通过校验且版本单调递增的快照。
+- 服务 scope 为 `bizCode + appCode + env + namespace + serviceKind + protocol +
+  serviceName + group + version`。RBAC3 以独立的 `HTTP_PROVIDER` Lease 注册服务，
+  Gateway 从该 scope 获取未过期实例并路由到 advertised host/port。
+
+两类 Lease 可以使用同一个 Instance ID，但 Lease 凭据和状态互相独立。启动时必须先
+取得 `CONFIG_CLIENT` Session 并达到 `READY`，再由 RBAC3 发布门闩把根 HTTP Server
+发布为 `HTTP_PROVIDER`。Definition 上报与两类 Lease 也相互独立。Spring MVC Mapping
+和现有 Gateway 注解共同生成 Gateway Interface Catalog；它是唯一接口文档中心。
+Gateway Release 必须由操作者显式发布，RBAC3 不自动发布 Release。
+
+| DDC Key | 默认值 | 合法范围 |
+| --- | ---: | ---: |
+| `rbac3.access-token-ttl-seconds` | 900 | 300..1800 |
+| `rbac3.refresh-token-ttl-seconds` | 604800 | 86400..2592000 |
+| `rbac3.session-idle-timeout-seconds` | 1800 | 300..28800 |
+| `rbac3.session-absolute-timeout-seconds` | 43200 | 3600..86400 |
+| `rbac3.maximum-active-roots` | 16 | 1..32 |
+
+关系约束为 `Idle <= Absolute <= Refresh`。跨 Key 发布不是事务：扩大窗口时先发布
+Refresh，再发布 Absolute，最后发布 Idle；收缩窗口时先发布 Idle，再发布 Absolute，
+最后在关系允许时调整 Refresh。Access TTL 与最大根数互相独立，但仍应一次只变更
+一个 Key。
+
+合法更新通过不可变 Snapshot 原子替换，只影响新签发的 Access/Refresh Token、
+新创建或刷新的 Session，以及之后执行的角色激活命令；不会追溯改写已签发 Token、
+已固化 Session 到期时间或已提交的激活集合。非法值产生 FAILED ACK，但继续使用
+Last-Known-Good Policy 和旧版本/Checksum；恢复必须发布更高的合法版本。
+
+运维必须分别观察五项事实：DDC Config Client、Gateway Definition、未过期的 DDC
+HTTP Provider Lease、显式 Gateway Release/Engine Consistency、真实 Routed Request。
+状态与指标只暴露版本、状态、指纹和错误码，不暴露配置原值、Lease 凭据、密码、
+Token、私钥、Hash 或首个管理员 Bootstrap Secret。
+
+## 五、角色激活规则摘要
 
 - 输入是 Session 的**完整目标角色集合**，不是增量追加；必须携带预期 Session
   版本，服务端在 Session 行锁内完成 CAS。
@@ -69,7 +108,7 @@ Definition、Lease、Release 是三项独立状态，任何一项未知或不一
 - 激活成功后生成新的不可变快照并重签 Access Token；响应不确定时客户端用
   `GET /auth/role-activations` 恢复，而不是盲目重放。
 
-## 五、权限决策摘要
+## 六、权限决策摘要
 
 最终决策按固定顺序执行：身份与 Tenant/APP 边界、Session/User/Tenant/Policy
 精确版本、Fence、Function Permission、Data Scope、Field Rule、Participation 与
@@ -80,7 +119,7 @@ Operation SOD。任何必需数据缺失、版本不一致、Redis/密钥不可�
 `NONE`，不能因规则缺失自动放宽。Gateway 热路径只做一次决策，不访问 PostgreSQL，
 也不回调 Admin HTTP 接口。
 
-## 六、首次管理员初始化
+## 七、首次管理员初始化
 
 首次部署只允许使用 Admin 制品内的 one-shot CLI，不提供创建首个管理员的 HTTP
 接口。命令自动选择 non-web Spring Context，成功或失败后都会退出，不启动 HTTP
@@ -100,7 +139,7 @@ java -jar egon-cola-platform-rbac3-admin.jar \
 已有有效平台管理员或同名平台 Tenant 时命令会拒绝；管理员遗失必须使用独立恢复
 runbook，不能重跑初始化命令静默创建第二个 root 账号。
 
-## 七、构建与验证
+## 八、构建与验证
 
 要求 Java 21、Maven Wrapper，以及模块 `.node-version` 指定的 Node 24。
 
@@ -135,7 +174,7 @@ scripts/verification/cleanup-rbac3-fixture.sh --check-config
 Build ID、Snowflake machine-id、DDC/Gateway 地址、Release ID 和专用 Tenant。脚本在
 故障切换点暂停，由操作者改变外部状态；脚本本身不停止进程。
 
-## 八、文档入口
+## 九、文档入口
 
 - [架构、算法与设计模式](docs/architecture.md)
 - [API 与 Manifest 合同](docs/api-and-manifest.md)
