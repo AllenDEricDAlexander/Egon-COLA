@@ -39,6 +39,8 @@ class RpcMethodIndexCompilerTest {
                 "operation",
                 "test.Echo/Call",
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         ProviderProtocolType.RPC,

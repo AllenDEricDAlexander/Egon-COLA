@@ -72,7 +72,10 @@ export const AdminLayout = () => {
       }))
     : []
 
-  const changeScope = (field: 'env' | 'namespace', value: string) => {
+  const changeScope = (
+    field: 'bizCode' | 'appCode' | 'env' | 'namespace',
+    value: string,
+  ) => {
     if (!window.confirm('切换作用域会清空当前缓存和未保存表单，是否继续？')) {
       return
     }
@@ -100,6 +103,18 @@ export const AdminLayout = () => {
               aria-label={collapsed ? '展开导航' : '收起导航'}
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed((value) => !value)}
+            />
+            <Select
+              aria-label="业务域"
+              value={scope.bizCode}
+              options={scopeOptions(scope.bizCode, ['default'], 'Biz')}
+              onChange={(value) => changeScope('bizCode', value)}
+            />
+            <Select
+              aria-label="应用"
+              value={scope.appCode}
+              options={scopeOptions(scope.appCode, ['default-app'], 'App')}
+              onChange={(value) => changeScope('appCode', value)}
             />
             <Select
               aria-label="环境"

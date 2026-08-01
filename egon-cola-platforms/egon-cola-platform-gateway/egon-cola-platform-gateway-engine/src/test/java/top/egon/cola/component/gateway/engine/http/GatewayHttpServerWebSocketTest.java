@@ -123,6 +123,8 @@ class GatewayHttpServerWebSocketTest {
         return new GatewayWebSocketProxyContext(
                 new ProviderInstance(
                         new ProviderServiceKey(
+                                "test-biz",
+                                "test-app",
                                 "test",
                                 "default",
                                 ProviderProtocolType.HTTP,

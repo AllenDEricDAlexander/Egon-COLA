@@ -52,6 +52,7 @@ class GatewayReportingAutoConfigurationTest {
                         "egon.cola.component.gateway.reporting.enabled=true",
                         "egon.cola.component.gateway.reporting.admin-base-url="
                                 + "http://127.0.0.1:18080",
+                        "egon.cola.component.gateway.reporting.biz-code=test-biz",
                         "egon.cola.component.gateway.reporting."
                                 + "application-code=inventory",
                         "egon.cola.component.gateway.reporting."
@@ -121,6 +122,7 @@ class GatewayReportingAutoConfigurationTest {
                         "egon.cola.component.gateway.reporting.enabled=true",
                         "egon.cola.component.gateway.reporting.admin-base-url="
                                 + "http://127.0.0.1:18080",
+                        "egon.cola.component.gateway.reporting.biz-code=test-biz",
                         "egon.cola.component.gateway.reporting."
                                 + "application-code=inventory",
                         "egon.cola.component.gateway.reporting."
@@ -155,6 +157,7 @@ class GatewayReportingAutoConfigurationTest {
                         "egon.cola.component.gateway.reporting.enabled=true",
                         "egon.cola.component.gateway.reporting.admin-base-url="
                                 + "http://127.0.0.1:18080",
+                        "egon.cola.component.gateway.reporting.biz-code=test-biz",
                         "egon.cola.component.gateway.reporting."
                                 + "application-code=inventory",
                         "egon.cola.component.gateway.reporting."
@@ -193,6 +196,7 @@ class GatewayReportingAutoConfigurationTest {
         properties.setEnabled(true);
         properties.setAdminBaseUrl("http://127.0.0.1:18080");
         properties.setApplicationCode("inventory");
+        properties.setBizCode("test-biz");
         properties.setApplicationName("Inventory");
         properties.setEnv("test");
         properties.setNamespace("default");

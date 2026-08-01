@@ -164,6 +164,8 @@ final class GatewayHttpOperationMapper {
                 annotation != null && annotation.externalAccessible(),
                 streaming ? "UNSUPPORTED" : "SUPPORTED",
                 new GatewayInterfaceDefinitionReport.ProviderService(
+                        properties.getBizCode(),
+                        properties.getApplicationCode(),
                         properties.getEnv(),
                         properties.getNamespace(),
                         "HTTP",

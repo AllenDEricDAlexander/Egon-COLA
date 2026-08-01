@@ -7,6 +7,7 @@ import BizSelect from '../components/scope/BizSelect'
 import EnvSelect from '../components/scope/EnvSelect'
 import NamespaceSelect from '../components/scope/NamespaceSelect'
 import { buildQuery, formatTime } from '../lib/query'
+import { configuredInitialScope } from '../lib/scopeDefaults'
 
 const serviceQueries = [
   { serviceKind: 'HTTP_PROVIDER', protocol: 'http', label: 'HTTP Provider' },
@@ -27,13 +28,13 @@ const serviceIdentity = (service: RegistryService): string =>
   [service.bizCode, service.appCode, service.serviceKind, service.protocol, service.serviceName, service.group ?? '', service.version ?? ''].join('|')
 
 export default function RegistryPage() {
-  const [draft, setDraft] = useState({ bizCode: '', appCode: '', env: '', namespace: '' })
+  const [draft, setDraft] = useState(() => ({ ...configuredInitialScope }))
   const [rows, setRows] = useState<AppRow[]>([])
   const [instanceGroups, setInstanceGroups] = useState<{ service: ServiceRow; instances: RegistryInstance[] }[]>([])
   const [loading, setLoading] = useState(false)
   const [drawerApp, setDrawerApp] = useState<AppRow | null>(null)
   const [drawerLoading, setDrawerLoading] = useState(false)
-  const filterRef = useRef({ bizCode: '', appCode: '', env: '', namespace: '' })
+  const filterRef = useRef({ ...configuredInitialScope })
 
   const loadRegistry = useCallback(async () => {
     const scope = filterRef.current

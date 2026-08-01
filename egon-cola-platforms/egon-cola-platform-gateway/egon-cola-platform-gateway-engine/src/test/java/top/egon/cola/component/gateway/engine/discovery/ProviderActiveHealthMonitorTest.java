@@ -157,6 +157,8 @@ class ProviderActiveHealthMonitorTest {
             String service,
             ProviderProtocolType protocol) {
         return new ProviderServiceKey(
+                "test-biz",
+                "test-app",
                 "local",
                 "default",
                 protocol,

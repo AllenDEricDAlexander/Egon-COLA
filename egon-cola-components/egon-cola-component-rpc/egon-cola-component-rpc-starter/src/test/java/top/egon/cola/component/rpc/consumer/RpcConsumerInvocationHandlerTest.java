@@ -14,6 +14,7 @@ import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
@@ -25,6 +26,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
@@ -155,7 +157,8 @@ class RpcConsumerInvocationHandlerTest {
                     registry,
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity
+                    identity,
+                    serviceKeyFactory()
             );
             manager.start();
             RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
@@ -230,7 +233,8 @@ class RpcConsumerInvocationHandlerTest {
                     new GatewayRegistry(first.getPort(), second.getPort()),
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity
+                    identity,
+                    serviceKeyFactory()
             );
             manager.start();
             RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
@@ -276,6 +280,13 @@ class RpcConsumerInvocationHandlerTest {
             first.shutdownNow().awaitTermination();
             second.shutdownNow().awaitTermination();
         }
+    }
+
+    private DdcServiceKeyFactory serviceKeyFactory() {
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("test-biz");
+        properties.setAppCode("consumer-test");
+        return new DdcServiceKeyFactory(properties);
     }
 
     private Server startScenarioGateway(

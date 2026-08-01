@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.web.context.WebServerApplicationContext;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.boot.web.server.WebServer;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -18,6 +19,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.gateway.contract.definition
         .GatewayDefinitionIdentity;
@@ -50,6 +52,10 @@ class GatewayHttpProviderAutoConfigurationTest {
                     .withBean(
                             GatewayDefinitionIdentity.class,
                             () -> identity
+                    )
+                    .withBean(
+                            DdcServiceKeyFactory.class,
+                            this::serviceKeyFactory
                     )
                     .withPropertyValues(requiredProperties());
 
@@ -104,6 +110,10 @@ class GatewayHttpProviderAutoConfigurationTest {
                 .withPropertyValues(requiredProperties())
                 .withPropertyValues(
                         "egon.cola.component.gateway.provider.http.version=1.0.0"
+                )
+                .withBean(
+                        DdcServiceKeyFactory.class,
+                        this::serviceKeyFactory
                 )
                 .withBean(DdcServiceRegistryClient.class, () -> registry)
                 .run(context -> {
@@ -223,6 +233,15 @@ class GatewayHttpProviderAutoConfigurationTest {
                 "egon.cola.component.ddc.namespace=gateway-test",
                 "egon.cola.component.gateway.reporting.application-code=orders"
         };
+    }
+
+    private DdcServiceKeyFactory serviceKeyFactory() {
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("test-biz");
+        properties.setAppCode("orders");
+        properties.setEnv("test");
+        properties.setNamespace("gateway-test");
+        return new DdcServiceKeyFactory(properties);
     }
 
     private WebServerInitializedEvent webServerEvent(

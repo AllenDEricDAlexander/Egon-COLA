@@ -1,4 +1,9 @@
-import type { Scope } from '../api/types'
+export type RegistryScope = {
+  bizCode: string
+  appCode: string
+  env: string
+  namespace: string
+}
 
 const valueOr = (value: string | undefined, fallback: string) => {
   const normalized = value?.trim()
@@ -10,7 +15,7 @@ export const resolveInitialScope = (
   configuredAppCode?: string,
   configuredEnv?: string,
   configuredNamespace?: string,
-): Scope => ({
+): RegistryScope => ({
   bizCode: valueOr(configuredBizCode, 'default'),
   appCode: valueOr(configuredAppCode, 'default-app'),
   env: valueOr(configuredEnv, 'dev'),
@@ -18,15 +23,8 @@ export const resolveInitialScope = (
 })
 
 export const configuredInitialScope = resolveInitialScope(
-  import.meta.env.VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE,
-  import.meta.env.VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE,
-  import.meta.env.VITE_GATEWAY_ADMIN_DEFAULT_ENV,
-  import.meta.env.VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE,
+  import.meta.env.VITE_DDC_ADMIN_DEFAULT_BIZ_CODE,
+  import.meta.env.VITE_DDC_ADMIN_DEFAULT_APP_CODE,
+  import.meta.env.VITE_DDC_ADMIN_DEFAULT_ENV,
+  import.meta.env.VITE_DDC_ADMIN_DEFAULT_NAMESPACE,
 )
-
-export const scopeOptions = (
-  current: string,
-  defaults: string[],
-  label = 'Namespace',
-) => [...new Set([...defaults, current].map((value) => value.trim()).filter(Boolean))]
-  .map((value) => ({ value, label: `${label}: ${value}` }))

@@ -340,6 +340,8 @@ class GatewayWebSocketProxyTest {
             boolean secure) {
         return new ProviderInstance(
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         ProviderProtocolType.HTTP,

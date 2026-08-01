@@ -183,7 +183,18 @@ public final class DdcOpenApiServiceRegistryClient
 
     @Override
     public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query) {
+        return get(
+                SERVICES_PATH,
+                serviceQuery(query),
+                new ParameterizedTypeReference<>() {
+                }
+        );
+    }
+
+    static Map<String, List<String>> serviceQuery(DdcServiceQuery query) {
         Map<String, List<String>> parameters = new LinkedHashMap<>();
+        parameters.put("bizCode", List.of(query.bizCode()));
+        parameters.put("appCode", List.of(query.appCode()));
         parameters.put("env", List.of(query.env()));
         parameters.put("namespace", List.of(query.namespace()));
         parameters.put("serviceKind", List.of(query.serviceKind().name()));
@@ -191,12 +202,7 @@ public final class DdcOpenApiServiceRegistryClient
         putIfPresent(parameters, "serviceName", query.serviceName());
         putIfPresent(parameters, "group", query.group());
         putIfPresent(parameters, "version", query.version());
-        return get(
-                SERVICES_PATH,
-                parameters,
-                new ParameterizedTypeReference<>() {
-                }
-        );
+        return parameters;
     }
 
     @Override
@@ -233,21 +239,23 @@ public final class DdcOpenApiServiceRegistryClient
         return request;
     }
 
-    private Map<String, List<String>> serviceKeyQuery(DdcServiceKey serviceKey) {
+    static Map<String, List<String>> serviceKeyQuery(DdcServiceKey serviceKey) {
         Map<String, List<String>> query = new LinkedHashMap<>();
+        query.put("bizCode", List.of(serviceKey.bizCode()));
+        query.put("appCode", List.of(serviceKey.appCode()));
         query.put("env", List.of(serviceKey.env()));
         query.put("namespace", List.of(serviceKey.namespace()));
         query.put("serviceKind", List.of(serviceKey.serviceKind().name()));
         query.put("serviceName", List.of(serviceKey.serviceName()));
-        query.put("group", List.of(serviceKey.group()));
-        query.put("version", List.of(serviceKey.version()));
+        putIfPresent(query, "group", serviceKey.group());
+        putIfPresent(query, "version", serviceKey.version());
         query.put("protocol", List.of(serviceKey.protocol()));
         return query;
     }
 
-    private void putIfPresent(Map<String, List<String>> target,
-                              String name,
-                              String value) {
+    private static void putIfPresent(Map<String, List<String>> target,
+                                     String name,
+                                     String value) {
         if (value != null && !value.isBlank()) {
             target.put(name, List.of(value));
         }

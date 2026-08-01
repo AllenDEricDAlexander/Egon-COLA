@@ -36,6 +36,8 @@ public class GatewayObservabilityQueryService {
     }
 
     public GatewayObservabilityStore.DashboardSummary dashboard(
+            String bizCode,
+            String appCode,
             String env,
             String namespace) {
         GatewayObservabilityStore.DashboardSummary summary = store.dashboard(
@@ -48,7 +50,12 @@ public class GatewayObservabilityQueryService {
         }
         try {
             GatewayProjectionService.ProjectionCounts counts =
-                    projections.scopeCounts(env, namespace);
+                    projections.scopeCounts(
+                            bizCode,
+                            appCode,
+                            env,
+                            namespace
+                    );
             return new GatewayObservabilityStore.DashboardSummary(
                     summary.gatewayGroups(),
                     counts.readyEngines(),

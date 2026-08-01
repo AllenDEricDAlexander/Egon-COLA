@@ -24,7 +24,12 @@ import type {
 
 const admin = '/api/v1/gateway/admin'
 const query = (scope: Scope): string =>
-  new URLSearchParams({ env: scope.env, namespace: scope.namespace }).toString()
+  new URLSearchParams({
+    bizCode: scope.bizCode,
+    appCode: scope.appCode,
+    env: scope.env,
+    namespace: scope.namespace,
+  }).toString()
 
 type ProjectionEnvelope<T> = {
   value: T

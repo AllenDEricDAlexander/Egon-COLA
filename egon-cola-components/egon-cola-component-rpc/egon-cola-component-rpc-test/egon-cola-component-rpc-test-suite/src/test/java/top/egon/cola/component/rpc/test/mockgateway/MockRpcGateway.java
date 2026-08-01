@@ -188,6 +188,8 @@ public final class MockRpcGateway implements AutoCloseable {
                 "1.0.0"
         );
         DdcServiceKey serviceKey = new DdcServiceKey(
+                "test-biz",
+                "test-app",
                 env,
                 namespace,
                 DdcServiceKind.RPC_PROVIDER,
@@ -255,6 +257,8 @@ public final class MockRpcGateway implements AutoCloseable {
 
     private DdcServiceKey gatewayKey() {
         return new DdcServiceKey(
+                "test-biz",
+                "test-app",
                 env,
                 namespace,
                 DdcServiceKind.INTERNAL_GATEWAY,

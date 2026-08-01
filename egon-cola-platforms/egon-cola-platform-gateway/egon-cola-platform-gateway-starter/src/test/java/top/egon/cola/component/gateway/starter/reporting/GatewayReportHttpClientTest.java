@@ -156,6 +156,7 @@ class GatewayReportHttpClientTest {
         properties.setEnabled(true);
         properties.setAdminBaseUrl("http://admin.local");
         properties.setApplicationCode("inventory");
+        properties.setBizCode("test-biz");
         properties.setApplicationName("Inventory");
         properties.setEnv("test");
         properties.setNamespace("default");

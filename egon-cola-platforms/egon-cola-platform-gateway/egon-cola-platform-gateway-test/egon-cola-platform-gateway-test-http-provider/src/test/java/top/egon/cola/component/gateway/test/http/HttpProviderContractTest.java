@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.servlet.mvc.method.annotation
         .RequestMappingHandlerMapping;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -22,6 +23,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.gateway.contract.definition
         .GatewayDefinitionIdentity;
@@ -144,6 +146,7 @@ class HttpProviderContractTest {
     @Test
     void orderSchemasExposeEveryFieldTypeAndDescription() {
         GatewayReportingProperties properties = new GatewayReportingProperties();
+        properties.setBizCode("test-biz");
         properties.setApplicationCode("gateway-test-http-provider");
         properties.setEnv("test");
         properties.setNamespace("gateway-test");
@@ -228,12 +231,20 @@ class HttpProviderContractTest {
     }
 
     @TestConfiguration(proxyBeanMethods = false)
-    @EnableConfigurationProperties(GatewayReportingProperties.class)
+    @EnableConfigurationProperties({
+            GatewayReportingProperties.class,
+            DdcProperties.class
+    })
     static class ProviderTestConfiguration {
 
         @Bean
         RecordingRegistry recordingRegistry() {
             return new RecordingRegistry();
+        }
+
+        @Bean
+        DdcServiceKeyFactory ddcServiceKeyFactory(DdcProperties properties) {
+            return new DdcServiceKeyFactory(properties);
         }
 
         @Bean

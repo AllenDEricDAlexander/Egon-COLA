@@ -36,6 +36,7 @@ public record GatewayInterfaceDefinitionReport(
     }
 
     public record Application(
+            String bizCode,
             String applicationCode,
             String name,
             String env,
@@ -43,6 +44,7 @@ public record GatewayInterfaceDefinitionReport(
     ) {
 
         public Application {
+            bizCode = required(bizCode, "bizCode");
             applicationCode = required(
                     applicationCode,
                     "applicationCode"
@@ -186,6 +188,8 @@ public record GatewayInterfaceDefinitionReport(
     }
 
     public record ProviderService(
+            String bizCode,
+            String appCode,
             String env,
             String namespace,
             String protocol,
@@ -196,6 +200,8 @@ public record GatewayInterfaceDefinitionReport(
     ) {
 
         public ProviderService {
+            bizCode = required(bizCode, "providerService.bizCode");
+            appCode = required(appCode, "providerService.appCode");
             env = required(env, "providerService.env");
             namespace = required(namespace, "providerService.namespace");
             protocol = required(protocol, "providerService.protocol");

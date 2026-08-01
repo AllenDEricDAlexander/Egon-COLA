@@ -96,13 +96,18 @@ public class GatewayProjectionService {
     }
 
     public ProjectionEnvelope<List<ProviderInstanceProjection>> instances(
+            String bizCode,
+            String appCode,
             String env,
             String namespace) {
-        String key = "instances:" + env + ":" + namespace;
+        String key = "instances:" + bizCode + ":" + appCode + ":"
+                + env + ":" + namespace;
         return load(key, "DDC_SERVICE_REGISTRY", () -> {
             List<ProviderInstanceProjection> result = new ArrayList<>();
             collectInstances(
                     result,
+                    bizCode,
+                    appCode,
                     env,
                     namespace,
                     "HTTP_PROVIDER",
@@ -110,6 +115,8 @@ public class GatewayProjectionService {
             );
             collectInstances(
                     result,
+                    bizCode,
+                    appCode,
                     env,
                     namespace,
                     "HTTP_PROVIDER",
@@ -117,6 +124,8 @@ public class GatewayProjectionService {
             );
             collectInstances(
                     result,
+                    bizCode,
+                    appCode,
                     env,
                     namespace,
                     "RPC_PROVIDER",
@@ -289,7 +298,11 @@ public class GatewayProjectionService {
         }
     }
 
-    public ProjectionCounts scopeCounts(String env, String namespace) {
+    public ProjectionCounts scopeCounts(
+            String bizCode,
+            String appCode,
+            String env,
+            String namespace) {
         long totalEngines = 0;
         long readyEngines = 0;
         long inconsistentGroups = 0;
@@ -311,7 +324,7 @@ public class GatewayProjectionService {
             stale = stale || consistency.stale();
         }
         ProjectionEnvelope<List<ProviderInstanceProjection>> providers =
-                instances(env, namespace);
+                instances(bizCode, appCode, env, namespace);
         long activeProviders = providers.value().stream()
                 .filter(this::online)
                 .count();
@@ -343,12 +356,16 @@ public class GatewayProjectionService {
 
     private void collectInstances(
             List<ProviderInstanceProjection> result,
+            String bizCode,
+            String appCode,
             String env,
             String namespace,
             String serviceKind,
             String protocol) {
         DdcManagementServiceCatalog catalog = client().getServiceKeys(
                 new DdcManagementServiceQuery(
+                        bizCode,
+                        appCode,
                         env,
                         namespace,
                         serviceKind,
@@ -361,6 +378,8 @@ public class GatewayProjectionService {
         for (DdcManagementServiceKey service : catalog.services()) {
             DdcManagementServiceSnapshot snapshot = client().getInstances(
                     new DdcManagementServiceQuery(
+                            service.bizCode(),
+                            service.appCode(),
                             service.env(),
                             service.namespace(),
                             service.serviceKind(),
@@ -493,6 +512,8 @@ public class GatewayProjectionService {
     }
 
     public record ProviderQuery(
+            String bizCode,
+            String appCode,
             String env,
             String namespace,
             String serviceKind,
@@ -522,6 +543,8 @@ public class GatewayProjectionService {
                         .toUpperCase(Locale.ROOT);
             }
             return new DdcManagementServiceQuery(
+                    bizCode,
+                    appCode,
                     env,
                     namespace,
                     ddcServiceKind,

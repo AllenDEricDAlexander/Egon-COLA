@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.gateway.contract.definition
         .GatewayDefinitionIdentity;
 
@@ -42,6 +43,7 @@ public class GatewayHttpProviderAutoConfiguration {
     @ConditionalOnMissingBean(HttpProviderLeaseRuntime.class)
     public HttpProviderLeaseRuntime httpProviderLeaseRuntime(
             DdcServiceRegistryClient registry,
+            DdcServiceKeyFactory serviceKeyFactory,
             ObjectProvider<GatewayDefinitionIdentity> definitionIdentity,
             GatewayHttpProviderProperties properties,
             DdcProperties ddcProperties,
@@ -56,6 +58,7 @@ public class GatewayHttpProviderAutoConfiguration {
         );
         return new HttpProviderLeaseRuntime(
                 registry,
+                serviceKeyFactory,
                 properties.toRuntime(identity, 0)
         );
     }

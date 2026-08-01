@@ -25,7 +25,9 @@ class GatewayObservabilityQueryServiceTest {
                 mock(GatewayProjectionService.class);
         when(store.dashboard(eq("test"), eq("gateway"), any()))
                 .thenReturn(summary("AVAILABLE"));
-        when(projections.scopeCounts("test", "gateway"))
+        when(projections.scopeCounts(
+                "test-biz", "orders", "test", "gateway"
+        ))
                 .thenReturn(new GatewayProjectionService.ProjectionCounts(
                         2,
                         3,
@@ -45,7 +47,9 @@ class GatewayObservabilityQueryServiceTest {
                 );
 
         GatewayObservabilityStore.DashboardSummary result =
-                service.dashboard("test", "gateway");
+                service.dashboard(
+                        "test-biz", "orders", "test", "gateway"
+                );
 
         assertThat(result.readyEngines()).isEqualTo(2);
         assertThat(result.totalEngines()).isEqualTo(3);
@@ -63,7 +67,9 @@ class GatewayObservabilityQueryServiceTest {
                 mock(GatewayProjectionService.class);
         when(store.dashboard(eq("test"), eq("gateway"), any()))
                 .thenReturn(summary("NO_DATA"));
-        when(projections.scopeCounts("test", "gateway"))
+        when(projections.scopeCounts(
+                "test-biz", "orders", "test", "gateway"
+        ))
                 .thenThrow(new IllegalStateException("DDC unavailable"));
         GatewayObservabilityQueryService service =
                 new GatewayObservabilityQueryService(
@@ -72,7 +78,9 @@ class GatewayObservabilityQueryServiceTest {
                         projections
                 );
 
-        assertThat(service.dashboard("test", "gateway")
+        assertThat(service.dashboard(
+                "test-biz", "orders", "test", "gateway"
+        )
                 .observabilityState()).isEqualTo(
                         "PROJECTION_UNAVAILABLE"
         );

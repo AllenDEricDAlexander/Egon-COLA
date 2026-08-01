@@ -45,7 +45,12 @@ export const ApplicationsPage = () => {
           description: values.description,
           expectedRevision: editing.revision,
         })
-      : gatewayApi.createApplication({ ...values, ...scope }),
+      : gatewayApi.createApplication({
+        ...values,
+        bizCode: scope.bizCode,
+        env: scope.env,
+        namespace: scope.namespace,
+      }),
     onSuccess: async () => {
       setEditing(undefined)
       form.resetFields()

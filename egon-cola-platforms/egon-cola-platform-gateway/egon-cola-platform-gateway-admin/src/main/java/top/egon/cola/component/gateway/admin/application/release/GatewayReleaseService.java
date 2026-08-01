@@ -547,6 +547,8 @@ public class GatewayReleaseService {
                 parameters,
                 operation.externalAccessible(),
                 new GatewayProviderServiceRef(
+                        text(provider, "bizCode"),
+                        text(provider, "appCode"),
                         text(provider, "env"),
                         text(provider, "namespace"),
                         protocol,

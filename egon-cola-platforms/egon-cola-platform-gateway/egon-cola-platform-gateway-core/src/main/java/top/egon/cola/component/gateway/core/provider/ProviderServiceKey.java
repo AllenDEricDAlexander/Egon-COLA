@@ -5,6 +5,8 @@ import java.util.Locale;
 import java.util.Objects;
 
 public record ProviderServiceKey(
+        String bizCode,
+        String appCode,
         String env,
         String namespace,
         ProviderProtocolType protocolType,
@@ -15,7 +17,9 @@ public record ProviderServiceKey(
 ) implements Comparable<ProviderServiceKey> {
 
     private static final Comparator<ProviderServiceKey> ORDER = Comparator
-            .comparing(ProviderServiceKey::env)
+            .comparing(ProviderServiceKey::bizCode)
+            .thenComparing(ProviderServiceKey::appCode)
+            .thenComparing(ProviderServiceKey::env)
             .thenComparing(ProviderServiceKey::namespace)
             .thenComparing(ProviderServiceKey::protocolType)
             .thenComparing(ProviderServiceKey::serviceName)
@@ -24,6 +28,8 @@ public record ProviderServiceKey(
             .thenComparing(ProviderServiceKey::transport);
 
     public ProviderServiceKey {
+        bizCode = required(bizCode, "bizCode");
+        appCode = required(appCode, "appCode");
         env = required(env, "env");
         namespace = required(namespace, "namespace");
         protocolType = Objects.requireNonNull(protocolType, "protocolType");
@@ -49,6 +55,8 @@ public record ProviderServiceKey(
     public String canonicalValue() {
         return String.join(
                 ":",
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 protocolType.name(),

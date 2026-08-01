@@ -185,6 +185,8 @@ class GatewayRuleParameterCompatibilityTest {
                 parameters,
                 true,
                 new GatewayProviderServiceRef(
+                        "test-biz",
+                        "test-app",
                         "local",
                         "default",
                         GatewayProtocol.HTTP,

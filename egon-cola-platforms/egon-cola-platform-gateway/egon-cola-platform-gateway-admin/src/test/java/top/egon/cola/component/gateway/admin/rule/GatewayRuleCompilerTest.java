@@ -514,6 +514,8 @@ class GatewayRuleCompilerTest {
 
     private GatewayProviderServiceRef service(GatewayProtocol protocol) {
         return new GatewayProviderServiceRef(
+                "test-biz",
+                "test-app",
                 "local",
                 "default",
                 protocol,

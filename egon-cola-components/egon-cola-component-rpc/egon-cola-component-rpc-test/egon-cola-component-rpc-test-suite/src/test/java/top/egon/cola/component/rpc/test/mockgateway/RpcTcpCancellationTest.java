@@ -24,6 +24,7 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
+import top.egon.cola.component.rpc.test.support.TestDdcScopes;
 
 import java.time.Duration;
 import java.util.List;
@@ -81,7 +82,8 @@ class RpcTcpCancellationTest {
                     new InMemoryDdcServiceRegistryClient(backend),
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity
+                    identity,
+                    TestDdcScopes.serviceKeyFactory()
             );
             consumerGateway.start();
             EchoRpc proxy = new RpcConsumerProxyFactory(
@@ -160,6 +162,8 @@ class RpcTcpCancellationTest {
         return new DdcServiceRegistration(
                 "blocking-provider",
                 new DdcServiceKey(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         DdcServiceKind.RPC_PROVIDER,

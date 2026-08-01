@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.provider;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -12,6 +13,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.gateway.contract.definition.GatewayDefinitionIdentity;
 
 import java.time.Instant;
@@ -31,12 +33,15 @@ class HttpProviderLeaseRuntimeTest {
         FakeRegistry registry = new FakeRegistry();
         HttpProviderLeaseRuntime runtime = new HttpProviderLeaseRuntime(
                 registry,
+                serviceKeyFactory(),
                 properties()
         );
 
         runtime.onHttpServerReady(18080);
         assertEquals(HttpProviderRuntimeState.REGISTERED, runtime.state());
         assertEquals(18080, registry.registration.port());
+        assertEquals("retail-biz", registry.registration.serviceKey().bizCode());
+        assertEquals("orders-app", registry.registration.serviceKey().appCode());
 
         registry.renewed = false;
         runtime.heartbeatAndRecover();
@@ -52,6 +57,7 @@ class HttpProviderLeaseRuntimeTest {
         FakeRegistry registry = new FakeRegistry();
         HttpProviderLeaseRuntime runtime = new HttpProviderLeaseRuntime(
                 registry,
+                serviceKeyFactory(),
                 properties()
         );
 
@@ -119,6 +125,15 @@ class HttpProviderLeaseRuntimeTest {
                 Map.of("gateway.weight", "100"),
                 new GatewayDefinitionIdentity("set-a", "1.0.0", "build-a")
         );
+    }
+
+    private DdcServiceKeyFactory serviceKeyFactory() {
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail-biz");
+        properties.setAppCode("orders-app");
+        properties.setEnv("test");
+        properties.setNamespace("default");
+        return new DdcServiceKeyFactory(properties);
     }
 
     private static final class FakeRegistry

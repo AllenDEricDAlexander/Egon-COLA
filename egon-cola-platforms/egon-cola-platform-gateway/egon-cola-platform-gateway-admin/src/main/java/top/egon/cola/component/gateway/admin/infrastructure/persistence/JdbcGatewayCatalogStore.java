@@ -117,7 +117,8 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
     @Override
     public Optional<InterfaceGroupScope> findInterfaceGroup(String id) {
         return jdbc.query("""
-                SELECT g.id, a.id AS application_id, a.application_code,
+                SELECT g.id, a.id AS application_id, a.biz_code,
+                       a.application_code,
                        a.env, a.namespace
                   FROM gateway_interface_group g
                   JOIN gateway_entity_domain e ON e.id = g.entity_domain_id
@@ -130,6 +131,7 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                 """, (result, row) -> new InterfaceGroupScope(
                 result.getString("id"),
                 result.getString("application_id"),
+                result.getString("biz_code"),
                 result.getString("application_code"),
                 result.getString("env"),
                 result.getString("namespace")

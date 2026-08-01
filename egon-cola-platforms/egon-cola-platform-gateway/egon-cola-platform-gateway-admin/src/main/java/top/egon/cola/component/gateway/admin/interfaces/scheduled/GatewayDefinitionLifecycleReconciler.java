@@ -87,6 +87,8 @@ public class GatewayDefinitionLifecycleReconciler {
         for (GatewayApplicationEntity application
                 : applications.findAllByDeletedFalseOrderByCreatedAtDesc()) {
             scopes.add(new Scope(
+                    application.getBizCode(),
+                    application.getApplicationCode(),
                     application.getEnv(),
                     application.getNamespace()
             ));
@@ -98,6 +100,8 @@ public class GatewayDefinitionLifecycleReconciler {
                     providers;
             try {
                 providers = projections.instances(
+                        scope.bizCode(),
+                        scope.appCode(),
                         scope.env(),
                         scope.namespace()
                 );
@@ -166,6 +170,10 @@ public class GatewayDefinitionLifecycleReconciler {
         );
     }
 
-    private record Scope(String env, String namespace) {
+    private record Scope(
+            String bizCode,
+            String appCode,
+            String env,
+            String namespace) {
     }
 }

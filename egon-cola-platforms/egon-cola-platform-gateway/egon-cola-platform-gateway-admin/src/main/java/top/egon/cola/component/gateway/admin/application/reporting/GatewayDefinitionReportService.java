@@ -220,7 +220,8 @@ public class GatewayDefinitionReportService {
                     "X-Gateway-Report-Id does not match request body"
             );
         }
-        if (!authentication.applicationCode().equals(
+        if (!authentication.bizCode().equals(report.application().bizCode())
+                || !authentication.applicationCode().equals(
                 report.application().applicationCode()
         )
                 || !authentication.env().equals(report.application().env())

@@ -577,6 +577,8 @@ class RpcGatewayServerTest {
 
     private ProviderServiceKey key() {
         return new ProviderServiceKey(
+                "test-biz",
+                "test-app",
                 "test",
                 "default",
                 ProviderProtocolType.RPC,

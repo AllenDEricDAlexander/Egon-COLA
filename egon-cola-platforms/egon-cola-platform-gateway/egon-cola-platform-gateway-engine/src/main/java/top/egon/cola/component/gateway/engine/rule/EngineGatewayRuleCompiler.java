@@ -364,6 +364,8 @@ public final class EngineGatewayRuleCompiler {
     private ProviderServiceKey serviceKey(
             GatewayProviderServiceRef service) {
         return new ProviderServiceKey(
+                service.bizCode(),
+                service.appCode(),
                 service.env(),
                 service.namespace(),
                 service.protocol() == GatewayProtocol.HTTP

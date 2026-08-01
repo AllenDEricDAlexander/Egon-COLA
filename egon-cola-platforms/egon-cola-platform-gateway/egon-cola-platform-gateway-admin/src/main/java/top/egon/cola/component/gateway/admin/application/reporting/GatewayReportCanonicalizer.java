@@ -42,6 +42,7 @@ public final class GatewayReportCanonicalizer {
         }
         String definitionSetId = sha256(String.join(
                 "\n",
+                report.application().bizCode(),
                 report.application().applicationCode(),
                 report.application().env(),
                 report.application().namespace(),

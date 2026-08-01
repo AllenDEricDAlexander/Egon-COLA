@@ -51,6 +51,16 @@ describe('RegistryPage', () => {
 
     render(<RegistryPage />)
     await waitFor(() => expect(screen.getByText('orders')).toBeInTheDocument())
+    const serviceRequests = vi.mocked(fetch).mock.calls
+      .map(([input]) => String(input))
+      .filter((url) => url.includes('/registry/services'))
+    expect(serviceRequests).toHaveLength(4)
+    serviceRequests.forEach((url) => {
+      expect(url).toContain('bizCode=default')
+      expect(url).toContain('appCode=default-app')
+      expect(url).toContain('env=dev')
+      expect(url).toContain('namespace=default')
+    })
     // 去重：orders 只有一行；billing 一行
     expect(screen.getAllByText('orders')).toHaveLength(1)
     expect(screen.getByText('billing')).toBeInTheDocument()

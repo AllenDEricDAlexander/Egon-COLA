@@ -57,6 +57,29 @@ public final class DdcServiceKeyFactory {
         );
     }
 
+    public DdcServiceKey fromTargetScope(
+            String bizCode,
+            String appCode,
+            String env,
+            String namespace,
+            DdcServiceKind serviceKind,
+            String serviceName,
+            String group,
+            String version,
+            String protocol) {
+        return new DdcServiceKey(
+                bizCode,
+                appCode,
+                env,
+                namespace,
+                serviceKind,
+                serviceName,
+                group,
+                version,
+                protocol
+        );
+    }
+
     private String requireBizCode() {
         String bizCode = properties.getBizCode();
         if (bizCode == null || bizCode.isBlank()) {

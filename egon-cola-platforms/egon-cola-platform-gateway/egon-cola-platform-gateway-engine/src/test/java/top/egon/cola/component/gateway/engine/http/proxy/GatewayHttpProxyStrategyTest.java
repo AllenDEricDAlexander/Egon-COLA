@@ -391,6 +391,8 @@ class GatewayHttpProxyStrategyTest {
     private ProviderInstance provider() {
         return new ProviderInstance(
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "local",
                         "default",
                         ProviderProtocolType.HTTP,

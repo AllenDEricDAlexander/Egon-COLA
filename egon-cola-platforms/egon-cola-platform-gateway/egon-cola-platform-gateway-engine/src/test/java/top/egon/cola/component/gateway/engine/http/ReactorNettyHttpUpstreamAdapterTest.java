@@ -189,6 +189,8 @@ class ReactorNettyHttpUpstreamAdapterTest {
     private ProviderInstance provider(int port) {
         return new ProviderInstance(
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "local",
                         "default",
                         ProviderProtocolType.HTTP,

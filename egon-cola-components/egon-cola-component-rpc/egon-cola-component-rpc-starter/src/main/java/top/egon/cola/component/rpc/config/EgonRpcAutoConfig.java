@@ -10,6 +10,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.RpcProcessIdentityFactory;
 import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
@@ -111,6 +112,7 @@ public class EgonRpcAutoConfig {
             DdcServiceRegistryClient registryClient,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
+            DdcServiceKeyFactory serviceKeyFactory,
             Environment environment) {
         String runtimeVersion = environment.getProperty(
                 "egon.rpc.runtime-version"
@@ -126,7 +128,8 @@ public class EgonRpcAutoConfig {
                 properties,
                 processIdentity,
                 runtimeVersion,
-                metadataMerger
+                metadataMerger,
+                serviceKeyFactory
         );
         return new RpcProviderLifecycle(
                 methodRegistry,
@@ -149,12 +152,14 @@ public class EgonRpcAutoConfig {
     public RpcConsumerGatewayManager rpcConsumerGatewayManager(
             DdcServiceRegistryClient registryClient,
             EgonRpcProperties properties,
-            RpcProcessIdentity processIdentity) {
+            RpcProcessIdentity processIdentity,
+            DdcServiceKeyFactory serviceKeyFactory) {
         return new RpcConsumerGatewayManager(
                 registryClient,
                 new RpcConsumerChannelFactory(transportSecurity(properties)),
                 properties,
-                processIdentity
+                processIdentity,
+                serviceKeyFactory
         );
     }
 

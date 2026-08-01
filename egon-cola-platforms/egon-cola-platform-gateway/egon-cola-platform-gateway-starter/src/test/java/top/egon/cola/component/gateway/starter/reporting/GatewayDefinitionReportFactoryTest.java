@@ -57,6 +57,7 @@ class GatewayDefinitionReportFactoryTest {
         properties.setEnabled(true);
         properties.setAdminBaseUrl("http://admin");
         properties.setApplicationCode("orders");
+        properties.setBizCode("test-biz");
         properties.setApplicationName("Orders");
         properties.setEnv("test");
         properties.setNamespace("default");
@@ -85,6 +86,8 @@ class GatewayDefinitionReportFactoryTest {
                         false,
                         "SUPPORTED",
                         new GatewayInterfaceDefinitionReport.ProviderService(
+                                "test-biz",
+                                "test-app",
                                 "test",
                                 "default",
                                 "HTTP",

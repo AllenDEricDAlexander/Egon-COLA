@@ -198,6 +198,8 @@ class HttpRouteCompilerTest {
 
     private ProviderServiceKey service() {
         return new ProviderServiceKey(
+                "test-biz",
+                "test-app",
                 "local",
                 "default",
                 ProviderProtocolType.HTTP,

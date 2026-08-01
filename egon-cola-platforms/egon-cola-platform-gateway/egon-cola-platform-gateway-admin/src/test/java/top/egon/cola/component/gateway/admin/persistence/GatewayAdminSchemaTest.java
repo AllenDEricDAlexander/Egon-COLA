@@ -19,7 +19,7 @@ class GatewayAdminSchemaTest {
                              "src/main/resources",
                              root
                      ))) {
-            assertEquals(4, migrations.filter(
+            assertEquals(5, migrations.filter(
                     path -> path.getFileName().toString().endsWith(".sql")
             ).count());
         }
@@ -66,5 +66,13 @@ class GatewayAdminSchemaTest {
         ));
         assertTrue(lifecycle.contains("activated_at"));
         assertTrue(lifecycle.contains("retired_at"));
+
+        String applicationScope = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root + "/V5__add_gateway_application_biz_scope.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(applicationScope.contains("biz_code"));
     }
 }

@@ -40,6 +40,8 @@ final class MockProviderDirectory implements AutoCloseable {
             Consumer<Collection<MockProviderEndpoint>> endpointListener) {
         this.registryClient = registryClient;
         this.query = new DdcServiceQuery(
+                "test-biz",
+                "test-app",
                 env,
                 namespace,
                 DdcServiceKind.RPC_PROVIDER,

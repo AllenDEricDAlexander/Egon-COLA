@@ -27,7 +27,11 @@ export const GatewayGroupsPage = () => {
           description: values.description,
           expectedRevision: editing.revision,
         })
-      : gatewayApi.createGroup({ ...values, ...scope }),
+      : gatewayApi.createGroup({
+        ...values,
+        env: scope.env,
+        namespace: scope.namespace,
+      }),
     onSuccess: async () => {
       setEditing(undefined)
       form.resetFields()

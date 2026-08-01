@@ -96,6 +96,7 @@ class GatewayReportHmacFilterTest {
         when(applications.findByIdAndDeletedFalse("app-1")).thenReturn(
                 Optional.of(new GatewayApplicationEntity(
                         "app-1",
+                        "test-biz",
                         "inventory",
                         "Inventory",
                         "test",

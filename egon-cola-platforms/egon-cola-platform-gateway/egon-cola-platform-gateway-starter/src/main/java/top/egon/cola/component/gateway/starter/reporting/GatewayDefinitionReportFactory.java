@@ -54,6 +54,7 @@ public final class GatewayDefinitionReportFactory {
         properties.validate();
         GatewayInterfaceDefinitionReport.Application application =
                 new GatewayInterfaceDefinitionReport.Application(
+                        properties.getBizCode(),
                         properties.getApplicationCode(),
                         properties.getApplicationName(),
                         properties.getEnv(),
@@ -84,6 +85,7 @@ public final class GatewayDefinitionReportFactory {
         String definitionSetId = sha256(
                 String.join(
                         "\n",
+                        application.bizCode(),
                         application.applicationCode(),
                         application.env(),
                         application.namespace(),

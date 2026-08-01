@@ -25,6 +25,7 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.provider.EchoRpcProvider;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
+import top.egon.cola.component.rpc.test.support.TestDdcScopes;
 
 import java.util.List;
 
@@ -77,7 +78,8 @@ class RpcTcpCallTest {
                     consumerRegistry,
                     new RpcConsumerChannelFactory(),
                     consumerProperties,
-                    consumerIdentity
+                    consumerIdentity,
+                    TestDdcScopes.serviceKeyFactory()
             );
             consumerGateway.start();
             RpcConsumerProxyFactory proxyFactory =
@@ -169,7 +171,8 @@ class RpcTcpCallTest {
                         availability,
                         properties,
                         identity,
-                        "test"
+                        "test",
+                        TestDdcScopes.serviceKeyFactory()
                 ),
                 availability,
                 new RpcProviderServerInterceptor(),

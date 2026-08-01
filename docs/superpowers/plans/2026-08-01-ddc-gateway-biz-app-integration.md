@@ -15,7 +15,7 @@
 - Add no dependencies and perform no unrelated refactoring.
 - Use one failing behavior test before each production behavior change.
 - Use the existing Adapter and Factory patterns; do not add another abstraction layer.
-- Do not modify any existing Flyway migration. No schema migration is required because provider biz/app scope already lives in the operation provider identity JSON.
+- Do not modify any existing Flyway migration. Add exactly one new Gateway Admin migration for the application `biz_code`; provider biz/app scope continues to live in the operation provider identity JSON.
 - Use host-local Redis and PostgreSQL; do not substitute Testcontainers evidence for the requested live topology.
 - Leave the requested DDC, Gateway, Web UI, and backend processes running after verification.
 
@@ -70,11 +70,11 @@
 
   Run the commands from Step 2, then run clean compile for the two changed reactors.
 
-- [ ] **Step 5: Commit Task 1**
+- [ ] **Step 5: Hold the atomic compatibility checkpoint**
 
-  ```bash
-  git commit -m "fix: preserve DDC scope in provider registrations"
-  ```
+  Do not commit yet: Gateway Engine cannot cleanly compile until Task 2 updates
+  the DDC Provider Adapter in the same source state. Commit Tasks 1 and 2
+  together after the full cross-module compatibility path is green.
 
 ### Task 2: Carry provider biz/app through Gateway releases and discovery
 
@@ -87,6 +87,7 @@
 - Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayHttpOperationMapper.java`
 - Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributor.java`
 - Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
+- Modify: Gateway Admin application entity/service/controller and add `V5__add_gateway_application_biz_scope.sql`.
 - Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/catalog/GatewayCatalogStore.java`
 - Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/JdbcGatewayCatalogStore.java`
 - Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/catalog/GatewayCatalogService.java`
@@ -98,6 +99,7 @@
 **Interfaces:**
 - `GatewayInterfaceDefinitionReport.ProviderService`, `GatewayProviderServiceRef`, `ProviderServiceKey`, and `ProviderQuery` all carry required `bizCode` and `appCode`.
 - Starter reporting takes `bizCode` from `egon.cola.component.gateway.reporting.biz-code` and `appCode` from the existing `application-code`.
+- Gateway Admin persists each application's owning `bizCode`; existing application codes remain globally unique, matching DDC's managed application constraint.
 - Manual operations derive `bizCode` from their containing Gateway business-domain node and `appCode` from the containing application.
 - `DdcProviderServiceRegistryAdapter` maps all nine DDC query/key fields without guessing defaults.
 
@@ -128,7 +130,7 @@
   ./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean test
   ```
 
-- [ ] **Step 5: Commit Task 2**
+- [ ] **Step 5: Commit the atomic Tasks 1-2 compatibility change**
 
   ```bash
   git commit -m "fix: propagate DDC application scope through gateway"
@@ -174,7 +176,7 @@
 **Interfaces:**
 - DDC Admin readiness: `http://127.0.0.1:18080/actuator/health/readiness`.
 - Gateway Admin readiness: `http://127.0.0.1:8080/actuator/health/readiness`.
-- Gateway Engine readiness: `http://127.0.0.1:18083/actuator/health/readiness`.
+- Gateway Engine data plane: `http://127.0.0.1:18081`; management health: `http://127.0.0.1:18083/actuator/health`.
 - DDC Web: `http://127.0.0.1:5174`; Gateway Web: `http://127.0.0.1:5173`.
 - Backend group: two HTTP Provider instances with the same biz/app/env/ns/service key and distinct instance IDs/ports.
 

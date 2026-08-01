@@ -18,6 +18,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
@@ -595,10 +596,12 @@ public class GatewayEngineConfiguration {
     @Bean
     public RpcGatewaySlotRuntime gatewayRpcSlotRuntime(
             DdcServiceRegistryClient registry,
+            DdcServiceKeyFactory serviceKeyFactory,
             GatewayEngineRuntimeProperties properties) {
         GatewayEngineRuntimeProperties.Rpc rpc = properties.getRpc();
         return new RpcGatewaySlotRuntime(
                 registry,
+                serviceKeyFactory,
                 new RpcGatewaySlotProperties(
                         rpc.isEnabled(),
                         properties.getEnv(),

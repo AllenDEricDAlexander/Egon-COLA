@@ -61,6 +61,8 @@ class MockProviderDirectoryTest {
             implements DdcServiceRegistryClient {
 
         private final DdcServiceKey key = new DdcServiceKey(
+                "test-biz",
+                "test-app",
                 "test",
                 "default",
                 DdcServiceKind.RPC_PROVIDER,

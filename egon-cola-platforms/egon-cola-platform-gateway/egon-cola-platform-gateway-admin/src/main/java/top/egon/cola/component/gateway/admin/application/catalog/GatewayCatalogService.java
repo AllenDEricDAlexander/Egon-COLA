@@ -318,6 +318,8 @@ public class GatewayCatalogService {
             GatewayCatalogStore.InterfaceGroupScope scope,
             ManualOperation command) {
         return Map.of(
+                "bizCode", scope.bizCode(),
+                "appCode", scope.applicationCode(),
                 "env", scope.env(),
                 "namespace", scope.namespace(),
                 "protocol", command.protocol().name(),

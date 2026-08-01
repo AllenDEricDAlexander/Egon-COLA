@@ -49,6 +49,7 @@ public class GatewayApplicationService {
         Instant now = clock.instant();
         GatewayApplicationEntity application = new GatewayApplicationEntity(
                 UuidV7.simpleString(),
+                required(command.bizCode(), "bizCode"),
                 required(command.applicationCode(), "applicationCode"),
                 required(command.displayName(), "displayName"),
                 required(command.env(), "env"),
@@ -59,6 +60,7 @@ public class GatewayApplicationService {
         );
         applications.save(application);
         audit(actor, request, application.getId(), "CREATE", Map.of(
+                "bizCode", application.getBizCode(),
                 "applicationCode", application.getApplicationCode(),
                 "env", application.getEnv(),
                 "namespace", application.getNamespace()
@@ -142,6 +144,7 @@ public class GatewayApplicationService {
             GatewayApplicationEntity application) {
         return new GatewayApplicationView(
                 application.getId(),
+                application.getBizCode(),
                 application.getApplicationCode(),
                 application.getDisplayName(),
                 application.getEnv(),
@@ -161,6 +164,7 @@ public class GatewayApplicationService {
     }
 
     public record CreateGatewayApplication(
+            String bizCode,
             String applicationCode,
             String displayName,
             String env,
@@ -178,6 +182,7 @@ public class GatewayApplicationService {
 
     public record GatewayApplicationView(
             String id,
+            String bizCode,
             String applicationCode,
             String displayName,
             String env,

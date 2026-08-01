@@ -1,4 +1,6 @@
 export type Scope = {
+  bizCode: string
+  appCode: string
   env: string
   namespace: string
 }

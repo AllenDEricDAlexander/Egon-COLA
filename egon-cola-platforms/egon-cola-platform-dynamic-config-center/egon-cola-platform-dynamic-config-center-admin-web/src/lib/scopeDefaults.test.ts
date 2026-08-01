@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { resolveInitialScope, scopeOptions } from './scopeDefaults'
+import { resolveInitialScope } from './scopeDefaults'
 
-describe('Gateway Admin scope defaults', () => {
+describe('DDC Admin scope defaults', () => {
   it('uses trimmed deployment scope values', () => {
     expect(resolveInitialScope(
       ' retail ',
       ' orders ',
-      ' dev ',
-      ' codex-local ',
+      ' local ',
+      ' default ',
     )).toEqual({
       bizCode: 'retail',
       appCode: 'orders',
-      env: 'dev',
-      namespace: 'codex-local',
+      env: 'local',
+      namespace: 'default',
     })
   })
 
@@ -23,13 +23,5 @@ describe('Gateway Admin scope defaults', () => {
       env: 'dev',
       namespace: 'default',
     })
-  })
-
-  it('keeps a configured namespace selectable', () => {
-    expect(scopeOptions('codex-local', ['default', 'public', 'internal']))
-      .toContainEqual({
-        value: 'codex-local',
-        label: 'Namespace: codex-local',
-      })
   })
 })

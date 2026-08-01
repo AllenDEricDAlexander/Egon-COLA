@@ -244,6 +244,8 @@ public final class GatewayRuleCompiler {
                 route.pathPattern(),
                 operation.externalAccessible(),
                 new ProviderServiceKey(
+                        service.bizCode(),
+                        service.appCode(),
                         service.env(),
                         service.namespace(),
                         protocol,

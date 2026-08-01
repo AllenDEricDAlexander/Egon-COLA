@@ -50,6 +50,8 @@ class GatewayProjectionServiceTest {
         );
 
         service.instances(new GatewayProjectionService.ProviderQuery(
+                "test-biz",
+                "orders",
                 "test",
                 "gateway",
                 null,
@@ -60,6 +62,8 @@ class GatewayProjectionServiceTest {
         ));
 
         verify(client).getInstances(new DdcManagementServiceQuery(
+                "test-biz",
+                "orders",
                 "test",
                 "gateway",
                 "RPC_PROVIDER",
@@ -74,6 +78,8 @@ class GatewayProjectionServiceTest {
     void flattensHttpAndRpcRegistryInstancesForAdminProjection() {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         DdcManagementServiceKey http = new DdcManagementServiceKey(
+                "test-biz",
+                "orders",
                 "test",
                 "gateway",
                 "HTTP_PROVIDER",
@@ -83,6 +89,8 @@ class GatewayProjectionServiceTest {
                 "http"
         );
         DdcManagementServiceKey rpc = new DdcManagementServiceKey(
+                "test-biz",
+                "orders",
                 "test",
                 "gateway",
                 "RPC_PROVIDER",
@@ -112,7 +120,9 @@ class GatewayProjectionServiceTest {
                 Clock.fixed(now, ZoneOffset.UTC)
         );
 
-        var projection = service.instances("test", "gateway");
+        var projection = service.instances(
+                "test-biz", "orders", "test", "gateway"
+        );
 
         assertThat(projection.stale()).isFalse();
         assertThat(projection.value()).extracting(
@@ -124,7 +134,9 @@ class GatewayProjectionServiceTest {
         assertThat(projection.value().getFirst().weight()).isEqualTo(80);
         assertThat(projection.value().getFirst().definitionSetId())
                 .isEqualTo("definition-http");
-        assertThat(service.scopeCounts("test", "gateway"))
+        assertThat(service.scopeCounts(
+                "test-biz", "orders", "test", "gateway"
+        ))
                 .extracting(
                         GatewayProjectionService.ProjectionCounts
                                 ::activeProviders,

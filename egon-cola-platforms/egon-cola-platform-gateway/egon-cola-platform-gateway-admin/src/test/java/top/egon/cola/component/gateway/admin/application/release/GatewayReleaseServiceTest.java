@@ -373,6 +373,8 @@ class GatewayReleaseServiceTest {
                 "POST /v1/orders",
                 true,
                 Map.of(
+                        "bizCode", "test-biz",
+                        "appCode", "orders",
                         "env", "local",
                         "namespace", "default",
                         "serviceName", "orders",

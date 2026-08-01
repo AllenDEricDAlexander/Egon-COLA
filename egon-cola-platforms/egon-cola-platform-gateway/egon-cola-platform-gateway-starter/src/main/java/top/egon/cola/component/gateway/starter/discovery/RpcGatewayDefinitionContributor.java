@@ -139,6 +139,8 @@ public final class RpcGatewayDefinitionContributor
                 annotation != null && annotation.externalAccessible(),
                 "SUPPORTED",
                 new GatewayInterfaceDefinitionReport.ProviderService(
+                        properties.getBizCode(),
+                        properties.getApplicationCode(),
                         properties.getEnv(),
                         properties.getNamespace(),
                         "RPC",

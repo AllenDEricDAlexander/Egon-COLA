@@ -1,10 +1,10 @@
 package top.egon.cola.component.gateway.engine.rpc;
 
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 
 import java.time.Instant;
 import java.util.Map;
@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class RpcGatewaySlotRuntime implements AutoCloseable {
 
     private final DdcServiceRegistryClient registry;
+
+    private final DdcServiceKeyFactory serviceKeyFactory;
 
     private final RpcGatewaySlotProperties properties;
 
@@ -36,8 +38,13 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
 
     public RpcGatewaySlotRuntime(
             DdcServiceRegistryClient registry,
+            DdcServiceKeyFactory serviceKeyFactory,
             RpcGatewaySlotProperties properties) {
         this.registry = Objects.requireNonNull(registry, "registry");
+        this.serviceKeyFactory = Objects.requireNonNull(
+                serviceKeyFactory,
+                "serviceKeyFactory"
+        );
         this.properties = Objects.requireNonNull(properties, "properties");
         state = new AtomicReference<>(properties.enabled()
                 ? RpcGatewaySubsystemState.STARTING
@@ -61,7 +68,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
         }
         registration = new DdcServiceRegistration(
                 properties.instanceId(),
-                new DdcServiceKey(
+                serviceKeyFactory.fromScope(
                         properties.env(),
                         properties.namespace(),
                         DdcServiceKind.INTERNAL_GATEWAY,

@@ -115,6 +115,8 @@ class DefaultGatewayHttpDataPlaneHandlerCorsTest {
                 "/orders",
                 true,
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         ProviderProtocolType.HTTP,

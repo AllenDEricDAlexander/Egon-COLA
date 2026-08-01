@@ -8,6 +8,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
@@ -57,18 +58,48 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             DdcServiceRegistryClient registryClient,
             RpcConsumerChannelFactory channelFactory,
             EgonRpcProperties properties,
-            RpcProcessIdentity processIdentity) {
+            RpcProcessIdentity processIdentity,
+            DdcServiceKeyFactory serviceKeyFactory) {
         this.registryClient = registryClient;
         this.channelFactory = channelFactory;
         this.properties = properties.getConsumer();
         validateProperties();
-        this.gatewayServiceKey = new DdcServiceKey(
+        this.gatewayServiceKey = gatewayServiceKey(
+                processIdentity,
+                serviceKeyFactory
+        );
+    }
+
+    private DdcServiceKey gatewayServiceKey(
+            RpcProcessIdentity processIdentity,
+            DdcServiceKeyFactory serviceKeyFactory) {
+        String bizCode = properties.getGatewayBizCode();
+        String appCode = properties.getGatewayAppCode();
+        if (blank(bizCode) && blank(appCode)) {
+            return serviceKeyFactory.fromScope(
+                    processIdentity.env(),
+                    processIdentity.namespace(),
+                    DdcServiceKind.INTERNAL_GATEWAY,
+                    properties.getGatewayServiceName(),
+                    properties.getGatewayGroup(),
+                    properties.getGatewayVersion(),
+                    "grpc"
+            );
+        }
+        if (blank(bizCode) || blank(appCode)) {
+            throw new IllegalArgumentException(
+                    "RPC Gateway biz-code and app-code must be configured together"
+            );
+        }
+        return serviceKeyFactory.fromTargetScope(
+                bizCode,
+                appCode,
                 processIdentity.env(),
                 processIdentity.namespace(),
                 DdcServiceKind.INTERNAL_GATEWAY,
-                this.properties.getGatewayServiceName(),
-                this.properties.getGatewayGroup(),
-                this.properties.getGatewayVersion(),
+                properties.getGatewayServiceName(),
+                properties.getGatewayGroup(),
+                properties.getGatewayVersion(),
                 "grpc"
         );
     }

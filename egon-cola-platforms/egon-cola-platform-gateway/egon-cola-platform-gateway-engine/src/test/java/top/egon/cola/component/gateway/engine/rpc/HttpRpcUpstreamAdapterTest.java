@@ -69,6 +69,8 @@ class HttpRpcUpstreamAdapterTest {
                     new ObjectMapper()
             );
             ProviderServiceKey service = new ProviderServiceKey(
+                    "test-biz",
+                    "test-app",
                     "test",
                     "default",
                     ProviderProtocolType.RPC,

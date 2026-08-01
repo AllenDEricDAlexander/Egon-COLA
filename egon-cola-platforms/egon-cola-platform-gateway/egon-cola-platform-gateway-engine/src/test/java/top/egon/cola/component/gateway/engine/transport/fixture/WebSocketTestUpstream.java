@@ -63,6 +63,8 @@ public final class WebSocketTestUpstream implements AutoCloseable {
     public ProviderInstance provider() {
         return new ProviderInstance(
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         ProviderProtocolType.HTTP,

@@ -440,6 +440,8 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
     private ProviderInstance provider() {
         return new ProviderInstance(
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         ProviderProtocolType.HTTP,

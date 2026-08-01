@@ -105,6 +105,8 @@ public final class DdcProviderServiceRegistryAdapter
             DdcServiceKind kind,
             String protocol) {
         return new DdcServiceQuery(
+                query.bizCode(),
+                query.appCode(),
                 query.env(),
                 query.namespace(),
                 kind,
@@ -154,6 +156,8 @@ public final class DdcProviderServiceRegistryAdapter
 
     private ProviderServiceKey serviceKey(DdcServiceKey key) {
         return new ProviderServiceKey(
+                key.bizCode(),
+                key.appCode(),
                 key.env(),
                 key.namespace(),
                 key.serviceKind() == DdcServiceKind.HTTP_PROVIDER
@@ -168,6 +172,8 @@ public final class DdcProviderServiceRegistryAdapter
 
     private DdcServiceKey ddcKey(ProviderServiceKey key) {
         return new DdcServiceKey(
+                key.bizCode(),
+                key.appCode(),
                 key.env(),
                 key.namespace(),
                 key.protocolType() == ProviderProtocolType.HTTP

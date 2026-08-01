@@ -223,6 +223,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         }
         return new GatewayReportAuthentication(
                 application.getId(),
+                application.getBizCode(),
                 application.getApplicationCode(),
                 application.getEnv(),
                 application.getNamespace(),

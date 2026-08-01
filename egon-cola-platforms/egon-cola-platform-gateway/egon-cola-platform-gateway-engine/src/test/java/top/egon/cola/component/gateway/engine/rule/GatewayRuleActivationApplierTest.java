@@ -184,6 +184,8 @@ class GatewayRuleActivationApplierTest {
 
     private TestRelease release(String releaseId, String schema) {
         GatewayProviderServiceRef service = new GatewayProviderServiceRef(
+                "test-biz",
+                "test-app",
                 "local",
                 "default",
                 GatewayProtocol.HTTP,

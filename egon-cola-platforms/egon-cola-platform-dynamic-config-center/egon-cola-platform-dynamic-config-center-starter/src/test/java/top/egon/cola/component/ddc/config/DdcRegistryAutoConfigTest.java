@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -40,6 +41,7 @@ class DdcRegistryAutoConfigTest {
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcServiceRegistryClient.class);
+                    assertThat(context).hasSingleBean(DdcServiceKeyFactory.class);
                     assertThat(context).doesNotHaveBean(DdcAdminClient.class);
                 });
     }

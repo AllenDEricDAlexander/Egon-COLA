@@ -23,6 +23,7 @@ class GatewayReportCanonicalizerTest {
     void acceptsStarterCanonicalReportWithNullableMetadata() throws Exception {
         GatewayInterfaceDefinitionReport.Application application =
                 new GatewayInterfaceDefinitionReport.Application(
+                        "test-biz",
                         "orders", "Orders", "test", "default"
                 );
         GatewayInterfaceDefinitionReport.Build build =
@@ -35,7 +36,8 @@ class GatewayReportCanonicalizerTest {
                 ));
         String fingerprint = starterFingerprint(application, build, domains);
         String definitionSetId = sha256(String.join(
-                "\n", "orders", "test", "default", "1.0.0", "build-1", fingerprint
+                "\n", "test-biz", "orders", "test", "default", "1.0.0",
+                "build-1", fingerprint
         ).getBytes(StandardCharsets.UTF_8));
         GatewayInterfaceDefinitionReport report =
                 new GatewayInterfaceDefinitionReport(

@@ -187,6 +187,7 @@ class GatewayCatalogServiceTest {
             return Optional.of(new InterfaceGroupScope(
                     id,
                     "application-1",
+                    "test-biz",
                     "orders",
                     "test",
                     "default"

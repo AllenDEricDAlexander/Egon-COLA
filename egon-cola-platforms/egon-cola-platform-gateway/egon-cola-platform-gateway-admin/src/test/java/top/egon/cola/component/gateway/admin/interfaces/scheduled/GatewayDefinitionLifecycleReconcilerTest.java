@@ -47,6 +47,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
                 .thenReturn(List.of(new GatewayApplicationEntity(
                         "application-1",
+                        "test-biz",
                         "orders",
                         "Orders",
                         "test",
@@ -55,7 +56,9 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         "admin",
                         now
                 )));
-        when(projections.instances("test", "gateway")).thenReturn(
+        when(projections.instances(
+                "test-biz", "orders", "test", "gateway"
+        )).thenReturn(
                 new GatewayProjectionService.ProjectionEnvelope<>(
                         List.of(provider(
                                 "provider-1",
@@ -104,6 +107,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
                 .thenReturn(List.of(new GatewayApplicationEntity(
                         "application-1",
+                        "test-biz",
                         "orders",
                         "Orders",
                         "test",
@@ -112,7 +116,9 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         "admin",
                         now
                 )));
-        when(projections.instances("test", "gateway")).thenReturn(
+        when(projections.instances(
+                "test-biz", "orders", "test", "gateway"
+        )).thenReturn(
                 new GatewayProjectionService.ProjectionEnvelope<>(
                         List.of(),
                         now.minusSeconds(30),
@@ -156,6 +162,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
                 .thenReturn(List.of(new GatewayApplicationEntity(
                         "application-1",
+                        "test-biz",
                         "orders",
                         "Orders",
                         "test",
@@ -164,7 +171,9 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         "admin",
                         now
                 )));
-        when(projections.instances("test", "gateway")).thenReturn(
+        when(projections.instances(
+                "test-biz", "orders", "test", "gateway"
+        )).thenReturn(
                 new GatewayProjectionService.ProjectionEnvelope<>(
                         List.of(),
                         now,

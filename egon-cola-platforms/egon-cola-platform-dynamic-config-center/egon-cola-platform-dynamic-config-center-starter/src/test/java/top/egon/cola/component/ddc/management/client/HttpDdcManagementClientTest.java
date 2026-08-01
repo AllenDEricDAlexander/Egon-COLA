@@ -106,7 +106,8 @@ class HttpDdcManagementClientTest {
     void signedQueryUsesTheSameSortedEncodedQueryAsTheRequestUri() {
         ClientFixture fixture = fixture("ak", "sk");
         String expectedUrl = "http://ddc.test/api/v1/ddc/openapi/management/registry/instances"
-                + "?env=dev&namespace=rpc%2Finternal&protocol=grpc"
+                + "?appCode=orders-app&bizCode=pay-biz&env=dev"
+                + "&namespace=rpc%2Finternal&protocol=grpc"
                 + "&serviceKind=INTERNAL_GATEWAY&serviceName=order%20service";
         fixture.server().expect(requestTo(expectedUrl))
                 .andExpect(method(HttpMethod.GET))
@@ -115,6 +116,8 @@ class HttpDdcManagementClientTest {
                             "GET",
                             request.getURI().getRawPath(),
                             Map.of(
+                                    "appCode", List.of("orders-app"),
+                                    "bizCode", List.of("pay-biz"),
                                     "env", List.of("dev"),
                                     "namespace", List.of("rpc/internal"),
                                     "protocol", List.of("grpc"),

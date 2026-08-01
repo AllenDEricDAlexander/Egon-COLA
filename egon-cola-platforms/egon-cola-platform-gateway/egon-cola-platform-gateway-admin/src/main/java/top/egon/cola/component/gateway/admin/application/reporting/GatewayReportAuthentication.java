@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.application.reporting;
 
 public record GatewayReportAuthentication(
         String applicationId,
+        String bizCode,
         String applicationCode,
         String env,
         String namespace,

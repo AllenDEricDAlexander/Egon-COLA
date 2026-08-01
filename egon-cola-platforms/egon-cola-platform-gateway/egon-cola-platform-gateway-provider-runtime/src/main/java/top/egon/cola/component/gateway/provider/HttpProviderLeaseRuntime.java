@@ -3,11 +3,11 @@ package top.egon.cola.component.gateway.provider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -24,6 +24,8 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
 
     private final DdcServiceRegistryClient registry;
 
+    private final DdcServiceKeyFactory serviceKeyFactory;
+
     private final HttpProviderRuntimeProperties properties;
 
     private final ScheduledExecutorService scheduler;
@@ -39,8 +41,13 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
 
     public HttpProviderLeaseRuntime(
             DdcServiceRegistryClient registry,
+            DdcServiceKeyFactory serviceKeyFactory,
             HttpProviderRuntimeProperties properties) {
         this.registry = Objects.requireNonNull(registry, "registry");
+        this.serviceKeyFactory = Objects.requireNonNull(
+                serviceKeyFactory,
+                "serviceKeyFactory"
+        );
         this.properties = Objects.requireNonNull(properties, "properties");
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(
@@ -66,7 +73,7 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
         state.set(HttpProviderRuntimeState.REGISTERING);
         registration = new DdcServiceRegistration(
                 properties.instanceId(),
-                new DdcServiceKey(
+                serviceKeyFactory.fromScope(
                         properties.env(),
                         properties.namespace(),
                         DdcServiceKind.HTTP_PROVIDER,

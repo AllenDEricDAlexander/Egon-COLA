@@ -62,6 +62,8 @@ class GatewayRuleWireCompatibilityTest {
                 )),
                 true,
                 new GatewayProviderServiceRef(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "gateway-live",
                         GatewayProtocol.HTTP,
@@ -113,7 +115,7 @@ class GatewayRuleWireCompatibilityTest {
         assertNull(engineSnapshot.content().routes().getFirst()
                 .transportPolicy());
         assertEquals(
-                "443d1078f434d8123527e7b62a166614cf61a47217854e83143bdf013cb32d73",
+                "b0d278bfeaa4e5582ed57580135cb4cf9e4b3d89d365416b2250b53f8da96dca",
                 engineSnapshot.ruleContentSha256()
         );
         engineCodec.verify(engineSnapshot);
@@ -147,6 +149,8 @@ class GatewayRuleWireCompatibilityTest {
                 List.of(),
                 true,
                 new GatewayProviderServiceRef(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "gateway-live",
                         GatewayProtocol.HTTP,

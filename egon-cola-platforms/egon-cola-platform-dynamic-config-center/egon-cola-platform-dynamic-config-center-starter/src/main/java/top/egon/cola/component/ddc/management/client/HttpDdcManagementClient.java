@@ -305,6 +305,8 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
 
     private Map<String, List<String>> serviceQuery(DdcManagementServiceQuery query) {
         Map<String, List<String>> values = new LinkedHashMap<>();
+        putQuery(values, "bizCode", query.bizCode());
+        putQuery(values, "appCode", query.appCode());
         putQuery(values, "env", query.env());
         putQuery(values, "namespace", query.namespace());
         putQuery(values, "serviceKind", query.serviceKind());

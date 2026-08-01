@@ -319,6 +319,8 @@ class RpcProcessIT {
             DdcServiceKind kind,
             String serviceName) {
         return new DdcServiceKey(
+                "test-biz",
+                "test-app",
                 env,
                 namespace,
                 kind,

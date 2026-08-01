@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.ddc.registry.DdcOpenApiServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 
 @AutoConfiguration(after = DdcAutoConfig.class)
@@ -21,6 +22,13 @@ import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
         matchIfMissing = false
 )
 public class DdcRegistryAutoConfig {
+
+    @Bean
+    @ConditionalOnMissingBean(DdcServiceKeyFactory.class)
+    public DdcServiceKeyFactory ddcServiceKeyFactory(
+            DdcProperties properties) {
+        return new DdcServiceKeyFactory(properties);
+    }
 
     @Bean(name = "ddcRegistryRedissonClient", destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = "ddcRegistryRedissonClient")

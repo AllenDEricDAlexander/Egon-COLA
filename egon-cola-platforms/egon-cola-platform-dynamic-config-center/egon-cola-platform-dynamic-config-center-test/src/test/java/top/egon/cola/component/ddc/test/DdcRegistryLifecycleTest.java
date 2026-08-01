@@ -69,6 +69,8 @@ class DdcRegistryLifecycleTest {
         return new DdcServiceRegistration(
                 instanceId,
                 new DdcServiceKey(
+                        "test-biz",
+                        "test-app",
                         "dev",
                         "default",
                         kind,

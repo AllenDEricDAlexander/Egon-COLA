@@ -3,11 +3,11 @@ package top.egon.cola.component.rpc.provider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 
@@ -35,6 +35,8 @@ public class RpcProviderLeaseManager {
 
     private final RpcProviderMetadataMerger metadataMerger;
 
+    private final DdcServiceKeyFactory serviceKeyFactory;
+
     private final Map<RpcServiceIdentity, DdcServiceRegistration> registrations =
             new ConcurrentHashMap<>();
 
@@ -48,14 +50,16 @@ public class RpcProviderLeaseManager {
             RpcProviderAvailabilityRegistry availability,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
-            String runtimeVersion) {
+            String runtimeVersion,
+            DdcServiceKeyFactory serviceKeyFactory) {
         this(
                 registryClient,
                 availability,
                 properties,
                 processIdentity,
                 runtimeVersion,
-                new RpcProviderMetadataMerger(List.of())
+                new RpcProviderMetadataMerger(List.of()),
+                serviceKeyFactory
         );
     }
 
@@ -65,7 +69,8 @@ public class RpcProviderLeaseManager {
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
             String runtimeVersion,
-            RpcProviderMetadataMerger metadataMerger) {
+            RpcProviderMetadataMerger metadataMerger,
+            DdcServiceKeyFactory serviceKeyFactory) {
         this.registryClient = registryClient;
         this.availability = availability;
         this.properties = properties.getProvider();
@@ -73,6 +78,7 @@ public class RpcProviderLeaseManager {
         this.processIdentity = processIdentity;
         this.runtimeVersion = runtimeVersion;
         this.metadataMerger = metadataMerger;
+        this.serviceKeyFactory = serviceKeyFactory;
     }
 
     public void prepare(Iterable<RpcProviderBinding> providers,
@@ -82,7 +88,7 @@ public class RpcProviderLeaseManager {
                 new LinkedHashMap<>();
         for (RpcProviderBinding provider : providers) {
             RpcServiceIdentity service = provider.serviceIdentity();
-            DdcServiceKey serviceKey = new DdcServiceKey(
+            var serviceKey = serviceKeyFactory.fromScope(
                     processIdentity.env(),
                     processIdentity.namespace(),
                     DdcServiceKind.RPC_PROVIDER,

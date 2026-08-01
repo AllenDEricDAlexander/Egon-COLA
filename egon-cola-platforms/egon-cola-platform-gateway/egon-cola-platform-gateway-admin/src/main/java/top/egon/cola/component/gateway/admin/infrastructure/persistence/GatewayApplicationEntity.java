@@ -18,6 +18,9 @@ public class GatewayApplicationEntity {
     @Column(name = "application_code", nullable = false, updatable = false)
     private String applicationCode;
 
+    @Column(name = "biz_code", nullable = false, updatable = false)
+    private String bizCode;
+
     @Column(name = "display_name", nullable = false)
     private String displayName;
 
@@ -53,6 +56,7 @@ public class GatewayApplicationEntity {
 
     public GatewayApplicationEntity(
             String id,
+            String bizCode,
             String applicationCode,
             String displayName,
             String env,
@@ -61,6 +65,7 @@ public class GatewayApplicationEntity {
             String actorId,
             Instant now) {
         this.id = id;
+        this.bizCode = bizCode;
         this.applicationCode = applicationCode;
         this.displayName = displayName;
         this.env = env;
@@ -89,6 +94,10 @@ public class GatewayApplicationEntity {
 
     public String getApplicationCode() {
         return applicationCode;
+    }
+
+    public String getBizCode() {
+        return bizCode;
     }
 
     public String getDisplayName() {

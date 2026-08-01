@@ -165,6 +165,10 @@ public class EgonRpcProperties {
 
         private String gatewayVersion = "1.0.0";
 
+        private String gatewayBizCode;
+
+        private String gatewayAppCode;
+
         private long channelDrainTimeoutMs = 5000;
 
         private int gatewayMaxAttempts = 2;
@@ -215,6 +219,22 @@ public class EgonRpcProperties {
 
         public void setGatewayVersion(String gatewayVersion) {
             this.gatewayVersion = gatewayVersion;
+        }
+
+        public String getGatewayBizCode() {
+            return gatewayBizCode;
+        }
+
+        public void setGatewayBizCode(String gatewayBizCode) {
+            this.gatewayBizCode = gatewayBizCode;
+        }
+
+        public String getGatewayAppCode() {
+            return gatewayAppCode;
+        }
+
+        public void setGatewayAppCode(String gatewayAppCode) {
+            this.gatewayAppCode = gatewayAppCode;
         }
 
         public long getChannelDrainTimeoutMs() {

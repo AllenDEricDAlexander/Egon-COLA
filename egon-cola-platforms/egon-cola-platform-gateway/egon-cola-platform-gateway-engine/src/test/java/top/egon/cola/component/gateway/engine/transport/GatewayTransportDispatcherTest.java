@@ -63,6 +63,8 @@ class GatewayTransportDispatcherTest {
                 request -> Mono.error(new AssertionError("unused adapter")),
                 new ProviderInstance(
                         new ProviderServiceKey(
+                                "test-biz",
+                                "test-app",
                                 "local",
                                 "default",
                                 ProviderProtocolType.HTTP,

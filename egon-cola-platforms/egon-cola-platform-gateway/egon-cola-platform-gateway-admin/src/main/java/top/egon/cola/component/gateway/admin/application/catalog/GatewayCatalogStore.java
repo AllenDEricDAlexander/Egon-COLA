@@ -51,6 +51,7 @@ public interface GatewayCatalogStore {
     record InterfaceGroupScope(
             String interfaceGroupId,
             String applicationId,
+            String bizCode,
             String applicationCode,
             String env,
             String namespace

@@ -149,6 +149,8 @@ class MockUnaryForwarderTest {
 
     private MockProviderEndpoint endpoint(int port) {
         DdcServiceKey key = new DdcServiceKey(
+                "test-biz",
+                "test-app",
                 "test",
                 "default",
                 DdcServiceKind.RPC_PROVIDER,

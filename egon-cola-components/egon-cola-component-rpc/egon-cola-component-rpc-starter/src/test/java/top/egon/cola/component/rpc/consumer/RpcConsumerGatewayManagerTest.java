@@ -5,6 +5,7 @@ import io.grpc.ManagedChannel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
@@ -16,6 +17,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
@@ -46,6 +48,10 @@ class RpcConsumerGatewayManagerTest {
         assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
         assertThat(manager.endpoint().instanceId()).isEqualTo("gateway-1");
         assertThat(channels.createCount).isOne();
+        assertThat(registry.subscriptionKey.bizCode())
+                .isEqualTo("platform-biz");
+        assertThat(registry.subscriptionKey.appCode())
+                .isEqualTo("gateway-app");
 
         registry.publish(snapshot(
                 instance("gateway-1", "lease-1", 19090),
@@ -213,11 +219,14 @@ class RpcConsumerGatewayManagerTest {
         EgonRpcProperties properties = new EgonRpcProperties();
         properties.getConsumer().setGatewayDiscoveryTimeoutMs(30);
         properties.getConsumer().setChannelDrainTimeoutMs(60000);
+        properties.getConsumer().setGatewayBizCode("platform-biz");
+        properties.getConsumer().setGatewayAppCode("gateway-app");
         return new RpcConsumerGatewayManager(
                 registry,
                 channels,
                 properties,
-                processIdentity()
+                processIdentity(),
+                serviceKeyFactory()
         );
     }
 
@@ -269,6 +278,8 @@ class RpcConsumerGatewayManagerTest {
 
     private DdcServiceKey gatewayKey() {
         return new DdcServiceKey(
+                "platform-biz",
+                "gateway-app",
                 "test",
                 "default",
                 DdcServiceKind.INTERNAL_GATEWAY,
@@ -288,6 +299,15 @@ class RpcConsumerGatewayManagerTest {
                 1,
                 "consumer-1"
         );
+    }
+
+    private DdcServiceKeyFactory serviceKeyFactory() {
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail-biz");
+        properties.setAppCode("orders-app");
+        properties.setEnv("test");
+        properties.setNamespace("default");
+        return new DdcServiceKeyFactory(properties);
     }
 
     private static final class StubChannelFactory
@@ -319,10 +339,13 @@ class RpcConsumerGatewayManagerTest {
 
         private Consumer<DdcServiceSnapshot> listener;
 
+        private DdcServiceKey subscriptionKey;
+
         @Override
         public DdcRegistrySubscription subscribe(
                 DdcServiceKey serviceKey,
                 Consumer<DdcServiceSnapshot> listener) {
+            this.subscriptionKey = serviceKey;
             this.listener = listener;
             listener.accept(snapshot);
             return () -> this.listener = null;

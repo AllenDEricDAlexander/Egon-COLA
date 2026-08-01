@@ -2,6 +2,7 @@ package top.egon.cola.component.rpc.provider;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
@@ -12,6 +13,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
@@ -53,6 +55,10 @@ class RpcProviderLifecycleTest {
                     .containsEntry("egon.rpc.transport", "grpc")
                     .containsEntry("egon.rpc.serialization", "protobuf")
                     .containsEntry("egon.rpc.runtime-version", "test");
+            assertThat(registryClient.registration.serviceKey().bizCode())
+                    .isEqualTo("retail-biz");
+            assertThat(registryClient.registration.serviceKey().appCode())
+                    .isEqualTo("orders-app");
 
             lifecycle.stop();
 
@@ -94,7 +100,8 @@ class RpcProviderLifecycleTest {
                         availability,
                         properties,
                         identity,
-                        "test"
+                        "test",
+                        serviceKeyFactory()
                 ),
                 availability,
                 new RpcProviderServerInterceptor(),
@@ -135,7 +142,8 @@ class RpcProviderLifecycleTest {
                             properties,
                             identity,
                             "test",
-                            metadataMerger
+                            metadataMerger,
+                            serviceKeyFactory()
                     ),
                     availability,
                     new RpcProviderServerInterceptor(),
@@ -194,7 +202,8 @@ class RpcProviderLifecycleTest {
                     availability,
                     properties,
                     identity,
-                    "test"
+                    "test",
+                    serviceKeyFactory()
             );
             leases.prepare(methods.providers(), "127.0.0.1", 19090);
             leases.enableRecovery();
@@ -235,7 +244,8 @@ class RpcProviderLifecycleTest {
                     availability,
                     properties,
                     processIdentity(),
-                    "test"
+                    "test",
+                    serviceKeyFactory()
             );
             leases.prepare(methods.providers(), "127.0.0.1", 19090);
             leases.enableRecovery();
@@ -298,7 +308,8 @@ class RpcProviderLifecycleTest {
                         availability,
                         properties,
                         identity,
-                        "test"
+                        "test",
+                        serviceKeyFactory()
                 ),
                 availability,
                 new RpcProviderServerInterceptor(),
@@ -326,6 +337,15 @@ class RpcProviderLifecycleTest {
                 1,
                 "provider-process"
         );
+    }
+
+    private DdcServiceKeyFactory serviceKeyFactory() {
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("retail-biz");
+        properties.setAppCode("orders-app");
+        properties.setEnv("test");
+        properties.setNamespace("default");
+        return new DdcServiceKeyFactory(properties);
     }
 
     private static final class RecordingRegistry

@@ -43,6 +43,7 @@ public class GatewayApplicationController {
             AdminActor actor) {
         return service.create(
                 new GatewayApplicationService.CreateGatewayApplication(
+                        request.bizCode(),
                         request.applicationCode(),
                         request.displayName(),
                         request.env(),
@@ -83,6 +84,7 @@ public class GatewayApplicationController {
     }
 
     public record CreateRequest(
+            @NotBlank String bizCode,
             @NotBlank String applicationCode,
             @NotBlank String displayName,
             @NotBlank String env,

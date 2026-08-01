@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.result.method.annotation
         .RequestMappingHandlerMapping;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -27,6 +28,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.gateway.contract.definition
         .GatewayDefinitionIdentity;
@@ -314,12 +316,20 @@ class WebFluxHttpProviderContractTest {
     }
 
     @TestConfiguration(proxyBeanMethods = false)
-    @EnableConfigurationProperties(GatewayReportingProperties.class)
+    @EnableConfigurationProperties({
+            GatewayReportingProperties.class,
+            DdcProperties.class
+    })
     static class ProviderTestConfiguration {
 
         @Bean
         RecordingRegistry recordingRegistry() {
             return new RecordingRegistry();
+        }
+
+        @Bean
+        DdcServiceKeyFactory ddcServiceKeyFactory(DdcProperties properties) {
+            return new DdcServiceKeyFactory(properties);
         }
 
         @Bean

@@ -27,6 +27,8 @@ public class GatewayProjectionController {
 
     @GetMapping("/providers/services")
     public GatewayProjectionService.ProjectionEnvelope<?> services(
+            @RequestParam String bizCode,
+            @RequestParam String appCode,
             @RequestParam String env,
             @RequestParam String namespace,
             @RequestParam(required = false) String serviceKind,
@@ -35,6 +37,8 @@ public class GatewayProjectionController {
             @RequestParam(required = false) String group,
             @RequestParam(required = false) String version) {
         return service.services(query(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,
@@ -47,6 +51,8 @@ public class GatewayProjectionController {
 
     @GetMapping("/providers/instances")
     public GatewayProjectionService.ProjectionEnvelope<?> instances(
+            @RequestParam String bizCode,
+            @RequestParam String appCode,
             @RequestParam String env,
             @RequestParam String namespace,
             @RequestParam(required = false) String protocol,
@@ -55,7 +61,7 @@ public class GatewayProjectionController {
             @RequestParam(required = false) String group,
             @RequestParam(required = false) String version) {
         if (protocol == null && serviceName == null) {
-            return service.instances(env, namespace);
+            return service.instances(bizCode, appCode, env, namespace);
         }
         if (protocol == null || serviceName == null) {
             throw new IllegalArgumentException(
@@ -63,6 +69,8 @@ public class GatewayProjectionController {
             );
         }
         return service.instances(query(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,
@@ -80,6 +88,8 @@ public class GatewayProjectionController {
     }
 
     private GatewayProjectionService.ProviderQuery query(
+            String bizCode,
+            String appCode,
             String env,
             String namespace,
             String serviceKind,
@@ -88,6 +98,8 @@ public class GatewayProjectionController {
             String group,
             String version) {
         return new GatewayProjectionService.ProviderQuery(
+                bizCode,
+                appCode,
                 env,
                 namespace,
                 serviceKind,

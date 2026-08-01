@@ -241,6 +241,8 @@ class GatewayTransportProfileCompilationTest {
                 "{}",
                 true,
                 new GatewayProviderServiceRef(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         GatewayProtocol.HTTP,

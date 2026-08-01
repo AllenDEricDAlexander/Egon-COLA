@@ -22,9 +22,11 @@ public class GatewayObservabilityController {
 
     @GetMapping("/dashboard")
     public GatewayObservabilityStore.DashboardSummary dashboard(
+            @RequestParam String bizCode,
+            @RequestParam String appCode,
             @RequestParam String env,
             @RequestParam String namespace) {
-        return service.dashboard(env, namespace);
+        return service.dashboard(bizCode, appCode, env, namespace);
     }
 
     @GetMapping("/observability/traces")

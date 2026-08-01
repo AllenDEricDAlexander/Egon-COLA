@@ -15,6 +15,8 @@ public class GatewayReportingProperties {
 
     private String applicationCode;
 
+    private String bizCode;
+
     private String applicationName;
 
     private String env;
@@ -50,6 +52,7 @@ public class GatewayReportingProperties {
         }
         required(adminBaseUrl, "adminBaseUrl");
         required(applicationCode, "applicationCode");
+        required(bizCode, "bizCode");
         required(applicationName, "applicationName");
         required(env, "env");
         required(namespace, "namespace");
@@ -104,6 +107,14 @@ public class GatewayReportingProperties {
 
     public void setApplicationCode(String applicationCode) {
         this.applicationCode = applicationCode;
+    }
+
+    public String getBizCode() {
+        return bizCode;
+    }
+
+    public void setBizCode(String bizCode) {
+        this.bizCode = bizCode;
     }
 
     public String getApplicationName() {

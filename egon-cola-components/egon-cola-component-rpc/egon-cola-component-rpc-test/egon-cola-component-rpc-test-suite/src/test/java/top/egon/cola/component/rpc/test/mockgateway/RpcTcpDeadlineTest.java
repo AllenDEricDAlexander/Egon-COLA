@@ -24,6 +24,7 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
+import top.egon.cola.component.rpc.test.support.TestDdcScopes;
 
 import java.util.List;
 import java.util.Map;
@@ -77,7 +78,8 @@ class RpcTcpDeadlineTest {
                     new InMemoryDdcServiceRegistryClient(backend),
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity
+                    identity,
+                    TestDdcScopes.serviceKeyFactory()
             );
             consumerGateway.start();
             EchoRpc proxy = new RpcConsumerProxyFactory(
@@ -151,6 +153,8 @@ class RpcTcpDeadlineTest {
         return new DdcServiceRegistration(
                 "deadline-provider",
                 new DdcServiceKey(
+                        "test-biz",
+                        "test-app",
                         "test",
                         "default",
                         DdcServiceKind.RPC_PROVIDER,

@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.engine.rpc;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -12,6 +13,7 @@ import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
@@ -83,6 +85,7 @@ class RpcGatewaySlotRuntimeTest {
         registry.registrationFailures.set(1);
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
+                serviceKeyFactory(),
                 properties(3, 1)
         );
         runtime.listenerStarted(19090);
@@ -110,6 +113,7 @@ class RpcGatewaySlotRuntimeTest {
         registry.registrationFailures.set(1);
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
+                serviceKeyFactory(),
                 properties(3, 1)
         );
         runtime.listenerStarted(19090);
@@ -131,6 +135,7 @@ class RpcGatewaySlotRuntimeTest {
         FakeRegistry registry = new FakeRegistry();
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
+                serviceKeyFactory(),
                 properties()
         );
 
@@ -147,6 +152,8 @@ class RpcGatewaySlotRuntimeTest {
                 runtime.state()
         );
         assertEquals(1, registry.registrations.get());
+        assertEquals("platform-biz", registry.registration.serviceKey().bizCode());
+        assertEquals("gateway-engine", registry.registration.serviceKey().appCode());
         assertEquals(
                 "grpc",
                 registry.registration.metadata().get("egon.rpc.transport")
@@ -162,6 +169,7 @@ class RpcGatewaySlotRuntimeTest {
     private RpcGatewaySlotRuntime readyRuntime(FakeRegistry registry) {
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
+                serviceKeyFactory(),
                 properties()
         );
         runtime.listenerStarted(19090);
@@ -171,6 +179,15 @@ class RpcGatewaySlotRuntimeTest {
 
     private RpcGatewaySlotProperties properties() {
         return properties(30, 10);
+    }
+
+    private DdcServiceKeyFactory serviceKeyFactory() {
+        DdcProperties properties = new DdcProperties();
+        properties.setBizCode("platform-biz");
+        properties.setAppCode("gateway-engine");
+        properties.setEnv("test");
+        properties.setNamespace("default");
+        return new DdcServiceKeyFactory(properties);
     }
 
     private RpcGatewaySlotProperties properties(

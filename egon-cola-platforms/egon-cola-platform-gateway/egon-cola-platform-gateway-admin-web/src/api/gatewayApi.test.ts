@@ -57,6 +57,8 @@ describe('gateway API response adapters', () => {
 
     const nodes = await gatewayApi.engineNodes('group-1')
     const providers = await gatewayApi.providers({
+      bizCode: 'test-biz',
+      appCode: 'orders',
       env: 'test',
       namespace: 'gateway',
     })

@@ -48,6 +48,8 @@ class ProviderModelTest {
             Map<String, String> metadata) {
         return new ProviderInstance(
                 new ProviderServiceKey(
+                        "test-biz",
+                        "test-app",
                         "local",
                         "default",
                         ProviderProtocolType.HTTP,

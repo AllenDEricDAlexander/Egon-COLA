@@ -67,6 +67,7 @@ class ProviderDirectoryTest {
     void exposesOnlyOnlineDdcInstancesWithCurrentLeasesAsRegistered() {
         ProviderServiceKey providerKey = key();
         DdcServiceKey ddcKey = new DdcServiceKey(
+                "test-biz", "test-app",
                 "local", "default", DdcServiceKind.HTTP_PROVIDER,
                 "orders", "default", "v1", "http"
         );
@@ -112,6 +113,8 @@ class ProviderDirectoryTest {
 
     private ProviderServiceKey key() {
         return new ProviderServiceKey(
+                "test-biz",
+                "test-app",
                 "local",
                 "default",
                 ProviderProtocolType.HTTP,
