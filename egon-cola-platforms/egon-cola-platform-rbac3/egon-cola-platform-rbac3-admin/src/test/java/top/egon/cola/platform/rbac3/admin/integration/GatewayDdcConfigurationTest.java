@@ -1,6 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.integration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.FileSystemResource;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
@@ -54,6 +57,58 @@ class GatewayDdcConfigurationTest {
                             "ddcRegistryRedissonClient",
                             "rbac3RuntimeRedissonClient");
         }
+    }
+
+    @Test
+    void productionEnablesIndependentDdcConfigAndRegistryLeases() throws Exception {
+        PropertySource<?> production = yaml("application.yml");
+
+        assertThat(production.getProperty("egon.cola.component.ddc.enabled")).isEqualTo(true);
+        assertThat(production.getProperty("egon.cola.component.ddc.biz-code"))
+                .isEqualTo("${DDC_BIZ_CODE:rbac3}");
+        assertThat(production.getProperty("egon.cola.component.ddc.app-code"))
+                .isEqualTo("rbac3-admin");
+        assertThat(production.getProperty("egon.cola.component.ddc.env"))
+                .isEqualTo("${DEPLOYMENT_ENV}");
+        assertThat(production.getProperty("egon.cola.component.ddc.namespace"))
+                .isEqualTo("${DEPLOYMENT_NAMESPACE}");
+        assertThat(production.getProperty("egon.cola.component.ddc.instance.id"))
+                .isEqualTo("${RBAC3_INSTANCE_ID}");
+        assertThat(production.getProperty("egon.cola.component.ddc.instance.lease-seconds"))
+                .isEqualTo(30);
+        assertThat(production.getProperty(
+                "egon.cola.component.ddc.instance.heartbeat-interval-seconds"))
+                .isEqualTo(10);
+        assertThat(production.getProperty("egon.cola.component.ddc.consistency.fail-fast"))
+                .isEqualTo(true);
+        assertThat(production.getProperty(
+                "egon.cola.component.ddc.consistency.reconcile-enabled"))
+                .isEqualTo(true);
+        assertThat(production.getProperty(
+                "egon.cola.component.ddc.consistency.reconcile-interval-seconds"))
+                .isEqualTo(30);
+        assertThat(production.getProperty("egon.cola.component.ddc.registry.enabled"))
+                .isEqualTo(true);
+        assertThat(production.getProperty(
+                "egon.cola.component.gateway.reporting.enabled"))
+                .isEqualTo(true);
+        assertThat(production.getProperty(
+                "egon.cola.component.gateway.provider.http.enabled"))
+                .isEqualTo(true);
+    }
+
+    @Test
+    void localProfileExplicitlyDisablesRemoteDdcAndGatewayIntegration() throws Exception {
+        PropertySource<?> local = yaml("application-local.yml");
+
+        assertThat(local.getProperty("egon.cola.component.ddc.enabled")).isEqualTo(false);
+        assertThat(local.getProperty("egon.cola.component.ddc.registry.enabled"))
+                .isEqualTo(false);
+        assertThat(local.getProperty("egon.cola.component.gateway.reporting.enabled"))
+                .isEqualTo(false);
+        assertThat(local.getProperty(
+                "egon.cola.component.gateway.provider.http.enabled"))
+                .isEqualTo(false);
     }
 
     @Test
@@ -132,5 +187,14 @@ class GatewayDdcConfigurationTest {
                         .ProviderInstance("instance-1", "UP", key, definitionSetId)), null),
                 new GatewayAdminControlPlaneStatusClient.ConsistencyObservation(
                         "SUCCESS", "release-1", "SUCCESS", true, "1", null), NOW);
+    }
+
+    private PropertySource<?> yaml(String fileName) throws Exception {
+        Path yaml = Path.of(System.getProperty("basedir"))
+                .resolve("src/main/resources")
+                .resolve(fileName);
+        return new YamlPropertySourceLoader()
+                .load(fileName, new FileSystemResource(yaml))
+                .getFirst();
     }
 }

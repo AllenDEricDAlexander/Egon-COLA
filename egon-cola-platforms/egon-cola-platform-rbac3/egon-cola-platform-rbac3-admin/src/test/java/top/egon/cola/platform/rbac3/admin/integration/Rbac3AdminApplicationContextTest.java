@@ -3,6 +3,13 @@ package top.egon.cola.platform.rbac3.admin.integration;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
+import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyConfiguration;
+import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcValueDeclarations;
 import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3ReadinessIndicator;
 
@@ -65,5 +72,35 @@ class Rbac3AdminApplicationContextTest {
         assertThat(indicator.health().getStatus()).isEqualTo(Status.DOWN);
         assertThat(indicator.health().getDetails())
                 .containsEntry("failedCheck", "trafficAcceptance");
+    }
+
+    @Test
+    void runtimePolicyExistsWithoutDdcAndExactAppliersExistOnlyWhenEnabled() {
+        ApplicationContextRunner runner = new ApplicationContextRunner()
+                .withUserConfiguration(Rbac3DdcPolicyConfiguration.class)
+                .withBean(Rbac3AdminProperties.class, Rbac3AdminProperties::new)
+                .withBean(AtomicRbac3RuntimePolicy.class,
+                        () -> new AtomicRbac3RuntimePolicy(new Rbac3AdminProperties()))
+                .withBean(DefaultDdcConfigApplierRegistry.class,
+                        () -> new DefaultDdcConfigApplierRegistry((key, value, version) -> {
+                        }));
+
+        runner.run(context -> {
+            assertThat(context).hasSingleBean(AtomicRbac3RuntimePolicy.class);
+            assertThat(context).doesNotHaveBean(Rbac3DdcValueDeclarations.class);
+            assertThat(context).doesNotHaveBean("rbac3DdcPolicyRegistrar");
+        });
+
+        runner.withPropertyValues("egon.cola.component.ddc.enabled=true")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(AtomicRbac3RuntimePolicy.class);
+                    assertThat(context).hasSingleBean(Rbac3DdcValueDeclarations.class);
+                    DefaultDdcConfigApplierRegistry registry = context.getBean(
+                            DefaultDdcConfigApplierRegistry.class);
+                    for (String key : AtomicRbac3RuntimePolicy.CONFIG_KEYS) {
+                        assertThat(registry.resolve(key))
+                                .isInstanceOf(Rbac3DdcPolicyApplier.class);
+                    }
+                });
     }
 }

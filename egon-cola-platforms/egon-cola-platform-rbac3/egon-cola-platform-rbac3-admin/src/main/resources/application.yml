@@ -76,11 +76,19 @@ egon:
         enabled: true
         machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID}
       ddc:
-        enabled: false
+        enabled: true
         biz-code: ${DDC_BIZ_CODE:rbac3}
         app-code: rbac3-admin
         env: ${DEPLOYMENT_ENV}
         namespace: ${DEPLOYMENT_NAMESPACE}
+        instance:
+          id: ${RBAC3_INSTANCE_ID}
+          lease-seconds: 30
+          heartbeat-interval-seconds: 10
+        consistency:
+          fail-fast: true
+          reconcile-enabled: true
+          reconcile-interval-seconds: 30
         admin:
           endpoint: ${DDC_ADMIN_ENDPOINT}
           signature-enabled: true

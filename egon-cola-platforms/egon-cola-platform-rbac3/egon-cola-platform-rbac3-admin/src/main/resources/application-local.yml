@@ -35,6 +35,7 @@ egon:
       id:
         machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID:0}
       ddc:
+        enabled: false
         env: local
         registry:
           enabled: false
