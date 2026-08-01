@@ -16,9 +16,8 @@ class DdcOpenApiServiceRegistryClientQueryTest {
         var query = DdcOpenApiServiceRegistryClient.serviceKeyQuery(
                 new DdcServiceKey(
                         "retail",
-                        "orders",
                         "local",
-                        "default",
+                        "orders",
                         DdcServiceKind.HTTP_PROVIDER,
                         "orders-http",
                         null,
@@ -30,18 +29,18 @@ class DdcOpenApiServiceRegistryClientQueryTest {
         assertThat(query)
                 .containsEntry("bizCode", List.of("retail"))
                 .containsEntry("appCode", List.of("orders"))
+                .doesNotContainKey("namespace")
                 .containsEntry("group", List.of("default"))
                 .containsEntry("version", List.of("1.0.0"));
     }
 
     @Test
-    void serviceCatalogQueryIncludesTheCompleteBizApplicationScope() {
+    void serviceCatalogQueryOnlyIncludesProvidedFilters() {
         var query = DdcOpenApiServiceRegistryClient.serviceQuery(
                 new DdcServiceQuery(
                         "retail",
-                        "orders",
                         "local",
-                        "default",
+                        null,
                         DdcServiceKind.HTTP_PROVIDER,
                         "http",
                         null,
@@ -52,6 +51,8 @@ class DdcOpenApiServiceRegistryClientQueryTest {
 
         assertThat(query)
                 .containsEntry("bizCode", List.of("retail"))
-                .containsEntry("appCode", List.of("orders"));
+                .containsEntry("env", List.of("local"))
+                .containsEntry("serviceKind", List.of("HTTP_PROVIDER"))
+                .doesNotContainKeys("appCode", "namespace", "serviceName", "group", "version");
     }
 }

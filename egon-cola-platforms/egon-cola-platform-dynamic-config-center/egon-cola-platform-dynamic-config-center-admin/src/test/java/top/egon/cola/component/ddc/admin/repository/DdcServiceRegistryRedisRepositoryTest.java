@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RScript;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
+import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
@@ -26,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcServiceRegistryRedisRepositoryTest {
@@ -36,8 +40,16 @@ class DdcServiceRegistryRedisRepositoryTest {
     void registrationPassesLuaEpochFieldsAndMapsInstanceConflicts() throws Exception {
         RedissonClient redisson = mock(RedissonClient.class);
         RScript script = mock(RScript.class);
+        RSet<String> globalCatalog = mock(RSet.class);
+        RAtomicLong globalRevision = mock(RAtomicLong.class);
         AtomicReference<Object[]> arguments = new AtomicReference<>();
+        AtomicReference<List<Object>> scriptKeys = new AtomicReference<>();
         when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        when(redisson.<String>getSet(DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE))
+                .thenReturn(globalCatalog);
+        when(redisson.getAtomicLong(DdcKeys.v3GlobalRegistryCatalogRevision()))
+                .thenReturn(globalRevision);
+        when(globalCatalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
         when(script.eval(
                 eq(RScript.Mode.READ_WRITE),
                 anyString(),
@@ -46,6 +58,7 @@ class DdcServiceRegistryRedisRepositoryTest {
                 any(Object[].class)
         )).thenAnswer(invocation -> {
             arguments.set(invocation.getArguments());
+            scriptKeys.set(invocation.getArgument(3));
             return List.of(1L, 1L, 1L);
         });
         ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
@@ -61,6 +74,12 @@ class DdcServiceRegistryRedisRepositoryTest {
                 .isEqualTo(NOW.toEpochMilli());
         assertThat(stored.path("leaseExpireAtEpochMillis").asLong())
                 .isEqualTo(NOW.plusSeconds(30).toEpochMilli());
+        assertThat(scriptKeys.get())
+                .hasSize(6)
+                .allMatch(key -> key.toString().startsWith("ddc:v3:{"))
+                .doesNotContain(DdcKeys.v3GlobalRegistryCatalog());
+        verify(globalCatalog).add(SERVICE_KEY.canonicalValue());
+        verify(globalRevision).incrementAndGet();
 
         when(script.eval(
                 eq(RScript.Mode.READ_WRITE),
@@ -120,9 +139,6 @@ class DdcServiceRegistryRedisRepositoryTest {
 
     private DdcServiceLeaseRequest leaseRequest() {
         DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
-        request.setEnv(SERVICE_KEY.env());
-        request.setNamespace(SERVICE_KEY.namespace());
-        request.setServiceKind(SERVICE_KEY.serviceKind());
         request.setServiceKey(SERVICE_KEY);
         request.setInstanceId("provider-1");
         request.setLeaseId("lease-1");
@@ -131,9 +147,8 @@ class DdcServiceRegistryRedisRepositoryTest {
 
     private static final DdcServiceKey SERVICE_KEY = new DdcServiceKey(
             "pay-biz",
-            "orders-app",
             "dev",
-            "default",
+            "orders-app",
             DdcServiceKind.RPC_PROVIDER,
             "order.v1.OrderQueryService",
             "default",

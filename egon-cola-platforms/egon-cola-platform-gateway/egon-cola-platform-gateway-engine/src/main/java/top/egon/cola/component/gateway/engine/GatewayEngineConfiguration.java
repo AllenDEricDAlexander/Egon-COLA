@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
+import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
@@ -597,6 +598,7 @@ public class GatewayEngineConfiguration {
     public RpcGatewaySlotRuntime gatewayRpcSlotRuntime(
             DdcServiceRegistryClient registry,
             DdcServiceKeyFactory serviceKeyFactory,
+            DdcInstanceIdentity ddcIdentity,
             GatewayEngineRuntimeProperties properties) {
         GatewayEngineRuntimeProperties.Rpc rpc = properties.getRpc();
         return new RpcGatewaySlotRuntime(
@@ -606,7 +608,7 @@ public class GatewayEngineConfiguration {
                         rpc.isEnabled(),
                         properties.getEnv(),
                         properties.getNamespace(),
-                        properties.getInstanceId(),
+                        ddcIdentity.instanceId(),
                         rpc.getAdvertisedHost(),
                         rpc.getServiceName(),
                         rpc.getGroup(),

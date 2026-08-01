@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
@@ -51,10 +52,12 @@ public class EgonRpcAutoConfig {
     @ConditionalOnMissingBean
     public RpcProcessIdentity rpcProcessIdentity(
             Environment environment,
-            DdcProperties ddcProperties) {
+            DdcProperties ddcProperties,
+            DdcInstanceIdentity ddcIdentity) {
         return new RpcProcessIdentityFactory(
                 environment,
-                ddcProperties
+                ddcProperties,
+                ddcIdentity
         ).create();
     }
 

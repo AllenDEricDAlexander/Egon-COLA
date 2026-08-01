@@ -242,19 +242,10 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
 
         private void start() {
             start(List.of(
-                    DdcKeys.v2RegistryTopic(
+                    DdcKeys.v3RegistryTopic(
                             serviceKey.bizCode(),
-                            serviceKey.appCode(),
                             serviceKey.env(),
-                            serviceKey.namespace(),
-                            serviceKey.serviceKind(),
-                            serviceKey.protocol()
-                    ),
-                    DdcKeys.registryTopic(
-                            serviceKey.bizCode(),
                             serviceKey.appCode(),
-                            serviceKey.env(),
-                            serviceKey.namespace(),
                             serviceKey.serviceKind(),
                             serviceKey.protocol()
                     )
@@ -318,20 +309,16 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         }
 
         private void start() {
+            if (!query.hasExactCatalogScope()) {
+                throw new IllegalArgumentException(
+                        "service catalog subscription requires bizCode, env, appCode, serviceKind and protocol"
+                );
+            }
             start(List.of(
-                    DdcKeys.v2RegistryTopic(
+                    DdcKeys.v3RegistryTopic(
                             query.bizCode(),
-                            query.appCode(),
                             query.env(),
-                            query.namespace(),
-                            query.serviceKind(),
-                            query.protocol()
-                    ),
-                    DdcKeys.registryTopic(
-                            query.bizCode(),
                             query.appCode(),
-                            query.env(),
-                            query.namespace(),
                             query.serviceKind(),
                             query.protocol()
                     )

@@ -47,15 +47,19 @@ public class DdcScopeGate {
     }
 
     public void assertEnabled(String bizCode, String appCode, String env, String namespace) {
+        assertPhysicalEnabled(bizCode, appCode, env);
+        requireEnabled("namespace", namespace,
+                () -> namespaceRepository.findByAppCodeAndNamespace(appCode, namespace)
+                        .map(DdcNamespaceEntity::getEnabled));
+    }
+
+    public void assertPhysicalEnabled(String bizCode, String appCode, String env) {
         requireEnabled("biz", bizCode, () -> bizRepository.findByBizCode(bizCode)
                 .map(DdcBizEntity::getEnabled));
         requireEnabled("app", appCode, () -> appRepository.findByAppCode(appCode)
                 .map(DdcAppEntity::getEnabled));
         requireEnabled("env", env, () -> envRepository.findByEnvCode(env)
                 .map(DdcEnvEntity::getEnabled));
-        requireEnabled("namespace", namespace,
-                () -> namespaceRepository.findByAppCodeAndNamespace(appCode, namespace)
-                        .map(DdcNamespaceEntity::getEnabled));
     }
 
     /**

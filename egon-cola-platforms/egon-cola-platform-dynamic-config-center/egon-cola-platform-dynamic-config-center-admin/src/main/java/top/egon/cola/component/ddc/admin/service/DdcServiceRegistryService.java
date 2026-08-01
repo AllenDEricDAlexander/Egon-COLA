@@ -3,7 +3,6 @@ package top.egon.cola.component.ddc.admin.service;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
-import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
@@ -51,11 +50,10 @@ public class DdcServiceRegistryService {
     public DdcLeaseSession register(DdcServiceRegistration registration) {
         validateRegistration(registration);
         DdcServiceKey serviceKey = registration.serviceKey();
-        scopeGate.assertEnabled(
+        scopeGate.assertPhysicalEnabled(
                 serviceKey.bizCode(),
                 serviceKey.appCode(),
-                serviceKey.env(),
-                serviceKey.namespace()
+                serviceKey.env()
         );
         Instant now = clock.instant();
         DdcLeaseSession session = new DdcLeaseSession(
@@ -113,9 +111,6 @@ public class DdcServiceRegistryService {
     DdcServiceLeaseRequest leaseRequest(DdcServiceRegistration registration,
                                         DdcLeaseSession session) {
         DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
-        request.setEnv(registration.serviceKey().env());
-        request.setNamespace(registration.serviceKey().namespace());
-        request.setServiceKind(registration.serviceKey().serviceKind());
         request.setServiceKey(registration.serviceKey());
         request.setInstanceId(registration.instanceId());
         request.setLeaseId(session.leaseId());
@@ -126,33 +121,15 @@ public class DdcServiceRegistryService {
         if (registration == null) {
             throw new DdcAdminException("service registration is required");
         }
-        DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
-        request.setInstanceId(registration.instanceId());
-        request.setAppCode(registration.serviceKey().serviceName());
-        request.setEnv(registration.serviceKey().env());
-        request.setNamespace(registration.serviceKey().namespace());
-        request.setHost(registration.host());
-        request.setPort(registration.port());
-        request.setLeaseSeconds(registration.leaseSeconds());
-        request.setHeartbeatIntervalSeconds(registration.heartbeatIntervalSeconds());
-        leaseValidator.validateRegistration(request);
+        leaseValidator.validateServiceRegistration(registration);
     }
 
     private void validateOperation(DdcServiceLeaseRequest request) {
         if (request == null
                 || request.getServiceKey() == null
-                || request.getServiceKind() == null
                 || blank(request.getInstanceId())
-                || blank(request.getLeaseId())
-                || blank(request.getEnv())
-                || blank(request.getNamespace())) {
+                || blank(request.getLeaseId())) {
             throw new DdcAdminException("complete service lease identity is required");
-        }
-        DdcServiceKey key = request.getServiceKey();
-        if (!request.getEnv().equals(key.env())
-                || !request.getNamespace().equals(key.namespace())
-                || request.getServiceKind() != key.serviceKind()) {
-            throw new DdcAdminException("service lease identity does not match serviceKey");
         }
     }
 

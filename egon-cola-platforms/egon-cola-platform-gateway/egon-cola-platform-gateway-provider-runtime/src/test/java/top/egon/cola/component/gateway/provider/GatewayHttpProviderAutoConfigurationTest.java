@@ -18,6 +18,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
@@ -57,6 +58,10 @@ class GatewayHttpProviderAutoConfigurationTest {
                             DdcServiceKeyFactory.class,
                             this::serviceKeyFactory
                     )
+                    .withBean(
+                            DdcInstanceIdentity.class,
+                            this::ddcInstanceIdentity
+                    )
                     .withPropertyValues(requiredProperties());
 
     @Test
@@ -76,8 +81,8 @@ class GatewayHttpProviderAutoConfigurationTest {
             assertThat(registry.registration.port()).isEqualTo(18101);
             assertThat(registry.registration.serviceKey().env())
                     .isEqualTo("test");
-            assertThat(registry.registration.serviceKey().namespace())
-                    .isEqualTo("gateway-test");
+            assertThat(registry.registration.instanceId())
+                    .isEqualTo("ddc-runtime-1");
             assertThat(registry.registration.serviceKey().serviceName())
                     .isEqualTo("orders");
             assertThat(registry.registration.serviceKey().version())
@@ -91,7 +96,7 @@ class GatewayHttpProviderAutoConfigurationTest {
                     .isEqualTo(Status.UP);
             assertThat(healthIndicator.health().getDetails())
                     .containsEntry("state", "REGISTERED")
-                    .containsEntry("instanceId", "orders-1")
+                    .containsEntry("instanceId", "ddc-runtime-1")
                     .containsEntry("leaseId", "lease-1")
                     .containsKey("leaseExpireAt");
         });
@@ -114,6 +119,10 @@ class GatewayHttpProviderAutoConfigurationTest {
                 .withBean(
                         DdcServiceKeyFactory.class,
                         this::serviceKeyFactory
+                )
+                .withBean(
+                        DdcInstanceIdentity.class,
+                        this::ddcInstanceIdentity
                 )
                 .withBean(DdcServiceRegistryClient.class, () -> registry)
                 .run(context -> {
@@ -224,7 +233,6 @@ class GatewayHttpProviderAutoConfigurationTest {
     private String[] requiredProperties() {
         return new String[]{
                 "egon.cola.component.gateway.provider.http.enabled=true",
-                "egon.cola.component.gateway.provider.http.instance-id=orders-1",
                 "egon.cola.component.gateway.provider.http.advertised-host=127.0.0.1",
                 "egon.cola.component.gateway.provider.http.port=0",
                 "egon.cola.component.gateway.provider.http.lease-seconds=3",
@@ -242,6 +250,19 @@ class GatewayHttpProviderAutoConfigurationTest {
         properties.setEnv("test");
         properties.setNamespace("gateway-test");
         return new DdcServiceKeyFactory(properties);
+    }
+
+    private DdcInstanceIdentity ddcInstanceIdentity() {
+        return new DdcInstanceIdentity(
+                "ddc-runtime-1",
+                "orders",
+                "test",
+                "gateway-test",
+                "127.0.0.1",
+                null,
+                "100",
+                "5.3.2"
+        );
     }
 
     private WebServerInitializedEvent webServerEvent(

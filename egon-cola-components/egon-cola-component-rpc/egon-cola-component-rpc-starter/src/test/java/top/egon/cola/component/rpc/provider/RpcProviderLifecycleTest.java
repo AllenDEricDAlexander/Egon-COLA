@@ -59,6 +59,8 @@ class RpcProviderLifecycleTest {
                     .isEqualTo("retail-biz");
             assertThat(registryClient.registration.serviceKey().appCode())
                     .isEqualTo("orders-app");
+            assertThat(registryClient.registration.instanceId())
+                    .isEqualTo("provider-process");
 
             lifecycle.stop();
 

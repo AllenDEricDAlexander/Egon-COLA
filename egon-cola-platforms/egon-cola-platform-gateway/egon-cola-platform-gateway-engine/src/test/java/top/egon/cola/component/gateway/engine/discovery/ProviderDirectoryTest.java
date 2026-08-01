@@ -67,8 +67,8 @@ class ProviderDirectoryTest {
     void exposesOnlyOnlineDdcInstancesWithCurrentLeasesAsRegistered() {
         ProviderServiceKey providerKey = key();
         DdcServiceKey ddcKey = new DdcServiceKey(
-                "test-biz", "test-app",
-                "local", "default", DdcServiceKind.HTTP_PROVIDER,
+                "test-biz", "local", "test-app",
+                DdcServiceKind.HTTP_PROVIDER,
                 "orders", "default", "v1", "http"
         );
         Instant now = Instant.now();
@@ -93,6 +93,7 @@ class ProviderDirectoryTest {
         ProviderServiceSnapshot snapshot = new DdcProviderServiceRegistryAdapter(registry)
                 .getInstances(providerKey);
 
+        assertEquals(providerKey, snapshot.serviceKey());
         assertEquals(
                 ProviderRegistryState.REGISTERED,
                 state(snapshot, "online")

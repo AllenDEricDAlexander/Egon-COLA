@@ -43,7 +43,7 @@ public final class DdcProviderServiceRegistryAdapter
             DdcServiceCatalogSnapshot snapshot =
                     delegate.getServiceKeys(ddcQuery);
             keys.addAll(snapshot.serviceKeys().stream()
-                    .map(this::serviceKey)
+                    .map(key -> serviceKey(key, query.namespace()))
                     .toList());
             revision = Math.max(revision, snapshot.revision());
             if (snapshot.observedAt().isAfter(observedAt)) {
@@ -55,7 +55,7 @@ public final class DdcProviderServiceRegistryAdapter
 
     @Override
     public ProviderServiceSnapshot getInstances(ProviderServiceKey key) {
-        return snapshot(delegate.getInstances(ddcKey(key)));
+        return snapshot(delegate.getInstances(ddcKey(key)), key);
     }
 
     @Override
@@ -78,7 +78,7 @@ public final class DdcProviderServiceRegistryAdapter
             ProviderSnapshotListener listener) {
         DdcRegistrySubscription subscription = delegate.subscribe(
                 ddcKey(key),
-                value -> listener.onSnapshot(snapshot(value))
+                value -> listener.onSnapshot(snapshot(value, key))
         );
         return composite(List.of(subscription));
     }
@@ -106,9 +106,8 @@ public final class DdcProviderServiceRegistryAdapter
             String protocol) {
         return new DdcServiceQuery(
                 query.bizCode(),
-                query.appCode(),
                 query.env(),
-                query.namespace(),
+                query.appCode(),
                 kind,
                 protocol,
                 null,
@@ -117,8 +116,9 @@ public final class DdcProviderServiceRegistryAdapter
         );
     }
 
-    private ProviderServiceSnapshot snapshot(DdcServiceSnapshot value) {
-        ProviderServiceKey key = serviceKey(value.serviceKey());
+    private ProviderServiceSnapshot snapshot(
+            DdcServiceSnapshot value,
+            ProviderServiceKey key) {
         Instant now = Instant.now();
         return new ProviderServiceSnapshot(
                 key,
@@ -154,12 +154,14 @@ public final class DdcProviderServiceRegistryAdapter
         );
     }
 
-    private ProviderServiceKey serviceKey(DdcServiceKey key) {
+    private ProviderServiceKey serviceKey(
+            DdcServiceKey key,
+            String namespace) {
         return new ProviderServiceKey(
                 key.bizCode(),
                 key.appCode(),
                 key.env(),
-                key.namespace(),
+                namespace,
                 key.serviceKind() == DdcServiceKind.HTTP_PROVIDER
                         ? ProviderProtocolType.HTTP
                         : ProviderProtocolType.RPC,
@@ -173,9 +175,8 @@ public final class DdcProviderServiceRegistryAdapter
     private DdcServiceKey ddcKey(ProviderServiceKey key) {
         return new DdcServiceKey(
                 key.bizCode(),
-                key.appCode(),
                 key.env(),
-                key.namespace(),
+                key.appCode(),
                 key.protocolType() == ProviderProtocolType.HTTP
                         ? DdcServiceKind.HTTP_PROVIDER
                         : DdcServiceKind.RPC_PROVIDER,

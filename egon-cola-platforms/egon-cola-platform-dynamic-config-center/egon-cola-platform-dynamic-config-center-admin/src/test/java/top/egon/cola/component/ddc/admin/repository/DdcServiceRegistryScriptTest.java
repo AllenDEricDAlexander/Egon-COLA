@@ -31,9 +31,10 @@ class DdcServiceRegistryScriptTest {
                 .contains("instance['instanceId'] ~= ARGV[1]")
                 .contains("instance['leaseId'] ~= ARGV[2]")
                 .contains("instance['serviceKeyCanonical'] ~= ARGV[3]");
-        assertThat(scripts.get(0)).contains("redis.call('PUBLISH', ARGV[8]");
-        assertThat(scripts.get(2)).contains("redis.call('PUBLISH', ARGV[6]");
-        assertThat(scripts.get(3)).contains("redis.call('PUBLISH', ARGV[5]");
+        assertThat(List.of(scripts.get(0), scripts.get(2), scripts.get(3)))
+                .allSatisfy(script -> assertThat(script)
+                        .contains("redis.call('PUBLISH', KEYS[6]")
+                        .doesNotContain("redis.call('PUBLISH', ARGV["));
     }
 
     private String script(String path) throws Exception {

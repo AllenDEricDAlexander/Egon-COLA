@@ -33,7 +33,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public final class DdcOpenApiServiceRegistryClient
@@ -64,7 +63,7 @@ public final class DdcOpenApiServiceRegistryClient
 
     private final DdcRegistrySubscriptionManager subscriptionManager;
 
-    private final Map<String, ActiveRegistration> registrations = new ConcurrentHashMap<>();
+    private final DdcActiveRegistrationIndex registrations = new DdcActiveRegistrationIndex();
 
     public DdcOpenApiServiceRegistryClient(DdcProperties properties,
                                            RedissonClient redissonClient) {
@@ -125,40 +124,37 @@ public final class DdcOpenApiServiceRegistryClient
                 || !registration.instanceId().equals(session.instanceId())) {
             throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE);
         }
-        registrations.put(
-                registration.instanceId(),
-                new ActiveRegistration(registration.serviceKey(), session)
-        );
+        registrations.put(registration.serviceKey(), session);
         return session;
     }
 
     @Override
     public DdcLeaseOperationResult heartbeat(String instanceId, String leaseId) {
-        ActiveRegistration registration = active(instanceId, leaseId);
+        DdcServiceKey serviceKey = registrations.require(instanceId, leaseId);
         DdcLeaseOperationResult result = post(
                 HEARTBEAT_PATH,
-                leaseRequest(instanceId, leaseId, registration.serviceKey()),
+                leaseRequest(instanceId, leaseId, serviceKey),
                 new ParameterizedTypeReference<>() {
                 }
         );
         if (result.status() == DdcLeaseOperationStatus.NOT_FOUND
                 || result.status() == DdcLeaseOperationStatus.LEASE_MISMATCH) {
-            registrations.remove(instanceId, registration);
+            registrations.remove(leaseId);
         }
         return result;
     }
 
     @Override
     public DdcLeaseOperationResult deregister(String instanceId, String leaseId) {
-        ActiveRegistration registration = active(instanceId, leaseId);
+        DdcServiceKey serviceKey = registrations.require(instanceId, leaseId);
         DdcLeaseOperationResult result = post(
                 DEREGISTER_PATH,
-                leaseRequest(instanceId, leaseId, registration.serviceKey()),
+                leaseRequest(instanceId, leaseId, serviceKey),
                 new ParameterizedTypeReference<>() {
                 }
         );
         if (result.status() != DdcLeaseOperationStatus.NOT_DELETED) {
-            registrations.remove(instanceId, registration);
+            registrations.remove(leaseId);
         }
         return result;
     }
@@ -193,12 +189,13 @@ public final class DdcOpenApiServiceRegistryClient
 
     static Map<String, List<String>> serviceQuery(DdcServiceQuery query) {
         Map<String, List<String>> parameters = new LinkedHashMap<>();
-        parameters.put("bizCode", List.of(query.bizCode()));
-        parameters.put("appCode", List.of(query.appCode()));
-        parameters.put("env", List.of(query.env()));
-        parameters.put("namespace", List.of(query.namespace()));
-        parameters.put("serviceKind", List.of(query.serviceKind().name()));
-        parameters.put("protocol", List.of(query.protocol()));
+        putIfPresent(parameters, "bizCode", query.bizCode());
+        putIfPresent(parameters, "appCode", query.appCode());
+        putIfPresent(parameters, "env", query.env());
+        if (query.serviceKind() != null) {
+            parameters.put("serviceKind", List.of(query.serviceKind().name()));
+        }
+        putIfPresent(parameters, "protocol", query.protocol());
         putIfPresent(parameters, "serviceName", query.serviceName());
         putIfPresent(parameters, "group", query.group());
         putIfPresent(parameters, "version", query.version());
@@ -218,21 +215,10 @@ public final class DdcOpenApiServiceRegistryClient
         registrations.clear();
     }
 
-    private ActiveRegistration active(String instanceId, String leaseId) {
-        ActiveRegistration registration = registrations.get(instanceId);
-        if (registration == null || !registration.session().leaseId().equals(leaseId)) {
-            throw new DdcException(DdcErrorStatus.LEASE_MISMATCH);
-        }
-        return registration;
-    }
-
     private DdcServiceLeaseRequest leaseRequest(String instanceId,
                                                 String leaseId,
                                                 DdcServiceKey serviceKey) {
         DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
-        request.setEnv(serviceKey.env());
-        request.setNamespace(serviceKey.namespace());
-        request.setServiceKind(serviceKey.serviceKind());
         request.setServiceKey(serviceKey);
         request.setInstanceId(instanceId);
         request.setLeaseId(leaseId);
@@ -244,7 +230,6 @@ public final class DdcOpenApiServiceRegistryClient
         query.put("bizCode", List.of(serviceKey.bizCode()));
         query.put("appCode", List.of(serviceKey.appCode()));
         query.put("env", List.of(serviceKey.env()));
-        query.put("namespace", List.of(serviceKey.namespace()));
         query.put("serviceKind", List.of(serviceKey.serviceKind().name()));
         query.put("serviceName", List.of(serviceKey.serviceName()));
         putIfPresent(query, "group", serviceKey.group());
@@ -344,9 +329,4 @@ public final class DdcOpenApiServiceRegistryClient
         return result.data();
     }
 
-    private record ActiveRegistration(
-            DdcServiceKey serviceKey,
-            DdcLeaseSession session
-    ) {
-    }
 }

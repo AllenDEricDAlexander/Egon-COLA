@@ -1,11 +1,8 @@
 package top.egon.cola.component.rpc.context;
 
 import org.springframework.core.env.Environment;
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.config.DdcProperties;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 
 public class RpcProcessIdentityFactory {
 
@@ -13,10 +10,14 @@ public class RpcProcessIdentityFactory {
 
     private final DdcProperties ddcProperties;
 
+    private final DdcInstanceIdentity ddcIdentity;
+
     public RpcProcessIdentityFactory(Environment environment,
-                                     DdcProperties ddcProperties) {
+                                     DdcProperties ddcProperties,
+                                     DdcInstanceIdentity ddcIdentity) {
         this.environment = environment;
         this.ddcProperties = ddcProperties;
+        this.ddcIdentity = ddcIdentity;
     }
 
     public RpcProcessIdentity create() {
@@ -24,30 +25,13 @@ public class RpcProcessIdentityFactory {
                 "spring.application.name",
                 ddcProperties.getAppCode()
         );
-        String host = resolveHost();
         long pid = ProcessHandle.current().pid();
-        String instanceId = String.join(
-                ":",
-                applicationName,
-                host,
-                Long.toString(pid),
-                UuidV7.simpleString()
-        );
         return new RpcProcessIdentity(
                 applicationName,
                 ddcProperties.getEnv(),
-                ddcProperties.getNamespace(),
-                host,
+                ddcIdentity.host(),
                 pid,
-                instanceId
+                ddcIdentity.instanceId()
         );
-    }
-
-    private String resolveHost() {
-        try {
-            return InetAddress.getLocalHost().getHostAddress();
-        } catch (UnknownHostException exception) {
-            throw new IllegalStateException("cannot resolve RPC process host", exception);
-        }
     }
 }

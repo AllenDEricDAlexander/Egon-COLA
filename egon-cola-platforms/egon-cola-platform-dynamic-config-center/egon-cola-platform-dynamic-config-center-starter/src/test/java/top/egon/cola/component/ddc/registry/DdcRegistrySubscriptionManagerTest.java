@@ -64,16 +64,10 @@ class DdcRegistrySubscriptionManagerTest {
         topic.listener().get().onMessage("topic", eventJson(2L));
 
         assertThat(refreshed.await(2, TimeUnit.SECONDS)).isTrue();
-        assertThat(order.subList(0, 3)).containsExactly("subscribe", "subscribe", "pull");
+        assertThat(order.subList(0, 2)).containsExactly("subscribe", "pull");
         verify(topic.redisson()).getTopic(
-                DdcKeys.v2RegistryTopic(
-                        "pay-biz", "orders-app", "dev", "", DdcServiceKind.RPC_PROVIDER, "grpc"
-                ),
-                StringCodec.INSTANCE
-        );
-        verify(topic.redisson()).getTopic(
-                DdcKeys.registryTopic(
-                        "pay-biz", "orders-app", "dev", "", DdcServiceKind.RPC_PROVIDER, "grpc"
+                DdcKeys.v3RegistryTopic(
+                        "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE
         );
@@ -191,8 +185,9 @@ class DdcRegistrySubscriptionManagerTest {
         return """
                 {
                   "serviceKey":{
+                    "bizCode":"pay-biz",
                     "env":"dev",
-                    "namespace":"default",
+                    "appCode":"orders-app",
                     "serviceKind":"RPC_PROVIDER",
                     "serviceName":"order.v1.OrderQueryService",
                     "group":"default",
@@ -315,11 +310,10 @@ class DdcRegistrySubscriptionManagerTest {
     }
 
     private static final DdcServiceKey SERVICE_KEY = new DdcServiceKey(
-                        "pay-biz",
-                        "orders-app",
-                        "dev",
-                        "default",
-                        DdcServiceKind.RPC_PROVIDER,
+            "pay-biz",
+            "dev",
+            "orders-app",
+            DdcServiceKind.RPC_PROVIDER,
             "order.v1.OrderQueryService",
             "default",
             "1.0.0",

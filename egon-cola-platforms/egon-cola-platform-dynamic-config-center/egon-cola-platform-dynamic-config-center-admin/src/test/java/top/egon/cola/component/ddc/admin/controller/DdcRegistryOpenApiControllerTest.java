@@ -54,7 +54,6 @@ class DdcRegistryOpenApiControllerTest {
                                     "bizCode":"pay-biz",
                                     "appCode":"orders-app",
                                     "env":"dev",
-                                    "namespace":"default",
                                     "serviceKind":"RPC_PROVIDER",
                                     "serviceName":"order.v1.OrderQueryService",
                                     "group":"default",
@@ -75,21 +74,19 @@ class DdcRegistryOpenApiControllerTest {
     }
 
     @Test
-    void serviceCatalogEndpointBuildsTheRequiredQuery() throws Exception {
+    void serviceCatalogEndpointAcceptsPartialFilters() throws Exception {
         when(registryService.getServiceKeys(any())).thenAnswer(invocation -> {
             DdcServiceQuery query = invocation.getArgument(0);
+            org.assertj.core.api.Assertions.assertThat(query.bizCode()).isEqualTo("pay-biz");
+            org.assertj.core.api.Assertions.assertThat(query.appCode()).isNull();
+            org.assertj.core.api.Assertions.assertThat(query.env()).isNull();
+            org.assertj.core.api.Assertions.assertThat(query.serviceKind()).isNull();
             return new DdcServiceCatalogSnapshot(query, 3L, List.of(), Instant.now());
         });
 
         mockMvc.perform(get("/api/v1/ddc/openapi/registry/services")
-                        .param("bizCode", "pay-biz")
-                        .param("appCode", "orders-app")
-                        .param("env", "dev")
-                        .param("namespace", "default")
-                        .param("serviceKind", DdcServiceKind.RPC_PROVIDER.name())
-                        .param("protocol", "grpc"))
+                        .param("bizCode", "pay-biz"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.revision").value(3))
-                .andExpect(jsonPath("$.data.query.serviceKind").value("RPC_PROVIDER"));
+                .andExpect(jsonPath("$.data.revision").value(3));
     }
 }

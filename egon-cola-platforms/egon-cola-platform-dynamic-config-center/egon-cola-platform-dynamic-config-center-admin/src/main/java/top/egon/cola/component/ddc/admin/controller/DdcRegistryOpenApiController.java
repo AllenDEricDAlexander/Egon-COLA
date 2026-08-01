@@ -51,7 +51,6 @@ public class DdcRegistryOpenApiController {
             @RequestParam("bizCode") String bizCode,
             @RequestParam("appCode") String appCode,
             @RequestParam("env") String env,
-            @RequestParam("namespace") String namespace,
             @RequestParam("serviceKind") DdcServiceKind serviceKind,
             @RequestParam("serviceName") String serviceName,
             @RequestParam(value = "group", required = false) String group,
@@ -59,9 +58,8 @@ public class DdcRegistryOpenApiController {
             @RequestParam("protocol") String protocol) {
         return ResultRecord.success(registryService.getInstances(new DdcServiceKey(
                 bizCode,
-                appCode,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 serviceName,
                 group,
@@ -72,20 +70,18 @@ public class DdcRegistryOpenApiController {
 
     @GetMapping("/services")
     public ResultRecord<DdcServiceCatalogSnapshot> services(
-            @RequestParam("bizCode") String bizCode,
-            @RequestParam("appCode") String appCode,
-            @RequestParam("env") String env,
-            @RequestParam("namespace") String namespace,
-            @RequestParam("serviceKind") DdcServiceKind serviceKind,
-            @RequestParam("protocol") String protocol,
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "appCode", required = false) String appCode,
+            @RequestParam(value = "env", required = false) String env,
+            @RequestParam(value = "serviceKind", required = false) DdcServiceKind serviceKind,
+            @RequestParam(value = "protocol", required = false) String protocol,
             @RequestParam(value = "serviceName", required = false) String serviceName,
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version) {
         return ResultRecord.success(registryService.getServiceKeys(new DdcServiceQuery(
                 bizCode,
-                appCode,
                 env,
-                namespace,
+                appCode,
                 serviceKind,
                 protocol,
                 serviceName,

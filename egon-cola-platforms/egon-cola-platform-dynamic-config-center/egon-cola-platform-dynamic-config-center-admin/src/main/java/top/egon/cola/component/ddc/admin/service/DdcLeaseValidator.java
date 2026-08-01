@@ -4,6 +4,7 @@ import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 
 public class DdcLeaseValidator {
 
@@ -54,6 +55,22 @@ public class DdcLeaseValidator {
         );
         if (isBlank(request.getLeaseId())) {
             throw invalid("leaseId is required");
+        }
+    }
+
+    public void validateServiceRegistration(DdcServiceRegistration registration) {
+        if (registration == null) {
+            throw invalid("service registration is required");
+        }
+        if (registration.leaseSeconds() < minimumSeconds
+                || registration.leaseSeconds() > maximumSeconds) {
+            throw invalid(
+                    "leaseSeconds must be between " + minimumSeconds + " and " + maximumSeconds
+            );
+        }
+        if (registration.heartbeatIntervalSeconds() <= 0
+                || registration.heartbeatIntervalSeconds() >= registration.leaseSeconds()) {
+            throw invalid("heartbeatIntervalSeconds must be positive and less than leaseSeconds");
         }
     }
 

@@ -3,6 +3,8 @@ package top.egon.cola.component.ddc.admin.repository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RSet;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
@@ -67,7 +69,7 @@ class DdcRedisClusterSlotContractTest {
     }
 
     @Test
-    void registryScriptUsesOnlyV2KeysInOneKindScopeSlot() {
+    void registryScriptUsesOnlyV3KeysInOnePhysicalScopeSlot() {
         AtomicReference<List<Object>> scriptKeys = new AtomicReference<>();
         AtomicReference<Object[]> arguments = new AtomicReference<>();
         RedissonClient redisson = scriptingClient(scriptKeys, List.of(1L, 1L, 1L), arguments);
@@ -80,15 +82,13 @@ class DdcRedisClusterSlotContractTest {
         repository.register(instance());
 
         List<String> keys = scriptKeys.get().stream().map(Object::toString).toList();
-        assertThat(keys).hasSize(6).allMatch(key -> key.startsWith("ddc:v2:{"));
+        assertThat(keys).hasSize(6).allMatch(key -> key.startsWith("ddc:v3:{"));
         assertOneSlot(keys);
-        assertThat(arguments.get())
-                .contains(DdcKeys.registryTopic(
-                        "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
-                ));
-        assertThat(keys).doesNotContain(DdcKeys.registryTopic(
-                "pay-biz", "orders-app", "dev", "default", DdcServiceKind.RPC_PROVIDER, "grpc"
+        assertThat(keys.get(5)).isEqualTo(DdcKeys.v3RegistryTopic(
+                "pay-biz", "dev", "orders-app",
+                DdcServiceKind.RPC_PROVIDER, "grpc"
         ));
+        assertThat(arguments.get()).doesNotContain("default");
     }
 
     private RedissonClient scriptingClient(AtomicReference<List<Object>> scriptKeys,
@@ -101,7 +101,13 @@ class DdcRedisClusterSlotContractTest {
                                             AtomicReference<Object[]> arguments) {
         RedissonClient redisson = mock(RedissonClient.class);
         RScript script = mock(RScript.class);
+        RSet<String> globalCatalog = mock(RSet.class);
+        RAtomicLong globalRevision = mock(RAtomicLong.class);
         when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
+        when(redisson.<String>getSet(anyString(), eq(StringCodec.INSTANCE)))
+                .thenReturn(globalCatalog);
+        when(globalCatalog.add(anyString())).thenReturn(true);
+        when(redisson.getAtomicLong(anyString())).thenReturn(globalRevision);
         when(script.eval(
                 eq(RScript.Mode.READ_WRITE),
                 anyString(),
@@ -119,9 +125,8 @@ class DdcRedisClusterSlotContractTest {
     private DdcServiceInstance instance() {
         DdcServiceKey serviceKey = new DdcServiceKey(
                 "pay-biz",
-                "orders-app",
                 "dev",
-                "default",
+                "orders-app",
                 DdcServiceKind.RPC_PROVIDER,
                 "order.v1.OrderQueryService",
                 "default",

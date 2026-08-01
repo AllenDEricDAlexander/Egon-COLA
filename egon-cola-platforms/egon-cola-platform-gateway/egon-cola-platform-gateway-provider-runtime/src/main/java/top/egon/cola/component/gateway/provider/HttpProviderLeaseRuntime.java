@@ -74,8 +74,6 @@ public final class HttpProviderLeaseRuntime implements AutoCloseable {
         registration = new DdcServiceRegistration(
                 properties.instanceId(),
                 serviceKeyFactory.fromScope(
-                        properties.env(),
-                        properties.namespace(),
                         DdcServiceKind.HTTP_PROVIDER,
                         properties.serviceName(),
                         properties.group(),

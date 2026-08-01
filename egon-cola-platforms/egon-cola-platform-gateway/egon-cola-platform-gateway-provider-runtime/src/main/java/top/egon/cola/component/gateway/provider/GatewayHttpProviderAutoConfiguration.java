@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.gateway.contract.definition
@@ -47,12 +48,14 @@ public class GatewayHttpProviderAutoConfiguration {
             ObjectProvider<GatewayDefinitionIdentity> definitionIdentity,
             GatewayHttpProviderProperties properties,
             DdcProperties ddcProperties,
+            DdcInstanceIdentity ddcIdentity,
             Environment environment) {
         GatewayDefinitionIdentity identity =
                 definitionIdentity.getIfAvailable();
         applyDefaults(
                 properties,
                 ddcProperties,
+                ddcIdentity,
                 identity,
                 environment
         );
@@ -81,6 +84,7 @@ public class GatewayHttpProviderAutoConfiguration {
     private void applyDefaults(
             GatewayHttpProviderProperties properties,
             DdcProperties ddcProperties,
+            DdcInstanceIdentity ddcIdentity,
             GatewayDefinitionIdentity definitionIdentity,
             Environment environment) {
         if (blank(properties.getEnv())) {
@@ -88,6 +92,9 @@ public class GatewayHttpProviderAutoConfiguration {
         }
         if (blank(properties.getNamespace())) {
             properties.setNamespace(ddcProperties.getNamespace());
+        }
+        if (blank(properties.getInstanceId())) {
+            properties.setInstanceId(ddcIdentity.instanceId());
         }
         if (blank(properties.getServiceName())) {
             properties.setServiceName(environment.getProperty(

@@ -230,9 +230,6 @@ class DdcRedisClusterIT {
 
     private DdcServiceLeaseRequest serviceLease(DdcServiceInstance instance) {
         DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
-        request.setEnv(instance.serviceKey().env());
-        request.setNamespace(instance.serviceKey().namespace());
-        request.setServiceKind(instance.serviceKey().serviceKind());
         request.setServiceKey(instance.serviceKey());
         request.setInstanceId(instance.instanceId());
         request.setLeaseId(instance.leaseId());

@@ -77,8 +77,6 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         String appCode = properties.getGatewayAppCode();
         if (blank(bizCode) && blank(appCode)) {
             return serviceKeyFactory.fromScope(
-                    processIdentity.env(),
-                    processIdentity.namespace(),
                     DdcServiceKind.INTERNAL_GATEWAY,
                     properties.getGatewayServiceName(),
                     properties.getGatewayGroup(),
@@ -95,7 +93,6 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                 bizCode,
                 appCode,
                 processIdentity.env(),
-                processIdentity.namespace(),
                 DdcServiceKind.INTERNAL_GATEWAY,
                 properties.getGatewayServiceName(),
                 properties.getGatewayGroup(),

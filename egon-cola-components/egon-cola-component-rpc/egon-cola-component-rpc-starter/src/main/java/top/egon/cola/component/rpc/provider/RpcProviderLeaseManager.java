@@ -89,8 +89,6 @@ public class RpcProviderLeaseManager {
         for (RpcProviderBinding provider : providers) {
             RpcServiceIdentity service = provider.serviceIdentity();
             var serviceKey = serviceKeyFactory.fromScope(
-                    processIdentity.env(),
-                    processIdentity.namespace(),
                     DdcServiceKind.RPC_PROVIDER,
                     service.serviceName(),
                     service.group(),
@@ -98,7 +96,7 @@ public class RpcProviderLeaseManager {
                     "grpc"
             );
             prepared.put(service, new DdcServiceRegistration(
-                    processIdentity.instanceId() + ":" + service.registrySuffix(),
+                    processIdentity.instanceId(),
                     serviceKey,
                     advertisedHost,
                     advertisedPort,
