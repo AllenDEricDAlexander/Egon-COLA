@@ -19,7 +19,7 @@ class GatewayAdminSchemaTest {
                              "src/main/resources",
                              root
                      ))) {
-            assertEquals(6, migrations.filter(
+            assertEquals(7, migrations.filter(
                     path -> path.getFileName().toString().endsWith(".sql")
             ).count());
         }
@@ -74,5 +74,15 @@ class GatewayAdminSchemaTest {
                 StandardCharsets.UTF_8
         );
         assertTrue(applicationScope.contains("biz_code"));
+
+        String mcp = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root + "/V7__add_gateway_mcp_control_plane.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(mcp.contains("CREATE TABLE gateway_mcp_server"));
+        assertTrue(mcp.contains("CREATE TABLE gateway_mcp_approval"));
+        assertTrue(mcp.contains("CREATE TABLE gateway_mcp_task_instance"));
     }
 }
