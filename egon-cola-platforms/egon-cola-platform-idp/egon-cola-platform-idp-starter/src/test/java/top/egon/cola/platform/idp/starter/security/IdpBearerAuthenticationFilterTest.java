@@ -66,7 +66,7 @@ class IdpBearerAuthenticationFilterTest {
                 .header("alg", "RS256").header("kid", "key-1")
                 .issuer("https://idp.local").subject("identity-1")
                 .audience(java.util.List.of("egon-api"))
-                .issuedAt(now).expiresAt(now.plusSeconds(300))
+                .issuedAt(now).notBefore(now).expiresAt(now.plusSeconds(300))
                 .claim("tid", "tenant-1").claim("sid", "session-1")
                 .claim("client_id", "gateway-admin")
                 .claim("jti", "token-1").claim("token_version", 7L)

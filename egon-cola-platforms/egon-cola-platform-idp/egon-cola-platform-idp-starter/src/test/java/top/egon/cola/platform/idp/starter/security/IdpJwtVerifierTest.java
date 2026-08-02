@@ -66,6 +66,7 @@ class IdpJwtVerifierTest {
                 .subject("identity-1")
                 .audience(List.of("egon-api"))
                 .issuedAt(NOW)
+                .notBefore(NOW)
                 .expiresAt(NOW.plusSeconds(300))
                 .claim("sid", "session-1")
                 .claim("client_id", "gateway-admin")
@@ -86,6 +87,28 @@ class IdpJwtVerifierTest {
                 .hasMessage("JWT_TOKEN_USE_INVALID");
     }
 
+    @Test
+    void rejectsAccessTokenWithoutNotBeforeClaim() {
+        Jwt missingNotBefore = Jwt.withTokenValue("access-token")
+                .header("alg", "RS256")
+                .header("kid", "key-1")
+                .issuer("https://idp.local")
+                .subject("identity-1")
+                .audience(List.of("egon-api"))
+                .issuedAt(NOW)
+                .expiresAt(NOW.plusSeconds(300))
+                .claim("tid", "tenant-1")
+                .claim("sid", "session-1")
+                .claim("client_id", "gateway-admin")
+                .claim("jti", "token-1")
+                .claim("token_version", 7L)
+                .build();
+
+        assertThatThrownBy(() -> verifier(missingNotBefore, state(
+                IdentityUserState.Status.ACTIVE, 7L)).verify("access-token"))
+                .hasMessage("JWT_CLAIM_INVALID_NBF");
+    }
+
     private IdpJwtVerifier verifier(Jwt jwt, IdentityUserState state) {
         JwtDecoder decoder = token -> jwt;
         IdentityUserStateReader reader = subject -> Optional.of(state);
@@ -101,6 +124,7 @@ class IdpJwtVerifierTest {
                 .subject("identity-1")
                 .audience(List.of("egon-api"))
                 .issuedAt(NOW)
+                .notBefore(NOW)
                 .expiresAt(NOW.plusSeconds(300))
                 .claim("tid", "tenant-1")
                 .claim("sid", "session-1")

@@ -56,6 +56,7 @@ public final class IdpJwtVerifier {
             }
             String subject = claim(jwt, "sub");
             long tokenVersion = number(jwt, IdpClaimNames.TOKEN_VERSION);
+            instant(jwt.getNotBefore(), "nbf");
             IdentityUserState state = stateReader.read(subject)
                     .orElseThrow(() -> new InvalidTokenException(
                             "IDENTITY_STATE_MISSING"));
