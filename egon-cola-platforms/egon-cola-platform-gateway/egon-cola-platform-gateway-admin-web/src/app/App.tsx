@@ -71,6 +71,16 @@ const ApplicationsPage = lazy(() =>
     default: module.ApplicationsPage,
   })),
 )
+const McpServersPage = lazy(() =>
+  import('../features/mcp/McpServersPage').then((module) => ({
+    default: module.McpServersPage,
+  })),
+)
+const McpServerWorkbenchPage = lazy(() =>
+  import('../features/mcp/McpServerWorkbenchPage').then((module) => ({
+    default: module.McpServerWorkbenchPage,
+  })),
+)
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -105,6 +115,22 @@ const router = createBrowserRouter([
       { path: 'applications/:applicationId/catalog', element: <CatalogPage /> },
       { path: 'operations/:operationId', element: <OperationPage /> },
       { path: 'providers', element: <ProvidersPage /> },
+      {
+        path: 'mcp/servers',
+        element: (
+          <RequireCapability capability="gateway:mcp:read">
+            <McpServersPage />
+          </RequireCapability>
+        ),
+      },
+      {
+        path: 'mcp/servers/:serverId',
+        element: (
+          <RequireCapability capability="gateway:mcp:read">
+            <McpServerWorkbenchPage />
+          </RequireCapability>
+        ),
+      },
       { path: 'observability/traces', element: <TracesPage /> },
       {
         path: 'audit',

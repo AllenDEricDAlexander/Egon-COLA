@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  RobotOutlined,
 } from '@ant-design/icons'
 import { Badge, Button, Layout, Menu, Select, Space, Typography } from 'antd'
 import { useState } from 'react'
@@ -55,6 +56,12 @@ const navigation: Array<{
   },
   { key: '/providers', icon: <ApiOutlined />, label: 'Provider', capability: 'gateway:read' },
   {
+    key: '/mcp/servers',
+    icon: <RobotOutlined />,
+    label: 'MCP Control Plane',
+    capability: 'gateway:mcp:read',
+  },
+  {
     key: '/observability/traces',
     icon: <EyeOutlined />,
     label: '调用观测',
@@ -71,13 +78,14 @@ export const AdminLayout = () => {
   const { scope, bindings, changeScope: selectScope } = useScope()
   const auth = useAuth()
   const canRead = useCapability('gateway:read')
-  const items = canRead
-    ? navigation.map((item) => ({
+  const canReadMcp = useCapability('gateway:mcp:read')
+  const items = navigation
+    .filter((item) => item.capability === 'gateway:mcp:read' ? canReadMcp : canRead)
+    .map((item) => ({
         key: item.key,
         icon: item.icon,
         label: <Link to={item.key}>{item.label}</Link>,
       }))
-    : []
 
   const changeScope = (
     field: ScopeField,

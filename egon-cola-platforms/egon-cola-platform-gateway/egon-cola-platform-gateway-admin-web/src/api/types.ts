@@ -339,6 +339,104 @@ export type DashboardSummary = {
   protocolCalls: Array<{ protocol: string; value: number }>
 }
 
+export type McpProtocolDialect =
+  | 'STABLE_2025_11_25'
+  | 'RC_2026_07_28'
+  | 'LEGACY_2024_SSE'
+
+export type McpServer = {
+  id: string
+  gatewayGroupId: string
+  serverCode: string
+  displayName: string
+  description?: string
+  instructions?: string
+  dialects: McpProtocolDialect[]
+  oauthAudience: string
+  listCacheTtlSeconds: number
+  enabled: boolean
+  revision: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type McpServerMutation = Omit<
+  McpServer,
+  'id' | 'revision' | 'createdAt' | 'updatedAt'
+> & {
+  expectedRevision: number
+  expectedDraftRevision: number
+  changeReason: string
+}
+
+export type McpCapabilityPlural =
+  | 'tools'
+  | 'resources'
+  | 'resource-templates'
+  | 'prompts'
+  | 'task-policies'
+  | 'app-bindings'
+
+export type McpCapabilityKind =
+  | 'TOOL'
+  | 'RESOURCE'
+  | 'RESOURCE_TEMPLATE'
+  | 'PROMPT'
+  | 'TASK_POLICY'
+  | 'APP_BINDING'
+
+export type McpCapabilityDraft = {
+  kind: McpCapabilityKind
+  id: string
+  gatewayGroupId: string
+  serverId: string
+  name: string
+  content: Record<string, unknown>
+  enabled: boolean
+  revision: number
+}
+
+export type McpCapabilityMutation = {
+  gatewayGroupId: string
+  serverId: string
+  name: string
+  content: Record<string, unknown>
+  enabled: boolean
+  expectedRevision: number
+  expectedDraftRevision: number
+  changeReason: string
+}
+
+export type McpMutationResult = {
+  draftRevision: number
+  resourceId: string
+  resourceRevision: number
+  replayed: boolean
+}
+
+export type McpValidationReport = {
+  valid: boolean
+  errors: ValidationIssue[]
+  warnings: ValidationIssue[]
+}
+
+export type McpCapabilityPreview = {
+  content: Record<string, unknown>
+  validation: McpValidationReport
+}
+
+export type McpProtocolInspection = {
+  path: string
+  headers: Record<string, string>
+  body: Record<string, unknown>
+  releaseCandidate: boolean
+}
+
+export type McpOperationOption = {
+  value: string
+  label: string
+}
+
 export type Page<T> = {
   items: T[]
   page: number

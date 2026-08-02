@@ -14,6 +14,17 @@ import type {
   GatewayRelease,
   GatewayScopeBinding,
   IssuedCredential,
+  McpCapabilityDraft,
+  McpCapabilityMutation,
+  McpCapabilityPlural,
+  McpCapabilityPreview,
+  McpMutationResult,
+  McpOperationOption,
+  McpProtocolDialect,
+  McpProtocolInspection,
+  McpServer,
+  McpServerMutation,
+  McpValidationReport,
   OperationDetail,
   Page,
   ProviderInstance,
@@ -402,4 +413,126 @@ export const gatewayApi = {
     apiRequest<Page<AuditEntry>>(`${admin}/audit?${query(scope)}&${filters.toString()}`, {
       signal,
     }),
+  mcpServers: (gatewayGroupId: string, signal?: AbortSignal) =>
+    apiRequest<McpServer[]>(
+      `${admin}/mcp/servers?${new URLSearchParams({ gatewayGroupId })}`,
+      { signal },
+    ),
+  mcpServer: (serverId: string, signal?: AbortSignal) =>
+    apiRequest<McpServer>(`${admin}/mcp/servers/${serverId}`, { signal }),
+  createMcpServer: (server: McpServerMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/servers`, {
+      method: 'POST',
+      body: server,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  updateMcpServer: (serverId: string, server: McpServerMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/servers/${serverId}`, {
+      method: 'PUT',
+      body: server,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  deleteMcpServer: (
+    serverId: string,
+    control: {
+      gatewayGroupId: string
+      expectedRevision: number
+      expectedDraftRevision: number
+      changeReason: string
+    },
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/servers/${serverId}`, {
+    method: 'DELETE',
+    body: control,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  validateMcpServer: (serverId: string) =>
+    apiRequest<McpValidationReport>(`${admin}/mcp/servers/${serverId}/validate`, {
+      method: 'POST',
+    }),
+  previewMcpServer: (serverId: string, signal?: AbortSignal) =>
+    apiRequest<McpCapabilityPreview>(
+      `${admin}/mcp/servers/${serverId}/capability-preview`,
+      { signal },
+    ),
+  mcpCapabilities: (
+    gatewayGroupId: string,
+    serverId: string,
+    plural: McpCapabilityPlural,
+    signal?: AbortSignal,
+  ) => apiRequest<McpCapabilityDraft[]>(
+    `${admin}/mcp/servers/${serverId}/${plural}?${new URLSearchParams({ gatewayGroupId })}`,
+    { signal },
+  ),
+  createMcpCapability: (
+    plural: McpCapabilityPlural,
+    capability: McpCapabilityMutation,
+  ) => apiRequest<McpMutationResult>(
+    `${admin}/mcp/servers/${capability.serverId}/${plural}`,
+    {
+      method: 'POST',
+      body: capability,
+      idempotencyKey: newIdempotencyKey(),
+    },
+  ),
+  updateMcpCapability: (
+    plural: McpCapabilityPlural,
+    capabilityId: string,
+    capability: McpCapabilityMutation,
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/${plural}/${capabilityId}`, {
+    method: 'PUT',
+    body: capability,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  deleteMcpCapability: (
+    plural: McpCapabilityPlural,
+    capabilityId: string,
+    control: {
+      gatewayGroupId: string
+      expectedRevision: number
+      expectedDraftRevision: number
+      changeReason: string
+    },
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/${plural}/${capabilityId}`, {
+    method: 'DELETE',
+    body: control,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  validateMcpCapability: (
+    plural: McpCapabilityPlural,
+    capabilityId: string,
+    gatewayGroupId: string,
+  ) => apiRequest<McpValidationReport>(
+    `${admin}/mcp/${plural}/${capabilityId}/validate?${new URLSearchParams({ gatewayGroupId })}`,
+    { method: 'POST' },
+  ),
+  inspectMcpProtocol: (
+    serverId: string,
+    request: {
+      dialect: McpProtocolDialect
+      method: string
+      params: Record<string, unknown>
+    },
+  ) => apiRequest<McpProtocolInspection>(
+    `${admin}/mcp/servers/${serverId}/protocol-inspect`,
+    { method: 'POST', body: request },
+  ),
+  mcpOperationOptions: async (
+    scope: Scope,
+    signal?: AbortSignal,
+  ): Promise<McpOperationOption[]> => {
+    const applications = await gatewayApi.applications(scope, signal)
+    const catalogs = await Promise.all(
+      applications.map((application) => gatewayApi.catalog(application.id, signal)),
+    )
+    return catalogs.flatMap((catalog) => catalog.businessDomains.flatMap(
+      (business) => business.entityDomains.flatMap(
+        (entity) => entity.interfaceGroups.flatMap(
+          (group) => group.operations.map((operation) => ({
+            value: operation.id,
+            label: `${operation.operationKey} · ${operation.protocol} ${operation.methodIdentity}`,
+          })),
+        ),
+      ),
+    )).sort((left, right) => left.label.localeCompare(right.label))
+  },
 }

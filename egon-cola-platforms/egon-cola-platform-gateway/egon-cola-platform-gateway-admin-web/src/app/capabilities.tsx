@@ -9,6 +9,11 @@ export type Capability =
   | 'gateway:catalog:write'
   | 'gateway:drafts:write'
   | 'gateway:releases:write'
+  | 'gateway:mcp:read'
+  | 'gateway:mcp:write'
+  | 'gateway:mcp:test'
+  | 'gateway:mcp:release'
+  | 'gateway:mcp:approve'
 
 const CapabilityContext = createContext<ReadonlySet<string>>(new Set())
 
