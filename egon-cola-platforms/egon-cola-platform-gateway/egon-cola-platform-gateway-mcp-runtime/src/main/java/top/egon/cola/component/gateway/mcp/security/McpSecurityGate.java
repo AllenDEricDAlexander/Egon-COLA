@@ -5,6 +5,8 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResource;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResourceTemplate;
 import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationRequest;
@@ -48,19 +50,46 @@ public final class McpSecurityGate {
         McpAuthorizationRequest request = identity.request(
                 requiredPermissions(tool)
         );
+        return authorize(request)
+                .then(approveIfRequired(
+                        tool,
+                        identity,
+                        arguments,
+                        approvalToken
+                ));
+    }
+
+    public Publisher<Void> authorizeResourceRead(
+            McpRuntimeResource resource,
+            IdentityContext identity) {
+        Objects.requireNonNull(resource, "resource");
+        return authorize(identity.request(resourcePermissions(
+                resource.serverCode(),
+                resource.name(),
+                resource.requiredPermissions()
+        )));
+    }
+
+    public Publisher<Void> authorizeResourceRead(
+            McpRuntimeResourceTemplate template,
+            IdentityContext identity) {
+        Objects.requireNonNull(template, "template");
+        return authorize(identity.request(resourcePermissions(
+                template.serverCode(),
+                template.name(),
+                template.requiredPermissions()
+        )));
+    }
+
+    private Mono<Void> authorize(McpAuthorizationRequest request) {
         return Mono.from(authorization.authorize(request))
                 .switchIfEmpty(Mono.error(forbidden(
                         "RBAC3_AUTHORIZATION_EMPTY",
                         null
                 )))
                 .flatMap(decision -> decision.allowed()
-                        ? approveIfRequired(
-                        tool,
-                        identity,
-                        arguments,
-                        approvalToken
-                )
-                        : Mono.error(forbidden(
+                        ? Mono.<Void>empty()
+                        : Mono.<Void>error(forbidden(
                         decision.reasonCode(),
                         decision
                 )))
@@ -71,6 +100,16 @@ public final class McpSecurityGate {
                                 null
                         )
                 );
+    }
+
+    private Set<String> resourcePermissions(
+            String serverCode,
+            String name,
+            Set<String> declared) {
+        TreeSet<String> permissions = new TreeSet<>(declared);
+        permissions.add("mcp:" + serverCode
+                + ":resource:" + name + ":read");
+        return Set.copyOf(permissions);
     }
 
     private Mono<Void> approveIfRequired(

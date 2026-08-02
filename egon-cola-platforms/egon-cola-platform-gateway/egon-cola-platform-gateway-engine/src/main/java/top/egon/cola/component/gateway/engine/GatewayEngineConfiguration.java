@@ -92,12 +92,26 @@ import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketEx
 import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
 import top.egon.cola.component.gateway.engine.websocket.ReactorNettyWebSocketUpstreamAdapter;
+import top.egon.cola.component.gateway.mcp.resource.DatabaseSchemaResourceDriver;
+import top.egon.cola.component.gateway.mcp.resource.McpResourceCatalog;
+import top.egon.cola.component.gateway.mcp.resource.McpResourceDriver;
+import top.egon.cola.component.gateway.mcp.resource.McpResourceTemplatesListHandler;
+import top.egon.cola.component.gateway.mcp.resource.McpResourceUriValidator;
+import top.egon.cola.component.gateway.mcp.resource.McpResourcesListHandler;
+import top.egon.cola.component.gateway.mcp.resource.McpResourcesReadHandler;
+import top.egon.cola.component.gateway.mcp.resource.ObjectStorageResourceDriver;
+import top.egon.cola.component.gateway.mcp.resource.OperationResourceDriver;
+import top.egon.cola.component.gateway.mcp.resource.StaticBlobResourceDriver;
+import top.egon.cola.component.gateway.mcp.resource.StaticTextResourceDriver;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodDispatcher;
 import top.egon.cola.component.gateway.mcp.server.handler.McpDiscoverHandler;
 import top.egon.cola.component.gateway.mcp.server.handler.McpInitializeHandler;
 import top.egon.cola.component.gateway.mcp.server.handler.McpInitializedHandler;
 import top.egon.cola.component.gateway.mcp.server.handler.McpPingHandler;
+import top.egon.cola.component.gateway.mcp.subscription.McpResourceSubscribeHandler;
+import top.egon.cola.component.gateway.mcp.subscription.McpSubscriptionService;
+import top.egon.cola.component.gateway.mcp.subscription.McpSubscriptionsListenHandler;
 import top.egon.cola.component.gateway.mcp.tool.McpArgumentBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpResultBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpToolCatalog;
@@ -107,8 +121,12 @@ import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -461,7 +479,7 @@ public class GatewayEngineConfiguration {
                     "${egon.cola.component.gateway.engine.mcp."
                             + "stream-wait:PT15S}"
             ) Duration streamWait) {
-        var catalog = new McpToolCatalog(() -> activation.active() == null
+        var toolCatalog = new McpToolCatalog(() -> activation.active() == null
                 ? null
                 : activation.active().mcpRules());
         SingleFlightSnapshotLoader snapshotLoader = snapshots.getIfAvailable();
@@ -490,17 +508,74 @@ public class GatewayEngineConfiguration {
                 approvals,
                 objectMapper
         );
+        McpResourceUriValidator resourceUriValidator =
+                new McpResourceUriValidator();
+        McpResourceCatalog resourceCatalog = new McpResourceCatalog(
+                () -> activation.active() == null
+                        ? null
+                        : activation.active().mcpRules(),
+                resourceUriValidator
+        );
+        ArrayList<McpResourceDriver> resourceDrivers = new ArrayList<>(
+                List.of(
+                        new StaticTextResourceDriver(),
+                        new StaticBlobResourceDriver(),
+                        new OperationResourceDriver(operationInvoker),
+                        new ObjectStorageResourceDriver(resourceUriValidator)
+                )
+        );
+        if (dataSource != null) {
+            resourceDrivers.add(new DatabaseSchemaResourceDriver(
+                    (schema, objectName) -> readDatabaseSchema(
+                            dataSource,
+                            schema,
+                            objectName,
+                            objectMapper
+                    ),
+                    resourceUriValidator
+            ));
+        }
+        McpSubscriptionService subscriptions = new McpSubscriptionService(
+                sessionStore,
+                objectMapper,
+                gatewayClock,
+                sessionTtl,
+                streamWait
+        );
         McpMethodDispatcher dispatcher = new McpMethodDispatcher(List.of(
                 new McpInitializeHandler(),
                 new McpInitializedHandler(),
                 new McpPingHandler(),
                 new McpDiscoverHandler(),
-                new McpToolsListHandler(catalog, objectMapper),
+                new McpToolsListHandler(toolCatalog, objectMapper),
                 new McpToolsCallHandler(
-                        catalog,
+                        toolCatalog,
                         new McpArgumentBinder(),
                         new McpResultBinder(objectMapper),
                         operationInvoker,
+                        securityGate
+                ),
+                new McpResourcesListHandler(
+                        resourceCatalog,
+                        securityGate
+                ),
+                new McpResourceTemplatesListHandler(
+                        resourceCatalog,
+                        securityGate
+                ),
+                new McpResourcesReadHandler(
+                        resourceCatalog,
+                        List.copyOf(resourceDrivers),
+                        securityGate
+                ),
+                new McpResourceSubscribeHandler(
+                        resourceCatalog,
+                        subscriptions,
+                        securityGate
+                ),
+                new McpSubscriptionsListenHandler(
+                        resourceCatalog,
+                        subscriptions,
                         securityGate
                 )
         ));
@@ -526,6 +601,40 @@ public class GatewayEngineConfiguration {
                         Integer.MAX_VALUE
                 ))
         );
+    }
+
+    private String readDatabaseSchema(
+            DataSource dataSource,
+            String schema,
+            String objectName,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper)
+            throws Exception {
+        ArrayList<Map<String, Object>> columns = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             ResultSet result = connection.getMetaData().getColumns(
+                     connection.getCatalog(),
+                     schema,
+                     objectName,
+                     null
+             )) {
+            while (result.next()) {
+                LinkedHashMap<String, Object> column = new LinkedHashMap<>();
+                column.put("name", result.getString("COLUMN_NAME"));
+                column.put("type", result.getString("TYPE_NAME"));
+                column.put("size", result.getInt("COLUMN_SIZE"));
+                column.put("nullable", result.getInt("NULLABLE")
+                        != java.sql.DatabaseMetaData.columnNoNulls);
+                columns.add(Map.copyOf(column));
+            }
+        }
+        if (columns.isEmpty()) {
+            return null;
+        }
+        return objectMapper.writeValueAsString(Map.of(
+                "schema", schema,
+                "object", objectName,
+                "columns", List.copyOf(columns)
+        ));
     }
 
     @Bean
