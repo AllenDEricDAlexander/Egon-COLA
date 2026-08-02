@@ -184,7 +184,7 @@ public class McpValidationService {
         if ("LOCAL_OPERATION".equals(prompt.sourceType())) {
             requireOperation(prompt.operationId(), path);
         }
-        if ("LOCAL_TEMPLATE".equals(prompt.sourceType())
+        if (isLocalPromptTemplate(prompt.sourceType())
                 && (prompt.template() == null || prompt.template().isBlank())) {
             invalid(
                     "GATEWAY_MCP_PROMPT_TEMPLATE_REQUIRED",
@@ -295,7 +295,7 @@ public class McpValidationService {
             String operationId,
             String remoteMountId,
             String path) {
-        if ("LOCAL_TEMPLATE".equals(sourceType)) {
+        if (isLocalPromptTemplate(sourceType)) {
             if (operationId != null || remoteMountId != null) {
                 invalid(
                         "GATEWAY_MCP_BINDING_INVALID",
@@ -316,6 +316,12 @@ public class McpValidationService {
                     "MCP source binding is inconsistent"
             );
         }
+    }
+
+    private boolean isLocalPromptTemplate(String sourceType) {
+        return "LOCAL_TEMPLATE".equals(sourceType)
+                || "STATIC_TEMPLATE".equals(sourceType)
+                || "STRICT_TEMPLATE".equals(sourceType);
     }
 
     private void validateDriverBinding(

@@ -92,6 +92,15 @@ import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketEx
 import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
 import top.egon.cola.component.gateway.engine.websocket.ReactorNettyWebSocketUpstreamAdapter;
+import top.egon.cola.component.gateway.mcp.completion.DictionaryCompletionProvider;
+import top.egon.cola.component.gateway.mcp.completion.McpCompletionHandler;
+import top.egon.cola.component.gateway.mcp.completion.OperationCompletionProvider;
+import top.egon.cola.component.gateway.mcp.prompt.McpPromptDriver;
+import top.egon.cola.component.gateway.mcp.prompt.McpPromptsGetHandler;
+import top.egon.cola.component.gateway.mcp.prompt.McpPromptsListHandler;
+import top.egon.cola.component.gateway.mcp.prompt.OperationPromptDriver;
+import top.egon.cola.component.gateway.mcp.prompt.StaticPromptDriver;
+import top.egon.cola.component.gateway.mcp.prompt.StrictPromptTemplate;
 import top.egon.cola.component.gateway.mcp.resource.DatabaseSchemaResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.McpResourceCatalog;
 import top.egon.cola.component.gateway.mcp.resource.McpResourceDriver;
@@ -542,6 +551,10 @@ public class GatewayEngineConfiguration {
                 sessionTtl,
                 streamWait
         );
+        List<McpPromptDriver> promptDrivers = List.of(
+                new StaticPromptDriver(new StrictPromptTemplate()),
+                new OperationPromptDriver(operationInvoker)
+        );
         McpMethodDispatcher dispatcher = new McpMethodDispatcher(List.of(
                 new McpInitializeHandler(),
                 new McpInitializedHandler(),
@@ -576,6 +589,33 @@ public class GatewayEngineConfiguration {
                 new McpSubscriptionsListenHandler(
                         resourceCatalog,
                         subscriptions,
+                        securityGate
+                ),
+                new McpPromptsListHandler(
+                        () -> activation.active() == null
+                                ? null
+                                : activation.active().mcpRules(),
+                        securityGate
+                ),
+                new McpPromptsGetHandler(
+                        () -> activation.active() == null
+                                ? null
+                                : activation.active().mcpRules(),
+                        promptDrivers,
+                        securityGate
+                ),
+                new McpCompletionHandler(
+                        () -> activation.active() == null
+                                ? null
+                                : activation.active().mcpRules(),
+                        resourceCatalog,
+                        List.of(
+                                new DictionaryCompletionProvider(Map.of()),
+                                new OperationCompletionProvider(
+                                        operationInvoker,
+                                        objectMapper
+                                )
+                        ),
                         securityGate
                 )
         ));

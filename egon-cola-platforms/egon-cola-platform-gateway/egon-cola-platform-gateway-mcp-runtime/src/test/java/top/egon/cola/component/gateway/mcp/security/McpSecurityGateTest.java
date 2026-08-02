@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimePrompt;
 import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
@@ -112,6 +113,41 @@ class McpSecurityGateTest {
                 null,
                 McpErrorCode.MCP_FORBIDDEN
         );
+    }
+
+    @Test
+    void promptAuthorizationUsesExactPrimitivePermissionKey() {
+        McpRuntimePrompt prompt = new McpRuntimePrompt(
+                "prompt-1",
+                "billing",
+                "review_invoice",
+                null,
+                "STRICT_TEMPLATE",
+                "Review ${invoiceId}",
+                null,
+                null,
+                java.util.List.of("invoiceId"),
+                Set.of("invoice:read"),
+                true
+        );
+        McpSecurityGate gate = new McpSecurityGate(
+                request -> {
+                    assertEquals(Set.of(
+                            "invoice:read",
+                            "mcp:billing:prompt:review_invoice:get"
+                    ), request.requiredPermissions());
+                    return Mono.just(
+                            McpAuthorizationPort.Decision.allowed(7L, 3L, 11L)
+                    );
+                },
+                request -> Mono.just(McpApprovalPort.Result.UNAVAILABLE),
+                new ObjectMapper()
+        );
+
+        assertDoesNotThrow(() -> Mono.from(gate.authorizePrompt(
+                prompt,
+                identity()
+        )).block());
     }
 
     private void authorize(

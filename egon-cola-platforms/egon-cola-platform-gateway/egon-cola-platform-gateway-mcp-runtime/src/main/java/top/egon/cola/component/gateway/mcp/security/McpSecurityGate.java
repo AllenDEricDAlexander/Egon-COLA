@@ -5,6 +5,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimePrompt;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResource;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResourceTemplate;
 import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
@@ -70,6 +71,19 @@ public final class McpSecurityGate {
         )));
     }
 
+    public Publisher<Void> authorizePrompt(
+            McpRuntimePrompt prompt,
+            IdentityContext identity) {
+        Objects.requireNonNull(prompt, "prompt");
+        return authorize(identity.request(primitivePermissions(
+                prompt.serverCode(),
+                "prompt",
+                prompt.name(),
+                "get",
+                prompt.requiredPermissions()
+        )));
+    }
+
     public Publisher<Void> authorizeResourceRead(
             McpRuntimeResourceTemplate template,
             IdentityContext identity) {
@@ -106,9 +120,24 @@ public final class McpSecurityGate {
             String serverCode,
             String name,
             Set<String> declared) {
+        return primitivePermissions(
+                serverCode,
+                "resource",
+                name,
+                "read",
+                declared
+        );
+    }
+
+    private Set<String> primitivePermissions(
+            String serverCode,
+            String primitive,
+            String name,
+            String action,
+            Set<String> declared) {
         TreeSet<String> permissions = new TreeSet<>(declared);
-        permissions.add("mcp:" + serverCode
-                + ":resource:" + name + ":read");
+        permissions.add("mcp:" + serverCode + ':' + primitive + ':'
+                + name + ':' + action);
         return Set.copyOf(permissions);
     }
 
