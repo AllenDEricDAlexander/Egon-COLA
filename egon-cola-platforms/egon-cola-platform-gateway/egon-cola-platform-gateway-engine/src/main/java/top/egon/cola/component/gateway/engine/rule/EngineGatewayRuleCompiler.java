@@ -26,6 +26,8 @@ import top.egon.cola.component.gateway.engine.security.GatewaySecurityPolicyComp
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
 import top.egon.cola.component.gateway.engine.traffic.TrafficPolicyType;
+import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
+import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -64,6 +66,8 @@ public final class EngineGatewayRuleCompiler {
 
     private final GatewayTransportSafetyLimits transportSafetyLimits;
 
+    private final McpRuleCompiler mcpCompiler = new McpRuleCompiler();
+
     public EngineGatewayRuleCompiler() {
         this(
                 GatewaySecurityCapabilityRegistry.empty(),
@@ -100,6 +104,12 @@ public final class EngineGatewayRuleCompiler {
 
     public CompiledGatewayRules compile(GatewayRuleSnapshot snapshot) {
         GatewayRuleContent content = snapshot.content();
+        CompiledMcpRules mcpRules = mcpCompiler.compile(
+                content.mcp(),
+                content.operations().stream()
+                        .map(GatewayRuntimeOperation::operationId)
+                        .collect(java.util.stream.Collectors.toUnmodifiableSet())
+        );
         List<GatewayRuntimePolicy> runtimePolicies = new ArrayList<>();
         runtimePolicies.addAll(content.providerPolicies());
         runtimePolicies.addAll(content.trafficPolicies());
@@ -238,7 +248,8 @@ public final class EngineGatewayRuleCompiler {
                 providerPolicies,
                 trafficPolicies,
                 securityPolicies,
-                corsPolicies
+                corsPolicies,
+                mcpRules
         );
     }
 

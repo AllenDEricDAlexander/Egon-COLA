@@ -31,6 +31,10 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-platform-gateway-mcp-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-platform-gateway-provider-runtime</artifactId>
         </dependency>
         <dependency>

@@ -17,6 +17,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
+import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -54,6 +55,8 @@ public final class GatewayRuleCompiler {
     );
 
     private final GatewayRuleCanonicalizer canonicalizer;
+
+    private final McpRuleCompiler mcpCompiler = new McpRuleCompiler();
 
     private final GatewayRouteTransportPolicyValidator transportValidator =
             new GatewayRouteTransportPolicyValidator();
@@ -127,6 +130,12 @@ public final class GatewayRuleCompiler {
     }
 
     private void validate(GatewayRuleContent content) {
+        mcpCompiler.compile(
+                content.mcp(),
+                content.operations().stream()
+                        .map(GatewayRuntimeOperation::operationId)
+                        .collect(java.util.stream.Collectors.toUnmodifiableSet())
+        );
         unique(content.operations(), GatewayRuntimeOperation::operationId);
         unique(content.operations(), GatewayRuntimeOperation::operationKey);
         unique(content.routes(), GatewayRuntimeRoute::routeId);

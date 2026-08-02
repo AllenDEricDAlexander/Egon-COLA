@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.contract.rule;
 
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -15,7 +17,8 @@ public record GatewayRuleContent(
         List<GatewayRuntimePolicy> trafficPolicies,
         List<GatewayRuntimePolicy> securityPolicies,
         List<GatewayRuntimePolicy> corsPolicies,
-        List<GatewayRpcDescriptor> rpcDescriptors
+        List<GatewayRpcDescriptor> rpcDescriptors,
+        McpRuleContent mcp
 ) {
 
     public GatewayRuleContent {
@@ -50,6 +53,35 @@ public record GatewayRuleContent(
         rpcDescriptors = sorted(
                 rpcDescriptors,
                 Comparator.comparing(GatewayRpcDescriptor::descriptorId)
+        );
+        mcp = mcp == null ? McpRuleContent.empty() : mcp;
+    }
+
+    public GatewayRuleContent(
+            String gatewayGroupId,
+            String gatewayGroupCode,
+            String env,
+            String namespace,
+            List<GatewayRuntimeOperation> operations,
+            List<GatewayRuntimeRoute> routes,
+            List<GatewayRuntimePolicy> providerPolicies,
+            List<GatewayRuntimePolicy> trafficPolicies,
+            List<GatewayRuntimePolicy> securityPolicies,
+            List<GatewayRuntimePolicy> corsPolicies,
+            List<GatewayRpcDescriptor> rpcDescriptors) {
+        this(
+                gatewayGroupId,
+                gatewayGroupCode,
+                env,
+                namespace,
+                operations,
+                routes,
+                providerPolicies,
+                trafficPolicies,
+                securityPolicies,
+                corsPolicies,
+                rpcDescriptors,
+                McpRuleContent.empty()
         );
     }
 

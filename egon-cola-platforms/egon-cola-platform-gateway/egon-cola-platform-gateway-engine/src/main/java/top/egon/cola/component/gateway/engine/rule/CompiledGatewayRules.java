@@ -8,6 +8,7 @@ import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.engine.discovery.RuntimeProviderPolicy;
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
+import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 
 import java.util.Map;
 import java.util.Objects;
@@ -21,7 +22,8 @@ public record CompiledGatewayRules(
         Map<String, RuntimeProviderPolicy> providerPolicies,
         Map<String, RuntimeTrafficPolicy> trafficPolicies,
         Map<String, GatewaySecurityPolicy> securityPolicies,
-        Map<String, RuntimeCorsPolicy> corsPolicies
+        Map<String, RuntimeCorsPolicy> corsPolicies,
+        CompiledMcpRules mcpRules
 ) {
 
     public CompiledGatewayRules {
@@ -48,5 +50,28 @@ public record CompiledGatewayRules(
                 corsPolicies,
                 "corsPolicies"
         ));
+        mcpRules = Objects.requireNonNull(mcpRules, "mcpRules");
+    }
+
+    public CompiledGatewayRules(
+            GatewayRuleSnapshot snapshot,
+            CompiledHttpRouteIndex httpRoutes,
+            RpcMethodIndex rpcMethods,
+            Set<ProviderServiceKey> providerServices,
+            Map<String, RuntimeProviderPolicy> providerPolicies,
+            Map<String, RuntimeTrafficPolicy> trafficPolicies,
+            Map<String, GatewaySecurityPolicy> securityPolicies,
+            Map<String, RuntimeCorsPolicy> corsPolicies) {
+        this(
+                snapshot,
+                httpRoutes,
+                rpcMethods,
+                providerServices,
+                providerPolicies,
+                trafficPolicies,
+                securityPolicies,
+                corsPolicies,
+                CompiledMcpRules.empty()
+        );
     }
 }

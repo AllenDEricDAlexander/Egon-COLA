@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
@@ -71,14 +73,9 @@ public final class GatewayRuleJsonCodec {
                     "GATEWAY_RULE_SCHEMA_UNSUPPORTED"
             );
         }
-        String contentSha = sha256(write(snapshot.content()));
-        if (!contentSha.equals(snapshot.ruleContentSha256())) {
-            throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHECKSUM_MISMATCH: content"
-            );
-        }
+        Object checksumContent = checksumContent(snapshot);
         Map<String, Object> material = Map.of(
-                "content", snapshot.content(),
+                "content", checksumContent,
                 "generatedAt", snapshot.generatedAt(),
                 "releaseId", snapshot.releaseId(),
                 "ruleContentSha256", snapshot.ruleContentSha256(),
@@ -89,6 +86,38 @@ public final class GatewayRuleJsonCodec {
                     "GATEWAY_RULE_CHECKSUM_MISMATCH: artifact"
             );
         }
+    }
+
+    private Object checksumContent(GatewayRuleSnapshot snapshot) {
+        String expected = snapshot.ruleContentSha256();
+        if (sha256(write(snapshot.content())).equals(expected)) {
+            return snapshot.content();
+        }
+        GatewayRuleContent content = snapshot.content();
+        Map<String, Object> legacy = legacyContent(content);
+        if (content.mcp().equals(McpRuleContent.empty())
+                && sha256(write(legacy)).equals(expected)) {
+            return legacy;
+        }
+        throw new IllegalArgumentException(
+                "GATEWAY_RULE_CHECKSUM_MISMATCH: content"
+        );
+    }
+
+    private Map<String, Object> legacyContent(GatewayRuleContent content) {
+        return Map.ofEntries(
+                Map.entry("gatewayGroupId", content.gatewayGroupId()),
+                Map.entry("gatewayGroupCode", content.gatewayGroupCode()),
+                Map.entry("env", content.env()),
+                Map.entry("namespace", content.namespace()),
+                Map.entry("operations", content.operations()),
+                Map.entry("routes", content.routes()),
+                Map.entry("providerPolicies", content.providerPolicies()),
+                Map.entry("trafficPolicies", content.trafficPolicies()),
+                Map.entry("securityPolicies", content.securityPolicies()),
+                Map.entry("corsPolicies", content.corsPolicies()),
+                Map.entry("rpcDescriptors", content.rpcDescriptors())
+        );
     }
 
     public static String sha256(byte[] value) {
