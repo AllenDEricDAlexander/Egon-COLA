@@ -82,6 +82,10 @@ public class IdentityClientEntity {
         return clientId;
     }
 
+    public String getClientName() {
+        return clientName;
+    }
+
     public Status getStatus() {
         return status;
     }
@@ -100,6 +104,49 @@ public class IdentityClientEntity {
 
     public int getRefreshTokenTtlSeconds() {
         return refreshTokenTtlSeconds;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void update(
+            String newClientName,
+            Status newStatus,
+            int newAccessTokenTtlSeconds,
+            int newRefreshTokenTtlSeconds,
+            long expectedVersion,
+            Instant now
+    ) {
+        if (version != expectedVersion) {
+            throw new IllegalStateException("stale OAuth client version");
+        }
+        requireRange(
+                newAccessTokenTtlSeconds,
+                300,
+                1_800,
+                "access token TTL"
+        );
+        requireRange(
+                newRefreshTokenTtlSeconds,
+                86_400,
+                2_592_000,
+                "refresh token TTL"
+        );
+        clientName = required(newClientName, "clientName");
+        status = Objects.requireNonNull(newStatus, "status");
+        accessTokenTtlSeconds = newAccessTokenTtlSeconds;
+        refreshTokenTtlSeconds = newRefreshTokenTtlSeconds;
+        version = Math.addExact(version, 1L);
+        updatedAt = Objects.requireNonNull(now, "now");
     }
 
     private static String required(String value, String fieldName) {

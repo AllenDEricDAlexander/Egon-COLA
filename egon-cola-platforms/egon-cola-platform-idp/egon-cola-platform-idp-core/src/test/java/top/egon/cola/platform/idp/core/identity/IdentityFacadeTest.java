@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +27,50 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IdentityFacadeTest {
+
+    @Test
+    void readsCurrentLoginPolicyForEachAuthenticationAttempt() {
+        AtomicInteger maximumFailures = new AtomicInteger(3);
+        AtomicReference<Duration> lockDuration = new AtomicReference<>(
+                Duration.ofMinutes(5)
+        );
+        FakeUserStore currentUsers = new FakeUserStore();
+        FakeCredentialStore currentCredentials = new FakeCredentialStore();
+        FakePasswordHashPort currentHashes = new FakePasswordHashPort();
+        IdentityUser user = activeUser();
+        currentUsers.put(user);
+        currentCredentials.put(new PasswordCredential(
+                user.id(),
+                currentHashes.encoded("old-password-1"),
+                NOW.minus(Duration.ofDays(1)),
+                false,
+                PasswordCredential.Status.ACTIVE,
+                0L
+        ));
+        IdentityFacade facade = IdentityFacade.dynamicPolicy(
+                currentUsers,
+                currentCredentials,
+                currentHashes,
+                new FakeUserStatePort(),
+                new FakeSecurityEventPort(),
+                new UsernameNormalizer(),
+                maximumFailures::get,
+                lockDuration::get
+        );
+
+        maximumFailures.set(1);
+        lockDuration.set(Duration.ofMinutes(17));
+
+        assertThrows(IdentityException.class, () -> facade.authenticate(
+                "alice",
+                "wrong-password".toCharArray(),
+                "127.0.0.1",
+                NOW
+        ));
+        IdentityUser locked = currentUsers.get(user.id());
+        assertEquals(IdentityUserStatus.LOCKED, locked.status());
+        assertEquals(NOW.plus(Duration.ofMinutes(17)), locked.lockedUntil());
+    }
 
     private static final Instant NOW = Instant.parse("2026-08-02T00:00:00Z");
 

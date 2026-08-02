@@ -157,6 +157,10 @@ public final class Rs256TokenService implements TokenSigner {
         return issuer;
     }
 
+    public JwtDecoder jwtDecoder() {
+        return decoder;
+    }
+
     private String encode(JwtClaimsSet claims, String type) {
         JwsHeader headers = JwsHeader.with(SignatureAlgorithm.RS256)
                 .keyId(rsaKey.getKeyID())

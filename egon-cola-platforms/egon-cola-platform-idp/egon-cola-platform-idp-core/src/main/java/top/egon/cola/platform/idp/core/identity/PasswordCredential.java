@@ -52,6 +52,20 @@ public record PasswordCredential(
         );
     }
 
+    public PasswordCredential reset(
+            String newPasswordHash,
+            Instant changedAt
+    ) {
+        return new PasswordCredential(
+                identitySub,
+                newPasswordHash,
+                Objects.requireNonNull(changedAt, "changedAt"),
+                true,
+                Status.ACTIVE,
+                Math.addExact(version, 1L)
+        );
+    }
+
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");

@@ -9,4 +9,8 @@ public interface IdentityClientRedirectUriRepository
         extends JpaRepository<IdentityClientRedirectUriEntity, String> {
 
     List<IdentityClientRedirectUriEntity> findByClientId(String clientId);
+
+    boolean existsByClientIdAndRedirectUri(String clientId, String redirectUri);
+
+    void deleteByClientIdAndRedirectUri(String clientId, String redirectUri);
 }

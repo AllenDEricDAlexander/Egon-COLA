@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.platform.idp.admin.integration.rbac3.FileServiceAuthorizationSupplier;
 import top.egon.cola.platform.idp.admin.integration.rbac3.HttpTenantMembershipAdapter;
+import top.egon.cola.platform.idp.admin.integration.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRepository;
@@ -75,13 +76,15 @@ public class IdpOAuthConfiguration {
             OAuthClientStore clients,
             AuthorizationCodeStore codes,
             TenantMembershipPort memberships,
-            Clock idpClock
+            Clock idpClock,
+            IdpRuntimePolicy runtimePolicy
     ) {
-        return new AuthorizationFacade(
+        return AuthorizationFacade.dynamicTtl(
                 clients,
                 codes,
                 memberships,
-                idpClock
+                idpClock,
+                () -> runtimePolicy.current().authorizationCodeTtl()
         );
     }
 }

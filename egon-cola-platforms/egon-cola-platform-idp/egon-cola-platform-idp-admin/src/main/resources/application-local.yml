@@ -1,0 +1,11 @@
+spring:
+  data:
+    redis:
+      host: ${IDP_REDIS_HOST:127.0.0.1}
+      port: ${IDP_REDIS_PORT:6379}
+      database: ${IDP_REDIS_DATABASE:0}
+
+egon:
+  idp:
+    oauth:
+      refresh-cookie-secure: false

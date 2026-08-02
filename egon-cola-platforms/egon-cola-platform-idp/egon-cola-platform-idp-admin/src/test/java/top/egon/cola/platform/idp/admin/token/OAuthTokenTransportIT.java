@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.platform.idp.admin.interfaces.http.OAuthMetadataController;
 import top.egon.cola.platform.idp.admin.interfaces.http.OAuthTokenController;
+import top.egon.cola.platform.idp.admin.integration.ddc.AtomicIdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.token.infrastructure.Rs256TokenService;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
@@ -58,6 +59,7 @@ class OAuthTokenTransportIT {
                 authorizations,
                 tokens,
                 clients,
+                new AtomicIdpRuntimePolicy(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 false
         );
@@ -154,6 +156,61 @@ class OAuthTokenTransportIT {
                 .andExpect(content().string(not(containsString(
                         "refresh-value"
                 ))));
+    }
+
+    @Test
+    void newTokensUseTheCurrentDdcTtlSnapshot() throws Exception {
+        AtomicIdpRuntimePolicy policy = new AtomicIdpRuntimePolicy();
+        policy.apply(
+                AtomicIdpRuntimePolicy.ACCESS_TOKEN_TTL_KEY,
+                "1200",
+                1L
+        );
+        policy.apply(
+                AtomicIdpRuntimePolicy.REFRESH_TOKEN_TTL_KEY,
+                "172800",
+                1L
+        );
+        OAuthClientStore clients = clientId -> CLIENT_ID.equals(clientId)
+                ? Optional.of(client())
+                : Optional.empty();
+        OAuthTokenController controller = new OAuthTokenController(
+                authorizations,
+                tokens,
+                clients,
+                policy,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                false
+        );
+        MockMvc runtimeMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        AuthorizationCode code = authorizationCode();
+        when(authorizations.consume(
+                "dynamic-code",
+                "valid-verifier",
+                "http://127.0.0.1:5173/oauth/callback",
+                CLIENT_ID
+        )).thenReturn(code);
+        when(tokens.issue(
+                code,
+                Duration.ofMinutes(20),
+                Duration.ofDays(2)
+        )).thenReturn(tokenPair());
+
+        runtimeMvc.perform(post("/oauth2/token")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "authorization_code")
+                        .param("client_id", CLIENT_ID)
+                        .param("code", "dynamic-code")
+                        .param("code_verifier", "valid-verifier")
+                        .param("redirect_uri",
+                                "http://127.0.0.1:5173/oauth/callback"))
+                .andExpect(status().isOk());
+
+        verify(tokens).issue(
+                code,
+                Duration.ofMinutes(20),
+                Duration.ofDays(2)
+        );
     }
 
     @Test

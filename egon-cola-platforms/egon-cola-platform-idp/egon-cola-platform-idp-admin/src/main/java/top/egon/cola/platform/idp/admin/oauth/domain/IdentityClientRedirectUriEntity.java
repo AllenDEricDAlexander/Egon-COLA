@@ -48,6 +48,10 @@ public class IdentityClientRedirectUriEntity {
         return clientId;
     }
 
+    public String getId() {
+        return id;
+    }
+
     public String getRedirectUri() {
         return redirectUri;
     }

@@ -47,6 +47,10 @@ public class IdentityClientAudienceEntity {
         return clientId;
     }
 
+    public String getId() {
+        return id;
+    }
+
     public String getAudience() {
         return audience;
     }

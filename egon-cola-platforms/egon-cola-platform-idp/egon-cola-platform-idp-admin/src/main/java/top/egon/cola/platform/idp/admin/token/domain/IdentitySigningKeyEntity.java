@@ -85,6 +85,57 @@ public class IdentitySigningKeyEntity {
         return status;
     }
 
+    public String getPublicJwk() {
+        return publicJwk;
+    }
+
+    public Instant getActivatedAt() {
+        return activatedAt;
+    }
+
+    public Instant getRetiredAt() {
+        return retiredAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void activate(long expectedVersion, Instant now) {
+        if (version != expectedVersion) {
+            throw new IllegalStateException("stale signing key version");
+        }
+        if (status == Status.RETIRED) {
+            throw new IllegalStateException("retired signing key cannot activate");
+        }
+        status = Status.ACTIVE;
+        activatedAt = Objects.requireNonNull(now, "now");
+        retiredAt = null;
+        updatedAt = now;
+        version = Math.addExact(version, 1L);
+    }
+
+    public void retire(long expectedVersion, Instant now) {
+        if (version != expectedVersion) {
+            throw new IllegalStateException("stale signing key version");
+        }
+        if (status == Status.RETIRED) {
+            return;
+        }
+        status = Status.RETIRED;
+        retiredAt = Objects.requireNonNull(now, "now");
+        updatedAt = now;
+        version = Math.addExact(version, 1L);
+    }
+
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");

@@ -19,6 +19,7 @@ import top.egon.cola.platform.idp.core.oauth.OAuthException;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.token.TokenException;
 import top.egon.cola.platform.idp.core.token.TokenFacade;
+import top.egon.cola.platform.idp.admin.integration.ddc.IdpRuntimePolicy;
 
 import java.security.Principal;
 import java.time.Clock;
@@ -34,6 +35,7 @@ public class OAuthTokenController {
     private final AuthorizationFacade authorizations;
     private final TokenFacade tokens;
     private final OAuthClientStore clients;
+    private final IdpRuntimePolicy runtimePolicy;
     private final Clock clock;
     private final boolean secureCookie;
 
@@ -41,6 +43,7 @@ public class OAuthTokenController {
             AuthorizationFacade authorizations,
             TokenFacade tokens,
             OAuthClientStore clients,
+            IdpRuntimePolicy runtimePolicy,
             Clock clock,
             @Value("${egon.idp.oauth.refresh-cookie-secure:true}")
             boolean secureCookie
@@ -51,6 +54,10 @@ public class OAuthTokenController {
         );
         this.tokens = Objects.requireNonNull(tokens, "tokens");
         this.clients = Objects.requireNonNull(clients, "clients");
+        this.runtimePolicy = Objects.requireNonNull(
+                runtimePolicy,
+                "runtimePolicy"
+        );
         this.clock = Objects.requireNonNull(clock, "clock");
         this.secureCookie = secureCookie;
     }
@@ -68,6 +75,7 @@ public class OAuthTokenController {
     ) {
         String grantType = required(form.getFirst("grant_type"));
         OAuthClient client = activeClient(form.getFirst("client_id"));
+        IdpRuntimePolicy.Snapshot policy = runtimePolicy.current();
         TokenFacade.TokenPair pair;
         if ("authorization_code".equals(grantType)) {
             AuthorizationCode authorizationCode = authorizations.consume(
@@ -78,8 +86,8 @@ public class OAuthTokenController {
             );
             pair = tokens.issue(
                     authorizationCode,
-                    client.accessTokenTtl(),
-                    client.refreshTokenTtl()
+                    policy.accessTokenTtl(),
+                    policy.refreshTokenTtl()
             );
         } else if ("refresh_token".equals(grantType)) {
             if (form.containsKey("refresh_token")) {
@@ -88,7 +96,7 @@ public class OAuthTokenController {
             pair = tokens.refresh(
                     required(refreshCookie),
                     client.clientId(),
-                    client.accessTokenTtl()
+                    policy.accessTokenTtl()
             );
         } else {
             throw oauth("unsupported_grant_type");

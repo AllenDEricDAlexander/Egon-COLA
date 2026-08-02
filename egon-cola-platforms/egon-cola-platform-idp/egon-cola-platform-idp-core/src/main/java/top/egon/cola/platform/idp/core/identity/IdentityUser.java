@@ -139,6 +139,32 @@ public record IdentityUser(
         );
     }
 
+    public IdentityUser administrativelyUpdated(
+            String newDisplayName,
+            IdentityUserStatus newStatus,
+            boolean revokeSecurityState
+    ) {
+        if (newStatus == IdentityUserStatus.LOCKED) {
+            throw new IllegalArgumentException(
+                    "administrative status must be ACTIVE or DISABLED"
+            );
+        }
+        return new IdentityUser(
+                id,
+                username,
+                normalizedUsername,
+                required(newDisplayName, "displayName"),
+                Objects.requireNonNull(newStatus, "newStatus"),
+                revokeSecurityState
+                        ? Math.addExact(tokenVersion, 1L)
+                        : tokenVersion,
+                revokeSecurityState ? 0 : failedLoginCount,
+                null,
+                lastLoginAt,
+                Math.addExact(version, 1L)
+        );
+    }
+
     public IdentityUser withLoginFailure(
             int failureCount,
             Instant lockExpiresAt,

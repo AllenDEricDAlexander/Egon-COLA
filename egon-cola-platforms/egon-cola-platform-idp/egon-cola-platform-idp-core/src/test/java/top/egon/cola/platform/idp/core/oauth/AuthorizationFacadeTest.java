@@ -171,6 +171,26 @@ class AuthorizationFacadeTest {
         ));
     }
 
+    @Test
+    void usesTheCurrentAuthorizationCodeTtlForEachNewGrant() {
+        facade = new AuthorizationFacade(
+                clients,
+                codes,
+                memberships,
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                () -> RAW_CODE,
+                () -> Duration.ofSeconds(90)
+        );
+
+        AuthorizationFacade.AuthorizationResult result = facade.authorize(
+                validRequest(),
+                "alice-sub"
+        );
+
+        assertEquals(NOW.plusSeconds(90), result.expiresAt());
+        assertEquals(Duration.ofSeconds(90), codes.singleTtl());
+    }
+
     private AuthorizationRequest validRequest() {
         return new AuthorizationRequest(
                 "code",

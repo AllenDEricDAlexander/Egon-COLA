@@ -77,6 +77,18 @@ public class IdentityOutboxEventEntity {
         return status;
     }
 
+    public String getAggregateId() {
+        return aggregateId;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
     public Instant getNextAttemptAt() {
         return nextAttemptAt;
     }

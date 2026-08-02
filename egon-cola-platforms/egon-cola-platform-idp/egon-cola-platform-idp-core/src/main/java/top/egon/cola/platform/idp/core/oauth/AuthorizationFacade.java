@@ -18,7 +18,9 @@ import java.util.regex.Pattern;
 
 public final class AuthorizationFacade {
 
-    private static final Duration CODE_TTL = Duration.ofSeconds(60);
+    private static final Duration DEFAULT_CODE_TTL = Duration.ofSeconds(60);
+    private static final Duration MINIMUM_CODE_TTL = Duration.ofSeconds(30);
+    private static final Duration MAXIMUM_CODE_TTL = Duration.ofMinutes(5);
     private static final Pattern CODE_VERIFIER = Pattern.compile(
             "[A-Za-z0-9\\-._~]{43,128}"
     );
@@ -32,6 +34,7 @@ public final class AuthorizationFacade {
     private final TenantMembershipPort memberships;
     private final Clock clock;
     private final Supplier<String> codeGenerator;
+    private final Supplier<Duration> codeTtl;
 
     public AuthorizationFacade(
             OAuthClientStore clients,
@@ -39,7 +42,31 @@ public final class AuthorizationFacade {
             TenantMembershipPort memberships,
             Clock clock
     ) {
-        this(clients, codes, memberships, clock, secureCodeGenerator());
+        this(
+                clients,
+                codes,
+                memberships,
+                clock,
+                secureCodeGenerator(),
+                () -> DEFAULT_CODE_TTL
+        );
+    }
+
+    public static AuthorizationFacade dynamicTtl(
+            OAuthClientStore clients,
+            AuthorizationCodeStore codes,
+            TenantMembershipPort memberships,
+            Clock clock,
+            Supplier<Duration> codeTtl
+    ) {
+        return new AuthorizationFacade(
+                clients,
+                codes,
+                memberships,
+                clock,
+                secureCodeGenerator(),
+                codeTtl
+        );
     }
 
     public AuthorizationFacade(
@@ -48,6 +75,24 @@ public final class AuthorizationFacade {
             TenantMembershipPort memberships,
             Clock clock,
             Supplier<String> codeGenerator
+    ) {
+        this(
+                clients,
+                codes,
+                memberships,
+                clock,
+                codeGenerator,
+                () -> DEFAULT_CODE_TTL
+        );
+    }
+
+    public AuthorizationFacade(
+            OAuthClientStore clients,
+            AuthorizationCodeStore codes,
+            TenantMembershipPort memberships,
+            Clock clock,
+            Supplier<String> codeGenerator,
+            Supplier<Duration> codeTtl
     ) {
         this.clients = Objects.requireNonNull(clients, "clients");
         this.codes = Objects.requireNonNull(codes, "codes");
@@ -60,6 +105,7 @@ public final class AuthorizationFacade {
                 codeGenerator,
                 "codeGenerator"
         );
+        this.codeTtl = Objects.requireNonNull(codeTtl, "codeTtl");
     }
 
     public AuthorizationResult authorize(
@@ -81,7 +127,8 @@ public final class AuthorizationFacade {
                 request.clientId()
         );
         Instant issuedAt = clock.instant();
-        Instant expiresAt = issuedAt.plus(CODE_TTL);
+        Duration currentCodeTtl = currentCodeTtl();
+        Instant expiresAt = issuedAt.plus(currentCodeTtl);
         AuthorizationCode authorizationCode = new AuthorizationCode(
                 subject,
                 request.tenantId(),
@@ -100,7 +147,7 @@ public final class AuthorizationFacade {
                     "authorization code generator returned a short value"
             );
         }
-        codes.put(digest(rawCode), authorizationCode, CODE_TTL);
+        codes.put(digest(rawCode), authorizationCode, currentCodeTtl);
         return new AuthorizationResult(
                 rawCode,
                 request.state(),
@@ -277,6 +324,20 @@ public final class AuthorizationFacade {
 
     private static OAuthException oauth(String error, String message) {
         return new OAuthException(error, message);
+    }
+
+    private Duration currentCodeTtl() {
+        Duration value = Objects.requireNonNull(
+                codeTtl.get(),
+                "authorization code TTL"
+        );
+        if (value.compareTo(MINIMUM_CODE_TTL) < 0
+                || value.compareTo(MAXIMUM_CODE_TTL) > 0) {
+            throw new IllegalStateException(
+                    "authorization code TTL is out of range"
+            );
+        }
+        return value;
     }
 
     private static Supplier<String> secureCodeGenerator() {

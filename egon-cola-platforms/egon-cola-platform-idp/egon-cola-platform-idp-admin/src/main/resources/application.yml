@@ -1,0 +1,105 @@
+spring:
+  application:
+    name: idp-admin
+  datasource:
+    url: ${IDP_POSTGRES_URL}
+    username: ${IDP_POSTGRES_USER}
+    password: ${IDP_POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${IDP_REDIS_HOST}
+      port: ${IDP_REDIS_PORT:6379}
+      password: ${IDP_REDIS_PASSWORD:}
+      database: ${IDP_REDIS_DATABASE:0}
+      timeout: ${IDP_REDIS_TIMEOUT:2s}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  port: ${IDP_ADVERTISED_PORT:18120}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+egon:
+  idp:
+    identity-state-key-prefix: "identity:v1:user:"
+    oauth:
+      issuer: ${IDP_OAUTH_ISSUER}
+      refresh-cookie-secure: ${IDP_REFRESH_COOKIE_SECURE:true}
+      signing-key:
+        kid: ${IDP_SIGNING_KEY_KID}
+        public-key-file: ${IDP_SIGNING_PUBLIC_KEY_FILE}
+        private-key-file: ${IDP_SIGNING_PRIVATE_KEY_FILE}
+    rbac3:
+      base-url: ${IDP_RBAC3_BASE_URL}
+      authorization-header-file: ${IDP_RBAC3_AUTHORIZATION_HEADER_FILE}
+  cola:
+    component:
+      id:
+        enabled: true
+        machine-id: ${IDP_SNOWFLAKE_MACHINE_ID}
+      ddc:
+        enabled: ${IDP_DDC_ENABLED:false}
+        biz-code: ${DDC_BIZ_CODE:identity}
+        app-code: idp-admin
+        env: ${DEPLOYMENT_ENV:local}
+        namespace: ${DEPLOYMENT_NAMESPACE:default}
+        instance:
+          id: ${IDP_INSTANCE_ID:idp-local-1}
+          lease-seconds: 30
+          heartbeat-interval-seconds: 10
+        consistency:
+          fail-fast: true
+          reconcile-enabled: true
+          reconcile-interval-seconds: 30
+        admin:
+          endpoint: ${DDC_ADMIN_ENDPOINT:}
+          signature-enabled: ${DDC_SIGNATURE_ENABLED:true}
+          access-key: ${DDC_REPORT_ACCESS_KEY:}
+          secret-key: ${DDC_REPORT_SECRET_KEY:}
+        redis:
+          enabled: ${IDP_DDC_ENABLED:false}
+          mode: SINGLE
+          host: ${DDC_REGISTRY_REDIS_HOST:127.0.0.1}
+          port: ${DDC_REGISTRY_REDIS_PORT:6379}
+          password: ${DDC_REGISTRY_REDIS_PASSWORD:}
+          database: ${DDC_REGISTRY_REDIS_DATABASE:0}
+        registry:
+          enabled: ${IDP_DDC_ENABLED:false}
+      gateway:
+        provider:
+          http:
+            enabled: ${IDP_HTTP_PROVIDER_ENABLED:false}
+            env: ${DEPLOYMENT_ENV:local}
+            namespace: ${DEPLOYMENT_NAMESPACE:default}
+            instance-id: ${IDP_INSTANCE_ID:idp-local-1}
+            service-name: idp-admin
+            group: default
+            version: ${IDP_ARTIFACT_VERSION:5.3.2}
+            protocol: http
+            advertised-host: ${IDP_ADVERTISED_HOST:127.0.0.1}
+            port: ${IDP_ADVERTISED_PORT:18120}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true

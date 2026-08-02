@@ -13,6 +13,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 public final class IdentityFacade {
 
@@ -24,8 +26,8 @@ public final class IdentityFacade {
     private final IdentityUserStatePort userState;
     private final IdentitySecurityEventPort securityEvents;
     private final UsernameNormalizer usernameNormalizer;
-    private final int maximumFailures;
-    private final Duration lockDuration;
+    private final IntSupplier maximumFailures;
+    private final Supplier<Duration> lockDuration;
 
     public IdentityFacade(
             IdentityUserStore userStore,
@@ -36,6 +38,52 @@ public final class IdentityFacade {
             UsernameNormalizer usernameNormalizer,
             int maximumFailures,
             Duration lockDuration
+    ) {
+        this(
+                userStore,
+                credentialStore,
+                passwordHash,
+                userState,
+                securityEvents,
+                usernameNormalizer,
+                () -> maximumFailures,
+                () -> lockDuration
+        );
+        currentMaximumFailures();
+        currentLockDuration();
+    }
+
+    public static IdentityFacade dynamicPolicy(
+            IdentityUserStore userStore,
+            PasswordCredentialStore credentialStore,
+            PasswordHashPort passwordHash,
+            IdentityUserStatePort userState,
+            IdentitySecurityEventPort securityEvents,
+            UsernameNormalizer usernameNormalizer,
+            IntSupplier maximumFailures,
+            Supplier<Duration> lockDuration
+    ) {
+        return new IdentityFacade(
+                userStore,
+                credentialStore,
+                passwordHash,
+                userState,
+                securityEvents,
+                usernameNormalizer,
+                maximumFailures,
+                lockDuration
+        );
+    }
+
+    private IdentityFacade(
+            IdentityUserStore userStore,
+            PasswordCredentialStore credentialStore,
+            PasswordHashPort passwordHash,
+            IdentityUserStatePort userState,
+            IdentitySecurityEventPort securityEvents,
+            UsernameNormalizer usernameNormalizer,
+            IntSupplier maximumFailures,
+            Supplier<Duration> lockDuration
     ) {
         this.userStore = Objects.requireNonNull(userStore, "userStore");
         this.credentialStore = Objects.requireNonNull(
@@ -55,21 +103,14 @@ public final class IdentityFacade {
                 usernameNormalizer,
                 "usernameNormalizer"
         );
-        if (maximumFailures < 1) {
-            throw new IllegalArgumentException(
-                    "maximumFailures must be positive"
-            );
-        }
-        this.maximumFailures = maximumFailures;
+        this.maximumFailures = Objects.requireNonNull(
+                maximumFailures,
+                "maximumFailures"
+        );
         this.lockDuration = Objects.requireNonNull(
                 lockDuration,
                 "lockDuration"
         );
-        if (lockDuration.isNegative() || lockDuration.isZero()) {
-            throw new IllegalArgumentException(
-                    "lockDuration must be positive"
-            );
-        }
     }
 
     public AuthenticatedIdentity authenticate(
@@ -109,8 +150,8 @@ public final class IdentityFacade {
                     || credential == null) {
                 IdentityUser failed = user.failedAt(
                         now,
-                        maximumFailures,
-                        lockDuration
+                        currentMaximumFailures(),
+                        currentLockDuration()
                 );
                 userStore.save(failed, user.version());
                 record(
@@ -150,6 +191,29 @@ public final class IdentityFacade {
         } finally {
             Arrays.fill(rawPassword, '\0');
         }
+    }
+
+    private int currentMaximumFailures() {
+        int value = maximumFailures.getAsInt();
+        if (value < 1) {
+            throw new IllegalStateException(
+                    "maximumFailures policy must be positive"
+            );
+        }
+        return value;
+    }
+
+    private Duration currentLockDuration() {
+        Duration value = Objects.requireNonNull(
+                lockDuration.get(),
+                "lockDuration policy"
+        );
+        if (value.isNegative() || value.isZero()) {
+            throw new IllegalStateException(
+                    "lockDuration policy must be positive"
+            );
+        }
+        return value;
     }
 
     public void changePassword(

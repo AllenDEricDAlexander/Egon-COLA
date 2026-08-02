@@ -91,6 +91,34 @@ public class IdentityAuditLogEntity {
         return result;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public String getActorSub() {
+        return actorSub;
+    }
+
+    public String getTargetSub() {
+        return targetSub;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
+
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");
