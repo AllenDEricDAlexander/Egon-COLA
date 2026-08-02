@@ -82,6 +82,7 @@
         <maven.failsafe.plugin.version>3.2.5</maven.failsafe.plugin.version>
         <javax.annotation.api.version>1.3.2</javax.annotation.api.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <bouncycastle.version>1.84</bouncycastle.version>
         <central.server.id>central</central.server.id>
         <central.publishing.maven.plugin.version>0.11.0</central.publishing.maven.plugin.version>
         <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
@@ -212,6 +213,11 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
