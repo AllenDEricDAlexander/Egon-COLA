@@ -12,7 +12,10 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.core.operation.GatewayInvocationResult;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
+import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
+import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
+import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
 
 import java.nio.charset.StandardCharsets;
@@ -48,7 +51,20 @@ class McpLocalToolFlowTest {
                 catalog,
                 new McpArgumentBinder(),
                 new McpResultBinder(new ObjectMapper()),
-                invoker
+                invoker,
+                new McpSecurityGate(
+                        request -> Mono.just(
+                                McpAuthorizationPort.Decision.allowed(
+                                        1L,
+                                        1L,
+                                        1L
+                                )
+                        ),
+                        request -> Mono.just(
+                                McpApprovalPort.Result.APPROVED
+                        ),
+                        new ObjectMapper()
+                )
         );
         McpRequestContext context = context();
 
@@ -116,11 +132,29 @@ class McpLocalToolFlowTest {
                 server(),
                 McpProtocolDialect.STABLE_2025_11_25,
                 "session-1",
-                Map.of(
-                        "originalBearerToken", "Bearer local-jwt",
-                        "callerId", "user-7",
-                        "clientIp", "127.0.0.1",
-                        "traceparent", "00-trace-parent"
+                Map.ofEntries(
+                        Map.entry(
+                                "originalBearerToken",
+                                "Bearer local-jwt"
+                        ),
+                        Map.entry("callerId", "user-7"),
+                        Map.entry("tenantId", "tenant-a"),
+                        Map.entry("clientIp", "127.0.0.1"),
+                        Map.entry("traceparent", "00-trace-parent"),
+                        Map.entry("idp.issuer", "https://idp.internal"),
+                        Map.entry("idp.session-id", "session-1"),
+                        Map.entry("idp.client-id", "finance-web"),
+                        Map.entry("idp.token-id", "token-1"),
+                        Map.entry("idp.token-version", "2"),
+                        Map.entry("idp.audience", "gateway-mcp"),
+                        Map.entry(
+                                "idp.issued-at",
+                                "2026-08-02T04:59:30Z"
+                        ),
+                        Map.entry(
+                                "idp.expires-at",
+                                "2026-08-02T05:05:00Z"
+                        )
                 )
         );
     }

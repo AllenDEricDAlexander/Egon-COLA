@@ -66,7 +66,13 @@ public final class IdpIdentityAuthenticationProvider
                         "idp.client-id", principal.clientId(),
                         "idp.token-id", principal.tokenId(),
                         "idp.token-version", Long.toString(
-                                principal.tokenVersion())
+                                principal.tokenVersion()),
+                        "idp.audience", String.join(
+                                ",",
+                                new java.util.TreeSet<>(principal.audience())
+                        ),
+                        "idp.issued-at", principal.issuedAt().toString(),
+                        "idp.expires-at", principal.expiresAt().toString()
                 )));
     }
 

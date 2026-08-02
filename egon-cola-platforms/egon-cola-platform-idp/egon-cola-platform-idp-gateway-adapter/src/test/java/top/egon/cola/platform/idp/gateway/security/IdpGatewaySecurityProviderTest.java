@@ -77,6 +77,13 @@ class IdpGatewaySecurityProviderTest {
                             .containsEntry("idp.session-id", "session-1")
                             .containsEntry("idp.client-id", "gateway-client")
                             .containsEntry("idp.token-id", "token-1")
+                            .containsEntry("idp.token-version", "7")
+                            .containsEntry("idp.audience", "egon-api")
+                            .containsEntry("idp.issued-at", NOW.toString())
+                            .containsEntry(
+                                    "idp.expires-at",
+                                    NOW.plusSeconds(300).toString()
+                            )
                             .doesNotContainKeys("permissions", "roles", "token");
                 })
                 .verifyComplete();

@@ -9,6 +9,7 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
+import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
 
@@ -26,11 +27,14 @@ public final class McpToolsCallHandler implements McpMethodHandler {
 
     private final GatewayOperationInvoker invoker;
 
+    private final McpSecurityGate securityGate;
+
     public McpToolsCallHandler(
             McpToolCatalog catalog,
             McpArgumentBinder argumentBinder,
             McpResultBinder resultBinder,
-            GatewayOperationInvoker invoker) {
+            GatewayOperationInvoker invoker,
+            McpSecurityGate securityGate) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.argumentBinder = Objects.requireNonNull(
                 argumentBinder,
@@ -41,6 +45,10 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                 "resultBinder"
         );
         this.invoker = Objects.requireNonNull(invoker, "invoker");
+        this.securityGate = Objects.requireNonNull(
+                securityGate,
+                "securityGate"
+        );
     }
 
     @Override
@@ -60,20 +68,46 @@ public final class McpToolsCallHandler implements McpMethodHandler {
         Map<String, Object> arguments = arguments(
                 request.params().get("arguments")
         );
-        GatewayOperationInvocation invocation =
-                new GatewayOperationInvocation(
-                        tool.operationId(),
-                        argumentBinder.bind(tool, arguments),
-                        attribute(context, "originalBearerToken"),
-                        attribute(context, "callerId"),
-                        attribute(context, "clientIp"),
-                        traceHeaders(context)
-                );
-        return Mono.from(invoker.invoke(invocation))
+        McpSecurityGate.IdentityContext identity;
+        try {
+            identity = McpSecurityGate.IdentityContext.from(
+                    context.attributes()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new McpProtocolException(
+                    McpErrorCode.MCP_UNAUTHENTICATED,
+                    "MCP identity context is incomplete"
+            );
+        }
+        GatewayOperationInvocation invocation = new GatewayOperationInvocation(
+                tool.operationId(),
+                argumentBinder.bind(tool, arguments),
+                attribute(context, "originalBearerToken"),
+                attribute(context, "callerId"),
+                attribute(context, "clientIp"),
+                traceHeaders(context)
+        );
+        return Mono.from(securityGate.authorizeToolCall(
+                        tool,
+                        identity,
+                        arguments,
+                        approvalToken(request, context)
+                ))
+                .then(Mono.from(invoker.invoke(invocation)))
                 .map(result -> McpJsonRpcResponse.success(
                         request.id(),
                         resultBinder.bind(tool, result)
                 ));
+    }
+
+    private String approvalToken(
+            McpJsonRpcRequest request,
+            McpRequestContext context) {
+        Object value = request.meta().get("approvalToken");
+        if (value instanceof String token && !token.isBlank()) {
+            return token.trim();
+        }
+        return attribute(context, "mcpApprovalToken");
     }
 
     private Map<String, Object> arguments(Object value) {
