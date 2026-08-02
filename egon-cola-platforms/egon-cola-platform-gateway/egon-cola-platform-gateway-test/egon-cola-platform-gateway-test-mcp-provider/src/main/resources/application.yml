@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: gateway-test-mcp-provider
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+
+server:
+  port: ${MCP_TEST_PROVIDER_PORT:18150}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+egon:
+  cola:
+    component:
+      id:
+        enabled: false
+      ddc:
+        enabled: ${DDC_ENABLED:false}
+        biz-code: ${DDC_BIZ_CODE:test-biz}
+        app-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
+        env: ${DDC_ENV:local}
+        namespace: ${DDC_NAMESPACE:gateway-test}
+        registry:
+          enabled: ${DDC_REGISTRY_ENABLED:false}
+      gateway:
+        reporting:
+          enabled: ${GATEWAY_REPORTING_ENABLED:false}
+          biz-code: ${DDC_BIZ_CODE:test-biz}
+          application-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
+          artifact-version: 1.0.0
+        provider:
+          http:
+            enabled: true
+            instance-id: ${MCP_TEST_PROVIDER_INSTANCE_ID:mcp-provider-1}
+            service-name: gateway-test-mcp-provider
+            group: default
+            version: 1.0.0
+            protocol: http
+            advertised-host: ${MCP_TEST_PROVIDER_HOST:127.0.0.1}
+            port: ${MCP_TEST_PROVIDER_PORT:18150}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true

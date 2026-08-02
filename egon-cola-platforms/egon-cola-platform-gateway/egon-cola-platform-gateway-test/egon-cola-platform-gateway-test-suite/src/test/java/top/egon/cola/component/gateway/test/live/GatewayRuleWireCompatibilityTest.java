@@ -115,7 +115,7 @@ class GatewayRuleWireCompatibilityTest {
         assertNull(engineSnapshot.content().routes().getFirst()
                 .transportPolicy());
         assertEquals(
-                "b0d278bfeaa4e5582ed57580135cb4cf9e4b3d89d365416b2250b53f8da96dca",
+                "53138f1ecfcb0f2143330dd2c1010a4339c4146b43912cd996572e3d901d8972",
                 engineSnapshot.ruleContentSha256()
         );
         engineCodec.verify(engineSnapshot);

@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: gateway-test-mcp-remote
+
+server:
+  port: ${MCP_TEST_REMOTE_PORT:18151}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
