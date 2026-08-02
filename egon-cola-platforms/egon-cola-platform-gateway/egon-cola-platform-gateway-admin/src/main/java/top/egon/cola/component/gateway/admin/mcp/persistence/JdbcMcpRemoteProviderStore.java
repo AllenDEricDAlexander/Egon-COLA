@@ -266,6 +266,59 @@ public class JdbcMcpRemoteProviderStore {
         return new Mutation(mount.id(), 0);
     }
 
+    public Mutation softDeleteProvider(
+            String id,
+            long expectedRevision,
+            AdminActor actor,
+            Instant now) {
+        return softDelete(
+                "gateway_mcp_remote_provider",
+                id,
+                expectedRevision,
+                actor,
+                now
+        );
+    }
+
+    public Mutation softDeleteMount(
+            String id,
+            long expectedRevision,
+            AdminActor actor,
+            Instant now) {
+        return softDelete(
+                "gateway_mcp_remote_mount_draft",
+                id,
+                expectedRevision,
+                actor,
+                now
+        );
+    }
+
+    private Mutation softDelete(
+            String table,
+            String id,
+            long expectedRevision,
+            AdminActor actor,
+            Instant now) {
+        validateRevision(expectedRevision);
+        int updated = jdbc.update("""
+                UPDATE %s
+                   SET deleted = TRUE, enabled = FALSE,
+                       revision = revision + 1,
+                       updated_at = ?, updated_by = ?
+                 WHERE id = ? AND revision = ? AND deleted = FALSE
+                """.formatted(table),
+                McpJdbcJson.timestamp(now),
+                actorId(actor),
+                id,
+                expectedRevision
+        );
+        if (updated != 1) {
+            throw revisionConflict(currentRevision(table, id));
+        }
+        return new Mutation(id, expectedRevision + 1);
+    }
+
     private Object[] providerValues(
             RemoteProviderDraft provider,
             Map<String, Object> content,

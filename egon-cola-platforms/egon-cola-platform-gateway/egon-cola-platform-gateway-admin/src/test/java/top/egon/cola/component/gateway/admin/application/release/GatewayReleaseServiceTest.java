@@ -20,7 +20,11 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayD
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
+import top.egon.cola.component.gateway.admin.mcp.application.McpReleaseContentFactory;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
+import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
@@ -181,7 +185,67 @@ class GatewayReleaseServiceTest {
         );
     }
 
+    @Test
+    void createIncludesMcpDraftInTheCanonicalReleaseSnapshot() {
+        McpReleaseContentFactory mcp = mock(McpReleaseContentFactory.class);
+        McpRuleContent mcpContent = new McpRuleContent(
+                List.of(new McpRuntimeServer(
+                        "server-1",
+                        "billing",
+                        "Billing",
+                        null,
+                        null,
+                        Set.of(McpProtocolDialect.STABLE_2025_11_25),
+                        "gateway-mcp",
+                        30,
+                        true
+                )),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        when(mcp.compileForRelease("group-1", 0L)).thenReturn(mcpContent);
+        CreateFixture fixture = createFixture(Map.of(
+                "host", "ai.example.com",
+                "listener", "PUBLIC",
+                "method", "POST",
+                "path", "/v1/**"
+        ), mcp);
+
+        fixture.service.create(
+                "group-1",
+                new GatewayReleaseService.CreateRelease(
+                        0L,
+                        "publish Gateway and MCP"
+                ),
+                actor(),
+                request()
+        );
+
+        ArgumentCaptor<CompiledGatewayRelease> compiled =
+                ArgumentCaptor.forClass(CompiledGatewayRelease.class);
+        verify(fixture.releases).insert(
+                any(GatewayReleaseStore.ReleaseRecord.class),
+                compiled.capture(),
+                eq(1)
+        );
+        assertThat(compiled.getValue().snapshot().content().mcp())
+                .isEqualTo(mcpContent);
+        verify(mcp).compileForRelease("group-1", 0L);
+    }
+
     private CreateFixture createFixture(Map<String, Object> routeContent) {
+        return createFixture(routeContent, null);
+    }
+
+    private CreateFixture createFixture(
+            Map<String, Object> routeContent,
+            McpReleaseContentFactory mcpContentFactory) {
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
         GatewayDraftService draftService = mock(GatewayDraftService.class);
@@ -255,6 +319,7 @@ class GatewayReleaseServiceTest {
                 audits,
                 transactions(),
                 null,
+                mcpContentFactory,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
         return new CreateFixture(service, releases);

@@ -19,6 +19,7 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayD
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
+import top.egon.cola.component.gateway.admin.mcp.application.McpReleaseContentFactory;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.admin.rule.GatewayRouteDraftMapper;
 import top.egon.cola.component.gateway.admin.rule.GatewayRouteTransportPolicyValidator;
@@ -26,6 +27,7 @@ import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCompiler;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuntimeParameterMapper;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
 import top.egon.cola.component.gateway.contract.rule.GatewayRpcDescriptor;
@@ -65,6 +67,8 @@ public class GatewayReleaseService {
 
     private final GatewayReleasePublicationCoordinator publications;
 
+    private final McpReleaseContentFactory mcpContentFactory;
+
     private final GatewayRuleCanonicalizer canonicalizer =
             new GatewayRuleCanonicalizer();
 
@@ -89,7 +93,8 @@ public class GatewayReleaseService {
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
             ObjectProvider<GatewayReleasePublicationCoordinator>
-                    publications) {
+                    publications,
+            ObjectProvider<McpReleaseContentFactory> mcpContentFactory) {
         this(
                 groups,
                 drafts,
@@ -99,6 +104,7 @@ public class GatewayReleaseService {
                 audits,
                 transactions,
                 publications.getIfAvailable(),
+                mcpContentFactory.getIfAvailable(),
                 Clock.systemUTC()
         );
     }
@@ -113,6 +119,31 @@ public class GatewayReleaseService {
             TransactionTemplate transactions,
             GatewayReleasePublicationCoordinator publications,
             Clock clock) {
+        this(
+                groups,
+                drafts,
+                draftService,
+                catalog,
+                releases,
+                audits,
+                transactions,
+                publications,
+                null,
+                clock
+        );
+    }
+
+    GatewayReleaseService(
+            GatewayGroupRepository groups,
+            GatewayDraftRepository drafts,
+            GatewayDraftService draftService,
+            GatewayCatalogStore catalog,
+            GatewayReleaseStore releases,
+            GatewayAuditLogRepository audits,
+            TransactionTemplate transactions,
+            GatewayReleasePublicationCoordinator publications,
+            McpReleaseContentFactory mcpContentFactory,
+            Clock clock) {
         this.groups = groups;
         this.drafts = drafts;
         this.draftService = draftService;
@@ -121,6 +152,7 @@ public class GatewayReleaseService {
         this.audits = audits;
         this.transactions = transactions;
         this.publications = publications;
+        this.mcpContentFactory = mcpContentFactory;
         this.clock = clock;
     }
 
@@ -274,6 +306,8 @@ public class GatewayReleaseService {
                 "routeCount", content.routes().size(),
                 "operationCount", content.operations().size(),
                 "policyCount", policyCount(content),
+                "mcpServerCount", content.mcp().servers().size(),
+                "mcpToolCount", content.mcp().tools().size(),
                 "ruleContentSha256",
                 compiled.snapshot().ruleContentSha256()
         );
@@ -478,6 +512,12 @@ public class GatewayReleaseService {
                 )))
                 .distinct()
                 .toList();
+        McpRuleContent mcp = mcpContentFactory == null
+                ? McpRuleContent.empty()
+                : mcpContentFactory.compileForRelease(
+                        group.getId(),
+                        draft.revision()
+                );
         return new GatewayRuleContent(
                 group.getId(),
                 group.getGatewayGroupCode(),
@@ -489,7 +529,8 @@ public class GatewayReleaseService {
                 traffic,
                 security,
                 cors,
-                descriptors
+                descriptors,
+                mcp
         );
     }
 

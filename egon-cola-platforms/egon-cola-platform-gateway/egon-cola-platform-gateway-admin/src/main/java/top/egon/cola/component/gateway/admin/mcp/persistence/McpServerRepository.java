@@ -14,4 +14,6 @@ public interface McpServerRepository
     Optional<McpServerEntity> findByGatewayGroupIdAndServerCodeAndDeletedFalse(
             String gatewayGroupId,
             String serverCode);
+
+    Optional<McpServerEntity> findByIdAndDeletedFalse(String id);
 }

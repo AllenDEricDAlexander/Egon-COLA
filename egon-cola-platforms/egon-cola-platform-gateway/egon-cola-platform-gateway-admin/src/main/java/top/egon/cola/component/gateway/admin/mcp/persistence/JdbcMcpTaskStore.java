@@ -109,6 +109,27 @@ public class JdbcMcpTaskStore {
         return values.stream().findFirst();
     }
 
+    public List<TaskRecord> list(String tenantId, String clientId) {
+        return jdbc.query("""
+                SELECT id, principal_fingerprint, subject_id, tenant_id,
+                       client_id, server_code, tool_name, request_digest,
+                       state, input_payload::text AS input_payload,
+                       result_payload::text AS result_payload,
+                       error_payload::text AS error_payload,
+                       worker_owner, lease_until, execution_deadline,
+                       expires_at, attempt_count, max_attempts, revision,
+                       created_at, updated_at
+                  FROM gateway_mcp_task_instance
+                 WHERE tenant_id = ? AND (? IS NULL OR client_id = ?)
+                 ORDER BY created_at DESC
+                 LIMIT 500
+                """, (result, row) -> map(result),
+                tenantId,
+                clientId,
+                clientId
+        );
+    }
+
     public boolean claim(
             String id,
             String workerOwner,
@@ -166,6 +187,51 @@ public class JdbcMcpTaskStore {
                 state(currentState),
                 expectedRevision
         ) == 1;
+    }
+
+    public boolean cancel(
+            String id,
+            long expectedRevision,
+            Instant now) {
+        return jdbc.update("""
+                UPDATE gateway_mcp_task_instance
+                   SET state = 'CANCELLED', worker_owner = NULL,
+                       lease_until = NULL, revision = revision + 1,
+                       updated_at = ?
+                 WHERE id = ? AND revision = ?
+                   AND state IN ('WORKING', 'INPUT_REQUIRED')
+                """,
+                McpJdbcJson.timestamp(now),
+                id,
+                expectedRevision
+        ) == 1;
+    }
+
+    private TaskRecord map(java.sql.ResultSet result)
+            throws java.sql.SQLException {
+        return new TaskRecord(
+                result.getString("id"),
+                result.getString("principal_fingerprint"),
+                result.getString("subject_id"),
+                result.getString("tenant_id"),
+                result.getString("client_id"),
+                result.getString("server_code"),
+                result.getString("tool_name"),
+                result.getString("request_digest"),
+                result.getString("state"),
+                read(result.getString("input_payload")),
+                read(result.getString("result_payload")),
+                read(result.getString("error_payload")),
+                result.getString("worker_owner"),
+                instant(result.getTimestamp("lease_until")),
+                result.getTimestamp("execution_deadline").toInstant(),
+                result.getTimestamp("expires_at").toInstant(),
+                result.getInt("attempt_count"),
+                result.getInt("max_attempts"),
+                result.getLong("revision"),
+                result.getTimestamp("created_at").toInstant(),
+                result.getTimestamp("updated_at").toInstant()
+        );
     }
 
     private Map<String, Object> read(String value) {

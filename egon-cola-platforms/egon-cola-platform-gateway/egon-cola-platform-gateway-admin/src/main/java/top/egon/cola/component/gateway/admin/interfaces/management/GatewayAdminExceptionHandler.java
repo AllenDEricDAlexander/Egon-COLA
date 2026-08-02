@@ -11,12 +11,29 @@ import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundExc
 import top.egon.cola.component.gateway.admin.application.GatewayAdminIdempotencyConflictException;
 import top.egon.cola.component.gateway.admin.application.GatewayApplicationAlreadyExistsException;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
+import top.egon.cola.component.gateway.admin.mcp.application.McpValidationException;
 
 import java.time.Instant;
 import java.util.List;
 
 @RestControllerAdvice
 public class GatewayAdminExceptionHandler {
+
+    @ExceptionHandler(McpValidationException.class)
+    public ResponseEntity<ErrorResponse> mcpValidation(
+            McpValidationException error) {
+        return ResponseEntity.badRequest().body(new ErrorResponse(
+                error.code(),
+                error.getMessage(),
+                null,
+                List.of(new FieldError(
+                        error.path(),
+                        error.code(),
+                        error.getMessage()
+                )),
+                Instant.now()
+        ));
+    }
 
     @ExceptionHandler(GatewayApplicationAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> applicationExists(
