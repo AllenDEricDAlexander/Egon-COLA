@@ -18,7 +18,9 @@ import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
 import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
+import top.egon.cola.component.gateway.mcp.task.McpTask;
 import top.egon.cola.component.gateway.mcp.task.McpTaskService;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -171,7 +173,10 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                                         identity,
                                         context.dialect(),
                                         request.meta(),
-                                        traceHeaders(context)
+                                        traceHeaders(context),
+                                        McpTelemetry.current(
+                                                context.attributes()
+                                        )
                                 ))
                                 .map(result -> McpJsonRpcResponse.success(
                                         request.id(),
@@ -192,7 +197,11 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                             );
                     McpRuntimeTaskPolicy policy = taskPolicy(tool);
                     if (policy == null) {
-                        return Mono.from(invoker.invoke(invocation))
+                        return Mono.from(McpTelemetry.observeChild(
+                                        context.attributes(),
+                                        McpTelemetry.ChildKind.OPERATION,
+                                        invoker.invoke(invocation)
+                                ))
                                 .map(result -> McpJsonRpcResponse.success(
                                         request.id(),
                                         resultBinder.bind(tool, result)
@@ -204,36 +213,40 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                                 "MCP durable task store is unavailable"
                         ));
                     }
-                    return Mono.from(taskService.create(
-                                    new McpTaskService.CreateRequest(
-                                            tool.serverCode(),
-                                            tool.name(),
-                                            McpSecurityDigests.arguments(
-                                                    objectMapper,
-                                                    arguments
-                                            ),
-                                            Map.of(
-                                                    "operationId",
-                                                    tool.operationId(),
-                                                    "arguments",
-                                                    boundArguments
-                                            ),
-                                            seconds(
-                                                    policy
-                                                            .executionTimeoutSeconds(),
-                                                    300L
-                                            ),
-                                            seconds(
-                                                    policy.resultTtlSeconds(),
-                                                    86_400L
-                                            ),
-                                            policy.maxAttempts()
+                    Publisher<McpTask> create = taskService.create(
+                            new McpTaskService.CreateRequest(
+                                    tool.serverCode(),
+                                    tool.name(),
+                                    McpSecurityDigests.arguments(
+                                            objectMapper,
+                                            arguments
                                     ),
-                                    new McpTaskService.Owner(
-                                            identity.subjectId(),
-                                            identity.tenantId(),
-                                            identity.clientId()
-                                    )
+                                    Map.of(
+                                            "operationId",
+                                            tool.operationId(),
+                                            "arguments",
+                                            boundArguments
+                                    ),
+                                    seconds(
+                                            policy.executionTimeoutSeconds(),
+                                            300L
+                                    ),
+                                    seconds(
+                                            policy.resultTtlSeconds(),
+                                            86_400L
+                                    ),
+                                    policy.maxAttempts()
+                            ),
+                            new McpTaskService.Owner(
+                                    identity.subjectId(),
+                                    identity.tenantId(),
+                                    identity.clientId()
+                            )
+                    );
+                    return Mono.from(McpTelemetry.observeChild(
+                                    context.attributes(),
+                                    McpTelemetry.ChildKind.TASK,
+                                    create
                             ))
                             .map(task -> McpJsonRpcResponse.success(
                                     request.id(),

@@ -13,6 +13,7 @@ import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -85,18 +86,26 @@ public final class McpCompletionHandler implements McpMethodHandler {
                     "MCP completion provider is unavailable"
             );
         }
+        Map<String, Object> attributes = attributes(context);
+        Publisher<McpCompletionProvider.Result> completion =
+                provider.complete(new McpCompletionProvider.Request(
+                        context.server().serverCode(),
+                        referenceType,
+                        resolved.referenceName(),
+                        argumentName,
+                        prefix,
+                        resolved.operationId(),
+                        attributes
+                ));
+        if ("LOCAL_OPERATION".equals(resolved.sourceType())) {
+            completion = McpTelemetry.observeChild(
+                    attributes,
+                    McpTelemetry.ChildKind.OPERATION,
+                    completion
+            );
+        }
         return Mono.from(resolved.authorization())
-                .then(Mono.from(provider.complete(
-                        new McpCompletionProvider.Request(
-                                context.server().serverCode(),
-                                referenceType,
-                                resolved.referenceName(),
-                                argumentName,
-                                prefix,
-                                resolved.operationId(),
-                                attributes(context)
-                        )
-                )))
+                .then(Mono.from(completion))
                 .map(result -> McpJsonRpcResponse.success(
                         request.id(),
                         Map.of("completion", Map.of(

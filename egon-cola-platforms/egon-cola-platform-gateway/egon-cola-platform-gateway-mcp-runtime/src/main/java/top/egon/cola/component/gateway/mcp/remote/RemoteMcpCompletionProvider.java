@@ -10,6 +10,7 @@ import top.egon.cola.component.gateway.mcp.completion.McpCompletionProvider;
 import top.egon.cola.component.gateway.mcp.prompt.McpPromptDriver;
 import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,14 +89,23 @@ public final class RemoteMcpCompletionProvider
         );
         McpSecurityGate.IdentityContext identity =
                 McpSecurityGate.IdentityContext.from(request.attributes());
-        return Mono.from(clients.exchange(
-                        binding.provider(),
-                        call,
-                        new RemoteAuthProvider.AuthContext(
-                                identity.subjectId(),
-                                identity.tenantId(),
-                                identity.clientId()
-                        )
+        McpTelemetry.Scope telemetry = McpTelemetry.current(
+                request.attributes()
+        );
+        telemetry.remoteProvider(binding.provider().providerCode());
+        var exchange = clients.exchange(
+                binding.provider(),
+                call,
+                new RemoteAuthProvider.AuthContext(
+                        identity.subjectId(),
+                        identity.tenantId(),
+                        identity.clientId()
+                )
+        );
+        return Mono.from(McpTelemetry.observeChild(
+                        telemetry,
+                        McpTelemetry.ChildKind.REMOTE,
+                        exchange
                 ))
                 .map(translator::result)
                 .map(this::result);

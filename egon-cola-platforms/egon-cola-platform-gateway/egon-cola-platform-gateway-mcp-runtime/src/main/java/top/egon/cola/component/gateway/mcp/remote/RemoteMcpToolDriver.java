@@ -7,6 +7,7 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.core.mcp.remote.RemoteAuthProvider;
 import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,6 +45,25 @@ public final class RemoteMcpToolDriver {
             McpProtocolDialect inboundDialect,
             Map<String, Object> meta,
             Map<String, String> traceHeaders) {
+        return invoke(
+                tool,
+                arguments,
+                identity,
+                inboundDialect,
+                meta,
+                traceHeaders,
+                McpTelemetry.Scope.noop()
+        );
+    }
+
+    public Publisher<Map<String, Object>> invoke(
+            McpRuntimeTool tool,
+            Map<String, Object> arguments,
+            McpSecurityGate.IdentityContext identity,
+            McpProtocolDialect inboundDialect,
+            Map<String, Object> meta,
+            Map<String, String> traceHeaders,
+            McpTelemetry.Scope telemetry) {
         if (tool.remoteMountId() == null) {
             return Mono.error(new IllegalArgumentException(
                     "remote MCP Tool mount is required"
@@ -66,14 +86,20 @@ public final class RemoteMcpToolDriver {
                 meta,
                 traceHeaders
         );
-        return Mono.from(clients.exchange(
-                        binding.provider(),
-                        call,
-                        new RemoteAuthProvider.AuthContext(
-                                identity.subjectId(),
-                                identity.tenantId(),
-                                identity.clientId()
-                        )
+        telemetry.remoteProvider(binding.provider().providerCode());
+        var exchange = clients.exchange(
+                binding.provider(),
+                call,
+                new RemoteAuthProvider.AuthContext(
+                        identity.subjectId(),
+                        identity.tenantId(),
+                        identity.clientId()
+                )
+        );
+        return Mono.from(McpTelemetry.observeChild(
+                        telemetry,
+                        McpTelemetry.ChildKind.REMOTE,
+                        exchange
                 ))
                 .map(translator::result);
     }

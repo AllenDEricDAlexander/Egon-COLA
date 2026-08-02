@@ -87,12 +87,36 @@ egon:
               gateway.component: engine
         engine:
           mcp:
+            enabled: ${GATEWAY_MCP_ENABLED:true}
             artifact-root: ${GATEWAY_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/gateway-mcp-artifacts}
             session-ttl: ${GATEWAY_MCP_SESSION_TTL:PT30M}
             stream-wait: ${GATEWAY_MCP_STREAM_WAIT:PT15S}
+            maximum-request-bytes: ${GATEWAY_MCP_MAXIMUM_REQUEST_BYTES:16777216}
+            maximum-resource-bytes: ${GATEWAY_MCP_MAXIMUM_RESOURCE_BYTES:67108864}
+            maximum-app-artifact-bytes: ${GATEWAY_MCP_MAXIMUM_APP_ARTIFACT_BYTES:16777216}
+            maximum-subscriptions-per-client: ${GATEWAY_MCP_MAXIMUM_SUBSCRIPTIONS_PER_CLIENT:100}
+            maximum-active-tasks-per-client: ${GATEWAY_MCP_MAXIMUM_ACTIVE_TASKS_PER_CLIENT:100}
             tasks:
               lease-duration: ${GATEWAY_MCP_TASK_LEASE_DURATION:PT30S}
               poll-interval: ${GATEWAY_MCP_TASK_POLL_INTERVAL:PT2S}
+              default-ttl: ${GATEWAY_MCP_TASK_DEFAULT_TTL:PT24H}
+              cleanup-interval: ${GATEWAY_MCP_TASK_CLEANUP_INTERVAL:PT10M}
+            remote:
+              discovery-timeout: ${GATEWAY_MCP_REMOTE_DISCOVERY_TIMEOUT:PT20S}
+              call-timeout: ${GATEWAY_MCP_REMOTE_CALL_TIMEOUT:PT60S}
+              health-interval: ${GATEWAY_MCP_REMOTE_HEALTH_INTERVAL:PT30S}
+              capability-sync-interval: ${GATEWAY_MCP_REMOTE_CAPABILITY_SYNC_INTERVAL:PT5M}
+              circuit-open-duration: ${GATEWAY_MCP_REMOTE_CIRCUIT_OPEN_DURATION:PT30S}
+              maximum-concurrent-calls: ${GATEWAY_MCP_REMOTE_MAXIMUM_CONCURRENT_CALLS:32}
+              failure-threshold: ${GATEWAY_MCP_REMOTE_FAILURE_THRESHOLD:3}
+              token-forwarding: false
+            security:
+              origin-validation: true
+              protected-resource-metadata: true
+              token-forwarding: false
+            audit:
+              enabled: ${GATEWAY_MCP_AUDIT_ENABLED:true}
+              body-log-enabled: false
             redis:
               enabled: ${GATEWAY_MCP_REDIS_ENABLED:true}
               address: ${GATEWAY_MCP_REDIS_ADDRESS:redis://127.0.0.1:6379}

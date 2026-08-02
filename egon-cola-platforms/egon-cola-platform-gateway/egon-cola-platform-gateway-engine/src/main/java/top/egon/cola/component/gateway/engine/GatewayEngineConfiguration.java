@@ -6,6 +6,8 @@ import io.micrometer.observation.ObservationRegistry;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
@@ -63,7 +65,11 @@ import top.egon.cola.component.gateway.engine.observability.KafkaGatewayCallEven
 import top.egon.cola.component.gateway.engine.mcp.McpEngineHttpHandler;
 import top.egon.cola.component.gateway.engine.mcp.McpGatewayIdentityAuthenticator;
 import top.egon.cola.component.gateway.engine.mcp.JdbcMcpRuntimeTaskStore;
+import top.egon.cola.component.gateway.engine.mcp.McpAuditPublisher;
+import top.egon.cola.component.gateway.engine.mcp.McpRuntimeHealthIndicator;
+import top.egon.cola.component.gateway.engine.mcp.McpRuntimeProperties;
 import top.egon.cola.component.gateway.engine.mcp.McpTaskWorker;
+import top.egon.cola.component.gateway.engine.mcp.MicrometerMcpTelemetry;
 import top.egon.cola.component.gateway.engine.mcp.FileSystemMcpAppArtifactReader;
 import top.egon.cola.component.gateway.engine.mcp.RedisMcpSessionStore;
 import top.egon.cola.component.gateway.engine.mcp.remote.ReactorNettyRemoteMcpClient;
@@ -144,6 +150,7 @@ import top.egon.cola.component.gateway.mcp.task.McpTaskService;
 import top.egon.cola.component.gateway.mcp.task.McpTasksCancelHandler;
 import top.egon.cola.component.gateway.mcp.task.McpTasksGetHandler;
 import top.egon.cola.component.gateway.mcp.task.McpTasksUpdateHandler;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 import top.egon.cola.component.gateway.mcp.tool.McpArgumentBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpResultBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpToolCatalog;
@@ -167,8 +174,15 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(GatewayEngineRuntimeProperties.class)
+@EnableConfigurationProperties({
+        GatewayEngineRuntimeProperties.class,
+        McpRuntimeProperties.class
+})
 public class GatewayEngineConfiguration {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            "gateway.mcp.audit"
+    );
 
     @Bean
     public Clock gatewayClock() {
@@ -200,16 +214,39 @@ public class GatewayEngineConfiguration {
     public McpRemoteClientPool gatewayRemoteMcpClientPool(
             RemoteAuthProvider authentication,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            Clock gatewayClock) {
+            Clock gatewayClock,
+            McpRuntimeProperties properties) {
+        properties.validate();
         return new McpRemoteClientPool(
                 provider -> new ReactorNettyRemoteMcpClient(objectMapper),
                 authentication,
                 gatewayClock,
-                Duration.ofSeconds(60),
-                32,
-                3,
-                Duration.ofSeconds(30)
+                properties.getRemote().getCallTimeout(),
+                properties.getRemote().getMaximumConcurrentCalls(),
+                properties.getRemote().getFailureThreshold(),
+                properties.getRemote().getCircuitOpenDuration()
         );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(McpTelemetry.class)
+    public McpTelemetry gatewayMcpTelemetry(
+            MeterRegistry meters,
+            ObservationRegistry observations,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            Clock gatewayClock,
+            McpRuntimeProperties properties) {
+        properties.validate();
+        ArrayList<McpTelemetry> observers = new ArrayList<>();
+        observers.add(new MicrometerMcpTelemetry(meters, observations));
+        if (properties.getAudit().isEnabled()) {
+            observers.add(new McpAuditPublisher(
+                    objectMapper,
+                    gatewayClock,
+                    json -> LOGGER.info("MCP_RUNTIME_AUDIT {}", json)
+            ));
+        }
+        return McpTelemetry.composite(observers);
     }
 
     @Bean
@@ -539,44 +576,46 @@ public class GatewayEngineConfiguration {
             JdbcMcpRuntimeTaskStore store,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             Clock gatewayClock,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.tasks."
-                            + "lease-duration:PT30S}"
-            ) Duration leaseDuration) {
+            McpRuntimeProperties properties) {
         return new McpTaskService(
                 store,
                 objectMapper,
                 gatewayClock,
-                leaseDuration
+                properties.getTasks().getLeaseDuration()
         );
     }
 
     @Bean
     @ConditionalOnBean(McpTaskService.class)
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.gateway.engine.mcp",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public McpTaskWorker gatewayMcpTaskWorker(
             McpTaskService tasks,
             EngineGatewayOperationInvoker operationInvoker,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             GatewayEngineRuntimeProperties properties,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.tasks."
-                            + "lease-duration:PT30S}"
-            ) Duration leaseDuration,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.tasks."
-                            + "poll-interval:PT2S}"
-            ) Duration pollInterval) {
+            McpRuntimeProperties mcpProperties) {
         return new McpTaskWorker(
                 tasks,
                 taskExecutor(operationInvoker, objectMapper),
                 properties.getNodeId(),
-                leaseDuration,
-                pollInterval
+                mcpProperties.getTasks().getLeaseDuration(),
+                mcpProperties.getTasks().getPollInterval()
         );
     }
 
     @Bean
     @ConditionalOnBean(RedisMcpSessionStore.class)
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.gateway.engine.mcp",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public McpEngineHttpHandler gatewayMcpHttpHandler(
             GatewayRuleActivationApplier activation,
             GatewaySecurityCapabilityRegistry capabilities,
@@ -586,26 +625,18 @@ public class GatewayEngineConfiguration {
             ObjectProvider<SingleFlightSnapshotLoader> snapshots,
             ObjectProvider<DataSource> dataSources,
             McpRemoteClientPool remoteClients,
+            McpTelemetry mcpTelemetry,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             Clock gatewayClock,
             GatewayEngineRuntimeProperties properties,
+            McpRuntimeProperties mcpProperties,
             @Value(
                     "${egon.cola.platform.idp.gateway.issuer:"
                             + "http://127.0.0.1:18120}"
-            ) String issuer,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp."
-                            + "session-ttl:PT30M}"
-            ) Duration sessionTtl,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp."
-                            + "stream-wait:PT15S}"
-            ) Duration streamWait,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp."
-                            + "artifact-root:${java.io.tmpdir}/egon-cola/"
-                            + "gateway-mcp-artifacts}"
-            ) String artifactRoot) {
+            ) String issuer) {
+        mcpProperties.validate();
+        Duration sessionTtl = mcpProperties.getSessionTtl();
+        Duration streamWait = mcpProperties.getStreamWait();
         Supplier<CompiledMcpRules> mcpRules = () -> activation.active() == null
                 ? null
                 : activation.active().mcpRules();
@@ -662,7 +693,9 @@ public class GatewayEngineConfiguration {
                 () -> activation.active() == null
                         ? null
                         : activation.active().mcpRules(),
-                new FileSystemMcpAppArtifactReader(Path.of(artifactRoot)),
+                new FileSystemMcpAppArtifactReader(Path.of(
+                        mcpProperties.getArtifactRoot()
+                )),
                 new McpAppSecurityValidator()
         );
         resourceDrivers.add(new AppUiResourceDriver(appRuntime));
@@ -784,7 +817,8 @@ public class GatewayEngineConfiguration {
             ));
         }
         McpMethodDispatcher dispatcher = new McpMethodDispatcher(
-                List.copyOf(methodHandlers)
+                List.copyOf(methodHandlers),
+                mcpTelemetry
         );
         return new McpEngineHttpHandler(
                 () -> activation.active() == null
@@ -804,7 +838,10 @@ public class GatewayEngineConfiguration {
                 sessionTtl,
                 streamWait,
                 Math.toIntExact(Math.min(
-                        properties.getHttp().getMaxBodyBytes(),
+                        Math.min(
+                                properties.getHttp().getMaxBodyBytes(),
+                                mcpProperties.getMaximumRequestBytes()
+                        ),
                         Integer.MAX_VALUE
                 ))
         );
@@ -1312,6 +1349,28 @@ public class GatewayEngineConfiguration {
                 ),
                 security,
                 GatewayTransportSecurity::certificateExpiryEpochSeconds
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.gateway.engine.mcp",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    public McpRuntimeHealthIndicator gatewayMcpRuntimeHealthIndicator(
+            GatewayRuleActivationApplier activation,
+            ObjectProvider<RedisMcpSessionStore> sessionStores,
+            ObjectProvider<McpTaskService> taskServices,
+            McpRuntimeProperties properties,
+            McpRemoteClientPool remoteClients) {
+        return new McpRuntimeHealthIndicator(
+                activation,
+                sessionStores.getIfAvailable() != null,
+                taskServices.getIfAvailable() != null,
+                Path.of(properties.getArtifactRoot()),
+                remoteClients
         );
     }
 

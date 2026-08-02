@@ -9,6 +9,7 @@ import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -37,9 +38,14 @@ public final class McpTasksGetHandler implements McpMethodHandler {
             McpJsonRpcRequest request,
             McpRequestContext context) {
         Identity identity = identity(context);
-        return Mono.from(tasks.get(
-                        string(request.params().get("taskId"), "taskId"),
-                        identity.owner()
+        Publisher<McpTask> get = tasks.get(
+                string(request.params().get("taskId"), "taskId"),
+                identity.owner()
+        );
+        return Mono.from(McpTelemetry.observeChild(
+                        context.attributes(),
+                        McpTelemetry.ChildKind.TASK,
+                        get
                 ))
                 .flatMap(task -> Mono.from(security.authorizeTaskAction(
                                 task.serverCode(),

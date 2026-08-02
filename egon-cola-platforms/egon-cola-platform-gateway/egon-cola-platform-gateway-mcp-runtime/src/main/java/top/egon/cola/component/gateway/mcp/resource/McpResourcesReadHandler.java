@@ -9,6 +9,7 @@ import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.util.Base64;
 import java.util.Collections;
@@ -74,13 +75,28 @@ public final class McpResourcesReadHandler implements McpMethodHandler {
                 resolved.template(),
                 identity
         );
+        Map<String, Object> attributes = attributes(context);
+        Publisher<McpResourceDriver.Content> content = driver.read(
+                resolved.request(attributes)
+        );
+        if ("LOCAL_OPERATION".equals(driver.driverType())) {
+            content = McpTelemetry.observeChild(
+                    attributes,
+                    McpTelemetry.ChildKind.OPERATION,
+                    content
+            );
+        } else if ("APP_UI".equals(driver.driverType())) {
+            content = McpTelemetry.observeChild(
+                    attributes,
+                    McpTelemetry.ChildKind.ARTIFACT,
+                    content
+            );
+        }
         return Mono.from(authorization)
-                .then(Mono.from(driver.read(resolved.request(
-                        attributes(context)
-                ))))
-                .map(content -> McpJsonRpcResponse.success(
+                .then(Mono.from(content))
+                .map(resolvedContent -> McpJsonRpcResponse.success(
                         request.id(),
-                        Map.of("contents", List.of(describe(content)))
+                        Map.of("contents", List.of(describe(resolvedContent)))
                 ));
     }
 

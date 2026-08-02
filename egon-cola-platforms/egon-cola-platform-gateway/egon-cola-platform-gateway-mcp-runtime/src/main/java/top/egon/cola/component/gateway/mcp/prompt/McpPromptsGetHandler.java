@@ -11,6 +11,7 @@ import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -59,12 +60,21 @@ public final class McpPromptsGetHandler implements McpMethodHandler {
                 request.params().get("arguments")
         );
         McpSecurityGate.IdentityContext identity = identity(context);
+        Map<String, Object> attributes = attributes(context);
+        Publisher<McpPromptDriver.Result> rendered = driver.render(
+                prompt,
+                arguments,
+                attributes
+        );
+        if ("LOCAL_OPERATION".equals(prompt.sourceType())) {
+            rendered = McpTelemetry.observeChild(
+                    attributes,
+                    McpTelemetry.ChildKind.OPERATION,
+                    rendered
+            );
+        }
         return Mono.from(security.authorizePrompt(prompt, identity))
-                .then(Mono.from(driver.render(
-                        prompt,
-                        arguments,
-                        attributes(context)
-                )))
+                .then(Mono.from(rendered))
                 .map(result -> McpJsonRpcResponse.success(
                         request.id(),
                         describe(result)

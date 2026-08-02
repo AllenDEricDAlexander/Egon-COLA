@@ -9,6 +9,7 @@ import top.egon.cola.component.gateway.core.mcp.remote.RemoteAuthProvider;
 import top.egon.cola.component.gateway.mcp.resource.McpResourceDriver;
 import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
+import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.util.Base64;
 import java.util.List;
@@ -71,10 +72,19 @@ public final class RemoteMcpResourceDriver implements McpResourceDriver {
         McpSecurityGate.IdentityContext identity = identity(
                 request.attributes()
         );
-        return Mono.from(clients.exchange(
-                        binding.provider(),
-                        call,
-                        auth(identity)
+        McpTelemetry.Scope telemetry = McpTelemetry.current(
+                request.attributes()
+        );
+        telemetry.remoteProvider(binding.provider().providerCode());
+        var exchange = clients.exchange(
+                binding.provider(),
+                call,
+                auth(identity)
+        );
+        return Mono.from(McpTelemetry.observeChild(
+                        telemetry,
+                        McpTelemetry.ChildKind.REMOTE,
+                        exchange
                 ))
                 .map(translator::result)
                 .map(result -> content(request, result));
