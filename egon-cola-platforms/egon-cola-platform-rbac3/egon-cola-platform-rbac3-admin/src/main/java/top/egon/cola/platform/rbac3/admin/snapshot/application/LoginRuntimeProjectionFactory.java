@@ -45,7 +45,8 @@ public final class LoginRuntimeProjectionFactory {
                 session.policyVersion(), contexts, checksum(session), generatedAt);
         SessionSnapshotProjector.RuntimeSession runtimeSession =
                 new SessionSnapshotProjector.RuntimeSession(
-                        session.tenantId(), session.userId(), session.sessionId(),
+                        session.tenantId(), session.userId(), session.userId(),
+                        session.sessionId(),
                         session.status(), session.authVersion(),
                         session.sessionVersion(), session.policyVersion(),
                         session.absoluteExpiresAt());

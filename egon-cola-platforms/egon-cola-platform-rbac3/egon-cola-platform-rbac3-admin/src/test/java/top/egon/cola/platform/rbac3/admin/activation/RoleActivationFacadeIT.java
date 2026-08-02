@@ -37,19 +37,17 @@ class RoleActivationFacadeIT {
         var runtime = new RecordingRuntimeStore();
         AtomicRbac3RuntimePolicy policy = policy();
         policy.apply(AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, "1", 1L);
-        RoleActivationFacade facade = facade(
-                facts, transaction, runtime, policy, new AtomicInteger());
+        RoleActivationFacade facade = facade(facts, transaction, runtime, policy);
 
         var first = facade.replace(command(List.of("10"), 0, "command-1"));
         var repeated = facade.replace(command(List.of("10"), 1, "command-2"));
 
         assertThat(first.changed()).isTrue();
-        assertThat(first.sessionVersion()).isEqualTo(1);
-        assertThat(first.accessToken()).isEqualTo("token-1");
+        assertThat(first.contextVersion()).isEqualTo(1);
         assertThat(first.activeRoles()).singleElement()
                 .satisfies(app -> assertThat(app.rootRoleIds()).containsExactly("10"));
         assertThat(repeated.changed()).isFalse();
-        assertThat(repeated.sessionVersion()).isEqualTo(1);
+        assertThat(repeated.contextVersion()).isEqualTo(1);
         assertThat(runtime.fences).hasValue(1);
         assertThat(runtime.publications).hasValue(1);
     }
@@ -89,8 +87,7 @@ class RoleActivationFacadeIT {
         var runtime = new RecordingRuntimeStore();
         AtomicRbac3RuntimePolicy policy = policy();
         policy.apply(AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, "1", 1L);
-        RoleActivationFacade facade = facade(
-                facts, transaction, runtime, policy, new AtomicInteger());
+        RoleActivationFacade facade = facade(facts, transaction, runtime, policy);
 
         var result = facade.replace(command(List.of("10", "11"), 0, "command-family"));
 
@@ -104,15 +101,12 @@ class RoleActivationFacadeIT {
         var facts = factsAcrossApplications();
         var transaction = new InMemoryTransaction();
         var runtime = new RecordingRuntimeStore();
-        var tokenIssuances = new AtomicInteger();
         AtomicRbac3RuntimePolicy policy = policy();
         policy.apply(AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, "2", 1L);
-        RoleActivationFacade facade = facade(
-                facts, transaction, runtime, policy, tokenIssuances);
+        RoleActivationFacade facade = facade(facts, transaction, runtime, policy);
 
         facade.replace(command(List.of("10", "20"), 0, "command-two-roots"));
         assertThat(transaction.roots).hasSize(2);
-        assertThat(tokenIssuances).hasValue(1);
         policy.apply(AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, "1", 2L);
 
         assertThatThrownBy(() -> facade.replace(
@@ -129,7 +123,6 @@ class RoleActivationFacadeIT {
                 Map.entry("2", Set.of("20")));
         assertThat(runtime.fences).hasValue(1);
         assertThat(runtime.publications).hasValue(1);
-        assertThat(tokenIssuances).hasValue(1);
     }
 
     @Test
@@ -173,27 +166,20 @@ class RoleActivationFacadeIT {
             InMemoryTransaction transaction,
             RecordingRuntimeStore runtime
     ) {
-        return facade(facts, transaction, runtime, policy(), new AtomicInteger());
+        return facade(facts, transaction, runtime, policy());
     }
 
     private RoleActivationFacade facade(
             RoleActivationCandidateService.ActivationFacts facts,
             InMemoryTransaction transaction,
             RecordingRuntimeStore runtime,
-            AtomicRbac3RuntimePolicy policy,
-            AtomicInteger tokenIssuances
+            AtomicRbac3RuntimePolicy policy
     ) {
         return new RoleActivationFacade(
                 (tenantId, userId, now) -> facts,
                 transaction,
                 new SessionSnapshotProjector(),
                 runtime,
-                (tenantId, userId, sessionId, authVersion, sessionVersion,
-                        policyVersion, now) -> {
-                    tokenIssuances.incrementAndGet();
-                    return new RoleActivationFacade.IssuedToken(
-                            "token-" + sessionVersion, now.plusSeconds(900));
-                },
                 policy,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
@@ -204,7 +190,7 @@ class RoleActivationFacadeIT {
             String commandId
     ) {
         return new RoleActivationFacade.ReplaceCommand(
-                "7", "9", "99", roots, expectedVersion, "9", commandId);
+                "7", "9", "9", "99", roots, expectedVersion, "9", commandId);
     }
 
     static RoleActivationCandidateService.ActivationFacts facts(
@@ -307,7 +293,7 @@ class RoleActivationFacadeIT {
                 Function<RoleActivationFacade.SessionState,
                         RoleActivationFacade.ResolvedActivation> factory
         ) {
-            if (command.expectedSessionVersion() != sessionVersion) {
+            if (command.expectedContextVersion() != sessionVersion) {
                 throw new Rbac3RuleViolation("ROLE_ACTIVATION_VERSION_CONFLICT");
             }
             var resolved = factory.apply(new RoleActivationFacade.SessionState(
@@ -330,7 +316,8 @@ class RoleActivationFacadeIT {
 
         @Override
         public RoleActivationFacade.CurrentState current(
-                String tenantId, String userId, String sessionId, Instant now) {
+                String tenantId, String identitySub, String userId,
+                String sessionId, Instant now) {
             return new RoleActivationFacade.CurrentState(
                     roots, 3, sessionVersion, 4, checksum, roots.isEmpty());
         }

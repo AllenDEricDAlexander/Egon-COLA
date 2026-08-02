@@ -81,7 +81,8 @@ public class RoleActivationController {
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
         return ApiEnvelope.success(facade.current(
-                tenantId(), principal.userId(), principal.sessionId()));
+                tenantId(), principal.identitySub(), principal.userId(),
+                principal.sessionId()));
     }
 
     @PutMapping("/role-activations")
@@ -97,8 +98,9 @@ public class RoleActivationController {
     ) {
         String commandId = activationCommandId(principal.sessionId(), request);
         return ApiEnvelope.success(facade.replace(new RoleActivationFacade.ReplaceCommand(
-                tenantId(), principal.userId(), principal.sessionId(), request.roleIds(),
-                request.expectedSessionVersion(), principal.userId(), commandId)));
+                tenantId(), principal.identitySub(), principal.userId(),
+                principal.sessionId(), request.roleIds(),
+                request.expectedContextVersion(), principal.userId(), commandId)));
     }
 
     private static String tenantId() {
@@ -112,7 +114,7 @@ public class RoleActivationController {
                 .sorted()
                 .reduce((left, right) -> left + "," + right)
                 .orElse("");
-        String canonical = sessionId + '|' + request.expectedSessionVersion()
+        String canonical = sessionId + '|' + request.expectedContextVersion()
                 + '|' + canonicalRoles;
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")

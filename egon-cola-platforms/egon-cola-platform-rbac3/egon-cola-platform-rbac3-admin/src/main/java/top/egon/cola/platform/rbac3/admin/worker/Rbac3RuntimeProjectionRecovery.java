@@ -140,7 +140,7 @@ public class Rbac3RuntimeProjectionRecovery implements
         String userId = session.getUserId().toString();
         String sessionId = session.getSessionId().toString();
         var current = activeRoleRepository.current(
-                tenantId, userId, sessionId, now);
+                tenantId, session.getIdentitySub(), userId, sessionId, now);
         var requestedRoots = current.rootsByApplication().values().stream()
                 .flatMap(java.util.Collection::stream)
                 .sorted()
@@ -158,7 +158,8 @@ public class Rbac3RuntimeProjectionRecovery implements
                         resolverSessionVersion, current.policyVersion(), now));
         SessionSnapshotProjector.Projection projection = snapshotProjector.project(
                 new SessionSnapshotProjector.ProjectionCommand(
-                        tenantId, userId, sessionId, current.authVersion(),
+                        tenantId, session.getIdentitySub(), userId, sessionId,
+                        current.authVersion(),
                         current.sessionVersion(), current.policyVersion(),
                         session.getAbsoluteExpiresAt(), resolution, facts, now));
         runtimeStore.publish(new RoleActivationFacade.RuntimePublication(

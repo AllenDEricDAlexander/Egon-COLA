@@ -43,6 +43,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -144,6 +145,9 @@ class Rbac3GatewayDocumentCatalogContractTest {
 
     @MockitoBean
     private StepUpFacade stepUpFacade;
+
+    @MockitoBean
+    private SystemAuthorizationSnapshotService systemAuthorizationSnapshotService;
 
     @MockitoBean
     private AssignmentController.SessionStrengthPort sessionStrengthPort;

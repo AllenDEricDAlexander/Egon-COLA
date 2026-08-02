@@ -189,7 +189,7 @@ class RedisAuthorizationRuntimeStoreIT {
     private RedisAuthorizationRuntimeStore.PublishCommand command() {
         SessionSnapshotProjector.RuntimeSession session =
                 new SessionSnapshotProjector.RuntimeSession(
-                        "7", "9", "99", "ACTIVE", 3, 1, 4,
+                        "7", "9", "9", "99", "ACTIVE", 3, 1, 4,
                         NOW.plusSeconds(3600));
         SessionAuthorizationSnapshot snapshot = new SessionAuthorizationSnapshot(
                 "99", 3, 1, 4, List.of(), "sha256:test", NOW);

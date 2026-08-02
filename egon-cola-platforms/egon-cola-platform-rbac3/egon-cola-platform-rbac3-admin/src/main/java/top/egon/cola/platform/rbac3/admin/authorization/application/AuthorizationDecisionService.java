@@ -242,12 +242,21 @@ public final class AuthorizationDecisionService {
 
     public record SnapshotRecord(
             String tenantId,
+            String identitySub,
             String userId,
             SessionAuthorizationSnapshot snapshot) {
         public SnapshotRecord {
             tenantId = required(tenantId, "tenantId");
+            identitySub = required(identitySub, "identitySub");
             userId = required(userId, "userId");
             snapshot = Objects.requireNonNull(snapshot, "snapshot");
+        }
+
+        public SnapshotRecord(
+                String tenantId,
+                String userId,
+                SessionAuthorizationSnapshot snapshot) {
+            this(tenantId, userId, userId, snapshot);
         }
     }
 

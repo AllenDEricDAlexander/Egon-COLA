@@ -8,18 +8,22 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 @RestController
-@RequestMapping("/api/rbac3/v1/internal/authorization")
+@RequestMapping("/internal/v1/authorization")
 @GatewayInterfaceGroup(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
@@ -31,13 +35,36 @@ import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationS
         serviceName = "rbac3-admin",
         group = "default",
         version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        basePath = "/internal/v1")
 public class InternalAuthorizationController {
 
     private final AuthorizationDecisionService service;
+    private final SystemAuthorizationSnapshotService systemSnapshots;
 
-    public InternalAuthorizationController(AuthorizationDecisionService service) {
+    public InternalAuthorizationController(
+            AuthorizationDecisionService service,
+            SystemAuthorizationSnapshotService systemSnapshots) {
         this.service = service;
+        this.systemSnapshots = systemSnapshots;
+    }
+
+    @GetMapping("/contexts/{tenantId}/{sessionId}")
+    @RequiresRbac3Permission(permission = "service:authorization:snapshot")
+    @GatewayOperation(name = "rbac3-internal-system-snapshot-v1",
+            summary = "按IdP身份和系统读取会话授权上下文",
+            externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
+    public ApiEnvelope<SystemAuthorizationSnapshot> systemSnapshot(
+            @PathVariable String tenantId,
+            @PathVariable String sessionId,
+            @RequestParam String systemCode,
+            @RequestParam String identitySub,
+            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+        if (!principal.tenantId().equals(tenantId)
+                || !principal.applicationCode().equals(systemCode)) {
+            throw new Rbac3RuleViolation("SERVICE_IDENTITY_DENIED");
+        }
+        return ApiEnvelope.success(systemSnapshots.snapshot(
+                tenantId, sessionId, systemCode, identitySub));
     }
 
     @GetMapping("/sessions/{sessionId}/snapshot")

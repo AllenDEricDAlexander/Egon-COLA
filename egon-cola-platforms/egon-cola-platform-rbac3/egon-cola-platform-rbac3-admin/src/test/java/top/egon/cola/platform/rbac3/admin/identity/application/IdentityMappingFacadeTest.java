@@ -99,7 +99,7 @@ class IdentityMappingFacadeTest {
                             mapping.tenantId(), "tenant-" + mapping.tenantId(),
                             "Tenant " + mapping.tenantId(), mapping.identitySub(),
                             mapping.rbac3UserId(), "User " + mapping.rbac3UserId(),
-                            true));
+                            true, 0, 0));
         }
 
         @Override

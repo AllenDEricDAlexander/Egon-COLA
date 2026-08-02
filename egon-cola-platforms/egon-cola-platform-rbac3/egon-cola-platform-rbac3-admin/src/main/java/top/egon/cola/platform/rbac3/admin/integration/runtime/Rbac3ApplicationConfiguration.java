@@ -45,11 +45,14 @@ import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryServic
 import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.AuthorizationMutationRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.IdempotencyRepository;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionSecurityEventRecorder;
 import top.egon.cola.platform.rbac3.admin.session.infrastructure.JpaSessionStore;
+import top.egon.cola.platform.rbac3.admin.session.infrastructure.AuthorizationContextRepository;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.simulation.infrastructure.PostgresqlRoleImpactSource;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.admin.worker.AuthorizationMutationRecoveryWorker;
 import top.egon.cola.platform.rbac3.admin.worker.Rbac3RuntimeProjectionRecovery;
@@ -100,9 +103,6 @@ public class Rbac3ApplicationConfiguration {
             Clock clock) {
         return new RoleActivationFacade(
                 factStore, transaction, projector, runtimeStore,
-                (tenantId, userId, sessionId, authVersion, sessionVersion,
-                        policyVersion, issuedAt) ->
-                        new RoleActivationFacade.IssuedToken(null, issuedAt),
                 runtimePolicy, clock);
     }
 
@@ -191,6 +191,29 @@ public class Rbac3ApplicationConfiguration {
             IdentityRepositories identities,
             LongIdGenerator idGenerator) {
         return new IdentityMappingFacade(identities, idGenerator::nextLongId);
+    }
+
+    @Bean
+    AuthorizationContextFacade authorizationContextFacade(
+            IdentityMappingFacade identities,
+            AuthorizationContextRepository contexts,
+            LongIdGenerator idGenerator) {
+        return new AuthorizationContextFacade(
+                (tenantId, identitySub) -> identities.resolve(
+                                identitySub, tenantId, "rbac3-authorization")
+                        .map(membership -> new AuthorizationContextFacade.ActiveMembership(
+                                membership.tenantId(), membership.identitySub(),
+                                membership.rbac3UserId(), membership.authVersion(),
+                                membership.policyVersion())),
+                contexts, idGenerator::nextLongId);
+    }
+
+    @Bean
+    SystemAuthorizationSnapshotService systemAuthorizationSnapshotService(
+            AuthorizationContextFacade contexts,
+            RedisAuthorizationRuntimeStore snapshots,
+            Clock clock) {
+        return new SystemAuthorizationSnapshotService(contexts::open, snapshots, clock);
     }
 
     @Bean

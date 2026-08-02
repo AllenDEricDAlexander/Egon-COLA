@@ -30,9 +30,6 @@ class RoleActivationConcurrencyIT {
                 transaction,
                 new SessionSnapshotProjector(),
                 runtime,
-                (tenantId, userId, sessionId, authVersion, sessionVersion,
-                        policyVersion, now) -> new RoleActivationFacade.IssuedToken(
-                        "token-" + sessionVersion, now.plusSeconds(900)),
                 RoleActivationFacadeIT.policy(),
                 Clock.fixed(Instant.parse("2026-07-30T12:00:00Z"), ZoneOffset.UTC));
         Callable<Boolean> first = () -> replace(facade, "10", "command-a");
@@ -54,7 +51,7 @@ class RoleActivationConcurrencyIT {
     private boolean replace(RoleActivationFacade facade, String roleId, String commandId) {
         try {
             facade.replace(new RoleActivationFacade.ReplaceCommand(
-                    "7", "9", "99", List.of(roleId), 0, "9", commandId));
+                    "7", "9", "9", "99", List.of(roleId), 0, "9", commandId));
             return true;
         } catch (Rbac3RuleViolation violation) {
             assertThat(violation.reasonCode())

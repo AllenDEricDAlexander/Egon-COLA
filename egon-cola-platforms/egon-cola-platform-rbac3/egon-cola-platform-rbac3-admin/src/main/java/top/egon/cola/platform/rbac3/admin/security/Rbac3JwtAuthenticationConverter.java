@@ -38,7 +38,7 @@ public final class Rbac3JwtAuthenticationConverter
 
     private CurrentRbac3Principal user(Jwt jwt) {
         String tenantId = required(jwt.getClaimAsString("tid"), "tid");
-        String userId = required(jwt.getSubject(), "sub");
+        String identitySub = required(jwt.getSubject(), "sub");
         String sessionId = required(jwt.getClaimAsString("sid"), "sid");
         long authVersion = number(jwt, "av");
         long sessionVersion = number(jwt, "sv");
@@ -46,7 +46,7 @@ public final class Rbac3JwtAuthenticationConverter
         AuthorizationDecisionService.SnapshotRecord record = runtimeStore.load(
                 tenantId, sessionId);
         if (!record.tenantId().equals(tenantId)
-                || !record.userId().equals(userId)
+                || !record.identitySub().equals(identitySub)
                 || record.snapshot().authVersion() != authVersion
                 || record.snapshot().sessionVersion() != sessionVersion
                 || record.snapshot().policyVersion() != policyVersion) {
@@ -56,7 +56,8 @@ public final class Rbac3JwtAuthenticationConverter
         record.snapshot().appContexts().forEach(
                 context -> permissions.addAll(context.permissions()));
         return new CurrentRbac3Principal(
-                tenantId, userId, sessionId, authVersion, sessionVersion,
+                tenantId, identitySub, record.userId(), sessionId,
+                authVersion, sessionVersion,
                 policyVersion, permissions,
                 Boolean.TRUE.equals(jwt.getClaim("platform_administrator")));
     }

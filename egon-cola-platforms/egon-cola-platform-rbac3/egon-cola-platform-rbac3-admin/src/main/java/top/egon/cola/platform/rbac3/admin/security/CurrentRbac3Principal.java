@@ -8,6 +8,7 @@ import java.util.Set;
 
 public record CurrentRbac3Principal(
         String tenantId,
+        String identitySub,
         String userId,
         String sessionId,
         long authVersion,
@@ -19,9 +20,23 @@ public record CurrentRbac3Principal(
 
     public CurrentRbac3Principal {
         tenantId = required(tenantId, "tenantId");
+        identitySub = required(identitySub, "identitySub");
         userId = required(userId, "userId");
         sessionId = required(sessionId, "sessionId");
         permissions = Set.copyOf(permissions);
+    }
+
+    public CurrentRbac3Principal(
+            String tenantId,
+            String userId,
+            String sessionId,
+            long authVersion,
+            long sessionVersion,
+            long policyVersion,
+            Set<String> permissions,
+            boolean platformAdministrator) {
+        this(tenantId, userId, userId, sessionId, authVersion, sessionVersion,
+                policyVersion, permissions, platformAdministrator);
     }
 
     public Collection<? extends GrantedAuthority> authorities() {

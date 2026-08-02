@@ -94,7 +94,7 @@ class ContractSerializationTest {
         roleIds.add("52001");
 
         assertEquals(List.of("50001", "51001"), request.roleIds());
-        assertEquals(2L, request.expectedSessionVersion());
+        assertEquals(2L, request.expectedContextVersion());
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> request.roleIds().add("53001")
@@ -104,7 +104,7 @@ class ContractSerializationTest {
                 () -> new ReplaceActiveRolesRequest(List.of("50001"), -1L)
         );
         assertEquals(
-                List.of("roleIds", "expectedSessionVersion"),
+                List.of("roleIds", "expectedContextVersion"),
                 Arrays.stream(
                                 ReplaceActiveRolesRequest.class
                                         .getRecordComponents()

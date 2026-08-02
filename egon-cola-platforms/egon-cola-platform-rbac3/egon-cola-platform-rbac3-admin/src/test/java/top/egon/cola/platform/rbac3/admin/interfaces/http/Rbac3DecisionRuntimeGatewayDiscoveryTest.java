@@ -14,6 +14,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.application.Authorizatio
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,9 @@ class Rbac3DecisionRuntimeGatewayDiscoveryTest {
 
     @MockitoBean
     private AuthorizationDecisionService decisionService;
+
+    @MockitoBean
+    private SystemAuthorizationSnapshotService systemAuthorizationSnapshotService;
 
     @MockitoBean
     private ParticipationFacade participationFacade;
@@ -71,9 +75,10 @@ class Rbac3DecisionRuntimeGatewayDiscoveryTest {
 
         assertThat(methods.get(InternalAuthorizationController.class.getName()))
                 .contains(
-                        "GET /api/rbac3/v1/internal/authorization/sessions/{sessionId}/snapshot",
-                        "POST /api/rbac3/v1/internal/authorization/decisions",
-                        "POST /api/rbac3/v1/internal/authorization/fences/verify");
+                        "GET /internal/v1/authorization/contexts/{tenantId}/{sessionId}",
+                        "GET /internal/v1/authorization/sessions/{sessionId}/snapshot",
+                        "POST /internal/v1/authorization/decisions",
+                        "POST /internal/v1/authorization/fences/verify");
         assertThat(methods.get(ParticipationController.class.getName()))
                 .contains(
                         "POST /api/rbac3/v1/internal/business-participations",

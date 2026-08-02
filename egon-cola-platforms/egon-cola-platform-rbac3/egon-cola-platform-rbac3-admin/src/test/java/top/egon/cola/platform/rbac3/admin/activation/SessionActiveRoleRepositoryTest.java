@@ -34,7 +34,7 @@ class SessionActiveRoleRepositoryTest {
                 mock(AuditPort.class),
                 mock(AuthorizationEventPort.class));
         var command = new RoleActivationFacade.ReplaceCommand(
-                "2", "3", "4", List.of("5"), 1L, "3", "command-1");
+                "2", "3", "3", "4", List.of("5"), 1L, "3", "command-1");
 
         assertThatThrownBy(() -> repository.replace(command, NOW, state -> null))
                 .isInstanceOf(Rbac3RuleViolation.class)

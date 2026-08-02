@@ -42,6 +42,7 @@ public final class SessionSnapshotProjector {
                 command.generatedAt());
         RuntimeSession session = new RuntimeSession(
                 command.tenantId(),
+                command.identitySub(),
                 command.userId(),
                 command.sessionId(),
                 "ACTIVE",
@@ -203,6 +204,7 @@ public final class SessionSnapshotProjector {
 
     public record ProjectionCommand(
             String tenantId,
+            String identitySub,
             String userId,
             String sessionId,
             long authVersion,
@@ -217,6 +219,7 @@ public final class SessionSnapshotProjector {
 
     public record RuntimeSession(
             String tenantId,
+            String identitySub,
             String userId,
             String sessionId,
             String status,

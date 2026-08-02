@@ -188,7 +188,7 @@ public class RedisAuthorizationRuntimeStore implements
                 throw new Rbac3RuleViolation("SESSION_VERSION_MISMATCH");
             }
             return new AuthorizationDecisionService.SnapshotRecord(
-                    tenantId, session.userId(), snapshot);
+                    tenantId, session.identitySub(), session.userId(), snapshot);
         } catch (Rbac3RuleViolation error) {
             throw error;
         } catch (RuntimeException | JsonProcessingException error) {

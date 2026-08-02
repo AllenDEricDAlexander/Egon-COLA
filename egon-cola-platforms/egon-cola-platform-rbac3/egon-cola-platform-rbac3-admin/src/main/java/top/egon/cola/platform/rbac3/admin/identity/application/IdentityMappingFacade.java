@@ -104,7 +104,9 @@ public final class IdentityMappingFacade {
             String identitySub,
             String rbac3UserId,
             String displayName,
-            boolean authorizationContextRequired
+            boolean authorizationContextRequired,
+            long authVersion,
+            long policyVersion
     ) {
     }
 

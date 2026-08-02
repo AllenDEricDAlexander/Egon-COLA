@@ -62,9 +62,9 @@ public class SessionActiveRoleRepository
             Function<RoleActivationFacade.SessionState,
                     RoleActivationFacade.ResolvedActivation> resolutionFactory
     ) {
-        SessionEntity session = locked(command.tenantId(), command.userId(),
-                command.sessionId(), now);
-        if (session.getSessionVersion() != command.expectedSessionVersion()) {
+        SessionEntity session = locked(command.tenantId(), command.identitySub(),
+                command.userId(), command.sessionId(), now);
+        if (session.getContextVersion() != command.expectedContextVersion()) {
             throw new Rbac3RuleViolation("ROLE_ACTIVATION_VERSION_CONFLICT");
         }
         List<SessionActiveRoleEntity> currentEntities = activeRoles(
@@ -139,8 +139,8 @@ public class SessionActiveRoleRepository
                 command.actorId(), "SESSION", command.sessionId(),
                 command.commandId(), command.commandId(),
                 Map.of(
-                        "oldSessionVersion", Long.toString(command.expectedSessionVersion()),
-                        "newSessionVersion", Long.toString(session.getSessionVersion()),
+                        "oldContextVersion", Long.toString(command.expectedContextVersion()),
+                        "newContextVersion", Long.toString(session.getContextVersion()),
                         "snapshotChecksum", session.getActiveRootChecksum()),
                 now));
         eventPort.enqueue(new AuthorizationEventPort.AuthorizationEvent(
@@ -148,7 +148,7 @@ public class SessionActiveRoleRepository
                 "RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
                 Map.of(
                         "mutationId", mutationId,
-                        "sessionVersion", Long.toString(session.getSessionVersion()),
+                        "contextVersion", Long.toString(session.getContextVersion()),
                         "authVersion", Long.toString(session.getAuthVersionAtIssue()),
                         "policyVersion", Long.toString(session.getPolicyVersionAtIssue())),
                 command.commandId()));
@@ -160,6 +160,7 @@ public class SessionActiveRoleRepository
     @Transactional(readOnly = true)
     public RoleActivationFacade.CurrentState current(
             String tenantId,
+            String identitySub,
             String userId,
             String sessionId,
             Instant now
@@ -167,7 +168,8 @@ public class SessionActiveRoleRepository
         SessionEntity session = sessionRepository.findByTenantIdAndSessionId(
                         Long.valueOf(tenantId), Long.valueOf(sessionId))
                 .orElseThrow(() -> new Rbac3RuleViolation("RESOURCE_NOT_FOUND"));
-        if (!session.getUserId().equals(Long.valueOf(userId))) {
+        if (!session.getIdentitySub().equals(identitySub)
+                || !session.getUserId().equals(Long.valueOf(userId))) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
         session.requireActive(now);
@@ -252,6 +254,7 @@ public class SessionActiveRoleRepository
 
     private SessionEntity locked(
             String tenantId,
+            String identitySub,
             String userId,
             String sessionId,
             Instant now
@@ -259,7 +262,8 @@ public class SessionActiveRoleRepository
         SessionEntity session = sessionRepository.lockByTenantIdAndSessionId(
                         Long.valueOf(tenantId), Long.valueOf(sessionId))
                 .orElseThrow(() -> new Rbac3RuleViolation("RESOURCE_NOT_FOUND"));
-        if (!session.getUserId().equals(Long.valueOf(userId))) {
+        if (!session.getIdentitySub().equals(identitySub)
+                || !session.getUserId().equals(Long.valueOf(userId))) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
         session.requireActive(now);

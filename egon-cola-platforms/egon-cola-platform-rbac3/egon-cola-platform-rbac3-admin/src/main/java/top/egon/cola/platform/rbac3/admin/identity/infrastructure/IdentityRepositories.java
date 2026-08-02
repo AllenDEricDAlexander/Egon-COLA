@@ -228,7 +228,8 @@ public class IdentityRepositories implements PasswordIdentityAuthenticator.Crede
         return new IdentityMappingFacade.ResolvedMembership(
                 row.tenant().getId().toString(), row.tenant().getCode(),
                 row.tenant().getName(), row.identity().getIdentitySub(),
-                row.user().getId().toString(), row.user().getDisplayName(), true);
+                row.user().getId().toString(), row.user().getDisplayName(), true,
+                row.user().getAuthVersion(), row.tenant().getPolicyVersion());
     }
 
     private record MembershipRow(

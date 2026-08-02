@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.activation.application;
 
 import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
@@ -36,7 +35,6 @@ public final class RoleActivationFacade {
     private final RoleActivationResolver resolver;
     private final SessionSnapshotProjector snapshotProjector;
     private final RuntimeStore runtimeStore;
-    private final AccessTokenIssuer accessTokenIssuer;
     private final Rbac3RuntimePolicy runtimePolicy;
     private final Clock clock;
 
@@ -45,12 +43,11 @@ public final class RoleActivationFacade {
             ActivationTransaction transaction,
             SessionSnapshotProjector snapshotProjector,
             RuntimeStore runtimeStore,
-            AccessTokenIssuer accessTokenIssuer,
             Rbac3RuntimePolicy runtimePolicy,
             Clock clock
     ) {
         this(factSource, transaction, new DefaultRoleActivationResolver(),
-                snapshotProjector, runtimeStore, accessTokenIssuer, runtimePolicy, clock);
+                snapshotProjector, runtimeStore, runtimePolicy, clock);
     }
 
     RoleActivationFacade(
@@ -59,7 +56,6 @@ public final class RoleActivationFacade {
             RoleActivationResolver resolver,
             SessionSnapshotProjector snapshotProjector,
             RuntimeStore runtimeStore,
-            AccessTokenIssuer accessTokenIssuer,
             Rbac3RuntimePolicy runtimePolicy,
             Clock clock
     ) {
@@ -69,8 +65,6 @@ public final class RoleActivationFacade {
         this.snapshotProjector = Objects.requireNonNull(
                 snapshotProjector, "snapshotProjector");
         this.runtimeStore = Objects.requireNonNull(runtimeStore, "runtimeStore");
-        this.accessTokenIssuer = Objects.requireNonNull(
-                accessTokenIssuer, "accessTokenIssuer");
         this.runtimePolicy = Objects.requireNonNull(runtimePolicy, "runtimePolicy");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -105,7 +99,8 @@ public final class RoleActivationFacade {
                 transaction.markFenced(result.mutationId(), now);
                 SessionSnapshotProjector.Projection projection = snapshotProjector.project(
                         new SessionSnapshotProjector.ProjectionCommand(
-                                command.tenantId(), command.userId(), command.sessionId(),
+                                command.tenantId(), command.identitySub(), command.userId(),
+                                command.sessionId(),
                                 result.authVersion(), result.sessionVersion(),
                                 result.policyVersion(), result.expiresAt(),
                                 result.resolved().resolution(),
@@ -126,31 +121,27 @@ public final class RoleActivationFacade {
                         "AUTH_PROPAGATION_PENDING", List.of(result.mutationId()));
             }
         }
-        IssuedToken token = accessTokenIssuer.issue(
-                command.tenantId(), command.userId(), command.sessionId(),
-                result.authVersion(), result.sessionVersion(), result.policyVersion(), now);
         return new ReplaceActiveRolesResult(
                 activeRoles(result.rootsByApplication(), result.resolved().facts()),
                 result.changed(),
                 result.sessionVersion(),
                 result.authVersion(),
                 result.policyVersion(),
-                token.token(),
-                Math.max(0L, Duration.between(now, token.expiresAt()).toSeconds()),
-                false,
                 false,
                 result.snapshotChecksum());
     }
 
     public ActiveRoleSetView current(
             String tenantId,
+            String identitySub,
             String userId,
             String sessionId
     ) {
         Instant now = clock.instant();
         RoleActivationCandidateService.ActivationFacts facts = factSource.load(
                 tenantId, userId, now);
-        CurrentState state = transaction.current(tenantId, userId, sessionId, now);
+        CurrentState state = transaction.current(
+                tenantId, identitySub, userId, sessionId, now);
         return new ActiveRoleSetView(
                 sessionId,
                 activeRoles(state.rootsByApplication(), facts),
@@ -216,18 +207,6 @@ public final class RoleActivationFacade {
         }
     }
 
-    public static AccessTokenIssuer jwtIssuer(JwtTokenService tokenService) {
-        Objects.requireNonNull(tokenService, "tokenService");
-        return (tenantId, userId, sessionId, authVersion, sessionVersion,
-                policyVersion, now) -> {
-            JwtTokenService.IssuedAccessToken token = tokenService.issue(
-                    new JwtTokenService.AccessTokenSubject(
-                            tenantId, userId, sessionId,
-                            authVersion, sessionVersion, policyVersion), now);
-            return new IssuedToken(token.token(), token.expiresAt());
-        };
-    }
-
     public interface ActivationTransaction {
 
         TransactionResult replace(
@@ -237,6 +216,7 @@ public final class RoleActivationFacade {
 
         CurrentState current(
                 String tenantId,
+                String identitySub,
                 String userId,
                 String sessionId,
                 Instant now);
@@ -266,34 +246,23 @@ public final class RoleActivationFacade {
         void publish(RuntimePublication publication);
     }
 
-    @FunctionalInterface
-    public interface AccessTokenIssuer {
-
-        IssuedToken issue(
-                String tenantId,
-                String userId,
-                String sessionId,
-                long authVersion,
-                long sessionVersion,
-                long policyVersion,
-                Instant now);
-    }
-
     public record ReplaceCommand(
             String tenantId,
+            String identitySub,
             String userId,
             String sessionId,
             List<String> requestedRoleIds,
-            long expectedSessionVersion,
+            long expectedContextVersion,
             String actorId,
             String commandId
     ) {
 
         public ReplaceCommand {
+            Objects.requireNonNull(identitySub, "identitySub");
             requestedRoleIds = List.copyOf(requestedRoleIds);
-            if (expectedSessionVersion < 0) {
+            if (expectedContextVersion < 0) {
                 throw new IllegalArgumentException(
-                        "expectedSessionVersion must not be negative");
+                        "expectedContextVersion must not be negative");
             }
             Objects.requireNonNull(commandId, "commandId");
         }
@@ -371,6 +340,4 @@ public final class RoleActivationFacade {
     ) {
     }
 
-    public record IssuedToken(String token, Instant expiresAt) {
-    }
 }

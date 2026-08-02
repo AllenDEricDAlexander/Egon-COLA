@@ -31,9 +31,6 @@ class ActivationContractTest {
                 4L,
                 6L,
                 9L,
-                "eyJhbGciOiJIUzI1NiJ9.activation",
-                900L,
-                true,
                 false,
                 "sha256:snapshot"
         );
@@ -44,12 +41,9 @@ class ActivationContractTest {
         assertEquals(Set.of(
                 "activeRoles",
                 "changed",
-                "sessionVersion",
+                "contextVersion",
                 "authVersion",
                 "policyVersion",
-                "accessToken",
-                "expiresIn",
-                "refreshTokenRotated",
                 "bootstrapRequired",
                 "snapshotChecksum"
         ), fieldNames(json));
@@ -62,7 +56,7 @@ class ActivationContractTest {
                 UnsupportedOperationException.class,
                 () -> result.activeRoles().clear()
         );
-        assertFalse(result.toString().contains(result.accessToken()));
+        assertFalse(result.toString().contains("accessToken"));
     }
 
     @Test
@@ -75,24 +69,6 @@ class ActivationContractTest {
                         -1L,
                         1L,
                         1L,
-                        "access-token",
-                        900L,
-                        false,
-                        false,
-                        "sha256:snapshot"
-                )
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new ReplaceActiveRolesResult(
-                        List.of(applicationRoles()),
-                        true,
-                        1L,
-                        1L,
-                        1L,
-                        " ",
-                        900L,
-                        false,
                         false,
                         "sha256:snapshot"
                 )

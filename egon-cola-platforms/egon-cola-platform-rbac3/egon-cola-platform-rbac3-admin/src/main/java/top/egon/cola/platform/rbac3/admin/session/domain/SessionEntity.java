@@ -25,12 +25,18 @@ public class SessionEntity extends TenantScopedEntity {
     @Column(name = "session_id", nullable = false, unique = true)
     private Long sessionId;
 
+    @Column(name = "identity_sub", nullable = false, length = 128)
+    private String identitySub;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Status status;
 
     @Column(name = "session_version", nullable = false)
     private long sessionVersion;
+
+    @Column(name = "context_version", nullable = false)
+    private long contextVersion;
 
     @Column(name = "auth_version_at_issue", nullable = false)
     private long authVersionAtIssue;
@@ -44,7 +50,7 @@ public class SessionEntity extends TenantScopedEntity {
     @Column(name = "activation_required", nullable = false)
     private boolean activationRequired;
 
-    @Column(name = "token_family_id", nullable = false, length = 128)
+    @Column(name = "token_family_id", length = 128)
     private String tokenFamilyId;
 
     @Column(name = "device_id_hash", length = 128)
@@ -68,6 +74,9 @@ public class SessionEntity extends TenantScopedEntity {
 
     @Column(name = "absolute_expires_at", nullable = false)
     private Instant absoluteExpiresAt;
+
+    @Column(name = "context_expires_at", nullable = false)
+    private Instant contextExpiresAt;
 
     @Column(name = "revoked_at")
     private Instant revokedAt;
@@ -103,6 +112,7 @@ public class SessionEntity extends TenantScopedEntity {
         setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
         this.userId = Objects.requireNonNull(userId, "userId");
         this.sessionId = Objects.requireNonNull(sessionId, "sessionId");
+        this.identitySub = userId.toString();
         this.status = Status.ACTIVE;
         this.authVersionAtIssue = authVersion;
         this.policyVersionAtIssue = policyVersion;
@@ -115,7 +125,46 @@ public class SessionEntity extends TenantScopedEntity {
         this.lastSeenAt = authenticatedAt;
         this.idleExpiresAt = idleExpiresAt;
         this.absoluteExpiresAt = Objects.requireNonNull(absoluteExpiresAt, "absoluteExpiresAt");
+        this.contextExpiresAt = absoluteExpiresAt;
         markCreated(actorId, authenticatedAt);
+    }
+
+    public static SessionEntity authorizationContext(
+            Long id,
+            Long tenantId,
+            Long userId,
+            Long sessionId,
+            String identitySub,
+            long authVersion,
+            long policyVersion,
+            Instant createdAt,
+            Instant expiresAt,
+            String actorId) {
+        if (authVersion < 0 || policyVersion < 0) {
+            throw new IllegalArgumentException("versions must not be negative");
+        }
+        if (expiresAt == null || !expiresAt.isAfter(createdAt)) {
+            throw new IllegalArgumentException("context expiry must be after creation");
+        }
+        SessionEntity entity = new SessionEntity();
+        entity.id = Objects.requireNonNull(id, "id");
+        entity.setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
+        entity.userId = Objects.requireNonNull(userId, "userId");
+        entity.sessionId = Objects.requireNonNull(sessionId, "sessionId");
+        entity.identitySub = required(identitySub, "identitySub");
+        entity.status = Status.ACTIVE;
+        entity.authVersionAtIssue = authVersion;
+        entity.policyVersionAtIssue = policyVersion;
+        entity.activationRequired = true;
+        entity.authenticationStrength = AuthenticationStrength.STRONG;
+        entity.authenticatedAt = Objects.requireNonNull(createdAt, "createdAt");
+        entity.strongAuthenticatedAt = createdAt;
+        entity.lastSeenAt = createdAt;
+        entity.idleExpiresAt = expiresAt;
+        entity.absoluteExpiresAt = expiresAt;
+        entity.contextExpiresAt = expiresAt;
+        entity.markCreated(actorId, createdAt);
+        return entity;
     }
 
     public void refresh(long currentPolicyVersion, Instant now, Instant nextIdleExpiry, String actorId) {
@@ -124,6 +173,7 @@ public class SessionEntity extends TenantScopedEntity {
             throw new IllegalArgumentException("currentPolicyVersion must not be negative");
         }
         sessionVersion = Math.incrementExact(sessionVersion);
+        contextVersion = Math.incrementExact(contextVersion);
         policyVersionAtIssue = currentPolicyVersion;
         lastSeenAt = now;
         idleExpiresAt = nextIdleExpiry.isAfter(absoluteExpiresAt)
@@ -144,6 +194,7 @@ public class SessionEntity extends TenantScopedEntity {
             throw new IllegalArgumentException("versions must not be negative");
         }
         sessionVersion = Math.incrementExact(sessionVersion);
+        contextVersion = Math.incrementExact(contextVersion);
         authVersionAtIssue = currentAuthVersion;
         policyVersionAtIssue = currentPolicyVersion;
         activeRootChecksum = required(rootChecksum, "rootChecksum");
@@ -155,6 +206,7 @@ public class SessionEntity extends TenantScopedEntity {
     public void requireRoleReselection(String actorId, Instant now) {
         requireActive(now);
         sessionVersion = Math.incrementExact(sessionVersion);
+        contextVersion = Math.incrementExact(contextVersion);
         activeRootChecksum = null;
         activationRequired = true;
         markUpdated(actorId, now);
@@ -169,6 +221,7 @@ public class SessionEntity extends TenantScopedEntity {
         }
         status = Status.LOGGED_OUT;
         sessionVersion = Math.incrementExact(sessionVersion);
+        contextVersion = Math.incrementExact(contextVersion);
         revokedAt = now;
         revokeReason = "USER_LOGOUT";
         markUpdated(actorId, now);
@@ -181,6 +234,7 @@ public class SessionEntity extends TenantScopedEntity {
         }
         status = Status.COMPROMISED;
         sessionVersion = Math.incrementExact(sessionVersion);
+        contextVersion = Math.incrementExact(contextVersion);
         revokedAt = now;
         revokeReason = "REFRESH_TOKEN_REUSED";
         markUpdated(actorId, now);
@@ -193,6 +247,7 @@ public class SessionEntity extends TenantScopedEntity {
         }
         status = Status.REVOKED;
         sessionVersion = Math.incrementExact(sessionVersion);
+        contextVersion = Math.incrementExact(contextVersion);
         revokedAt = now;
         revokeReason = required(reason, "reason");
         markUpdated(actorId, now);
@@ -219,13 +274,22 @@ public class SessionEntity extends TenantScopedEntity {
         if (status != Status.ACTIVE) {
             throw new IllegalStateException("session is not active");
         }
-        if (!idleExpiresAt.isAfter(now) || !absoluteExpiresAt.isAfter(now)) {
+        if (!idleExpiresAt.isAfter(now) || !absoluteExpiresAt.isAfter(now)
+                || !contextExpiresAt.isAfter(now)) {
             throw new IllegalStateException("session has expired");
         }
     }
 
     public Long getSessionId() {
         return sessionId;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getIdentitySub() {
+        return identitySub;
     }
 
     public Long getUserId() {
@@ -238,6 +302,10 @@ public class SessionEntity extends TenantScopedEntity {
 
     public long getSessionVersion() {
         return sessionVersion;
+    }
+
+    public long getContextVersion() {
+        return contextVersion;
     }
 
     public long getAuthVersionAtIssue() {
@@ -274,6 +342,10 @@ public class SessionEntity extends TenantScopedEntity {
 
     public Instant getIdleExpiresAt() {
         return idleExpiresAt;
+    }
+
+    public Instant getContextExpiresAt() {
+        return contextExpiresAt;
     }
 
     public String getTokenFamilyId() {
