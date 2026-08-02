@@ -84,7 +84,9 @@ export const apiRequest = async <T>(
     headers.set('Idempotency-Key', request.idempotencyKey)
   }
   let body: BodyInit | undefined
-  if (request.body !== undefined) {
+  if (request.body instanceof FormData) {
+    body = request.body
+  } else if (request.body !== undefined) {
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(request.body)
   }

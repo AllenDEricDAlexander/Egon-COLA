@@ -416,8 +416,11 @@ export type McpMutationResult = {
 
 export type McpValidationReport = {
   valid: boolean
-  errors: ValidationIssue[]
-  warnings: ValidationIssue[]
+  findings: Array<{
+    path: string
+    code: string
+    message: string
+  }>
 }
 
 export type McpCapabilityPreview = {
@@ -435,6 +438,103 @@ export type McpProtocolInspection = {
 export type McpOperationOption = {
   value: string
   label: string
+}
+
+export type McpRemoteProvider = {
+  id: string
+  gatewayGroupId: string
+  providerCode: string
+  content: Record<string, unknown>
+  enabled: boolean
+  revision: number
+}
+
+export type McpRemoteProviderMutation = Omit<
+  McpRemoteProvider,
+  'id' | 'revision'
+> & {
+  expectedRevision: number
+  expectedDraftRevision: number
+  changeReason: string
+}
+
+export type McpRemoteCapability = {
+  id: string
+  providerId: string
+  primitiveType: string
+  remoteName: string
+  descriptor: Record<string, unknown>
+  capabilityFingerprint: string
+  syncedAt: string
+}
+
+export type McpRemoteMount = {
+  id: string
+  gatewayGroupId: string
+  serverId: string
+  providerId: string
+  namespace: string
+  capabilityFingerprint: string
+  content: Record<string, unknown>
+  enabled: boolean
+  revision: number
+}
+
+export type McpRemoteMountMutation = Omit<
+  McpRemoteMount,
+  'id' | 'revision'
+> & {
+  expectedRevision: number
+  expectedDraftRevision: number
+  changeReason: string
+}
+
+export type McpAppArtifact = {
+  id: string
+  gatewayGroupId: string
+  appCode: string
+  version: string
+  displayName: string
+  resourceUri: string
+  artifactReference: string
+  sha256: string
+  sizeBytes: number
+  mimeType: string
+  contentSecurityPolicy: string
+  permissions: string[]
+  allowedOrigins: string[]
+  createdBy: string
+  createdAt: string
+}
+
+export type McpTask = {
+  id: string
+  principalFingerprint: string
+  subjectId: string
+  tenantId: string
+  clientId: string
+  serverCode: string
+  toolName: string
+  requestDigest: string
+  state: string
+  inputPayload?: Record<string, unknown>
+  resultPayload?: Record<string, unknown>
+  errorPayload?: Record<string, unknown>
+  workerOwner?: string
+  leaseUntil?: string
+  executionDeadline: string
+  expiresAt: string
+  attemptCount: number
+  maxAttempts: number
+  revision: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type McpApproval = {
+  approvalId: string
+  approvalToken: string
+  expiresAt: string
 }
 
 export type Page<T> = {

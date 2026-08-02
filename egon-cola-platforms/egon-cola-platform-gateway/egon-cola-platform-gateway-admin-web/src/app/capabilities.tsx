@@ -14,6 +14,7 @@ export type Capability =
   | 'gateway:mcp:test'
   | 'gateway:mcp:release'
   | 'gateway:mcp:approve'
+  | 'gateway:mcp:runtime:read'
 
 const CapabilityContext = createContext<ReadonlySet<string>>(new Set())
 

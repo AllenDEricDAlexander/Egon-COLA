@@ -18,13 +18,21 @@ import type {
   McpCapabilityMutation,
   McpCapabilityPlural,
   McpCapabilityPreview,
+  McpAppArtifact,
+  McpApproval,
   McpMutationResult,
   McpOperationOption,
   McpProtocolDialect,
   McpProtocolInspection,
+  McpRemoteCapability,
+  McpRemoteMount,
+  McpRemoteMountMutation,
+  McpRemoteProvider,
+  McpRemoteProviderMutation,
   McpServer,
   McpServerMutation,
   McpValidationReport,
+  McpTask,
   OperationDetail,
   Page,
   ProviderInstance,
@@ -535,4 +543,133 @@ export const gatewayApi = {
       ),
     )).sort((left, right) => left.label.localeCompare(right.label))
   },
+  mcpRemoteProviders: (gatewayGroupId: string, signal?: AbortSignal) =>
+    apiRequest<McpRemoteProvider[]>(
+      `${admin}/mcp/remote/providers?${new URLSearchParams({ gatewayGroupId })}`,
+      { signal },
+    ),
+  createMcpRemoteProvider: (provider: McpRemoteProviderMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/remote/providers`, {
+      method: 'POST',
+      body: provider,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  updateMcpRemoteProvider: (providerId: string, provider: McpRemoteProviderMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/remote/providers/${providerId}`, {
+      method: 'PUT',
+      body: provider,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  deleteMcpRemoteProvider: (
+    providerId: string,
+    control: {
+      gatewayGroupId: string
+      expectedRevision: number
+      expectedDraftRevision: number
+      changeReason: string
+    },
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/remote/providers/${providerId}`, {
+    method: 'DELETE',
+    body: control,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  discoverMcpRemoteProvider: (providerId: string) =>
+    apiRequest<McpRemoteCapability[]>(`${admin}/mcp/remote/providers/${providerId}/discover`, {
+      method: 'POST',
+    }),
+  mcpRemoteMounts: (gatewayGroupId: string, signal?: AbortSignal) =>
+    apiRequest<McpRemoteMount[]>(
+      `${admin}/mcp/remote/mounts?${new URLSearchParams({ gatewayGroupId })}`,
+      { signal },
+    ),
+  createMcpRemoteMount: (mount: McpRemoteMountMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/remote/mounts`, {
+      method: 'POST',
+      body: mount,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  updateMcpRemoteMount: (mountId: string, mount: McpRemoteMountMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/remote/mounts/${mountId}`, {
+      method: 'PUT',
+      body: mount,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  deleteMcpRemoteMount: (
+    mountId: string,
+    control: {
+      gatewayGroupId: string
+      expectedRevision: number
+      expectedDraftRevision: number
+      changeReason: string
+    },
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/remote/mounts/${mountId}`, {
+    method: 'DELETE',
+    body: control,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  mcpAppArtifacts: (gatewayGroupId: string, signal?: AbortSignal) =>
+    apiRequest<McpAppArtifact[]>(
+      `${admin}/mcp/apps/artifacts?${new URLSearchParams({ gatewayGroupId })}`,
+      { signal },
+    ),
+  uploadMcpAppArtifact: (values: {
+    gatewayGroupId: string
+    appCode: string
+    version: string
+    displayName: string
+    resourceUri: string
+    mimeType: string
+    contentSecurityPolicy: string
+    permissions: string[]
+    allowedOrigins: string[]
+    expectedRevision: number
+    expectedDraftRevision: number
+    changeReason: string
+    artifact: File
+  }) => {
+    const form = new FormData()
+    Object.entries(values).forEach(([key, value]) => {
+      if (key === 'artifact') form.append(key, value as File)
+      else if (Array.isArray(value)) value.forEach((item) => form.append(key, item))
+      else form.append(key, String(value))
+    })
+    return apiRequest<McpMutationResult>(`${admin}/mcp/apps/artifacts/upload`, {
+      method: 'POST',
+      body: form,
+      idempotencyKey: newIdempotencyKey(),
+    })
+  },
+  revokeMcpAppArtifact: (
+    artifactId: string,
+    control: {
+      gatewayGroupId: string
+      expectedRevision: number
+      expectedDraftRevision: number
+      changeReason: string
+    },
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/apps/artifacts/${artifactId}`, {
+    method: 'DELETE',
+    body: control,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  mcpTasks: (tenantId: string, clientId?: string, signal?: AbortSignal) => {
+    const params = new URLSearchParams({ tenantId })
+    if (clientId) params.set('clientId', clientId)
+    return apiRequest<McpTask[]>(`${admin}/mcp/tasks?${params}`, { signal })
+  },
+  cancelMcpTask: (taskId: string, expectedRevision: number) =>
+    apiRequest<{ cancelled: boolean }>(`${admin}/mcp/tasks/${taskId}/cancel`, {
+      method: 'POST',
+      body: { expectedRevision },
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  issueMcpApproval: (request: {
+    serverCode: string
+    toolName: string
+    arguments: Record<string, unknown>
+    ttlSeconds: number
+  }) => apiRequest<McpApproval>(`${admin}/mcp/approvals`, {
+    method: 'POST',
+    body: request,
+  }),
 }

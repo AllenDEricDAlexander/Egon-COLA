@@ -81,6 +81,11 @@ const McpServerWorkbenchPage = lazy(() =>
     default: module.McpServerWorkbenchPage,
   })),
 )
+const McpRemoteProvidersPage = lazy(() =>
+  import('../features/mcp/McpRemoteProvidersPage').then((module) => ({
+    default: module.McpRemoteProvidersPage,
+  })),
+)
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -128,6 +133,14 @@ const router = createBrowserRouter([
         element: (
           <RequireCapability capability="gateway:mcp:read">
             <McpServerWorkbenchPage />
+          </RequireCapability>
+        ),
+      },
+      {
+        path: 'mcp/remote-providers',
+        element: (
+          <RequireCapability capability="gateway:mcp:read">
+            <McpRemoteProvidersPage />
           </RequireCapability>
         ),
       },

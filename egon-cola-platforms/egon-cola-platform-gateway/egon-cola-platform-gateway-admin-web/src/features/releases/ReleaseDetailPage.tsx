@@ -113,6 +113,9 @@ export const ReleaseDetailPage = () => {
         }))}
       />
       <JsonPanel title="Validation Report" value={release.data.validationReport} />
+      {release.data.structuredDiff.mcp !== undefined && (
+        <JsonPanel title="MCP Unified Release Diff" value={release.data.structuredDiff.mcp} />
+      )}
       <JsonPanel title="Structured Diff" value={release.data.structuredDiff} />
       <Modal
         title="创建回滚 Release"

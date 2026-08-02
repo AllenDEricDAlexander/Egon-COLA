@@ -18,7 +18,7 @@ import type { McpCapabilityDraft, McpCapabilityMutation } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { QueryFailure } from '../../components/QueryState'
 import { useScope } from '../../hooks/useScope'
-import { formatJson, parseJsonObject, parseStringList } from './mcpValidation'
+import { formatJson, parseStringList, validateJsonSchema } from './mcpValidation'
 
 type ToolForm = {
   name: string
@@ -75,8 +75,8 @@ export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
           sourceType: values.sourceType,
           operationId: values.sourceType === 'LOCAL_OPERATION' ? values.operationId : undefined,
           remoteMountId: values.sourceType === 'REMOTE_MCP' ? values.remoteMountId : undefined,
-          inputSchema: parseJsonObject(values.inputSchema, 'Input Schema'),
-          outputSchema: parseJsonObject(values.outputSchema, 'Output Schema'),
+          inputSchema: validateJsonSchema(values.inputSchema, 'Input Schema'),
+          outputSchema: validateJsonSchema(values.outputSchema, 'Output Schema'),
           argumentBindings: {},
           resultBindings: {},
           annotations: {},

@@ -10,6 +10,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   RobotOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons'
 import { Badge, Button, Layout, Menu, Select, Space, Typography } from 'antd'
 import { useState } from 'react'
@@ -59,6 +60,12 @@ const navigation: Array<{
     key: '/mcp/servers',
     icon: <RobotOutlined />,
     label: 'MCP Control Plane',
+    capability: 'gateway:mcp:read',
+  },
+  {
+    key: '/mcp/remote-providers',
+    icon: <ShareAltOutlined />,
+    label: 'Remote MCP',
     capability: 'gateway:mcp:read',
   },
   {
