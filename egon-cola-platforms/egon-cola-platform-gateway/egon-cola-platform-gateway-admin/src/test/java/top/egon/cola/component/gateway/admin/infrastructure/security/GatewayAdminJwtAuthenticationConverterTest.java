@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GatewayAdminJwtAuthenticationConverterTest {
 
     @Test
-    void mapsSubjectCapabilitiesAndRolesFromVerifiedJwt() {
+    void ignoresAuthorizationClaimsFromIdentityToken() {
         Jwt jwt = new Jwt(
                 "token",
                 Instant.parse("2026-07-25T00:00:00Z"),
@@ -33,12 +33,6 @@ class GatewayAdminJwtAuthenticationConverterTest {
 
         assertThat(authentication).isNotNull();
         assertThat(authentication.getName()).isEqualTo("admin-42");
-        assertThat(authentication.getAuthorities())
-                .extracting("authority")
-                .containsExactlyInAnyOrder(
-                        "CAP_gateway:read",
-                        "CAP_gateway:groups:write",
-                        "ROLE_GATEWAY_OPERATOR"
-                );
+        assertThat(authentication.getAuthorities()).isEmpty();
     }
 }

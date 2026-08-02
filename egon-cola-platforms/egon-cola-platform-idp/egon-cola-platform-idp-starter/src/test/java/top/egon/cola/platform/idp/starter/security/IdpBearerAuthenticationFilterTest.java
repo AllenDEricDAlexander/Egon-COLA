@@ -52,6 +52,18 @@ class IdpBearerAuthenticationFilterTest {
                 .doesNotContain("second");
     }
 
+    @Test
+    void leavesInternalServiceCredentialsForTheInternalSecurityChain()
+            throws Exception {
+        var request = new MockHttpServletRequest("GET", "/internal/v1/state");
+        request.addHeader("Authorization", "Bearer service-credential");
+        var chain = new CapturingFilterChain();
+
+        filter().doFilter(request, new MockHttpServletResponse(), chain);
+
+        assertThat(chain.principal).isNull();
+    }
+
     private IdpBearerAuthenticationFilter filter() {
         return new IdpBearerAuthenticationFilter(
                 new IdpJwtVerifier(token -> jwt(),
@@ -89,8 +101,9 @@ class IdpBearerAuthenticationFilterTest {
                 jakarta.servlet.ServletRequest request,
                 jakarta.servlet.ServletResponse response
         ) {
-            principal = SecurityContextHolder.getContext()
-                    .getAuthentication().getPrincipal();
+            var authentication = SecurityContextHolder.getContext()
+                    .getAuthentication();
+            principal = authentication == null ? null : authentication.getPrincipal();
         }
     }
 }

@@ -29,6 +29,10 @@ import top.egon.cola.component.ddc.admin.service.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.DdcPublishService;
 import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3AuthenticationToken;
 
 import java.time.Instant;
 import java.util.List;
@@ -39,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -171,6 +176,37 @@ class DdcAdminSecurityIntegrationTest {
     }
 
     @Test
+    void tokenAuthorizationClaimsDoNotGrantDdcPermission() throws Exception {
+        mockMvc.perform(get("/api/v1/ddc/configs")
+                        .with(jwt().jwt(token -> token.subject("limited-user")
+                                .claim("roles", List.of("ADMIN"))
+                                .claim("capabilities", List.of("DDC_READ")))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rbac3SnapshotGrantsDdcPermission() throws Exception {
+        when(configService.list(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/ddc/configs")
+                        .with(authentication(rbac3("DDC_READ"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void rbac3PrincipalUsesTheStableIdentitySubjectAsOperator() throws Exception {
+        mockMvc.perform(post("/api/v1/ddc/configs")
+                        .with(authentication(rbac3("DDC_WRITE")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(configBody()))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<String> operator = ArgumentCaptor.forClass(String.class);
+        verify(configService).create(any(DdcConfigCreateRequest.class), operator.capture());
+        assertThat(operator.getValue()).isEqualTo("user:admin-sub [requested=system]");
+    }
+
+    @Test
     void reservesPublishAndCacheOperationsForExactCapabilities()
             throws Exception {
         mockMvc.perform(post("/api/v1/ddc/configs/config-1/publish")
@@ -232,6 +268,21 @@ class DdcAdminSecurityIntegrationTest {
     authority(String value) {
         return jwt().jwt(token -> token.subject("test-user"))
                 .authorities(new SimpleGrantedAuthority(value));
+    }
+
+    private Rbac3AuthenticationToken rbac3(String permission) {
+        Instant now = Instant.parse("2026-08-02T04:00:00Z");
+        IdentityPrincipal identity = new IdentityPrincipal(
+                "admin-sub", "tenant-a", "sid-1", "ddc-admin-web",
+                "token-1", 2, java.util.Set.of("ddc-admin-web"),
+                now, now.plusSeconds(900));
+        SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
+                "tenant-a", "admin-sub", "101", "sid-1", "ddc-admin",
+                3, 4, 5, List.of("ddc-reader"), java.util.Set.of(permission),
+                Map.of(), Map.of(), "sha256:ddc", now, now.plusSeconds(900));
+        return new Rbac3AuthenticationToken(
+                new AuthorizationService.RuntimeAuthorizationContext(
+                        identity, snapshot, false));
     }
 
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder

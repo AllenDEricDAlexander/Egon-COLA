@@ -5,6 +5,17 @@ spring:
       port: ${IDP_REDIS_PORT:6379}
       database: ${IDP_REDIS_DATABASE:0}
 
+egon.cola.platform:
+  idp:
+    issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
+    jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+  rbac3:
+    runtime:
+      redis-address: ${IDP_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+    authorization:
+      endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+      service-credential-file: ${IDP_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/idp-admin.service.jwt}
+
 egon:
   idp:
     oauth:

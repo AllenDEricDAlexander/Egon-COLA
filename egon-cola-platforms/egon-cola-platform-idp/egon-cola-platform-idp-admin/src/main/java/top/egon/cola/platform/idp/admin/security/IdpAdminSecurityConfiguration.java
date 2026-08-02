@@ -1,22 +1,32 @@
 package top.egon.cola.platform.idp.admin.security;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.rbac3.contract.authorization.Decision;
+import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
+import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 
 @Configuration(proxyBeanMethods = false)
 public class IdpAdminSecurityConfiguration {
 
     @Bean
-    SecurityFilterChain idpAdminSecurityFilterChain(HttpSecurity http)
+    SecurityFilterChain idpAdminSecurityFilterChain(
+            HttpSecurity http,
+            ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
+            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters)
             throws Exception {
-        IdpJwtAuthenticationConverter converter =
-                new IdpJwtAuthenticationConverter();
-        return http
+        IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
+        Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
+        http
                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                         "/api/**",
                         "/oauth2/token",
@@ -36,26 +46,42 @@ public class IdpAdminSecurityConfiguration {
                                 "/actuator/health/readiness"
                         ).permitAll()
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(
-                        jwt -> jwt.jwtAuthenticationConverter(converter)
-                ))
                 .headers(headers -> headers
                         .contentTypeOptions(contentType -> { })
                         .referrerPolicy(referrer -> referrer.policy(
                                 org.springframework.security.web.header.writers
                                         .ReferrerPolicyHeaderWriter.ReferrerPolicy
                                         .NO_REFERRER
-                        )))
-                .build();
+                        )));
+        if (idpFilter != null && rbac3Filter != null) {
+            http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
+        } else if (idpFilter == null && rbac3Filter == null) {
+            http.oauth2ResourceServer(resourceServer -> resourceServer.jwt(
+                    jwt -> jwt.jwtAuthenticationConverter(
+                            new IdpJwtAuthenticationConverter())));
+        } else {
+            throw new IllegalStateException(
+                    "IdP and RBAC3 authentication filters must be configured together");
+        }
+        return http.build();
     }
 
     @Bean
     @ConditionalOnMissingBean(IdpAdminAuthorizationPort.class)
-    IdpAdminAuthorizationPort failClosedIdpAdminAuthorizationPort() {
+    IdpAdminAuthorizationPort idpAdminAuthorizationPort(
+            ObjectProvider<AuthorizationService> authorizationServices) {
         return (principal, permission) -> {
-            throw new AccessDeniedException(
-                    "RBAC3 authorization adapter is not configured"
-            );
+            AuthorizationService authorization = authorizationServices.getIfAvailable();
+            if (authorization == null) {
+                throw new AccessDeniedException(
+                        "RBAC3 authorization adapter is not configured");
+            }
+            var decision = authorization.requirePermission(
+                    PermissionRequest.of(permission));
+            if (decision.decision() != Decision.ALLOW) {
+                throw new AccessDeniedException(decision.reasonCode());
+            }
         };
     }
 }

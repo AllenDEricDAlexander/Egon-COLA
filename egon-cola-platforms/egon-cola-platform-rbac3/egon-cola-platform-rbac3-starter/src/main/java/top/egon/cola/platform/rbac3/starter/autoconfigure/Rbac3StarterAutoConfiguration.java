@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
+import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
 import top.egon.cola.platform.rbac3.starter.authorization.DefaultAuthorizationService;
 import top.egon.cola.platform.rbac3.starter.cache.AuthorizationSnapshotCache;
 import top.egon.cola.platform.rbac3.starter.cache.RedisAuthorizationSnapshotCache;
@@ -25,8 +26,8 @@ import top.egon.cola.platform.rbac3.starter.client.HttpRbac3AuthorizationClient;
 import top.egon.cola.platform.rbac3.starter.client.Rbac3AuthorizationClient;
 import top.egon.cola.platform.rbac3.starter.event.Rbac3AuthorizationInvalidationConsumer;
 import top.egon.cola.platform.rbac3.starter.runtime.Rbac3RuntimeRedissonConfiguration;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3AuthenticationToken;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3ContextAuthentication;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3MethodAuthorizationAspect;
 import top.egon.cola.platform.rbac3.starter.web.Rbac3AuthorizationExceptionHandler;
 
@@ -122,7 +123,7 @@ public class Rbac3StarterAutoConfiguration {
         return () -> {
             Authentication authentication = SecurityContextHolder.getContext()
                     .getAuthentication();
-            if (authentication instanceof Rbac3AuthenticationToken token) {
+            if (authentication instanceof Rbac3ContextAuthentication token) {
                 return token.context();
             }
             throw new IllegalStateException("RBAC3 authentication is required");
@@ -157,6 +158,13 @@ public class Rbac3StarterAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public AuthorizationBootstrapService authorizationBootstrapService(
+            AuthorizationService.RuntimeContextSource contextSource) {
+        return new AuthorizationBootstrapService(contextSource);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public Rbac3MethodAuthorizationAspect rbac3MethodAuthorizationAspect(
             AuthorizationService authorizationService) {
         return new Rbac3MethodAuthorizationAspect(authorizationService);
@@ -181,11 +189,14 @@ public class Rbac3StarterAutoConfiguration {
     @ConditionalOnBean(Rbac3BearerAuthenticationFilter.class)
     @ConditionalOnMissingBean(name = "rbac3BearerFilterRegistration")
     public FilterRegistrationBean<Rbac3BearerAuthenticationFilter>
-            rbac3BearerFilterRegistration(Rbac3BearerAuthenticationFilter filter) {
+            rbac3BearerFilterRegistration(
+                    Rbac3BearerAuthenticationFilter filter,
+                    Rbac3StarterProperties properties) {
         FilterRegistrationBean<Rbac3BearerAuthenticationFilter> registration =
                 new FilterRegistrationBean<>(filter);
         registration.setName("rbac3BearerAuthenticationFilter");
         registration.setOrder(-101);
+        registration.setEnabled(properties.isRegisterFilter());
         return registration;
     }
 

@@ -9,6 +9,7 @@ import java.util.Set;
 public class IdpStarterProperties {
 
     private boolean enabled;
+    private boolean registerFilter = true;
     private String issuer;
     private String jwkSetUri;
     private Set<String> audiences = new LinkedHashSet<>();
@@ -21,6 +22,14 @@ public class IdpStarterProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isRegisterFilter() {
+        return registerFilter;
+    }
+
+    public void setRegisterFilter(boolean registerFilter) {
+        this.registerFilter = registerFilter;
     }
 
     public String getIssuer() {

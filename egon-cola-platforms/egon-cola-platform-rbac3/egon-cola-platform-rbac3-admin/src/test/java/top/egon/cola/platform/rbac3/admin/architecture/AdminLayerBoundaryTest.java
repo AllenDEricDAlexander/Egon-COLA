@@ -6,11 +6,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdminLayerBoundaryTest {
 
     @Test
-    void controllersDoNotInjectRepositoriesAndAdminDoesNotDependOnStarter()
+    void controllersDoNotInjectRepositoriesAndAdminUsesUnifiedSecurityStarter()
             throws Exception {
         Path basedir = Path.of(System.getProperty("basedir"));
         Path http = basedir.resolve(
@@ -23,7 +24,7 @@ class AdminLayerBoundaryTest {
             }
         }
         String pom = Files.readString(basedir.resolve("pom.xml"));
-        assertFalse(pom.contains("egon-cola-platform-rbac3-starter"));
+        assertTrue(pom.contains("egon-cola-platform-rbac3-starter"));
     }
 
     private String read(Path path) {

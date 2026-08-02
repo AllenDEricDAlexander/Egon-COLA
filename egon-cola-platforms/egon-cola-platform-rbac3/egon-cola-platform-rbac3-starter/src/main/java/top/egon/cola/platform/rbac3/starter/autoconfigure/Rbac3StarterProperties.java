@@ -8,6 +8,7 @@ import java.time.Duration;
 public class Rbac3StarterProperties {
 
     private boolean enabled;
+    private boolean registerFilter = true;
     private String systemCode;
     private final Runtime runtime = new Runtime();
     private final Authorization authorization = new Authorization();
@@ -19,6 +20,14 @@ public class Rbac3StarterProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isRegisterFilter() {
+        return registerFilter;
+    }
+
+    public void setRegisterFilter(boolean registerFilter) {
+        this.registerFilter = registerFilter;
     }
 
     public String getSystemCode() {

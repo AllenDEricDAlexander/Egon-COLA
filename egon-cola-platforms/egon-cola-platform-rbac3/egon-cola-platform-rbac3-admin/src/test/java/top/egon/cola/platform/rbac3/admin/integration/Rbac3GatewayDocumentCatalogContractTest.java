@@ -44,6 +44,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryServic
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -148,6 +149,9 @@ class Rbac3GatewayDocumentCatalogContractTest {
 
     @MockitoBean
     private SystemAuthorizationSnapshotService systemAuthorizationSnapshotService;
+
+    @MockitoBean
+    private AuthorizationBootstrapService authorizationBootstrapService;
 
     @MockitoBean
     private AssignmentController.SessionStrengthPort sessionStrengthPort;

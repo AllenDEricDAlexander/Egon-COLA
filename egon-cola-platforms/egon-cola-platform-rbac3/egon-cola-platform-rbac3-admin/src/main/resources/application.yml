@@ -40,6 +40,26 @@ management:
         readiness:
           include: readinessState,rbac3Readiness
 
+egon.cola.platform:
+  idp:
+    enabled: ${UNIFIED_IDENTITY_ENABLED:true}
+    register-filter: false
+    issuer: ${IDP_OAUTH_ISSUER}
+    jwk-set-uri: ${IDP_JWK_SET_URI}
+    audiences: [rbac3-admin-web]
+    client-ids: [rbac3-admin-web]
+  rbac3:
+    enabled: ${UNIFIED_IDENTITY_ENABLED:true}
+    register-filter: false
+    system-code: rbac3-admin
+    runtime:
+      redis-enabled: true
+      redis-address: ${RBAC3_AUTHORIZATION_REDIS_ADDRESS}
+      database: ${RBAC3_AUTHORIZATION_REDIS_DATABASE:0}
+    authorization:
+      endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
+      service-credential-file: ${RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE}
+
 egon:
   rbac3:
     access-token-ttl: 15m

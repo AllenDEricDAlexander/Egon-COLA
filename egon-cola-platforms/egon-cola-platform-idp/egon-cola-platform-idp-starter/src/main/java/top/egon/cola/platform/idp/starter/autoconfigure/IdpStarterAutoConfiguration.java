@@ -3,6 +3,8 @@ package top.egon.cola.platform.idp.starter.autoconfigure;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -47,13 +49,14 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnBean(RedissonClient.class)
     @ConditionalOnMissingBean
     public IdentityUserStateReader identityUserStateReader(
-            RedissonClient redisson,
+            ObjectProvider<RedissonClient> redissonClients,
+            ListableBeanFactory beanFactory,
             ObjectMapper objectMapper,
             IdpStarterProperties properties
     ) {
         properties.validate();
         return new RedisIdentityUserStateReader(
-                redisson,
+                identityStateRedisson(redissonClients, beanFactory),
                 objectMapper,
                 properties.getUserStateKeyPrefix());
     }
@@ -88,11 +91,14 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnBean(IdpBearerAuthenticationFilter.class)
     @ConditionalOnMissingBean(name = "idpBearerFilterRegistration")
     public FilterRegistrationBean<IdpBearerAuthenticationFilter>
-            idpBearerFilterRegistration(IdpBearerAuthenticationFilter filter) {
+            idpBearerFilterRegistration(
+                    IdpBearerAuthenticationFilter filter,
+                    IdpStarterProperties properties) {
         FilterRegistrationBean<IdpBearerAuthenticationFilter> registration =
                 new FilterRegistrationBean<>(filter);
         registration.setName("idpBearerAuthenticationFilter");
         registration.setOrder(-102);
+        registration.setEnabled(properties.isRegisterFilter());
         return registration;
     }
 
@@ -110,5 +116,20 @@ public class IdpStarterAutoConfiguration {
                         "invalid_token", "JWT audience is invalid", null)));
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validators));
         return decoder;
+    }
+
+    private RedissonClient identityStateRedisson(
+            ObjectProvider<RedissonClient> clients,
+            ListableBeanFactory beanFactory) {
+        if (beanFactory.containsBean("rbac3RuntimeRedissonClient")) {
+            return beanFactory.getBean(
+                    "rbac3RuntimeRedissonClient", RedissonClient.class);
+        }
+        RedissonClient unique = clients.getIfUnique();
+        if (unique == null) {
+            throw new IllegalStateException(
+                    "IdP user-state Redis client is ambiguous");
+        }
+        return unique;
     }
 }

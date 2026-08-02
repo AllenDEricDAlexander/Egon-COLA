@@ -12,6 +12,17 @@ spring:
 server:
   port: ${RBAC3_ADVERTISED_PORT:0}
 
+egon.cola.platform:
+  idp:
+    issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
+    jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+  rbac3:
+    runtime:
+      redis-address: ${RBAC3_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+    authorization:
+      endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+      service-credential-file: ${RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/rbac3-admin.service.jwt}
+
 egon:
   rbac3:
     component-keys: ${RBAC3_COMPONENT_KEYS:rbac3-page}

@@ -13,11 +13,19 @@ import top.egon.cola.component.gateway.admin.application.GatewayGroupService;
 import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService;
 import top.egon.cola.component.gateway.admin.infrastructure.security.GatewayAdminSecurityConfiguration;
 import top.egon.cola.component.gateway.admin.interfaces.openapi.GatewayReportHmacFilter;
+import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3AuthenticationToken;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -62,6 +70,33 @@ class GatewayAdminSecurityIntegrationTest {
                         .with(jwt().jwt(token -> token
                                 .subject("limited-user"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void tokenRoleClaimDoesNotGrantGatewayPermission() throws Exception {
+        mockMvc.perform(get("/api/v1/gateway/admin/gateway-groups")
+                        .with(jwt().jwt(token -> token.subject("limited-user")
+                                .claim("roles", List.of("ADMIN"))
+                                .claim("capabilities", List.of("gateway:read")))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rbac3SnapshotGrantsGatewayPermission() throws Exception {
+        when(service.list()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/gateway/admin/gateway-groups")
+                        .with(authentication(rbac3("gateway:read"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void rbac3PrincipalKeepsTheStableIdentitySubjectForAudit() throws Exception {
+        mockMvc.perform(get("/api/v1/gateway/admin/session")
+                        .with(authentication(rbac3("gateway:read"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actorId").value("admin-sub"))
+                .andExpect(jsonPath("$.capabilities[0]").value("gateway:read"));
     }
 
     @Test
@@ -122,5 +157,20 @@ class GatewayAdminSecurityIntegrationTest {
                         .value("gateway:read"))
                 .andExpect(jsonPath("$.roles[0]")
                         .value("gateway-admin"));
+    }
+
+    private Rbac3AuthenticationToken rbac3(String permission) {
+        Instant now = Instant.parse("2026-08-02T04:00:00Z");
+        IdentityPrincipal identity = new IdentityPrincipal(
+                "admin-sub", "tenant-a", "sid-1", "gateway-admin-web",
+                "token-1", 2, Set.of("gateway-admin-web"),
+                now, now.plusSeconds(900));
+        SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
+                "tenant-a", "admin-sub", "101", "sid-1", "gateway-admin",
+                3, 4, 5, List.of("gateway-reader"), Set.of(permission),
+                Map.of(), Map.of(), "sha256:gateway", now, now.plusSeconds(900));
+        return new Rbac3AuthenticationToken(
+                new AuthorizationService.RuntimeAuthorizationContext(
+                        identity, snapshot, false));
     }
 }

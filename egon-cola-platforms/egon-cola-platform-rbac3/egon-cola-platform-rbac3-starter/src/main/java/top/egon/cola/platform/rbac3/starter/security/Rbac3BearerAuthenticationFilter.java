@@ -35,6 +35,11 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getRequestURI().startsWith("/internal/");
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,

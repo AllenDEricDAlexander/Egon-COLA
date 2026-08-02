@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.admin.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,9 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 
 import java.util.Base64;
@@ -36,9 +40,14 @@ public class DdcAdminSecurityConfiguration {
     public SecurityFilterChain ddcAdminSecurityFilterChain(
             HttpSecurity http,
             ObjectMapper objectMapper,
-            DdcOpenApiHmacFilter hmacFilter) throws Exception {
+            DdcOpenApiHmacFilter hmacFilter,
+            ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
+            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters)
+            throws Exception {
         DdcAdminAuthenticationEntryPoint securityHandler =
                 new DdcAdminAuthenticationEntryPoint(objectMapper);
+        IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
+        Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -53,6 +62,8 @@ public class DdcAdminSecurityConfiguration {
                         ).permitAll()
                         .requestMatchers("/api/v1/ddc/openapi/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/bootstrap")
+                        .authenticated()
                         .requestMatchers("/api/v1/ddc/cache/**")
                         .hasAnyAuthority(
                                 DdcAdminCapability.CACHE.authority(),
@@ -134,17 +145,23 @@ public class DdcAdminSecurityConfiguration {
                         .authenticationEntryPoint(securityHandler)
                         .accessDeniedHandler(securityHandler)
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(
-                                new DdcAdminJwtAuthenticationConverter()
-                        ))
-                        .authenticationEntryPoint(securityHandler)
-                        .accessDeniedHandler(securityHandler)
-                )
                 .addFilterBefore(
                         hmacFilter,
                         BearerTokenAuthenticationFilter.class
                 );
+        if (idpFilter != null && rbac3Filter != null) {
+            http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
+        } else if (idpFilter == null && rbac3Filter == null) {
+            http.oauth2ResourceServer(oauth2 -> oauth2
+                    .jwt(jwt -> jwt.jwtAuthenticationConverter(
+                            new DdcAdminJwtAuthenticationConverter()))
+                    .authenticationEntryPoint(securityHandler)
+                    .accessDeniedHandler(securityHandler));
+        } else {
+            throw new IllegalStateException(
+                    "IdP and RBAC3 authentication filters must be configured together");
+        }
         return http.build();
     }
 

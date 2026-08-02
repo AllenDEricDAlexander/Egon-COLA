@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DdcAdminJwtAuthenticationConverterTest {
 
     @Test
-    void mapsSubjectCapabilitiesAndRolesFromVerifiedJwt() {
+    void ignoresAuthorizationClaimsFromIdentityToken() {
         Jwt jwt = new Jwt(
                 "token",
                 Instant.parse("2026-07-26T00:00:00Z"),
@@ -33,13 +33,6 @@ class DdcAdminJwtAuthenticationConverterTest {
 
         assertThat(authentication).isNotNull();
         assertThat(authentication.getName()).isEqualTo("admin-42");
-        assertThat(authentication.getAuthorities())
-                .extracting("authority")
-                .containsExactlyInAnyOrder(
-                        "CAP_DDC_READ",
-                        "CAP_DDC_WRITE",
-                        "ROLE_DDC_OPERATOR",
-                        "ROLE_AUDITOR"
-                );
+        assertThat(authentication.getAuthorities()).isEmpty();
     }
 }

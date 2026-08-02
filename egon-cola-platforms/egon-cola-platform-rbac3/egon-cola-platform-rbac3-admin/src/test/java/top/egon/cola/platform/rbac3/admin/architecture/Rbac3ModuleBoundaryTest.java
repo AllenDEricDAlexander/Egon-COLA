@@ -9,6 +9,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class Rbac3ModuleBoundaryTest {
 
@@ -18,7 +19,7 @@ class Rbac3ModuleBoundaryTest {
         Path admin = Path.of(System.getProperty("basedir"));
         Path platform = admin.getParent();
         String adminPom = Files.readString(admin.resolve("pom.xml"));
-        assertFalse(adminPom.contains("egon-cola-platform-rbac3-starter"));
+        assertTrue(adminPom.contains("egon-cola-platform-rbac3-starter"));
 
         assertNoSourceReference(
                 platform.resolve("egon-cola-platform-rbac3-core/src/main/java"),

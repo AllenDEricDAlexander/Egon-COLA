@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,9 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -32,7 +36,12 @@ public class GatewayAdminSecurityConfiguration {
     @Bean
     public SecurityFilterChain gatewayAdminSecurityFilterChain(
             HttpSecurity http,
-            ObjectMapper objectMapper) throws Exception {
+            ObjectMapper objectMapper,
+            ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
+            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters)
+            throws Exception {
+        IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
+        Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -47,25 +56,34 @@ public class GatewayAdminSecurityConfiguration {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(
-                                new GatewayAdminJwtAuthenticationConverter()
-                        ))
+                .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, error) ->
-                                writeSecurityError(
-                                        response,
-                                        objectMapper,
+                                writeSecurityError(response, objectMapper,
                                         HttpServletResponse.SC_UNAUTHORIZED,
-                                        "GATEWAY_ADMIN_AUTHENTICATION_REQUIRED"
-                                ))
+                                        "GATEWAY_ADMIN_AUTHENTICATION_REQUIRED"))
                         .accessDeniedHandler((request, response, error) ->
-                                writeSecurityError(
-                                        response,
-                                        objectMapper,
+                                writeSecurityError(response, objectMapper,
                                         HttpServletResponse.SC_FORBIDDEN,
-                                        "GATEWAY_ADMIN_CAPABILITY_REQUIRED"
-                                ))
-                );
+                                        "GATEWAY_ADMIN_CAPABILITY_REQUIRED")));
+        if (idpFilter != null && rbac3Filter != null) {
+            http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
+        } else if (idpFilter == null && rbac3Filter == null) {
+            http.oauth2ResourceServer(oauth2 -> oauth2
+                    .jwt(jwt -> jwt.jwtAuthenticationConverter(
+                            new GatewayAdminJwtAuthenticationConverter()))
+                    .authenticationEntryPoint((request, response, error) ->
+                            writeSecurityError(response, objectMapper,
+                                    HttpServletResponse.SC_UNAUTHORIZED,
+                                    "GATEWAY_ADMIN_AUTHENTICATION_REQUIRED"))
+                    .accessDeniedHandler((request, response, error) ->
+                            writeSecurityError(response, objectMapper,
+                                    HttpServletResponse.SC_FORBIDDEN,
+                                    "GATEWAY_ADMIN_CAPABILITY_REQUIRED")));
+        } else {
+            throw new IllegalStateException(
+                    "IdP and RBAC3 authentication filters must be configured together");
+        }
         return http.build();
     }
 
