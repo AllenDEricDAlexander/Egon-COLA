@@ -1,30 +1,23 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { TOKEN_KEY, clearToken, getStoredToken, saveToken, setSessionToken } from './tokenStore'
+import { clearToken, getStoredToken, saveToken } from './tokenStore'
 
 describe('tokenStore', () => {
   afterEach(() => {
+    clearToken()
     sessionStorage.clear()
-    clearToken()
+    localStorage.clear()
   })
 
-  it('persists and reads the token from sessionStorage', () => {
-    expect(getStoredToken()).toBe('')
+  it('keeps the access token in memory only', () => {
     saveToken('token-abc')
-    expect(sessionStorage.getItem(TOKEN_KEY)).toBe('token-abc')
+
     expect(getStoredToken()).toBe('token-abc')
+    expect(sessionStorage.length).toBe(0)
+    expect(localStorage.length).toBe(0)
   })
 
-  it('clears the token', () => {
+  it('clears the in-memory token', () => {
     saveToken('token-abc')
-    clearToken()
-    expect(getStoredToken()).toBe('')
-    expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull()
-  })
-
-  it('setSessionToken exposes the candidate in memory without persisting', () => {
-    setSessionToken('candidate-token')
-    expect(getStoredToken()).toBe('candidate-token')
-    expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull()
     clearToken()
     expect(getStoredToken()).toBe('')
   })

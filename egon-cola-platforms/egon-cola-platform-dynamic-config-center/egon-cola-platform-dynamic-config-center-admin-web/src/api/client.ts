@@ -1,4 +1,5 @@
 import type { ResultRecord } from './types'
+import { ddcOAuth } from '../auth/oauthClient'
 
 type TokenProvider = () => string
 type UnauthorizedHandler = () => void
@@ -58,13 +59,19 @@ export async function ddcApi<T>(path: string, options: DdcRequestOptions = {}): 
   let response: Response
   try {
     response = await fetch(path, { method: options.method ?? 'GET', headers, body })
+    if (response.status === 401) {
+      try {
+        headers.set('Authorization', `Bearer ${await ddcOAuth.refresh()}`)
+        response = await fetch(path, { method: options.method ?? 'GET', headers, body })
+      } catch { /* final 401 handling clears the local session */ }
+    }
   } catch {
     throw new DdcApiError(0, 'DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE', '无法连接 DDC 管理端')
   }
   const payload = (await response.json().catch(() => ({}))) as Partial<ResultRecord<unknown>>
   if (response.status === 401) {
     unauthorizedHandler()
-    throw new DdcApiError(401, 'UNAUTHORIZED', '登录已过期，请重新粘贴 Access Token', payload.traceId)
+    throw new DdcApiError(401, 'UNAUTHORIZED', '统一身份登录已过期，请重新登录', payload.traceId)
   }
   if (!response.ok || payload.success === false) {
     // 后端业务失败为 HTTP 2xx + success=false，归类为 SERVER

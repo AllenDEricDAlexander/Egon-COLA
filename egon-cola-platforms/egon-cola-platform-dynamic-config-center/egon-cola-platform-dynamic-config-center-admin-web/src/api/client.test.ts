@@ -47,7 +47,7 @@ describe('ddcApi', () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({ success: false, code: 401, status: 'UNAUTHORIZED', message: 'jwt expired', data: null, traceId: 't', timestamp: 1 }, 401))
     const error = await ddcApi('/api/v1/ddc/apps').catch((e) => e as DdcApiError) as DdcApiError
     expect(handler).toHaveBeenCalledTimes(1)
-    expect(error.message).toBe('登录已过期，请重新粘贴 Access Token')
+    expect(error.message).toBe('统一身份登录已过期，请重新登录')
     expect(error.category).toBe('UNAUTHENTICATED')
   })
 

@@ -74,6 +74,7 @@ const ApplicationsPage = lazy(() =>
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/oauth/callback', element: <LoadingBlock /> },
   {
     path: '/',
     element: (

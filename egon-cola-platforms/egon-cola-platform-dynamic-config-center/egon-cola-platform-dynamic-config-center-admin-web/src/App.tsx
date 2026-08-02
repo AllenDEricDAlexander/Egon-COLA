@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Spin } from 'antd'
 import { AuthProvider } from './auth/AuthContext'
 import { RequireAuth } from './auth/RouteGuards'
 import AdminLayout from './layouts/AdminLayout'
@@ -16,6 +17,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          <Route path="/oauth/callback" element={<Spin fullscreen tip="完成统一身份登录" />} />
           <Route
             path="/"
             element={

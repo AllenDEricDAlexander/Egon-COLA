@@ -5,8 +5,8 @@ export type AuthTokens = {
 }
 
 const legacyKeys = [
-  'egon.gateway.admin.auth',
-  'egon.gateway.admin.auth.session',
+  'egon.idp.admin.auth',
+  'egon.idp.admin.auth.session',
 ]
 
 if (typeof window !== 'undefined') {

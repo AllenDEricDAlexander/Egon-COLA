@@ -54,8 +54,8 @@ describe('typed API client', () => {
     } satisfies Partial<GatewayApiError>)
   })
 
-  it('uses the persisted bearer token and never trusts an actor header', async () => {
-    tokenStore.set({ accessToken: 'signed-jwt' }, false)
+  it('uses the in-memory bearer token and never trusts an actor header', async () => {
+    tokenStore.set({ accessToken: 'signed-jwt' })
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), {
         status: 200,

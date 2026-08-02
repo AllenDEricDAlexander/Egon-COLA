@@ -5,26 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const auth = vi.hoisted(() => ({
   loading: false,
   session: undefined,
+  error: undefined,
   login: vi.fn(),
   logout: vi.fn(),
   refreshSession: vi.fn(),
 }))
 
-vi.mock('./AuthContext', () => ({
-  useAuth: () => auth,
-}))
-
-const renderLogin = async () => {
-  const { LoginPage } = await import('./LoginPage')
-  return render(
-    <MemoryRouter>
-      <LoginPage />
-    </MemoryRouter>,
-  )
-}
+vi.mock('./AuthContext', () => ({ useAuth: () => auth }))
 
 beforeEach(() => {
-  vi.resetModules()
+  auth.login.mockReset()
   vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
     matches: false,
     addListener: vi.fn(),
@@ -38,42 +28,28 @@ beforeEach(() => {
     unobserve() {}
     disconnect() {}
   })
-  auth.login.mockReset()
 })
 
 afterEach(() => {
   cleanup()
-  vi.unstubAllEnvs()
   vi.unstubAllGlobals()
 })
 
 describe('gateway admin login', () => {
-  it('requires only an access token in local authentication mode', async () => {
-    vi.stubEnv('VITE_GATEWAY_ADMIN_TOKEN_URL', '')
-    vi.stubEnv('VITE_GATEWAY_ADMIN_CLIENT_ID', '')
-    await renderLogin()
+  it('offers only unified SSO and never renders token inputs', async () => {
+    const { LoginPage } = await import('./LoginPage')
+    render(<MemoryRouter><LoginPage /></MemoryRouter>)
 
-    expect(screen.getByText(/本地模式仅需 Access Token/)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Access Token/)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Refresh Token/)).not.toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText('Access Token'), {
-      target: { value: 'local-access-token' },
+    fireEvent.change(screen.getByLabelText('租户 ID'), {
+      target: { value: 'tenant-a' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '登录并校验权限' }))
+    fireEvent.click(screen.getByRole('button', { name: '使用统一身份登录' }))
 
-    await waitFor(() => {
-      expect(auth.login).toHaveBeenCalledWith({
-        accessToken: 'local-access-token',
-      }, undefined)
-    })
-  })
-
-  it('shows the refresh token field when OAuth refresh is configured', async () => {
-    vi.stubEnv('VITE_GATEWAY_ADMIN_TOKEN_URL', 'https://identity.example/token')
-    vi.stubEnv('VITE_GATEWAY_ADMIN_CLIENT_ID', 'gateway-admin')
-    await renderLogin()
-
-    expect(screen.getByLabelText(/Refresh Token/)).toBeInTheDocument()
-    expect(screen.queryByText(/本地模式仅需 Access Token/)).not.toBeInTheDocument()
+    await waitFor(() => expect(auth.login).toHaveBeenCalledWith(
+      'tenant-a',
+      '/dashboard',
+    ))
   })
 })

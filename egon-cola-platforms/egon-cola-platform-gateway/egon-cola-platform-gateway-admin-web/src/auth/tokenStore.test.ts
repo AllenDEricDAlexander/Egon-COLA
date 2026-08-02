@@ -3,26 +3,24 @@ import { tokenStore } from './tokenStore'
 
 afterEach(() => {
   tokenStore.clear()
+  localStorage.clear()
+  sessionStorage.clear()
 })
 
 describe('admin token store', () => {
-  it('persists only in the requested browser storage', () => {
-    tokenStore.set({
-      accessToken: 'access',
-      refreshToken: 'refresh',
-    }, true)
+  it('keeps the access token in memory only', () => {
+    tokenStore.set({ accessToken: 'access' })
 
-    expect(localStorage.getItem('egon.gateway.admin.auth')).toContain('access')
-    expect(sessionStorage.getItem('egon.gateway.admin.auth.session')).toBeNull()
+    expect(tokenStore.get()?.accessToken).toBe('access')
+    expect(localStorage.length).toBe(0)
+    expect(sessionStorage.length).toBe(0)
   })
 
-  it('clears all token material on logout', () => {
-    tokenStore.set({ accessToken: 'access' }, false)
+  it('clears all in-memory token material on logout', () => {
+    tokenStore.set({ accessToken: 'access', nonce: 'nonce' })
 
     tokenStore.clear()
 
     expect(tokenStore.get()).toBeUndefined()
-    expect(localStorage.length).toBe(0)
-    expect(sessionStorage.length).toBe(0)
   })
 })

@@ -131,7 +131,7 @@ export const AdminLayout = () => {
             <Button
               icon={<LogoutOutlined />}
               onClick={() => {
-                auth.logout()
+                void auth.logout()
                 queryClient.clear()
                 navigate('/login', { replace: true })
               }}

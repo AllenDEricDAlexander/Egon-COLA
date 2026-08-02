@@ -1,56 +1,34 @@
-import { Alert, Button, Card, Checkbox, Form, Input, Typography } from 'antd'
-import { useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Alert, Button, Card, Form, Input, Typography } from 'antd'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
-import { oauthRefreshEnabled } from './tokenStore'
+
+interface LoginForm {
+  readonly tenantId: string
+}
 
 export const LoginPage = () => {
   const auth = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
-  const [error, setError] = useState<string>()
-  if (auth.session) return <Navigate replace to="/dashboard" />
+  const returnTo = (location.state as { from?: string } | undefined)?.from
+    ?? '/dashboard'
   return (
     <main className="login-shell">
       <Card className="login-card">
-        <Typography.Title level={2}>Gateway Admin 登录</Typography.Title>
+        <Typography.Title level={2}>Gateway Admin</Typography.Title>
         <Typography.Paragraph type="secondary">
-          {oauthRefreshEnabled
-            ? '使用企业身份系统签发的 Bearer Token。Token 只保存在当前会话，除非明确勾选持久化。'
-            : '本地模式仅需 Access Token。Token 只保存在当前会话，除非明确勾选持久化。'}
+          通过统一身份平台登录。Access Token 仅保存在当前页面内存中，刷新凭据由 IdP 的 HttpOnly Cookie 管理。
         </Typography.Paragraph>
-        {error && <Alert type="error" showIcon message={error} />}
-        <Form
+        {auth.error && <Alert type="error" showIcon message={auth.error} />}
+        <Form<LoginForm>
           layout="vertical"
-          onFinish={async (values) => {
-            setError(undefined)
-            try {
-              await auth.login(oauthRefreshEnabled ? {
-                accessToken: values.accessToken,
-                refreshToken: values.refreshToken,
-              } : {
-                accessToken: values.accessToken,
-              }, values.remember)
-              const target = (location.state as { from?: string } | undefined)?.from
-              navigate(target ?? '/dashboard', { replace: true })
-            } catch (failure) {
-              setError(failure instanceof Error ? failure.message : '登录失败')
-            }
-          }}
+          initialValues={{ tenantId: import.meta.env.VITE_DEFAULT_TENANT_ID ?? 'default' }}
+          onFinish={(values) => void auth.login(values.tenantId, returnTo)}
         >
-          <Form.Item name="accessToken" label="Access Token" rules={[{ required: true }]}>
-            <Input.Password autoComplete="off" />
-          </Form.Item>
-          {oauthRefreshEnabled && (
-            <Form.Item name="refreshToken" label="Refresh Token（可选）">
-              <Input.Password autoComplete="off" />
-            </Form.Item>
-          )}
-          <Form.Item name="remember" valuePropName="checked">
-            <Checkbox>在此浏览器持久化登录</Checkbox>
+          <Form.Item name="tenantId" label="租户 ID" rules={[{ required: true }]}>
+            <Input autoComplete="organization" />
           </Form.Item>
           <Button block type="primary" htmlType="submit" loading={auth.loading}>
-            登录并校验权限
+            使用统一身份登录
           </Button>
         </Form>
       </Card>

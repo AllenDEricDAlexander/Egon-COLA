@@ -1,6 +1,7 @@
 import type { AdminErrorBody } from './types'
 import { createLogicalTrace, traceHeaders, type LogicalTrace } from './trace'
-import { refreshAccessToken, tokenStore } from '../auth/tokenStore'
+import { gatewayOAuth } from '../auth/oauthClient'
+import { tokenStore } from '../auth/tokenStore'
 
 const API_BASE_URL = import.meta.env.VITE_GATEWAY_ADMIN_API_BASE_URL ?? ''
 const CONTRACT_VERSION = 'v1'
@@ -95,7 +96,7 @@ export const apiRequest = async <T>(
     })
     if (response.status === 401 && accessToken) {
       try {
-        headers.set('Authorization', `Bearer ${await refreshAccessToken()}`)
+        headers.set('Authorization', `Bearer ${await gatewayOAuth.refresh()}`)
         response = await fetch(`${API_BASE_URL}${path}`, {
           ...request,
           body,

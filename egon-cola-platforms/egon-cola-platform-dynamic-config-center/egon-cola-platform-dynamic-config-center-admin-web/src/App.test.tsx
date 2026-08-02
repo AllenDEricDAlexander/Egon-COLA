@@ -1,11 +1,14 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 describe('App', () => {
-  it('renders the login page when no token is stored', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('renders the unified login page when silent refresh is unavailable', async () => {
     sessionStorage.clear()
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('no session')))
     render(<App />)
-    expect(screen.getByText('连接本机 DDC 管理端')).toBeInTheDocument()
+    expect(await screen.findByText('DDC 管理端')).toBeInTheDocument()
   })
 })

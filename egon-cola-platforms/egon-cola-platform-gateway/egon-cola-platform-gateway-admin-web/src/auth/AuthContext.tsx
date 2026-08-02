@@ -9,69 +9,80 @@ import {
 } from 'react'
 import { gatewayApi } from '../api/gatewayApi'
 import type { AdminSession } from '../api/types'
-import { refreshAccessToken, tokenStore, type AuthTokens } from './tokenStore'
+import { gatewayOAuth } from './oauthClient'
+import { tokenStore } from './tokenStore'
 
 type AuthState = {
   loading: boolean
   session?: AdminSession
-  login: (tokens: AuthTokens, persistent: boolean) => Promise<void>
-  logout: () => void
+  error?: string
+  login: (tenantId: string, returnTo?: string) => Promise<void>
+  logout: () => Promise<void>
   refreshSession: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
-  const [loading, setLoading] = useState(Boolean(tokenStore.get()))
+  const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<AdminSession>()
+  const [error, setError] = useState<string>()
 
-  const logout = useCallback(() => {
+  const clearSession = useCallback(() => {
     tokenStore.clear()
     setSession(undefined)
     setLoading(false)
   }, [])
 
-  const refreshSession = useCallback(async () => {
-    const value = await gatewayApi.session()
-    setSession(value)
+  const logout = useCallback(async () => {
+    await gatewayOAuth.revoke()
+    setSession(undefined)
+    setLoading(false)
   }, [])
 
-  const login = useCallback(async (tokens: AuthTokens, persistent: boolean) => {
-    tokenStore.set(tokens, persistent)
-    setLoading(true)
-    try {
-      await refreshSession()
-    } catch (error) {
-      logout()
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }, [logout, refreshSession])
+  const refreshSession = useCallback(async () => {
+    setSession(await gatewayApi.session())
+  }, [])
+
+  const login = useCallback(async (tenantId: string, returnTo = '/dashboard') => {
+    setError(undefined)
+    await gatewayOAuth.beginAuthorization(tenantId, returnTo)
+  }, [])
 
   useEffect(() => {
-    if (!tokenStore.get()) return
     let active = true
-    void gatewayApi.session()
-      .then((value) => {
-        if (active) setSession(value)
-      })
-      .catch(() => {
-        if (active) logout()
-      })
-      .finally(() => {
+    const initialize = async () => {
+      try {
+        let returnTo: string | undefined
+        if (window.location.pathname === '/oauth/callback') {
+          returnTo = await gatewayOAuth.handleCallback(window.location.search)
+        } else if (!tokenStore.get()) {
+          await gatewayOAuth.refresh()
+        }
+        const value = await gatewayApi.session()
+        if (!active) return
+        setSession(value)
+        if (returnTo) {
+          window.history.replaceState({}, '', returnTo)
+          window.dispatchEvent(new PopStateEvent('popstate'))
+        }
+      } catch (failure) {
+        if (!active) return
+        tokenStore.clear()
+        setSession(undefined)
+        if (window.location.pathname === '/oauth/callback') {
+          setError(failure instanceof Error ? failure.message : '统一身份登录失败')
+        }
+      } finally {
         if (active) setLoading(false)
-      })
-    return () => {
-      active = false
+      }
     }
-  }, [logout])
+    void initialize()
+    return () => { active = false }
+  }, [])
 
   useEffect(() => tokenStore.subscribe(() => {
-    if (!tokenStore.get()) {
-      setSession(undefined)
-      setLoading(false)
-    }
+    if (!tokenStore.get()) setSession(undefined)
   }), [])
 
   useEffect(() => {
@@ -79,16 +90,16 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     if (!expiresAt || !session) return
     const delay = Math.max(1_000, Date.parse(expiresAt) - Date.now() - 60_000)
     const timer = window.setTimeout(() => {
-      void refreshAccessToken()
+      void gatewayOAuth.refresh()
         .then(refreshSession)
-        .catch(logout)
+        .catch(clearSession)
     }, delay)
     return () => window.clearTimeout(timer)
-  }, [logout, refreshSession, session])
+  }, [clearSession, refreshSession, session])
 
   const value = useMemo(
-    () => ({ loading, session, login, logout, refreshSession }),
-    [loading, login, logout, refreshSession, session],
+    () => ({ loading, session, error, login, logout, refreshSession }),
+    [error, loading, login, logout, refreshSession, session],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

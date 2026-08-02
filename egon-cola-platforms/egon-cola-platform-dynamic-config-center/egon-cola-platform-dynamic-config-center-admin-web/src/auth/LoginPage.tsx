@@ -1,53 +1,30 @@
-import { useState } from 'react'
-import { Button, Card, Input, Typography, message } from 'antd'
-import { ddcApi } from '../api/client'
+import { Button, Card, Form, Input, Typography } from 'antd'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
-import { setSessionToken } from './tokenStore'
 
 export default function LoginPage() {
-  const { setToken } = useAuth()
-  const [accessToken, setAccessToken] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const submit = async () => {
-    const candidate = accessToken.trim()
-    setLoading(true)
-    try {
-      // 验证前先进入内存态，ddcApi 才能带上候选 token；验证成功后才持久化
-      setSessionToken(candidate)
-      await ddcApi('/api/v1/ddc/apps')
-      setToken(candidate)
-    } catch (error) {
-      message.error(error instanceof Error ? error.message : String(error))
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  const auth = useAuth()
+  const location = useLocation()
+  const returnTo = (location.state as { from?: string } | undefined)?.from ?? '/'
   return (
     <div style={{ maxWidth: 480, margin: '96px auto', padding: '0 16px' }}>
       <Card>
-        <Typography.Title level={4}>连接本机 DDC 管理端</Typography.Title>
+        <Typography.Title level={4}>DDC 管理端</Typography.Title>
         <Typography.Paragraph type="secondary">
-          Token 仅保存在当前浏览器会话，不会写入 URL 或服务端。
+          使用统一身份平台登录；页面不接收、不持久化任何手工 Token。
         </Typography.Paragraph>
-        <Input.TextArea
-          value={accessToken}
-          onChange={(event) => setAccessToken(event.target.value)}
-          rows={4}
-          placeholder="粘贴 admin.token 内容"
-          autoComplete="off"
-        />
-        <Button
-          type="primary"
-          block
-          style={{ marginTop: 16 }}
-          loading={loading}
-          disabled={accessToken.trim() === ''}
-          onClick={() => void submit()}
+        <Form
+          layout="vertical"
+          initialValues={{ tenantId: import.meta.env.VITE_DEFAULT_TENANT_ID ?? 'default' }}
+          onFinish={(values: { tenantId: string }) => void auth.login(values.tenantId, returnTo)}
         >
-          登录并加载
-        </Button>
+          <Form.Item name="tenantId" label="租户 ID" rules={[{ required: true }]}>
+            <Input autoComplete="organization" />
+          </Form.Item>
+          <Button type="primary" block htmlType="submit" loading={auth.loading}>
+            使用统一身份登录
+          </Button>
+        </Form>
       </Card>
     </div>
   )

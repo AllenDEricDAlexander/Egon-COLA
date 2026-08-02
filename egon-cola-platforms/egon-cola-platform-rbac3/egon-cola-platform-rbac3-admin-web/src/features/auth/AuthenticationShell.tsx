@@ -2,17 +2,16 @@ import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { Button, Result, Spin } from 'antd'
 import type { PropsWithChildren } from 'react'
 import { RoleActivationPage } from '../role-activation/RoleActivationPage'
-import type { AuthApi } from './auth.api'
 import { LoginPage } from './LoginPage'
 
-export interface AuthenticationShellProps extends PropsWithChildren { readonly authApi: AuthApi }
+export interface AuthenticationShellProps extends PropsWithChildren {}
 
-export const AuthenticationShell = ({ authApi, children }: AuthenticationShellProps) => {
+export const AuthenticationShell = ({ children }: AuthenticationShellProps) => {
   const session = useRbac3Session()
   if (['UNINITIALIZED', 'LOADING_BOOTSTRAP', 'REFRESHING_VERSION'].includes(session.status)) {
     return <main className="rbac3-centered"><Spin size="large" description="正在重建安全会话" /></main>
   }
-  if (session.status === 'AUTHENTICATION_REQUIRED') return <LoginPage authApi={authApi} onAuthenticated={session.retry} />
+  if (session.status === 'AUTHENTICATION_REQUIRED') return <LoginPage />
   if (['ACTIVATION_REQUIRED', 'REPLACING_ACTIVE_ROLES'].includes(session.status)) {
     return <main className="rbac3-activation-page"><RoleActivationPage /><Button style={{ marginTop: 16 }} onClick={() => void session.logout()}>退出登录</Button></main>
   }

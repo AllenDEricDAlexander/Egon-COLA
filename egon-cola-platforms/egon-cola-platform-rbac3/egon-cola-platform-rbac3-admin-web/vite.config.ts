@@ -4,6 +4,9 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '127.0.0.1',
+    port: 18131,
+    strictPort: true,
     proxy: {
       '/api': {
         target: process.env.RBAC3_ADMIN_PROXY ?? 'http://127.0.0.1:8080',
