@@ -82,6 +82,16 @@ egon:
             metadata:
               gateway.component: engine
         engine:
+          mcp:
+            session-ttl: ${GATEWAY_MCP_SESSION_TTL:PT30M}
+            stream-wait: ${GATEWAY_MCP_STREAM_WAIT:PT15S}
+            redis:
+              enabled: ${GATEWAY_MCP_REDIS_ENABLED:true}
+              address: ${GATEWAY_MCP_REDIS_ADDRESS:redis://127.0.0.1:6379}
+              database: ${GATEWAY_MCP_REDIS_DATABASE:0}
+              password: ${GATEWAY_MCP_REDIS_PASSWORD:}
+              key-prefix: ${GATEWAY_MCP_REDIS_KEY_PREFIX:gateway:mcp:}
+              stream-max-length: ${GATEWAY_MCP_STREAM_MAX_LENGTH:256}
           http:
             public-tls:
               enabled: false

@@ -23,6 +23,8 @@ import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
+import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
+import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
@@ -42,6 +44,7 @@ import top.egon.cola.component.gateway.engine.discovery.ProviderActiveHealthMoni
 import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
 import top.egon.cola.component.gateway.engine.discovery.RpcProviderActiveHealthProbe;
 import top.egon.cola.component.gateway.engine.http.DefaultGatewayHttpDataPlaneHandler;
+import top.egon.cola.component.gateway.engine.http.GatewayCompositeHttpDataPlaneHandler;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.ReactorNettyHttpUpstreamAdapter;
@@ -56,6 +59,11 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallEventSeri
 import top.egon.cola.component.gateway.engine.observability.GatewayCallMetricsListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 import top.egon.cola.component.gateway.engine.observability.KafkaGatewayCallEventSink;
+import top.egon.cola.component.gateway.engine.mcp.McpEngineHttpHandler;
+import top.egon.cola.component.gateway.engine.mcp.McpGatewayIdentityAuthenticator;
+import top.egon.cola.component.gateway.engine.mcp.RedisMcpSessionStore;
+import top.egon.cola.component.gateway.engine.mcp.security.JdbcMcpApprovalAdapter;
+import top.egon.cola.component.gateway.engine.mcp.security.Rbac3McpAuthorizationAdapter;
 import top.egon.cola.component.gateway.engine.operation.DefaultGatewayOperationTransport;
 import top.egon.cola.component.gateway.engine.operation.EngineGatewayOperationInvoker;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayForwarder;
@@ -84,7 +92,20 @@ import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketEx
 import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
 import top.egon.cola.component.gateway.engine.websocket.ReactorNettyWebSocketUpstreamAdapter;
+import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
+import top.egon.cola.component.gateway.mcp.server.McpMethodDispatcher;
+import top.egon.cola.component.gateway.mcp.server.handler.McpDiscoverHandler;
+import top.egon.cola.component.gateway.mcp.server.handler.McpInitializeHandler;
+import top.egon.cola.component.gateway.mcp.server.handler.McpInitializedHandler;
+import top.egon.cola.component.gateway.mcp.server.handler.McpPingHandler;
+import top.egon.cola.component.gateway.mcp.tool.McpArgumentBinder;
+import top.egon.cola.component.gateway.mcp.tool.McpResultBinder;
+import top.egon.cola.component.gateway.mcp.tool.McpToolCatalog;
+import top.egon.cola.component.gateway.mcp.tool.McpToolsCallHandler;
+import top.egon.cola.component.gateway.mcp.tool.McpToolsListHandler;
+import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
 
+import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -362,6 +383,151 @@ public class GatewayEngineConfiguration {
         return new RedissonRedisTokenBucketExecutor(redisson);
     }
 
+    @Bean(name = "gatewayMcpRedissonClient", destroyMethod = "shutdown")
+    @ConditionalOnMissingBean(name = "gatewayMcpRedissonClient")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.gateway.engine.mcp.redis",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    public RedissonClient gatewayMcpRedissonClient(
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.redis.address:"
+                            + "redis://127.0.0.1:6379}"
+            ) String address,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.redis."
+                            + "database:0}"
+            ) int database,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.redis."
+                            + "password:}"
+            ) String password) {
+        Config config = new Config();
+        var server = config.useSingleServer()
+                .setAddress(address)
+                .setDatabase(database);
+        if (password != null && !password.isBlank()) {
+            server.setPassword(password);
+        }
+        return Redisson.create(config);
+    }
+
+    @Bean
+    @ConditionalOnBean(name = "gatewayMcpRedissonClient")
+    public RedisMcpSessionStore gatewayMcpSessionStore(
+            @Qualifier("gatewayMcpRedissonClient") RedissonClient redisson,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            Clock gatewayClock,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.redis."
+                            + "key-prefix:gateway:mcp:}"
+            ) String keyPrefix,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.redis."
+                            + "stream-max-length:256}"
+            ) int maximumStreamLength) {
+        return new RedisMcpSessionStore(
+                redisson,
+                objectMapper,
+                keyPrefix,
+                maximumStreamLength,
+                gatewayClock
+        );
+    }
+
+    @Bean
+    @ConditionalOnBean(RedisMcpSessionStore.class)
+    public McpEngineHttpHandler gatewayMcpHttpHandler(
+            GatewayRuleActivationApplier activation,
+            GatewaySecurityCapabilityRegistry capabilities,
+            EngineGatewayOperationInvoker operationInvoker,
+            RedisMcpSessionStore sessionStore,
+            ObjectProvider<SingleFlightSnapshotLoader> snapshots,
+            ObjectProvider<DataSource> dataSources,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            Clock gatewayClock,
+            GatewayEngineRuntimeProperties properties,
+            @Value(
+                    "${egon.cola.platform.idp.gateway.issuer:"
+                            + "http://127.0.0.1:18120}"
+            ) String issuer,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp."
+                            + "session-ttl:PT30M}"
+            ) Duration sessionTtl,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp."
+                            + "stream-wait:PT15S}"
+            ) Duration streamWait) {
+        var catalog = new McpToolCatalog(() -> activation.active() == null
+                ? null
+                : activation.active().mcpRules());
+        SingleFlightSnapshotLoader snapshotLoader = snapshots.getIfAvailable();
+        DataSource dataSource = dataSources.getIfAvailable();
+        McpAuthorizationPort authorization = snapshotLoader == null
+                ? request -> reactor.core.publisher.Mono.just(
+                McpAuthorizationPort.Decision.denied(
+                        "RBAC3_AUTHORIZATION_UNAVAILABLE",
+                        0L,
+                        0L,
+                        0L
+                ))
+                : new Rbac3McpAuthorizationAdapter(
+                snapshotLoader
+        );
+        McpApprovalPort approvals = dataSource == null
+                ? request -> reactor.core.publisher.Mono.just(
+                McpApprovalPort.Result.UNAVAILABLE
+        )
+                : new JdbcMcpApprovalAdapter(
+                dataSource,
+                gatewayClock
+        );
+        McpSecurityGate securityGate = new McpSecurityGate(
+                authorization,
+                approvals,
+                objectMapper
+        );
+        McpMethodDispatcher dispatcher = new McpMethodDispatcher(List.of(
+                new McpInitializeHandler(),
+                new McpInitializedHandler(),
+                new McpPingHandler(),
+                new McpDiscoverHandler(),
+                new McpToolsListHandler(catalog, objectMapper),
+                new McpToolsCallHandler(
+                        catalog,
+                        new McpArgumentBinder(),
+                        new McpResultBinder(objectMapper),
+                        operationInvoker,
+                        securityGate
+                )
+        ));
+        return new McpEngineHttpHandler(
+                () -> activation.active() == null
+                        ? null
+                        : activation.active().mcpRules(),
+                dispatcher,
+                sessionStore,
+                sessionStore,
+                new McpGatewayIdentityAuthenticator(
+                        new GatewaySecurityChain(capabilities),
+                        issuer,
+                        properties.getNodeId(),
+                        gatewayClock
+                ),
+                objectMapper,
+                gatewayClock,
+                sessionTtl,
+                streamWait,
+                Math.toIntExact(Math.min(
+                        properties.getHttp().getMaxBodyBytes(),
+                        Integer.MAX_VALUE
+                ))
+        );
+    }
+
     @Bean
     public ReactorNettyHttpUpstreamAdapter gatewayHttpUpstreamAdapter(
             GatewayEngineRuntimeProperties properties) {
@@ -441,7 +607,8 @@ public class GatewayEngineConfiguration {
             HttpRpcUpstreamAdapter httpRpcUpstream,
             PassiveHealthTracker passiveHealth,
             GatewayTelemetry telemetry,
-            GatewayTransportDispatcher transportDispatcher) {
+            GatewayTransportDispatcher transportDispatcher,
+            ObjectProvider<McpEngineHttpHandler> mcpHandlers) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         var emptyRoutes = new HttpRouteCompiler().compile(List.of());
         var security = new RuleBackedHttpGatewaySecurityProcessor(
@@ -480,7 +647,17 @@ public class GatewayEngineConfiguration {
                 engineProperties.bodyLogSampleBytes(),
                 null
         );
-        return new GatewayHttpServer(engineProperties, handler);
+        McpEngineHttpHandler mcpHandler = mcpHandlers.getIfAvailable();
+        return new GatewayHttpServer(engineProperties, mcpHandler == null
+                ? handler
+                : new GatewayCompositeHttpDataPlaneHandler(
+                mcpHandler,
+                handler,
+                Math.toIntExact(Math.min(
+                        properties.getHttp().getMaxBodyBytes(),
+                        Integer.MAX_VALUE
+                ))
+        ));
     }
 
     @Bean
