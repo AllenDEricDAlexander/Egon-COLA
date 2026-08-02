@@ -94,7 +94,7 @@ public final class McpCompletionHandler implements McpMethodHandler {
                                 argumentName,
                                 prefix,
                                 resolved.operationId(),
-                                context.attributes()
+                                attributes(context)
                         )
                 )))
                 .map(result -> McpJsonRpcResponse.success(
@@ -119,7 +119,10 @@ public final class McpCompletionHandler implements McpMethodHandler {
                         CompiledMcpRules.qualified(serverCode, name)
                 );
         if (prompt == null || !prompt.enabled()
-                || prompt.remoteMountId() != null) {
+                || !active.remoteAvailable(
+                prompt.remoteMountId(),
+                "PROMPT"
+        )) {
             throw McpPromptDriver.invalid("MCP prompt was not found");
         }
         if (!prompt.arguments().contains(argumentName)) {
@@ -127,9 +130,11 @@ public final class McpCompletionHandler implements McpMethodHandler {
                     "MCP prompt argument is not declared"
             );
         }
-        String sourceType = "LOCAL_OPERATION".equals(prompt.sourceType())
-                ? "LOCAL_OPERATION"
-                : "LOCAL_DICTIONARY";
+        String sourceType = prompt.remoteMountId() != null
+                ? "REMOTE_MCP"
+                : "LOCAL_OPERATION".equals(prompt.sourceType())
+                        ? "LOCAL_OPERATION"
+                        : "LOCAL_DICTIONARY";
         return new Resolved(
                 name,
                 sourceType,
@@ -155,9 +160,11 @@ public final class McpCompletionHandler implements McpMethodHandler {
                         resolved.template(),
                         identity
                 );
-        String sourceType = "LOCAL_OPERATION".equals(resolved.driverType())
-                ? "LOCAL_OPERATION"
-                : "LOCAL_DICTIONARY";
+        String sourceType = resolved.remoteMountId() != null
+                ? "REMOTE_MCP"
+                : "LOCAL_OPERATION".equals(resolved.driverType())
+                        ? "LOCAL_OPERATION"
+                        : "LOCAL_DICTIONARY";
         return new Resolved(
                 resolved.uri(),
                 sourceType,
@@ -223,6 +230,14 @@ public final class McpCompletionHandler implements McpMethodHandler {
                     "MCP identity context is incomplete"
             );
         }
+    }
+
+    private Map<String, Object> attributes(McpRequestContext context) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>(
+                context.attributes()
+        );
+        result.put("mcp.protocol-dialect", context.dialect());
+        return Map.copyOf(result);
     }
 
     private record Resolved(

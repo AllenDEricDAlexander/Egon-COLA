@@ -30,6 +30,16 @@ public final class McpArgumentBinder {
         return java.util.Collections.unmodifiableMap(result);
     }
 
+    public Map<String, Object> bindRemote(Map<String, Object> input) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        input.forEach((name, value) -> {
+            if (allowed(name)) {
+                result.put(name, value);
+            }
+        });
+        return java.util.Collections.unmodifiableMap(result);
+    }
+
     private boolean allowed(String target) {
         return target != null
                 && !target.isBlank()

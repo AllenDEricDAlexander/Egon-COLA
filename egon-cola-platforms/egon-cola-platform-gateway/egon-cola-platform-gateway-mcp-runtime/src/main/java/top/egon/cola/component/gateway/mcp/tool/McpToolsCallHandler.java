@@ -12,6 +12,7 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpToolDriver;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
@@ -43,6 +44,8 @@ public final class McpToolsCallHandler implements McpMethodHandler {
 
     private final Supplier<CompiledMcpRules> rules;
 
+    private final RemoteMcpToolDriver remote;
+
     public McpToolsCallHandler(
             McpToolCatalog catalog,
             McpArgumentBinder argumentBinder,
@@ -57,7 +60,8 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                 securityGate,
                 new ObjectMapper(),
                 null,
-                () -> null
+                () -> null,
+                null
         );
     }
 
@@ -70,6 +74,29 @@ public final class McpToolsCallHandler implements McpMethodHandler {
             ObjectMapper objectMapper,
             McpTaskService taskService,
             Supplier<CompiledMcpRules> rules) {
+        this(
+                catalog,
+                argumentBinder,
+                resultBinder,
+                invoker,
+                securityGate,
+                objectMapper,
+                taskService,
+                rules,
+                null
+        );
+    }
+
+    public McpToolsCallHandler(
+            McpToolCatalog catalog,
+            McpArgumentBinder argumentBinder,
+            McpResultBinder resultBinder,
+            GatewayOperationInvoker invoker,
+            McpSecurityGate securityGate,
+            ObjectMapper objectMapper,
+            McpTaskService taskService,
+            Supplier<CompiledMcpRules> rules,
+            RemoteMcpToolDriver remote) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.argumentBinder = Objects.requireNonNull(
                 argumentBinder,
@@ -90,6 +117,7 @@ public final class McpToolsCallHandler implements McpMethodHandler {
         );
         this.taskService = taskService;
         this.rules = Objects.requireNonNull(rules, "rules");
+        this.remote = remote;
     }
 
     @Override
@@ -102,7 +130,7 @@ public final class McpToolsCallHandler implements McpMethodHandler {
             McpJsonRpcRequest request,
             McpRequestContext context) {
         String name = string(request.params().get("name"), "name");
-        McpRuntimeTool tool = catalog.localTool(
+        McpRuntimeTool tool = catalog.tool(
                 context.server().serverCode(),
                 name
         ).orElseThrow(() -> invalid("MCP tool was not found"));
@@ -120,18 +148,9 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                     "MCP identity context is incomplete"
             );
         }
-        Map<String, Object> boundArguments = argumentBinder.bind(
-                tool,
-                arguments
-        );
-        GatewayOperationInvocation invocation = new GatewayOperationInvocation(
-                tool.operationId(),
-                boundArguments,
-                attribute(context, "originalBearerToken"),
-                attribute(context, "callerId"),
-                attribute(context, "clientIp"),
-                traceHeaders(context)
-        );
+        Map<String, Object> boundArguments = tool.remoteMountId() == null
+                ? argumentBinder.bind(tool, arguments)
+                : argumentBinder.bindRemote(arguments);
         return Mono.from(securityGate.authorizeToolCall(
                         tool,
                         identity,
@@ -139,6 +158,38 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                         approvalToken(request, context)
                 ))
                 .then(Mono.defer(() -> {
+                    if (tool.remoteMountId() != null) {
+                        if (remote == null) {
+                            return Mono.error(new McpProtocolException(
+                                    McpErrorCode.MCP_REMOTE_UNAVAILABLE,
+                                    "remote MCP Tool driver is unavailable"
+                            ));
+                        }
+                        return Mono.from(remote.invoke(
+                                        tool,
+                                        boundArguments,
+                                        identity,
+                                        context.dialect(),
+                                        request.meta(),
+                                        traceHeaders(context)
+                                ))
+                                .map(result -> McpJsonRpcResponse.success(
+                                        request.id(),
+                                        result
+                                ));
+                    }
+                    GatewayOperationInvocation invocation =
+                            new GatewayOperationInvocation(
+                                    tool.operationId(),
+                                    boundArguments,
+                                    attribute(
+                                            context,
+                                            "originalBearerToken"
+                                    ),
+                                    attribute(context, "callerId"),
+                                    attribute(context, "clientIp"),
+                                    traceHeaders(context)
+                            );
                     McpRuntimeTaskPolicy policy = taskPolicy(tool);
                     if (policy == null) {
                         return Mono.from(invoker.invoke(invocation))

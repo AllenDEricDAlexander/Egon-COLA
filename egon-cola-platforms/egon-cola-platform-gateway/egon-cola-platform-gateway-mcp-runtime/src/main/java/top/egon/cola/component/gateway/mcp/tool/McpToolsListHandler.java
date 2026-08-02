@@ -40,7 +40,7 @@ public final class McpToolsListHandler implements McpMethodHandler {
     public Publisher<McpJsonRpcResponse> handle(
             McpJsonRpcRequest request,
             McpRequestContext context) {
-        List<Map<String, Object>> tools = catalog.localTools(
+        List<Map<String, Object>> tools = catalog.tools(
                 context.server().serverCode()
         ).stream().map(this::describe).toList();
         return Mono.just(McpJsonRpcResponse.success(

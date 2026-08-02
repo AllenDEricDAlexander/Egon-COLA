@@ -25,6 +25,7 @@ import top.egon.cola.component.ddc.service.DdcInstanceMetadataContributor;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
 import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
+import top.egon.cola.component.gateway.core.mcp.remote.RemoteAuthProvider;
 import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
@@ -65,6 +66,7 @@ import top.egon.cola.component.gateway.engine.mcp.JdbcMcpRuntimeTaskStore;
 import top.egon.cola.component.gateway.engine.mcp.McpTaskWorker;
 import top.egon.cola.component.gateway.engine.mcp.FileSystemMcpAppArtifactReader;
 import top.egon.cola.component.gateway.engine.mcp.RedisMcpSessionStore;
+import top.egon.cola.component.gateway.engine.mcp.remote.ReactorNettyRemoteMcpClient;
 import top.egon.cola.component.gateway.engine.mcp.security.JdbcMcpApprovalAdapter;
 import top.egon.cola.component.gateway.engine.mcp.security.Rbac3McpAuthorizationAdapter;
 import top.egon.cola.component.gateway.engine.operation.DefaultGatewayOperationTransport;
@@ -118,6 +120,14 @@ import top.egon.cola.component.gateway.mcp.resource.ObjectStorageResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.OperationResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.StaticBlobResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.StaticTextResourceDriver;
+import top.egon.cola.component.gateway.mcp.remote.McpDialectTranslator;
+import top.egon.cola.component.gateway.mcp.remote.McpNamespaceRouter;
+import top.egon.cola.component.gateway.mcp.remote.McpRemoteClientPool;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpCompletionProvider;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpPromptDriver;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpResourceDriver;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpToolDriver;
+import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodDispatcher;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
@@ -154,6 +164,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.function.Supplier;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(GatewayEngineRuntimeProperties.class)
@@ -162,6 +173,43 @@ public class GatewayEngineConfiguration {
     @Bean
     public Clock gatewayClock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(RemoteAuthProvider.class)
+    public RemoteAuthProvider gatewayRemoteMcpAuthentication() {
+        return request -> {
+            if (request.provider().authProfileReference() == null) {
+                return reactor.core.publisher.Mono.just(
+                        new RemoteAuthProvider.OutboundAuthentication(
+                                Map.of(),
+                                request.provider().tlsProfileReference()
+                        )
+                );
+            }
+            return reactor.core.publisher.Mono.error(
+                    new IllegalStateException(
+                            "remote MCP authentication profile resolver "
+                                    + "is unavailable"
+                    )
+            );
+        };
+    }
+
+    @Bean(destroyMethod = "close")
+    public McpRemoteClientPool gatewayRemoteMcpClientPool(
+            RemoteAuthProvider authentication,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            Clock gatewayClock) {
+        return new McpRemoteClientPool(
+                provider -> new ReactorNettyRemoteMcpClient(objectMapper),
+                authentication,
+                gatewayClock,
+                Duration.ofSeconds(60),
+                32,
+                3,
+                Duration.ofSeconds(30)
+        );
     }
 
     @Bean
@@ -537,6 +585,7 @@ public class GatewayEngineConfiguration {
             ObjectProvider<McpTaskService> taskServices,
             ObjectProvider<SingleFlightSnapshotLoader> snapshots,
             ObjectProvider<DataSource> dataSources,
+            McpRemoteClientPool remoteClients,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             Clock gatewayClock,
             GatewayEngineRuntimeProperties properties,
@@ -557,9 +606,10 @@ public class GatewayEngineConfiguration {
                             + "artifact-root:${java.io.tmpdir}/egon-cola/"
                             + "gateway-mcp-artifacts}"
             ) String artifactRoot) {
-        var toolCatalog = new McpToolCatalog(() -> activation.active() == null
+        Supplier<CompiledMcpRules> mcpRules = () -> activation.active() == null
                 ? null
-                : activation.active().mcpRules());
+                : activation.active().mcpRules();
+        var toolCatalog = new McpToolCatalog(mcpRules);
         SingleFlightSnapshotLoader snapshotLoader = snapshots.getIfAvailable();
         DataSource dataSource = dataSources.getIfAvailable();
         McpAuthorizationPort authorization = snapshotLoader == null
@@ -589,10 +639,16 @@ public class GatewayEngineConfiguration {
         McpResourceUriValidator resourceUriValidator =
                 new McpResourceUriValidator();
         McpResourceCatalog resourceCatalog = new McpResourceCatalog(
-                () -> activation.active() == null
-                        ? null
-                        : activation.active().mcpRules(),
+                mcpRules,
                 resourceUriValidator
+        );
+        McpDialectTranslator dialectTranslator = new McpDialectTranslator();
+        McpNamespaceRouter namespaceRouter = new McpNamespaceRouter();
+        RemoteMcpToolDriver remoteToolDriver = new RemoteMcpToolDriver(
+                mcpRules,
+                remoteClients,
+                namespaceRouter,
+                dialectTranslator
         );
         ArrayList<McpResourceDriver> resourceDrivers = new ArrayList<>(
                 List.of(
@@ -610,6 +666,12 @@ public class GatewayEngineConfiguration {
                 new McpAppSecurityValidator()
         );
         resourceDrivers.add(new AppUiResourceDriver(appRuntime));
+        resourceDrivers.add(new RemoteMcpResourceDriver(
+                mcpRules,
+                remoteClients,
+                namespaceRouter,
+                dialectTranslator
+        ));
         if (dataSource != null) {
             resourceDrivers.add(new DatabaseSchemaResourceDriver(
                     (schema, objectName) -> readDatabaseSchema(
@@ -630,7 +692,13 @@ public class GatewayEngineConfiguration {
         );
         List<McpPromptDriver> promptDrivers = List.of(
                 new StaticPromptDriver(new StrictPromptTemplate()),
-                new OperationPromptDriver(operationInvoker)
+                new OperationPromptDriver(operationInvoker),
+                new RemoteMcpPromptDriver(
+                        mcpRules,
+                        remoteClients,
+                        namespaceRouter,
+                        dialectTranslator
+                )
         );
         McpTaskService taskService = taskServices.getIfAvailable();
         ArrayList<McpMethodHandler> methodHandlers = new ArrayList<>(List.of(
@@ -647,9 +715,8 @@ public class GatewayEngineConfiguration {
                         securityGate,
                         objectMapper,
                         taskService,
-                        () -> activation.active() == null
-                                ? null
-                                : activation.active().mcpRules()
+                        mcpRules,
+                        remoteToolDriver
                 ),
                 new McpResourcesListHandler(
                         resourceCatalog,
@@ -675,28 +742,28 @@ public class GatewayEngineConfiguration {
                         securityGate
                 ),
                 new McpPromptsListHandler(
-                        () -> activation.active() == null
-                                ? null
-                                : activation.active().mcpRules(),
+                        mcpRules,
                         securityGate
                 ),
                 new McpPromptsGetHandler(
-                        () -> activation.active() == null
-                                ? null
-                                : activation.active().mcpRules(),
+                        mcpRules,
                         promptDrivers,
                         securityGate
                 ),
                 new McpCompletionHandler(
-                        () -> activation.active() == null
-                                ? null
-                                : activation.active().mcpRules(),
+                        mcpRules,
                         resourceCatalog,
                         List.of(
                                 new DictionaryCompletionProvider(Map.of()),
                                 new OperationCompletionProvider(
                                         operationInvoker,
                                         objectMapper
+                                ),
+                                new RemoteMcpCompletionProvider(
+                                        mcpRules,
+                                        remoteClients,
+                                        namespaceRouter,
+                                        dialectTranslator
                                 )
                         ),
                         securityGate

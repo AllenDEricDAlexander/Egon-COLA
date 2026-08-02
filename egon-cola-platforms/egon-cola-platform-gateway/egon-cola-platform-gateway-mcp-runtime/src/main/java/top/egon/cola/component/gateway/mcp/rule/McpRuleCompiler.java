@@ -11,8 +11,10 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -40,6 +42,7 @@ public final class McpRuleCompiler {
                     McpRuntimeRemoteProvider::providerCode,
                     "remote provider code"
             );
+            content.remoteProviders().forEach(this::validateProvider);
             Map<String, McpRuntimeRemoteMount> mounts = index(
                     content.remoteMounts(),
                     McpRuntimeRemoteMount::mountId,
@@ -127,6 +130,7 @@ public final class McpRuleCompiler {
                     operationIds,
                     mounts
             );
+            requirePrimitive(mounts, tool.remoteMountId(), "TOOL");
         });
         return tools;
     }
@@ -150,6 +154,11 @@ public final class McpRuleCompiler {
                     resource.remoteMountId(),
                     operationIds,
                     mounts
+            );
+            requirePrimitive(
+                    mounts,
+                    resource.remoteMountId(),
+                    "RESOURCE"
             );
         });
         return resources;
@@ -179,6 +188,11 @@ public final class McpRuleCompiler {
                     operationIds,
                     mounts
             );
+            requirePrimitive(
+                    mounts,
+                    template.remoteMountId(),
+                    "RESOURCE_TEMPLATE"
+            );
         });
         return templates;
     }
@@ -203,6 +217,7 @@ public final class McpRuleCompiler {
                     operationIds,
                     mounts
             );
+            requirePrimitive(mounts, prompt.remoteMountId(), "PROMPT");
         });
         return prompts;
     }
@@ -270,7 +285,90 @@ public final class McpRuleCompiler {
                                 + mount.providerCode()
                 );
             }
+            McpRuntimeRemoteProvider provider = providers.get(
+                    mount.providerCode()
+            );
+            if (!provider.capabilityFingerprint().equals(
+                    mount.capabilityFingerprint()
+            )) {
+                throw invalid(
+                        "MCP remote capability fingerprint has drifted: "
+                                + mount.mountId()
+                );
+            }
+            Set<String> supported = Set.of(
+                    "TOOL",
+                    "RESOURCE",
+                    "RESOURCE_TEMPLATE",
+                    "PROMPT",
+                    "COMPLETION",
+                    "APP",
+                    "TASK",
+                    "SUBSCRIPTION"
+            );
+            if (mount.primitiveTypes().isEmpty()
+                    || !supported.containsAll(mount.primitiveTypes())) {
+                throw invalid(
+                        "MCP remote mount contains unsupported primitives: "
+                                + mount.mountId()
+                );
+            }
+            if (!Set.of("REJECT", "KEEP_LOCAL", "REPLACE").contains(
+                    mount.conflictPolicy().toUpperCase(Locale.ROOT)
+            )) {
+                throw invalid(
+                        "MCP remote conflict policy is unsupported: "
+                                + mount.mountId()
+                );
+            }
         });
+    }
+
+    private void validateProvider(McpRuntimeRemoteProvider provider) {
+        String transport = provider.transportType().toUpperCase(Locale.ROOT);
+        if (!Set.of(
+                "STREAMABLE_HTTP",
+                "LEGACY_SSE",
+                "STDIO_MANAGED"
+        ).contains(transport)) {
+            throw invalid(
+                    "MCP remote transport is unsupported: "
+                            + provider.providerCode()
+            );
+        }
+        if ("STDIO_MANAGED".equals(transport)) {
+            return;
+        }
+        try {
+            URI endpoint = URI.create(provider.endpointReference());
+            if (endpoint.getHost() == null
+                    || endpoint.getUserInfo() != null
+                    || !("http".equalsIgnoreCase(endpoint.getScheme())
+                    || "https".equalsIgnoreCase(endpoint.getScheme()))) {
+                throw new IllegalArgumentException();
+            }
+        } catch (IllegalArgumentException failure) {
+            throw invalid(
+                    "MCP remote endpoint must be a safe HTTP(S) URI: "
+                            + provider.providerCode()
+            );
+        }
+    }
+
+    private void requirePrimitive(
+            Map<String, McpRuntimeRemoteMount> mounts,
+            String mountId,
+            String primitiveType) {
+        if (mountId == null) {
+            return;
+        }
+        McpRuntimeRemoteMount mount = mounts.get(mountId);
+        if (mount != null && !mount.primitiveTypes().contains(primitiveType)) {
+            throw invalid(
+                    "MCP remote mount does not expose " + primitiveType
+                            + ": " + mountId
+            );
+        }
     }
 
     private void validateBinding(

@@ -65,7 +65,10 @@ public final class McpPromptsListHandler implements McpMethodHandler {
         return active.promptsByQualifiedName().values().stream()
                 .filter(McpRuntimePrompt::enabled)
                 .filter(prompt -> prompt.serverCode().equals(serverCode))
-                .filter(prompt -> prompt.remoteMountId() == null)
+                .filter(prompt -> active.remoteAvailable(
+                        prompt.remoteMountId(),
+                        "PROMPT"
+                ))
                 .sorted(java.util.Comparator.comparing(
                         McpRuntimePrompt::name
                 ))

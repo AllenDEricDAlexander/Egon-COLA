@@ -76,7 +76,7 @@ public final class McpResourcesReadHandler implements McpMethodHandler {
         );
         return Mono.from(authorization)
                 .then(Mono.from(driver.read(resolved.request(
-                        context.attributes()
+                        attributes(context)
                 ))))
                 .map(content -> McpJsonRpcResponse.success(
                         request.id(),
@@ -121,5 +121,13 @@ public final class McpResourcesReadHandler implements McpMethodHandler {
             throw McpResourceDriver.rejected("MCP resource URI is required");
         }
         return text.trim();
+    }
+
+    private Map<String, Object> attributes(McpRequestContext context) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>(
+                context.attributes()
+        );
+        result.put("mcp.protocol-dialect", context.dialect());
+        return Map.copyOf(result);
     }
 }

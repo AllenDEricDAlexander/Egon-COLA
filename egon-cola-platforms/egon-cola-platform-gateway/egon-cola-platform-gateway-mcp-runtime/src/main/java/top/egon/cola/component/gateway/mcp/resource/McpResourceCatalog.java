@@ -38,7 +38,10 @@ public final class McpResourceCatalog {
                 .values().stream()
                 .filter(McpRuntimeResource::enabled)
                 .filter(resource -> resource.serverCode().equals(serverCode))
-                .filter(resource -> resource.remoteMountId() == null)
+                .filter(resource -> current.remoteAvailable(
+                        resource.remoteMountId(),
+                        "RESOURCE"
+                ))
                 .toList());
         current.appsByQualifiedName().values().stream()
                 .filter(McpRuntimeApp::enabled)
@@ -68,10 +71,14 @@ public final class McpResourceCatalog {
     }
 
     public List<McpRuntimeResourceTemplate> templates(String serverCode) {
-        return active().templatesByQualifiedName().values().stream()
+        CompiledMcpRules current = active();
+        return current.templatesByQualifiedName().values().stream()
                 .filter(McpRuntimeResourceTemplate::enabled)
                 .filter(template -> template.serverCode().equals(serverCode))
-                .filter(template -> template.remoteMountId() == null)
+                .filter(template -> current.remoteAvailable(
+                        template.remoteMountId(),
+                        "RESOURCE_TEMPLATE"
+                ))
                 .sorted(java.util.Comparator.comparing(
                         McpRuntimeResourceTemplate::name
                 ))
@@ -199,6 +206,12 @@ public final class McpResourceCatalog {
             return resource == null
                     ? template.operationId()
                     : resource.operationId();
+        }
+
+        public String remoteMountId() {
+            return resource == null
+                    ? template.remoteMountId()
+                    : resource.remoteMountId();
         }
 
         public Map<String, String> configuration() {

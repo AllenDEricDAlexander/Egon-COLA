@@ -17,10 +17,22 @@ public final class McpToolCatalog {
     }
 
     public List<McpRuntimeTool> localTools(String serverCode) {
-        return active().toolsByQualifiedName().values().stream()
+        return tools(serverCode).stream()
+                .filter(tool -> tool.operationId() != null)
+                .toList();
+    }
+
+    public List<McpRuntimeTool> tools(String serverCode) {
+        CompiledMcpRules current = active();
+        return current.toolsByQualifiedName().values().stream()
                 .filter(McpRuntimeTool::enabled)
                 .filter(tool -> tool.serverCode().equals(serverCode))
-                .filter(tool -> tool.operationId() != null)
+                .filter(tool -> tool.operationId() != null
+                        || tool.remoteMountId() != null)
+                .filter(tool -> current.remoteAvailable(
+                        tool.remoteMountId(),
+                        "TOOL"
+                ))
                 .sorted(java.util.Comparator.comparing(McpRuntimeTool::name))
                 .toList();
     }
@@ -28,9 +40,21 @@ public final class McpToolCatalog {
     public Optional<McpRuntimeTool> localTool(
             String serverCode,
             String name) {
-        return active().tool(serverCode, name)
+        return tool(serverCode, name)
                 .filter(McpRuntimeTool::enabled)
                 .filter(tool -> tool.operationId() != null);
+    }
+
+    public Optional<McpRuntimeTool> tool(String serverCode, String name) {
+        CompiledMcpRules current = active();
+        return current.tool(serverCode, name)
+                .filter(McpRuntimeTool::enabled)
+                .filter(tool -> tool.operationId() != null
+                        || tool.remoteMountId() != null)
+                .filter(tool -> current.remoteAvailable(
+                        tool.remoteMountId(),
+                        "TOOL"
+                ));
     }
 
     private CompiledMcpRules active() {

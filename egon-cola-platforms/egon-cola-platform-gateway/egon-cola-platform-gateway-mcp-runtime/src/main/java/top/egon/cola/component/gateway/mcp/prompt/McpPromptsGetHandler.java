@@ -63,7 +63,7 @@ public final class McpPromptsGetHandler implements McpMethodHandler {
                 .then(Mono.from(driver.render(
                         prompt,
                         arguments,
-                        context.attributes()
+                        attributes(context)
                 )))
                 .map(result -> McpJsonRpcResponse.success(
                         request.id(),
@@ -79,7 +79,10 @@ public final class McpPromptsGetHandler implements McpMethodHandler {
                         CompiledMcpRules.qualified(serverCode, name)
                 );
         if (prompt == null || !prompt.enabled()
-                || prompt.remoteMountId() != null) {
+                || !active.remoteAvailable(
+                prompt.remoteMountId(),
+                "PROMPT"
+        )) {
             throw McpPromptDriver.invalid("MCP prompt was not found");
         }
         return prompt;
@@ -155,5 +158,13 @@ public final class McpPromptsGetHandler implements McpMethodHandler {
                     "MCP identity context is incomplete"
             );
         }
+    }
+
+    private Map<String, Object> attributes(McpRequestContext context) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>(
+                context.attributes()
+        );
+        result.put("mcp.protocol-dialect", context.dialect());
+        return Map.copyOf(result);
     }
 }

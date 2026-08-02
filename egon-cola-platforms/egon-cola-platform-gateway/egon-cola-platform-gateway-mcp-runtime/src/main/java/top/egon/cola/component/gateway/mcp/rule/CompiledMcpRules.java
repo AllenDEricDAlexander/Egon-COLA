@@ -11,6 +11,7 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -77,6 +78,28 @@ public record CompiledMcpRules(
         return Optional.ofNullable(toolsByQualifiedName.get(
                 qualified(serverCode, name)
         ));
+    }
+
+    public boolean remoteAvailable(String mountId, String primitiveType) {
+        if (mountId == null) {
+            return true;
+        }
+        McpRuntimeRemoteMount mount = remoteMountsById.get(mountId);
+        if (mount == null || !mount.enabled()
+                || !mount.primitiveTypes().contains(
+                Objects.requireNonNull(primitiveType, "primitiveType")
+                        .toUpperCase(Locale.ROOT)
+        )) {
+            return false;
+        }
+        McpRuntimeRemoteProvider provider = remoteProvidersByCode.get(
+                mount.providerCode()
+        );
+        return provider != null
+                && provider.enabled()
+                && provider.capabilityFingerprint().equals(
+                mount.capabilityFingerprint()
+        );
     }
 
     public static String qualified(String serverCode, String name) {
