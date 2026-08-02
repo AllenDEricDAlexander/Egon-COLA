@@ -24,6 +24,11 @@ class McpResourceFlowTest {
             new McpResourceUriValidator();
 
     @Test
+    void localOperationDriverUsesControlPlaneDriverType() {
+        assertEquals("LOCAL_OPERATION", OperationResourceDriver.DRIVER_TYPE);
+    }
+
+    @Test
     void resourceUriCannotSelectNetworkOrEscapeStorageRoot() throws Exception {
         assertRejected("https://169.254.169.254/latest/meta-data");
         assertRejected("file:///etc/passwd");

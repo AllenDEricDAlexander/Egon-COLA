@@ -13,7 +13,7 @@ import static top.egon.cola.component.gateway.mcp.resource.McpResourceDriver.rej
 
 public final class OperationResourceDriver implements McpResourceDriver {
 
-    public static final String DRIVER_TYPE = "OPERATION";
+    public static final String DRIVER_TYPE = "LOCAL_OPERATION";
 
     private final GatewayOperationInvoker invoker;
 
