@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.starter.authorization;
 
-import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
-import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
+import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationFenceDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
@@ -47,19 +46,18 @@ public final class DefaultAuthorizationService implements AuthorizationService {
             RuntimeAuthorizationContext context = contextSource.load();
             if (context.fenced()) {
                 return permissionDecision(
-                        context.claims(), request.permissionCode(), Decision.DENY,
+                        context, request.permissionCode(), Decision.DENY,
                         "AUTHORIZATION_FENCED");
             }
-            boolean allowed = context.snapshot().appContexts().stream()
-                    .map(AppAuthorizationContext::permissions)
-                    .anyMatch(permissions -> permissions.contains(request.permissionCode()));
+            boolean allowed = context.snapshot().permissions()
+                    .contains(request.permissionCode());
             return permissionDecision(
-                    context.claims(), request.permissionCode(),
+                    context, request.permissionCode(),
                     allowed ? Decision.ALLOW : Decision.DENY,
                     allowed ? "ALLOW" : "PERMISSION_DENIED");
         } catch (RuntimeUnavailableException exception) {
             return permissionDecision(
-                    exception.claims(), request.permissionCode(),
+                    unavailable(exception), request.permissionCode(),
                     Decision.INDETERMINATE, exception.reasonCode());
         }
     }
@@ -70,25 +68,23 @@ public final class DefaultAuthorizationService implements AuthorizationService {
             RuntimeAuthorizationContext context = contextSource.load();
             if (context.fenced()) {
                 return dataScopeDecision(
-                        context.claims(), request.permissionCode(), Decision.DENY,
+                        context, request.permissionCode(), Decision.DENY,
                         "AUTHORIZATION_FENCED");
             }
             if (!hasPermission(context, request.permissionCode())) {
                 return dataScopeDecision(
-                        context.claims(), request.permissionCode(), Decision.DENY,
+                        context, request.permissionCode(), Decision.DENY,
                         "PERMISSION_DENIED");
             }
-            return context.snapshot().appContexts().stream()
-                    .map(AppAuthorizationContext::dataScopes)
-                    .map(scopes -> scopes.get(request.permissionCode()))
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElseGet(() -> dataScopeDecision(
-                            context.claims(), request.permissionCode(), Decision.DENY,
-                            "DATA_SCOPE_MISSING"));
+            DataScopeDecision decision = context.snapshot().dataScopes()
+                    .get(request.permissionCode());
+            return decision == null
+                    ? dataScopeDecision(context, request.permissionCode(),
+                    Decision.DENY, "DATA_SCOPE_MISSING")
+                    : decision;
         } catch (RuntimeUnavailableException exception) {
             return dataScopeDecision(
-                    exception.claims(), request.permissionCode(), Decision.INDETERMINATE,
+                    unavailable(exception), request.permissionCode(), Decision.INDETERMINATE,
                     exception.reasonCode());
         }
     }
@@ -100,22 +96,17 @@ public final class DefaultAuthorizationService implements AuthorizationService {
             String key = request.permissionCode() + ':'
                     + request.applicationCode() + ':' + request.resourceCode();
             if (!context.fenced() && hasPermission(context, request.permissionCode())) {
-                FieldPolicyDecision decision = context.snapshot().appContexts().stream()
-                        .map(AppAuthorizationContext::fieldPolicies)
-                        .map(policies -> policies.get(key))
-                        .filter(Objects::nonNull)
-                        .findFirst()
-                        .orElse(null);
+                FieldPolicyDecision decision = context.snapshot().fieldPolicies().get(key);
                 if (decision != null) {
                     return decision;
                 }
             }
             return fieldDecision(
-                    context.claims(), request, Decision.DENY,
+                    context, request, Decision.DENY,
                     context.fenced() ? "AUTHORIZATION_FENCED" : "FIELD_POLICY_MISSING");
         } catch (RuntimeUnavailableException exception) {
             return fieldDecision(
-                    exception.claims(), request, Decision.INDETERMINATE,
+                    unavailable(exception), request, Decision.INDETERMINATE,
                     exception.reasonCode());
         }
     }
@@ -131,11 +122,11 @@ public final class DefaultAuthorizationService implements AuthorizationService {
                     context.fenced() ? "AUTHORIZATION_FENCED" : "PERMISSION_DENIED",
                     List.of(), List.of());
             return operationDecision(
-                    context.claims(), request,
+                    context, request,
                     result.permitted() ? Decision.ALLOW : Decision.DENY, result);
         } catch (RuntimeUnavailableException exception) {
             return operationDecision(
-                    exception.claims(), request, Decision.INDETERMINATE,
+                    unavailable(exception), request, Decision.INDETERMINATE,
                     new OperationSodResult(
                             false, exception.reasonCode(), List.of(), List.of()));
         }
@@ -152,11 +143,11 @@ public final class DefaultAuthorizationService implements AuthorizationService {
                     context.fenced() ? "AUTHORIZATION_FENCED" : "PERMISSION_DENIED",
                     clock.instant(), List.of());
             return fenceDecision(
-                    context.claims(), request, context.snapshot().checksum(),
+                    context, request, context.snapshot().checksum(),
                     result.permitted() ? Decision.ALLOW : Decision.DENY, result);
         } catch (RuntimeUnavailableException exception) {
             return fenceDecision(
-                    exception.claims(), request, "unavailable", Decision.INDETERMINATE,
+                    unavailable(exception), request, "unavailable", Decision.INDETERMINATE,
                     new FenceResult(
                             false, exception.reasonCode(), clock.instant(), List.of()));
         }
@@ -166,72 +157,141 @@ public final class DefaultAuthorizationService implements AuthorizationService {
             RuntimeAuthorizationContext context,
             String permissionCode
     ) {
-        return context.snapshot().appContexts().stream()
-                .anyMatch(app -> app.permissions().contains(permissionCode));
+        return context.snapshot().permissions().contains(permissionCode);
     }
 
     private AuthorizationDecision permissionDecision(
-            Rbac3TokenClaims claims,
+            RuntimeFacts facts,
             String permissionCode,
             Decision decision,
             String reasonCode
     ) {
         return new AuthorizationDecision(
-                decision, reasonCode, claims.tid(), claims.sub(), permissionCode,
-                claims.av(), claims.sv(), claims.pv(), List.of(), clock.instant());
+                decision, reasonCode, facts.tenantId(), facts.rbac3UserId(), permissionCode,
+                facts.authVersion(), facts.contextVersion(), facts.policyVersion(),
+                facts.activeRoleIds(), clock.instant());
     }
 
     private DataScopeDecision dataScopeDecision(
-            Rbac3TokenClaims claims,
+            RuntimeFacts facts,
             String permissionCode,
             Decision decision,
             String reasonCode
     ) {
         return new DataScopeDecision(
-                decision, reasonCode, claims.tid(), claims.sub(), permissionCode,
+                decision, reasonCode, facts.tenantId(), facts.rbac3UserId(), permissionCode,
                 "NONE", false, Set.of(), false, Set.of(), false, Set.of(),
-                false, null, "unavailable", 0L, claims.av(), claims.sv(), claims.pv(),
+                false, null, "unavailable", 0L, facts.authVersion(),
+                facts.contextVersion(), facts.policyVersion(),
                 List.of(), clock.instant());
     }
 
     private FieldPolicyDecision fieldDecision(
-            Rbac3TokenClaims claims,
+            RuntimeFacts facts,
             FieldPolicyRequest request,
             Decision decision,
             String reasonCode
     ) {
         return new FieldPolicyDecision(
-                decision, reasonCode, claims.tid(), claims.sub(),
+                decision, reasonCode, facts.tenantId(), facts.rbac3UserId(),
                 request.permissionCode(), request.applicationCode(), request.resourceCode(),
-                Map.of(), claims.av(), claims.sv(), claims.pv(), List.of(), clock.instant());
+                Map.of(), facts.authVersion(), facts.contextVersion(),
+                facts.policyVersion(), List.of(), clock.instant());
     }
 
     private OperationSodDecision operationDecision(
-            Rbac3TokenClaims claims,
+            RuntimeFacts facts,
             OperationSodRequest request,
             Decision decision,
             OperationSodResult result
     ) {
         return new OperationSodDecision(
-                decision, result.reasonCode(), claims.tid(), claims.sub(),
+                decision, result.reasonCode(), facts.tenantId(), facts.rbac3UserId(),
                 request.permissionCode(), request.applicationCode(),
                 request.businessResource(), request.businessId(), request.actionCode(),
-                result.conflictingActionCodes(), claims.av(), claims.sv(), claims.pv(),
+                result.conflictingActionCodes(), facts.authVersion(),
+                facts.contextVersion(), facts.policyVersion(),
                 result.evidenceIds(), clock.instant());
     }
 
     private AuthorizationFenceDecision fenceDecision(
-            Rbac3TokenClaims claims,
+            RuntimeFacts facts,
             AuthorizationFenceRequest request,
             String checksum,
             Decision decision,
             FenceResult result
     ) {
         return new AuthorizationFenceDecision(
-                decision, result.reasonCode(), claims.tid(), claims.sub(),
-                request.permissionCode(), claims.sid(), checksum, request.businessResource(),
-                request.businessId(), request.traceId(), claims.av(), claims.sv(), claims.pv(),
+                decision, result.reasonCode(), facts.tenantId(), facts.rbac3UserId(),
+                request.permissionCode(), facts.sessionId(), checksum,
+                request.businessResource(), request.businessId(), request.traceId(),
+                facts.authVersion(), facts.contextVersion(), facts.policyVersion(),
                 result.evidenceIds(), clock.instant(), result.verifiedAt());
+    }
+
+    private RuntimeFacts unavailable(RuntimeUnavailableException exception) {
+        IdentityPrincipal identity = exception.identity();
+        return new RuntimeFacts(identity.tenantId(), identity.subject(),
+                identity.sessionId(), 0, 0, 0, List.of());
+    }
+
+    private RuntimeFacts facts(RuntimeAuthorizationContext context) {
+        return new RuntimeFacts(
+                context.snapshot().tenantId(), context.snapshot().rbac3UserId(),
+                context.snapshot().sessionId(), context.snapshot().authVersion(),
+                context.snapshot().contextVersion(), context.snapshot().policyVersion(),
+                context.snapshot().activeRoleIds());
+    }
+
+    private AuthorizationDecision permissionDecision(
+            RuntimeAuthorizationContext context,
+            String permissionCode,
+            Decision decision,
+            String reasonCode) {
+        return permissionDecision(facts(context), permissionCode, decision, reasonCode);
+    }
+
+    private DataScopeDecision dataScopeDecision(
+            RuntimeAuthorizationContext context,
+            String permissionCode,
+            Decision decision,
+            String reasonCode) {
+        return dataScopeDecision(facts(context), permissionCode, decision, reasonCode);
+    }
+
+    private FieldPolicyDecision fieldDecision(
+            RuntimeAuthorizationContext context,
+            FieldPolicyRequest request,
+            Decision decision,
+            String reasonCode) {
+        return fieldDecision(facts(context), request, decision, reasonCode);
+    }
+
+    private OperationSodDecision operationDecision(
+            RuntimeAuthorizationContext context,
+            OperationSodRequest request,
+            Decision decision,
+            OperationSodResult result) {
+        return operationDecision(facts(context), request, decision, result);
+    }
+
+    private AuthorizationFenceDecision fenceDecision(
+            RuntimeAuthorizationContext context,
+            AuthorizationFenceRequest request,
+            String checksum,
+            Decision decision,
+            FenceResult result) {
+        return fenceDecision(facts(context), request, checksum, decision, result);
+    }
+
+    private record RuntimeFacts(
+            String tenantId,
+            String rbac3UserId,
+            String sessionId,
+            long authVersion,
+            long contextVersion,
+            long policyVersion,
+            List<String> activeRoleIds) {
     }
 
     public static final class AuthorizationDeniedException extends RuntimeException {

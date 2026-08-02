@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.starter.security;
 
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public final class Rbac3AuthenticationToken extends AbstractAuthenticationToken 
     }
 
     @Override
-    public Object getPrincipal() {
-        return context.claims().sub();
+    public IdentityPrincipal getPrincipal() {
+        return context.identity();
     }
 }

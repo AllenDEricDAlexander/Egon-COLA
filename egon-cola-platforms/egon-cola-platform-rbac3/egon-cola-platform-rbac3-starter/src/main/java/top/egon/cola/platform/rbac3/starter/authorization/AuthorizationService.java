@@ -1,13 +1,13 @@
 package top.egon.cola.platform.rbac3.starter.authorization;
 
-import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
+import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationFenceDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.OperationSodDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
-import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 
 import java.time.Instant;
 import java.util.List;
@@ -77,19 +77,18 @@ public interface AuthorizationService {
     }
 
     record RuntimeAuthorizationContext(
-            Rbac3TokenClaims claims,
-            SessionAuthorizationSnapshot snapshot,
+            IdentityPrincipal identity,
+            SystemAuthorizationSnapshot snapshot,
             boolean fenced
     ) {
         public RuntimeAuthorizationContext {
-            claims = Objects.requireNonNull(claims, "claims");
+            identity = Objects.requireNonNull(identity, "identity");
             snapshot = Objects.requireNonNull(snapshot, "snapshot");
-            if (!claims.sid().equals(snapshot.sessionId())
-                    || claims.av() != snapshot.authVersion()
-                    || claims.sv() != snapshot.sessionVersion()
-                    || claims.pv() != snapshot.policyVersion()) {
+            if (!identity.subject().equals(snapshot.identitySub())
+                    || !identity.tenantId().equals(snapshot.tenantId())
+                    || !identity.sessionId().equals(snapshot.sessionId())) {
                 throw new RuntimeUnavailableException(
-                        "AUTHORIZATION_VERSION_MISMATCH", claims);
+                        "AUTHORIZATION_IDENTITY_MISMATCH", identity);
             }
         }
     }
@@ -146,23 +145,23 @@ public interface AuthorizationService {
     final class RuntimeUnavailableException extends RuntimeException {
 
         private final String reasonCode;
-        private final Rbac3TokenClaims claims;
+        private final IdentityPrincipal identity;
 
         public RuntimeUnavailableException(
                 String reasonCode,
-                Rbac3TokenClaims claims
+                IdentityPrincipal identity
         ) {
             super(required(reasonCode, "reasonCode"));
             this.reasonCode = reasonCode;
-            this.claims = Objects.requireNonNull(claims, "claims");
+            this.identity = Objects.requireNonNull(identity, "identity");
         }
 
         public String reasonCode() {
             return reasonCode;
         }
 
-        public Rbac3TokenClaims claims() {
-            return claims;
+        public IdentityPrincipal identity() {
+            return identity;
         }
     }
 

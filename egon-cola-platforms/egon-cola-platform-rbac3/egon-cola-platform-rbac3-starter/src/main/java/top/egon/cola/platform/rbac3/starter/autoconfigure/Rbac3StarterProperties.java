@@ -8,10 +8,9 @@ import java.time.Duration;
 public class Rbac3StarterProperties {
 
     private boolean enabled;
-    private String issuer;
-    private String audience;
-    private String jwkSetUri;
+    private String systemCode;
     private final Runtime runtime = new Runtime();
+    private final Authorization authorization = new Authorization();
     private final Manifest manifest = new Manifest();
 
     public boolean isEnabled() {
@@ -22,32 +21,20 @@ public class Rbac3StarterProperties {
         this.enabled = enabled;
     }
 
-    public String getIssuer() {
-        return issuer;
+    public String getSystemCode() {
+        return systemCode;
     }
 
-    public void setIssuer(String issuer) {
-        this.issuer = issuer;
-    }
-
-    public String getAudience() {
-        return audience;
-    }
-
-    public void setAudience(String audience) {
-        this.audience = audience;
-    }
-
-    public String getJwkSetUri() {
-        return jwkSetUri;
-    }
-
-    public void setJwkSetUri(String jwkSetUri) {
-        this.jwkSetUri = jwkSetUri;
+    public void setSystemCode(String systemCode) {
+        this.systemCode = systemCode;
     }
 
     public Runtime getRuntime() {
         return runtime;
+    }
+
+    public Authorization getAuthorization() {
+        return authorization;
     }
 
     public Manifest getManifest() {
@@ -99,6 +86,63 @@ public class Rbac3StarterProperties {
 
         public void setTimeout(Duration timeout) {
             this.timeout = timeout;
+        }
+    }
+
+    public static class Authorization {
+        private String endpoint;
+        private String serviceCredentialFile;
+        private Duration cacheTtl = Duration.ofMinutes(5);
+        private Duration maximumJitter = Duration.ofSeconds(30);
+        private Duration nearCacheTtl = Duration.ofSeconds(5);
+        private Duration fetchTimeout = Duration.ofSeconds(1);
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        public String getServiceCredentialFile() {
+            return serviceCredentialFile;
+        }
+
+        public void setServiceCredentialFile(String serviceCredentialFile) {
+            this.serviceCredentialFile = serviceCredentialFile;
+        }
+
+        public Duration getCacheTtl() {
+            return cacheTtl;
+        }
+
+        public void setCacheTtl(Duration cacheTtl) {
+            this.cacheTtl = cacheTtl;
+        }
+
+        public Duration getMaximumJitter() {
+            return maximumJitter;
+        }
+
+        public void setMaximumJitter(Duration maximumJitter) {
+            this.maximumJitter = maximumJitter;
+        }
+
+        public Duration getNearCacheTtl() {
+            return nearCacheTtl;
+        }
+
+        public void setNearCacheTtl(Duration nearCacheTtl) {
+            this.nearCacheTtl = nearCacheTtl;
+        }
+
+        public Duration getFetchTimeout() {
+            return fetchTimeout;
+        }
+
+        public void setFetchTimeout(Duration fetchTimeout) {
+            this.fetchTimeout = fetchTimeout;
         }
     }
 
