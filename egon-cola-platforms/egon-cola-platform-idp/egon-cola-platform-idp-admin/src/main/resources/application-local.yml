@@ -19,4 +19,7 @@ egon.cola.platform:
 egon:
   idp:
     oauth:
+      issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
+      login-uri: ${IDP_OAUTH_LOGIN_URI:http://127.0.0.1:18121/login}
+      allowed-origins: ${IDP_OAUTH_ALLOWED_ORIGINS:http://127.0.0.1:18121,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18151}
       refresh-cookie-secure: false

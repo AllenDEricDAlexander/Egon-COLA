@@ -42,7 +42,8 @@ class OAuthTokenTransportIT {
 
     private static final Instant NOW = Instant.parse("2026-08-02T00:00:00Z");
     private static final String CLIENT_ID = "gateway-admin-web";
-    private static final String COOKIE_NAME = "EGON_IDP_REFRESH";
+    private static final String COOKIE_NAME =
+            "EGON_IDP_REFRESH_gateway-admin-web";
 
     private AuthorizationFacade authorizations;
     private TokenFacade tokens;
@@ -230,6 +231,7 @@ class OAuthTokenTransportIT {
 
         mockMvc.perform(post("/oauth2/logout")
                         .principal(() -> "alice-sub")
+                        .param("client_id", CLIENT_ID)
                         .param("all_sessions", "true"))
                 .andExpect(status().isNoContent())
                 .andExpect(header().string(

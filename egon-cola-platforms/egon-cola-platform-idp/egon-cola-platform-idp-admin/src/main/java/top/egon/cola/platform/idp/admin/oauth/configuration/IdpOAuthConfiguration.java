@@ -13,14 +13,18 @@ import top.egon.cola.platform.idp.admin.integration.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRepository;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdpSsoSessionStore;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.RedisAuthorizationCodeStore;
+import top.egon.cola.platform.idp.admin.security.IdpSsoAuthenticationFilter;
+import top.egon.cola.platform.idp.admin.security.IdpAuthorizationAuthenticationEntryPoint;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
 import top.egon.cola.platform.idp.core.port.AuthorizationCodeStore;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
 
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
@@ -30,6 +34,38 @@ public class IdpOAuthConfiguration {
     @ConditionalOnMissingBean
     Clock idpClock() {
         return Clock.systemUTC();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    SecureRandom idpSecureRandom() {
+        return new SecureRandom();
+    }
+
+    @Bean
+    IdpSsoSessionStore idpSsoSessionStore(
+            RedissonClient redisson,
+            SecureRandom idpSecureRandom,
+            @Value("${egon.idp.oauth.sso-session-key-prefix:"
+                    + "identity:v1:sso-session:}") String keyPrefix
+    ) {
+        return new IdpSsoSessionStore(redisson, idpSecureRandom, keyPrefix);
+    }
+
+    @Bean
+    IdpSsoAuthenticationFilter idpSsoAuthenticationFilter(
+            IdpSsoSessionStore sessions
+    ) {
+        return new IdpSsoAuthenticationFilter(sessions);
+    }
+
+    @Bean
+    IdpAuthorizationAuthenticationEntryPoint
+            idpAuthorizationAuthenticationEntryPoint(
+            @Value("${egon.idp.oauth.issuer}") String issuer,
+            @Value("${egon.idp.oauth.login-uri}") String loginUri
+    ) {
+        return new IdpAuthorizationAuthenticationEntryPoint(issuer, loginUri);
     }
 
     @Bean

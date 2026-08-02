@@ -66,6 +66,8 @@ egon:
     identity-state-key-prefix: "identity:v1:user:"
     oauth:
       issuer: ${IDP_OAUTH_ISSUER}
+      login-uri: ${IDP_OAUTH_LOGIN_URI}
+      allowed-origins: ${IDP_OAUTH_ALLOWED_ORIGINS:}
       refresh-cookie-secure: ${IDP_REFRESH_COOKIE_SECURE:true}
       signing-key:
         kid: ${IDP_SIGNING_KEY_KID}

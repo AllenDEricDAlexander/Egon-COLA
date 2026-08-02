@@ -7,7 +7,6 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,11 +24,13 @@ import java.security.Principal;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Objects;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 public class OAuthTokenController {
 
-    public static final String REFRESH_COOKIE_NAME = "EGON_IDP_REFRESH";
+    public static final String REFRESH_COOKIE_PREFIX = "EGON_IDP_REFRESH_";
     private static final String REFRESH_COOKIE_PATH = "/oauth2";
 
     private final AuthorizationFacade authorizations;
@@ -68,13 +69,14 @@ public class OAuthTokenController {
     )
     public ResponseEntity<TokenResponse> token(
             @RequestParam MultiValueMap<String, String> form,
-            @CookieValue(
-                    name = REFRESH_COOKIE_NAME,
-                    required = false
-            ) String refreshCookie
+            HttpServletRequest request
     ) {
         String grantType = required(form.getFirst("grant_type"));
         OAuthClient client = activeClient(form.getFirst("client_id"));
+        String refreshCookie = cookieValue(
+                request,
+                refreshCookieName(client.clientId())
+        );
         IdpRuntimePolicy.Snapshot policy = runtimePolicy.current();
         TokenFacade.TokenPair pair;
         if ("authorization_code".equals(grantType)) {
@@ -110,7 +112,7 @@ public class OAuthTokenController {
                 .header("Pragma", "no-cache")
                 .header(
                         HttpHeaders.SET_COOKIE,
-                        refreshCookie(pair).toString()
+                        refreshCookie(pair, client.clientId()).toString()
                 )
                 .body(new TokenResponse(
                         pair.accessToken(),
@@ -125,12 +127,13 @@ public class OAuthTokenController {
     )
     public ResponseEntity<Void> revoke(
             @RequestParam("client_id") String clientId,
-            @CookieValue(
-                    name = REFRESH_COOKIE_NAME,
-                    required = false
-            ) String refreshCookie
+            HttpServletRequest request
     ) {
         OAuthClient client = activeClient(clientId);
+        String refreshCookie = cookieValue(
+                request,
+                refreshCookieName(client.clientId())
+        );
         if (refreshCookie != null && !refreshCookie.isBlank()) {
             try {
                 tokens.revoke(refreshCookie, client.clientId());
@@ -139,7 +142,10 @@ public class OAuthTokenController {
             }
         }
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, expiredRefreshCookie().toString())
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        expiredRefreshCookie(client.clientId()).toString()
+                )
                 .build();
     }
 
@@ -151,24 +157,29 @@ public class OAuthTokenController {
             ) boolean allSessions,
             @RequestParam(
                     name = "client_id",
-                    required = false
+                    required = true
             ) String clientId,
-            @CookieValue(
-                    name = REFRESH_COOKIE_NAME,
-                    required = false
-            ) String refreshCookie,
+            HttpServletRequest request,
             Principal principal
     ) {
+        OAuthClient client = activeClient(clientId);
+        String refreshCookie = cookieValue(
+                request,
+                refreshCookieName(client.clientId())
+        );
         if (allSessions) {
             if (principal == null || principal.getName() == null) {
                 throw oauth("invalid_request");
             }
             tokens.logoutAll(principal.getName());
         } else if (refreshCookie != null && !refreshCookie.isBlank()) {
-            tokens.revoke(refreshCookie, activeClient(clientId).clientId());
+            tokens.revoke(refreshCookie, client.clientId());
         }
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, expiredRefreshCookie().toString())
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        expiredRefreshCookie(client.clientId()).toString()
+                )
                 .build();
     }
 
@@ -193,28 +204,59 @@ public class OAuthTokenController {
         return client;
     }
 
-    private ResponseCookie refreshCookie(TokenFacade.TokenPair pair) {
+    private ResponseCookie refreshCookie(
+            TokenFacade.TokenPair pair,
+            String clientId
+    ) {
         Duration maxAge = Duration.between(
                 clock.instant(),
                 pair.refreshExpiresAt()
         );
-        return cookie(pair.refreshToken(), maxAge.isNegative()
+        return cookie(clientId, pair.refreshToken(), maxAge.isNegative()
                 ? Duration.ZERO
                 : maxAge);
     }
 
-    private ResponseCookie expiredRefreshCookie() {
-        return cookie("", Duration.ZERO);
+    private ResponseCookie expiredRefreshCookie(String clientId) {
+        return cookie(clientId, "", Duration.ZERO);
     }
 
-    private ResponseCookie cookie(String value, Duration maxAge) {
-        return ResponseCookie.from(REFRESH_COOKIE_NAME, value)
+    private ResponseCookie cookie(
+            String clientId,
+            String value,
+            Duration maxAge
+    ) {
+        return ResponseCookie.from(refreshCookieName(clientId), value)
                 .httpOnly(true)
                 .secure(secureCookie)
                 .sameSite("Lax")
                 .path(REFRESH_COOKIE_PATH)
                 .maxAge(maxAge)
                 .build();
+    }
+
+    public static String refreshCookieName(String clientId) {
+        String value = required(clientId);
+        if (!value.matches("[A-Za-z0-9_-]{1,100}")) {
+            throw oauth("invalid_request");
+        }
+        return REFRESH_COOKIE_PREFIX + value;
+    }
+
+    private static String cookieValue(
+            HttpServletRequest request,
+            String name
+    ) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 
     private static OAuthException oauth(String error) {
