@@ -30,6 +30,11 @@ import java.util.function.Supplier;
 
 public final class HttpRpcUpstreamAdapter {
 
+    private static final Metadata.Key<String> AUTHORIZATION = Metadata.Key.of(
+            "authorization",
+            Metadata.ASCII_STRING_MARSHALLER
+    );
+
     private final Supplier<CompiledGatewayRules> rules;
 
     private final RpcProviderChannelCache channels;
@@ -151,6 +156,7 @@ public final class HttpRpcUpstreamAdapter {
         copy(headers, metadata, "traceparent", RpcMetadataKeys.TRACEPARENT);
         copy(headers, metadata, "tracestate", RpcMetadataKeys.TRACESTATE);
         copy(headers, metadata, "x-egon-request-id", RpcMetadataKeys.REQUEST_ID);
+        copy(headers, metadata, "authorization", AUTHORIZATION);
         return metadata;
     }
 

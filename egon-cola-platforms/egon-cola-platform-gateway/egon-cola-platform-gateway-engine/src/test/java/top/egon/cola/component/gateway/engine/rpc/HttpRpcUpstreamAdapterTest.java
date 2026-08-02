@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.DescriptorProtos;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.ServerInterceptors;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
@@ -32,7 +37,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HttpRpcUpstreamAdapterTest {
@@ -42,19 +49,39 @@ class HttpRpcUpstreamAdapterTest {
         var method = RawByteMarshaller.INSTANCE.descriptor(
                 "test.EchoService/Echo"
         );
+        AtomicReference<String> authorization = new AtomicReference<>();
+        Metadata.Key<String> authorizationKey = Metadata.Key.of(
+                "authorization",
+                Metadata.ASCII_STRING_MARSHALLER
+        );
         Server server = ServerBuilder.forPort(0)
-                .addService(ServerServiceDefinition
-                        .builder("test.EchoService")
-                        .addMethod(
-                                method,
-                                ServerCalls.asyncUnaryCall(
-                                        (request, observer) -> {
-                                            observer.onNext(request);
-                                            observer.onCompleted();
-                                        }
+                .addService(ServerInterceptors.intercept(
+                        ServerServiceDefinition
+                                .builder("test.EchoService")
+                                .addMethod(
+                                        method,
+                                        ServerCalls.asyncUnaryCall(
+                                                (request, observer) -> {
+                                                    observer.onNext(request);
+                                                    observer.onCompleted();
+                                                }
+                                        )
                                 )
-                        )
-                        .build())
+                                .build(),
+                        new ServerInterceptor() {
+                            @Override
+                            public <ReqT, RespT>
+                            ServerCall.Listener<ReqT> interceptCall(
+                                    ServerCall<ReqT, RespT> call,
+                                    Metadata headers,
+                                    ServerCallHandler<ReqT, RespT> next) {
+                                authorization.set(headers.get(
+                                        authorizationKey
+                                ));
+                                return next.startCall(call, headers);
+                            }
+                        }
+                ))
                 .build()
                 .start();
         RpcProviderChannelCache channels =
@@ -117,7 +144,10 @@ class HttpRpcUpstreamAdapterTest {
                             "{\"value\":\"hello\"}".getBytes(
                                     StandardCharsets.UTF_8
                             ),
-                            Map.of(),
+                            Map.of(
+                                    "authorization",
+                                    List.of("Bearer local-jwt")
+                            ),
                             Duration.ofSeconds(2)
                     )
                     .map(value -> GatewayDataBufferTestSupport.joinUtf8(
@@ -127,6 +157,7 @@ class HttpRpcUpstreamAdapterTest {
                     .block();
 
             assertTrue(response.contains("\"value\": \"hello\""));
+            assertEquals("Bearer local-jwt", authorization.get());
         } finally {
             channels.close();
             server.shutdownNow();

@@ -56,6 +56,8 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallEventSeri
 import top.egon.cola.component.gateway.engine.observability.GatewayCallMetricsListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 import top.egon.cola.component.gateway.engine.observability.KafkaGatewayCallEventSink;
+import top.egon.cola.component.gateway.engine.operation.DefaultGatewayOperationTransport;
+import top.egon.cola.component.gateway.engine.operation.EngineGatewayOperationInvoker;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayForwarder;
 import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayHandlerRegistry;
@@ -520,6 +522,34 @@ public class GatewayEngineConfiguration {
                 activation::active,
                 channels,
                 objectMapper
+        );
+    }
+
+    @Bean
+    public EngineGatewayOperationInvoker gatewayOperationInvoker(
+            GatewayRuleActivationApplier activation,
+            DirectoryProviderSelector providerSelector,
+            GatewayTrafficGovernance trafficGovernance,
+            ReactorNettyHttpUpstreamAdapter http,
+            HttpRpcUpstreamAdapter rpc,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            GatewayEngineRuntimeProperties properties) {
+        long maximumRequestBytes = properties.getHttp()
+                .getAbsoluteMaxRequestBodyBytes();
+        long maximumResponseBytes = 4L * 1024 * 1024;
+        return new EngineGatewayOperationInvoker(
+                activation::active,
+                providerSelector,
+                trafficGovernance,
+                new DefaultGatewayOperationTransport(
+                        http,
+                        rpc,
+                        maximumResponseBytes
+                ),
+                objectMapper,
+                properties.getHttp().getUpstreamTimeout(),
+                maximumRequestBytes,
+                maximumResponseBytes
         );
     }
 
