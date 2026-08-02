@@ -5,6 +5,7 @@ import top.egon.cola.platform.idp.admin.oauth.domain.IdentityClientEntity;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -43,7 +44,9 @@ public final class JpaOAuthClientStore implements OAuthClientStore {
                         .toList(),
                 audiences.findByClientId(entity.getClientId()).stream()
                         .map(value -> value.getAudience())
-                        .toList()
+                        .toList(),
+                Duration.ofSeconds(entity.getAccessTokenTtlSeconds()),
+                Duration.ofSeconds(entity.getRefreshTokenTtlSeconds())
         );
     }
 }

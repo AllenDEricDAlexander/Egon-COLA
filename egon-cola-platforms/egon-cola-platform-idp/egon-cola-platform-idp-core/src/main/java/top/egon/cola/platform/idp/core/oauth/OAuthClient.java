@@ -1,5 +1,6 @@
 package top.egon.cola.platform.idp.core.oauth;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -9,8 +10,15 @@ public record OAuthClient(
         Status status,
         boolean pkceRequired,
         List<String> redirectUris,
-        List<String> audiences
+        List<String> audiences,
+        Duration accessTokenTtl,
+        Duration refreshTokenTtl
 ) {
+
+    private static final Duration DEFAULT_ACCESS_TOKEN_TTL =
+            Duration.ofMinutes(15);
+    private static final Duration DEFAULT_REFRESH_TOKEN_TTL =
+            Duration.ofDays(7);
 
     public OAuthClient {
         clientId = required(clientId, "clientId");
@@ -18,6 +26,18 @@ public record OAuthClient(
         status = Objects.requireNonNull(status, "status");
         redirectUris = normalizedDistinct(redirectUris, "redirectUris");
         audiences = normalizedDistinct(audiences, "audiences");
+        accessTokenTtl = durationInRange(
+                accessTokenTtl,
+                Duration.ofMinutes(5),
+                Duration.ofMinutes(30),
+                "accessTokenTtl"
+        );
+        refreshTokenTtl = durationInRange(
+                refreshTokenTtl,
+                Duration.ofDays(1),
+                Duration.ofDays(30),
+                "refreshTokenTtl"
+        );
         if (redirectUris.isEmpty()) {
             throw new IllegalArgumentException(
                     "at least one redirect URI is required"
@@ -28,6 +48,26 @@ public record OAuthClient(
                     "at least one audience is required"
             );
         }
+    }
+
+    public OAuthClient(
+            String clientId,
+            ClientType clientType,
+            Status status,
+            boolean pkceRequired,
+            List<String> redirectUris,
+            List<String> audiences
+    ) {
+        this(
+                clientId,
+                clientType,
+                status,
+                pkceRequired,
+                redirectUris,
+                audiences,
+                DEFAULT_ACCESS_TOKEN_TTL,
+                DEFAULT_REFRESH_TOKEN_TTL
+        );
     }
 
     public boolean acceptsRedirectUri(String redirectUri) {
@@ -45,8 +85,23 @@ public record OAuthClient(
                 value,
                 pkceRequired,
                 redirectUris,
-                audiences
+                audiences,
+                accessTokenTtl,
+                refreshTokenTtl
         );
+    }
+
+    private static Duration durationInRange(
+            Duration value,
+            Duration minimum,
+            Duration maximum,
+            String field
+    ) {
+        Objects.requireNonNull(value, field);
+        if (value.compareTo(minimum) < 0 || value.compareTo(maximum) > 0) {
+            throw new IllegalArgumentException(field + " is out of range");
+        }
+        return value;
     }
 
     private static List<String> normalizedDistinct(

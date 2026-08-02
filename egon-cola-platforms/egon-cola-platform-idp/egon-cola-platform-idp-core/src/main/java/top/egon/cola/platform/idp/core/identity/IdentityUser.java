@@ -114,6 +114,31 @@ public record IdentityUser(
         );
     }
 
+    public IdentityUser withStatus(IdentityUserStatus newStatus) {
+        Objects.requireNonNull(newStatus, "newStatus");
+        Instant newLockedUntil = newStatus == IdentityUserStatus.LOCKED
+                ? lockedUntil
+                : null;
+        if (newStatus == IdentityUserStatus.LOCKED
+                && newLockedUntil == null) {
+            throw new IllegalArgumentException(
+                    "lockedUntil is required for a locked user"
+            );
+        }
+        return new IdentityUser(
+                id,
+                username,
+                normalizedUsername,
+                displayName,
+                newStatus,
+                tokenVersion,
+                failedLoginCount,
+                newLockedUntil,
+                lastLoginAt,
+                Math.addExact(version, 1L)
+        );
+    }
+
     public IdentityUser withLoginFailure(
             int failureCount,
             Instant lockExpiresAt,

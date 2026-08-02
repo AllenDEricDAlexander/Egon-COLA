@@ -138,6 +138,8 @@ class OAuthAuthorizationFlowIT {
 
         assertEquals(OAuthClient.Status.ACTIVE, client.status());
         assertEquals(OAuthClient.ClientType.PUBLIC, client.clientType());
+        assertEquals(Duration.ofMinutes(15), client.accessTokenTtl());
+        assertEquals(Duration.ofDays(7), client.refreshTokenTtl());
         assertTrue(client.acceptsRedirectUri(
                 "https://gateway.example.test/oauth/callback"
         ));
