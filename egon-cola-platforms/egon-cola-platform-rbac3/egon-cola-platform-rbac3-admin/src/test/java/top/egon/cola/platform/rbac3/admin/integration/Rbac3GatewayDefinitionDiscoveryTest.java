@@ -11,6 +11,7 @@ import top.egon.cola.platform.rbac3.admin.interfaces.http.AuditSimulationControl
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AuthController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ConstraintController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.InternalAuthorizationController;
+import top.egon.cola.platform.rbac3.admin.interfaces.http.InternalIdentityController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ManagementPolicyController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ManifestController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ParticipationController;
@@ -40,6 +41,7 @@ class Rbac3GatewayDefinitionDiscoveryTest {
                 AuthController.class,
                 ConstraintController.class,
                 InternalAuthorizationController.class,
+                InternalIdentityController.class,
                 ManagementPolicyController.class,
                 ManifestController.class,
                 ParticipationController.class,
@@ -69,7 +71,7 @@ class Rbac3GatewayDefinitionDiscoveryTest {
         }
 
         assertTrue(operationNames.containsAll(Set.of(
-                "rbac3-auth-login-v1",
+                "rbac3-internal-identity-resolve-v1",
                 "rbac3-role-activation-replace-v1",
                 "rbac3-internal-authorization-decision-v1",
                 "rbac3-runtime-status-v1")));

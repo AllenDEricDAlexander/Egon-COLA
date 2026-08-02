@@ -46,10 +46,7 @@ public class Rbac3AdminSecurityConfiguration {
                         SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health/liveness",
-                                "/actuator/health/readiness",
-                                "/api/rbac3/v1/auth/login",
-                                "/api/rbac3/v1/auth/refresh",
-                                "/api/rbac3/v1/auth/jwks")
+                                "/actuator/health/readiness")
                         .permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(

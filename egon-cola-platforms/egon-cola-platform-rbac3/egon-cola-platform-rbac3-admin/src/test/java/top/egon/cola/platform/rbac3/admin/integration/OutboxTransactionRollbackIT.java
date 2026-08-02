@@ -127,7 +127,7 @@ class OutboxTransactionRollbackIT {
                     schemaUrl, user, password);
             Flyway rbac3 = Rbac3FlywayConfiguration.buildRbac3Flyway(dataSource);
             Flyway outbox = Rbac3FlywayConfiguration.buildOutboxFlyway(dataSource);
-            assertThat(rbac3.migrate().migrationsExecuted).isEqualTo(2);
+            assertThat(rbac3.migrate().migrationsExecuted).isEqualTo(3);
             assertThat(outbox.migrate().migrationsExecuted).isEqualTo(1);
 
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);

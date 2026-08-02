@@ -29,6 +29,7 @@ import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
+import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.SessionController;
@@ -104,6 +105,9 @@ class Rbac3GatewayDocumentCatalogContractTest {
 
     @MockitoBean
     private IdempotencyService idempotencyService;
+
+    @MockitoBean
+    private IdentityMappingFacade identityMappingFacade;
 
     @MockitoBean
     private JwtKeyRingService jwtKeyRingService;

@@ -19,10 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.auth.application.JwtKeyRingService;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3SecurityProperties;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 
@@ -92,18 +89,6 @@ public class Rbac3JwtConfiguration {
                 material.kid(), "RS256", publicJwk,
                 JwtKeyRingService.KeyState.SIGNING, clock.instant(), null)),
                 properties.requireVerificationKeyRetention());
-    }
-
-    @Bean
-    JwtTokenService jwtTokenService(
-            JwtEncoder encoder,
-            JwtKeyRingService keyRing,
-            LongIdGenerator idGenerator,
-            Rbac3SecurityProperties security,
-            Rbac3RuntimePolicy runtimePolicy) {
-        return new JwtTokenService(
-                encoder, keyRing, idGenerator, security.requireIssuer(),
-                security.requireAudiences(), runtimePolicy);
     }
 
     @Bean

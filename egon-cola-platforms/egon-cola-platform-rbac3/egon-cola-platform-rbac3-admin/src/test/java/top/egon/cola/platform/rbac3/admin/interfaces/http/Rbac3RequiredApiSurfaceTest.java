@@ -24,12 +24,8 @@ class Rbac3RequiredApiSurfaceTest {
                 SessionController.class);
 
         assertEquals(Set.of(
-                "POST /api/rbac3/v1/auth/login",
-                "POST /api/rbac3/v1/auth/refresh",
                 "POST /api/rbac3/v1/auth/logout",
-                "POST /api/rbac3/v1/auth/step-up",
                 "GET /api/rbac3/v1/auth/bootstrap",
-                "GET /api/rbac3/v1/auth/jwks",
                 "GET /api/rbac3/v1/auth/role-activation-candidates",
                 "GET /api/rbac3/v1/auth/role-activations",
                 "PUT /api/rbac3/v1/auth/role-activations",

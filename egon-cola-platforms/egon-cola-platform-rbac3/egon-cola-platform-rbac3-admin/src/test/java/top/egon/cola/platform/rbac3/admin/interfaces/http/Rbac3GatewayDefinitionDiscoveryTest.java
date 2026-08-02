@@ -10,10 +10,6 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtKeyRingService;
-import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
-import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
 
@@ -40,22 +36,10 @@ class Rbac3GatewayDefinitionDiscoveryTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private AuthenticationFacade authenticationFacade;
-
-    @MockitoBean
-    private RefreshFacade refreshFacade;
-
-    @MockitoBean
     private BootstrapQueryService bootstrapQueryService;
 
     @MockitoBean
     private SessionFacade sessionFacade;
-
-    @MockitoBean
-    private JwtKeyRingService jwtKeyRingService;
-
-    @MockitoBean
-    private StepUpFacade stepUpFacade;
 
     @MockitoBean
     private DatabaseClock databaseClock;
@@ -93,9 +77,9 @@ class Rbac3GatewayDefinitionDiscoveryTest {
                         SessionController.class.getName()),
                 methodsByController.keySet());
         assertTrue(methodsByController.get(AuthController.class.getName())
-                .contains("POST /api/rbac3/v1/auth/login"));
+                .contains("POST /api/rbac3/v1/auth/logout"));
         assertTrue(methodsByController.get(AuthController.class.getName())
-                .contains("GET /api/rbac3/v1/auth/jwks"));
+                .contains("GET /api/rbac3/v1/auth/bootstrap"));
         assertTrue(methodsByController.get(TenantUserDirectoryController.class.getName())
                 .contains("POST /api/rbac3/v1/internal/directory-snapshots"));
         assertTrue(methodsByController.get(SessionController.class.getName())

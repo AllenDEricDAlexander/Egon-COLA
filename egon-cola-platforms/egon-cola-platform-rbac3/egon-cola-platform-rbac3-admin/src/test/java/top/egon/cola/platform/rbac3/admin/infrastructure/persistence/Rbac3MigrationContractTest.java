@@ -24,6 +24,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V1__create_rbac3_schema.sql";
     private static final String STRONG_AUTH_MIGRATION =
             "db/migration/V2__add_session_strong_authentication_time.sql";
+    private static final String IDP_MIGRATION =
+            "db/migration/V3__adopt_idp_identity.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -97,10 +99,13 @@ class Rbac3MigrationContractTest {
     void migrationHistoryKeepsV1ImmutableAndAddsStrongAuthenticationTimeInV2()
             throws Exception {
         assertThat(listMigrationResources()).containsExactly(
-                MIGRATION, STRONG_AUTH_MIGRATION);
+                MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
+        assertThat(resourceSql(IDP_MIGRATION))
+                .contains("add column identity_sub varchar(512)")
+                .contains("context_version bigint not null default 0");
     }
 
     @Test

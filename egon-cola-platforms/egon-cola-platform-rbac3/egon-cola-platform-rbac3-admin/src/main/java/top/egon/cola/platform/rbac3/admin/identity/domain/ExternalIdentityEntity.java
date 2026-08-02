@@ -24,6 +24,9 @@ public class ExternalIdentityEntity extends TenantScopedEntity {
     @Column(name = "external_subject_id", nullable = false, length = 256)
     private String externalSubjectId;
 
+    @Column(name = "identity_sub", nullable = false, length = 512)
+    private String identitySub;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -52,10 +55,42 @@ public class ExternalIdentityEntity extends TenantScopedEntity {
         setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
         this.providerCode = required(providerCode, "providerCode");
         this.externalSubjectId = required(externalSubjectId, "externalSubjectId");
+        this.identitySub = this.externalSubjectId;
         this.userId = Objects.requireNonNull(userId, "userId");
         this.status = Status.ACTIVE;
         this.lastSyncedAt = Objects.requireNonNull(now, "now");
         markCreated(actorId, now);
+    }
+
+    public static ExternalIdentityEntity idpMapping(
+            Long id,
+            Long tenantId,
+            String identitySub,
+            Long userId,
+            String actorId,
+            Instant now) {
+        return new ExternalIdentityEntity(
+                id, tenantId, "IDP", identitySub, userId, actorId, now);
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getIdentitySub() {
+        return identitySub;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public Instant getLastSyncedAt() {
+        return lastSyncedAt;
     }
 
     private static String required(String value, String fieldName) {
