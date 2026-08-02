@@ -19,6 +19,7 @@
     <modules>
         <module>egon-cola-platform-gateway-contract</module>
         <module>egon-cola-platform-gateway-core</module>
+        <module>egon-cola-platform-gateway-mcp-runtime</module>
         <module>egon-cola-platform-gateway-engine</module>
         <module>egon-cola-platform-gateway-admin</module>
         <module>egon-cola-platform-gateway-starter</module>
@@ -36,6 +37,11 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-gateway-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-mcp-runtime</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
