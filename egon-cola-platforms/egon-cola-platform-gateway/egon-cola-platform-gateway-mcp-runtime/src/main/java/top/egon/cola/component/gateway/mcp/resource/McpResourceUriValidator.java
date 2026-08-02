@@ -6,7 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Accepts only the internal egon URI namespace and rejects traversal forms.
+ * Accepts reviewed internal and App UI namespaces and rejects traversal forms.
  */
 public final class McpResourceUriValidator {
 
@@ -39,7 +39,9 @@ public final class McpResourceUriValidator {
         } catch (IllegalArgumentException failure) {
             throw McpResourceDriver.rejected("MCP resource URI is invalid");
         }
-        if (!"egon".equalsIgnoreCase(parsed.getScheme())
+        boolean supportedScheme = "egon".equalsIgnoreCase(parsed.getScheme())
+                || "ui".equalsIgnoreCase(parsed.getScheme());
+        if (!supportedScheme
                 || parsed.getRawAuthority() == null
                 || !AUTHORITY.matcher(parsed.getRawAuthority()).matches()
                 || parsed.getUserInfo() != null
@@ -47,7 +49,7 @@ public final class McpResourceUriValidator {
                 || parsed.getRawQuery() != null
                 || parsed.getRawFragment() != null) {
             throw McpResourceDriver.rejected(
-                    "MCP resource URI must use the internal egon scheme"
+                    "MCP resource URI must use an internal scheme"
             );
         }
         String path = parsed.getRawPath();
@@ -87,7 +89,12 @@ public final class McpResourceUriValidator {
                     "MCP resource URI template is invalid"
             );
         }
-        validate(concrete.toString());
+        URI checked = validate(concrete.toString());
+        if (!"egon".equalsIgnoreCase(checked.getScheme())) {
+            throw McpResourceDriver.rejected(
+                    "MCP resource URI templates must use the egon scheme"
+            );
+        }
         return new Template(value.trim(), java.util.Set.copyOf(names));
     }
 

@@ -12,12 +12,41 @@ import top.egon.cola.component.gateway.admin.application.GatewayAdminIdempotency
 import top.egon.cola.component.gateway.admin.application.GatewayApplicationAlreadyExistsException;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
 import top.egon.cola.component.gateway.admin.mcp.application.McpValidationException;
+import top.egon.cola.component.gateway.core.mcp.app.McpAppArtifactStore;
 
 import java.time.Instant;
 import java.util.List;
 
 @RestControllerAdvice
 public class GatewayAdminExceptionHandler {
+
+    @ExceptionHandler(McpAppArtifactStore.ArtifactConflictException.class)
+    public ResponseEntity<ErrorResponse> artifactConflict(
+            McpAppArtifactStore.ArtifactConflictException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                new ErrorResponse(
+                        "GATEWAY_MCP_ARTIFACT_IMMUTABLE",
+                        error.getMessage(),
+                        null,
+                        List.of(),
+                        Instant.now()
+                )
+        );
+    }
+
+    @ExceptionHandler(McpAppArtifactStore.ArtifactRejectedException.class)
+    public ResponseEntity<ErrorResponse> artifactRejected(
+            McpAppArtifactStore.ArtifactRejectedException error) {
+        return ResponseEntity.unprocessableEntity().body(
+                new ErrorResponse(
+                        "GATEWAY_MCP_ARTIFACT_REJECTED",
+                        error.getMessage(),
+                        null,
+                        List.of(),
+                        Instant.now()
+                )
+        );
+    }
 
     @ExceptionHandler(McpValidationException.class)
     public ResponseEntity<ErrorResponse> mcpValidation(

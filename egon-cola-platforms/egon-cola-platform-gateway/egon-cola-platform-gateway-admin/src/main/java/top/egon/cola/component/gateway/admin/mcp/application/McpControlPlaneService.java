@@ -17,6 +17,9 @@ import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteProvid
 import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpTaskStore;
 import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerEntity;
 import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerRepository;
+import top.egon.cola.component.gateway.core.mcp.app.McpAppArtifactStore;
+import top.egon.cola.component.gateway.mcp.app.McpAppSecurityValidator;
+import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
@@ -25,6 +28,10 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.net.URI;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +51,12 @@ public class McpControlPlaneService {
     private final JdbcMcpRemoteProviderStore remote;
 
     private final JdbcMcpArtifactMetadataStore artifacts;
+
+    private final McpAppArtifactStore.Writer artifactWriter;
+
+    private final McpAppArtifactStore.Reader artifactReader;
+
+    private final McpAppSecurityValidator appSecurity;
 
     private final JdbcMcpTaskStore tasks;
 
@@ -67,6 +80,9 @@ public class McpControlPlaneService {
             JdbcMcpCapabilityDraftStore capabilities,
             JdbcMcpRemoteProviderStore remote,
             JdbcMcpArtifactMetadataStore artifacts,
+            McpAppArtifactStore.Writer artifactWriter,
+            McpAppArtifactStore.Reader artifactReader,
+            McpAppSecurityValidator appSecurity,
             JdbcMcpTaskStore tasks,
             GatewayDraftRepository drafts,
             IdempotencyStore idempotency,
@@ -78,6 +94,9 @@ public class McpControlPlaneService {
                 capabilities,
                 remote,
                 artifacts,
+                artifactWriter,
+                artifactReader,
+                appSecurity,
                 tasks,
                 drafts,
                 idempotency,
@@ -93,6 +112,9 @@ public class McpControlPlaneService {
             JdbcMcpCapabilityDraftStore capabilities,
             JdbcMcpRemoteProviderStore remote,
             JdbcMcpArtifactMetadataStore artifacts,
+            McpAppArtifactStore.Writer artifactWriter,
+            McpAppArtifactStore.Reader artifactReader,
+            McpAppSecurityValidator appSecurity,
             JdbcMcpTaskStore tasks,
             GatewayDraftRepository drafts,
             IdempotencyStore idempotency,
@@ -104,6 +126,9 @@ public class McpControlPlaneService {
         this.capabilities = capabilities;
         this.remote = remote;
         this.artifacts = artifacts;
+        this.artifactWriter = artifactWriter;
+        this.artifactReader = artifactReader;
+        this.appSecurity = appSecurity;
         this.tasks = tasks;
         this.drafts = drafts;
         this.idempotency = idempotency;
@@ -670,6 +695,65 @@ public class McpControlPlaneService {
     }
 
     @Transactional
+    public MutationResult uploadArtifact(
+            ArtifactUpload command,
+            String idempotencyKey,
+            AdminActor actor,
+            RequestAuditContext request) {
+        byte[] content = command.content();
+        String digest = sha256(content);
+        var artifactContent = new McpAppArtifactStore.ArtifactContent(
+                content,
+                digest,
+                content.length
+        );
+        ArtifactMutation mutation = new ArtifactMutation(
+                command.gatewayGroupId(),
+                command.appCode(),
+                command.version(),
+                command.displayName(),
+                command.resourceUri(),
+                "apps/" + command.appCode() + "/" + command.version()
+                        + "/index.html",
+                digest,
+                content.length,
+                command.mimeType(),
+                command.contentSecurityPolicy(),
+                command.permissions(),
+                command.allowedOrigins(),
+                command.expectedRevision(),
+                command.expectedDraftRevision(),
+                command.changeReason()
+        );
+        validateArtifact(mutation, artifactContent);
+        McpAppArtifactStore.StoredArtifact stored = artifactWriter.write(
+                new McpAppArtifactStore.WriteRequest(
+                        command.appCode(),
+                        command.version(),
+                        content,
+                        digest
+                )
+        );
+        return registerArtifact(new ArtifactMutation(
+                mutation.gatewayGroupId(),
+                mutation.appCode(),
+                mutation.version(),
+                mutation.displayName(),
+                mutation.resourceUri(),
+                stored.artifactReference(),
+                stored.sha256(),
+                stored.sizeBytes(),
+                mutation.mimeType(),
+                mutation.contentSecurityPolicy(),
+                mutation.permissions(),
+                mutation.allowedOrigins(),
+                mutation.expectedRevision(),
+                mutation.expectedDraftRevision(),
+                mutation.changeReason()
+        ), idempotencyKey, actor, request);
+    }
+
+    @Transactional
     public MutationResult registerArtifact(
             ArtifactMutation command,
             String idempotencyKey,
@@ -685,6 +769,13 @@ public class McpControlPlaneService {
             return replay;
         }
         requireCreateRevision(command.expectedRevision());
+        McpAppArtifactStore.ArtifactContent artifactContent =
+                artifactReader.read(new McpAppArtifactStore.ReadRequest(
+                        command.artifactReference(),
+                        command.sha256(),
+                        command.sizeBytes()
+                ));
+        validateArtifact(command, artifactContent);
         GatewayDraftEntity gatewayDraft = editable(
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
@@ -726,6 +817,49 @@ public class McpControlPlaneService {
                 ),
                 now
         );
+    }
+
+    private void validateArtifact(
+            ArtifactMutation command,
+            McpAppArtifactStore.ArtifactContent artifact) {
+        String serverCode;
+        try {
+            serverCode = URI.create(command.resourceUri()).getRawAuthority();
+        } catch (IllegalArgumentException failure) {
+            throw new McpAppArtifactStore.ArtifactRejectedException(
+                    "MCP App resource URI is invalid",
+                    failure
+            );
+        }
+        try {
+            appSecurity.validate(new McpAppSecurityValidator.Manifest(
+                    serverCode,
+                    command.appCode(),
+                    command.version(),
+                    command.resourceUri(),
+                    command.sha256(),
+                    command.sizeBytes(),
+                    command.mimeType(),
+                    command.contentSecurityPolicy(),
+                    command.permissions(),
+                    command.allowedOrigins()
+            ), artifact);
+        } catch (McpProtocolException failure) {
+            throw new McpAppArtifactStore.ArtifactRejectedException(
+                    failure.getMessage(),
+                    failure
+            );
+        }
+    }
+
+    private String sha256(byte[] content) {
+        try {
+            return HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256").digest(content)
+            );
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 is unavailable", failure);
+        }
     }
 
     @Transactional
@@ -1127,6 +1261,34 @@ public class McpControlPlaneService {
             long expectedDraftRevision,
             String changeReason
     ) {
+    }
+
+    public record ArtifactUpload(
+            String gatewayGroupId,
+            String appCode,
+            String version,
+            String displayName,
+            String resourceUri,
+            String mimeType,
+            String contentSecurityPolicy,
+            Set<String> permissions,
+            Set<String> allowedOrigins,
+            byte[] content,
+            long expectedRevision,
+            long expectedDraftRevision,
+            String changeReason
+    ) {
+
+        public ArtifactUpload {
+            content = Objects.requireNonNull(content, "content").clone();
+            permissions = Set.copyOf(permissions);
+            allowedOrigins = Set.copyOf(allowedOrigins);
+        }
+
+        @Override
+        public byte[] content() {
+            return content.clone();
+        }
     }
 
     public record MutationControl(

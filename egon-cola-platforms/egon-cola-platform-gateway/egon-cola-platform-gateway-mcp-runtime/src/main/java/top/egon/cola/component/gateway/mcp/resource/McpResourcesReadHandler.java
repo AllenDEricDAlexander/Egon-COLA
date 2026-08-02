@@ -95,6 +95,9 @@ public final class McpResourcesReadHandler implements McpMethodHandler {
                     content.data()
             ));
         }
+        if (!content.metadata().isEmpty()) {
+            value.put("_meta", content.metadata());
+        }
         return Map.copyOf(value);
     }
 

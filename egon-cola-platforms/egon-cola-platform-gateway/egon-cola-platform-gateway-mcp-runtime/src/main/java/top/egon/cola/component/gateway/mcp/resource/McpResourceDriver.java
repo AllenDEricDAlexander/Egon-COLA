@@ -60,15 +60,27 @@ public interface McpResourceDriver {
 
         private final boolean textual;
 
+        private final Map<String, Object> metadata;
+
         public Content(
                 String uri,
                 String mimeType,
                 byte[] data,
                 boolean textual) {
+            this(uri, mimeType, data, textual, Map.of());
+        }
+
+        public Content(
+                String uri,
+                String mimeType,
+                byte[] data,
+                boolean textual,
+                Map<String, Object> metadata) {
             this.uri = required(uri, "uri");
             this.mimeType = mime(mimeType);
             this.data = Objects.requireNonNull(data, "data").clone();
             this.textual = textual;
+            this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
         }
 
         public String uri() {
@@ -85,6 +97,10 @@ public interface McpResourceDriver {
 
         public boolean textual() {
             return textual;
+        }
+
+        public Map<String, Object> metadata() {
+            return metadata;
         }
 
         public String text() {

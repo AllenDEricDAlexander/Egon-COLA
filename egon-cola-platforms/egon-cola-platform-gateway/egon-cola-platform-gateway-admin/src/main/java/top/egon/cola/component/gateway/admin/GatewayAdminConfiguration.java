@@ -31,14 +31,32 @@ import top.egon.cola.component.gateway.admin.infrastructure.persistence.JdbcGate
 import top.egon.cola.component.gateway.admin.infrastructure.security.AesGcmGatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.interfaces.scheduled.GatewayObservabilityRetentionReaper;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
+import top.egon.cola.component.gateway.admin.mcp.artifact.FileSystemMcpAppArtifactStore;
+import top.egon.cola.component.gateway.mcp.app.McpAppSecurityValidator;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.nio.file.Path;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 @EnableConfigurationProperties(GatewayAdminProperties.class)
 public class GatewayAdminConfiguration {
+
+    @Bean
+    FileSystemMcpAppArtifactStore mcpAppArtifactStore(
+            @Value(
+                    "${gateway.admin.mcp.artifact-root:"
+                            + "${java.io.tmpdir}/egon-cola/"
+                            + "gateway-mcp-artifacts}"
+            ) String artifactRoot) {
+        return new FileSystemMcpAppArtifactStore(Path.of(artifactRoot));
+    }
+
+    @Bean
+    McpAppSecurityValidator mcpAppSecurityValidator() {
+        return new McpAppSecurityValidator();
+    }
 
     @Value("${gateway.admin.ddc.tls.enabled:false}")
     private boolean ddcTlsEnabled;

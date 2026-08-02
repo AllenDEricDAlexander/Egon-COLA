@@ -73,6 +73,17 @@ public final class McpRuleCompiler {
                     servers,
                     tools
             );
+            apps.keySet().stream()
+                    .filter(resources::containsKey)
+                    .findFirst()
+                    .ifPresent(key -> {
+                        throw invalid(
+                                "MCP app and resource names must be unique: "
+                                        + key.substring(
+                                        key.indexOf('\u0000') + 1
+                                )
+                        );
+                    });
             return new CompiledMcpRules(
                     content,
                     servers,

@@ -30,6 +30,9 @@ class McpResourceFlowTest {
 
     @Test
     void resourceUriCannotSelectNetworkOrEscapeStorageRoot() throws Exception {
+        assertEquals("ui", validator.validate(
+                "ui://finance/dashboard/1.0.0"
+        ).getScheme());
         assertRejected("https://169.254.169.254/latest/meta-data");
         assertRejected("file:///etc/passwd");
         assertRejected("egon://finance/../../secret");

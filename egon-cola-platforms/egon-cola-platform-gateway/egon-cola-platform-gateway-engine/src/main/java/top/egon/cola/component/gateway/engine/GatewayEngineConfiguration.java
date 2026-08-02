@@ -63,6 +63,7 @@ import top.egon.cola.component.gateway.engine.mcp.McpEngineHttpHandler;
 import top.egon.cola.component.gateway.engine.mcp.McpGatewayIdentityAuthenticator;
 import top.egon.cola.component.gateway.engine.mcp.JdbcMcpRuntimeTaskStore;
 import top.egon.cola.component.gateway.engine.mcp.McpTaskWorker;
+import top.egon.cola.component.gateway.engine.mcp.FileSystemMcpAppArtifactReader;
 import top.egon.cola.component.gateway.engine.mcp.RedisMcpSessionStore;
 import top.egon.cola.component.gateway.engine.mcp.security.JdbcMcpApprovalAdapter;
 import top.egon.cola.component.gateway.engine.mcp.security.Rbac3McpAuthorizationAdapter;
@@ -97,6 +98,9 @@ import top.egon.cola.component.gateway.engine.websocket.ReactorNettyWebSocketUps
 import top.egon.cola.component.gateway.mcp.completion.DictionaryCompletionProvider;
 import top.egon.cola.component.gateway.mcp.completion.McpCompletionHandler;
 import top.egon.cola.component.gateway.mcp.completion.OperationCompletionProvider;
+import top.egon.cola.component.gateway.mcp.app.AppUiResourceDriver;
+import top.egon.cola.component.gateway.mcp.app.McpAppRuntime;
+import top.egon.cola.component.gateway.mcp.app.McpAppSecurityValidator;
 import top.egon.cola.component.gateway.mcp.prompt.McpPromptDriver;
 import top.egon.cola.component.gateway.mcp.prompt.McpPromptsGetHandler;
 import top.egon.cola.component.gateway.mcp.prompt.McpPromptsListHandler;
@@ -547,7 +551,12 @@ public class GatewayEngineConfiguration {
             @Value(
                     "${egon.cola.component.gateway.engine.mcp."
                             + "stream-wait:PT15S}"
-            ) Duration streamWait) {
+            ) Duration streamWait,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp."
+                            + "artifact-root:${java.io.tmpdir}/egon-cola/"
+                            + "gateway-mcp-artifacts}"
+            ) String artifactRoot) {
         var toolCatalog = new McpToolCatalog(() -> activation.active() == null
                 ? null
                 : activation.active().mcpRules());
@@ -593,6 +602,14 @@ public class GatewayEngineConfiguration {
                         new ObjectStorageResourceDriver(resourceUriValidator)
                 )
         );
+        McpAppRuntime appRuntime = new McpAppRuntime(
+                () -> activation.active() == null
+                        ? null
+                        : activation.active().mcpRules(),
+                new FileSystemMcpAppArtifactReader(Path.of(artifactRoot)),
+                new McpAppSecurityValidator()
+        );
+        resourceDrivers.add(new AppUiResourceDriver(appRuntime));
         if (dataSource != null) {
             resourceDrivers.add(new DatabaseSchemaResourceDriver(
                     (schema, objectName) -> readDatabaseSchema(

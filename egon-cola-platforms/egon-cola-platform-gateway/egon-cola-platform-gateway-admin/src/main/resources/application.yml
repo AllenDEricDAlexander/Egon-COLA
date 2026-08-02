@@ -27,6 +27,8 @@ management:
 
 gateway:
   admin:
+    mcp:
+      artifact-root: ${GATEWAY_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/gateway-mcp-artifacts}
     transport-security:
       mode: DEVELOPMENT_PLAINTEXT
     security:

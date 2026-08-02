@@ -2,9 +2,12 @@ package top.egon.cola.component.gateway.mcp.resource;
 
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResource;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResourceTemplate;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeApp;
+import top.egon.cola.component.gateway.mcp.app.AppUiResourceDriver;
 import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,14 +32,39 @@ public final class McpResourceCatalog {
     }
 
     public List<McpRuntimeResource> resources(String serverCode) {
-        return active().resourcesByQualifiedName().values().stream()
+        CompiledMcpRules current = active();
+        ArrayList<McpRuntimeResource> result = new ArrayList<>(
+                current.resourcesByQualifiedName()
+                .values().stream()
                 .filter(McpRuntimeResource::enabled)
                 .filter(resource -> resource.serverCode().equals(serverCode))
                 .filter(resource -> resource.remoteMountId() == null)
-                .sorted(java.util.Comparator.comparing(
-                        McpRuntimeResource::name
+                .toList());
+        current.appsByQualifiedName().values().stream()
+                .filter(McpRuntimeApp::enabled)
+                .filter(app -> app.serverCode().equals(serverCode))
+                .map(app -> new McpRuntimeResource(
+                        app.appId(),
+                        app.serverCode(),
+                        app.name(),
+                        app.resourceUri(),
+                        "MCP App UI " + app.appCode() + "@" + app.version(),
+                        app.mimeType(),
+                        AppUiResourceDriver.DRIVER_TYPE,
+                        null,
+                        null,
+                        Map.of(
+                                "appCode", app.appCode(),
+                                "version", app.version()
+                        ),
+                        app.permissions(),
+                        app.artifactSizeBytes(),
+                        true
                 ))
-                .toList();
+                .forEach(result::add);
+        return result.stream().sorted(java.util.Comparator.comparing(
+                McpRuntimeResource::name
+        )).toList();
     }
 
     public List<McpRuntimeResourceTemplate> templates(String serverCode) {

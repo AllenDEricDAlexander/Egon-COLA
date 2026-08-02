@@ -274,10 +274,13 @@ public class McpReleaseContentFactory {
                 artifact.version(),
                 artifact.resourceUri(),
                 artifact.id(),
+                artifact.artifactReference(),
                 artifact.sha256(),
+                artifact.sizeBytes(),
                 artifact.mimeType(),
                 artifact.contentSecurityPolicy(),
                 artifact.permissions(),
+                artifact.allowedOrigins(),
                 strings(value.get("allowedTools")),
                 draft.enabled()
         );
