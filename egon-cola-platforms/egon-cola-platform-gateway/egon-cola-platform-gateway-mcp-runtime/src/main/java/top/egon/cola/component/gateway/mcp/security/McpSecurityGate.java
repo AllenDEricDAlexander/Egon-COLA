@@ -84,6 +84,21 @@ public final class McpSecurityGate {
         )));
     }
 
+    public Publisher<Void> authorizeTaskAction(
+            String serverCode,
+            String toolName,
+            String action,
+            IdentityContext identity) {
+        Objects.requireNonNull(identity, "identity");
+        return authorize(identity.request(Set.of(
+                "mcp:" + Objects.requireNonNull(serverCode, "serverCode")
+                        + ":tool:"
+                        + Objects.requireNonNull(toolName, "toolName")
+                        + ":task:"
+                        + Objects.requireNonNull(action, "action")
+        )));
+    }
+
     public Publisher<Void> authorizeResourceRead(
             McpRuntimeResourceTemplate template,
             IdentityContext identity) {

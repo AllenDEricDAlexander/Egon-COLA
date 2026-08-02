@@ -1,6 +1,10 @@
 spring:
   application:
     name: egon-cola-gateway-engine
+  datasource:
+    url: ${GATEWAY_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/gateway_admin}
+    username: ${GATEWAY_POSTGRES_USER:postgres}
+    password: ${GATEWAY_POSTGRES_PASSWORD:postgres}
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -85,6 +89,9 @@ egon:
           mcp:
             session-ttl: ${GATEWAY_MCP_SESSION_TTL:PT30M}
             stream-wait: ${GATEWAY_MCP_STREAM_WAIT:PT15S}
+            tasks:
+              lease-duration: ${GATEWAY_MCP_TASK_LEASE_DURATION:PT30S}
+              poll-interval: ${GATEWAY_MCP_TASK_POLL_INTERVAL:PT2S}
             redis:
               enabled: ${GATEWAY_MCP_REDIS_ENABLED:true}
               address: ${GATEWAY_MCP_REDIS_ADDRESS:redis://127.0.0.1:6379}

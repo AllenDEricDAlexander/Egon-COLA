@@ -150,6 +150,29 @@ class McpSecurityGateTest {
         )).block());
     }
 
+    @Test
+    void taskAuthorizationUsesActionSpecificPermissionKey() {
+        McpSecurityGate gate = new McpSecurityGate(
+                request -> {
+                    assertEquals(Set.of(
+                            "mcp:billing:tool:export_invoice:task:cancel"
+                    ), request.requiredPermissions());
+                    return Mono.just(
+                            McpAuthorizationPort.Decision.allowed(7L, 3L, 11L)
+                    );
+                },
+                request -> Mono.just(McpApprovalPort.Result.UNAVAILABLE),
+                new ObjectMapper()
+        );
+
+        assertDoesNotThrow(() -> Mono.from(gate.authorizeTaskAction(
+                "billing",
+                "export_invoice",
+                "cancel",
+                identity()
+        )).block());
+    }
+
     private void authorize(
             McpSecurityGate gate,
             McpRuntimeTool tool,

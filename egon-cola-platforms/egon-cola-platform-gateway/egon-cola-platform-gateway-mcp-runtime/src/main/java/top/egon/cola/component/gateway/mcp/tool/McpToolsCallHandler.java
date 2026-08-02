@@ -1,21 +1,29 @@
 package top.egon.cola.component.gateway.mcp.tool;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpJsonRpcRequest;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpJsonRpcResponse;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
+import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
 import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
+import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
+import top.egon.cola.component.gateway.mcp.task.McpTaskService;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public final class McpToolsCallHandler implements McpMethodHandler {
 
@@ -29,12 +37,39 @@ public final class McpToolsCallHandler implements McpMethodHandler {
 
     private final McpSecurityGate securityGate;
 
+    private final ObjectMapper objectMapper;
+
+    private final McpTaskService taskService;
+
+    private final Supplier<CompiledMcpRules> rules;
+
     public McpToolsCallHandler(
             McpToolCatalog catalog,
             McpArgumentBinder argumentBinder,
             McpResultBinder resultBinder,
             GatewayOperationInvoker invoker,
             McpSecurityGate securityGate) {
+        this(
+                catalog,
+                argumentBinder,
+                resultBinder,
+                invoker,
+                securityGate,
+                new ObjectMapper(),
+                null,
+                () -> null
+        );
+    }
+
+    public McpToolsCallHandler(
+            McpToolCatalog catalog,
+            McpArgumentBinder argumentBinder,
+            McpResultBinder resultBinder,
+            GatewayOperationInvoker invoker,
+            McpSecurityGate securityGate,
+            ObjectMapper objectMapper,
+            McpTaskService taskService,
+            Supplier<CompiledMcpRules> rules) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.argumentBinder = Objects.requireNonNull(
                 argumentBinder,
@@ -49,6 +84,12 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                 securityGate,
                 "securityGate"
         );
+        this.objectMapper = Objects.requireNonNull(
+                objectMapper,
+                "objectMapper"
+        );
+        this.taskService = taskService;
+        this.rules = Objects.requireNonNull(rules, "rules");
     }
 
     @Override
@@ -79,9 +120,13 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                     "MCP identity context is incomplete"
             );
         }
+        Map<String, Object> boundArguments = argumentBinder.bind(
+                tool,
+                arguments
+        );
         GatewayOperationInvocation invocation = new GatewayOperationInvocation(
                 tool.operationId(),
-                argumentBinder.bind(tool, arguments),
+                boundArguments,
                 attribute(context, "originalBearerToken"),
                 attribute(context, "callerId"),
                 attribute(context, "clientIp"),
@@ -93,11 +138,84 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                         arguments,
                         approvalToken(request, context)
                 ))
-                .then(Mono.from(invoker.invoke(invocation)))
-                .map(result -> McpJsonRpcResponse.success(
-                        request.id(),
-                        resultBinder.bind(tool, result)
+                .then(Mono.defer(() -> {
+                    McpRuntimeTaskPolicy policy = taskPolicy(tool);
+                    if (policy == null) {
+                        return Mono.from(invoker.invoke(invocation))
+                                .map(result -> McpJsonRpcResponse.success(
+                                        request.id(),
+                                        resultBinder.bind(tool, result)
+                                ));
+                    }
+                    if (taskService == null) {
+                        return Mono.error(new McpProtocolException(
+                                McpErrorCode.MCP_INTERNAL_ERROR,
+                                "MCP durable task store is unavailable"
+                        ));
+                    }
+                    return Mono.from(taskService.create(
+                                    new McpTaskService.CreateRequest(
+                                            tool.serverCode(),
+                                            tool.name(),
+                                            McpSecurityDigests.arguments(
+                                                    objectMapper,
+                                                    arguments
+                                            ),
+                                            Map.of(
+                                                    "operationId",
+                                                    tool.operationId(),
+                                                    "arguments",
+                                                    boundArguments
+                                            ),
+                                            seconds(
+                                                    policy
+                                                            .executionTimeoutSeconds(),
+                                                    300L
+                                            ),
+                                            seconds(
+                                                    policy.resultTtlSeconds(),
+                                                    86_400L
+                                            ),
+                                            policy.maxAttempts()
+                                    ),
+                                    new McpTaskService.Owner(
+                                            identity.subjectId(),
+                                            identity.tenantId(),
+                                            identity.clientId()
+                                    )
+                            ))
+                            .map(task -> McpJsonRpcResponse.success(
+                                    request.id(),
+                                    Map.of("task", Map.of(
+                                            "taskId", task.id(),
+                                            "status", "working",
+                                            "createdAt",
+                                            task.createdAt().toString(),
+                                            "lastUpdatedAt",
+                                            task.updatedAt().toString()
+                                    ))
+                            ));
+                }));
+    }
+
+    private McpRuntimeTaskPolicy taskPolicy(McpRuntimeTool tool) {
+        CompiledMcpRules active = rules.get();
+        if (active == null) {
+            return null;
+        }
+        McpRuntimeTaskPolicy policy = active
+                .taskPoliciesByQualifiedTool()
+                .get(CompiledMcpRules.qualified(
+                        tool.serverCode(),
+                        tool.name()
                 ));
+        return policy != null && policy.enabled() && policy.durable()
+                ? policy
+                : null;
+    }
+
+    private Duration seconds(long configured, long fallback) {
+        return Duration.ofSeconds(configured == 0L ? fallback : configured);
     }
 
     private String approvalToken(

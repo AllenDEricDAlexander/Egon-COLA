@@ -61,6 +61,8 @@ import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 import top.egon.cola.component.gateway.engine.observability.KafkaGatewayCallEventSink;
 import top.egon.cola.component.gateway.engine.mcp.McpEngineHttpHandler;
 import top.egon.cola.component.gateway.engine.mcp.McpGatewayIdentityAuthenticator;
+import top.egon.cola.component.gateway.engine.mcp.JdbcMcpRuntimeTaskStore;
+import top.egon.cola.component.gateway.engine.mcp.McpTaskWorker;
 import top.egon.cola.component.gateway.engine.mcp.RedisMcpSessionStore;
 import top.egon.cola.component.gateway.engine.mcp.security.JdbcMcpApprovalAdapter;
 import top.egon.cola.component.gateway.engine.mcp.security.Rbac3McpAuthorizationAdapter;
@@ -114,6 +116,7 @@ import top.egon.cola.component.gateway.mcp.resource.StaticBlobResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.StaticTextResourceDriver;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodDispatcher;
+import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
 import top.egon.cola.component.gateway.mcp.server.handler.McpDiscoverHandler;
 import top.egon.cola.component.gateway.mcp.server.handler.McpInitializeHandler;
 import top.egon.cola.component.gateway.mcp.server.handler.McpInitializedHandler;
@@ -121,6 +124,12 @@ import top.egon.cola.component.gateway.mcp.server.handler.McpPingHandler;
 import top.egon.cola.component.gateway.mcp.subscription.McpResourceSubscribeHandler;
 import top.egon.cola.component.gateway.mcp.subscription.McpSubscriptionService;
 import top.egon.cola.component.gateway.mcp.subscription.McpSubscriptionsListenHandler;
+import top.egon.cola.component.gateway.mcp.task.McpTask;
+import top.egon.cola.component.gateway.mcp.task.McpTaskExecutor;
+import top.egon.cola.component.gateway.mcp.task.McpTaskService;
+import top.egon.cola.component.gateway.mcp.task.McpTasksCancelHandler;
+import top.egon.cola.component.gateway.mcp.task.McpTasksGetHandler;
+import top.egon.cola.component.gateway.mcp.task.McpTasksUpdateHandler;
 import top.egon.cola.component.gateway.mcp.tool.McpArgumentBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpResultBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpToolCatalog;
@@ -465,12 +474,63 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(DataSource.class)
+    public JdbcMcpRuntimeTaskStore gatewayMcpRuntimeTaskStore(
+            DataSource dataSource,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new JdbcMcpRuntimeTaskStore(dataSource, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnBean(JdbcMcpRuntimeTaskStore.class)
+    public McpTaskService gatewayMcpTaskService(
+            JdbcMcpRuntimeTaskStore store,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            Clock gatewayClock,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.tasks."
+                            + "lease-duration:PT30S}"
+            ) Duration leaseDuration) {
+        return new McpTaskService(
+                store,
+                objectMapper,
+                gatewayClock,
+                leaseDuration
+        );
+    }
+
+    @Bean
+    @ConditionalOnBean(McpTaskService.class)
+    public McpTaskWorker gatewayMcpTaskWorker(
+            McpTaskService tasks,
+            EngineGatewayOperationInvoker operationInvoker,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            GatewayEngineRuntimeProperties properties,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.tasks."
+                            + "lease-duration:PT30S}"
+            ) Duration leaseDuration,
+            @Value(
+                    "${egon.cola.component.gateway.engine.mcp.tasks."
+                            + "poll-interval:PT2S}"
+            ) Duration pollInterval) {
+        return new McpTaskWorker(
+                tasks,
+                taskExecutor(operationInvoker, objectMapper),
+                properties.getNodeId(),
+                leaseDuration,
+                pollInterval
+        );
+    }
+
+    @Bean
     @ConditionalOnBean(RedisMcpSessionStore.class)
     public McpEngineHttpHandler gatewayMcpHttpHandler(
             GatewayRuleActivationApplier activation,
             GatewaySecurityCapabilityRegistry capabilities,
             EngineGatewayOperationInvoker operationInvoker,
             RedisMcpSessionStore sessionStore,
+            ObjectProvider<McpTaskService> taskServices,
             ObjectProvider<SingleFlightSnapshotLoader> snapshots,
             ObjectProvider<DataSource> dataSources,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
@@ -555,7 +615,8 @@ public class GatewayEngineConfiguration {
                 new StaticPromptDriver(new StrictPromptTemplate()),
                 new OperationPromptDriver(operationInvoker)
         );
-        McpMethodDispatcher dispatcher = new McpMethodDispatcher(List.of(
+        McpTaskService taskService = taskServices.getIfAvailable();
+        ArrayList<McpMethodHandler> methodHandlers = new ArrayList<>(List.of(
                 new McpInitializeHandler(),
                 new McpInitializedHandler(),
                 new McpPingHandler(),
@@ -566,7 +627,12 @@ public class GatewayEngineConfiguration {
                         new McpArgumentBinder(),
                         new McpResultBinder(objectMapper),
                         operationInvoker,
-                        securityGate
+                        securityGate,
+                        objectMapper,
+                        taskService,
+                        () -> activation.active() == null
+                                ? null
+                                : activation.active().mcpRules()
                 ),
                 new McpResourcesListHandler(
                         resourceCatalog,
@@ -619,6 +685,23 @@ public class GatewayEngineConfiguration {
                         securityGate
                 )
         ));
+        if (taskService != null) {
+            methodHandlers.add(new McpTasksGetHandler(
+                    taskService,
+                    securityGate
+            ));
+            methodHandlers.add(new McpTasksUpdateHandler(
+                    taskService,
+                    securityGate
+            ));
+            methodHandlers.add(new McpTasksCancelHandler(
+                    taskService,
+                    securityGate
+            ));
+        }
+        McpMethodDispatcher dispatcher = new McpMethodDispatcher(
+                List.copyOf(methodHandlers)
+        );
         return new McpEngineHttpHandler(
                 () -> activation.active() == null
                         ? null
@@ -641,6 +724,109 @@ public class GatewayEngineConfiguration {
                         Integer.MAX_VALUE
                 ))
         );
+    }
+
+    private McpTaskExecutor taskExecutor(
+            EngineGatewayOperationInvoker operationInvoker,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return task -> {
+            Object operation = task.inputPayload().get("operationId");
+            if (!(operation instanceof String operationId)
+                    || operationId.isBlank()) {
+                return reactor.core.publisher.Mono.just(
+                        McpTaskExecutor.Outcome.failed(Map.of(
+                                "code", "MCP_TASK_OPERATION_MISSING"
+                        ))
+                );
+            }
+            LinkedHashMap<String, Object> arguments = new LinkedHashMap<>();
+            Object configured = task.inputPayload().get("arguments");
+            if (configured instanceof Map<?, ?> source) {
+                source.forEach((key, value) -> {
+                    if (key instanceof String name) {
+                        arguments.put(name, value);
+                    }
+                });
+            }
+            Object input = task.inputPayload().get("inputResponse");
+            if (input instanceof Map<?, ?>) {
+                arguments.put("input", input);
+            }
+            var invocation = new top.egon.cola.component.gateway.core
+                    .operation.GatewayOperationInvocation(
+                    operationId,
+                    Map.copyOf(arguments),
+                    null,
+                    task.subjectId(),
+                    null,
+                    Map.of()
+            );
+            return reactor.core.publisher.Mono.from(
+                    operationInvoker.invoke(invocation)
+            ).map(result -> taskOutcome(result, objectMapper));
+        };
+    }
+
+    private McpTaskExecutor.Outcome taskOutcome(
+            top.egon.cola.component.gateway.core.operation
+                    .GatewayInvocationResult result,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        Map<String, Object> payload = taskPayload(result.body(), objectMapper);
+        String inputKey = firstHeader(
+                result.headers(),
+                "x-egon-mcp-input-key"
+        );
+        if (result.statusCode() == 202 && inputKey != null) {
+            return McpTaskExecutor.Outcome.inputRequired(inputKey, payload);
+        }
+        if (result.statusCode() >= 400) {
+            return McpTaskExecutor.Outcome.failed(Map.of(
+                    "code", "MCP_TASK_UPSTREAM_FAILED",
+                    "status", result.statusCode()
+            ));
+        }
+        return McpTaskExecutor.Outcome.completed(payload);
+    }
+
+    private Map<String, Object> taskPayload(
+            byte[] body,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        if (body.length == 0) {
+            return Map.of();
+        }
+        try {
+            com.fasterxml.jackson.databind.JsonNode root =
+                    objectMapper.readTree(body);
+            if (root != null && root.isObject()) {
+                return objectMapper.convertValue(
+                        root,
+                        new com.fasterxml.jackson.core.type.TypeReference<
+                                Map<String, Object>>() {
+                        }
+                );
+            }
+        } catch (Exception ignored) {
+            // Non-JSON task results are returned as bounded Base64 content.
+        }
+        if (body.length > 1024 * 1024) {
+            return Map.of("code", "MCP_TASK_RESULT_TOO_LARGE");
+        }
+        return Map.of(
+                "contentBase64",
+                java.util.Base64.getEncoder().encodeToString(body)
+        );
+    }
+
+    private String firstHeader(
+            Map<String, List<String>> headers,
+            String name) {
+        return headers.entrySet().stream()
+                .filter(entry -> entry.getKey().equalsIgnoreCase(name))
+                .flatMap(entry -> entry.getValue().stream())
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .map(String::trim)
+                .orElse(null);
     }
 
     private String readDatabaseSchema(

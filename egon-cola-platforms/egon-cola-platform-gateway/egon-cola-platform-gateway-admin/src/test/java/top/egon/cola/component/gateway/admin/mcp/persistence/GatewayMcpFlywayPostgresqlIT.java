@@ -80,7 +80,7 @@ class GatewayMcpFlywayPostgresqlIT {
     }
 
     @Test
-    void v7CreatesAllMcpTablesAndCanUpgradeV1ThroughV6()
+    void latestMigrationsCreateAllMcpTablesAndUpgradeV1ThroughV6()
             throws SQLException {
         Flyway firstSix = flyway(upgradeSchema, "6");
         firstSix.migrate();
@@ -92,7 +92,7 @@ class GatewayMcpFlywayPostgresqlIT {
         latest.migrate();
 
         assertTrue(tableNames(upgradeSchema).containsAll(MCP_TABLES));
-        assertEquals("7", latest.info().current().getVersion().getVersion());
+        assertEquals("9", latest.info().current().getVersion().getVersion());
     }
 
     @Test
