@@ -56,6 +56,7 @@
         <module>egon-cola-platform-dynamic-config-center</module>
         <module>egon-cola-platform-gateway</module>
         <module>egon-cola-platform-rbac3</module>
+        <module>egon-cola-platform-idp</module>
     </modules>
 
     <properties>
@@ -132,6 +133,31 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-rbac3-gateway-adapter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-idp-contract</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-idp-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-idp-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-idp-gateway-adapter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-idp-admin</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

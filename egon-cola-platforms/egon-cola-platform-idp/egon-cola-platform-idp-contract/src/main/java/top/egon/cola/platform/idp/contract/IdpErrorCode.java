@@ -1,0 +1,15 @@
+package top.egon.cola.platform.idp.contract;
+
+public enum IdpErrorCode {
+    INVALID_CREDENTIALS,
+    USER_DISABLED,
+    USER_LOCKED,
+    INVALID_CLIENT,
+    INVALID_REDIRECT_URI,
+    INVALID_TENANT,
+    INVALID_AUTHORIZATION_CODE,
+    INVALID_GRANT,
+    INVALID_TOKEN,
+    TOKEN_REPLAYED,
+    IDENTITY_STATE_UNAVAILABLE
+}
