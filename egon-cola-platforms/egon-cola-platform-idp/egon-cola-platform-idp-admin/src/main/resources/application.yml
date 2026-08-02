@@ -1,6 +1,9 @@
 spring:
   application:
     name: idp-admin
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
   datasource:
     url: ${IDP_POSTGRES_URL}
     username: ${IDP_POSTGRES_USER}

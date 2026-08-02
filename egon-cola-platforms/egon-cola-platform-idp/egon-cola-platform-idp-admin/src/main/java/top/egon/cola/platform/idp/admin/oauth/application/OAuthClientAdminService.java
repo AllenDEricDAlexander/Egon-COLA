@@ -1,5 +1,6 @@
 package top.egon.cola.platform.idp.admin.oauth.application;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
@@ -26,6 +27,7 @@ public class OAuthClientAdminService {
     private final LongIdGenerator ids;
     private final Clock clock;
 
+    @Autowired
     public OAuthClientAdminService(
             IdentityClientRepository clients,
             IdentityClientRedirectUriRepository redirects,

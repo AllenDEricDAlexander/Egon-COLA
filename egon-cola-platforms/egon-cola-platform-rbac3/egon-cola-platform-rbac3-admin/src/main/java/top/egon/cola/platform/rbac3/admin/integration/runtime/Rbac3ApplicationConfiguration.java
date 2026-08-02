@@ -2,6 +2,8 @@ package top.egon.cola.platform.rbac3.admin.integration.runtime;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
@@ -52,6 +54,7 @@ import top.egon.cola.platform.rbac3.admin.session.infrastructure.AuthorizationCo
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.simulation.infrastructure.PostgresqlRoleImpactSource;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.snapshot.application.LoginRuntimeProjectionFactory;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.admin.worker.AuthorizationMutationRecoveryWorker;
@@ -73,6 +76,11 @@ import java.util.Set;
 public class Rbac3ApplicationConfiguration {
 
     @Bean
+    PasswordEncoder rbac3PasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
     AtomicRbac3RuntimePolicy rbac3RuntimePolicy(Rbac3AdminProperties properties) {
         return new AtomicRbac3RuntimePolicy(properties);
     }
@@ -85,6 +93,11 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     SessionSnapshotProjector sessionSnapshotProjector() {
         return new SessionSnapshotProjector();
+    }
+
+    @Bean
+    LoginRuntimeProjectionFactory loginRuntimeProjectionFactory() {
+        return new LoginRuntimeProjectionFactory();
     }
 
     @Bean

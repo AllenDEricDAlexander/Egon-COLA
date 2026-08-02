@@ -3,6 +3,7 @@ package top.egon.cola.platform.idp.admin.interfaces.http;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -11,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationRequest;
 import top.egon.cola.platform.idp.core.oauth.OAuthException;
+import top.egon.cola.platform.idp.admin.security.IdpSsoPrincipal;
 
 import java.net.URI;
 import java.security.Principal;
@@ -44,9 +46,9 @@ public class OAuthAuthorizationController {
             String codeChallengeMethod,
             Principal principal
     ) {
-        if (principal == null
-                || principal.getName() == null
-                || principal.getName().isBlank()) {
+        if (!(principal instanceof Authentication authentication)
+                || !(authentication.getPrincipal()
+                instanceof IdpSsoPrincipal ssoPrincipal)) {
             throw new OAuthException(
                     "login_required",
                     "authenticated identity is required"
@@ -65,7 +67,8 @@ public class OAuthAuthorizationController {
                                 codeChallenge,
                                 codeChallengeMethod
                         ),
-                        principal.getName()
+                        ssoPrincipal.identitySub(),
+                        ssoPrincipal.sessionId()
                 );
         URI location = UriComponentsBuilder
                 .fromUriString(result.redirectUri())

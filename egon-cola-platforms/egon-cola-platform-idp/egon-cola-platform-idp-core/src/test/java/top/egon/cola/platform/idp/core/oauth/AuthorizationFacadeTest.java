@@ -73,7 +73,8 @@ class AuthorizationFacadeTest {
     void storesOnlyCodeDigestAndConsumesMatchingS256CodeOnce() {
         AuthorizationFacade.AuthorizationResult result = facade.authorize(
                 validRequest(),
-                "alice-sub"
+                "alice-sub",
+                "sso-session-1"
         );
 
         assertEquals(RAW_CODE, result.code());
@@ -93,6 +94,7 @@ class AuthorizationFacadeTest {
         assertEquals("alice-sub", consumed.identitySub());
         assertEquals("tenant-a", consumed.tenantId());
         assertEquals("tenant-user-a", consumed.rbac3UserId());
+        assertEquals("sso-session-1", consumed.sessionId());
         assertEquals(AUDIENCE, consumed.audience());
         assertThrows(OAuthException.class, () -> facade.consume(
                 result.code(),
@@ -108,7 +110,8 @@ class AuthorizationFacadeTest {
 
         OAuthException exception = assertThrows(
                 OAuthException.class,
-                () -> facade.authorize(validRequest(), "alice-sub")
+                () -> facade.authorize(
+                        validRequest(), "alice-sub", "sso-session-1")
         );
 
         assertEquals("access_denied", exception.oauthError());
@@ -147,7 +150,8 @@ class AuthorizationFacadeTest {
 
     @Test
     void wrongVerifierOrClientConsumesCodeAndCannotBeRetried() {
-        String code = facade.authorize(validRequest(), "alice-sub").code();
+        String code = facade.authorize(
+                validRequest(), "alice-sub", "sso-session-1").code();
 
         assertOAuthGrantFailure(() -> facade.consume(
                 code,
@@ -162,7 +166,8 @@ class AuthorizationFacadeTest {
                 CLIENT_ID
         ));
 
-        String second = facade.authorize(validRequest(), "alice-sub").code();
+        String second = facade.authorize(
+                validRequest(), "alice-sub", "sso-session-1").code();
         assertOAuthGrantFailure(() -> facade.consume(
                 second,
                 VERIFIER,
@@ -184,7 +189,8 @@ class AuthorizationFacadeTest {
 
         AuthorizationFacade.AuthorizationResult result = facade.authorize(
                 validRequest(),
-                "alice-sub"
+                "alice-sub",
+                "sso-session-1"
         );
 
         assertEquals(NOW.plusSeconds(90), result.expiresAt());
@@ -211,7 +217,7 @@ class AuthorizationFacadeTest {
     ) {
         OAuthException exception = assertThrows(
                 OAuthException.class,
-                () -> facade.authorize(request, "alice-sub")
+                () -> facade.authorize(request, "alice-sub", "sso-session-1")
         );
         assertEquals(expectedError, exception.oauthError());
     }

@@ -1,6 +1,7 @@
 package top.egon.cola.platform.idp.admin.token.configuration;
 
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,7 +58,7 @@ public class IdpTokenConfiguration {
             IdentityUserStore users,
             IdentityUserStatePort userStates,
             IdentitySecurityEventPort securityEvents,
-            Clock idpClock,
+            @Qualifier("idpClock") Clock idpClock,
             LongIdGenerator idGenerator
     ) {
         return new TokenFacade(

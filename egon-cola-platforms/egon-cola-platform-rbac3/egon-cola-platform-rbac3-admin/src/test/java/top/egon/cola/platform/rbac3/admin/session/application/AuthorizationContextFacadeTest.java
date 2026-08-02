@@ -42,6 +42,53 @@ class AuthorizationContextFacadeTest {
                 .isInstanceOf(AuthorizationContextFacade.AuthorizationContextMismatchException.class);
     }
 
+    @Test
+    void returnsWinningContextWhenConcurrentCreateAlreadyCommitted() {
+        AuthorizationContextFacade.AuthorizationContext winner = context(
+                "7001", "1", "5001", "alice-sub", "101");
+        AuthorizationContextFacade.AuthorizationContextStore store =
+                new AuthorizationContextFacade.AuthorizationContextStore() {
+                    private boolean created;
+
+                    @Override
+                    public Optional<AuthorizationContextFacade.AuthorizationContext> find(
+                            String tenantId, String sessionId) {
+                        return created ? Optional.of(winner) : Optional.empty();
+                    }
+
+                    @Override
+                    public AuthorizationContextFacade.AuthorizationContext create(
+                            long entityId,
+                            AuthorizationContextFacade.ActiveMembership membership,
+                            String sessionId,
+                            Instant now,
+                            Instant expiresAt) {
+                        created = true;
+                        throw new AuthorizationContextFacade.ConcurrentContextCreationException();
+                    }
+                };
+        AuthorizationContextFacade facade = new AuthorizationContextFacade(
+                (tenantId, identitySub) -> Optional.of(
+                        new AuthorizationContextFacade.ActiveMembership(
+                                tenantId, identitySub, "101", 7, 11)),
+                store, () -> 9001L);
+
+        assertThat(facade.open(
+                "1", "5001", "alice-sub", NOW, NOW.plusSeconds(3600)))
+                .isEqualTo(winner);
+    }
+
+    private static AuthorizationContextFacade.AuthorizationContext context(
+            String entityId,
+            String tenantId,
+            String sessionId,
+            String identitySub,
+            String rbac3UserId) {
+        return new AuthorizationContextFacade.AuthorizationContext(
+                entityId, tenantId, sessionId, identitySub, rbac3UserId,
+                7, 0, 11, true, "ACTIVE", NOW, NOW.plusSeconds(3600));
+    }
+
     private static final class InMemoryStore
             implements AuthorizationContextFacade.AuthorizationContextStore {
 

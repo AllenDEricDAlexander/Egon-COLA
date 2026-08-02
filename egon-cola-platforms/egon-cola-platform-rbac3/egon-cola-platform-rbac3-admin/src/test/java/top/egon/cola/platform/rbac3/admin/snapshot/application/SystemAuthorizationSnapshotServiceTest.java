@@ -62,6 +62,28 @@ class SystemAuthorizationSnapshotServiceTest {
                 .hasMessageContaining("AUTHORIZATION_CONTEXT_MISMATCH");
     }
 
+    @Test
+    void unactivatedContextCanOnlyUseRbac3RoleActivationEndpoints() {
+        AuthorizationContextFacade.AuthorizationContext context =
+                new AuthorizationContextFacade.AuthorizationContext(
+                        "9001", "1", "5001", "alice-sub", "101",
+                        7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
+                        NOW.plusSeconds(3600));
+        SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
+                (tenantId, sessionId, identitySub, now, expiresAt) -> context,
+                (tenantId, sessionId) -> {
+                    throw new AssertionError("unactivated context must not load a snapshot");
+                },
+                Clock.fixed(NOW, ZoneOffset.UTC));
+
+        assertThat(service.snapshot("1", "5001", "rbac3-admin", "alice-sub")
+                .permissions()).containsExactlyInAnyOrder(
+                "system:role-activation:read",
+                "system:role-activation:use");
+        assertThat(service.snapshot("1", "5001", "mock-backend", "alice-sub")
+                .permissions()).isEmpty();
+    }
+
     private SessionAuthorizationSnapshot sessionSnapshot() {
         return new SessionAuthorizationSnapshot(
                 "5001", 7, 3, 11,

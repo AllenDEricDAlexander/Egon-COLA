@@ -173,6 +173,13 @@ public final class IdentityFacade {
             }
             IdentityUser authenticated = user.authenticatedAt(now);
             userStore.save(authenticated, user.version());
+            userState.publish(new IdentityUserState(
+                    authenticated.id(),
+                    IdentityUserState.Status.valueOf(
+                            authenticated.status().name()),
+                    authenticated.tokenVersion(),
+                    now
+            ));
             record(
                     "IDENTITY_LOGIN_SUCCEEDED",
                     user.id(),

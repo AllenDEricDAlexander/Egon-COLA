@@ -11,7 +11,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
@@ -25,7 +24,6 @@ import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
 import top.egon.cola.platform.rbac3.starter.client.HttpRbac3AuthorizationClient;
 import top.egon.cola.platform.rbac3.starter.client.Rbac3AuthorizationClient;
 import top.egon.cola.platform.rbac3.starter.event.Rbac3AuthorizationInvalidationConsumer;
-import top.egon.cola.platform.rbac3.starter.runtime.Rbac3RuntimeRedissonConfiguration;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3ContextAuthentication;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3MethodAuthorizationAspect;
@@ -43,7 +41,6 @@ import java.util.List;
         prefix = "egon.cola.platform.rbac3",
         name = "enabled",
         havingValue = "true")
-@Import(Rbac3RuntimeRedissonConfiguration.class)
 public class Rbac3StarterAutoConfiguration {
 
     @Bean

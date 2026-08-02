@@ -82,6 +82,28 @@ class OutboxTransactionRollbackIT {
     }
 
     @Test
+    void roleActivationUsesTheChangingContextVersionBeforeStaticPolicyVersions() {
+        AtomicReference<OutboxMessage> captured = new AtomicReference<>();
+        var adapter = new TransactionalOutboxAuthorizationEventAdapter(
+                message -> {
+                    captured.set(message);
+                    return new OutboxReceipt(
+                            message.messageId(), message.idempotencyKey(), true);
+                }, Clock.fixed(NOW, ZoneOffset.UTC));
+
+        adapter.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+                "7", "SESSION", "99", "RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
+                Map.of(
+                        "contextVersion", "6",
+                        "authVersion", "1",
+                        "policyVersion", "1"),
+                "role-activation:99:6"));
+
+        assertThat(captured.get().idempotencyKey())
+                .isEqualTo("7:rbac3.role-activation.changed.v1:99:6");
+    }
+
+    @Test
     void deliveryRejectsUnknownDestinationsAndTreatsDuplicateProjectionAsSuccess()
             throws Exception {
         AtomicReference<String> applied = new AtomicReference<>();
@@ -127,7 +149,7 @@ class OutboxTransactionRollbackIT {
                     schemaUrl, user, password);
             Flyway rbac3 = Rbac3FlywayConfiguration.buildRbac3Flyway(dataSource);
             Flyway outbox = Rbac3FlywayConfiguration.buildOutboxFlyway(dataSource);
-            assertThat(rbac3.migrate().migrationsExecuted).isEqualTo(3);
+            assertThat(rbac3.migrate().migrationsExecuted).isEqualTo(4);
             assertThat(outbox.migrate().migrationsExecuted).isEqualTo(1);
 
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);

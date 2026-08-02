@@ -47,11 +47,12 @@ class Rbac3FlywayPostgresqlIT {
                     .locations("classpath:db/migration")
                     .load();
 
-            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(3);
+            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(4);
             assertThat(flyway.migrate().migrationsExecuted).isZero();
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
 
             insertBoundaryFixtures(connection, schema);
+            assertTenantScopedSessionIdentityAccepted(connection, schema);
             assertCrossTenantAssignmentRejected(connection, schema);
             assertCrossApplicationInheritanceRejected(connection, schema);
             assertCrossApplicationServicePermissionRejected(connection, schema);
@@ -64,6 +65,39 @@ class Rbac3FlywayPostgresqlIT {
                 dropGeneratedSchema(url, user, password, schema);
             }
         }
+    }
+
+    private void assertTenantScopedSessionIdentityAccepted(
+            Connection connection,
+            String schema) throws SQLException {
+        execute(connection, schema, """
+                insert into rbac3_external_identity (
+                    id, tenant_id, provider_code, external_subject_id, identity_sub,
+                    user_id, status, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values
+                    (901, 1, 'IDP', 'global-user', 'global-user', 100, 'ACTIVE', 0,
+                     now(), 'it', now(), 'it'),
+                    (902, 2, 'IDP', 'global-user', 'global-user', 200, 'ACTIVE', 0,
+                     now(), 'it', now(), 'it');
+
+                insert into rbac3_session (
+                    id, tenant_id, user_id, session_id, identity_sub, status,
+                    session_version, auth_version_at_issue, policy_version_at_issue,
+                    context_version, context_expires_at, activation_required,
+                    auth_strength, authenticated_at, last_seen_at,
+                    idle_expires_at, absolute_expires_at, version,
+                    created_at, created_by, updated_at, updated_by
+                ) values
+                    (910, 1, 100, 999, 'global-user', 'ACTIVE',
+                     0, 0, 0, 0, now() + interval '1 hour', true,
+                     'PASSWORD', now(), now(), now() + interval '30 minutes',
+                     now() + interval '1 hour', 0, now(), 'it', now(), 'it'),
+                    (920, 2, 200, 999, 'global-user', 'ACTIVE',
+                     0, 0, 0, 0, now() + interval '1 hour', true,
+                     'PASSWORD', now(), now(), now() + interval '30 minutes',
+                     now() + interval '1 hour', 0, now(), 'it', now(), 'it');
+                """);
     }
 
     private void insertBoundaryFixtures(Connection connection, String schema)

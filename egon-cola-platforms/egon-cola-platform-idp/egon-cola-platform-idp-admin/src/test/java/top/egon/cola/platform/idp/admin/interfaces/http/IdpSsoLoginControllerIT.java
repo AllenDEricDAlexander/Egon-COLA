@@ -51,7 +51,7 @@ class IdpSsoLoginControllerIT {
     @MockitoBean
     private SecureRandom random;
 
-    @MockitoBean
+    @MockitoBean(name = "idpClock")
     private Clock clock;
 
     @BeforeEach
@@ -84,7 +84,7 @@ class IdpSsoLoginControllerIT {
         when(identities.authenticate(
                 eq("alice"),
                 any(char[].class),
-                eq("browser:127.0.0.1"),
+                eq("browser-127.0.0.1"),
                 eq(Instant.parse("2026-08-02T00:00:00Z"))
         )).thenReturn(new AuthenticatedIdentity(
                 "alice-sub",

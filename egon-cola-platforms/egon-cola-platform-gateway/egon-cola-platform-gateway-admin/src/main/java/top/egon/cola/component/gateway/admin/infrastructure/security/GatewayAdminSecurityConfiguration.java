@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -89,6 +90,11 @@ public class GatewayAdminSecurityConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(JwtDecoder.class)
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.idp",
+            name = "enabled",
+            havingValue = "false",
+            matchIfMissing = true)
     public JwtDecoder gatewayAdminJwtDecoder(
             @Value("${gateway.admin.security.jwk-set-uri:}")
             String jwkSetUri,

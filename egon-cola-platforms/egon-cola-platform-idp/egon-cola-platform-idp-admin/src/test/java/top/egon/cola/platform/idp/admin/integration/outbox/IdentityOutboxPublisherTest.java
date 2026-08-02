@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class IdentityOutboxPublisherTest {
@@ -76,6 +77,19 @@ class IdentityOutboxPublisherTest {
         assertThat(event.getPayload())
                 .contains("alice-sub", "tokenVersion", "4")
                 .doesNotContain("password", "refreshToken");
+    }
+
+    @Test
+    void startupProjectionRestoresRedisWithoutCreatingDomainEvents() {
+        publisher.project(new IdentityUserState(
+                "alice-sub",
+                IdentityUserState.Status.ACTIVE,
+                4L,
+                NOW
+        ));
+
+        verify(bucket).set(anyString());
+        verifyNoInteractions(outbox, audits, refreshTokens);
     }
 
     @Test

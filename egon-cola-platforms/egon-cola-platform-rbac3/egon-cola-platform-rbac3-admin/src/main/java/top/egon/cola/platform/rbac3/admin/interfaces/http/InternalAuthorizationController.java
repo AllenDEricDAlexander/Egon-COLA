@@ -54,12 +54,13 @@ public class InternalAuthorizationController {
             summary = "按IdP身份和系统读取会话授权上下文",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
     public ApiEnvelope<SystemAuthorizationSnapshot> systemSnapshot(
-            @PathVariable String tenantId,
-            @PathVariable String sessionId,
-            @RequestParam String systemCode,
-            @RequestParam String identitySub,
+            @PathVariable("tenantId") String tenantId,
+            @PathVariable("sessionId") String sessionId,
+            @RequestParam("systemCode") String systemCode,
+            @RequestParam("identitySub") String identitySub,
             @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
-        if (!principal.tenantId().equals(tenantId)
+        if (!(principal.tenantId().equals(tenantId)
+                || "*".equals(principal.tenantId()))
                 || !principal.applicationCode().equals(systemCode)) {
             throw new Rbac3RuleViolation("SERVICE_IDENTITY_DENIED");
         }

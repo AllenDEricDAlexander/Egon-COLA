@@ -39,14 +39,8 @@ public final class AuthorizationContextFacade {
         Optional<AuthorizationContext> existing = store.find(
                 normalizedTenant, normalizedSession);
         if (existing.isPresent()) {
-            AuthorizationContext context = existing.orElseThrow();
-            if (!context.identitySub().equals(normalizedSub)
-                    || !"ACTIVE".equals(context.status())
-                    || !context.expiresAt().isAfter(now)) {
-                throw new AuthorizationContextMismatchException(
-                        normalizedTenant, normalizedSession, normalizedSub);
-            }
-            return context;
+            return validate(existing.orElseThrow(), normalizedTenant,
+                    normalizedSession, normalizedSub, now);
         }
         ActiveMembership membership = memberships.resolve(
                         normalizedTenant, normalizedSub)
@@ -56,19 +50,39 @@ public final class AuthorizationContextFacade {
                 || !membership.identitySub().equals(normalizedSub)) {
             throw new IllegalStateException("membership resolver crossed identity boundary");
         }
-        return store.create(
-                idGenerator.nextId(), membership, normalizedSession, now, expiresAt);
+        try {
+            return store.create(
+                    idGenerator.nextId(), membership, normalizedSession, now, expiresAt);
+        } catch (ConcurrentContextCreationException exception) {
+            AuthorizationContext context = store.find(
+                            normalizedTenant, normalizedSession)
+                    .orElseThrow(() -> exception);
+            return validate(context, normalizedTenant,
+                    normalizedSession, normalizedSub, now);
+        }
     }
 
     public AuthorizationContext require(
             String tenantId, String sessionId, String identitySub, Instant now) {
-        AuthorizationContext context = store.find(
-                        required(tenantId, "tenantId"), required(sessionId, "sessionId"))
+        String normalizedTenant = required(tenantId, "tenantId");
+        String normalizedSession = required(sessionId, "sessionId");
+        String normalizedSub = required(identitySub, "identitySub");
+        AuthorizationContext context = store.find(normalizedTenant, normalizedSession)
                 .orElseThrow(() -> new AuthorizationContextMismatchException(
-                        tenantId, sessionId, identitySub));
-        if (!context.identitySub().equals(required(identitySub, "identitySub"))
+                        normalizedTenant, normalizedSession, normalizedSub));
+        return validate(context, normalizedTenant,
+                normalizedSession, normalizedSub, Objects.requireNonNull(now, "now"));
+    }
+
+    private static AuthorizationContext validate(
+            AuthorizationContext context,
+            String tenantId,
+            String sessionId,
+            String identitySub,
+            Instant now) {
+        if (!context.identitySub().equals(identitySub)
                 || !"ACTIVE".equals(context.status())
-                || !context.expiresAt().isAfter(Objects.requireNonNull(now, "now"))) {
+                || !context.expiresAt().isAfter(now)) {
             throw new AuthorizationContextMismatchException(
                     tenantId, sessionId, identitySub);
         }
@@ -97,7 +111,7 @@ public final class AuthorizationContextFacade {
                 ActiveMembership membership,
                 String sessionId,
                 Instant now,
-                Instant expiresAt);
+                Instant expiresAt) throws ConcurrentContextCreationException;
     }
 
     @FunctionalInterface
@@ -159,6 +173,17 @@ public final class AuthorizationContextFacade {
         public InactiveIdentityMembershipException(String tenantId, String identitySub) {
             super("active identity membership is required: tenantId="
                     + tenantId + ", identitySub=" + identitySub);
+        }
+    }
+
+    public static final class ConcurrentContextCreationException
+            extends IllegalStateException {
+
+        public ConcurrentContextCreationException() {
+        }
+
+        public ConcurrentContextCreationException(Throwable cause) {
+            super(cause);
         }
     }
 }

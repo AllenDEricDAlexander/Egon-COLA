@@ -3,6 +3,7 @@ package top.egon.cola.platform.idp.admin.oauth.infrastructure;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -33,28 +34,40 @@ public final class IdpSsoSessionStore {
     public String create(String identitySub, Duration ttl) {
         String subject = required(identitySub, "identitySub");
         Duration validTtl = validTtl(ttl);
+        String sessionId = nextSessionId();
+        String encoded = encode(new Session(subject, sessionId));
         for (int attempt = 0; attempt < 3; attempt++) {
             byte[] value = new byte[32];
             random.nextBytes(value);
             String token = Base64.getUrlEncoder().withoutPadding().encodeToString(value);
-            if (bucket(token).setIfAbsent(subject, validTtl)) {
+            if (bucket(token).setIfAbsent(encoded, validTtl)) {
                 return token;
             }
         }
         throw new IllegalStateException("cannot allocate SSO session");
     }
 
-    public Optional<String> resolve(String token) {
+    public Optional<Session> resolve(String token) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(bucket(token).get());
+        return Optional.ofNullable(bucket(token).get()).map(IdpSsoSessionStore::decode);
     }
 
     public void revoke(String token) {
         if (token != null && !token.isBlank()) {
             bucket(token).delete();
         }
+    }
+
+    private String nextSessionId() {
+        byte[] bytes = new byte[Long.BYTES];
+        long candidate;
+        do {
+            random.nextBytes(bytes);
+            candidate = ByteBuffer.wrap(bytes).getLong() & Long.MAX_VALUE;
+        } while (candidate == 0L);
+        return Long.toString(candidate);
     }
 
     private org.redisson.api.RBucket<String> bucket(String token) {
@@ -68,6 +81,29 @@ public final class IdpSsoSessionStore {
                     .digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException unavailable) {
             throw new IllegalStateException("SHA-256 is unavailable", unavailable);
+        }
+    }
+
+    private static String encode(Session session) {
+        Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+        return encoder.encodeToString(session.identitySub()
+                .getBytes(StandardCharsets.UTF_8)) + '.'
+                + encoder.encodeToString(session.sessionId()
+                .getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Session decode(String value) {
+        try {
+            String[] parts = required(value, "storedSession").split("\\.", -1);
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("stored SSO session is invalid");
+            }
+            Base64.Decoder decoder = Base64.getUrlDecoder();
+            return new Session(
+                    new String(decoder.decode(parts[0]), StandardCharsets.UTF_8),
+                    new String(decoder.decode(parts[1]), StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException invalid) {
+            throw new IllegalStateException("stored SSO session is invalid", invalid);
         }
     }
 
@@ -92,5 +128,13 @@ public final class IdpSsoSessionStore {
             throw new IllegalArgumentException(name + " is required");
         }
         return value.trim();
+    }
+
+    public record Session(String identitySub, String sessionId) {
+
+        public Session {
+            identitySub = required(identitySub, "identitySub");
+            sessionId = required(sessionId, "sessionId");
+        }
     }
 }

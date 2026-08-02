@@ -10,6 +10,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.platform.idp.admin.interfaces.http.OAuthMetadataController;
 import top.egon.cola.platform.idp.admin.interfaces.http.OAuthTokenController;
 import top.egon.cola.platform.idp.admin.integration.ddc.AtomicIdpRuntimePolicy;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdpSsoSessionStore;
+import top.egon.cola.platform.idp.admin.security.IdpSsoAuthenticationFilter;
 import top.egon.cola.platform.idp.admin.token.infrastructure.Rs256TokenService;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
@@ -47,12 +49,14 @@ class OAuthTokenTransportIT {
 
     private AuthorizationFacade authorizations;
     private TokenFacade tokens;
+    private IdpSsoSessionStore ssoSessions;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         authorizations = mock(AuthorizationFacade.class);
         tokens = mock(TokenFacade.class);
+        ssoSessions = mock(IdpSsoSessionStore.class);
         OAuthClientStore clients = clientId -> CLIENT_ID.equals(clientId)
                 ? Optional.of(client())
                 : Optional.empty();
@@ -60,6 +64,7 @@ class OAuthTokenTransportIT {
                 authorizations,
                 tokens,
                 clients,
+                ssoSessions,
                 new AtomicIdpRuntimePolicy(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 false
@@ -179,6 +184,7 @@ class OAuthTokenTransportIT {
                 authorizations,
                 tokens,
                 clients,
+                ssoSessions,
                 policy,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 false
@@ -231,6 +237,9 @@ class OAuthTokenTransportIT {
 
         mockMvc.perform(post("/oauth2/logout")
                         .principal(() -> "alice-sub")
+                        .cookie(new Cookie(
+                                IdpSsoAuthenticationFilter.COOKIE_NAME,
+                                "sso-token"))
                         .param("client_id", CLIENT_ID)
                         .param("all_sessions", "true"))
                 .andExpect(status().isNoContent())
@@ -239,6 +248,7 @@ class OAuthTokenTransportIT {
                         containsString("Max-Age=0")
                 ));
         verify(tokens).logoutAll("alice-sub");
+        verify(ssoSessions).revoke("sso-token");
     }
 
     @Test
@@ -286,6 +296,7 @@ class OAuthTokenTransportIT {
                 "alice-sub",
                 "tenant-a",
                 "rbac3-alice",
+                "sso-session-1",
                 CLIENT_ID,
                 "gateway-admin",
                 "http://127.0.0.1:5173/oauth/callback",

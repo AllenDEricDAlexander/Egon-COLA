@@ -93,7 +93,7 @@ public class OAuthClientController {
             summary = "更新OAuth客户端", externalAccessible = true,
             tags = {"idp", "oauth-client"})
     public OAuthClientAdminService.ClientView update(
-            @PathVariable String clientId,
+            @PathVariable("clientId") String clientId,
             @Valid @RequestBody UpdateClientRequest request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
@@ -112,7 +112,7 @@ public class OAuthClientController {
             summary = "登记OAuth回调地址", externalAccessible = true,
             tags = {"idp", "oauth-client"})
     public OAuthClientAdminService.ClientView putRedirect(
-            @PathVariable String clientId,
+            @PathVariable("clientId") String clientId,
             @Valid @RequestBody ValueRequest request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
@@ -125,7 +125,7 @@ public class OAuthClientController {
             summary = "删除OAuth回调地址", externalAccessible = true,
             tags = {"idp", "oauth-client"})
     public OAuthClientAdminService.ClientView deleteRedirect(
-            @PathVariable String clientId,
+            @PathVariable("clientId") String clientId,
             @Valid @RequestBody ValueRequest request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
@@ -138,7 +138,7 @@ public class OAuthClientController {
             summary = "登记OAuth受众", externalAccessible = true,
             tags = {"idp", "oauth-client"})
     public OAuthClientAdminService.ClientView putAudience(
-            @PathVariable String clientId,
+            @PathVariable("clientId") String clientId,
             @Valid @RequestBody ValueRequest request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
@@ -151,7 +151,7 @@ public class OAuthClientController {
             summary = "删除OAuth受众", externalAccessible = true,
             tags = {"idp", "oauth-client"})
     public OAuthClientAdminService.ClientView deleteAudience(
-            @PathVariable String clientId,
+            @PathVariable("clientId") String clientId,
             @Valid @RequestBody ValueRequest request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {

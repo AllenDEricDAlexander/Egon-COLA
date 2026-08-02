@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -81,6 +82,36 @@ class IdpAdminSecurityIT {
 
         mockMvc.perform(get("/api/v1/identity/users").with(identityJwt()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void bindsIdentitySubjectForUserUpdateWithoutCompilerParameterMetadata()
+            throws Exception {
+        when(users.update(eq("1001"), any())).thenReturn(
+                new IdentityUserAdminService.UserView(
+                        "1001", "alice", "Alice", "DISABLED",
+                        1L, 0, null, null, 2L
+                )
+        );
+
+        mockMvc.perform(patch("/api/v1/identity/users/1001")
+                        .with(identityJwt())
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "displayName":"Alice",
+                                  "status":"DISABLED",
+                                  "expectedVersion":1
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subject").value("1001"))
+                .andExpect(jsonPath("$.status").value("DISABLED"));
+
+        verify(authorization).require(
+                any(IdentityPrincipal.class),
+                eq("idp:identity-user:update")
+        );
     }
 
     @Test

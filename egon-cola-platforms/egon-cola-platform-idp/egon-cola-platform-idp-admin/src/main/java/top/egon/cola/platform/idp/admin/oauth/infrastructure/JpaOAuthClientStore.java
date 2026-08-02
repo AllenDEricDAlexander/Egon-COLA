@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class JpaOAuthClientStore implements OAuthClientStore {
+public class JpaOAuthClientStore implements OAuthClientStore {
 
     private final IdentityClientRepository clients;
     private final IdentityClientRedirectUriRepository redirects;

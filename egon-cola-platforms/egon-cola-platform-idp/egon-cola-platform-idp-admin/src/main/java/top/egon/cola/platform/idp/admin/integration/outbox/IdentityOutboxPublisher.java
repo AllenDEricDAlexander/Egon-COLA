@@ -7,6 +7,7 @@ import org.redisson.client.codec.StringCodec;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
+import top.egon.cola.platform.idp.admin.identity.application.IdentityUserStateReconciler;
 import top.egon.cola.platform.idp.admin.outbox.domain.IdentityOutboxEventEntity;
 import top.egon.cola.platform.idp.admin.outbox.infrastructure.IdentityOutboxEventRepository;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
@@ -27,7 +28,9 @@ import java.util.regex.Pattern;
  * Projects public identity state and persists durable security events.
  */
 public class IdentityOutboxPublisher
-        implements IdentityUserStatePort, IdentitySecurityEventPort {
+        implements IdentityUserStatePort,
+        IdentitySecurityEventPort,
+        IdentityUserStateReconciler.StateProjection {
 
     private static final Pattern SAFE_SUBJECT = Pattern.compile(
             "[A-Za-z0-9._~-]{1,64}"
@@ -91,22 +94,37 @@ public class IdentityOutboxPublisher
     public void publish(IdentityUserState state) {
         Objects.requireNonNull(state, "state");
         String subject = subject(state.subject());
-        String payload = json(Map.of(
-                "subject", subject,
-                "status", state.status().name(),
-                "tokenVersion", state.tokenVersion(),
-                "updatedAt", state.updatedAt().toString()
-        ));
+        String payload = statePayload(state, subject);
         persistOutbox(
                 subject,
                 "IDENTITY_USER_STATE_CHANGED",
                 payload,
                 state.updatedAt()
         );
+        project(subject, payload);
+    }
+
+    @Override
+    public void project(IdentityUserState state) {
+        Objects.requireNonNull(state, "state");
+        String subject = subject(state.subject());
+        project(subject, statePayload(state, subject));
+    }
+
+    private void project(String subject, String payload) {
         redisson.<String>getBucket(
                 stateKeyPrefix + subject,
                 StringCodec.INSTANCE
         ).set(payload);
+    }
+
+    private String statePayload(IdentityUserState state, String subject) {
+        return json(Map.of(
+                "subject", subject,
+                "status", state.status().name(),
+                "tokenVersion", state.tokenVersion(),
+                "updatedAt", state.updatedAt().toString()
+        ));
     }
 
     @Override

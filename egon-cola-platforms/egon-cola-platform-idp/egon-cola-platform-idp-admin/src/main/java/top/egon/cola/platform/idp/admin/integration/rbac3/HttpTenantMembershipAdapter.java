@@ -1,6 +1,5 @@
 package top.egon.cola.platform.idp.admin.integration.rbac3;
 
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
@@ -38,7 +37,7 @@ public final class HttpTenantMembershipAdapter
             String clientId
     ) {
         try {
-            MembershipResponse response = restClient.post()
+            MembershipEnvelope response = restClient.post()
                     .uri(baseUrl + "/internal/v1/identity/resolve")
                     .header(
                             HttpHeaders.AUTHORIZATION,
@@ -57,8 +56,9 @@ public final class HttpTenantMembershipAdapter
                                 throw membershipFailure();
                             }
                     )
-                    .body(MembershipResponse.class);
-            return toDomain(response, identitySub, tenantId);
+                    .body(MembershipEnvelope.class);
+            return toDomain(response == null ? null : response.data(),
+                    identitySub, tenantId);
         } catch (TenantMembershipException exception) {
             throw exception;
         } catch (RuntimeException exception) {
@@ -73,7 +73,7 @@ public final class HttpTenantMembershipAdapter
     ) {
         try {
             String subject = required(identitySub, "identitySub");
-            List<MembershipResponse> response = restClient.get()
+            MembershipListEnvelope response = restClient.get()
                     .uri(
                             baseUrl
                                     + "/internal/v1/identity/{identitySub}"
@@ -92,12 +92,11 @@ public final class HttpTenantMembershipAdapter
                                 throw membershipFailure();
                             }
                     )
-                    .body(new ParameterizedTypeReference<>() {
-                    });
-            if (response == null) {
+                    .body(MembershipListEnvelope.class);
+            if (response == null || response.data() == null) {
                 throw membershipFailure();
             }
-            return response.stream()
+            return response.data().stream()
                     .map(value -> toDomain(
                             value,
                             subject,
@@ -189,6 +188,12 @@ public final class HttpTenantMembershipAdapter
             String tenantId,
             String clientId
     ) {
+    }
+
+    private record MembershipEnvelope(MembershipResponse data) {
+    }
+
+    private record MembershipListEnvelope(List<MembershipResponse> data) {
     }
 
     private record MembershipResponse(

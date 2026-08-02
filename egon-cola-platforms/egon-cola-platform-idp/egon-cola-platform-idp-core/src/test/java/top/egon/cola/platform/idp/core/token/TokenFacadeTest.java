@@ -17,6 +17,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -79,7 +80,7 @@ class TokenFacadeTest {
 
         assertEquals("alice-sub", claims.subject());
         assertEquals("tenant-a", claims.tenantId());
-        assertEquals("family-1", claims.sessionId());
+        assertEquals("sso-session-1", claims.sessionId());
         assertEquals("gateway-admin-web", claims.clientId());
         assertEquals(4L, claims.tokenVersion());
         assertEquals(List.of("gateway-admin"), claims.audience());
@@ -95,12 +96,46 @@ class TokenFacadeTest {
         TokenFacade.TokenPair pair = issue();
         RefreshFamily family = refreshTokens.family(pair.familyId());
 
-        assertEquals(pair.familyId(), pair.sessionId());
+        assertEquals("sso-session-1", pair.sessionId());
+        assertNotEquals(pair.familyId(), pair.sessionId());
         assertEquals(RefreshFamily.Status.ACTIVE, family.status());
         assertEquals("alice-sub", family.identitySub());
         assertEquals(0L, family.generation());
         assertNotEquals(pair.refreshToken(), family.currentTokenDigest());
         assertEquals(NOW.plus(REFRESH_TTL), family.expiresAt());
+    }
+
+    @Test
+    void issueNormalizesJwtAndRefreshFamilyTimeToWholeSeconds() {
+        Deque<String> ids = new ArrayDeque<>(List.of(
+                "millisecond-family",
+                "millisecond-access",
+                "millisecond-refresh"
+        ));
+        TokenFacade millisecondFacade = new TokenFacade(
+                signer,
+                refreshTokens,
+                users,
+                states,
+                events,
+                Clock.fixed(NOW.plusMillis(321), ZoneOffset.UTC),
+                ids::removeFirst
+        );
+
+        TokenFacade.TokenPair pair = millisecondFacade.issue(
+                authorizationCode(),
+                ACCESS_TTL,
+                REFRESH_TTL
+        );
+
+        assertEquals(
+                pair.refreshExpiresAt().truncatedTo(ChronoUnit.SECONDS),
+                pair.refreshExpiresAt()
+        );
+        assertEquals(
+                pair.refreshExpiresAt(),
+                refreshTokens.family(pair.familyId()).expiresAt()
+        );
     }
 
     @Test
@@ -203,6 +238,7 @@ class TokenFacadeTest {
                 "alice-sub",
                 "tenant-a",
                 "tenant-user-a",
+                "sso-session-1",
                 "gateway-admin-web",
                 "gateway-admin",
                 "https://gateway.example.test/oauth/callback",

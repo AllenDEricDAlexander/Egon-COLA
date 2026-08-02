@@ -17,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -72,13 +73,13 @@ public final class TokenFacade {
         Objects.requireNonNull(authorizationCode, "authorizationCode");
         Duration accessTtl = accessTtl(accessTokenTtl);
         Duration refreshTtl = refreshTtl(refreshTokenTtl);
-        Instant now = clock.instant();
+        Instant now = tokenTime();
         if (!authorizationCode.expiresAt().isAfter(now)) {
             throw invalidGrant();
         }
         IdentityUser user = activeUser(authorizationCode.identitySub());
         String familyId = nextId();
-        String sessionId = familyId;
+        String sessionId = authorizationCode.sessionId();
         Instant refreshExpiresAt = now.plus(refreshTtl);
         AccessTokenClaims accessClaims = accessClaims(
                 authorizationCode,
@@ -133,7 +134,7 @@ public final class TokenFacade {
             Duration accessTokenTtl
     ) {
         Duration accessTtl = accessTtl(accessTokenTtl);
-        Instant now = clock.instant();
+        Instant now = tokenTime();
         RefreshTokenClaims current = verifiedRefresh(
                 rawRefreshToken,
                 clientId,
@@ -310,6 +311,10 @@ public final class TokenFacade {
             throw new IllegalStateException("ID generator returned invalid value");
         }
         return value;
+    }
+
+    private Instant tokenTime() {
+        return clock.instant().truncatedTo(ChronoUnit.SECONDS);
     }
 
     private static Duration accessTtl(Duration value) {

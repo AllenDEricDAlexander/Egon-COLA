@@ -86,8 +86,9 @@ public class SigningKeyController {
             summary = "激活签名密钥", externalAccessible = true,
             tags = {"idp", "signing-key"})
     public SigningKeyAdminService.SigningKeyView activate(
-            @PathVariable String kid,
-            @RequestParam @PositiveOrZero long expectedVersion,
+            @PathVariable("kid") String kid,
+            @RequestParam("expectedVersion")
+            @PositiveOrZero long expectedVersion,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:signing-key:activate");
@@ -99,8 +100,9 @@ public class SigningKeyController {
             summary = "退役签名密钥", externalAccessible = true,
             tags = {"idp", "signing-key"})
     public SigningKeyAdminService.SigningKeyView retire(
-            @PathVariable String kid,
-            @RequestParam @PositiveOrZero long expectedVersion,
+            @PathVariable("kid") String kid,
+            @RequestParam("expectedVersion")
+            @PositiveOrZero long expectedVersion,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:signing-key:retire");

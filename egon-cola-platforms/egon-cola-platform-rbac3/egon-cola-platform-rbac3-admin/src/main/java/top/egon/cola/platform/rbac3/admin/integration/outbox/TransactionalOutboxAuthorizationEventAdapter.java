@@ -96,7 +96,7 @@ public final class TransactionalOutboxAuthorizationEventAdapter
 
     private long aggregateVersion(Map<String, String> payload) {
         for (String key : new String[]{
-                "aggregateVersion", "sessionVersion", "authVersion",
+                "aggregateVersion", "contextVersion", "sessionVersion", "authVersion",
                 "policyVersion", "manifestVersion"}) {
             String value = payload.get(key);
             if (value != null) {

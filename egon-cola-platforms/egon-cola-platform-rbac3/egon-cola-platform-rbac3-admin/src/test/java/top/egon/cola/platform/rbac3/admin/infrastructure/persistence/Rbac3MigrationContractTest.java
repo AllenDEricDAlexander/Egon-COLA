@@ -1,6 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.infrastructure.persistence;
 
+import jakarta.persistence.Column;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -26,6 +28,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V2__add_session_strong_authentication_time.sql";
     private static final String IDP_MIGRATION =
             "db/migration/V3__adopt_idp_identity.sql";
+    private static final String TENANT_SESSION_MIGRATION =
+            "db/migration/V4__scope_session_identity_by_tenant.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -99,13 +103,27 @@ class Rbac3MigrationContractTest {
     void migrationHistoryKeepsV1ImmutableAndAddsStrongAuthenticationTimeInV2()
             throws Exception {
         assertThat(listMigrationResources()).containsExactly(
-                MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION);
+                MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
+                TENANT_SESSION_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
         assertThat(resourceSql(IDP_MIGRATION))
                 .contains("add column identity_sub varchar(512)")
                 .contains("context_version bigint not null default 0");
+        assertThat(resourceSql(TENANT_SESSION_MIGRATION))
+                .contains("drop constraint uq_rbac3_session_id")
+                .doesNotContain("drop constraint uq_rbac3_session_tenant_session");
+    }
+
+    @Test
+    void sessionEntityDoesNotReintroduceGlobalSessionIdUniqueness()
+            throws NoSuchFieldException {
+        Column sessionId = SessionEntity.class
+                .getDeclaredField("sessionId")
+                .getAnnotation(Column.class);
+
+        assertThat(sessionId.unique()).isFalse();
     }
 
     @Test

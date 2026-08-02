@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: gateway-test-idp-backend
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+
+server:
+  port: ${MOCK_BACKEND_PORT:18160}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+egon:
+  cola:
+    platform:
+      idp:
+        enabled: true
+        register-filter: false
+        issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
+        jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+        audiences: [mock-backend]
+        client-ids: [mock-backend]
+      rbac3:
+        enabled: true
+        register-filter: false
+        system-code: mock-backend
+        runtime:
+          redis-enabled: true
+          redis-address: ${MOCK_BACKEND_REDIS_ADDRESS:redis://127.0.0.1:6379}
+          database: ${MOCK_BACKEND_REDIS_DATABASE:0}
+        authorization:
+          endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+          service-credential-file: ${MOCK_BACKEND_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/mock-backend.service.jwt}
+    component:
+      id:
+        enabled: false
+      ddc:
+        enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
+        biz-code: ${DDC_BIZ_CODE:identity}
+        app-code: mock-backend
+        env: ${DEPLOYMENT_ENV:local}
+        namespace: ${DEPLOYMENT_NAMESPACE:default}
+        admin:
+          endpoint: ${DDC_ADMIN_ENDPOINT:http://127.0.0.1:18080}
+          signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
+          access-key: ${DDC_OPENAPI_ACCESS_KEY:}
+          secret-key: ${DDC_OPENAPI_SECRET:}
+        redis:
+          enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
+          mode: SINGLE
+          host: ${DDC_REGISTRY_REDIS_HOST:127.0.0.1}
+          port: ${DDC_REGISTRY_REDIS_PORT:6379}
+          password: ${DDC_REGISTRY_REDIS_PASSWORD:}
+          database: ${DDC_REGISTRY_REDIS_DATABASE:0}
+        registry:
+          enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
+      gateway:
+        reporting:
+          enabled: ${MOCK_BACKEND_GATEWAY_REPORTING_ENABLED:false}
+          admin-base-url: ${GATEWAY_ADMIN_BASE_URL:http://127.0.0.1:18082}
+          biz-code: ${DDC_BIZ_CODE:identity}
+          application-code: mock-backend
+          application-name: Unified Identity Mock Backend
+          env: ${DEPLOYMENT_ENV:local}
+          namespace: ${DEPLOYMENT_NAMESPACE:default}
+          artifact-version: ${MOCK_BACKEND_ARTIFACT_VERSION:5.3.2}
+          build-id: ${MOCK_BACKEND_BUILD_ID:local}
+          declared-hosts: ${MOCK_BACKEND_DECLARED_HOSTS:127.0.0.1}
+          fail-fast: true
+          access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
+          secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
+          state-file: ${GATEWAY_REPORT_STATE_FILE:.runtime/unified-identity/mock-backend-gateway-report.json}
+        provider:
+          http:
+            enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
+            instance-id: ${MOCK_BACKEND_INSTANCE_ID:mock-backend-local-1}
+            service-name: mock-backend
+            group: default
+            version: ${MOCK_BACKEND_ARTIFACT_VERSION:5.3.2}
+            protocol: http
+            advertised-host: ${MOCK_BACKEND_ADVERTISED_HOST:127.0.0.1}
+            port: ${MOCK_BACKEND_PORT:18160}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true

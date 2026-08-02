@@ -29,6 +29,7 @@ public class IdpHttpExceptionHandler {
             HttpMessageNotReadableException.class
     })
     public ResponseEntity<ErrorResponse> invalidRequest(Exception exception) {
+        LOG.debug("Rejected invalid IdP request", exception);
         return response(
                 HttpStatus.BAD_REQUEST,
                 "INVALID_REQUEST",

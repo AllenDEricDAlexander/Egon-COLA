@@ -3,6 +3,7 @@ package top.egon.cola.platform.idp.admin.integration.runtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -21,6 +22,7 @@ import top.egon.cola.platform.idp.admin.bootstrap.IdpBootstrapRunner;
 import top.egon.cola.platform.idp.admin.bootstrap.IdpBootstrapService;
 import top.egon.cola.platform.idp.admin.integration.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.integration.outbox.IdentityOutboxPublisher;
+import top.egon.cola.platform.idp.admin.identity.application.IdentityUserStateReconciler;
 import top.egon.cola.platform.idp.admin.outbox.infrastructure.IdentityOutboxEventRepository;
 import top.egon.cola.platform.idp.admin.token.application.SigningKeyRuntime;
 import top.egon.cola.platform.idp.admin.token.infrastructure.ExternalPemSigningKeyRuntime;
@@ -48,7 +50,7 @@ public class IdpPlatformConfiguration {
             RedissonClient redisson,
             ObjectMapper objectMapper,
             LongIdGenerator ids,
-            Clock idpClock,
+            @Qualifier("idpClock") Clock idpClock,
             @Value("${egon.idp.identity-state-key-prefix:identity:v1:user:}")
             String stateKeyPrefix
     ) {
@@ -99,13 +101,17 @@ public class IdpPlatformConfiguration {
 
     @Bean
     ApplicationRunner idpBootstrapApplicationRunner(
-            IdpBootstrapService bootstrap
+            IdpBootstrapService bootstrap,
+            IdentityUserStateReconciler stateReconciler
     ) {
         IdpBootstrapRunner runner = new IdpBootstrapRunner(bootstrap);
-        return (ApplicationArguments arguments) -> runner.run(
-                arguments.getSourceArgs(),
-                Map.copyOf(System.getenv())
-        );
+        return (ApplicationArguments arguments) -> {
+            runner.run(
+                    arguments.getSourceArgs(),
+                    Map.copyOf(System.getenv())
+            );
+            stateReconciler.reconcile();
+        };
     }
 
     @Bean

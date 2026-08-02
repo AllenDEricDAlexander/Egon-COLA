@@ -1,6 +1,7 @@
 package top.egon.cola.platform.idp.admin.interfaces.http;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -44,7 +45,7 @@ public class IdpSsoLoginController {
             IdentityFacade identities,
             IdpSsoSessionStore sessions,
             SecureRandom random,
-            Clock clock,
+            @Qualifier("idpClock") Clock clock,
             @Value("${egon.idp.oauth.refresh-cookie-secure:true}")
             boolean secureCookie) {
         this.identities = Objects.requireNonNull(identities, "identities");
@@ -117,7 +118,9 @@ public class IdpSsoLoginController {
 
     private String sourceBucket(HttpServletRequest request) {
         String remote = request.getRemoteAddr();
-        return remote == null || remote.isBlank() ? "browser" : "browser:" + remote;
+        return remote == null || remote.isBlank()
+                ? "browser"
+                : "browser-" + remote.replaceAll("[^A-Za-z0-9._~-]", "-");
     }
 
     private String required(String value, String name) {

@@ -37,9 +37,11 @@ public final class IdpSsoAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
         String token = cookie(request, COOKIE_NAME);
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            sessions.resolve(token).ifPresent(subject -> SecurityContextHolder.getContext()
+            sessions.resolve(token).ifPresent(session -> SecurityContextHolder.getContext()
                     .setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
-                            subject, "", List.of())));
+                            new IdpSsoPrincipal(
+                                    session.identitySub(), session.sessionId()),
+                            "", List.of())));
         }
         filterChain.doFilter(request, response);
     }

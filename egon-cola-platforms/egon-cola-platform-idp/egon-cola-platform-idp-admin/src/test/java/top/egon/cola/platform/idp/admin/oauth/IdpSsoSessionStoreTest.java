@@ -47,9 +47,8 @@ class IdpSsoSessionStoreTest {
                 anyString(),
                 eq(StringCodec.INSTANCE)
         )).thenReturn(bucket);
-        when(bucket.setIfAbsent("alice-sub", Duration.ofHours(12)))
+        when(bucket.setIfAbsent(anyString(), eq(Duration.ofHours(12))))
                 .thenReturn(true);
-        when(bucket.get()).thenReturn("alice-sub");
         SecureRandom random = mock(SecureRandom.class);
         doAnswer(invocation -> {
             Arrays.fill(invocation.<byte[]>getArgument(0), (byte) 7);
@@ -62,9 +61,14 @@ class IdpSsoSessionStoreTest {
         );
 
         String token = store.create("alice-sub", Duration.ofHours(12));
+        var storedValue = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(bucket).setIfAbsent(storedValue.capture(), eq(Duration.ofHours(12)));
+        String stored = storedValue.getValue();
+        when(bucket.get()).thenReturn(stored);
 
-        assertEquals("alice-sub", store.resolve(token).orElseThrow());
-        verify(bucket).setIfAbsent("alice-sub", Duration.ofHours(12));
+        IdpSsoSessionStore.Session session = store.resolve(token).orElseThrow();
+        assertEquals("alice-sub", session.identitySub());
+        assertTrue(session.sessionId().matches("[1-9][0-9]*"));
         verify(redisson, org.mockito.Mockito.times(2)).getBucket(
                 "identity:v1:sso-session:"
                         + "dc4bf80c77473d130fa0de86ba4018fe98bb214005e6a5891"
@@ -90,7 +94,8 @@ class IdpSsoSessionStoreTest {
     @Test
     void cookieAuthenticatesOnlyAuthorizationEndpoint() throws Exception {
         IdpSsoSessionStore store = mock(IdpSsoSessionStore.class);
-        when(store.resolve("sso-token")).thenReturn(Optional.of("alice-sub"));
+        when(store.resolve("sso-token")).thenReturn(Optional.of(
+                new IdpSsoSessionStore.Session("alice-sub", "sso-session-1")));
         IdpSsoAuthenticationFilter filter =
                 new IdpSsoAuthenticationFilter(store);
         MockHttpServletRequest authorize = new MockHttpServletRequest(

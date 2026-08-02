@@ -2,6 +2,7 @@ package top.egon.cola.platform.rbac3.admin.security;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ import org.springframework.security.core.annotation.AnnotationTemplateExpression
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContextFilter;
@@ -49,7 +51,8 @@ public class Rbac3AdminSecurityConfiguration {
     SecurityFilterChain rbac3InternalSecurityFilterChain(
             HttpSecurity http,
             TenantContextFilter tenantFilter,
-            Rbac3JwtAuthenticationConverter authenticationConverter)
+            Rbac3JwtAuthenticationConverter authenticationConverter,
+            @Qualifier("jwtDecoder") JwtDecoder serviceJwtDecoder)
             throws Exception {
         return http
                 .securityMatcher("/internal/**")
@@ -59,7 +62,9 @@ public class Rbac3AdminSecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(
-                        jwt -> jwt.jwtAuthenticationConverter(authenticationConverter)))
+                        jwt -> jwt
+                                .decoder(serviceJwtDecoder)
+                                .jwtAuthenticationConverter(authenticationConverter)))
                 .addFilterAfter(tenantFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }

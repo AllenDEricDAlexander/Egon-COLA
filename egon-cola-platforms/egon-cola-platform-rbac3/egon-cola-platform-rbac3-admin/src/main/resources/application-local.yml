@@ -12,6 +12,13 @@ spring:
 server:
   port: ${RBAC3_ADVERTISED_PORT:0}
 
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,ping
+
 egon.cola.platform:
   idp:
     issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
@@ -25,6 +32,11 @@ egon.cola.platform:
 
 egon:
   rbac3:
+    development-bootstrap:
+      enabled: ${RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED:false}
+      tenant-codes: ${RBAC3_DEVELOPMENT_TENANT_CODES:${RBAC3_DEVELOPMENT_TENANT_CODE:default}}
+      username: ${RBAC3_DEVELOPMENT_USERNAME:alice}
+      identity-sub: ${RBAC3_DEVELOPMENT_IDENTITY_SUB:}
     component-keys: ${RBAC3_COMPONENT_KEYS:rbac3-page}
     runtime:
       redis-address: ${RBAC3_RUNTIME_REDIS_ADDRESS:redis://localhost:6379}

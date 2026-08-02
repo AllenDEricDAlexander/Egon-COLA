@@ -19,6 +19,7 @@
     <modules>
         <module>egon-cola-platform-gateway-test-http-provider</module>
         <module>egon-cola-platform-gateway-test-webflux-http-provider</module>
+        <module>egon-cola-platform-gateway-test-idp-backend</module>
         <module>egon-cola-platform-gateway-test-rpc-contract</module>
         <module>egon-cola-platform-gateway-test-rpc-provider</module>
         <module>egon-cola-platform-gateway-test-rpc-consumer</module>

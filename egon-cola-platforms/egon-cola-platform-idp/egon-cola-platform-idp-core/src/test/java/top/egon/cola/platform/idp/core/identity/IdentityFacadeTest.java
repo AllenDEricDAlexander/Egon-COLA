@@ -174,6 +174,9 @@ class IdentityFacadeTest {
         assertEquals("alice-sub", result.identitySub());
         assertEquals(0, users.get("alice-sub").failedLoginCount());
         assertEquals(NOW, users.get("alice-sub").lastLoginAt());
+        assertEquals("alice-sub", states.latest.subject());
+        assertEquals(IdentityUserState.Status.ACTIVE, states.latest.status());
+        assertEquals(4L, states.latest.tokenVersion());
         assertArrayEquals(new char[password.length], password);
     }
 

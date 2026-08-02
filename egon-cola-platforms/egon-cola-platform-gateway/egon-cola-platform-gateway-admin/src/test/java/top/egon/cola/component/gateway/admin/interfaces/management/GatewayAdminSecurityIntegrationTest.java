@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 GatewayAdminSessionController.class,
                 GatewayScopeController.class
         },
+        properties = "egon.cola.platform.idp.enabled=false",
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
                 classes = GatewayReportHmacFilter.class

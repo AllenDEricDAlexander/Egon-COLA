@@ -7,6 +7,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -21,6 +22,7 @@ import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRedir
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.RedisAuthorizationCodeStore;
+import top.egon.cola.platform.idp.admin.security.IdpSsoPrincipal;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
@@ -68,6 +70,7 @@ class OAuthAuthorizationFlowIT {
                 "alice-sub",
                 "tenant-a",
                 "tenant-user-a",
+                "sso-session-1",
                 "gateway-admin-web",
                 "gateway-admin",
                 "https://gateway.example.test/oauth/callback",
@@ -158,11 +161,13 @@ class OAuthAuthorizationFlowIT {
                 .andExpect(header("Authorization", "Bearer service-token"))
                 .andRespond(withSuccess("""
                         {
-                          "identitySub": "alice-sub",
-                          "tenantId": "tenant-a",
-                          "rbac3UserId": "tenant-user-a",
-                          "tenantDisplayName": "Tenant A",
-                          "status": "ACTIVE"
+                          "data": {
+                            "identitySub": "alice-sub",
+                            "tenantId": "tenant-a",
+                            "rbac3UserId": "tenant-user-a",
+                            "tenantDisplayName": "Tenant A",
+                            "status": "ACTIVE"
+                          }
                         }
                         """, MediaType.APPLICATION_JSON));
         HttpTenantMembershipAdapter adapter = new HttpTenantMembershipAdapter(
@@ -186,7 +191,8 @@ class OAuthAuthorizationFlowIT {
     @Test
     void authorizeEndpointRedirectsOnlyToFacadeValidatedUri() throws Exception {
         AuthorizationFacade facade = mock(AuthorizationFacade.class);
-        when(facade.authorize(any(), eq("alice-sub"))).thenReturn(
+        when(facade.authorize(
+                any(), eq("alice-sub"), eq("sso-session-1"))).thenReturn(
                 new AuthorizationFacade.AuthorizationResult(
                         "code-value",
                         "state-value",
@@ -199,7 +205,11 @@ class OAuthAuthorizationFlowIT {
         ).build();
 
         mockMvc.perform(get("/oauth2/authorize")
-                        .principal(() -> "alice-sub")
+                        .principal(UsernamePasswordAuthenticationToken.authenticated(
+                                new IdpSsoPrincipal(
+                                        "alice-sub", "sso-session-1"),
+                                "",
+                                List.of()))
                         .param("response_type", "code")
                         .param("client_id", "gateway-admin-web")
                         .param("redirect_uri",

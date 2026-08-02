@@ -93,7 +93,7 @@ public class IdentityUserController {
             externalAccessible = true,
             tags = {"idp", "identity"})
     public IdentityUserAdminService.UserView update(
-            @PathVariable String subject,
+            @PathVariable("subject") String subject,
             @Valid @RequestBody UpdateUserRequest request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
@@ -112,7 +112,7 @@ public class IdentityUserController {
             externalAccessible = true,
             tags = {"idp", "identity"})
     public IdentityUserAdminService.ResetPasswordView resetPassword(
-            @PathVariable String subject,
+            @PathVariable("subject") String subject,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:identity-user:password-reset");
@@ -126,7 +126,7 @@ public class IdentityUserController {
             externalAccessible = true,
             tags = {"idp", "identity"})
     public IdentityUserAdminService.UserView revokeAll(
-            @PathVariable String subject,
+            @PathVariable("subject") String subject,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:identity-user:revoke-all");

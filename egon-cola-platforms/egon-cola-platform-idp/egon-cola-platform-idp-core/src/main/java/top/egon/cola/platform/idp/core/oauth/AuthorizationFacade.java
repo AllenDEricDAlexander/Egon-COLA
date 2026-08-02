@@ -110,10 +110,12 @@ public final class AuthorizationFacade {
 
     public AuthorizationResult authorize(
             AuthorizationRequest request,
-            String identitySub
+            String identitySub,
+            String sessionId
     ) {
         Objects.requireNonNull(request, "request");
         String subject = required(identitySub, "identitySub");
+        String stableSessionId = required(sessionId, "sessionId");
         validateBrowserRequest(request);
         OAuthClient client = clients.findById(request.clientId())
                 .orElseThrow(() -> oauth(
@@ -133,6 +135,7 @@ public final class AuthorizationFacade {
                 subject,
                 request.tenantId(),
                 membership.rbac3UserId(),
+                stableSessionId,
                 request.clientId(),
                 request.audience(),
                 request.redirectUri(),

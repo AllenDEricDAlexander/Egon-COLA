@@ -1,5 +1,6 @@
 package top.egon.cola.platform.idp.admin.identity.application;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
@@ -39,6 +40,7 @@ public class IdentityUserAdminService {
     private final Clock clock;
     private final Supplier<String> temporaryPasswords;
 
+    @Autowired
     public IdentityUserAdminService(
             IdentityUserStore users,
             PasswordCredentialStore credentials,

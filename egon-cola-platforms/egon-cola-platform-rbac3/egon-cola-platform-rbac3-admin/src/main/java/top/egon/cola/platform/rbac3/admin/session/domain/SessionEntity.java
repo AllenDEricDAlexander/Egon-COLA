@@ -22,7 +22,7 @@ public class SessionEntity extends TenantScopedEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "session_id", nullable = false, unique = true)
+    @Column(name = "session_id", nullable = false)
     private Long sessionId;
 
     @Column(name = "identity_sub", nullable = false, length = 128)

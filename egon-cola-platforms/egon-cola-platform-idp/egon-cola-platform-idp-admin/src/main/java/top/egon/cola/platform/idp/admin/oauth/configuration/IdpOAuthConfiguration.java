@@ -2,6 +2,7 @@ package top.egon.cola.platform.idp.admin.oauth.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -112,7 +113,7 @@ public class IdpOAuthConfiguration {
             OAuthClientStore clients,
             AuthorizationCodeStore codes,
             TenantMembershipPort memberships,
-            Clock idpClock,
+            @Qualifier("idpClock") Clock idpClock,
             IdpRuntimePolicy runtimePolicy
     ) {
         return AuthorizationFacade.dynamicTtl(

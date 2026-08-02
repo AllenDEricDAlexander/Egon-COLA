@@ -18,6 +18,10 @@ import java.util.Set;
 public final class SystemAuthorizationSnapshotService {
 
     private static final Duration DEFAULT_CONTEXT_TTL = Duration.ofHours(12);
+    private static final String RBAC3_ADMIN_SYSTEM = "rbac3-admin";
+    private static final Set<String> ROLE_ACTIVATION_PERMISSIONS = Set.of(
+            "system:role-activation:read",
+            "system:role-activation:use");
 
     private final AuthorizationContextFacade.ContextOpener contexts;
     private final AuthorizationDecisionService.SnapshotSource snapshots;
@@ -67,10 +71,12 @@ public final class SystemAuthorizationSnapshotService {
             AuthorizationContextFacade.AuthorizationContext context,
             String systemCode,
             Instant now) {
+        Set<String> permissions = RBAC3_ADMIN_SYSTEM.equals(systemCode)
+                ? ROLE_ACTIVATION_PERMISSIONS : Set.of();
         return new SystemAuthorizationSnapshot(
                 context.tenantId(), context.identitySub(), context.rbac3UserId(),
                 context.sessionId(), systemCode, context.authVersion(),
-                context.contextVersion(), context.policyVersion(), List.of(), Set.of(),
+                context.contextVersion(), context.policyVersion(), List.of(), permissions,
                 Map.of(), Map.of(), "empty:" + context.contextVersion(), now,
                 context.expiresAt());
     }

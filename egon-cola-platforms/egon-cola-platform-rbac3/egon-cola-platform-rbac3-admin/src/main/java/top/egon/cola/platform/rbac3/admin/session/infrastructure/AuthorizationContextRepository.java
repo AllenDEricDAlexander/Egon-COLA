@@ -1,6 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.session.infrastructure;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
@@ -20,7 +22,7 @@ public class AuthorizationContextRepository
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     public Optional<AuthorizationContextFacade.AuthorizationContext> find(
             String tenantId, String sessionId) {
         return sessions.findByTenantIdAndSessionId(
@@ -35,13 +37,19 @@ public class AuthorizationContextRepository
             AuthorizationContextFacade.ActiveMembership membership,
             String sessionId,
             Instant now,
-            Instant expiresAt) {
+            Instant expiresAt)
+            throws AuthorizationContextFacade.ConcurrentContextCreationException {
         SessionEntity entity = SessionEntity.authorizationContext(
                 entityId, Long.valueOf(membership.tenantId()),
                 Long.valueOf(membership.rbac3UserId()), Long.valueOf(sessionId),
                 membership.identitySub(), membership.authVersion(),
                 membership.policyVersion(), now, expiresAt, membership.identitySub());
-        return toContext(sessions.saveAndFlush(entity));
+        try {
+            return toContext(sessions.saveAndFlush(entity));
+        } catch (DataIntegrityViolationException exception) {
+            throw new AuthorizationContextFacade.ConcurrentContextCreationException(
+                    exception);
+        }
     }
 
     private static AuthorizationContextFacade.AuthorizationContext toContext(

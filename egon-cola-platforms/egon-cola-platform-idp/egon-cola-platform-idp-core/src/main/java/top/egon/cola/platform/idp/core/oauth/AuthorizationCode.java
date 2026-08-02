@@ -7,6 +7,7 @@ public record AuthorizationCode(
         String identitySub,
         String tenantId,
         String rbac3UserId,
+        String sessionId,
         String clientId,
         String audience,
         String redirectUri,
@@ -20,6 +21,7 @@ public record AuthorizationCode(
         identitySub = required(identitySub, "identitySub");
         tenantId = required(tenantId, "tenantId");
         rbac3UserId = required(rbac3UserId, "rbac3UserId");
+        sessionId = required(sessionId, "sessionId");
         clientId = required(clientId, "clientId");
         audience = required(audience, "audience");
         redirectUri = required(redirectUri, "redirectUri");

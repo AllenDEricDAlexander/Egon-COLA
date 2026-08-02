@@ -51,10 +51,13 @@ public class InternalIdentityController {
             summary = "查询全局身份可访问的租户",
             externalAccessible = false,
             tags = {"rbac3", "identity", "internal"})
-    public ApiEnvelope<List<IdentityMappingFacade.TenantMembership>> tenants(
-            @PathVariable String identitySub,
-            @RequestParam String clientId) {
-        return ApiEnvelope.success(facade.tenants(identitySub, clientId));
+    public ApiEnvelope<List<TenantMembershipResponse>> tenants(
+            @PathVariable("identitySub") String identitySub,
+            @RequestParam("clientId") String clientId) {
+        return ApiEnvelope.success(facade.tenants(identitySub, clientId).stream()
+                .map(membership -> TenantMembershipResponse.from(
+                        identitySub, membership))
+                .toList());
     }
 
     @PostMapping("/resolve")
@@ -64,10 +67,11 @@ public class InternalIdentityController {
             summary = "解析全局身份的租户成员关系",
             externalAccessible = false,
             tags = {"rbac3", "identity", "internal"})
-    public ApiEnvelope<IdentityMappingFacade.ResolvedMembership> resolve(
+    public ApiEnvelope<ResolvedMembershipResponse> resolve(
             @Valid @RequestBody ResolveRequest request) {
         return facade.resolve(
                         request.identitySub(), request.tenantId(), request.clientId())
+                .map(ResolvedMembershipResponse::from)
                 .map(ApiEnvelope::success)
                 .orElseThrow(() -> new IdentityMembershipNotFoundException(
                         request.identitySub(), request.tenantId()));
@@ -100,6 +104,49 @@ public class InternalIdentityController {
             @NotBlank String rbac3UserId,
             @NotBlank String actorId
     ) {
+    }
+
+    public record ResolvedMembershipResponse(
+            String identitySub,
+            String tenantId,
+            String rbac3UserId,
+            String tenantDisplayName,
+            String status,
+            boolean authorizationContextRequired,
+            long authVersion,
+            long policyVersion
+    ) {
+        private static ResolvedMembershipResponse from(
+                IdentityMappingFacade.ResolvedMembership membership) {
+            return new ResolvedMembershipResponse(
+                    membership.identitySub(),
+                    membership.tenantId(),
+                    membership.rbac3UserId(),
+                    membership.tenantName(),
+                    "ACTIVE",
+                    membership.authorizationContextRequired(),
+                    membership.authVersion(),
+                    membership.policyVersion());
+        }
+    }
+
+    public record TenantMembershipResponse(
+            String identitySub,
+            String tenantId,
+            String rbac3UserId,
+            String tenantDisplayName,
+            String status
+    ) {
+        private static TenantMembershipResponse from(
+                String identitySub,
+                IdentityMappingFacade.TenantMembership membership) {
+            return new TenantMembershipResponse(
+                    identitySub,
+                    membership.tenantId(),
+                    membership.rbac3UserId(),
+                    membership.tenantName(),
+                    "ACTIVE");
+        }
     }
 
     public static final class IdentityMembershipNotFoundException

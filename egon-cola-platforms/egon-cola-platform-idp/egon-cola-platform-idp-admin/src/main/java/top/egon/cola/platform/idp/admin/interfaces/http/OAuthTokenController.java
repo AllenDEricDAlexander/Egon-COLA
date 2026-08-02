@@ -1,11 +1,12 @@
 package top.egon.cola.platform.idp.admin.interfaces.http;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +20,8 @@ import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.token.TokenException;
 import top.egon.cola.platform.idp.core.token.TokenFacade;
 import top.egon.cola.platform.idp.admin.integration.ddc.IdpRuntimePolicy;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdpSsoSessionStore;
+import top.egon.cola.platform.idp.admin.security.IdpSsoAuthenticationFilter;
 
 import java.security.Principal;
 import java.time.Clock;
@@ -36,6 +39,7 @@ public class OAuthTokenController {
     private final AuthorizationFacade authorizations;
     private final TokenFacade tokens;
     private final OAuthClientStore clients;
+    private final IdpSsoSessionStore ssoSessions;
     private final IdpRuntimePolicy runtimePolicy;
     private final Clock clock;
     private final boolean secureCookie;
@@ -44,8 +48,9 @@ public class OAuthTokenController {
             AuthorizationFacade authorizations,
             TokenFacade tokens,
             OAuthClientStore clients,
+            IdpSsoSessionStore ssoSessions,
             IdpRuntimePolicy runtimePolicy,
-            Clock clock,
+            @Qualifier("idpClock") Clock clock,
             @Value("${egon.idp.oauth.refresh-cookie-secure:true}")
             boolean secureCookie
     ) {
@@ -55,6 +60,7 @@ public class OAuthTokenController {
         );
         this.tokens = Objects.requireNonNull(tokens, "tokens");
         this.clients = Objects.requireNonNull(clients, "clients");
+        this.ssoSessions = Objects.requireNonNull(ssoSessions, "ssoSessions");
         this.runtimePolicy = Objects.requireNonNull(
                 runtimePolicy,
                 "runtimePolicy"
@@ -167,6 +173,10 @@ public class OAuthTokenController {
                 request,
                 refreshCookieName(client.clientId())
         );
+        String ssoCookie = cookieValue(
+                request,
+                IdpSsoAuthenticationFilter.COOKIE_NAME
+        );
         if (allSessions) {
             if (principal == null || principal.getName() == null) {
                 throw oauth("invalid_request");
@@ -175,10 +185,17 @@ public class OAuthTokenController {
         } else if (refreshCookie != null && !refreshCookie.isBlank()) {
             tokens.revoke(refreshCookie, client.clientId());
         }
+        if (ssoCookie != null && !ssoCookie.isBlank()) {
+            ssoSessions.revoke(ssoCookie);
+        }
         return ResponseEntity.noContent()
                 .header(
                         HttpHeaders.SET_COOKIE,
                         expiredRefreshCookie(client.clientId()).toString()
+                )
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        expiredSsoCookie().toString()
                 )
                 .build();
     }
@@ -219,6 +236,16 @@ public class OAuthTokenController {
 
     private ResponseCookie expiredRefreshCookie(String clientId) {
         return cookie(clientId, "", Duration.ZERO);
+    }
+
+    private ResponseCookie expiredSsoCookie() {
+        return ResponseCookie.from(IdpSsoAuthenticationFilter.COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite("Lax")
+                .path(REFRESH_COOKIE_PATH)
+                .maxAge(Duration.ZERO)
+                .build();
     }
 
     private ResponseCookie cookie(
