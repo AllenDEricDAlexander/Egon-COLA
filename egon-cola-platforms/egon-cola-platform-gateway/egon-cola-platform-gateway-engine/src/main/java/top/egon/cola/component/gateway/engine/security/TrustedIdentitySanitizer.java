@@ -29,6 +29,14 @@ public final class TrustedIdentitySanitizer {
             "gateway-tenant-id"
     );
 
+    private static final Set<String> IDP_TRUSTED_HTTP = Set.of(
+            "x-egon-identity-sub",
+            "x-egon-tenant-id",
+            "x-egon-session-id",
+            "x-egon-client-id",
+            "x-egon-token-id"
+    );
+
     private static final Set<String> HOP_BY_HOP = Set.of(
             "connection",
             "keep-alive",
@@ -72,7 +80,8 @@ public final class TrustedIdentitySanitizer {
         }
         identity.httpHeaders().forEach((name, value) -> {
             String lower = normalizedName(name);
-            if (!lower.startsWith("x-egon-gateway-")) {
+            if (!lower.startsWith("x-egon-gateway-")
+                    && !IDP_TRUSTED_HTTP.contains(lower)) {
                 throw new IllegalArgumentException(
                         "untrusted HTTP identity field " + name
                 );
@@ -119,6 +128,8 @@ public final class TrustedIdentitySanitizer {
             Set<String> removals,
             boolean authorizationForwardingAllowed) {
         boolean fixedSensitive = FIXED_SENSITIVE.contains(name)
+                || IDP_TRUSTED_HTTP.contains(name);
+        fixedSensitive = fixedSensitive
                 && !(authorizationForwardingAllowed
                 && "authorization".equals(name));
         return !fixedSensitive

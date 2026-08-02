@@ -29,6 +29,23 @@ management:
 
 egon:
   cola:
+    platform:
+      idp:
+        gateway:
+          enabled: ${IDP_GATEWAY_ENABLED:true}
+          issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
+          jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          audiences:
+            - ${IDP_GATEWAY_AUDIENCE:egon-api}
+          client-ids:
+            - ${IDP_GATEWAY_CLIENT_ID:gateway-client}
+          user-state-key-prefix: "identity:v1:user:"
+          runtime:
+            redis-enabled: true
+            redis-address: ${IDP_REDIS_ADDRESS:redis://127.0.0.1:6379}
+            database: ${IDP_REDIS_DATABASE:0}
+            password-file: ${IDP_REDIS_PASSWORD_FILE:}
+            timeout: ${IDP_REDIS_TIMEOUT:2s}
     component:
       ddc:
         enabled: ${DDC_ENABLED:true}
