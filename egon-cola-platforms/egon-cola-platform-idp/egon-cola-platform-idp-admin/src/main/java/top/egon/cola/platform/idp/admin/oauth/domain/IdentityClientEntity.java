@@ -86,6 +86,10 @@ public class IdentityClientEntity {
         return status;
     }
 
+    public ClientType getClientType() {
+        return clientType;
+    }
+
     public boolean isPkceRequired() {
         return pkceRequired;
     }

@@ -1,0 +1,87 @@
+package top.egon.cola.platform.idp.admin.oauth.configuration;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
+import top.egon.cola.platform.idp.admin.integration.rbac3.FileServiceAuthorizationSupplier;
+import top.egon.cola.platform.idp.admin.integration.rbac3.HttpTenantMembershipAdapter;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientAudienceRepository;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRedirectUriRepository;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRepository;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.JpaOAuthClientStore;
+import top.egon.cola.platform.idp.admin.oauth.infrastructure.RedisAuthorizationCodeStore;
+import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
+import top.egon.cola.platform.idp.core.port.AuthorizationCodeStore;
+import top.egon.cola.platform.idp.core.port.OAuthClientStore;
+import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
+
+import java.nio.file.Path;
+import java.time.Clock;
+
+@Configuration(proxyBeanMethods = false)
+public class IdpOAuthConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    Clock idpClock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    OAuthClientStore oauthClientStore(
+            IdentityClientRepository clients,
+            IdentityClientRedirectUriRepository redirects,
+            IdentityClientAudienceRepository audiences
+    ) {
+        return new JpaOAuthClientStore(clients, redirects, audiences);
+    }
+
+    @Bean
+    AuthorizationCodeStore authorizationCodeStore(
+            RedissonClient redisson,
+            ObjectMapper objectMapper,
+            @Value("${egon.idp.oauth.authorization-code-key-prefix:"
+                    + "identity:v1:auth-code:}") String keyPrefix
+    ) {
+        return new RedisAuthorizationCodeStore(
+                redisson,
+                objectMapper,
+                keyPrefix
+        );
+    }
+
+    @Bean
+    TenantMembershipPort tenantMembershipPort(
+            RestClient.Builder restClientBuilder,
+            @Value("${egon.idp.rbac3.base-url}") String baseUrl,
+            @Value("${egon.idp.rbac3.authorization-header-file}")
+            String authorizationHeaderFile
+    ) {
+        return new HttpTenantMembershipAdapter(
+                restClientBuilder.build(),
+                baseUrl,
+                new FileServiceAuthorizationSupplier(
+                        Path.of(authorizationHeaderFile)
+                )
+        );
+    }
+
+    @Bean
+    AuthorizationFacade authorizationFacade(
+            OAuthClientStore clients,
+            AuthorizationCodeStore codes,
+            TenantMembershipPort memberships,
+            Clock idpClock
+    ) {
+        return new AuthorizationFacade(
+                clients,
+                codes,
+                memberships,
+                idpClock
+        );
+    }
+}

@@ -1,0 +1,34 @@
+package top.egon.cola.platform.idp.core.port;
+
+import java.util.List;
+
+public interface TenantMembershipPort {
+
+    TenantMembership resolve(
+            String identitySub,
+            String tenantId,
+            String clientId
+    );
+
+    List<TenantMembership> list(String identitySub, String clientId);
+
+    record TenantMembership(
+            String identitySub,
+            String tenantId,
+            String rbac3UserId,
+            String tenantDisplayName,
+            MembershipStatus status
+    ) {
+    }
+
+    enum MembershipStatus {
+        ACTIVE,
+        DISABLED
+    }
+
+    final class TenantMembershipException extends RuntimeException {
+        public TenantMembershipException(String message) {
+            super(message);
+        }
+    }
+}
