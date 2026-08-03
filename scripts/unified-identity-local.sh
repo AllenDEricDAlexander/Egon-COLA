@@ -507,28 +507,81 @@ rbac3_tenant_id() {
 }
 
 oauth_login() {
-  local cookie_jar="${runtime_dir}/browser.cookies" csrf status
-  csrf="$(curl -fsS -c "${cookie_jar}" -b "${cookie_jar}" \
+  local cookie_jar="${runtime_dir}/browser.cookies" origin csrf status
+  local csrf_headers login_headers
+  origin=http://127.0.0.1:18121
+  csrf_headers="$(mktemp "${runtime_dir}/login-csrf.XXXXXX")"
+  login_headers="$(mktemp "${runtime_dir}/login.XXXXXX")"
+  csrf="$(curl -fsS -D "${csrf_headers}" \
+    -c "${cookie_jar}" -b "${cookie_jar}" -H "Origin: ${origin}" \
     "${idp_url}/oauth2/login/csrf" | jq -er '.token')"
-  status="$(curl -sS -o "${runtime_dir}/login.response" -w '%{http_code}' \
+  require_browser_cors "${csrf_headers}" "${origin}" "IdP login CSRF"
+  status="$(curl -sS -D "${login_headers}" \
+    -o "${runtime_dir}/login.response" -w '%{http_code}' \
     -c "${cookie_jar}" -b "${cookie_jar}" \
+    -H "Origin: ${origin}" \
     -H 'Content-Type: application/json' -H "X-IDP-CSRF: ${csrf}" \
     -d "$(jq -cn --arg password "$(<"${secret_dir}/idp-admin.password")" \
       '{username:"alice",password:$password}')" \
     "${idp_url}/oauth2/login")"
   [[ "${status}" == "200" ]] || fail \
     "IdP login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
+  require_browser_cors "${login_headers}" "${origin}" "IdP password login"
+  rm -f "${csrf_headers}" "${login_headers}"
+}
+
+response_header() {
+  local headers="$1" name="$2"
+  awk -v name="${name}" '
+    {
+      line=$0
+      sub(/\r$/, "", line)
+      prefix=name ":"
+      if (tolower(substr(line, 1, length(prefix))) == tolower(prefix)) {
+        value=substr(line, length(prefix) + 1)
+        sub(/^[[:space:]]+/, "", value)
+      }
+    }
+    END {print value}
+  ' "${headers}"
+}
+
+require_browser_cors() {
+  local headers="$1" origin="$2" context="$3"
+  local allowed_origin allow_credentials
+  allowed_origin="$(response_header "${headers}" Access-Control-Allow-Origin)"
+  allow_credentials="$(response_header \
+    "${headers}" Access-Control-Allow-Credentials)"
+  [[ "${allowed_origin}" == "${origin}" ]] || fail \
+    "${context} did not allow browser origin ${origin}"
+  [[ "${allow_credentials}" == "true" ]] || fail \
+    "${context} did not allow browser credentials for ${origin}"
 }
 
 oauth_token() {
   local client_id="$1" tenant="$2" output="$3"
-  local redirect_uri verifier challenge state headers code response status tenant_id
+  local redirect_uri origin verifier challenge state headers code response status tenant_id
   case "${client_id}" in
-    idp-admin-web) redirect_uri=http://127.0.0.1:18121/oauth/callback ;;
-    rbac3-admin-web) redirect_uri=http://127.0.0.1:18131/oauth/callback ;;
-    gateway-admin-web) redirect_uri=http://127.0.0.1:18141/oauth/callback ;;
-    ddc-admin-web) redirect_uri=http://127.0.0.1:18152/oauth/callback ;;
-    mock-backend) redirect_uri=http://127.0.0.1:18161/oauth/callback ;;
+    idp-admin-web)
+      origin=http://127.0.0.1:18121
+      redirect_uri=${origin}/oauth/callback
+      ;;
+    rbac3-admin-web)
+      origin=http://127.0.0.1:18131
+      redirect_uri=${origin}/oauth/callback
+      ;;
+    gateway-admin-web)
+      origin=http://127.0.0.1:18141
+      redirect_uri=${origin}/oauth/callback
+      ;;
+    ddc-admin-web)
+      origin=http://127.0.0.1:18152
+      redirect_uri=${origin}/oauth/callback
+      ;;
+    mock-backend)
+      origin=
+      redirect_uri=http://127.0.0.1:18161/oauth/callback
+      ;;
     *) fail "unknown local OAuth client: ${client_id}" ;;
   esac
   verifier="$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n')"
@@ -550,7 +603,13 @@ oauth_token() {
   code="$(sed -n 's/^[Ll]ocation:.*[?&]code=\([^&[:space:]]*\).*/\1/p' "${headers}" | tail -1)"
   rm -f "${headers}"
   [[ -n "${code}" ]] || fail "IdP did not return an authorization code for ${client_id}/${tenant}"
-  status="$(curl -sS -o "${runtime_dir}/token.response" -w '%{http_code}' \
+  headers="$(mktemp "${runtime_dir}/token.XXXXXX")"
+  local -a token_arguments=(-D "${headers}")
+  if [[ -n "${origin}" ]]; then
+    token_arguments+=(-H "Origin: ${origin}")
+  fi
+  status="$(curl "${token_arguments[@]}" \
+    -sS -o "${runtime_dir}/token.response" -w '%{http_code}' \
     -c "${runtime_dir}/browser.cookies" -b "${runtime_dir}/browser.cookies" -X POST \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     --data-urlencode grant_type=authorization_code \
@@ -559,6 +618,11 @@ oauth_token() {
     --data-urlencode "redirect_uri=${redirect_uri}" "${idp_url}/oauth2/token")"
   [[ "${status}" == "200" ]] || fail \
     "IdP token exchange failed with HTTP ${status}: $(<"${runtime_dir}/token.response")"
+  if [[ -n "${origin}" ]]; then
+    require_browser_cors \
+      "${headers}" "${origin}" "IdP token exchange for ${client_id}"
+  fi
+  rm -f "${headers}"
   response="$(<"${runtime_dir}/token.response")"
   jq -er '.access_token' <<<"${response}" >"${output}"
   chmod 600 "${output}"

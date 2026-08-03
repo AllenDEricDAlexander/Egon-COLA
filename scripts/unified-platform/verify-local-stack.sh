@@ -9,6 +9,9 @@ legacy_script="${unified_platform_repo_root}/scripts/unified-identity-local.sh"
 ddc_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar"
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
 gateway_admin_token_file="${unified_platform_secret_dir}/gateway-admin.access.jwt"
+idp_admin_token_file="${unified_platform_secret_dir}/idp-admin.access.jwt"
+rbac3_admin_token_file="${unified_platform_secret_dir}/rbac3-default.access.jwt"
+ddc_admin_token_file="${unified_platform_secret_dir}/ddc-admin.access.jwt"
 tenant_token_file="${unified_platform_secret_dir}/tenant-b.access.jwt"
 rbac3_token_file="${unified_platform_secret_dir}/rbac3-tenant-b.access.jwt"
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
@@ -177,6 +180,85 @@ assert_json() {
     || unified_platform_fail "${message}: $(jq -c '.error // .' "${file}")"
 }
 
+response_header() {
+  local headers="$1" name="$2"
+  awk -v name="${name}" '
+    {
+      line=$0
+      sub(/\r$/, "", line)
+      prefix=name ":"
+      if (tolower(substr(line, 1, length(prefix))) == tolower(prefix)) {
+        value=substr(line, length(prefix) + 1)
+        sub(/^[[:space:]]+/, "", value)
+      }
+    }
+    END {print value}
+  ' "${headers}"
+}
+
+verify_browser_preflight() {
+  local label="$1" origin="$2" endpoint="$3" request_headers="$4"
+  local headers="${tmp_dir}/cors-${label}.headers" http_code
+  local allowed_origin allow_credentials allow_methods
+  http_code="$(curl --max-time 10 -sS -D "${headers}" -o /dev/null \
+    -w '%{http_code}' -X OPTIONS \
+    -H "Origin: ${origin}" \
+    -H 'Access-Control-Request-Method: POST' \
+    -H "Access-Control-Request-Headers: ${request_headers}" \
+    "${IDP_BASE_URL}${endpoint}")"
+  [[ "${http_code}" == "200" ]] || unified_platform_fail \
+    "${label} browser preflight failed with HTTP ${http_code}"
+  allowed_origin="$(response_header \
+    "${headers}" Access-Control-Allow-Origin)"
+  allow_credentials="$(response_header \
+    "${headers}" Access-Control-Allow-Credentials)"
+  allow_methods="$(response_header \
+    "${headers}" Access-Control-Allow-Methods)"
+  [[ "${allowed_origin}" == "${origin}" ]] || unified_platform_fail \
+    "${label} browser preflight did not allow ${origin}"
+  [[ "${allow_credentials}" == "true" ]] || unified_platform_fail \
+    "${label} browser preflight did not allow credentials"
+  [[ ",${allow_methods}," == *",POST,"* ]] || unified_platform_fail \
+    "${label} browser preflight did not allow POST"
+}
+
+verify_unknown_origin_rejected() {
+  local headers="${tmp_dir}/cors-unknown.headers" http_code
+  http_code="$(curl --max-time 10 -sS -D "${headers}" -o /dev/null \
+    -w '%{http_code}' -X OPTIONS \
+    -H 'Origin: http://localhost:18152' \
+    -H 'Access-Control-Request-Method: POST' \
+    -H 'Access-Control-Request-Headers: content-type' \
+    "${IDP_BASE_URL}/oauth2/token")"
+  [[ "${http_code}" == "403" ]] || unified_platform_fail \
+    "unconfigured browser origin was not rejected: HTTP ${http_code}"
+  [[ -z "$(response_header "${headers}" Access-Control-Allow-Origin)" ]] \
+    || unified_platform_fail \
+      "unconfigured browser origin received an allow-origin header"
+}
+
+verify_authenticated_proxy() {
+  local label="$1" url="$2" token_file="$3"
+  local response="${tmp_dir}/proxy-${label}.json" http_code attempt
+  [[ -s "${token_file}" ]] || unified_platform_fail \
+    "missing ${label} browser token: ${token_file}"
+
+  for ((attempt = 1; attempt <= 20; attempt++)); do
+    http_code="$(curl --max-time 15 -sS -o "${response}" -w '%{http_code}' \
+      -H "Authorization: Bearer $(<"${token_file}")" "${url}")"
+    if [[ "${http_code}" == "200" ]]; then
+      jq -e . "${response}" >/dev/null || unified_platform_fail \
+        "${label} authenticated browser proxy returned invalid JSON"
+      return
+    fi
+    [[ "${http_code}" == "401" || "${http_code}" == "403" ]] || break
+    sleep 1
+  done
+
+  [[ "${http_code}" == "200" ]] || unified_platform_fail \
+    "${label} authenticated browser proxy failed with HTTP ${http_code} after ${attempt} attempts"
+}
+
 mcp_initialize() {
   local endpoint="$1" label="$2" headers response http_code session_id
   headers="${tmp_dir}/${label}.headers"
@@ -219,6 +301,19 @@ mcp_call() {
   printf '%s' "${response}"
 }
 
+unified_platform_stage "verifying Admin Web browser CORS boundaries"
+verify_browser_preflight idp-login "${IDP_ADMIN_WEB_URL}" \
+  /oauth2/login 'content-type,x-idp-csrf'
+verify_browser_preflight idp-token "${IDP_ADMIN_WEB_URL}" \
+  /oauth2/token content-type
+verify_browser_preflight rbac3-token "${RBAC3_ADMIN_WEB_URL}" \
+  /oauth2/token content-type
+verify_browser_preflight gateway-token "${GATEWAY_ADMIN_WEB_URL}" \
+  /oauth2/token content-type
+verify_browser_preflight ddc-token "${DDC_ADMIN_WEB_URL}" \
+  /oauth2/token content-type
+verify_unknown_origin_rejected
+
 unified_platform_stage "verifying unified identity SSO and revocation semantics"
 if [[ "${UNIFIED_PLATFORM_SKIP_IDENTITY_VERIFY:-false}" != "true" ]]; then
   UNIFIED_IDENTITY_RUNTIME_DIR="${unified_platform_runtime_dir}" \
@@ -234,6 +329,20 @@ UNIFIED_IDENTITY_RUNTIME_DIR="${unified_platform_runtime_dir}" \
 UNIFIED_IDENTITY_IDP_URL="${IDP_BASE_URL}" \
 UNIFIED_IDENTITY_RBAC3_URL="${RBAC3_BASE_URL}" \
   "${legacy_script}" refresh-tokens >"${tmp_dir}/token-refresh.log"
+
+unified_platform_stage "verifying authenticated Admin Web API proxies"
+verify_authenticated_proxy idp \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/clients" \
+  "${idp_admin_token_file}"
+verify_authenticated_proxy rbac3 \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/runtime/status" \
+  "${rbac3_admin_token_file}"
+verify_authenticated_proxy gateway \
+  "${GATEWAY_ADMIN_WEB_URL}/api/v1/gateway/admin/scopes" \
+  "${gateway_admin_token_file}"
+verify_authenticated_proxy ddc \
+  "${DDC_ADMIN_WEB_URL}/api/v1/ddc/bizs" \
+  "${ddc_admin_token_file}"
 
 unified_platform_stage "verifying Stable primitives and cross-engine Redis session"
 mcp_initialize "${GATEWAY_BASE_URL}" stable-a >/dev/null
@@ -491,7 +600,7 @@ assert_json "${response}" '.result.isError == false' \
 
 unified_platform_stage "recording sanitized verification evidence"
 jq -n --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery","admin-webs"]}' \
+  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-browser-sso","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
   >"${unified_platform_evidence_dir}/verification-summary.json"
 chmod 600 "${unified_platform_evidence_dir}/verification-summary.json"
 

@@ -27,14 +27,22 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(IdpSsoLoginController.class)
+@WebMvcTest(
+        controllers = IdpSsoLoginController.class,
+        properties = "egon.idp.oauth.allowed-origins="
+                + "http://127.0.0.1:18121,http://127.0.0.1:18152"
+)
 @Import({IdpAdminSecurityConfiguration.class, IdpHttpExceptionHandler.class})
 class IdpSsoLoginControllerIT {
+
+    private static final String DDC_ADMIN_ORIGIN =
+            "http://127.0.0.1:18152";
 
     @Autowired
     private MockMvc mockMvc;
@@ -77,6 +85,64 @@ class IdpSsoLoginControllerIT {
                         org.hamcrest.Matchers.not(containsString("HttpOnly"))
                 ))
                 .andExpect(jsonPath("$.token").isNotEmpty());
+    }
+
+    @Test
+    void configuredOriginCanReadCsrfResponseWithCredentials()
+            throws Exception {
+        mockMvc.perform(get("/oauth2/login/csrf")
+                        .header("Origin", DDC_ADMIN_ORIGIN))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Access-Control-Allow-Origin",
+                        DDC_ADMIN_ORIGIN
+                ))
+                .andExpect(header().string(
+                        "Access-Control-Allow-Credentials",
+                        "true"
+                ));
+    }
+
+    @Test
+    void configuredOriginCanPreflightPasswordLogin() throws Exception {
+        mockMvc.perform(options("/oauth2/login")
+                        .header("Origin", DDC_ADMIN_ORIGIN)
+                        .header("Access-Control-Request-Method", "POST")
+                        .header(
+                                "Access-Control-Request-Headers",
+                                "content-type,x-idp-csrf"
+                        ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Access-Control-Allow-Origin",
+                        DDC_ADMIN_ORIGIN
+                ))
+                .andExpect(header().string(
+                        "Access-Control-Allow-Credentials",
+                        "true"
+                ))
+                .andExpect(header().string(
+                        "Access-Control-Allow-Methods",
+                        containsString("POST")
+                ))
+                .andExpect(header().string(
+                        "Access-Control-Allow-Headers",
+                        containsString("content-type")
+                ))
+                .andExpect(header().string(
+                        "Access-Control-Allow-Headers",
+                        containsString("x-idp-csrf")
+                ));
+    }
+
+    @Test
+    void unconfiguredOriginCannotReadOAuthResponses() throws Exception {
+        mockMvc.perform(get("/oauth2/login/csrf")
+                        .header("Origin", "http://localhost:18152"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist(
+                        "Access-Control-Allow-Origin"
+                ));
     }
 
     @Test

@@ -1,5 +1,5 @@
 import { Button, Card, Descriptions, Form, Input, Layout, Menu, Modal, Space, Table, Tag, Typography, message } from 'antd'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { idpApi } from '../api/idpApi'
 import type { AuditPage, IdentityUser, OAuthClientView, SigningKeyView } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
@@ -22,7 +22,6 @@ export const AdminConsole = () => {
 
   const load = useCallback(async (target: Section) => {
     if (target === 'overview') return
-    setLoading(true)
     try {
       if (target === 'users') {
         setUsers(await idpApi<IdentityUser[]>('/api/v1/identity/users'))
@@ -35,12 +34,14 @@ export const AdminConsole = () => {
       }
     } catch (failure) {
       void messageApi.error(failure instanceof Error ? failure.message : '加载失败')
-    } finally {
-      setLoading(false)
     }
   }, [messageApi])
 
-  useEffect(() => { void load(section) }, [load, section])
+  const reload = useCallback(async (target: Section) => {
+    setLoading(true)
+    await load(target)
+    setLoading(false)
+  }, [load])
 
   const permissions = useMemo(
     () => new Set(auth.bootstrap?.permissions ?? []),
@@ -66,7 +67,7 @@ export const AdminConsole = () => {
       title: '用户已创建',
       content: `一次性密码：${created.oneTimePassword}（关闭后不再显示）`,
     })
-    await load('users')
+    await reload('users')
   }
 
   const createClient = async () => {
@@ -89,7 +90,7 @@ export const AdminConsole = () => {
     })
     setClientModal(false)
     clientForm.resetFields()
-    await load('clients')
+    await reload('clients')
   }
 
   const resetPassword = async (subject: string) => {
@@ -105,7 +106,7 @@ export const AdminConsole = () => {
       method: 'POST',
     })
     void messageApi.success('该用户的全部刷新会话已撤销')
-    await load('users')
+    await reload('users')
   }
 
   return (
@@ -117,7 +118,11 @@ export const AdminConsole = () => {
           mode="inline"
           selectedKeys={[section]}
           items={items}
-          onClick={({ key }) => setSection(key as Section)}
+          onClick={({ key }) => {
+            const target = key as Section
+            setSection(target)
+            void reload(target)
+          }}
         />
       </Layout.Sider>
       <Layout>

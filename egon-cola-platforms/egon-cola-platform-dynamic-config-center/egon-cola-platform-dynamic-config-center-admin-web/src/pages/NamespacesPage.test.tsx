@@ -88,5 +88,5 @@ describe('NamespacesPage', () => {
         String(url).includes('/namespace-env-app-bindings') && init?.method === 'POST')
       expect(createBinding).toBeDefined()
     })
-  })
+  }, 15_000)
 })

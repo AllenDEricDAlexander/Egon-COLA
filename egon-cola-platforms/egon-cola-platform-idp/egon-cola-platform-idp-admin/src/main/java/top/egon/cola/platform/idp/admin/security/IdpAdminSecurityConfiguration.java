@@ -92,7 +92,7 @@ public class IdpAdminSecurityConfiguration {
         return http.build();
     }
 
-    @Bean
+    @Bean(name = "corsConfigurationSource")
     CorsConfigurationSource idpCorsConfigurationSource(
             @org.springframework.beans.factory.annotation.Value(
                     "${egon.idp.oauth.allowed-origins:}")

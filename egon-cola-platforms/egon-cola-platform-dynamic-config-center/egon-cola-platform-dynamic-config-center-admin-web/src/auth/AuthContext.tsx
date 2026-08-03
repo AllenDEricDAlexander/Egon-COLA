@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
 import { ddcOAuth } from './oauthClient'
-import { clearToken, getStoredToken, saveToken, subscribeToken } from './tokenStore'
+import { clearToken, getStoredToken, subscribeToken } from './tokenStore'
 
 type AuthContextValue = {
   token: string

@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react'
 import { RoleActivationPage } from '../role-activation/RoleActivationPage'
 import { LoginPage } from './LoginPage'
 
-export interface AuthenticationShellProps extends PropsWithChildren {}
+export type AuthenticationShellProps = PropsWithChildren
 
 export const AuthenticationShell = ({ children }: AuthenticationShellProps) => {
   const session = useRbac3Session()
