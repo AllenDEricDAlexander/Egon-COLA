@@ -74,7 +74,8 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
                     context.rbac3UserId(), context.sessionId(), roleIds,
                     context.contextVersion(), DEVELOPMENT_ACTOR,
                     "development-bootstrap:auto-activate-local-admin:"
-                            + context.sessionId() + ':' + context.contextVersion()));
+                            + context.tenantId() + ':' + context.sessionId()
+                            + ':' + context.contextVersion()));
         } catch (Rbac3RuleViolation violation) {
             if (!"ROLE_ACTIVATION_VERSION_CONFLICT".equals(
                     violation.reasonCode())) {

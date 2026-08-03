@@ -9,6 +9,7 @@ import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateV
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -90,6 +91,24 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
     }
 
     @Test
+    void scopesActivationCommandIdByTenantWhenTheIdpSessionIsShared() {
+        List<String> commandIds = new ArrayList<>();
+        var initializer = new Rbac3DevelopmentAuthorizationContextInitializer(
+                true,
+                (tenantId, userId, now) -> candidates(application(
+                        "idp-admin",
+                        candidate("201", "IDP_LOCAL_ADMIN", "PASSWORD"))),
+                command -> commandIds.add(command.commandId()));
+
+        initializer.initialize(context("1"), NOW);
+        initializer.initialize(context("2"), NOW);
+
+        assertThat(commandIds).containsExactly(
+                "development-bootstrap:auto-activate-local-admin:1:5001:0",
+                "development-bootstrap:auto-activate-local-admin:2:5001:0");
+    }
+
+    @Test
     void disabledInitializerLeavesTheAuthorizationContextUntouched() {
         AtomicBoolean queried = new AtomicBoolean();
         var initializer = new Rbac3DevelopmentAuthorizationContextInitializer(
@@ -124,8 +143,12 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
     }
 
     private AuthorizationContextFacade.AuthorizationContext context() {
+        return context("1");
+    }
+
+    private AuthorizationContextFacade.AuthorizationContext context(String tenantId) {
         return new AuthorizationContextFacade.AuthorizationContext(
-                "9001", "1", "5001", "alice-sub", "101",
+                "9001", tenantId, "5001", "alice-sub", "101",
                 7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
                 NOW.plusSeconds(3600));
     }
