@@ -211,15 +211,28 @@ write_runtime_secrets() {
   chmod 600 "${secret_dir}/idp-rbac3.authorization"
 }
 
+properties_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//$'\t'/\\t}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\n'/\\n}"
+  printf '%s' "${value}"
+}
+
 write_env() {
-  local file="$1" key="$2" value="$3"
+  local file="$1" key="$2" value="$3" properties_file
+  properties_file="${file%.env}.properties"
   printf '%s=%q\n' "${key}" "${value}" >>"${file}"
+  printf '%s=%s\n' "${key}" "$(properties_escape "${value}")" >>"${properties_file}"
 }
 
 new_env_file() {
-  local file="${env_dir}/$1.env"
+  local file="${env_dir}/$1.env" properties_file
+  properties_file="${file%.env}.properties"
   : >"${file}"
-  chmod 600 "${file}"
+  : >"${properties_file}"
+  chmod 600 "${file}" "${properties_file}"
   printf '%s' "${file}"
 }
 
