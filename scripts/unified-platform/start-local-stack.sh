@@ -596,9 +596,6 @@ start_admin_web ddc-admin-web "${ddc_web_dir}" \
   "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
   ddc-admin-web DDC_ADMIN_PROXY "${DDC_BASE_URL}"
 
-"${script_dir}/test-live-frontend-login.sh" \
-  || unified_platform_fail "Admin Web login contract verification failed"
-
 printf 'Unified platform local stack is running in %s.\n' \
   "${unified_platform_runtime_dir}"
 "${script_dir}/status-local-stack.sh"

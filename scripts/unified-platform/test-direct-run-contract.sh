@@ -16,6 +16,13 @@ assert_contains() {
     || fail "${context}: missing ${expected}"
 }
 
+assert_not_contains() {
+  local file="$1" unexpected="$2" context="$3"
+  if grep -Fq -- "${unexpected}" "${file}"; then
+    fail "${context}: found ${unexpected}"
+  fi
+}
+
 extract_function() {
   local name="$1" output="$2"
   awk -v signature="${name}()" '
@@ -223,8 +230,8 @@ assert_contains "${prepare_script}" 'npm ci' \
   'preparation must install missing locked frontend dependencies'
 assert_contains "${prepare_script}" '.properties' \
   'preparation must verify generated Java runtime configuration'
-assert_contains "${start_script}" 'test-live-frontend-login.sh' \
-  'stack startup must fail closed when the running frontend login contract fails'
+assert_not_contains "${start_script}" 'test-live-frontend-login.sh' \
+  'stack startup must not execute frontend login regression tests'
 assert_contains "${live_login_test}" 'fresh Admin endpoint returned HTTP' \
   'frontend login contract must exercise fresh SSO Admin endpoints'
 for client_id in idp-admin-web rbac3-admin-web gateway-admin-web ddc-admin-web; do
@@ -243,13 +250,10 @@ for role_code in \
 done
 last_web_line="$(grep -nF 'start_admin_web ddc-admin-web' \
   "${start_script}" | tail -1 | cut -d: -f1)"
-live_contract_line="$(grep -nF '"${script_dir}/test-live-frontend-login.sh"' \
-  "${start_script}" | tail -1 | cut -d: -f1)"
 success_line="$(grep -nF "printf 'Unified platform local stack is running" \
   "${start_script}" | tail -1 | cut -d: -f1)"
-[[ "${last_web_line}" -lt "${live_contract_line}" \
-    && "${live_contract_line}" -lt "${success_line}" ]] \
-  || fail 'live frontend login contract must run after all Web apps and before startup success'
+[[ "${last_web_line}" -lt "${success_line}" ]] \
+  || fail 'startup success must be reported after all Web apps are running'
 
 identity_runbook="${repo_root}/docs/runbooks/unified-identity-local.md"
 operations_runbook="${repo_root}/docs/operations/unified-identity-mcp-local-runbook.md"
