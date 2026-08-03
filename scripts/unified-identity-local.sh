@@ -431,6 +431,7 @@ write_service_env_files() {
   write_env "${file}" RBAC3_AUDIT_CURSOR_SECRET_FILE "${secret_dir}/rbac3-audit.secret"
   write_env "${file}" RBAC3_SNOWFLAKE_MACHINE_ID 33
   write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true
   write_env "${file}" RBAC3_DEVELOPMENT_TENANT_CODES default,tenant-b
   write_env "${file}" RBAC3_DEVELOPMENT_USERNAME alice
   write_env "${file}" SPRING_FLYWAY_ENABLED true

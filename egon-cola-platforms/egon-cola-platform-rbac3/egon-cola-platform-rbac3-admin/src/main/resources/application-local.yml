@@ -34,6 +34,7 @@ egon:
   rbac3:
     development-bootstrap:
       enabled: ${RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED:false}
+      auto-activate-local-admin-roles: ${RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES:false}
       tenant-codes: ${RBAC3_DEVELOPMENT_TENANT_CODES:${RBAC3_DEVELOPMENT_TENANT_CODE:default}}
       username: ${RBAC3_DEVELOPMENT_USERNAME:alice}
       identity-sub: ${RBAC3_DEVELOPMENT_IDENTITY_SUB:}

@@ -2,6 +2,8 @@ package top.egon.cola.platform.rbac3.admin.integration.runtime;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,6 +25,7 @@ import top.egon.cola.platform.rbac3.admin.audit.infrastructure.PostgresqlAuditSt
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.authorization.infrastructure.AuthorizationRuleRepository;
 import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.bootstrap.application.Rbac3DevelopmentAuthorizationContextInitializer;
 import top.egon.cola.platform.rbac3.admin.bootstrap.cli.Rbac3PlatformAdminBootstrapCli;
 import top.egon.cola.platform.rbac3.admin.bootstrap.infrastructure.PostgresqlPlatformAdminBootstrapStore;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
@@ -225,8 +228,29 @@ public class Rbac3ApplicationConfiguration {
     SystemAuthorizationSnapshotService systemAuthorizationSnapshotService(
             AuthorizationContextFacade contexts,
             RedisAuthorizationRuntimeStore snapshots,
-            Clock clock) {
-        return new SystemAuthorizationSnapshotService(contexts::open, snapshots, clock);
+            RoleActivationCandidateService candidates,
+            RoleActivationFacade activator,
+            Clock clock,
+            Environment environment) {
+        boolean autoActivate = developmentRoleAutoActivationEnabled(environment);
+        return new SystemAuthorizationSnapshotService(
+                contexts::open,
+                snapshots,
+                clock,
+                new Rbac3DevelopmentAuthorizationContextInitializer(
+                        autoActivate, candidates, activator));
+    }
+
+    boolean developmentRoleAutoActivationEnabled(Environment environment) {
+        boolean developmentBootstrap = environment.getProperty(
+                "egon.rbac3.development-bootstrap.enabled",
+                Boolean.class,
+                false);
+        return environment.acceptsProfiles(Profiles.of("local"))
+                && developmentBootstrap && environment.getProperty(
+                "egon.rbac3.development-bootstrap.auto-activate-local-admin-roles",
+                Boolean.class,
+                false);
     }
 
     @Bean

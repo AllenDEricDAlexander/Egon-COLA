@@ -13,6 +13,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -84,9 +85,151 @@ class SystemAuthorizationSnapshotServiceTest {
                 .permissions()).isEmpty();
     }
 
+    @Test
+    void developmentInitializerReopensTheActivatedContextBeforeLoadingPermissions() {
+        AuthorizationContextFacade.AuthorizationContext unactivated =
+                new AuthorizationContextFacade.AuthorizationContext(
+                        "9001", "1", "5001", "alice-sub", "101",
+                        7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
+                        NOW.plusSeconds(3600));
+        AuthorizationContextFacade.AuthorizationContext activated =
+                new AuthorizationContextFacade.AuthorizationContext(
+                        "9001", "1", "5001", "alice-sub", "101",
+                        7, 1, 11, false, "ACTIVE", NOW.minusSeconds(10),
+                        NOW.plusSeconds(3600));
+        AtomicInteger openings = new AtomicInteger();
+        SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
+                (tenantId, sessionId, identitySub, now, expiresAt) ->
+                        openings.getAndIncrement() == 0 ? unactivated : activated,
+                (tenantId, sessionId) -> new AuthorizationDecisionService.SnapshotRecord(
+                        tenantId, "alice-sub", "101", sessionSnapshot(7, 1, 11)),
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                (context, now) ->
+                        SystemAuthorizationSnapshotService.ContextInitialization.COMPLETED);
+
+        var snapshot = service.snapshot("1", "5001", "gateway-admin", "alice-sub");
+
+        assertThat(openings).hasValue(2);
+        assertThat(snapshot.permissions()).containsExactly("gateway:release:read");
+    }
+
+    @Test
+    void concurrentDevelopmentInitializationWaitsForTheWinningSnapshotPublication() {
+        AuthorizationContextFacade.AuthorizationContext unactivated =
+                new AuthorizationContextFacade.AuthorizationContext(
+                        "9001", "1", "5001", "alice-sub", "101",
+                        7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
+                        NOW.plusSeconds(3600));
+        AuthorizationContextFacade.AuthorizationContext activated =
+                new AuthorizationContextFacade.AuthorizationContext(
+                        "9001", "1", "5001", "alice-sub", "101",
+                        7, 1, 11, false, "ACTIVE", NOW.minusSeconds(10),
+                        NOW.plusSeconds(3600));
+        AtomicInteger openings = new AtomicInteger();
+        AtomicInteger snapshotReads = new AtomicInteger();
+        AtomicInteger pauses = new AtomicInteger();
+        SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
+                (tenantId, sessionId, identitySub, now, expiresAt) ->
+                        openings.getAndIncrement() == 0 ? unactivated : activated,
+                (tenantId, sessionId) -> {
+                    if (snapshotReads.getAndIncrement() == 0) {
+                        return new AuthorizationDecisionService.SnapshotRecord(
+                                tenantId, "alice-sub", "101",
+                                sessionSnapshot(7, 0, 11));
+                    }
+                    return new AuthorizationDecisionService.SnapshotRecord(
+                            tenantId, "alice-sub", "101",
+                            sessionSnapshot(7, 1, 11));
+                },
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                (context, now) ->
+                        SystemAuthorizationSnapshotService.ContextInitialization.CONCURRENT,
+                duration -> pauses.incrementAndGet());
+
+        var snapshot = service.snapshot("1", "5001", "gateway-admin", "alice-sub");
+
+        assertThat(snapshotReads).hasValue(2);
+        assertThat(pauses).hasValue(1);
+        assertThat(snapshot.permissions()).containsExactly("gateway:release:read");
+    }
+
+    @Test
+    void concurrentDevelopmentInitializationFailsClosedWhenSnapshotStaysStale() {
+        AuthorizationContextFacade.AuthorizationContext unactivated =
+                context(0, true);
+        AuthorizationContextFacade.AuthorizationContext activated =
+                context(1, false);
+        AtomicInteger openings = new AtomicInteger();
+        AtomicInteger snapshotReads = new AtomicInteger();
+        AtomicInteger pauses = new AtomicInteger();
+        SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
+                (tenantId, sessionId, identitySub, now, expiresAt) ->
+                        openings.getAndIncrement() == 0 ? unactivated : activated,
+                (tenantId, sessionId) -> {
+                    snapshotReads.incrementAndGet();
+                    return new AuthorizationDecisionService.SnapshotRecord(
+                            tenantId, "alice-sub", "101",
+                            sessionSnapshot(7, 0, 11));
+                },
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                (authorizationContext, now) ->
+                        SystemAuthorizationSnapshotService.ContextInitialization.CONCURRENT,
+                duration -> pauses.incrementAndGet());
+
+        assertThatThrownBy(() -> service.snapshot(
+                "1", "5001", "gateway-admin", "alice-sub"))
+                .isInstanceOf(Rbac3RuleViolation.class)
+                .hasMessageContaining("AUTH_PROPAGATION_PENDING");
+        assertThat(snapshotReads).hasValue(20);
+        assertThat(pauses).hasValue(19);
+    }
+
+    @Test
+    void concurrentDevelopmentInitializationDoesNotRetryUnrelatedFailures() {
+        AtomicInteger openings = new AtomicInteger();
+        AtomicInteger snapshotReads = new AtomicInteger();
+        AtomicInteger pauses = new AtomicInteger();
+        SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
+                (tenantId, sessionId, identitySub, now, expiresAt) ->
+                        openings.getAndIncrement() == 0
+                                ? context(0, true)
+                                : context(1, false),
+                (tenantId, sessionId) -> {
+                    snapshotReads.incrementAndGet();
+                    throw new Rbac3RuleViolation("AUTHORIZATION_CONTEXT_MISMATCH");
+                },
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                (authorizationContext, now) ->
+                        SystemAuthorizationSnapshotService.ContextInitialization.CONCURRENT,
+                duration -> pauses.incrementAndGet());
+
+        assertThatThrownBy(() -> service.snapshot(
+                "1", "5001", "gateway-admin", "alice-sub"))
+                .isInstanceOf(Rbac3RuleViolation.class)
+                .hasMessageContaining("AUTHORIZATION_CONTEXT_MISMATCH");
+        assertThat(snapshotReads).hasValue(1);
+        assertThat(pauses).hasValue(0);
+    }
+
+    private AuthorizationContextFacade.AuthorizationContext context(
+            long contextVersion,
+            boolean activationRequired) {
+        return new AuthorizationContextFacade.AuthorizationContext(
+                "9001", "1", "5001", "alice-sub", "101",
+                7, contextVersion, 11, activationRequired, "ACTIVE",
+                NOW.minusSeconds(10), NOW.plusSeconds(3600));
+    }
+
     private SessionAuthorizationSnapshot sessionSnapshot() {
+        return sessionSnapshot(7, 3, 11);
+    }
+
+    private SessionAuthorizationSnapshot sessionSnapshot(
+            long authVersion,
+            long sessionVersion,
+            long policyVersion) {
         return new SessionAuthorizationSnapshot(
-                "5001", 7, 3, 11,
+                "5001", authVersion, sessionVersion, policyVersion,
                 List.of(
                         app("gateway-admin", Set.of("gateway:release:read")),
                         app("ddc-admin", Set.of("ddc:config:read"))),

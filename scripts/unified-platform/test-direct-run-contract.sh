@@ -153,6 +153,9 @@ assert_contains "${identity_script}" \
 assert_contains "${identity_script}" \
   'write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false' \
   'direct DDC client startup must reconcile when DDC is still starting'
+assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true' \
+  'local RBAC3 startup must activate the generated local administrator roles'
 assert_contains "${identity_script}" '[[ -s "${file}" ]] || return 0' \
   'identity shutdown must tolerate an already stopped process'
 assert_contains "${repo_root}/scripts/unified-platform/lib/common.sh" \
@@ -222,6 +225,22 @@ assert_contains "${prepare_script}" '.properties' \
   'preparation must verify generated Java runtime configuration'
 assert_contains "${start_script}" 'test-live-frontend-login.sh' \
   'stack startup must fail closed when the running frontend login contract fails'
+assert_contains "${live_login_test}" 'fresh Admin endpoint returned HTTP' \
+  'frontend login contract must exercise fresh SSO Admin endpoints'
+for client_id in idp-admin-web rbac3-admin-web gateway-admin-web ddc-admin-web; do
+  assert_contains "${live_login_test}" "fresh_oauth_token ${client_id}" \
+    "frontend login contract must issue a fresh ${client_id} token"
+done
+for application_code in idp-admin rbac3-admin gateway-admin ddc-admin mock-backend; do
+  assert_contains "${live_login_test}" "\"${application_code}\"" \
+    "frontend login contract must verify the ${application_code} role"
+done
+for role_code in \
+  IDP_LOCAL_ADMIN RBAC3_LOCAL_ADMIN GATEWAY_LOCAL_ADMIN DDC_LOCAL_ADMIN \
+  MOCK_LOCAL_ADMIN; do
+  assert_contains "${live_login_test}" "\"${role_code}\"" \
+    "frontend login contract must verify the ${role_code} role code"
+done
 last_web_line="$(grep -nF 'start_admin_web ddc-admin-web' \
   "${start_script}" | tail -1 | cut -d: -f1)"
 live_contract_line="$(grep -nF '"${script_dir}/test-live-frontend-login.sh"' \
