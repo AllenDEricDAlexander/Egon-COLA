@@ -32,6 +32,32 @@ class IdpDevelopmentClientBootstrapTest {
                         && command.audiences().equals(List.of("mock-backend"))));
     }
 
+    @Test
+    void replacesAnObsoleteRedirectUriOnAnExistingDevelopmentClient()
+            throws Exception {
+        OAuthClientAdminService clients = mock(OAuthClientAdminService.class);
+        when(clients.list()).thenReturn(List.of(new OAuthClientAdminService.ClientView(
+                "ddc-admin-web", "DDC Admin Web", "PUBLIC", "ACTIVE", true,
+                900, 604800,
+                List.of("http://127.0.0.1:18151/oauth/callback"),
+                List.of("ddc-admin-web"), 0,
+                java.time.Instant.EPOCH, java.time.Instant.EPOCH
+        )));
+        IdpDevelopmentClientBootstrap bootstrap =
+                new IdpDevelopmentClientBootstrap(clients);
+
+        bootstrap.run(new DefaultApplicationArguments());
+
+        verify(clients).putRedirectUri(
+                "ddc-admin-web",
+                "http://127.0.0.1:18152/oauth/callback"
+        );
+        verify(clients).deleteRedirectUri(
+                "ddc-admin-web",
+                "http://127.0.0.1:18151/oauth/callback"
+        );
+    }
+
     private static OAuthClientAdminService.ClientView client(String clientId) {
         return new OAuthClientAdminService.ClientView(
                 clientId, clientId, "PUBLIC", "ACTIVE", true,

@@ -28,7 +28,10 @@ print_status gateway-engine-b "${GATEWAY_ENGINE_B_BASE_URL}/actuator/health/read
 print_status mock-backend "${MOCK_BACKEND_BASE_URL}/actuator/health/readiness"
 print_status mcp-provider "${MCP_PROVIDER_BASE_URL}/actuator/health/readiness"
 print_status mcp-remote "${MCP_REMOTE_BASE_URL}/actuator/health/readiness"
+print_status idp-admin-web "${IDP_ADMIN_WEB_URL}/"
+print_status rbac3-admin-web "${RBAC3_ADMIN_WEB_URL}/"
 print_status gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}/"
+print_status ddc-admin-web "${DDC_ADMIN_WEB_URL}/"
 
 printf 'Runtime: %s\n' "${unified_platform_runtime_dir}"
 printf 'Logs:    %s\n' "${unified_platform_log_dir}"

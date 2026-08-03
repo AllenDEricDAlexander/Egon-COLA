@@ -8,6 +8,10 @@ source "${script_dir}/lib/common.sh"
 legacy_script="${unified_platform_repo_root}/scripts/unified-identity-local.sh"
 release_fixture="${script_dir}/fixtures/unified-platform-release.json"
 gateway_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web"
+idp_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web"
+rbac3_root_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-rbac3"
+rbac3_web_dir="${rbac3_root_dir}/egon-cola-platform-rbac3-admin-web"
+ddc_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web"
 gateway_engine_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar"
 mcp_provider_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-provider/target/gateway-test-mcp-provider-exec.jar"
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
@@ -492,26 +496,28 @@ wait_mcp_endpoint() {
 }
 
 start_admin_web() {
-  local name=gateway-admin-web
+  local name="$1" web_dir="$2" vite="$3" web_url="$4"
+  local client_id="$5" proxy_name="$6" proxy_url="$7" port
   if unified_platform_process_running "${name}"; then
     return
   fi
-  [[ -x "${gateway_web_dir}/node_modules/.bin/vite" ]] \
+  [[ -x "${vite}" ]] \
     || unified_platform_fail \
-      "Gateway Admin Web dependencies are missing; run npm install in ${gateway_web_dir}"
+      "${name} dependencies are missing; run npm install in ${web_dir}"
+  port="${web_url##*:}"
   (
-    cd "${gateway_web_dir}"
-    export GATEWAY_ADMIN_PROXY="${GATEWAY_ADMIN_BASE_URL}"
+    cd "${web_dir}"
+    export "${proxy_name}=${proxy_url}"
     export VITE_IDP_ISSUER="${IDP_BASE_URL}"
-    export VITE_IDP_CLIENT_ID=gateway-admin-web
-    export VITE_IDP_AUDIENCE=gateway-admin-web
-    export VITE_IDP_REDIRECT_URI="${GATEWAY_ADMIN_WEB_URL}/oauth/callback"
-    exec nohup "${gateway_web_dir}/node_modules/.bin/vite" \
-      --host 127.0.0.1 --port 18141 --strictPort
+    export VITE_IDP_CLIENT_ID="${client_id}"
+    export VITE_IDP_AUDIENCE="${client_id}"
+    export VITE_IDP_REDIRECT_URI="${web_url}/oauth/callback"
+    exec nohup "${vite}" \
+      --host 127.0.0.1 --port "${port}" --strictPort
   ) >"${unified_platform_log_dir}/${name}.log" 2>&1 </dev/null &
   printf '%s' "$!" >"${unified_platform_pid_dir}/${name}.pid"
   chmod 600 "${unified_platform_pid_dir}/${name}.pid"
-  unified_platform_wait_http "${name}" "${GATEWAY_ADMIN_WEB_URL}/"
+  unified_platform_wait_http "${name}" "${web_url}/"
 }
 
 unified_platform_stage "preparing and starting IdP, RBAC3, DDC, Gateway A and mock backend"
@@ -555,8 +561,19 @@ publish_mcp_release "${group_id}" "${server_id}"
 wait_mcp_endpoint gateway-engine-a "${GATEWAY_BASE_URL}"
 wait_mcp_endpoint gateway-engine-b "${GATEWAY_ENGINE_B_PUBLIC_URL}"
 
-unified_platform_stage "starting Gateway Admin Web"
-start_admin_web
+unified_platform_stage "starting four Admin Web applications"
+start_admin_web idp-admin-web "${idp_web_dir}" \
+  "${idp_web_dir}/node_modules/.bin/vite" "${IDP_ADMIN_WEB_URL}" \
+  idp-admin-web IDP_ADMIN_PROXY "${IDP_BASE_URL}"
+start_admin_web rbac3-admin-web "${rbac3_web_dir}" \
+  "${rbac3_root_dir}/node_modules/.bin/vite" "${RBAC3_ADMIN_WEB_URL}" \
+  rbac3-admin-web RBAC3_ADMIN_PROXY "${RBAC3_BASE_URL}"
+start_admin_web gateway-admin-web "${gateway_web_dir}" \
+  "${gateway_web_dir}/node_modules/.bin/vite" "${GATEWAY_ADMIN_WEB_URL}" \
+  gateway-admin-web GATEWAY_ADMIN_PROXY "${GATEWAY_ADMIN_BASE_URL}"
+start_admin_web ddc-admin-web "${ddc_web_dir}" \
+  "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
+  ddc-admin-web DDC_ADMIN_PROXY "${DDC_BASE_URL}"
 
 printf 'Unified platform local stack is running in %s.\n' \
   "${unified_platform_runtime_dir}"

@@ -527,7 +527,7 @@ oauth_token() {
     idp-admin-web) redirect_uri=http://127.0.0.1:18121/oauth/callback ;;
     rbac3-admin-web) redirect_uri=http://127.0.0.1:18131/oauth/callback ;;
     gateway-admin-web) redirect_uri=http://127.0.0.1:18141/oauth/callback ;;
-    ddc-admin-web) redirect_uri=http://127.0.0.1:18151/oauth/callback ;;
+    ddc-admin-web) redirect_uri=http://127.0.0.1:18152/oauth/callback ;;
     mock-backend) redirect_uri=http://127.0.0.1:18161/oauth/callback ;;
     *) fail "unknown local OAuth client: ${client_id}" ;;
   esac

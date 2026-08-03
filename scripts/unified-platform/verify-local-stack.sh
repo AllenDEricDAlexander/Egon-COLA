@@ -43,7 +43,10 @@ for name in \
   mcp-remote \
   gateway-engine \
   gateway-engine-b \
-  gateway-admin-web; do
+  idp-admin-web \
+  rbac3-admin-web \
+  gateway-admin-web \
+  ddc-admin-web; do
   verify_process "${name}"
 done
 
@@ -56,7 +59,10 @@ verify_http gateway-engine-b "${GATEWAY_ENGINE_B_BASE_URL}/actuator/health/readi
 verify_http mock-backend "${MOCK_BACKEND_BASE_URL}/actuator/health/readiness"
 verify_http mcp-provider "${MCP_PROVIDER_BASE_URL}/actuator/health/readiness"
 verify_http mcp-remote "${MCP_REMOTE_BASE_URL}/actuator/health/readiness"
+verify_http idp-admin-web "${IDP_ADMIN_WEB_URL}/"
+verify_http rbac3-admin-web "${RBAC3_ADMIN_WEB_URL}/"
 verify_http gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}/"
+verify_http ddc-admin-web "${DDC_ADMIN_WEB_URL}/"
 
 if ((failures > 0)); then
   printf 'Unified platform verification failed with %d problem(s).\n' \
@@ -485,7 +491,7 @@ assert_json "${response}" '.result.isError == false' \
 
 unified_platform_stage "recording sanitized verification evidence"
 jq -n --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery","gateway-admin-web"]}' \
+  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery","admin-webs"]}' \
   >"${unified_platform_evidence_dir}/verification-summary.json"
 chmod 600 "${unified_platform_evidence_dir}/verification-summary.json"
 

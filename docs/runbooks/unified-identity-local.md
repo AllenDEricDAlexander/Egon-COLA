@@ -73,7 +73,7 @@ export UNIFIED_IDENTITY_REDIS_PASSWORD_FILE=/absolute/path/redis.password
 | Gateway Admin | `http://127.0.0.1:18140` | Gateway 控制面 |
 | Gateway Admin Web | `http://127.0.0.1:18141` | Gateway 管理台 |
 | DDC Admin | `http://127.0.0.1:18150` | 动态配置和服务注册中心 |
-| DDC Admin Web | `http://127.0.0.1:18151` | DDC 管理台 |
+| DDC Admin Web | `http://127.0.0.1:18152` | DDC 管理台 |
 | Mock Backend | `http://127.0.0.1:18160` | IdP + RBAC3 下游样例 |
 | Gateway 外部端口 | `http://127.0.0.1:18180` | 对外路由入口 |
 | Gateway 内部端口 | `http://127.0.0.1:18181` | Gateway 内部 Listener |

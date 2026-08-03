@@ -6,7 +6,10 @@
 
 | 组件 | 地址 | 用途 |
 |---|---|---|
+| IdP Admin Web | `http://127.0.0.1:18121` | 统一登录入口和 IdP 管理界面 |
+| RBAC3 Admin Web | `http://127.0.0.1:18131` | RBAC3 管理界面 |
 | Gateway Admin Web | `http://127.0.0.1:18141` | 统一 SSO 登录后的 Gateway 管理界面 |
+| DDC Admin Web | `http://127.0.0.1:18152` | DDC 管理界面 |
 | IdP | `http://127.0.0.1:18120` | OAuth/OIDC、用户和会话 |
 | RBAC3 Admin | `http://127.0.0.1:18130` | 下游授权快照与角色激活 |
 | Gateway Admin | `http://127.0.0.1:18140` | Gateway/MCP 控制面 |
