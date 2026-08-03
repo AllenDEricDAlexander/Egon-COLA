@@ -108,6 +108,7 @@ public class Rbac3PlatformIntegrationConfiguration {
     }
 
     @Bean
+    @ConditionalOnBean(GatewayDdcRuntimeStatusService.ServiceIdentity.class)
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.provider.http",
             name = "enabled", havingValue = "true")
     DdcProviderLeaseStatusService ddcProviderLeaseStatusService(

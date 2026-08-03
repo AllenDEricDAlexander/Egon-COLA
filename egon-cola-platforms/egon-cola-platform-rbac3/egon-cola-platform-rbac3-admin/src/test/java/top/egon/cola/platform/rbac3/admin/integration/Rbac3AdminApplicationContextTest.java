@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.integration;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,7 @@ import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcValueDeclarations;
 import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
+import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3PlatformIntegrationConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3ReadinessIndicator;
 
@@ -130,5 +132,23 @@ class Rbac3AdminApplicationContextTest {
         assertThat(condition.name()).containsExactly("enabled");
         assertThat(condition.havingValue()).isEqualTo("true");
         assertThat(condition.matchIfMissing()).isFalse();
+    }
+
+    @Test
+    void providerLeaseStatusRequiresTheReportingServiceIdentity()
+            throws NoSuchMethodException {
+        var method = Rbac3PlatformIntegrationConfiguration.class
+                .getDeclaredMethod(
+                        "ddcProviderLeaseStatusService",
+                        HttpProviderLeaseRuntime.class,
+                        GatewayDdcRuntimeStatusService.ServiceIdentity.class
+                );
+
+        ConditionalOnBean condition = method.getAnnotation(
+                ConditionalOnBean.class);
+
+        assertThat(condition).isNotNull();
+        assertThat(condition.value()).containsExactly(
+                GatewayDdcRuntimeStatusService.ServiceIdentity.class);
     }
 }

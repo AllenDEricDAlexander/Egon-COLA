@@ -123,6 +123,68 @@ fi
   || fail 'rejected PostgreSQL credential changed runtime secret permissions'
 unset -f psql
 
+assert_env_equals() {
+  local file="$1" key="$2" expected="$3" context="$4" actual
+  actual="$(bash -c '
+    set -a
+    # shellcheck disable=SC1090
+    source "$1"
+    printf "%s" "${!2-}"
+  ' _ "${file}" "${key}")"
+  [[ "${actual}" == "${expected}" ]] \
+    || fail "${context}: expected ${key}=${expected}, got ${actual:-<unset>}"
+}
+
+generated_runtime="${temporary_dir}/generated-runtime"
+(
+  export UNIFIED_IDENTITY_RUNTIME_DIR="${generated_runtime}"
+  # shellcheck disable=SC1090
+  source "${identity_script}" help >/dev/null
+  initialize_directories
+  printf '%s' 'test-redis-password' >"${secret_dir}/redis.password"
+  printf '%s' 'test-ddc-access-key' >"${secret_dir}/ddc-openapi.access-key"
+  printf '%s' 'test-ddc-secret' >"${secret_dir}/ddc-openapi.secret"
+  printf '%s' 'test-gateway-master-key' >"${secret_dir}/gateway-master-key.base64"
+  postgres_password() {
+    printf '%s' 'test-postgres-password'
+  }
+  write_service_env_files
+)
+
+idp_env="${generated_runtime}/env/idp.env"
+assert_env_equals "${idp_env}" IDP_DDC_ENABLED true \
+  'local IdP must start its DDC config client'
+assert_env_equals "${idp_env}" IDP_HTTP_PROVIDER_ENABLED true \
+  'local IdP must publish its HTTP Provider lease'
+assert_env_equals "${idp_env}" DDC_BIZ_CODE identity \
+  'local IdP must use the unified identity DDC business scope'
+assert_env_equals "${idp_env}" DEPLOYMENT_ENV local \
+  'local IdP must register in the local environment'
+assert_env_equals "${idp_env}" DEPLOYMENT_NAMESPACE default \
+  'local IdP must use the default visibility namespace'
+assert_env_equals "${idp_env}" IDP_INSTANCE_ID idp-local-1 \
+  'local IdP must use a stable lease identity'
+assert_env_equals "${idp_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
+  'local IdP must use the DDC Registry Redis database'
+
+rbac3_env="${generated_runtime}/env/rbac3.env"
+assert_env_equals "${rbac3_env}" RBAC3_DDC_ENABLED true \
+  'local RBAC3 must start its DDC config client'
+assert_env_equals "${rbac3_env}" RBAC3_HTTP_PROVIDER_ENABLED true \
+  'local RBAC3 must publish its HTTP Provider lease'
+assert_env_equals "${rbac3_env}" DDC_BIZ_CODE identity \
+  'local RBAC3 must use the unified identity DDC business scope'
+assert_env_equals "${rbac3_env}" DEPLOYMENT_ENV local \
+  'local RBAC3 must register in the local environment'
+assert_env_equals "${rbac3_env}" DEPLOYMENT_NAMESPACE default \
+  'local RBAC3 must use the default visibility namespace'
+assert_env_equals "${rbac3_env}" RBAC3_INSTANCE_ID rbac3-local-1 \
+  'local RBAC3 must use a stable lease identity'
+assert_env_equals "${rbac3_env}" RBAC3_ARTIFACT_VERSION local \
+  'local RBAC3 service identity must use the local artifact version'
+assert_env_equals "${rbac3_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
+  'local RBAC3 must use the DDC Registry Redis database'
+
 # shellcheck source=lib/common.sh
 source "${repo_root}/scripts/unified-platform/lib/common.sh"
 declare -F unified_platform_write_frontend_login_env >/dev/null \

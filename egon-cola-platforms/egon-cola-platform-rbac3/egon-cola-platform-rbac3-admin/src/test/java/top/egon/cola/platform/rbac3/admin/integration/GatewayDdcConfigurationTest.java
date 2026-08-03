@@ -99,17 +99,18 @@ class GatewayDdcConfigurationTest {
     }
 
     @Test
-    void localProfileExplicitlyDisablesRemoteDdcAndGatewayIntegration() throws Exception {
+    void localProfileAllowsExplicitDdcAndProviderEnablement() throws Exception {
         PropertySource<?> local = yaml("application-local.yml");
 
-        assertThat(local.getProperty("egon.cola.component.ddc.enabled")).isEqualTo(false);
+        assertThat(local.getProperty("egon.cola.component.ddc.enabled"))
+                .isEqualTo("${RBAC3_DDC_ENABLED:false}");
         assertThat(local.getProperty("egon.cola.component.ddc.registry.enabled"))
-                .isEqualTo(false);
+                .isEqualTo("${RBAC3_DDC_ENABLED:false}");
         assertThat(local.getProperty("egon.cola.component.gateway.reporting.enabled"))
                 .isEqualTo(false);
         assertThat(local.getProperty(
                 "egon.cola.component.gateway.provider.http.enabled"))
-                .isEqualTo(false);
+                .isEqualTo("${RBAC3_HTTP_PROVIDER_ENABLED:false}");
     }
 
     @Test

@@ -409,7 +409,21 @@ write_service_env_files() {
   write_env "${file}" IDP_SNOWFLAKE_MACHINE_ID 32
   write_env "${file}" IDP_DEVELOPMENT_BOOTSTRAP_ENABLED true
   write_env "${file}" IDP_BOOTSTRAP_PASSWORD_FILE "${secret_dir}/idp-admin.password"
-  write_env "${file}" IDP_DDC_ENABLED false
+  write_env "${file}" IDP_DDC_ENABLED true
+  write_env "${file}" IDP_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" IDP_INSTANCE_ID idp-local-1
+  write_env "${file}" IDP_ADVERTISED_HOST 127.0.0.1
+  write_env "${file}" DDC_BIZ_CODE identity
+  write_env "${file}" DEPLOYMENT_ENV local
+  write_env "${file}" DEPLOYMENT_NAMESPACE default
+  write_env "${file}" DDC_ADMIN_ENDPOINT "${ddc_url}"
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_REPORT_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
+  write_env "${file}" DDC_REPORT_SECRET_KEY "$(<"${secret_dir}/ddc-openapi.secret")"
+  write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
+  write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
+  write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" DDC_REGISTRY_REDIS_DATABASE 10
 
   file="$(new_env_file rbac3)"
   common_identity_env "${file}"
@@ -417,6 +431,22 @@ write_service_env_files() {
   write_env "${file}" RBAC3_POSTGRES_USER "${postgres_user}"
   write_env "${file}" RBAC3_POSTGRES_PASSWORD "${postgres_password_value}"
   write_env "${file}" RBAC3_ADVERTISED_PORT 18130
+  write_env "${file}" RBAC3_ADVERTISED_HOST 127.0.0.1
+  write_env "${file}" RBAC3_INSTANCE_ID rbac3-local-1
+  write_env "${file}" RBAC3_ARTIFACT_VERSION local
+  write_env "${file}" RBAC3_DDC_ENABLED true
+  write_env "${file}" RBAC3_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" DDC_BIZ_CODE identity
+  write_env "${file}" DEPLOYMENT_ENV local
+  write_env "${file}" DEPLOYMENT_NAMESPACE default
+  write_env "${file}" DDC_ADMIN_ENDPOINT "${ddc_url}"
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_REPORT_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
+  write_env "${file}" DDC_REPORT_SECRET_KEY "$(<"${secret_dir}/ddc-openapi.secret")"
+  write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
+  write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
+  write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" DDC_REGISTRY_REDIS_DATABASE 10
   write_env "${file}" RBAC3_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" RBAC3_AUTHORIZATION_REDIS_DATABASE 8
   write_env "${file}" RBAC3_RUNTIME_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
