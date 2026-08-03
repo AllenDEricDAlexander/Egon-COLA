@@ -286,6 +286,9 @@ java_property_key() {
     GATEWAY_ADMIN_DDC_ENDPOINT) printf 'gateway.admin.ddc.endpoint' ;;
     GATEWAY_ADMIN_DDC_ACCESS_KEY) printf 'gateway.admin.ddc.access-key' ;;
     GATEWAY_ADMIN_DDC_SECRET_KEY) printf 'gateway.admin.ddc.secret-key' ;;
+    GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)
+      printf 'gateway.admin.secrets.master-key-base64'
+      ;;
     GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY)
       printf 'gateway.admin.definition-reconcile-delay'
       ;;

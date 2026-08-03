@@ -52,6 +52,9 @@ source "${function_file}"
 [[ "$(java_property_key GATEWAY_ADMIN_DDC_ENABLED)" \
     == 'gateway.admin.ddc.enabled' ]] \
   || fail 'Gateway DDC enablement must use its canonical property key'
+[[ "$(java_property_key GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)" \
+    == 'gateway.admin.secrets.master-key-base64' ]] \
+  || fail 'Gateway secret protection must use its canonical property key'
 
 assert_contains "${identity_script}" '${file%.env}.properties' \
   'write_env must target the sibling Java properties file'
