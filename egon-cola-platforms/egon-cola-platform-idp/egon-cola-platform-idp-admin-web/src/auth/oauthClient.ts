@@ -40,6 +40,7 @@ export const createBrowserOAuthClient = (
 ) => {
   const issuer = configuration.issuer.replace(/\/$/, '')
   let refreshInFlight: Promise<string> | undefined
+  let callbackInFlight: Promise<string> | undefined
 
   const storeToken = (response: TokenResponse, expectedNonce?: string): string => {
     if (!response.access_token || response.token_type?.toLowerCase() !== 'bearer') {
@@ -96,29 +97,34 @@ export const createBrowserOAuthClient = (
       })
       runtime.navigate(`${issuer}/oauth2/authorize?${parameters.toString()}`)
     },
-    handleCallback: async (search: string): Promise<string> => {
-      const encoded = runtime.storage.getItem(transactionKey)
-      runtime.storage.removeItem(transactionKey)
-      if (!encoded) throw new Error('统一身份登录事务不存在或已失效')
-      const transaction = JSON.parse(encoded) as OAuthTransaction
-      const age = runtime.now() - transaction.createdAt
-      if (!Number.isFinite(age) || age < 0 || age > 10 * 60 * 1_000) {
-        throw new Error('统一身份登录事务不存在或已失效')
+    handleCallback: (search: string): Promise<string> => {
+      if (!callbackInFlight) {
+        callbackInFlight = (async () => {
+          const encoded = runtime.storage.getItem(transactionKey)
+          runtime.storage.removeItem(transactionKey)
+          if (!encoded) throw new Error('统一身份登录事务不存在或已失效')
+          const transaction = JSON.parse(encoded) as OAuthTransaction
+          const age = runtime.now() - transaction.createdAt
+          if (!Number.isFinite(age) || age < 0 || age > 10 * 60 * 1_000) {
+            throw new Error('统一身份登录事务不存在或已失效')
+          }
+          const parameters = new URLSearchParams(search)
+          if (parameters.get('error')) throw new Error('统一身份授权被拒绝')
+          if (parameters.get('state') !== transaction.state) {
+            throw new Error('统一身份登录 state 校验失败')
+          }
+          const response = await requestToken(new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: configuration.clientId,
+            code: required(parameters.get('code'), 'code'),
+            code_verifier: transaction.verifier,
+            redirect_uri: configuration.redirectUri,
+          }))
+          storeToken(response, transaction.nonce)
+          return safeReturnTo(transaction.returnTo)
+        })()
       }
-      const parameters = new URLSearchParams(search)
-      if (parameters.get('error')) throw new Error('统一身份授权被拒绝')
-      if (parameters.get('state') !== transaction.state) {
-        throw new Error('统一身份登录 state 校验失败')
-      }
-      const response = await requestToken(new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: configuration.clientId,
-        code: required(parameters.get('code'), 'code'),
-        code_verifier: transaction.verifier,
-        redirect_uri: configuration.redirectUri,
-      }))
-      storeToken(response, transaction.nonce)
-      return safeReturnTo(transaction.returnTo)
+      return callbackInFlight
     },
     refresh: (): Promise<string> => {
       if (!refreshInFlight) {

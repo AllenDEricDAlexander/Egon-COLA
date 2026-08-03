@@ -61,6 +61,32 @@ describe('OAuth PKCE client', () => {
     expect(String(request.body)).toContain('code_verifier=')
   })
 
+  it('deduplicates concurrent callback handling from StrictMode effects', async () => {
+    let release: ((value: Response) => void) | undefined
+    const navigate = vi.fn()
+    const fetcher = vi.fn<typeof fetch>(() => new Promise<Response>(
+      (resolve) => { release = resolve },
+    ))
+    const client = createBrowserOAuthClient(configuration, runtime(fetcher, navigate))
+    await client.beginAuthorization('tenant-a', '/dashboard')
+    const authorizationUrl = new URL(navigate.mock.calls[0][0])
+    const state = authorizationUrl.searchParams.get('state')!
+    const nonce = authorizationUrl.searchParams.get('nonce')!
+
+    const callbacks = Promise.all([
+      client.handleCallback(`?code=one-time&state=${state}`),
+      client.handleCallback(`?code=one-time&state=${state}`),
+    ])
+
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    release!(new Response(JSON.stringify({
+      access_token: jwt({ nonce }),
+      token_type: 'Bearer',
+      expires_in: 900,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    await expect(callbacks).resolves.toEqual(['/dashboard', '/dashboard'])
+  })
+
   it('rejects an authorization transaction older than ten minutes', async () => {
     const navigate = vi.fn()
     const fetcher = vi.fn<typeof fetch>()
