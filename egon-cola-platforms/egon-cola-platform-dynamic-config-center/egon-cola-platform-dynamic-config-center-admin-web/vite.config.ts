@@ -9,7 +9,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18080',
+        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18150',
         changeOrigin: true,
       },
     },
@@ -17,7 +17,7 @@ export default defineConfig({
   preview: {
     proxy: {
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18080',
+        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18150',
         changeOrigin: true,
       },
     },

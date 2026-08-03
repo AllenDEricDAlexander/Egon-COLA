@@ -72,4 +72,23 @@ assert_contains "${repo_root}/${ddc_config}" \
   'classpath:META-INF/egon-cola-ddc.properties' \
   'DDC must preserve its starter defaults import'
 
+assert_vite_proxy() {
+  local relative_file="$1" platform="$2" port="$3"
+  assert_contains "${repo_root}/${relative_file}" "http://127.0.0.1:${port}" \
+    "${platform} plain npm run dev must proxy to its local backend"
+}
+
+assert_vite_proxy \
+  'egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/vite.config.ts' \
+  IdP 18120
+assert_vite_proxy \
+  'egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/vite.config.ts' \
+  RBAC3 18130
+assert_vite_proxy \
+  'egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/vite.config.ts' \
+  Gateway 18140
+assert_vite_proxy \
+  'egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/vite.config.ts' \
+  DDC 18150
+
 printf 'direct-run-contract: runtime properties adapter PASS\n'

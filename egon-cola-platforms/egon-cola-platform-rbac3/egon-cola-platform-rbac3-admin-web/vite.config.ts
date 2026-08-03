@@ -9,7 +9,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: process.env.RBAC3_ADMIN_PROXY ?? 'http://127.0.0.1:8080',
+        target: process.env.RBAC3_ADMIN_PROXY ?? 'http://127.0.0.1:18130',
         changeOrigin: true,
       },
     },

@@ -9,7 +9,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: process.env.GATEWAY_ADMIN_PROXY ?? 'http://127.0.0.1:8080',
+        target: process.env.GATEWAY_ADMIN_PROXY ?? 'http://127.0.0.1:18140',
         changeOrigin: true,
       },
     },
