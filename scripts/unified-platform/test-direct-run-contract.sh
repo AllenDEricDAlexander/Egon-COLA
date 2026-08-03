@@ -55,6 +55,9 @@ source "${function_file}"
 [[ "$(java_property_key GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)" \
     == 'gateway.admin.secrets.master-key-base64' ]] \
   || fail 'Gateway secret protection must use its canonical property key'
+[[ "$(java_property_key EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST)" \
+    == 'egon.cola.component.gateway.provider.http.fail-fast' ]] \
+  || fail 'Gateway Provider fail-fast must use its canonical property key'
 
 assert_contains "${identity_script}" '${file%.env}.properties' \
   'write_env must target the sibling Java properties file'
@@ -64,6 +67,14 @@ assert_contains "${identity_script}" 'java_property_key "${key}"' \
   'write_env must translate environment names for Java property sources'
 assert_contains "${identity_script}" 'chmod 600 "${file}" "${properties_file}"' \
   'new_env_file must protect both runtime configuration files'
+assert_contains "${identity_script}" \
+  'write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false' \
+  'direct Gateway Engine startup must recover when DDC is still starting'
+assert_contains "${identity_script}" '[[ -s "${file}" ]] || return 0' \
+  'identity shutdown must tolerate an already stopped process'
+assert_contains "${repo_root}/scripts/unified-platform/lib/common.sh" \
+  '[[ -s "${pid_file}" ]] || return 0' \
+  'platform shutdown must tolerate an already stopped process'
 
 assert_service_config() {
   local relative_file="$1" service="$2" file="${repo_root}/$1"

@@ -282,6 +282,9 @@ java_property_key() {
     EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT)
       printf 'egon.cola.component.gateway.engine.http-internal-port'
       ;;
+    EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST)
+      printf 'egon.cola.component.gateway.provider.http.fail-fast'
+      ;;
     GATEWAY_ADMIN_DDC_ENABLED) printf 'gateway.admin.ddc.enabled' ;;
     GATEWAY_ADMIN_DDC_ENDPOINT) printf 'gateway.admin.ddc.endpoint' ;;
     GATEWAY_ADMIN_DDC_ACCESS_KEY) printf 'gateway.admin.ddc.access-key' ;;
@@ -497,6 +500,7 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY "${runtime_dir}/gateway-engine-data"
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT 18180
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT 18181
+  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
   write_env "${file}" GATEWAY_ENGINE_DDC_INSTANCE_ID gateway-engine-local-1
   write_env "${file}" GATEWAY_ENGINE_DDC_ADVERTISED_PORT 18180
   write_env "${file}" GATEWAY_MCP_REMOTE_CIRCUIT_OPEN_DURATION PT3S
@@ -1187,7 +1191,7 @@ command_status() {
 
 stop_process() {
   local name="$1" file="${pid_dir}/$1.pid" pid
-  [[ -s "${file}" ]] || return
+  [[ -s "${file}" ]] || return 0
   pid="$(<"${file}")"
   if [[ "${pid}" =~ ^[0-9]+$ ]] && kill -0 "${pid}" 2>/dev/null; then
     kill "${pid}"

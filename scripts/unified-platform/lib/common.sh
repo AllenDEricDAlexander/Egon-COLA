@@ -124,7 +124,7 @@ unified_platform_start_jar() {
 
 unified_platform_stop_process() {
   local name="$1" pid_file="${unified_platform_pid_dir}/$1.pid" pid attempt
-  [[ -s "${pid_file}" ]] || return
+  [[ -s "${pid_file}" ]] || return 0
   pid="$(<"${pid_file}")"
   if [[ "${pid}" =~ ^[0-9]+$ ]] && kill -0 "${pid}" 2>/dev/null; then
     kill "${pid}"
