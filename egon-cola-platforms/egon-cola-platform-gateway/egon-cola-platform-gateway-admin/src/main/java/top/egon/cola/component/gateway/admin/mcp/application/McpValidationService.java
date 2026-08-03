@@ -15,6 +15,7 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResource;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResourceTemplate;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
+import top.egon.cola.component.gateway.mcp.remote.McpRemoteEndpointValidator;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -257,10 +258,21 @@ public class McpValidationService {
             List<McpRuntimeRemoteProvider> providers,
             List<McpRuntimeRemoteMount> mounts) {
         Map<String, McpRuntimeRemoteProvider> byCode = new HashMap<>();
-        providers.forEach(provider -> byCode.put(
-                provider.providerCode(),
-                provider
-        ));
+        for (McpRuntimeRemoteProvider provider : providers) {
+            try {
+                McpRemoteEndpointValidator.requireSafe(
+                        provider.endpointReference()
+                );
+            } catch (IllegalArgumentException failure) {
+                invalid(
+                        "GATEWAY_MCP_REMOTE_ENDPOINT_UNSAFE",
+                        "remoteProviders." + provider.providerCode()
+                                + ".endpointReference",
+                        failure.getMessage()
+                );
+            }
+            byCode.put(provider.providerCode(), provider);
+        }
         for (McpRuntimeRemoteMount mount : mounts) {
             McpRuntimeRemoteProvider provider = byCode.get(
                     mount.providerCode()

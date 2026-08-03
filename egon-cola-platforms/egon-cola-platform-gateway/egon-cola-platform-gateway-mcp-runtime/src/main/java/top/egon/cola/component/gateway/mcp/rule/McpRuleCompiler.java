@@ -10,8 +10,8 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResourceTempl
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
+import top.egon.cola.component.gateway.mcp.remote.McpRemoteEndpointValidator;
 
-import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -340,13 +340,9 @@ public final class McpRuleCompiler {
             return;
         }
         try {
-            URI endpoint = URI.create(provider.endpointReference());
-            if (endpoint.getHost() == null
-                    || endpoint.getUserInfo() != null
-                    || !("http".equalsIgnoreCase(endpoint.getScheme())
-                    || "https".equalsIgnoreCase(endpoint.getScheme()))) {
-                throw new IllegalArgumentException();
-            }
+            McpRemoteEndpointValidator.requireSafe(
+                    provider.endpointReference()
+            );
         } catch (IllegalArgumentException failure) {
             throw invalid(
                     "MCP remote endpoint must be a safe HTTP(S) URI: "

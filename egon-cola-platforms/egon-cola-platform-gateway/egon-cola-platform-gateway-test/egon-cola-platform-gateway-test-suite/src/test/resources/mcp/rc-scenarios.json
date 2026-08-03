@@ -1,0 +1,87 @@
+[
+  {
+    "method": "discover",
+    "params": {},
+    "resultPath": "result.protocolVersion",
+    "expected": "2026-07-28"
+  },
+  {
+    "method": "ping",
+    "params": {},
+    "resultPath": "jsonrpc",
+    "expected": "2.0"
+  },
+  {
+    "method": "tools/list",
+    "params": {},
+    "resultPath": "result.tools.0.name",
+    "expected": "remote_echo"
+  },
+  {
+    "method": "tools/call",
+    "params": {
+      "name": "remote_echo",
+      "arguments": {
+        "value": "rc"
+      }
+    },
+    "resultPath": "result.structuredContent.value",
+    "expected": "rc"
+  },
+  {
+    "method": "resources/list",
+    "params": {},
+    "resultPath": "result.resources.2.name",
+    "expected": "remote_dashboard"
+  },
+  {
+    "method": "resources/templates/list",
+    "params": {},
+    "resultPath": "result.resourceTemplates.0.name",
+    "expected": "remote_order"
+  },
+  {
+    "method": "resources/read",
+    "params": {
+      "uri": "fixture://remote/orders/rc-7"
+    },
+    "resultPath": "result.contents.0.mimeType",
+    "expected": "application/json"
+  },
+  {
+    "method": "resources/subscribe",
+    "params": {
+      "uri": "fixture://remote/text"
+    },
+    "resultPath": "result.subscribed",
+    "expected": true
+  },
+  {
+    "method": "prompts/get",
+    "params": {
+      "name": "remote_summary",
+      "arguments": {
+        "topic": "RC orders"
+      }
+    },
+    "resultPath": "result.messages.0.content.text",
+    "expected": "Summarize RC orders"
+  },
+  {
+    "method": "completion/complete",
+    "params": {
+      "argument": {
+        "name": "id",
+        "value": "order"
+      }
+    },
+    "resultPath": "result.completion.total",
+    "expected": 2
+  },
+  {
+    "method": "apps/list",
+    "params": {},
+    "resultPath": "result.apps.0.name",
+    "expected": "remote_dashboard"
+  }
+]

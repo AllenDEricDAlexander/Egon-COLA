@@ -10,9 +10,9 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.core.mcp.remote.RemoteMcpClient;
+import top.egon.cola.component.gateway.mcp.remote.McpRemoteEndpointValidator;
 
 import java.io.ByteArrayOutputStream;
-import java.net.URI;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -222,15 +222,9 @@ public final class ReactorNettyRemoteMcpClient
     }
 
     private void validateProvider(ExchangeRequest request) {
-        URI endpoint = URI.create(request.provider().endpointReference());
-        if (endpoint.getUserInfo() != null
-                || endpoint.getHost() == null
-                || !("http".equalsIgnoreCase(endpoint.getScheme())
-                || "https".equalsIgnoreCase(endpoint.getScheme()))) {
-            throw new IllegalArgumentException(
-                    "remote MCP endpoint must be an HTTP(S) URI without userinfo"
-            );
-        }
+        McpRemoteEndpointValidator.requireSafe(
+                request.provider().endpointReference()
+        );
         String transport = request.provider().transportType()
                 .toUpperCase(Locale.ROOT);
         if (!transport.equals("STREAMABLE_HTTP")

@@ -1,0 +1,30 @@
+{
+  "blockedEndpoints": [
+    "http://169.254.169.254/latest/meta-data",
+    "http://[fe80::1]/mcp",
+    "http://0.0.0.0/mcp",
+    "http://metadata.google.internal/computeMetadata/v1",
+    "http://user:secret@example.com/mcp",
+    "https://remote.example/mcp?token=secret",
+    "https://remote.example/mcp#fragment",
+    "https://remote.example/a/../mcp",
+    "https://remote.example/%2e%2e/mcp",
+    "http://2852039166/mcp"
+  ],
+  "allowedEndpoints": [
+    "http://127.0.0.1:18151/remote/stable",
+    "http://10.0.0.8:8080/mcp",
+    "https://remote.example/mcp"
+  ],
+  "blockedResourceUris": [
+    "https://remote.example/resource",
+    "egon://orders/a/../secret",
+    "egon://orders/%2e%2e/secret",
+    "ui://orders/app?token=secret"
+  ],
+  "jsonDepth": 70,
+  "maximumRequestBytes": 16777216,
+  "externalSchemaRef": "https://schemas.example/remote.json",
+  "promptInjection": "${system} {{7*7}} <script>alert(1)</script>",
+  "token": "Bearer secret-token-value"
+}

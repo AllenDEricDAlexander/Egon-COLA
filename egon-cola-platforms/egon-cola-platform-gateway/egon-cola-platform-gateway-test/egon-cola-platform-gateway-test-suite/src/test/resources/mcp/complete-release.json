@@ -1,0 +1,253 @@
+{
+  "servers": [
+    {
+      "serverId": "server-commerce",
+      "serverCode": "commerce",
+      "name": "Commerce MCP",
+      "description": "Complete local and remote commerce capabilities",
+      "instructions": "Use reviewed tools and request approval for high-risk calls.",
+      "dialects": [
+        "LEGACY_2024_SSE",
+        "STABLE_2025_11_25",
+        "RC_2026_07_28"
+      ],
+      "oauthAudience": "gateway-mcp-commerce",
+      "listCacheTtlSeconds": 30,
+      "enabled": true
+    }
+  ],
+  "tools": [
+    {
+      "toolId": "tool-http",
+      "serverCode": "commerce",
+      "name": "http_query",
+      "description": "Queries an order over local HTTP",
+      "sourceType": "LOCAL_OPERATION",
+      "operationId": "operation-http",
+      "inputSchema": "{\"type\":\"object\"}",
+      "outputSchema": "{\"type\":\"object\"}",
+      "argumentBindings": {"id": "id"},
+      "resultBindings": {},
+      "annotations": {"readOnlyHint": "true"},
+      "requiredPermissions": ["order:read"],
+      "riskLevel": "LOW",
+      "idempotent": true,
+      "enabled": true
+    },
+    {
+      "toolId": "tool-rpc",
+      "serverCode": "commerce",
+      "name": "rpc_export",
+      "description": "Starts a durable export over local RPC",
+      "sourceType": "LOCAL_OPERATION",
+      "operationId": "operation-rpc",
+      "inputSchema": "{\"type\":\"object\"}",
+      "outputSchema": "{\"type\":\"object\"}",
+      "argumentBindings": {},
+      "resultBindings": {},
+      "annotations": {"taskSupport": "required"},
+      "requiredPermissions": ["order:export"],
+      "riskLevel": "MEDIUM",
+      "idempotent": true,
+      "enabled": true
+    },
+    {
+      "toolId": "tool-remote-stable",
+      "serverCode": "commerce",
+      "name": "stable_remote_echo",
+      "description": "Stable remote echo",
+      "sourceType": "REMOTE_MCP",
+      "remoteMountId": "mount-stable",
+      "inputSchema": "{\"type\":\"object\"}",
+      "outputSchema": "{\"type\":\"object\"}",
+      "argumentBindings": {},
+      "resultBindings": {},
+      "annotations": {},
+      "requiredPermissions": ["remote:call"],
+      "riskLevel": "LOW",
+      "idempotent": true,
+      "enabled": true
+    },
+    {
+      "toolId": "tool-remote-rc",
+      "serverCode": "commerce",
+      "name": "rc_remote_echo",
+      "description": "RC remote echo",
+      "sourceType": "REMOTE_MCP",
+      "remoteMountId": "mount-rc",
+      "inputSchema": "{\"type\":\"object\"}",
+      "outputSchema": "{\"type\":\"object\"}",
+      "argumentBindings": {},
+      "resultBindings": {},
+      "annotations": {},
+      "requiredPermissions": ["remote:call"],
+      "riskLevel": "LOW",
+      "idempotent": true,
+      "enabled": true
+    }
+  ],
+  "resources": [
+    {
+      "resourceId": "resource-catalog",
+      "serverCode": "commerce",
+      "name": "order_catalog",
+      "uri": "egon://commerce/orders/catalog",
+      "description": "Static order catalog",
+      "mimeType": "text/plain",
+      "driverType": "STATIC_TEXT",
+      "configuration": {"text": "orders"},
+      "requiredPermissions": ["order:read"],
+      "maxBytes": 1024,
+      "enabled": true
+    },
+    {
+      "resourceId": "resource-remote",
+      "serverCode": "commerce",
+      "name": "remote_order",
+      "uri": "egon://commerce/remote/order",
+      "description": "Remote order resource",
+      "mimeType": "application/json",
+      "driverType": "REMOTE_MCP",
+      "remoteMountId": "mount-rc",
+      "configuration": {},
+      "requiredPermissions": ["remote:read"],
+      "maxBytes": 1048576,
+      "enabled": true
+    }
+  ],
+  "resourceTemplates": [
+    {
+      "templateId": "template-order",
+      "serverCode": "commerce",
+      "name": "order_by_id",
+      "uriTemplate": "egon://commerce/orders/{id}",
+      "description": "Order by id",
+      "mimeType": "application/json",
+      "driverType": "LOCAL_OPERATION",
+      "operationId": "operation-http",
+      "configuration": {},
+      "requiredPermissions": ["order:read"],
+      "maxBytes": 1048576,
+      "enabled": true
+    },
+    {
+      "templateId": "template-remote",
+      "serverCode": "commerce",
+      "name": "remote_order_by_id",
+      "uriTemplate": "egon://commerce/remote/orders/{id}",
+      "description": "Remote order by id",
+      "mimeType": "application/json",
+      "driverType": "REMOTE_MCP",
+      "remoteMountId": "mount-stable",
+      "configuration": {},
+      "requiredPermissions": ["remote:read"],
+      "maxBytes": 1048576,
+      "enabled": true
+    }
+  ],
+  "prompts": [
+    {
+      "promptId": "prompt-local",
+      "serverCode": "commerce",
+      "name": "review_order",
+      "description": "Reviews an order",
+      "sourceType": "STRICT_TEMPLATE",
+      "template": "Review order ${id}",
+      "arguments": ["id"],
+      "requiredPermissions": ["order:read"],
+      "enabled": true
+    },
+    {
+      "promptId": "prompt-remote",
+      "serverCode": "commerce",
+      "name": "remote_summary",
+      "description": "Remote order summary",
+      "sourceType": "REMOTE_MCP",
+      "remoteMountId": "mount-rc",
+      "arguments": ["topic"],
+      "requiredPermissions": ["remote:read"],
+      "enabled": true
+    }
+  ],
+  "taskPolicies": [
+    {
+      "taskPolicyId": "task-export",
+      "serverCode": "commerce",
+      "toolName": "rpc_export",
+      "durable": true,
+      "inputAllowed": true,
+      "executionTimeoutSeconds": 600,
+      "resultTtlSeconds": 3600,
+      "maxAttempts": 3,
+      "enabled": true
+    }
+  ],
+  "apps": [
+    {
+      "appId": "app-dashboard",
+      "serverCode": "commerce",
+      "name": "order_dashboard",
+      "appCode": "order-dashboard",
+      "version": "1.0.0",
+      "resourceUri": "ui://commerce/order-dashboard/1.0.0",
+      "artifactId": "artifact-dashboard",
+      "artifactReference": "artifacts/order-dashboard/1.0.0/index.html",
+      "artifactSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "artifactSizeBytes": 42,
+      "mimeType": "text/html;profile=mcp-app",
+      "contentSecurityPolicy": "default-src 'none'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "permissions": ["app:view"],
+      "allowedOrigins": [],
+      "allowedTools": ["http_query"],
+      "enabled": true
+    }
+  ],
+  "remoteProviders": [
+    {
+      "providerId": "provider-stable",
+      "providerCode": "remote-stable",
+      "displayName": "Stable fixture",
+      "dialect": "STABLE_2025_11_25",
+      "transportType": "STREAMABLE_HTTP",
+      "endpointReference": "http://127.0.0.1:18151/remote/stable",
+      "capabilityFingerprint": "stable-v1",
+      "enabled": true
+    },
+    {
+      "providerId": "provider-rc",
+      "providerCode": "remote-rc",
+      "displayName": "RC fixture",
+      "dialect": "RC_2026_07_28",
+      "transportType": "STREAMABLE_HTTP",
+      "endpointReference": "http://127.0.0.1:18152/remote/rc",
+      "capabilityFingerprint": "rc-v1",
+      "enabled": true
+    }
+  ],
+  "remoteMounts": [
+    {
+      "mountId": "mount-stable",
+      "serverCode": "commerce",
+      "providerCode": "remote-stable",
+      "namespace": "stable",
+      "primitiveTypes": ["APP", "COMPLETION", "PROMPT", "RESOURCE", "RESOURCE_TEMPLATE", "SUBSCRIPTION", "TASK", "TOOL"],
+      "renameRules": {},
+      "conflictPolicy": "REJECT",
+      "requiredPermissions": ["remote:read"],
+      "capabilityFingerprint": "stable-v1",
+      "enabled": true
+    },
+    {
+      "mountId": "mount-rc",
+      "serverCode": "commerce",
+      "providerCode": "remote-rc",
+      "namespace": "rc",
+      "primitiveTypes": ["APP", "COMPLETION", "PROMPT", "RESOURCE", "RESOURCE_TEMPLATE", "SUBSCRIPTION", "TASK", "TOOL"],
+      "renameRules": {},
+      "conflictPolicy": "REJECT",
+      "requiredPermissions": ["remote:read"],
+      "capabilityFingerprint": "rc-v1",
+      "enabled": true
+    }
+  ]
+}

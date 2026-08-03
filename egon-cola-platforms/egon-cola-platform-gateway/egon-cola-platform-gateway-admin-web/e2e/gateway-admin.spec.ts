@@ -27,6 +27,16 @@ const session = (capabilities = allCapabilities) => ({
   expiresAt: '2099-01-01T00:00:00Z',
 })
 
+const accessToken = (nonce?: string) => [
+  Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url'),
+  Buffer.from(JSON.stringify({
+    sub: `${prefix}-actor`,
+    exp: 4_102_444_800,
+    ...(nonce ? { nonce } : {}),
+  })).toString('base64url'),
+  'e2e-signature',
+].join('.')
+
 const group = {
   id: `${prefix}-group-id`,
   gatewayGroupCode: `${prefix}-group`,
@@ -87,17 +97,25 @@ const authenticate = async (
   page: Page,
   capabilities = allCapabilities,
 ) => {
-  await page.addInitScript((token) => {
-    window.sessionStorage.setItem(
-      'egon.gateway.admin.auth.session',
-      JSON.stringify({ accessToken: token }),
-    )
-  }, `${prefix}-token`)
+  await page.route('http://127.0.0.1:18120/oauth2/token', (route) => json(route, {
+    access_token: accessToken(),
+    token_type: 'Bearer',
+    expires_in: 3_600,
+  }))
   await page.route('**/api/v1/gateway/admin/session', (route) =>
     json(route, session(capabilities)))
 }
 
 const installReadFixtures = async (page: Page) => {
+  await page.route('**/api/v1/gateway/admin/scopes', (route) => json(route, [{
+    bindingId: `${prefix}-scope`,
+    bizCode: 'e2e',
+    appCode: application.applicationCode,
+    appName: application.displayName,
+    env: 'dev',
+    namespace: 'default',
+    connected: true,
+  }]))
   await page.route('**/api/v1/gateway/admin/dashboard**', (route) => json(route, {
     gatewayGroups: 1,
     readyEngines: 2,
@@ -201,23 +219,45 @@ const installReadFixtures = async (page: Page) => {
 }
 
 test('login, logout and a later 401 clear the browser session', async ({ page }) => {
+  let allowRefresh = false
+  await page.route('http://127.0.0.1:18120/oauth2/authorize?**', (route) => {
+    return route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Unified Identity</h1>' })
+  })
+  await page.route('http://127.0.0.1:18120/oauth2/token', (route) => {
+    if (!allowRefresh) {
+      return json(route, { error: 'invalid_grant' }, 401)
+    }
+    return json(route, {
+      access_token: accessToken(),
+      token_type: 'Bearer',
+      expires_in: 3_600,
+    })
+  })
+  await page.route('http://127.0.0.1:18120/oauth2/revoke', (route) => json(route, {}))
   await page.route('**/api/v1/gateway/admin/session', (route) =>
     json(route, session()))
   await installReadFixtures(page)
   await page.goto('/dashboard')
-  await expect(page.getByRole('heading', { name: 'Gateway Admin 登录' })).toBeVisible()
-  await page.getByLabel('Access Token').fill(`${prefix}-token`)
-  await page.getByRole('button', { name: '登录并校验权限' }).click()
+  await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
+  await page.getByRole('button', { name: '使用统一身份登录' }).click()
+  await expect(page).toHaveURL(/\/oauth2\/authorize\?/)
+  const authorization = new URL(page.url()).searchParams
+  expect(authorization.get('code_challenge_method')).toBe('S256')
+  expect(authorization.get('tenant_id')).toBe('default')
+
+  allowRefresh = true
+  await page.goto('/dashboard')
   await expect(page.getByText('Gateway E2E')).toBeVisible()
   await page.getByRole('button', { name: '退出' }).click()
-  await expect(page.getByRole('heading', { name: 'Gateway Admin 登录' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
 
-  await page.getByLabel('Access Token').fill(`${prefix}-token-2`)
-  await page.getByRole('button', { name: '登录并校验权限' }).click()
-  await page.route('**/api/v1/gateway/admin/gateway-groups?**', (route) =>
-    json(route, { code: 'TOKEN_EXPIRED' }, 401))
   await page.goto('/gateway-groups')
-  await expect(page.getByRole('heading', { name: 'Gateway Admin 登录' })).toBeVisible()
+  await expect(page.getByText('Gateway E2E')).toBeVisible()
+  allowRefresh = false
+  await page.route('**/api/v1/gateway/admin/providers/instances?**', (route) =>
+    json(route, { code: 'TOKEN_EXPIRED' }, 401))
+  await page.getByRole('link', { name: 'Provider' }).click()
+  await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
 })
 
 test('server capabilities hide mutations and missing read renders 403', async ({ page }) => {
@@ -245,9 +285,9 @@ test('gateway group create, edit and disable use management APIs', async ({ page
   await page.getByRole('button', { name: '新建 Gateway Group' }).click()
   await page.getByLabel('Group Code').fill(`${prefix}-new-group`)
   await page.getByLabel('名称').fill('New E2E Group')
-  await page.getByRole('button', { name: 'OK' }).click()
+  await page.getByRole('button', { name: /确\s*定/ }).click()
   expect((await create).postDataJSON().gatewayGroupCode).toBe(`${prefix}-new-group`)
-  await page.getByRole('button', { name: '停用' }).click()
+  await page.getByRole('button', { name: /停\s*用/ }).click()
   await page.getByRole('button', { name: '确 定' }).click()
 })
 
@@ -266,7 +306,8 @@ test('application and credential lifecycle never re-displays old secrets', async
   await page.getByRole('button', { name: 'Credential' }).click()
   await page.getByRole('button', { name: '签发 Credential' }).click()
   await expect(page.getByText('Secret 只显示一次')).toBeVisible()
-  await expect(page.getByText('shown-once')).toBeVisible()
+  await page.getByText('新 Credential', { exact: true }).click()
+  await expect(page.locator('.json-panel')).toContainText('shown-once')
 })
 
 test('manual three-level catalog and operation use structured forms', async ({ page }) => {
@@ -283,7 +324,7 @@ test('manual three-level catalog and operation use structured forms', async ({ p
   await page.getByText('sales / order / order-controller').click()
   await page.getByLabel('Path').fill('/orders')
   await page.getByLabel('Provider Service').fill('orders')
-  await page.getByRole('button', { name: 'OK' }).click()
+  await page.getByRole('button', { name: /确\s*定/ }).click()
   expect((await operation).postDataJSON()).toMatchObject({
     protocol: 'HTTP',
     path: '/orders',
@@ -300,11 +341,11 @@ test('draft route supports structured editing and confirmed deletion', async ({ 
       routeId: 'route-1',
       operationId: 'operation-1',
       content: {
-        listener: 'INTERNAL',
-        protocol: 'HTTP',
-        method: 'GET',
-        path: '/orders',
-        providerServiceName: 'orders',
+        host: 'orders.internal',
+        httpMethod: 'GET',
+        pathPattern: '/orders',
+        accessZones: ['INTERNAL'],
+        priority: 0,
       },
       enabled: true,
     }],
@@ -314,13 +355,17 @@ test('draft route supports structured editing and confirmed deletion', async ({ 
     json(route, draft))
   await page.route('**/draft/routes/route-1', (route) =>
     json(route, { revision: 2, resourceId: 'route-1', replayed: false }))
+  await page.route('**/api/v1/gateway/admin/operations/operation-1', (route) => json(route, {
+    operation: { protocol: 'HTTP', externalAccessible: false },
+    definitions: [],
+  }))
   await page.goto(`/gateway-groups/${group.id}/draft/routes`)
-  await page.getByRole('button', { name: '编辑' }).click()
-  await page.getByLabel('Path').fill('/orders/{id}')
+  await page.getByRole('button', { name: /编\s*辑/ }).click()
+  await page.getByLabel('Path Pattern').fill('/orders/{id}')
   const update = page.waitForRequest((request) =>
     request.url().endsWith('/draft/routes/route-1') && request.method() === 'PUT')
-  await page.getByRole('button', { name: 'OK' }).click()
-  expect((await update).postDataJSON().content.path).toBe('/orders/{id}')
+  await page.getByRole('button', { name: /确\s*定/ }).click()
+  expect((await update).postDataJSON().content.pathPattern).toBe('/orders/{id}')
 })
 
 test('policy edit and delete preserve revision controls', async ({ page }) => {
@@ -344,7 +389,7 @@ test('policy edit and delete preserve revision controls', async ({ page }) => {
   await page.route('**/draft/policies/policy-1', (route) =>
     json(route, { revision: 2, resourceId: 'policy-1', replayed: false }))
   await page.goto(`/gateway-groups/${group.id}/draft/policies`)
-  await page.getByRole('button', { name: '删除' }).click()
+  await page.getByRole('button', { name: /删\s*除/ }).click()
   await page.getByRole('button', { name: '确 定' }).click()
   expect((await deletion).postDataJSON()).toMatchObject({
     expectedRevision: 1,
@@ -362,8 +407,8 @@ test('draft validation and publish create a release', async ({ page }) => {
       && request.method() === 'POST')
   await page.goto(`/gateway-groups/${group.id}/releases`)
   await page.getByRole('button', { name: '校验并发布' }).click()
-  await page.getByLabel('变更说明').fill('E2E publish')
-  await page.getByRole('button', { name: 'OK' }).click()
+  await page.getByRole('dialog', { name: '发布确认' }).locator('textarea').fill('E2E publish')
+  await page.getByRole('button', { name: /确\s*定/ }).click()
   expect((await publish).postDataJSON()).toMatchObject({
     expectedDraftRevision: 1,
     changeReason: 'E2E publish',
