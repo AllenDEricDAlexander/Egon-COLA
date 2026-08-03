@@ -78,6 +78,15 @@ grep -q '^RBAC3_DEVELOPMENT_IDENTITY_SUB=.' \
   "${unified_platform_env_dir}/rbac3.properties" \
   || unified_platform_fail 'RBAC3 direct-run identity binding was not initialized'
 
+for web_dir in \
+  "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web" \
+  "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web" \
+  "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web" \
+  "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web"; do
+  [[ -s "${web_dir}/.env.local" ]] \
+    || unified_platform_fail "missing generated frontend login environment: ${web_dir}"
+done
+
 printf 'Direct-run artifacts are ready. Runtime configuration: %s\n' \
   "${unified_platform_env_dir}"
 printf 'Run the documented java -jar and npm run dev commands from %s.\n' \

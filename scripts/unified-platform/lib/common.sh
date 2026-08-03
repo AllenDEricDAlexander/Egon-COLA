@@ -144,6 +144,24 @@ unified_platform_write_env() {
   printf '%s=%q\n' "${key}" "${value}" >>"${file}"
 }
 
+unified_platform_write_frontend_login_env() {
+  local web_dir="$1" tenant_id="$2"
+  local file="${web_dir}/.env.local"
+  local marker='# Managed by scripts/unified-platform for local SSO.'
+  [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
+    || unified_platform_fail "default tenant ID must be a positive integer"
+  [[ -d "${web_dir}" ]] \
+    || unified_platform_fail "frontend directory is missing: ${web_dir}"
+  if [[ -e "${file}" ]] \
+      && [[ "$(sed -n '1p' "${file}")" != "${marker}" ]]; then
+    unified_platform_fail \
+      "refusing to overwrite unmanaged frontend environment: ${file}"
+  fi
+  printf '%s\nVITE_DEFAULT_TENANT_ID=%s\n' \
+    "${marker}" "${tenant_id}" >"${file}"
+  chmod 600 "${file}"
+}
+
 unified_platform_require_command() {
   command -v "$1" >/dev/null 2>&1 \
     || unified_platform_fail "missing prerequisite: $1"

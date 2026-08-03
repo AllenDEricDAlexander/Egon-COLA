@@ -68,6 +68,77 @@ source "${function_file}"
     == 'egon.cola.component.gateway.engine.http.internal-port' ]] \
   || fail 'Gateway internal listener must use its nested canonical property key'
 
+function_file="${temporary_dir}/postgres-password.sh"
+extract_function postgres_password "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+secret_dir="${temporary_dir}/secrets"
+mkdir -p "${secret_dir}"
+postgres_password_file=
+unset UNIFIED_IDENTITY_POSTGRES_PASSWORD
+if (postgres_password) >/dev/null 2>&1; then
+  fail 'PostgreSQL password resolution must not guess a default password'
+fi
+printf '%s' 'local-runtime-password' >"${secret_dir}/postgres.password"
+[[ "$(postgres_password)" == 'local-runtime-password' ]] \
+  || fail 'PostgreSQL password resolution must reuse the protected runtime secret'
+
+function_file="${temporary_dir}/resolve-postgres-password.sh"
+extract_function resolve_postgres_password "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+printf '%s' 'explicit-runtime-password' \
+  >"${temporary_dir}/explicit-postgres.password"
+postgres_password_file="${temporary_dir}/explicit-postgres.password"
+postgres_host=127.0.0.1
+postgres_port=5432
+postgres_user=postgres
+postgres_database=postgres
+psql() {
+  [[ "${PGPASSWORD:-}" == 'explicit-runtime-password' ]]
+}
+resolve_postgres_password
+[[ "$(<"${secret_dir}/postgres.password")" \
+    == 'explicit-runtime-password' ]] \
+  || fail 'explicit PostgreSQL credential must be persisted in the protected runtime'
+[[ "$(stat -f '%Lp' "${secret_dir}/postgres.password")" == '600' ]] \
+  || fail 'persisted PostgreSQL credential must have mode 600'
+printf '%s' 'rejected-runtime-password' \
+  >"${temporary_dir}/rejected-postgres.password"
+postgres_password_file="${temporary_dir}/rejected-postgres.password"
+if (resolve_postgres_password) >/dev/null 2>&1; then
+  fail 'invalid PostgreSQL credential must be rejected before persistence'
+fi
+[[ "$(<"${secret_dir}/postgres.password")" \
+    == 'explicit-runtime-password' ]] \
+  || fail 'invalid PostgreSQL credential replaced the last known-good runtime secret'
+[[ "$(stat -f '%Lp' "${secret_dir}/postgres.password")" == '600' ]] \
+  || fail 'rejected PostgreSQL credential changed runtime secret permissions'
+unset -f psql
+
+# shellcheck source=lib/common.sh
+source "${repo_root}/scripts/unified-platform/lib/common.sh"
+declare -F unified_platform_write_frontend_login_env >/dev/null \
+  || fail 'frontend login environment writer is missing'
+frontend_dir="${temporary_dir}/admin-web"
+mkdir -p "${frontend_dir}"
+unified_platform_write_frontend_login_env \
+  "${frontend_dir}" '77351065313480704'
+frontend_env="${frontend_dir}/.env.local"
+[[ "$(stat -f '%Lp' "${frontend_env}")" == '600' ]] \
+  || fail 'generated frontend login environment must have mode 600'
+# shellcheck disable=SC1090
+source "${frontend_env}"
+[[ "${VITE_DEFAULT_TENANT_ID}" == '77351065313480704' ]] \
+  || fail 'plain npm run dev must receive the resolvable default tenant ID'
+printf '%s\n' 'VITE_CUSTOM_SETTING=preserve-me' >"${frontend_env}"
+if (unified_platform_write_frontend_login_env \
+    "${frontend_dir}" '77351065313480704') >/dev/null 2>&1; then
+  fail 'frontend login environment writer must not overwrite an unmanaged file'
+fi
+[[ "$(<"${frontend_env}")" == 'VITE_CUSTOM_SETTING=preserve-me' ]] \
+  || fail 'unmanaged frontend login environment was modified'
+
 assert_contains "${identity_script}" '${file%.env}.properties' \
   'write_env must target the sibling Java properties file'
 assert_contains "${identity_script}" 'properties_escape "${value}"' \
@@ -135,8 +206,12 @@ assert_vite_proxy \
   DDC 18150
 
 prepare_script="${repo_root}/scripts/unified-platform/prepare-local-stack.sh"
+start_script="${repo_root}/scripts/unified-platform/start-local-stack.sh"
+live_login_test="${repo_root}/scripts/unified-platform/test-live-frontend-login.sh"
 [[ -x "${prepare_script}" ]] \
   || fail 'prepare-local-stack.sh must exist and be executable'
+[[ -x "${live_login_test}" ]] \
+  || fail 'live frontend login contract must exist and be executable'
 assert_contains "${prepare_script}" 'start-local-stack.sh' \
   'preparation must initialize the full local topology'
 assert_contains "${prepare_script}" 'stop-local-stack.sh' \
@@ -145,6 +220,17 @@ assert_contains "${prepare_script}" 'npm ci' \
   'preparation must install missing locked frontend dependencies'
 assert_contains "${prepare_script}" '.properties' \
   'preparation must verify generated Java runtime configuration'
+assert_contains "${start_script}" 'test-live-frontend-login.sh' \
+  'stack startup must fail closed when the running frontend login contract fails'
+last_web_line="$(grep -nF 'start_admin_web ddc-admin-web' \
+  "${start_script}" | tail -1 | cut -d: -f1)"
+live_contract_line="$(grep -nF '"${script_dir}/test-live-frontend-login.sh"' \
+  "${start_script}" | tail -1 | cut -d: -f1)"
+success_line="$(grep -nF "printf 'Unified platform local stack is running" \
+  "${start_script}" | tail -1 | cut -d: -f1)"
+[[ "${last_web_line}" -lt "${live_contract_line}" \
+    && "${live_contract_line}" -lt "${success_line}" ]] \
+  || fail 'live frontend login contract must run after all Web apps and before startup success'
 
 identity_runbook="${repo_root}/docs/runbooks/unified-identity-local.md"
 operations_runbook="${repo_root}/docs/operations/unified-identity-mcp-local-runbook.md"

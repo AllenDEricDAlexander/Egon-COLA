@@ -74,6 +74,9 @@ if ((failures > 0)); then
   exit 1
 fi
 
+"${script_dir}/test-live-frontend-login.sh" \
+  || unified_platform_fail "Admin Web login contract verification failed"
+
 set -e
 for command in curl jq openssl; do
   unified_platform_require_command "${command}"
@@ -779,7 +782,7 @@ assert_json "${response}" '.result.isError == false' \
 
 unified_platform_stage "recording sanitized verification evidence"
 jq -n --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-browser-sso","admin-feature-matrix","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
+  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-default-tenant-membership","admin-web-browser-sso","admin-feature-matrix","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
   >"${unified_platform_evidence_dir}/verification-summary.json"
 chmod 600 "${unified_platform_evidence_dir}/verification-summary.json"
 

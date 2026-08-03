@@ -25,7 +25,7 @@ Gateway 只执行用户存在性、JWT 合法性等基础身份校验；业务�
 ## 前置条件
 
 - Java 21、`curl`、`jq`、`openssl`、`psql`、`createdb`、`redis-cli`、Node.js/npm。
-- 本机 PostgreSQL 可通过 `127.0.0.1:5432` 访问，默认用户和密码均为 `postgres`。
+- 本机 PostgreSQL 可通过 `127.0.0.1:5432` 访问；默认用户为 `postgres`，首次运行时密码必须通过受保护的 `UNIFIED_IDENTITY_POSTGRES_PASSWORD_FILE` 或 `UNIFIED_IDENTITY_POSTGRES_PASSWORD` 显式提供，后续可复用权限为 `0600` 的 runtime secret。脚本不会猜测或修改账号密码。
 - 本机 Redis 可通过 `127.0.0.1:6379` 访问。脚本优先从 `/opt/homebrew/etc/redis.conf` 读取 `requirepass`。
 - 若本机配置不同，通过 `UNIFIED_IDENTITY_POSTGRES_*`、`UNIFIED_IDENTITY_REDIS_*` 环境变量或相应密码文件覆盖；不要把密码写入仓库。
 
@@ -63,6 +63,8 @@ java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gate
 npm run dev
 ```
 
+准备流程会在四个 Admin Web 目录生成受管的 `.env.local`，把真实数值型默认租户 ID 注入 `VITE_DEFAULT_TENANT_ID`；因此无参数启动不会再把租户代码 `default` 错当成租户 ID。
+
 直接启动顺序为 DDC、IdP、RBAC3、Gateway Admin、Gateway Engine；等待后端 Readiness 为 `200` 后再启动 Web。首次数据库初始化必须经过准备流程，不能只启动空库上的 JAR。
 
 只在已确认可执行 JAR 和 Web 构建均为最新时，才可跳过构建：
@@ -77,7 +79,7 @@ UNIFIED_PLATFORM_SKIP_BUILD=true scripts/unified-platform/start-local-stack.sh
 scripts/unified-platform/status-local-stack.sh
 ```
 
-状态必须显示 10 个受管进程均为 `running`，健康码均为 `200`。运行时目录为 `target/local-unified-platform/`：
+状态必须显示 13 个受管进程均为 `running`，健康码均为 `200`。运行时目录为 `target/local-unified-platform/`：
 
 - PID：`target/local-unified-platform/pids/`
 - 日志：`target/local-unified-platform/logs/`

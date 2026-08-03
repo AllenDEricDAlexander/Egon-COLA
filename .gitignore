@@ -27,6 +27,7 @@ target/
 out/
 .DS_Store
 .vscode/settings.json
+.env.local
 ${project.build.directory}
 .worktrees/
 .runtime/

@@ -17,6 +17,7 @@ mcp_provider_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-pl
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
 gateway_admin_token_file="${unified_platform_secret_dir}/gateway-admin.access.jwt"
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
+default_tenant_id=
 
 for command in java curl jq openssl psql redis-cli npm; do
   unified_platform_require_command "${command}"
@@ -54,6 +55,24 @@ export UNIFIED_IDENTITY_MOCK_URL="${MOCK_BACKEND_BASE_URL}"
 export UNIFIED_IDENTITY_GATEWAY_URL="${GATEWAY_BASE_URL}"
 export UNIFIED_IDENTITY_SKIP_BUILD="${UNIFIED_PLATFORM_SKIP_BUILD:-false}"
 export UNIFIED_IDENTITY_DEFER_GATEWAY_RELEASE=true
+
+prepare_admin_web_login_environments() {
+  local token_file="${unified_platform_secret_dir}/idp-admin.access.jwt"
+  [[ -s "${token_file}" ]] \
+    || unified_platform_fail "default tenant access token is unavailable"
+  default_tenant_id="$(jq -Rer \
+    'split(".")[1] | @base64d | fromjson | .tid' <"${token_file}")"
+  [[ "${default_tenant_id}" =~ ^[1-9][0-9]*$ ]] \
+    || unified_platform_fail "default tenant access token has an invalid tenant ID"
+  unified_platform_write_frontend_login_env \
+    "${idp_web_dir}" "${default_tenant_id}"
+  unified_platform_write_frontend_login_env \
+    "${rbac3_web_dir}" "${default_tenant_id}"
+  unified_platform_write_frontend_login_env \
+    "${gateway_web_dir}" "${default_tenant_id}"
+  unified_platform_write_frontend_login_env \
+    "${ddc_web_dir}" "${default_tenant_id}"
+}
 
 gateway_api() {
   local method="$1" path="$2" body="${3:-}" idempotency_key="${4:-}"
@@ -512,6 +531,7 @@ start_admin_web() {
     export VITE_IDP_CLIENT_ID="${client_id}"
     export VITE_IDP_AUDIENCE="${client_id}"
     export VITE_IDP_REDIRECT_URI="${web_url}/oauth/callback"
+    export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
     exec nohup "${vite}" \
       --host 127.0.0.1 --port "${port}" --strictPort
   ) >"${unified_platform_log_dir}/${name}.log" 2>&1 </dev/null &
@@ -523,6 +543,7 @@ start_admin_web() {
 unified_platform_stage "preparing and starting IdP, RBAC3, DDC, Gateway A and mock backend"
 "${legacy_script}" start
 "${legacy_script}" refresh-tokens
+prepare_admin_web_login_environments
 
 package_mcp_fixtures
 write_extra_service_env_files
@@ -574,6 +595,9 @@ start_admin_web gateway-admin-web "${gateway_web_dir}" \
 start_admin_web ddc-admin-web "${ddc_web_dir}" \
   "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
   ddc-admin-web DDC_ADMIN_PROXY "${DDC_BASE_URL}"
+
+"${script_dir}/test-live-frontend-login.sh" \
+  || unified_platform_fail "Admin Web login contract verification failed"
 
 printf 'Unified platform local stack is running in %s.\n' \
   "${unified_platform_runtime_dir}"

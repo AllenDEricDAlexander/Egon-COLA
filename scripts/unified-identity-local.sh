@@ -124,9 +124,28 @@ postgres_password() {
   if [[ -n "${postgres_password_file}" ]]; then
     [[ -s "${postgres_password_file}" ]] || fail "PostgreSQL password file is unreadable"
     tr -d '\r\n' <"${postgres_password_file}"
+  elif [[ -n "${UNIFIED_IDENTITY_POSTGRES_PASSWORD:-}" ]]; then
+    printf '%s' "${UNIFIED_IDENTITY_POSTGRES_PASSWORD}"
+  elif [[ -s "${secret_dir}/postgres.password" ]]; then
+    tr -d '\r\n' <"${secret_dir}/postgres.password"
   else
-    printf '%s' "${UNIFIED_IDENTITY_POSTGRES_PASSWORD:-postgres}"
+    fail "PostgreSQL requires an explicit password or protected runtime secret"
   fi
+}
+
+resolve_postgres_password() {
+  local target="${secret_dir}/postgres.password" password temporary
+  password="$(postgres_password)"
+  [[ -n "${password}" ]] \
+    || fail "PostgreSQL password must not be empty"
+  PGPASSWORD="${password}" psql -X -v ON_ERROR_STOP=1 \
+    -h "${postgres_host}" -p "${postgres_port}" -U "${postgres_user}" \
+    -d "${postgres_database}" -Atqc 'select 1' >/dev/null 2>&1 \
+    || fail "PostgreSQL authentication failed"
+  temporary="$(mktemp "${secret_dir}/postgres.password.XXXXXX")"
+  chmod 600 "${temporary}"
+  printf '%s' "${password}" >"${temporary}"
+  mv -f "${temporary}" "${target}"
 }
 
 psql_command() {
@@ -528,6 +547,7 @@ command_prepare() {
     require_command "${command}"
   done
   initialize_directories
+  resolve_postgres_password
   psql_command "${postgres_database}" -Atqc 'select 1' >/dev/null
   resolve_redis_password
   for database in "${idp_database}" "${rbac3_database}" \

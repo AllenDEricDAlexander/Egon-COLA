@@ -10,7 +10,7 @@
 - PostgreSQL 账号可以连接维护库并创建下列具名开发数据库。
 - Redis 必须启用密码；脚本可从 `/opt/homebrew/etc/redis.conf` 的 `requirepass` 读取，或通过 `UNIFIED_IDENTITY_REDIS_PASSWORD_FILE` 指定只含密码的文件。
 
-PostgreSQL 默认使用 `127.0.0.1:5432`、用户 `postgres`、密码 `postgres`。需要覆盖时使用：
+PostgreSQL 默认使用 `127.0.0.1:5432` 和用户 `postgres`，但脚本不会猜测或修改密码。首次准备必须通过受保护的密码文件或环境变量显式提供凭据；后续可复用运行目录中权限为 `0600` 的 `secrets/postgres.password`：
 
 ```bash
 export UNIFIED_IDENTITY_POSTGRES_HOST=127.0.0.1
@@ -38,6 +38,8 @@ export UNIFIED_IDENTITY_REDIS_PASSWORD_FILE=/absolute/path/redis.password
 ```
 
 该命令会使用真实 PostgreSQL/Redis 构建 JAR、安装缺失的锁定版前端依赖，临时拉起并初始化 IdP SSO、RBAC3 双租户、DDC 和 Gateway/MCP 拓扑，然后停止受管进程，为直接命令释放端口。生成的密钥和每个服务独立的 Spring Properties 位于 `target/local-unified-platform/`，权限为 600，不进入 Git。
+
+准备流程还会为四个 Admin Web 生成受管的 `.env.local`，写入 RBAC3 实际创建的数值型默认租户 ID。不要手工改成租户代码 `default`；授权接口的 `tenant_id` 契约是租户 ID。
 
 准备完成后，分别在五个终端的仓库根目录运行；不需要 `source .env`，也不需要额外 JVM 参数：
 
@@ -77,14 +79,21 @@ java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gate
 ./scripts/unified-identity-local.sh start
 ```
 
-执行完整验收：
+执行统一身份后端验收：
 
 ```bash
 ./scripts/unified-identity-local.sh verify
 ```
 
-验收覆盖：
+执行包含四个 Admin Web、Gateway 和 MCP 的完整平台验收：
 
+```bash
+./scripts/unified-platform/verify-local-stack.sh
+```
+
+完整平台验收覆盖：
+
+- 四个正在运行的 Vite 前端均加载真实默认租户 ID，且该租户会员解析为 `ACTIVE`。
 - Gateway 接受合法身份，但不做 RBAC 权限判断。
 - 模拟下游在角色未激活时返回 403；同一 Access Token 在角色激活和缓存失效后返回 200。
 - `default` 与 `tenant-b` Token 的 `tid` 不同、SSO `sid` 相同。
