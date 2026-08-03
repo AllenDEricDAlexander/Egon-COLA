@@ -58,7 +58,7 @@ Admin 的 webui 已从 jar 中摘出（`/ddc-admin` 不再由 Admin 提供服务
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
-    <version>5.3.2</version>
+    <version>5.3.3</version>
 </dependency>
 ```
 

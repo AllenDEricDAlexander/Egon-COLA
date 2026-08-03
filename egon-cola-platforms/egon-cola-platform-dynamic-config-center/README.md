@@ -67,7 +67,7 @@ VIP, or load balancer; Starter does not discover Admin processes.
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
-    <version>5.3.2</version>
+    <version>5.3.3</version>
 </dependency>
 ```
 

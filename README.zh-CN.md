@@ -131,7 +131,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.light' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-light' \
-  -DarchetypeVersion='5.3.2' \
+  -DarchetypeVersion='5.3.3' \
   -DinteractiveMode='false'
 ```
 
@@ -145,7 +145,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-service' \
-  -DarchetypeVersion='5.3.2' \
+  -DarchetypeVersion='5.3.3' \
   -DinteractiveMode='false'
 ```
 
@@ -159,7 +159,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable.web' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-web' \
-  -DarchetypeVersion='5.3.2' \
+  -DarchetypeVersion='5.3.3' \
   -DinteractiveMode='false'
 ```
 
@@ -191,7 +191,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.light' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-light' \
-  -DarchetypeVersion='5.3.2' \
+  -DarchetypeVersion='5.3.3' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -206,7 +206,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-service' \
-  -DarchetypeVersion='5.3.2' \
+  -DarchetypeVersion='5.3.3' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
@@ -221,7 +221,7 @@ mvn -B archetype:generate \
   -Dpackage='top.egon.fable.web' \
   -DarchetypeGroupId='top.egon' \
   -DarchetypeArtifactId='egon-cola-archetype-web' \
-  -DarchetypeVersion='5.3.2' \
+  -DarchetypeVersion='5.3.3' \
   -DarchetypeCatalog='local' \
   -DinteractiveMode='false'
 ```
