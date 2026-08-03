@@ -45,7 +45,7 @@ public class IdpOAuthConfiguration {
 
     @Bean
     IdpSsoSessionStore idpSsoSessionStore(
-            RedissonClient redisson,
+            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             SecureRandom idpSecureRandom,
             @Value("${egon.idp.oauth.sso-session-key-prefix:"
                     + "identity:v1:sso-session:}") String keyPrefix
@@ -80,7 +80,7 @@ public class IdpOAuthConfiguration {
 
     @Bean
     AuthorizationCodeStore authorizationCodeStore(
-            RedissonClient redisson,
+            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             ObjectMapper objectMapper,
             @Value("${egon.idp.oauth.authorization-code-key-prefix:"
                     + "identity:v1:auth-code:}") String keyPrefix

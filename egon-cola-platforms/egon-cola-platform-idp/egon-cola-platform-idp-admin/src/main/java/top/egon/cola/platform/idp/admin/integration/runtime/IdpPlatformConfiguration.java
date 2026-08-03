@@ -47,7 +47,7 @@ public class IdpPlatformConfiguration {
             IdentityOutboxEventRepository outbox,
             IdentityAuditLogRepository audits,
             RefreshTokenStore refreshTokens,
-            RedissonClient redisson,
+            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             ObjectMapper objectMapper,
             LongIdGenerator ids,
             @Qualifier("idpClock") Clock idpClock,
@@ -118,7 +118,7 @@ public class IdpPlatformConfiguration {
     IdpRuntimeReadiness idpRuntimeReadiness(
             ObjectProvider<DdcRuntimeCoordinator> coordinators,
             IdentityOutboxEventRepository outbox,
-            RedissonClient redisson,
+            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             Rs256TokenService tokenService
     ) {
         return () -> {

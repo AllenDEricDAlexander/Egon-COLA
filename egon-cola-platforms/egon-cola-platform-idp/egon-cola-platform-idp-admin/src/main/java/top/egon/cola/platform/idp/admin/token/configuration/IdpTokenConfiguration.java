@@ -44,7 +44,7 @@ public class IdpTokenConfiguration {
 
     @Bean
     RefreshTokenStore refreshTokenStore(
-            RedissonClient redisson,
+            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             @Value("${egon.idp.oauth.refresh-key-prefix:identity:v1:}")
             String keyPrefix
     ) {
