@@ -38,10 +38,27 @@ escaped="$(properties_escape $'a\\b\tc\rd\ne')"
 [[ "${escaped}" == 'a\\b\tc\rd\ne' ]] \
   || fail "properties_escape did not encode Java properties control characters"
 
+function_file="${temporary_dir}/java-property-key.sh"
+extract_function java_property_key "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+[[ "$(java_property_key SERVER_PORT)" == 'server.port' ]] \
+  || fail 'SERVER_PORT must become a Spring property key'
+[[ "$(java_property_key SPRING_DATASOURCE_URL)" == 'spring.datasource.url' ]] \
+  || fail 'SPRING_DATASOURCE_URL must become a Spring property key'
+[[ "$(java_property_key EGON_COLA_PLATFORM_RBAC3_RUNTIME_PASSWORD_FILE)" \
+    == 'egon.cola.platform.rbac3.runtime.password-file' ]] \
+  || fail 'RBAC3 runtime password file must use its canonical property key'
+[[ "$(java_property_key GATEWAY_ADMIN_DDC_ENABLED)" \
+    == 'gateway.admin.ddc.enabled' ]] \
+  || fail 'Gateway DDC enablement must use its canonical property key'
+
 assert_contains "${identity_script}" '${file%.env}.properties' \
   'write_env must target the sibling Java properties file'
 assert_contains "${identity_script}" 'properties_escape "${value}"' \
   'write_env must encode the Java properties value'
+assert_contains "${identity_script}" 'java_property_key "${key}"' \
+  'write_env must translate environment names for Java property sources'
 assert_contains "${identity_script}" 'chmod 600 "${file}" "${properties_file}"' \
   'new_env_file must protect both runtime configuration files'
 

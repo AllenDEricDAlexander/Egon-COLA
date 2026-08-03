@@ -220,11 +220,86 @@ properties_escape() {
   printf '%s' "${value}"
 }
 
+java_property_key() {
+  case "$1" in
+    SERVER_PORT) printf 'server.port' ;;
+    SPRING_PROFILES_ACTIVE) printf 'spring.profiles.active' ;;
+    SPRING_DATASOURCE_URL) printf 'spring.datasource.url' ;;
+    SPRING_DATASOURCE_USERNAME) printf 'spring.datasource.username' ;;
+    SPRING_DATASOURCE_PASSWORD) printf 'spring.datasource.password' ;;
+    SPRING_FLYWAY_ENABLED) printf 'spring.flyway.enabled' ;;
+    EGON_COLA_COMPONENT_ID_MACHINE_ID)
+      printf 'egon.cola.component.id.machine-id'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_RUNTIME_PASSWORD_FILE)
+      printf 'egon.cola.platform.rbac3.runtime.password-file'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL)
+      printf 'egon.cola.platform.rbac3.authorization.cache-ttl'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_MAXIMUM_JITTER)
+      printf 'egon.cola.platform.rbac3.authorization.maximum-jitter'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL)
+      printf 'egon.cola.platform.rbac3.authorization.near-cache-ttl'
+      ;;
+    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST)
+      printf 'egon.cola.component.ddc.admin.redis.host'
+      ;;
+    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PORT)
+      printf 'egon.cola.component.ddc.admin.redis.port'
+      ;;
+    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PASSWORD)
+      printf 'egon.cola.component.ddc.admin.redis.password'
+      ;;
+    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE)
+      printf 'egon.cola.component.ddc.admin.redis.database'
+      ;;
+    EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT)
+      printf 'egon.cola.component.ddc.admin.tls.development-plaintext'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE)
+      printf 'egon.cola.component.gateway.engine.gateway-group-code'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_ENV)
+      printf 'egon.cola.component.gateway.engine.env'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_NAMESPACE)
+      printf 'egon.cola.component.gateway.engine.namespace'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_NODE_ID)
+      printf 'egon.cola.component.gateway.engine.node-id'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_INSTANCE_ID)
+      printf 'egon.cola.component.gateway.engine.instance-id'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY)
+      printf 'egon.cola.component.gateway.engine.data-directory'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT)
+      printf 'egon.cola.component.gateway.engine.http-public-port'
+      ;;
+    EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT)
+      printf 'egon.cola.component.gateway.engine.http-internal-port'
+      ;;
+    GATEWAY_ADMIN_DDC_ENABLED) printf 'gateway.admin.ddc.enabled' ;;
+    GATEWAY_ADMIN_DDC_ENDPOINT) printf 'gateway.admin.ddc.endpoint' ;;
+    GATEWAY_ADMIN_DDC_ACCESS_KEY) printf 'gateway.admin.ddc.access-key' ;;
+    GATEWAY_ADMIN_DDC_SECRET_KEY) printf 'gateway.admin.ddc.secret-key' ;;
+    GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY)
+      printf 'gateway.admin.definition-reconcile-delay'
+      ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 write_env() {
-  local file="$1" key="$2" value="$3" properties_file
+  local file="$1" key="$2" value="$3" properties_file property_key
   properties_file="${file%.env}.properties"
+  property_key="$(java_property_key "${key}")"
   printf '%s=%q\n' "${key}" "${value}" >>"${file}"
-  printf '%s=%s\n' "${key}" "$(properties_escape "${value}")" >>"${properties_file}"
+  printf '%s=%s\n' "${property_key}" \
+    "$(properties_escape "${value}")" >>"${properties_file}"
 }
 
 new_env_file() {
