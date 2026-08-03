@@ -45,4 +45,31 @@ assert_contains "${identity_script}" 'properties_escape "${value}"' \
 assert_contains "${identity_script}" 'chmod 600 "${file}" "${properties_file}"' \
   'new_env_file must protect both runtime configuration files'
 
+assert_service_config() {
+  local relative_file="$1" service="$2" file="${repo_root}/$1"
+  assert_contains "${file}" 'default: local' \
+    "${service} must use the local profile when no profile is supplied"
+  assert_contains "${file}" \
+    "optional:file:\${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/${service}.properties" \
+    "${service} must import its generated runtime properties"
+}
+
+assert_service_config \
+  'egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application.yml' \
+  idp
+assert_service_config \
+  'egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml' \
+  rbac3
+assert_service_config \
+  'egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/application.yml' \
+  gateway-admin
+assert_service_config \
+  'egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml' \
+  gateway-engine
+ddc_config='egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application.yml'
+assert_service_config "${ddc_config}" ddc
+assert_contains "${repo_root}/${ddc_config}" \
+  'classpath:META-INF/egon-cola-ddc.properties' \
+  'DDC must preserve its starter defaults import'
+
 printf 'direct-run-contract: runtime properties adapter PASS\n'

@@ -1,6 +1,10 @@
 spring:
   application:
     name: rbac3-admin
+  profiles:
+    default: local
+  config:
+    import: optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/rbac3.properties
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2

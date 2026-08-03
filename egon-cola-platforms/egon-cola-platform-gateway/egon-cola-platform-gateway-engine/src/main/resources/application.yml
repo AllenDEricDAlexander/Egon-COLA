@@ -1,6 +1,10 @@
 spring:
   application:
     name: egon-cola-gateway-engine
+  profiles:
+    default: local
+  config:
+    import: optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-engine.properties
   datasource:
     url: ${GATEWAY_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/gateway_admin}
     username: ${GATEWAY_POSTGRES_USER:postgres}

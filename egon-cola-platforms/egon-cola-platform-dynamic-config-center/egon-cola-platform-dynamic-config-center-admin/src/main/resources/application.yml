@@ -14,11 +14,15 @@ management:
 spring:
   application:
     name: egon-cola-ddc-admin
+  profiles:
+    default: local
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
   config:
-    import: classpath:META-INF/egon-cola-ddc.properties
+    import:
+      - classpath:META-INF/egon-cola-ddc.properties
+      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/ddc.properties
   flyway:
     locations: classpath:db/postgresql
 
