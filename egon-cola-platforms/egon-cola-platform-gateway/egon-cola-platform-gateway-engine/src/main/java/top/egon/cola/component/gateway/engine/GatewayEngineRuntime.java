@@ -56,7 +56,7 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
         if (running) {
             return;
         }
-        activation.restoreLkg();
+        restoreRulesSafely();
         httpServer.start();
         if (properties.getRpc().isEnabled()) {
             rpcServer.start();
@@ -118,7 +118,7 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
     }
 
     private synchronized void refreshReadiness() {
-        boolean rulesReady = activation.active() != null
+        boolean rulesReady = restoreRulesSafely()
                 && activation.status().ready();
         boolean providersReady = rulesReady
                 && providerDirectory.allAvailable(
@@ -147,5 +147,18 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
         } catch (RuntimeException failure) {
             ready = false;
         }
+    }
+
+    private boolean restoreRulesSafely() {
+        if (activation.active() != null) {
+            return true;
+        }
+        try {
+            activation.restoreLkg();
+        } catch (RuntimeException failure) {
+            ready = false;
+            return false;
+        }
+        return activation.active() != null;
     }
 }

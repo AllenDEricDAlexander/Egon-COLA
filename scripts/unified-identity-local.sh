@@ -258,6 +258,9 @@ java_property_key() {
     EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT)
       printf 'egon.cola.component.ddc.admin.tls.development-plaintext'
       ;;
+    EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST)
+      printf 'egon.cola.component.ddc.consistency.fail-fast'
+      ;;
     EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE)
       printf 'egon.cola.component.gateway.engine.gateway-group-code'
       ;;
@@ -492,6 +495,7 @@ write_service_env_files() {
   write_env "${file}" DDC_REDIS_PORT "${redis_port}"
   write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
   write_env "${file}" DDC_REDIS_DATABASE 10
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE default
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_ENV local
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_NAMESPACE default
