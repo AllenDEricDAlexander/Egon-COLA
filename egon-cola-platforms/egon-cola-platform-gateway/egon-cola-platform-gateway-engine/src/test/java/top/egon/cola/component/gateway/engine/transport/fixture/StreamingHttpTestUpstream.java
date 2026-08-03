@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -39,6 +40,9 @@ public final class StreamingHttpTestUpstream implements AutoCloseable {
 
     private final ConcurrentHashMap<String, AtomicInteger> invocations =
             new ConcurrentHashMap<>();
+
+    private final ConcurrentHashMap<String, CountDownLatch>
+            invocationObserved = new ConcurrentHashMap<>();
 
     private final AtomicReference<Map<String, List<String>>> lastHeaders =
             new AtomicReference<>(Map.of());
@@ -64,6 +68,10 @@ public final class StreamingHttpTestUpstream implements AutoCloseable {
                             path,
                             ignored -> new AtomicInteger()
                     ).incrementAndGet();
+                    invocationObserved.computeIfAbsent(
+                            path,
+                            ignored -> new CountDownLatch(1)
+                    ).countDown();
                     lastHeaders.set(headers(request.requestHeaders()));
                     return switch (path) {
                         case "/echo" -> response
@@ -161,6 +169,19 @@ public final class StreamingHttpTestUpstream implements AutoCloseable {
     public int invocations(String path) {
         AtomicInteger count = invocations.get(path);
         return count == null ? 0 : count.get();
+    }
+
+    public boolean awaitInvocation(
+            String path,
+            long timeout,
+            TimeUnit unit) throws InterruptedException {
+        if (invocations(path) > 0) {
+            return true;
+        }
+        return invocationObserved.computeIfAbsent(
+                path,
+                ignored -> new CountDownLatch(1)
+        ).await(timeout, unit);
     }
 
     public Map<String, List<String>> lastHeaders() {

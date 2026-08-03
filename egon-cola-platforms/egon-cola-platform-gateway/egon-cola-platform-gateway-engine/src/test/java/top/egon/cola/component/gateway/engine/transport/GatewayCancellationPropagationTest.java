@@ -87,7 +87,8 @@ class GatewayCancellationPropagationTest {
     }
 
     @Test
-    void chunkedOversizeCancelsTheUploadAfterOneUpstreamInvocation() {
+    void chunkedOversizeCancelsTheUploadAfterOneUpstreamInvocation()
+            throws Exception {
         try (StreamingHttpTestUpstream upstream =
                      new StreamingHttpTestUpstream();
              ReactorNettyHttpUpstreamAdapter adapter =
@@ -128,6 +129,11 @@ class GatewayCancellationPropagationTest {
                     GatewayRequestBodyTooLargeException.class,
                     root(failure)
             );
+            assertTrue(upstream.awaitInvocation(
+                    "/upload",
+                    1,
+                    TimeUnit.SECONDS
+            ));
             assertEquals(1, upstream.invocations("/upload"));
         }
     }
