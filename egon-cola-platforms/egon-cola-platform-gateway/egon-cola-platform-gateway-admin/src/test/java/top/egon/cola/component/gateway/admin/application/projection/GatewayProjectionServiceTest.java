@@ -36,6 +36,45 @@ import static org.mockito.Mockito.when;
 class GatewayProjectionServiceTest {
 
     @Test
+    void preservesOptionalFiltersWhenListingProviderServices() {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        DdcManagementClient client = mock(DdcManagementClient.class);
+        when(client.getServiceKeys(any())).thenReturn(
+                new DdcManagementServiceCatalog(0, now, List.of())
+        );
+        GatewayProjectionService service = new GatewayProjectionService(
+                mock(GatewayGroupRepository.class),
+                mock(GatewayReleaseService.class),
+                client,
+                Clock.fixed(now, ZoneOffset.UTC)
+        );
+
+        service.services(new GatewayProjectionService.ProviderQuery(
+                "test-biz",
+                "orders",
+                "test",
+                "gateway",
+                null,
+                null,
+                null,
+                null,
+                null
+        ));
+
+        verify(client).getServiceKeys(new DdcManagementServiceQuery(
+                "test-biz",
+                "gateway",
+                "test",
+                "orders",
+                null,
+                null,
+                null,
+                null,
+                null
+        ));
+    }
+
+    @Test
     void adaptsAdminProtocolToDdcProviderQuery() {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         DdcManagementClient client = mock(DdcManagementClient.class);

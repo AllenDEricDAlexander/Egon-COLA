@@ -542,12 +542,15 @@ public class GatewayProjectionService {
     ) {
 
         private DdcManagementServiceQuery ddc() {
-            String ddcProtocol = protocol.trim().toLowerCase(Locale.ROOT);
+            String ddcProtocol = normalize(protocol);
+            if (ddcProtocol != null) {
+                ddcProtocol = ddcProtocol.toLowerCase(Locale.ROOT);
+            }
             if ("rpc".equals(ddcProtocol)) {
                 ddcProtocol = "grpc";
             }
-            String ddcServiceKind = serviceKind;
-            if (ddcServiceKind == null || ddcServiceKind.isBlank()) {
+            String ddcServiceKind = normalize(serviceKind);
+            if (ddcServiceKind == null && ddcProtocol != null) {
                 ddcServiceKind = switch (ddcProtocol) {
                     case "http", "https" -> "HTTP_PROVIDER";
                     case "grpc" -> "RPC_PROVIDER";
@@ -556,9 +559,8 @@ public class GatewayProjectionService {
                                     + protocol
                     );
                 };
-            } else {
-                ddcServiceKind = ddcServiceKind.trim()
-                        .toUpperCase(Locale.ROOT);
+            } else if (ddcServiceKind != null) {
+                ddcServiceKind = ddcServiceKind.toUpperCase(Locale.ROOT);
             }
             return new DdcManagementServiceQuery(
                     bizCode,
@@ -571,6 +573,10 @@ public class GatewayProjectionService {
                     group,
                     version
             );
+        }
+
+        private static String normalize(String value) {
+            return value == null || value.isBlank() ? null : value.trim();
         }
     }
 
