@@ -411,6 +411,8 @@ write_service_env_files() {
   write_env "${file}" IDP_BOOTSTRAP_PASSWORD_FILE "${secret_dir}/idp-admin.password"
   write_env "${file}" IDP_DDC_ENABLED true
   write_env "${file}" IDP_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" \
+    EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
   write_env "${file}" IDP_INSTANCE_ID idp-local-1
   write_env "${file}" IDP_ADVERTISED_HOST 127.0.0.1
   write_env "${file}" DDC_BIZ_CODE identity
@@ -436,6 +438,8 @@ write_service_env_files() {
   write_env "${file}" RBAC3_ARTIFACT_VERSION local
   write_env "${file}" RBAC3_DDC_ENABLED true
   write_env "${file}" RBAC3_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" \
+    EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DEPLOYMENT_ENV local
   write_env "${file}" DEPLOYMENT_NAMESPACE default
@@ -873,7 +877,9 @@ initialize_ddc_topology() {
       >/dev/null
   fi
 
-  for app_code in mock-backend gateway-engine-default gateway-test-mcp-provider; do
+  for app_code in \
+      idp-admin rbac3-admin mock-backend \
+      gateway-engine-default gateway-test-mcp-provider; do
     response="$(ddc_api GET "/api/v1/ddc/apps?bizCode=identity&keyword=${app_code}")"
     if ! jq -e --arg app "${app_code}" \
         '.data[] | select(.bizCode == "identity" and .appCode == $app)' \
@@ -892,6 +898,28 @@ initialize_ddc_topology() {
         >/dev/null
     fi
   done
+}
+
+wait_ddc_provider_registration() {
+  local app_code="$1" response
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    response="$(ddc_api GET \
+      "/api/v1/ddc/registry/services?bizCode=identity&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=${app_code}&group=default")"
+    if jq -e --arg app "${app_code}" '
+        .data.services[]
+        | select(
+            .appCode == $app
+            and .serviceKind == "HTTP_PROVIDER"
+            and .protocol == "http"
+            and .serviceName == $app
+            and .group == "default"
+          )
+      ' <<<"${response}" >/dev/null; then
+      return
+    fi
+    sleep 1
+  done
+  fail "${app_code} did not register an online DDC HTTP Provider lease"
 }
 
 initialize_gateway_control_plane() {
@@ -1041,6 +1069,8 @@ command_start() {
   stage "initializing DDC unified identity topology"
   oauth_token ddc-admin-web default "${secret_dir}/ddc-admin.access.jwt"
   initialize_ddc_topology
+  wait_ddc_provider_registration idp-admin
+  wait_ddc_provider_registration rbac3-admin
   stage "starting Gateway Engine DDC client"
   start_process gateway-engine "${env_dir}/gateway-engine.env" "${gateway_engine_jar}"
   wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness

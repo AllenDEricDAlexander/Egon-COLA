@@ -156,6 +156,9 @@ assert_env_equals "${idp_env}" IDP_DDC_ENABLED true \
   'local IdP must start its DDC config client'
 assert_env_equals "${idp_env}" IDP_HTTP_PROVIDER_ENABLED true \
   'local IdP must publish its HTTP Provider lease'
+assert_env_equals "${idp_env}" \
+  EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false \
+  'local IdP must recover until its DDC scope binding is initialized'
 assert_env_equals "${idp_env}" DDC_BIZ_CODE identity \
   'local IdP must use the unified identity DDC business scope'
 assert_env_equals "${idp_env}" DEPLOYMENT_ENV local \
@@ -172,6 +175,9 @@ assert_env_equals "${rbac3_env}" RBAC3_DDC_ENABLED true \
   'local RBAC3 must start its DDC config client'
 assert_env_equals "${rbac3_env}" RBAC3_HTTP_PROVIDER_ENABLED true \
   'local RBAC3 must publish its HTTP Provider lease'
+assert_env_equals "${rbac3_env}" \
+  EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false \
+  'local RBAC3 must recover until its DDC scope binding is initialized'
 assert_env_equals "${rbac3_env}" DDC_BIZ_CODE identity \
   'local RBAC3 must use the unified identity DDC business scope'
 assert_env_equals "${rbac3_env}" DEPLOYMENT_ENV local \
@@ -184,6 +190,79 @@ assert_env_equals "${rbac3_env}" RBAC3_ARTIFACT_VERSION local \
   'local RBAC3 service identity must use the local artifact version'
 assert_env_equals "${rbac3_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
   'local RBAC3 must use the DDC Registry Redis database'
+
+function_file="${temporary_dir}/initialize-ddc-topology.sh"
+extract_function initialize_ddc_topology "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+ddc_topology_calls="${temporary_dir}/ddc-topology-calls.jsonl"
+ddc_api() {
+  local method="$1" path="$2" body="${3:-null}"
+  if [[ "${method}" == "GET" ]]; then
+    printf '%s' '{"success":true,"data":[]}'
+    return
+  fi
+  jq -cn --arg method "${method}" --arg path "${path}" \
+    --argjson body "${body}" \
+    '{method:$method,path:$path,body:$body}' >>"${ddc_topology_calls}"
+  printf '%s' '{"success":true,"data":{}}'
+}
+initialize_ddc_topology
+for provider_app in idp-admin rbac3-admin; do
+  jq -e --arg app "${provider_app}" '
+    select(
+      .method == "POST"
+      and .path == "/api/v1/ddc/apps"
+      and .body.bizCode == "identity"
+      and .body.appCode == $app
+      and .body.enabled == true
+    )
+  ' "${ddc_topology_calls}" >/dev/null \
+    || fail "DDC topology must create the ${provider_app} application"
+  jq -e --arg app "${provider_app}" '
+    select(
+      .method == "POST"
+      and .path == "/api/v1/ddc/namespace-env-app-bindings"
+      and .body.bizCode == "identity"
+      and .body.namespaceCode == "default"
+      and .body.env == "local"
+      and .body.appCode == $app
+      and .body.enabled == true
+    )
+  ' "${ddc_topology_calls}" >/dev/null \
+    || fail "DDC topology must enable the ${provider_app} scope binding"
+done
+unset -f ddc_api initialize_ddc_topology
+
+function_file="${temporary_dir}/wait-ddc-provider-registration.sh"
+extract_function wait_ddc_provider_registration "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+ddc_registry_queries="${temporary_dir}/ddc-registry-queries.txt"
+ddc_api() {
+  local method="$1" path="$2" attempt
+  [[ "${method}" == "GET" ]] \
+    || fail 'provider registration wait must only read DDC state'
+  printf '%s\n' "${path}" >>"${ddc_registry_queries}"
+  attempt="$(wc -l <"${ddc_registry_queries}" | tr -d ' ')"
+  if [[ "${attempt}" -eq 1 ]]; then
+    printf '%s' '{"success":true,"data":{"services":[]}}'
+  else
+    printf '%s' \
+      '{"success":true,"data":{"services":[{"appCode":"idp-admin","serviceKind":"HTTP_PROVIDER","protocol":"http","serviceName":"idp-admin","group":"default","version":"5.3.2"}]}}'
+  fi
+}
+sleep() {
+  :
+}
+wait_ddc_provider_registration idp-admin
+[[ "$(wc -l <"${ddc_registry_queries}" | tr -d ' ')" -eq 2 ]] \
+  || fail 'provider registration wait must poll until the lease is online'
+grep -Fq \
+  'registry/services?bizCode=identity&namespaceCode=default&env=local&appCode=idp-admin&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=idp-admin&group=default' \
+  "${ddc_registry_queries}" \
+  || fail 'provider registration wait must query the exact IdP service key'
+unset -f ddc_api sleep wait_ddc_provider_registration
 
 # shellcheck source=lib/common.sh
 source "${repo_root}/scripts/unified-platform/lib/common.sh"
