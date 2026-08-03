@@ -142,4 +142,14 @@ for runbook in "${identity_runbook}" "${operations_runbook}"; do
     'runbook must document plain frontend startup'
 done
 
+verifier="${repo_root}/scripts/unified-platform/verify-local-stack.sh"
+assert_contains "${verifier}" 'verify_authenticated_json()' \
+  'deep verification must provide a reusable authenticated JSON check'
+for label in idp-users rbac3-roles gateway-dashboard ddc-configs; do
+  assert_contains "${verifier}" "${label}" \
+    "deep verification must cover ${label}"
+done
+assert_contains "${verifier}" 'admin-feature-matrix' \
+  'sanitized evidence must include the Admin feature matrix'
+
 printf 'direct-run-contract: runtime properties adapter PASS\n'

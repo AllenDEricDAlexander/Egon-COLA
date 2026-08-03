@@ -15,6 +15,7 @@ ddc_admin_token_file="${unified_platform_secret_dir}/ddc-admin.access.jwt"
 tenant_token_file="${unified_platform_secret_dir}/tenant-b.access.jwt"
 rbac3_token_file="${unified_platform_secret_dir}/rbac3-tenant-b.access.jwt"
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
+gateway_application_file="${unified_platform_runtime_dir}/gateway-application.id"
 
 failures=0
 
@@ -81,7 +82,8 @@ for file in \
   "${gateway_admin_token_file}" \
   "${tenant_token_file}" \
   "${rbac3_token_file}" \
-  "${gateway_group_file}"; do
+  "${gateway_group_file}" \
+  "${gateway_application_file}"; do
   [[ -s "${file}" ]] || unified_platform_fail "missing verifier input: ${file}"
 done
 
@@ -237,26 +239,35 @@ verify_unknown_origin_rejected() {
       "unconfigured browser origin received an allow-origin header"
 }
 
-verify_authenticated_proxy() {
-  local label="$1" url="$2" token_file="$3"
-  local response="${tmp_dir}/proxy-${label}.json" http_code attempt
+verify_authenticated_json() {
+  local label="$1" url="$2" token_file="$3" expression="${4:-.}"
+  local response="${tmp_dir}/admin-${label}.json"
+  local http_code attempt request_hex request_id
   [[ -s "${token_file}" ]] || unified_platform_fail \
-    "missing ${label} browser token: ${token_file}"
+    "missing ${label} Admin token: ${token_file}"
 
   for ((attempt = 1; attempt <= 20; attempt++)); do
+    request_hex="$(openssl rand -hex 16)"
+    request_id="${request_hex:0:8}-${request_hex:8:4}-${request_hex:12:4}-"\
+"${request_hex:16:4}-${request_hex:20:12}"
     http_code="$(curl --max-time 15 -sS -o "${response}" -w '%{http_code}' \
-      -H "Authorization: Bearer $(<"${token_file}")" "${url}")"
+      -H "Authorization: Bearer $(<"${token_file}")" \
+      -H "X-Request-Id: ${request_id}" \
+      -H "X-Trace-Id: ${request_id}" "${url}" 2>/dev/null || true)"
     if [[ "${http_code}" == "200" ]]; then
-      jq -e . "${response}" >/dev/null || unified_platform_fail \
-        "${label} authenticated browser proxy returned invalid JSON"
+      jq -e "${expression}" "${response}" >/dev/null \
+        || unified_platform_fail \
+          "${label} Admin feature returned unexpected JSON"
       return
     fi
-    [[ "${http_code}" == "401" || "${http_code}" == "403" ]] || break
+    [[ "${http_code}" == "000" || "${http_code}" == "401" \
+        || "${http_code}" == "403" || "${http_code}" == "502" \
+        || "${http_code}" == "503" ]] || break
     sleep 1
   done
 
   [[ "${http_code}" == "200" ]] || unified_platform_fail \
-    "${label} authenticated browser proxy failed with HTTP ${http_code} after ${attempt} attempts"
+    "${label} Admin feature failed with HTTP ${http_code} after ${attempt} attempts"
 }
 
 mcp_initialize() {
@@ -330,19 +341,187 @@ UNIFIED_IDENTITY_IDP_URL="${IDP_BASE_URL}" \
 UNIFIED_IDENTITY_RBAC3_URL="${RBAC3_BASE_URL}" \
   "${legacy_script}" refresh-tokens >"${tmp_dir}/token-refresh.log"
 
-unified_platform_stage "verifying authenticated Admin Web API proxies"
-verify_authenticated_proxy idp \
+unified_platform_stage "verifying authenticated Admin feature matrix"
+verify_authenticated_json idp-bootstrap \
+  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+  "${idp_admin_token_file}" 'type == "object"'
+verify_authenticated_json idp-users \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/users" \
+  "${idp_admin_token_file}" 'type == "array"'
+verify_authenticated_json idp-clients \
   "${IDP_ADMIN_WEB_URL}/api/v1/identity/clients" \
-  "${idp_admin_token_file}"
-verify_authenticated_proxy rbac3 \
+  "${idp_admin_token_file}" 'type == "array"'
+verify_authenticated_json idp-signing-keys \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/signing-keys" \
+  "${idp_admin_token_file}" 'type == "array"'
+verify_authenticated_json idp-audits \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/audits?page=0&size=20" \
+  "${idp_admin_token_file}" 'type == "object"'
+
+verify_authenticated_json rbac3-bootstrap \
+  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+  "${rbac3_admin_token_file}" 'type == "object"'
+verify_authenticated_json rbac3-runtime \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/runtime/status" \
-  "${rbac3_admin_token_file}"
-verify_authenticated_proxy gateway \
-  "${GATEWAY_ADMIN_WEB_URL}/api/v1/gateway/admin/scopes" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-mutations \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/runtime/mutations?limit=20" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-tenants \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/platform/tenants?page=0&size=20" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-users \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/users?page=0&size=20" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-org-units \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/org-units?page=0&size=20" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-positions \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/positions?page=0&size=20" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-applications \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/applications" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-roles \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/roles" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-management-policies \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/management-policies" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-sod-sets \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/sod-sets" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-data-rules \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/data-rules" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-field-rules \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/field-rules" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-operation-sod-rules \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/operation-sod-rules" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-sessions \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/sessions/me" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-role-candidates \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/auth/role-activation-candidates" \
+  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-role-activations \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/auth/role-activations" \
+  "${rbac3_admin_token_file}" '.data != null'
+rbac3_audit_from="$(jq -nr 'now - 86400 | todateiso8601 | @uri')"
+rbac3_audit_to="$(jq -nr 'now | todateiso8601 | @uri')"
+verify_authenticated_json rbac3-audit \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/audit-logs?from=${rbac3_audit_from}&to=${rbac3_audit_to}&limit=20" \
+  "${rbac3_admin_token_file}" '.data != null'
+
+gateway_group_id="$(<"${gateway_group_file}")"
+gateway_application_id="$(<"${gateway_application_file}")"
+gateway_admin_path="${GATEWAY_ADMIN_WEB_URL}/api/v1/gateway/admin"
+gateway_scope='bizCode=identity&appCode=mock-backend&env=local&namespace=default'
+verify_authenticated_json gateway-session \
+  "${gateway_admin_path}/session" "${gateway_admin_token_file}"
+verify_authenticated_json gateway-scopes \
+  "${gateway_admin_path}/scopes" "${gateway_admin_token_file}" \
+  'type == "array"'
+verify_authenticated_json gateway-dashboard \
+  "${gateway_admin_path}/dashboard?${gateway_scope}" \
   "${gateway_admin_token_file}"
-verify_authenticated_proxy ddc \
-  "${DDC_ADMIN_WEB_URL}/api/v1/ddc/bizs" \
-  "${ddc_admin_token_file}"
+verify_authenticated_json gateway-groups \
+  "${gateway_admin_path}/gateway-groups?${gateway_scope}" \
+  "${gateway_admin_token_file}" 'type == "array"'
+verify_authenticated_json gateway-group \
+  "${gateway_admin_path}/gateway-groups/${gateway_group_id}" \
+  "${gateway_admin_token_file}"
+verify_authenticated_json gateway-applications \
+  "${gateway_admin_path}/applications?${gateway_scope}" \
+  "${gateway_admin_token_file}" 'type == "array"'
+verify_authenticated_json gateway-credentials \
+  "${gateway_admin_path}/applications/${gateway_application_id}/credentials" \
+  "${gateway_admin_token_file}" 'type == "array"'
+verify_authenticated_json gateway-catalog \
+  "${gateway_admin_path}/applications/${gateway_application_id}/catalog" \
+  "${gateway_admin_token_file}"
+verify_authenticated_json gateway-draft \
+  "${gateway_admin_path}/gateway-groups/${gateway_group_id}/draft" \
+  "${gateway_admin_token_file}"
+verify_authenticated_json gateway-draft-diff \
+  "${gateway_admin_path}/gateway-groups/${gateway_group_id}/draft/diff" \
+  "${gateway_admin_token_file}"
+verify_authenticated_json gateway-releases \
+  "${gateway_admin_path}/gateway-groups/${gateway_group_id}/releases" \
+  "${gateway_admin_token_file}" 'type == "array"'
+verify_authenticated_json gateway-engine-nodes \
+  "${gateway_admin_path}/gateway-groups/${gateway_group_id}/engine-nodes" \
+  "${gateway_admin_token_file}" '.value != null'
+verify_authenticated_json gateway-runtime-consistency \
+  "${gateway_admin_path}/gateway-groups/${gateway_group_id}/runtime-consistency" \
+  "${gateway_admin_token_file}"
+verify_authenticated_json gateway-provider-services \
+  "${gateway_admin_path}/providers/services?bizCode=identity&appCode=gateway-test-mcp-provider&env=local&namespace=default" \
+  "${gateway_admin_token_file}" '.value != null'
+verify_authenticated_json gateway-provider-instances \
+  "${gateway_admin_path}/providers/instances?${gateway_scope}" \
+  "${gateway_admin_token_file}" '.value != null'
+verify_authenticated_json gateway-traces \
+  "${gateway_admin_path}/observability/traces?${gateway_scope}" \
+  "${gateway_admin_token_file}"
+verify_authenticated_json gateway-audit \
+  "${gateway_admin_path}/audit?${gateway_scope}" \
+  "${gateway_admin_token_file}"
+verify_authenticated_json gateway-mcp-servers \
+  "${gateway_admin_path}/mcp/servers?gatewayGroupId=${gateway_group_id}" \
+  "${gateway_admin_token_file}" 'type == "array"'
+verify_authenticated_json gateway-mcp-providers \
+  "${gateway_admin_path}/mcp/remote/providers?gatewayGroupId=${gateway_group_id}" \
+  "${gateway_admin_token_file}" 'type == "array"'
+verify_authenticated_json gateway-mcp-mounts \
+  "${gateway_admin_path}/mcp/remote/mounts?gatewayGroupId=${gateway_group_id}" \
+  "${gateway_admin_token_file}" 'type == "array"'
+verify_authenticated_json gateway-mcp-artifacts \
+  "${gateway_admin_path}/mcp/apps/artifacts?gatewayGroupId=${gateway_group_id}" \
+  "${gateway_admin_token_file}" 'type == "array"'
+
+ddc_admin_path="${DDC_ADMIN_WEB_URL}/api/v1/ddc"
+verify_authenticated_json ddc-bootstrap \
+  "${DDC_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+  "${ddc_admin_token_file}" 'type == "object"'
+verify_authenticated_json ddc-bizs \
+  "${ddc_admin_path}/bizs" "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-envs \
+  "${ddc_admin_path}/envs" "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-apps \
+  "${ddc_admin_path}/apps?bizCode=identity" "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-namespaces \
+  "${ddc_admin_path}/namespaces?bizCode=identity" \
+  "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-bindings \
+  "${ddc_admin_path}/namespace-env-app-bindings?bizCode=identity&namespaceCode=default&env=local" \
+  "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-publish-tasks \
+  "${ddc_admin_path}/publish-tasks" "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-registry-services \
+  "${ddc_admin_path}/registry/services?bizCode=identity&env=local&appCode=gateway-engine-default&namespace=default" \
+  "${ddc_admin_token_file}" \
+  '.success == true and (.data.services | type) == "array"'
+verify_authenticated_json ddc-instances \
+  "${ddc_admin_path}/instances?bizCode=identity&env=local&appCode=gateway-engine-default" \
+  "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-configs \
+  "${ddc_admin_path}/configs?bizCode=identity&namespaceCode=default&env=local&appCode=gateway-engine-default&includeDeleted=false" \
+  "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
+verify_authenticated_json ddc-cache \
+  "${ddc_admin_path}/cache/check?bizCode=identity&env=local&appCode=gateway-engine-default" \
+  "${ddc_admin_token_file}" \
+  '.success == true and (.data | type) == "array"'
 
 unified_platform_stage "verifying Stable primitives and cross-engine Redis session"
 mcp_initialize "${GATEWAY_BASE_URL}" stable-a >/dev/null
@@ -600,7 +779,7 @@ assert_json "${response}" '.result.isError == false' \
 
 unified_platform_stage "recording sanitized verification evidence"
 jq -n --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-browser-sso","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
+  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-browser-sso","admin-feature-matrix","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
   >"${unified_platform_evidence_dir}/verification-summary.json"
 chmod 600 "${unified_platform_evidence_dir}/verification-summary.json"
 
