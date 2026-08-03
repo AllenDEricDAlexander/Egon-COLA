@@ -91,4 +91,35 @@ assert_vite_proxy \
   'egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/vite.config.ts' \
   DDC 18150
 
+prepare_script="${repo_root}/scripts/unified-platform/prepare-local-stack.sh"
+[[ -x "${prepare_script}" ]] \
+  || fail 'prepare-local-stack.sh must exist and be executable'
+assert_contains "${prepare_script}" 'start-local-stack.sh' \
+  'preparation must initialize the full local topology'
+assert_contains "${prepare_script}" 'stop-local-stack.sh' \
+  'preparation must leave ports free for direct commands'
+assert_contains "${prepare_script}" 'npm ci' \
+  'preparation must install missing locked frontend dependencies'
+assert_contains "${prepare_script}" '.properties' \
+  'preparation must verify generated Java runtime configuration'
+
+identity_runbook="${repo_root}/docs/runbooks/unified-identity-local.md"
+operations_runbook="${repo_root}/docs/operations/unified-identity-mcp-local-runbook.md"
+for runbook in "${identity_runbook}" "${operations_runbook}"; do
+  assert_contains "${runbook}" 'prepare-local-stack.sh' \
+    'runbook must document the one-time preparation command'
+  assert_contains "${runbook}" 'egon-cola-platform-idp-admin-exec.jar' \
+    'runbook must document direct IdP JAR startup'
+  assert_contains "${runbook}" 'egon-cola-platform-rbac3-admin-exec.jar' \
+    'runbook must document direct RBAC3 JAR startup'
+  assert_contains "${runbook}" 'egon-cola-platform-gateway-admin-exec.jar' \
+    'runbook must document direct Gateway Admin JAR startup'
+  assert_contains "${runbook}" 'egon-cola-platform-gateway-engine-exec.jar' \
+    'runbook must document direct Gateway Engine JAR startup'
+  assert_contains "${runbook}" 'egon-cola-platform-dynamic-config-center-admin-exec.jar' \
+    'runbook must document direct DDC JAR startup'
+  assert_contains "${runbook}" 'npm run dev' \
+    'runbook must document plain frontend startup'
+done
+
 printf 'direct-run-contract: runtime properties adapter PASS\n'

@@ -31,6 +31,40 @@ export UNIFIED_IDENTITY_REDIS_PASSWORD_FILE=/absolute/path/redis.password
 
 ## 2. 准备、启动和验证
 
+需要像最终交付一样逐个运行 JAR 和前端时，先在仓库根目录执行一次安全准备：
+
+```bash
+./scripts/unified-platform/prepare-local-stack.sh
+```
+
+该命令会使用真实 PostgreSQL/Redis 构建 JAR、安装缺失的锁定版前端依赖，临时拉起并初始化 IdP SSO、RBAC3 双租户、DDC 和 Gateway/MCP 拓扑，然后停止受管进程，为直接命令释放端口。生成的密钥和每个服务独立的 Spring Properties 位于 `target/local-unified-platform/`，权限为 600，不进入 Git。
+
+准备完成后，分别在五个终端的仓库根目录运行；不需要 `source .env`，也不需要额外 JVM 参数：
+
+```bash
+java -jar egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar
+```
+
+```bash
+java -jar egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar
+```
+
+```bash
+java -jar egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar
+```
+
+```bash
+java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar
+```
+
+```bash
+java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar
+```
+
+必须从仓库根目录执行这些命令，或者显式设置 `UNIFIED_PLATFORM_RUNTIME_DIR` 为运行配置目录的绝对路径。首次创建数据库时不要跳过准备命令，因为 RBAC3 的本机身份绑定和四个平台的初始数据由准备流程建立。
+
+以下旧命令继续用于一键编排或回归：
+
 仅检查依赖、创建缺失的具名数据库、生成本机密钥并构建应用：
 
 ```bash
@@ -96,24 +130,24 @@ npm run dev
 
 ```bash
 cd egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web
-RBAC3_ADMIN_PROXY=http://127.0.0.1:18130 npm run dev
+npm run dev
 ```
 
 ```bash
 cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
-GATEWAY_ADMIN_PROXY=http://127.0.0.1:18140 npm run dev
+npm run dev
 ```
 
 ```bash
 cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
-DDC_ADMIN_PROXY=http://127.0.0.1:18150 npm run dev
+npm run dev
 ```
 
-本机管理员用户名为 `alice`。首次准备时生成的密码保存在 `.runtime/unified-identity/secrets/idp-admin.password`，文件权限为 600；不要提交、复制到文档或写入前端存储。登录一次 IdP 后，进入另外三个管理 Web 会复用 IdP SSO Cookie，不再要求输入密码或 Token。切换租户会重新执行 Authorization Code + PKCE，但不会重新输入密码。
+本机管理员用户名为 `alice`。推荐准备命令生成的密码保存在 `target/local-unified-platform/secrets/idp-admin.password`，文件权限为 600；不要提交、复制到文档或写入前端存储。登录一次 IdP 后，进入另外三个管理 Web 会复用 IdP SSO Cookie，不再要求输入密码或 Token。切换租户会重新执行 Authorization Code + PKCE，但不会重新输入密码。
 
 ## 5. 运行数据和日志
 
-所有生成物位于 `.runtime/unified-identity/`，该目录已被 Git 忽略：
+推荐准备命令的所有生成物位于 `target/local-unified-platform/`；直接运行旧的 `unified-identity-local.sh` 时默认仍使用 `.runtime/unified-identity/`。两个目录均已被 Git 忽略：
 
 - `logs/`：各后端日志。
 - `pids/`：仅由本脚本管理的 PID。

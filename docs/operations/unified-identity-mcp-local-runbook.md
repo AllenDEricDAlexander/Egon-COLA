@@ -41,6 +41,30 @@ scripts/unified-platform/start-local-stack.sh
 
 首次执行会完成 Maven 打包、Admin Web 构建、数据库初始化、IdP 用户引导、RBAC3 多租户角色初始化、DDC 应用与注册初始化，以及 Gateway HTTP/MCP 统一发布。重复执行会复用已有数据并协调缺失的 MCP 配置。
 
+需要验证交付给开发者的原生命令时，先执行一次：
+
+```bash
+scripts/unified-platform/prepare-local-stack.sh
+```
+
+准备流程会初始化同一完整拓扑并停止所有受管进程。随后从仓库根目录分别运行五个后端；JAR 会自动读取 `target/local-unified-platform/env/*.properties`：
+
+```bash
+java -jar egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar
+java -jar egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar
+java -jar egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar
+java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar
+java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar
+```
+
+四个 Admin Web 则分别进入各自目录执行同一条无参数命令，默认代理已固定为对应的 `18120`、`18130`、`18140`、`18150` 后端端口：
+
+```bash
+npm run dev
+```
+
+直接启动顺序为 DDC、IdP、RBAC3、Gateway Admin、Gateway Engine；等待后端 Readiness 为 `200` 后再启动 Web。首次数据库初始化必须经过准备流程，不能只启动空库上的 JAR。
+
 只在已确认可执行 JAR 和 Web 构建均为最新时，才可跳过构建：
 
 ```bash
