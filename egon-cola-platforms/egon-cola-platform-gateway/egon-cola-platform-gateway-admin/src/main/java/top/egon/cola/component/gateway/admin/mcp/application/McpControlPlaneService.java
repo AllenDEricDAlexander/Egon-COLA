@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.admin.mcp.application;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -75,6 +76,7 @@ public class McpControlPlaneService {
 
     private final Clock clock;
 
+    @Autowired
     public McpControlPlaneService(
             McpServerRepository servers,
             JdbcMcpCapabilityDraftStore capabilities,

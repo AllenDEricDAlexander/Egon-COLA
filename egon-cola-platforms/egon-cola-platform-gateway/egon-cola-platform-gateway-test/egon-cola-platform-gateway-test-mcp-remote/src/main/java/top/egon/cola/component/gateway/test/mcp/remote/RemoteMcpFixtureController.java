@@ -39,6 +39,9 @@ public class RemoteMcpFixtureController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "REMOTE_FIXTURE_UNAVAILABLE"));
         }
+        if (!request.containsKey("id")) {
+            return ResponseEntity.accepted().build();
+        }
         Object id = request.get("id");
         String method = Objects.toString(request.get("method"), "");
         boolean rc = "2026-07-28".equals(headers.getFirst(

@@ -97,6 +97,9 @@ Quick verification, equivalent to the core Fast CI build:
 ./mvnw -V --no-transfer-progress clean install
 ```
 
+For the host-local unified IdP, RBAC3, DDC, Gateway, and complete MCP topology,
+use the [unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md).
+
 The core Strong CI build runs separately on JDK 21 and JDK 25. The complete workflow also verifies generated archetype projects and Docker images; see `.github/workflows/ci_java_compatibility.yaml` for the exact steps.
 
 ```bash

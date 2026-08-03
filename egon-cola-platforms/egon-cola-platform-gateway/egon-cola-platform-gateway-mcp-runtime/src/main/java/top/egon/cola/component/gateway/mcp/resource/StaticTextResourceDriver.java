@@ -20,6 +20,9 @@ public final class StaticTextResourceDriver implements McpResourceDriver {
     public Mono<Content> read(ReadRequest request) {
         String content = request.configuration().get("content");
         if (content == null) {
+            content = request.configuration().get("text");
+        }
+        if (content == null) {
             throw rejected("MCP static text content is not configured");
         }
         return Mono.just(bounded(

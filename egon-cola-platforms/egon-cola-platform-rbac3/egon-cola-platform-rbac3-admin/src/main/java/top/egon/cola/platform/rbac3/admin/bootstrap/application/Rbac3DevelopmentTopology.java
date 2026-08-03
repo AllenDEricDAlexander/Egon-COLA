@@ -79,6 +79,11 @@ public final class Rbac3DevelopmentTopology {
                     "gateway:credentials:write",
                     "gateway:drafts:write",
                     "gateway:groups:write",
+                    "gateway:mcp:approve",
+                    "gateway:mcp:read",
+                    "gateway:mcp:runtime:read",
+                    "gateway:mcp:test",
+                    "gateway:mcp:write",
                     "gateway:releases:write")),
             new ApplicationDefinition(
                     "ddc-admin", "Dynamic Configuration Administration",
@@ -87,7 +92,23 @@ public final class Rbac3DevelopmentTopology {
             new ApplicationDefinition(
                     "mock-backend", "Unified Identity Mock Backend",
                     "MOCK_LOCAL_ADMIN", 40,
-                    List.of("mock:read", "mock:admin")));
+                    List.of(
+                    "mock:read",
+                    "mock:admin",
+                    "mcp:unified-local:tool:local_query:call",
+                    "mcp:unified-local:tool:local_query_task:call",
+                    "mcp:unified-local:tool:local_query_task:task:get",
+                    "mcp:unified-local:tool:local_query_task:task:update",
+                    "mcp:unified-local:tool:local_query_task:task:cancel",
+                    "mcp:unified-local:tool:high_risk_query:call",
+                    "mcp:unified-local:tool:stable.remote_echo:call",
+                    "mcp:unified-local:tool:rc.remote_echo:call",
+                    "mcp:unified-local:resource:local_status:read",
+                    "mcp:unified-local:resource:stable.remote_text:read",
+                    "mcp:unified-local:resource:local_item:read",
+                    "mcp:unified-local:resource:qa_dashboard:read",
+                    "mcp:unified-local:prompt:review_item:get",
+                    "mcp:unified-local:prompt:rc.remote_summary:get")));
 
     private Rbac3DevelopmentTopology() {
     }

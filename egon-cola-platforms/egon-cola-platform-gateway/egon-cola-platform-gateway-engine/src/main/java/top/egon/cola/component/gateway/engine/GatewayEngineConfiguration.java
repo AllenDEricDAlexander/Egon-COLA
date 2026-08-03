@@ -214,7 +214,7 @@ public class GatewayEngineConfiguration {
     public McpRemoteClientPool gatewayRemoteMcpClientPool(
             RemoteAuthProvider authentication,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            Clock gatewayClock,
+            @Qualifier("gatewayClock") Clock gatewayClock,
             McpRuntimeProperties properties) {
         properties.validate();
         return new McpRemoteClientPool(
@@ -234,7 +234,7 @@ public class GatewayEngineConfiguration {
             MeterRegistry meters,
             ObservationRegistry observations,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            Clock gatewayClock,
+            @Qualifier("gatewayClock") Clock gatewayClock,
             McpRuntimeProperties properties) {
         properties.validate();
         ArrayList<McpTelemetry> observers = new ArrayList<>();
@@ -343,7 +343,7 @@ public class GatewayEngineConfiguration {
     @Bean
     public ProviderDirectory gatewayProviderDirectory(
             DdcServiceRegistryClient registry,
-            Clock gatewayClock) {
+            @Qualifier("gatewayClock") Clock gatewayClock) {
         return new ProviderDirectory(
                 new DdcProviderServiceRegistryAdapter(registry),
                 gatewayClock
@@ -357,7 +357,7 @@ public class GatewayEngineConfiguration {
 
     @Bean
     public PassiveHealthTracker gatewayPassiveHealthTracker(
-            Clock gatewayClock) {
+            @Qualifier("gatewayClock") Clock gatewayClock) {
         return new PassiveHealthTracker(
                 PassiveHealthPolicy.defaults(),
                 gatewayClock
@@ -403,7 +403,7 @@ public class GatewayEngineConfiguration {
             GatewayRuleChunkStore chunks,
             ProviderDirectory providerDirectory,
             GatewayEngineRuntimeProperties properties,
-            Clock gatewayClock,
+            @Qualifier("gatewayClock") Clock gatewayClock,
             GatewayTelemetry telemetry) {
         GatewayRuleActivationApplier activation =
                 new GatewayRuleActivationApplier(
@@ -436,7 +436,7 @@ public class GatewayEngineConfiguration {
             GatewayRuleActivationApplier activation,
             PassiveHealthTracker passiveHealth,
             ActiveHealthTracker activeHealth,
-            Clock gatewayClock) {
+            @Qualifier("gatewayClock") Clock gatewayClock) {
         return new DirectoryProviderSelector(
                 providerDirectory,
                 DirectoryProviderSelector.defaultLoadBalancers(),
@@ -544,7 +544,7 @@ public class GatewayEngineConfiguration {
     public RedisMcpSessionStore gatewayMcpSessionStore(
             @Qualifier("gatewayMcpRedissonClient") RedissonClient redisson,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            Clock gatewayClock,
+            @Qualifier("gatewayClock") Clock gatewayClock,
             @Value(
                     "${egon.cola.component.gateway.engine.mcp.redis."
                             + "key-prefix:gateway:mcp:}"
@@ -563,7 +563,6 @@ public class GatewayEngineConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean(DataSource.class)
     public JdbcMcpRuntimeTaskStore gatewayMcpRuntimeTaskStore(
             DataSource dataSource,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
@@ -575,7 +574,7 @@ public class GatewayEngineConfiguration {
     public McpTaskService gatewayMcpTaskService(
             JdbcMcpRuntimeTaskStore store,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            Clock gatewayClock,
+            @Qualifier("gatewayClock") Clock gatewayClock,
             McpRuntimeProperties properties) {
         return new McpTaskService(
                 store,
@@ -627,7 +626,7 @@ public class GatewayEngineConfiguration {
             McpRemoteClientPool remoteClients,
             McpTelemetry mcpTelemetry,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            Clock gatewayClock,
+            @Qualifier("gatewayClock") Clock gatewayClock,
             GatewayEngineRuntimeProperties properties,
             McpRuntimeProperties mcpProperties,
             @Value(

@@ -1,7 +1,11 @@
 package top.egon.cola.platform.idp.admin.bootstrap;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -9,6 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class IdpBootstrapRunnerTest {
+
+    @TempDir
+    Path temporaryDirectory;
 
     @Test
     void readsPasswordFromEnvironmentAndClearsForwardedCharacters() {
@@ -27,6 +34,46 @@ class IdpBootstrapRunnerTest {
                 new char["strong-password-1".length()],
                 port.forwardedPassword
         );
+    }
+
+    @Test
+    void readsPasswordFromRestrictedFileBeforeEnvironment() throws IOException {
+        Path passwordFile = temporaryDirectory.resolve("bootstrap.password");
+        Files.writeString(passwordFile, "file-password-1\n");
+        RecordingBootstrapPort port = new RecordingBootstrapPort();
+        IdpBootstrapRunner runner = new IdpBootstrapRunner(port);
+
+        int result = runner.run(
+                new String[]{"--idp-bootstrap-admin=alice"},
+                Map.of(
+                        "IDP_BOOTSTRAP_PASSWORD_FILE",
+                        passwordFile.toString(),
+                        "IDP_BOOTSTRAP_PASSWORD",
+                        "environment-password-1"
+                )
+        );
+
+        assertEquals(0, result);
+        assertEquals("file-password-1", port.copiedPassword);
+        assertArrayEquals(
+                new char["file-password-1".length()],
+                port.forwardedPassword
+        );
+    }
+
+    @Test
+    void rejectsMissingPasswordFile() {
+        IdpBootstrapRunner runner = new IdpBootstrapRunner(
+                new RecordingBootstrapPort()
+        );
+
+        assertThrows(IllegalStateException.class, () -> runner.run(
+                new String[]{"--idp-bootstrap-admin=alice"},
+                Map.of(
+                        "IDP_BOOTSTRAP_PASSWORD_FILE",
+                        temporaryDirectory.resolve("missing.password").toString()
+                )
+        ));
     }
 
     @Test

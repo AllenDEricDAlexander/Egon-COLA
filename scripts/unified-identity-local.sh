@@ -46,6 +46,7 @@ Usage: ./scripts/unified-identity-local.sh <command>
 Commands:
   prepare  Check host dependencies, create named databases/secrets, and package jars
   start    Start and bootstrap DDC, IdP, RBAC3, Gateway, and the mock backend
+  refresh-tokens  Refresh local OAuth tokens and rebuild both tenant snapshots
   verify   Execute the host-local unified identity acceptance checks
   status   Show exact managed process and health status
   stop     Gracefully stop only processes recorded by this harness
@@ -291,6 +292,7 @@ write_service_env_files() {
   write_env "${file}" IDP_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/idp-admin.service.jwt"
   write_env "${file}" IDP_SNOWFLAKE_MACHINE_ID 32
   write_env "${file}" IDP_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${file}" IDP_BOOTSTRAP_PASSWORD_FILE "${secret_dir}/idp-admin.password"
   write_env "${file}" IDP_DDC_ENABLED false
 
   file="$(new_env_file rbac3)"
@@ -328,6 +330,7 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_AUTHORIZATION_REDIS_DATABASE 8
   write_env "${file}" GATEWAY_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/gateway-admin.service.jwt"
   write_env "${file}" GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64 "$(<"${secret_dir}/gateway-master-key.base64")"
+  write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
   write_env "${file}" GATEWAY_ADMIN_DDC_ENABLED true
   write_env "${file}" GATEWAY_ADMIN_DDC_ENDPOINT "${ddc_url}"
   write_env "${file}" GATEWAY_ADMIN_DDC_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
@@ -365,6 +368,23 @@ write_service_env_files() {
   write_env "${file}" IDP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" IDP_REDIS_DATABASE 8
   write_env "${file}" IDP_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" GATEWAY_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
+  write_env "${file}" GATEWAY_POSTGRES_USER "${postgres_user}"
+  write_env "${file}" GATEWAY_POSTGRES_PASSWORD "${postgres_password_value}"
+  write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
+  write_env "${file}" GATEWAY_MCP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" GATEWAY_MCP_REDIS_DATABASE 8
+  write_env "${file}" GATEWAY_MCP_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" GATEWAY_MCP_RBAC3_ENABLED true
+  write_env "${file}" GATEWAY_MCP_RBAC3_SYSTEM_CODE mock-backend
+  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_DATABASE 8
+  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
+  write_env "${file}" GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/mock-backend.service.jwt"
+  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL 1s
+  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_MAXIMUM_JITTER 0s
+  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL 0s
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 35
   write_env "${file}" DDC_ENABLED true
   write_env "${file}" DDC_BIZ_CODE identity
@@ -386,7 +406,11 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY "${runtime_dir}/gateway-engine-data"
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT 18180
   write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT 18181
+  write_env "${file}" GATEWAY_ENGINE_DDC_INSTANCE_ID gateway-engine-local-1
   write_env "${file}" GATEWAY_ENGINE_DDC_ADVERTISED_PORT 18180
+  write_env "${file}" GATEWAY_MCP_REMOTE_CIRCUIT_OPEN_DURATION PT3S
+  write_env "${file}" GATEWAY_MCP_REMOTE_FAILURE_THRESHOLD 2
+  write_env "${file}" GATEWAY_MCP_TASK_POLL_INTERVAL PT1S
 }
 
 package_applications() {
@@ -635,7 +659,7 @@ initialize_ddc_topology() {
       >/dev/null
   fi
 
-  for app_code in mock-backend gateway-engine-default; do
+  for app_code in mock-backend gateway-engine-default gateway-test-mcp-provider; do
     response="$(ddc_api GET "/api/v1/ddc/apps?bizCode=identity&keyword=${app_code}")"
     if ! jq -e --arg app "${app_code}" \
         '.data[] | select(.bizCode == "identity" and .appCode == $app)' \
@@ -781,8 +805,6 @@ command_start() {
   stage "starting IdP"
   idp_argument="$(bootstrap_idp_argument)"
   if [[ -n "${idp_argument}" ]]; then
-    write_env "${env_dir}/idp.env" IDP_BOOTSTRAP_PASSWORD \
-      "$(<"${secret_dir}/idp-admin.password")"
     start_process idp "${env_dir}/idp.env" "${idp_jar}" "${idp_argument}"
   else
     start_process idp "${env_dir}/idp.env" "${idp_jar}"
@@ -820,9 +842,33 @@ command_start() {
   start_process mock-backend "${env_dir}/mock-backend.env" "${mock_jar}"
   wait_http mock-backend "${mock_url}/actuator/health/readiness"
   wait_gateway_catalog
-  publish_gateway_routes
-  wait_gateway_route
+  if [[ "${UNIFIED_IDENTITY_DEFER_GATEWAY_RELEASE:-false}" == "true" ]]; then
+    stage "deferring Gateway release to the unified platform publisher"
+  else
+    publish_gateway_routes
+    wait_gateway_route
+  fi
   echo "Unified identity backends are running. Run verify for live acceptance checks."
+}
+
+command_refresh_tokens() {
+  process_running idp || fail "idp is not running; run start first"
+  process_running rbac3 || fail "rbac3 is not running; run start first"
+
+  stage "refreshing local OAuth SSO session"
+  oauth_login
+  oauth_token idp-admin-web default "${secret_dir}/idp-admin.access.jwt"
+  oauth_token rbac3-admin-web default "${secret_dir}/rbac3-default.access.jwt"
+  activate_roles "${secret_dir}/rbac3-default.access.jwt" true
+  oauth_token gateway-admin-web default "${secret_dir}/gateway-admin.access.jwt"
+  oauth_token ddc-admin-web default "${secret_dir}/ddc-admin.access.jwt"
+  oauth_token mock-backend default "${secret_dir}/default.access.jwt"
+
+  oauth_token rbac3-admin-web tenant-b \
+    "${secret_dir}/rbac3-tenant-b.access.jwt"
+  activate_roles "${secret_dir}/rbac3-tenant-b.access.jwt" true
+  oauth_token mock-backend tenant-b "${secret_dir}/tenant-b.access.jwt"
+  stage "local OAuth tokens and authorization snapshots are current"
 }
 
 http_status() {
@@ -907,6 +953,10 @@ command_verify() {
   for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine; do
     process_running "${name}" || fail "${name} is not running; run start first"
   done
+  oauth_login
+  oauth_token rbac3-admin-web default \
+    "${secret_dir}/rbac3-default.access.jwt"
+  activate_roles "${secret_dir}/rbac3-default.access.jwt" false
   oauth_token mock-backend default "${secret_dir}/mock-before-activation.access.jwt"
   status="$(http_status "${gateway_url}/api/mock/admin" \
     "${secret_dir}/mock-before-activation.access.jwt")"
@@ -1008,6 +1058,7 @@ case "${1:---help}" in
   --help|-h|help) usage ;;
   prepare) command_prepare ;;
   start) command_start ;;
+  refresh-tokens) command_refresh_tokens ;;
   verify) command_verify ;;
   status) command_status ;;
   stop) command_stop ;;

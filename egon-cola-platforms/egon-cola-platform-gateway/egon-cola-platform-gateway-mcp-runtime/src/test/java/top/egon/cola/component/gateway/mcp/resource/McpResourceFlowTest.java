@@ -72,6 +72,20 @@ class McpResourceFlowTest {
                 ))).block();
         assertEquals("approved", content.text());
 
+        McpResourceDriver.Content fixtureContent = Mono.from(text.read(new
+                McpResourceDriver.ReadRequest(
+                        "finance",
+                        "fixture-policy",
+                        "egon://finance/fixture-policy",
+                        "text/plain",
+                        null,
+                        Map.of("text", "fixture-approved"),
+                        Map.of(),
+                        32,
+                        Map.of()
+                ))).block();
+        assertEquals("fixture-approved", fixtureContent.text());
+
         Files.writeString(
                 storageRoot.resolve("report.txt"),
                 "daily-report",

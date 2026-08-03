@@ -1,5 +1,9 @@
 package top.egon.cola.platform.idp.admin.bootstrap;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
@@ -9,6 +13,8 @@ public final class IdpBootstrapRunner {
     private static final String ADMIN_ARGUMENT = "--idp-bootstrap-admin=";
     private static final String PASSWORD_ENVIRONMENT =
             "IDP_BOOTSTRAP_PASSWORD";
+    private static final String PASSWORD_FILE_ENVIRONMENT =
+            "IDP_BOOTSTRAP_PASSWORD_FILE";
 
     private final BootstrapPort bootstrapPort;
 
@@ -50,10 +56,12 @@ public final class IdpBootstrapRunner {
         if (username == null) {
             return 0;
         }
-        String secret = environment.get(PASSWORD_ENVIRONMENT);
+        String secret = passwordSecret(environment);
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException(
-                    PASSWORD_ENVIRONMENT + " is required for bootstrap"
+                    PASSWORD_FILE_ENVIRONMENT + " or "
+                            + PASSWORD_ENVIRONMENT
+                            + " is required for bootstrap"
             );
         }
         char[] password = secret.toCharArray();
@@ -67,6 +75,29 @@ public final class IdpBootstrapRunner {
             return 0;
         } finally {
             Arrays.fill(password, '\0');
+        }
+    }
+
+    private String passwordSecret(Map<String, String> environment) {
+        String passwordFile = environment.get(PASSWORD_FILE_ENVIRONMENT);
+        if (passwordFile == null || passwordFile.isBlank()) {
+            return environment.get(PASSWORD_ENVIRONMENT);
+        }
+        Path path = Path.of(passwordFile.trim());
+        if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
+            throw new IllegalStateException(
+                    PASSWORD_FILE_ENVIRONMENT
+                            + " must reference a readable regular file"
+            );
+        }
+        try {
+            return Files.readString(path, StandardCharsets.UTF_8)
+                    .replaceFirst("[\\r\\n]+$", "");
+        } catch (IOException exception) {
+            throw new IllegalStateException(
+                    PASSWORD_FILE_ENVIRONMENT + " cannot be read",
+                    exception
+            );
         }
     }
 

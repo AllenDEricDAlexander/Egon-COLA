@@ -30,14 +30,36 @@ egon:
         app-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
         env: ${DDC_ENV:local}
         namespace: ${DDC_NAMESPACE:gateway-test}
+        admin:
+          endpoint: ${DDC_ADMIN_ENDPOINT:http://127.0.0.1:18080}
+          signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
+          access-key: ${DDC_OPENAPI_ACCESS_KEY:}
+          secret-key: ${DDC_OPENAPI_SECRET:}
+        redis:
+          enabled: ${DDC_REGISTRY_ENABLED:false}
+          mode: SINGLE
+          host: ${DDC_REGISTRY_REDIS_HOST:127.0.0.1}
+          port: ${DDC_REGISTRY_REDIS_PORT:6379}
+          password: ${DDC_REGISTRY_REDIS_PASSWORD:}
+          database: ${DDC_REGISTRY_REDIS_DATABASE:0}
         registry:
           enabled: ${DDC_REGISTRY_ENABLED:false}
       gateway:
         reporting:
           enabled: ${GATEWAY_REPORTING_ENABLED:false}
+          admin-base-url: ${GATEWAY_ADMIN_BASE_URL:http://127.0.0.1:18082}
           biz-code: ${DDC_BIZ_CODE:test-biz}
           application-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
+          application-name: Gateway MCP Test Provider
+          env: ${DDC_ENV:local}
+          namespace: ${DDC_NAMESPACE:gateway-test}
           artifact-version: 1.0.0
+          build-id: ${MCP_TEST_PROVIDER_BUILD_ID:local}
+          declared-hosts: ${MCP_TEST_PROVIDER_HOST:127.0.0.1}
+          fail-fast: true
+          access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
+          secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
+          state-file: ${GATEWAY_REPORT_STATE_FILE:target/mcp-provider-gateway-report.json}
         provider:
           http:
             enabled: true

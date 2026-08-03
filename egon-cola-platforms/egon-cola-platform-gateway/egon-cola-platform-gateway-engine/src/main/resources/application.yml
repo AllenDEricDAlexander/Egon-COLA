@@ -50,6 +50,18 @@ egon:
             database: ${IDP_REDIS_DATABASE:0}
             password-file: ${IDP_REDIS_PASSWORD_FILE:}
             timeout: ${IDP_REDIS_TIMEOUT:2s}
+      rbac3:
+        enabled: ${GATEWAY_MCP_RBAC3_ENABLED:false}
+        register-filter: false
+        system-code: ${GATEWAY_MCP_RBAC3_SYSTEM_CODE:mock-backend}
+        runtime:
+          redis-enabled: ${GATEWAY_MCP_RBAC3_ENABLED:false}
+          redis-address: ${GATEWAY_MCP_RBAC3_REDIS_ADDRESS:redis://127.0.0.1:6379}
+          database: ${GATEWAY_MCP_RBAC3_REDIS_DATABASE:0}
+          password-file: ${GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE:}
+        authorization:
+          endpoint: ${GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT:}
+          service-credential-file: ${GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE:}
     component:
       ddc:
         enabled: ${DDC_ENABLED:true}

@@ -160,7 +160,7 @@ public final class RedisMcpSessionStore
             Duration wait) {
         StreamMessageId after = afterEventId == null
                 || afterEventId.isBlank()
-                ? StreamMessageId.MIN
+                ? initialReadOffset()
                 : parseId(afterEventId);
         return Mono.fromCompletionStage(stream(requiredSession(streamId))
                         .readAsync(StreamReadArgs.greaterThan(after)
@@ -178,6 +178,10 @@ public final class RedisMcpSessionStore
                                 .toList()
                 ))
                 .map(entry -> event(entry.getKey(), entry.getValue()));
+    }
+
+    static StreamMessageId initialReadOffset() {
+        return new StreamMessageId(0L, 0L);
     }
 
     private Event event(

@@ -38,11 +38,31 @@ class Rbac3DevelopmentTopologyTest {
                 "idp:oauth-client:read");
         assertThat(application("gateway-admin").permissions()).contains(
                 "gateway:read",
-                "gateway:releases:write");
+                "gateway:releases:write",
+                "gateway:mcp:read",
+                "gateway:mcp:write",
+                "gateway:mcp:test",
+                "gateway:mcp:approve",
+                "gateway:mcp:runtime:read");
         assertThat(application("ddc-admin").permissions()).containsExactly(
                 "DDC_READ", "DDC_WRITE", "DDC_PUBLISH", "DDC_CACHE");
-        assertThat(application("mock-backend").permissions()).containsExactly(
-                "mock:read", "mock:admin");
+        assertThat(application("mock-backend").permissions()).contains(
+                "mock:read",
+                "mock:admin",
+                "mcp:unified-local:tool:local_query:call",
+                "mcp:unified-local:tool:local_query_task:call",
+                "mcp:unified-local:tool:local_query_task:task:get",
+                "mcp:unified-local:tool:local_query_task:task:update",
+                "mcp:unified-local:tool:local_query_task:task:cancel",
+                "mcp:unified-local:tool:high_risk_query:call",
+                "mcp:unified-local:tool:stable.remote_echo:call",
+                "mcp:unified-local:tool:rc.remote_echo:call",
+                "mcp:unified-local:resource:local_status:read",
+                "mcp:unified-local:resource:stable.remote_text:read",
+                "mcp:unified-local:resource:local_item:read",
+                "mcp:unified-local:resource:qa_dashboard:read",
+                "mcp:unified-local:prompt:review_item:get",
+                "mcp:unified-local:prompt:rc.remote_summary:get");
     }
 
     private static Rbac3DevelopmentTopology.ApplicationDefinition application(

@@ -1,0 +1,278 @@
+{
+  "fixtureVersion": 1,
+  "server": {
+    "serverCode": "unified-local",
+    "displayName": "Unified Identity Local MCP",
+    "description": "Host-local IdP, RBAC3, DDC and Gateway MCP verification server",
+    "instructions": "Use reviewed local and remote capabilities. High-risk tools require one-time approval.",
+    "dialects": [
+      "LEGACY_2024_SSE",
+      "STABLE_2025_11_25",
+      "RC_2026_07_28"
+    ],
+    "oauthAudience": "mock-backend",
+    "listCacheTtlSeconds": 5,
+    "enabled": true
+  },
+  "remoteProviders": [
+    {
+      "providerCode": "local-stable",
+      "content": {
+        "displayName": "Host-local Stable fixture",
+        "dialect": "STABLE_2025_11_25",
+        "transportType": "STREAMABLE_HTTP",
+        "endpointReference": "http://127.0.0.1:18151/remote/stable",
+        "capabilityFingerprint": "local-stable-v1",
+        "status": "SYNCED"
+      },
+      "enabled": true
+    },
+    {
+      "providerCode": "local-rc",
+      "content": {
+        "displayName": "Host-local RC fixture",
+        "dialect": "RC_2026_07_28",
+        "transportType": "STREAMABLE_HTTP",
+        "endpointReference": "http://127.0.0.1:18151/remote/rc",
+        "capabilityFingerprint": "local-rc-v1",
+        "status": "SYNCED"
+      },
+      "enabled": true
+    }
+  ],
+  "remoteMounts": [
+    {
+      "providerCode": "local-stable",
+      "namespace": "stable",
+      "capabilityFingerprint": "local-stable-v1",
+      "content": {
+        "primitiveTypes": [
+          "APP",
+          "COMPLETION",
+          "PROMPT",
+          "RESOURCE",
+          "RESOURCE_TEMPLATE",
+          "SUBSCRIPTION",
+          "TASK",
+          "TOOL"
+        ],
+        "renameRules": {},
+        "conflictPolicy": "REJECT",
+        "requiredPermissions": ["mock:read"]
+      },
+      "enabled": true
+    },
+    {
+      "providerCode": "local-rc",
+      "namespace": "rc",
+      "capabilityFingerprint": "local-rc-v1",
+      "content": {
+        "primitiveTypes": [
+          "APP",
+          "COMPLETION",
+          "PROMPT",
+          "RESOURCE",
+          "RESOURCE_TEMPLATE",
+          "SUBSCRIPTION",
+          "TASK",
+          "TOOL"
+        ],
+        "renameRules": {},
+        "conflictPolicy": "REJECT",
+        "requiredPermissions": ["mock:read"]
+      },
+      "enabled": true
+    }
+  ],
+  "artifact": {
+    "appCode": "unified-local-dashboard",
+    "version": "1.0.0",
+    "displayName": "Unified Local Dashboard",
+    "resourceUri": "ui://unified-local/unified-local-dashboard/1.0.0",
+    "mimeType": "text/html;profile=mcp-app",
+    "contentSecurityPolicy": "default-src 'none'; style-src 'none'; script-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "permissions": ["mock:read"],
+    "allowedOrigins": [],
+    "content": "<!doctype html><html><body><main><h1>Unified Local MCP</h1><p>Verified host-local App artifact.</p></main></body></html>"
+  },
+  "capabilities": [
+    {
+      "plural": "tools",
+      "name": "local_query",
+      "content": {
+        "description": "Queries the host-local Gateway Operation provider",
+        "sourceType": "LOCAL_OPERATION",
+        "operationMethod": "GET /api/mcp-fixtures/query",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"prefix\":{\"type\":\"string\"}}}",
+        "outputSchema": "{\"type\":\"object\"}",
+        "argumentBindings": {"prefix": "prefix"},
+        "resultBindings": {},
+        "annotations": {"readOnlyHint": "true"},
+        "requiredPermissions": ["mock:read"],
+        "riskLevel": "LOW",
+        "idempotent": true
+      },
+      "enabled": true
+    },
+    {
+      "plural": "tools",
+      "name": "local_query_task",
+      "content": {
+        "description": "Executes the local query through the durable task store",
+        "sourceType": "LOCAL_OPERATION",
+        "operationMethod": "GET /api/mcp-fixtures/query",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"prefix\":{\"type\":\"string\"}}}",
+        "outputSchema": "{\"type\":\"object\"}",
+        "argumentBindings": {"prefix": "prefix"},
+        "resultBindings": {},
+        "annotations": {"taskSupport": "required"},
+        "requiredPermissions": ["mock:read"],
+        "riskLevel": "MEDIUM",
+        "idempotent": true
+      },
+      "enabled": true
+    },
+    {
+      "plural": "tools",
+      "name": "high_risk_query",
+      "content": {
+        "description": "Exercises one-time approval on a reviewed local Operation",
+        "sourceType": "LOCAL_OPERATION",
+        "operationMethod": "GET /api/mcp-fixtures/query",
+        "inputSchema": "{\"type\":\"object\"}",
+        "outputSchema": "{\"type\":\"object\"}",
+        "argumentBindings": {},
+        "resultBindings": {},
+        "annotations": {},
+        "requiredPermissions": ["mock:admin"],
+        "riskLevel": "HIGH",
+        "idempotent": false
+      },
+      "enabled": true
+    },
+    {
+      "plural": "tools",
+      "name": "stable.remote_echo",
+      "content": {
+        "description": "Calls the host-local Stable remote MCP fixture",
+        "sourceType": "REMOTE_MCP",
+        "remoteMountNamespace": "stable",
+        "inputSchema": "{\"type\":\"object\"}",
+        "outputSchema": "{\"type\":\"object\"}",
+        "argumentBindings": {},
+        "resultBindings": {},
+        "annotations": {},
+        "requiredPermissions": ["mock:read"],
+        "riskLevel": "LOW",
+        "idempotent": true
+      },
+      "enabled": true
+    },
+    {
+      "plural": "tools",
+      "name": "rc.remote_echo",
+      "content": {
+        "description": "Calls the host-local RC remote MCP fixture",
+        "sourceType": "REMOTE_MCP",
+        "remoteMountNamespace": "rc",
+        "inputSchema": "{\"type\":\"object\"}",
+        "outputSchema": "{\"type\":\"object\"}",
+        "argumentBindings": {},
+        "resultBindings": {},
+        "annotations": {},
+        "requiredPermissions": ["mock:read"],
+        "riskLevel": "LOW",
+        "idempotent": true
+      },
+      "enabled": true
+    },
+    {
+      "plural": "resources",
+      "name": "local_status",
+      "content": {
+        "uri": "egon://unified-local/status",
+        "description": "Static host-local verification status",
+        "mimeType": "text/plain",
+        "driverType": "STATIC_TEXT",
+        "configuration": {"text": "unified-platform-ready"},
+        "requiredPermissions": ["mock:read"],
+        "maxBytes": 1024
+      },
+      "enabled": true
+    },
+    {
+      "plural": "resources",
+      "name": "stable.remote_text",
+      "content": {
+        "uri": "egon://unified-local/remote/text",
+        "description": "Remote Stable resource",
+        "mimeType": "text/plain",
+        "driverType": "REMOTE_MCP",
+        "remoteMountNamespace": "stable",
+        "configuration": {"remoteUri": "fixture://remote/text"},
+        "requiredPermissions": ["mock:read"],
+        "maxBytes": 1048576
+      },
+      "enabled": true
+    },
+    {
+      "plural": "resource-templates",
+      "name": "local_item",
+      "content": {
+        "uriTemplate": "egon://unified-local/items/{id}",
+        "description": "Static local resource template",
+        "mimeType": "application/json",
+        "driverType": "STATIC_TEXT",
+        "configuration": {"text": "{\"source\":\"local-template\"}"},
+        "requiredPermissions": ["mock:read"],
+        "maxBytes": 1048576
+      },
+      "enabled": true
+    },
+    {
+      "plural": "prompts",
+      "name": "review_item",
+      "content": {
+        "description": "Strict local review prompt",
+        "sourceType": "STRICT_TEMPLATE",
+        "template": "Review item ${id}",
+        "arguments": ["id"],
+        "requiredPermissions": ["mock:read"]
+      },
+      "enabled": true
+    },
+    {
+      "plural": "prompts",
+      "name": "rc.remote_summary",
+      "content": {
+        "description": "Remote RC summary prompt",
+        "sourceType": "REMOTE_MCP",
+        "remoteMountNamespace": "rc",
+        "arguments": ["topic"],
+        "requiredPermissions": ["mock:read"]
+      },
+      "enabled": true
+    },
+    {
+      "plural": "task-policies",
+      "name": "local_query_task",
+      "content": {
+        "durable": true,
+        "inputAllowed": false,
+        "executionTimeoutSeconds": 60,
+        "resultTtlSeconds": 3600,
+        "maxAttempts": 3
+      },
+      "enabled": true
+    },
+    {
+      "plural": "app-bindings",
+      "name": "qa_dashboard",
+      "content": {
+        "appArtifactCode": "unified-local-dashboard",
+        "allowedTools": ["local_query"]
+      },
+      "enabled": true
+    }
+  ]
+}
