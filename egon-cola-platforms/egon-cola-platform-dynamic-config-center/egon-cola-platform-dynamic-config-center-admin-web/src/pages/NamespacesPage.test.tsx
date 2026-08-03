@@ -81,7 +81,9 @@ describe('NamespacesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /管\s*理\s*绑\s*定/ }))
     await waitFor(() => expect(screen.getByLabelText('orders（订单服务）')).toBeInTheDocument())
-    fireEvent.click(screen.getByLabelText('orders（订单服务）'))
+    const appCheckbox = screen.getByLabelText('orders（订单服务）')
+    fireEvent.click(appCheckbox)
+    await waitFor(() => expect(appCheckbox).toBeChecked())
     fireEvent.click(screen.getByRole('button', { name: /保\s*存\s*绑\s*定/ }))
     await waitFor(() => {
       const createBinding = vi.mocked(fetch).mock.calls.find(([url, init]) =>
