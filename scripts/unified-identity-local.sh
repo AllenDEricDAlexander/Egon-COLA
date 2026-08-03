@@ -280,10 +280,10 @@ java_property_key() {
       printf 'egon.cola.component.gateway.engine.data-directory'
       ;;
     EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT)
-      printf 'egon.cola.component.gateway.engine.http-public-port'
+      printf 'egon.cola.component.gateway.engine.http.public-port'
       ;;
     EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT)
-      printf 'egon.cola.component.gateway.engine.http-internal-port'
+      printf 'egon.cola.component.gateway.engine.http.internal-port'
       ;;
     EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST)
       printf 'egon.cola.component.gateway.provider.http.fail-fast'

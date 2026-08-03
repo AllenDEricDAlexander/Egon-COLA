@@ -61,6 +61,12 @@ source "${function_file}"
 [[ "$(java_property_key EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST)" \
     == 'egon.cola.component.ddc.consistency.fail-fast' ]] \
   || fail 'DDC consistency fail-fast must use its canonical property key'
+[[ "$(java_property_key EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT)" \
+    == 'egon.cola.component.gateway.engine.http.public-port' ]] \
+  || fail 'Gateway public listener must use its nested canonical property key'
+[[ "$(java_property_key EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT)" \
+    == 'egon.cola.component.gateway.engine.http.internal-port' ]] \
+  || fail 'Gateway internal listener must use its nested canonical property key'
 
 assert_contains "${identity_script}" '${file%.env}.properties' \
   'write_env must target the sibling Java properties file'
