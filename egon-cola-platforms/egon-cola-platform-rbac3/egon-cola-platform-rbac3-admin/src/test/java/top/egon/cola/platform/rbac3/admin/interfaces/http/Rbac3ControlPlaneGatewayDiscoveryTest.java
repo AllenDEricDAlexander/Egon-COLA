@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.interfaces.http;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -30,7 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 RolePermissionController.class,
                 ConstraintController.class
         },
-        excludeAutoConfiguration = SecurityAutoConfiguration.class)
+        excludeAutoConfiguration = {
+                SecurityAutoConfiguration.class,
+                OAuth2ResourceServerAutoConfiguration.class
+        })
 class Rbac3ControlPlaneGatewayDiscoveryTest {
 
     @Autowired

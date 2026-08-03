@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -58,7 +59,10 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@WebMvcTest(excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(excludeAutoConfiguration = {
+        SecurityAutoConfiguration.class,
+        OAuth2ResourceServerAutoConfiguration.class
+})
 class Rbac3GatewayDocumentCatalogContractTest {
 
     private static final String HTTP_PACKAGE =
