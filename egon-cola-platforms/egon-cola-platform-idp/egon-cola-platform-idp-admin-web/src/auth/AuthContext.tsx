@@ -85,10 +85,6 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         if (active) { setBootstrap(undefined); setLoading(false) }
         return
       }
-      if (window.location.pathname === '/oauth/callback') {
-        if (active) setLoading(false)
-        return
-      }
       try {
         const value = await httpClient.request<AuthorizationBootstrap>('/api/v1/auth/bootstrap')
         if (active) setBootstrap(value)

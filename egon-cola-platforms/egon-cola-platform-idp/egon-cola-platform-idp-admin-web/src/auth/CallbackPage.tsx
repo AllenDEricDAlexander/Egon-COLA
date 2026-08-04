@@ -1,6 +1,7 @@
 import { Button, Result, Spin } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { oauthClient } from './AuthContext'
 import { useAuth } from './AuthContext'
 
 export const CallbackPage = () => {
@@ -8,23 +9,32 @@ export const CallbackPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [error, setError] = useState<string>()
+  const handled = useRef(false)
 
   useEffect(() => {
-    let active = true
+    if (handled.current) return
+    handled.current = true
+
+    const process = async () => {
+      try {
+        const returnTo = await oauthClient.handleCallback(window.location.search)
+        // handleCallback stores the token → AuthContext's tokenStore.subscribe picks it up
+        // → AuthContext calls bootstrap → auth.bootstrap is set
+        // Use replaceState to clean the URL
+        window.history.replaceState({}, '', returnTo)
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '统一身份登录失败，请重试')
+      }
+    }
+    void process()
+  }, [])
+
+  useEffect(() => {
     if (auth.bootstrap && !auth.loading) {
       navigate('/overview', { replace: true })
-      return
     }
-    if (!auth.loading && !auth.bootstrap) {
-      const errorParam = searchParams.get('error_description') ?? searchParams.get('error')
-      if (active) setError(errorParam ?? '统一身份登录失败，请重试')
-    }
-    return () => { active = false }
-  }, [auth.bootstrap, auth.loading, navigate, searchParams])
-
-  if (auth.loading || auth.bootstrap) {
-    return <Spin fullscreen description={auth.bootstrap ? '登录成功，跳转中' : '完成统一身份登录'} />
-  }
+  }, [auth.bootstrap, auth.loading, navigate])
 
   if (error) {
     return (
@@ -37,5 +47,5 @@ export const CallbackPage = () => {
     )
   }
 
-  return <Spin fullscreen description="处理中" />
+  return <Spin fullscreen description={auth.bootstrap ? '登录成功，跳转中' : '完成统一身份登录'} />
 }
