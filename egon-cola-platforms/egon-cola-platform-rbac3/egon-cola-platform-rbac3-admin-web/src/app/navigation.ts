@@ -17,7 +17,7 @@ export const applicationComponentRegistry = new Rbac3ComponentRegistry(
 export const isRouteAllowed = (bootstrap: BootstrapView, route: FeatureRouteDescriptor) => bootstrap.permissions.includes(route.permission)
 
 export const visibleNavigation = (bootstrap: BootstrapView) => applicationRouteDescriptors
-  .filter((route) => !route.path.includes(':'))
+  .filter((route) => !(route.hideFromNav ?? route.path.includes(':')))
   .filter((route) => isRouteAllowed(bootstrap, route))
 
 export const resolveApplicationLanding = (bootstrap: BootstrapView): string | null => {

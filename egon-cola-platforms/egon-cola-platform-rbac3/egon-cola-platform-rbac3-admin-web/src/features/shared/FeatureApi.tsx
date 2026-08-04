@@ -58,7 +58,7 @@ export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps
     effectiveTenantId,
     targetTenantId,
     setTargetTenantId,
-  }), [effectiveTenantId, targetTenantId, tenantClient])
+  }), [effectiveTenantId, targetTenantId, tenantClient, setTargetTenantId])
   return <FeatureApiContext.Provider value={value}>{children}</FeatureApiContext.Provider>
 }
 

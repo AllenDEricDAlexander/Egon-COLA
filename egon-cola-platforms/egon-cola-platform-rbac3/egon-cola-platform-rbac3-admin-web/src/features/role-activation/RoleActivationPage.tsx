@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Alert, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography } from 'antd'
 import { useMemo, useState } from 'react'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { RoleActivationSelector, findDsdConflict } from './RoleActivationSelector'
 import { roleActivationApi } from './roleActivation.api'
 

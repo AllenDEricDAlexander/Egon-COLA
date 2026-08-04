@@ -1,5 +1,5 @@
 import type { ResultRecord } from './types'
-import { ddcOAuth } from '../auth/oauthClient'
+import { oauthClient } from '../auth/AuthContext'
 
 type TokenProvider = () => string
 type UnauthorizedHandler = () => void
@@ -61,7 +61,7 @@ export async function ddcApi<T>(path: string, options: DdcRequestOptions = {}): 
     response = await fetch(path, { method: options.method ?? 'GET', headers, body })
     if (response.status === 401) {
       try {
-        headers.set('Authorization', `Bearer ${await ddcOAuth.refresh()}`)
+        headers.set('Authorization', `Bearer ${await oauthClient.refresh()}`)
         response = await fetch(path, { method: options.method ?? 'GET', headers, body })
       } catch { /* final 401 handling clears the local session */ }
     }

@@ -2,7 +2,7 @@ import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useQuery } from '@tanstack/react-query'
 import { Button, Card, Table, Tabs, Tag, Typography } from 'antd'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { constraintApi, type SodSetView } from './constraint.api'
 
 export interface DsdRoleSelection {
@@ -36,11 +36,7 @@ export const ConstraintPage = () => {
   return (
     <Card
       title="授权约束"
-      extra={(
-        <PermissionGuard permission="system:authorization-constraint:manage">
-          <Button type="primary">新增约束</Button>
-        </PermissionGuard>
-      )}
+      extra={null}
     >
       <Typography.Paragraph type="secondary">
         DSD 只引用同一 APP 的激活根角色，并在会话激活角色集合原子替换时校验；SSD、Prerequisite 与 Cardinality 在分配时校验。

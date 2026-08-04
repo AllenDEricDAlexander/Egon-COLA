@@ -1,7 +1,40 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createOAuthClient,
+  createTokenStore,
+  type OAuthClient,
+} from '@egon-cola/admin-web-shared'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
-import { ddcOAuth } from './oauthClient'
-import { clearToken, getStoredToken, subscribeToken } from './tokenStore'
+
+const requiredEnv = (key: string): string => {
+  const value = (import.meta.env as Record<string, string>)[key]
+  if (!value) throw new Error(`${key} is required`)
+  return value
+}
+
+const tokenStore = createTokenStore()
+
+const oauthClient: OAuthClient = createOAuthClient({
+  issuer: requiredEnv('VITE_IDP_ISSUER'),
+  clientId: requiredEnv('VITE_IDP_CLIENT_ID'),
+  audience: requiredEnv('VITE_IDP_AUDIENCE'),
+  redirectUri: (import.meta.env as Record<string, string>).VITE_IDP_REDIRECT_URI
+    ?? `${window.location.origin}/oauth/callback`,
+  tokenStore,
+}, {
+  fetch: globalThis.fetch.bind(globalThis),
+  storage: window.sessionStorage,
+  randomValues: (target: Uint8Array<ArrayBuffer>) => crypto.getRandomValues(target),
+  digest: (value: Uint8Array<ArrayBuffer>) => crypto.subtle.digest('SHA-256', value),
+  navigate: (url: string) => { window.location.assign(url) },
+  now: () => Date.now(),
+})
+
+export { oauthClient, tokenStore }
+
+// Adapt shared tokenStore to DDC's string-based token provider pattern
+const getStoredToken = (): string => tokenStore.get()?.accessToken ?? ''
+const subscribeToken = (fn: () => void): (() => void) => tokenStore.subscribe(() => fn())
 
 type AuthContextValue = {
   token: string
@@ -19,18 +52,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string>()
 
   const clearSession = useCallback(() => {
-    clearToken()
+    tokenStore.clear()
     setToken('')
     setLoading(false)
   }, [])
 
   const login = useCallback(async (tenantId: string, returnTo = '/') => {
     setError(undefined)
-    await ddcOAuth.beginAuthorization(tenantId, returnTo)
+    await oauthClient.beginAuthorization(tenantId, returnTo)
   }, [])
 
   const logout = useCallback(async () => {
-    await ddcOAuth.revoke()
+    await oauthClient.revoke()
     clearSession()
   }, [clearSession])
 
@@ -46,9 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         let returnTo: string | undefined
         if (window.location.pathname === '/oauth/callback') {
-          returnTo = await ddcOAuth.handleCallback(window.location.search)
+          returnTo = await oauthClient.handleCallback(window.location.search)
         } else {
-          await ddcOAuth.refresh()
+          await oauthClient.refresh()
         }
         if (!active) return
         const accessToken = getStoredToken()
@@ -59,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (failure) {
         if (!active) return
-        clearToken()
+        tokenStore.clear()
         setToken('')
         if (window.location.pathname === '/oauth/callback') {
           setError(failure instanceof Error ? failure.message : '统一身份登录失败')

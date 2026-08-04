@@ -3,7 +3,7 @@ import { Card, Col, Row, Statistic } from 'antd'
 import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
 import { overviewApi } from './overview.api'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 
 export const OverviewPage = () => {
   const { status, bootstrap } = useRbac3Session()

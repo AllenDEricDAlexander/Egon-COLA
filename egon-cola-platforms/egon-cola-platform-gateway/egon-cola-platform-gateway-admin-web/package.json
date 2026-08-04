@@ -7,14 +7,17 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest",
+    "test": "vitest run",
     "lint": "eslint .",
     "e2e": "playwright test"
   },
   "dependencies": {
     "@ant-design/charts": "^2.6.7",
     "@ant-design/icons": "^6.3.2",
+    "@egon-cola/admin-web-shared": "file:../../egon-cola-platform-admin-web-shared",
     "@tanstack/react-query": "^5.101.4",
+    "i18next": "^24.0.0",
+    "react-i18next": "^15.0.0",
     "antd": "^6.5.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

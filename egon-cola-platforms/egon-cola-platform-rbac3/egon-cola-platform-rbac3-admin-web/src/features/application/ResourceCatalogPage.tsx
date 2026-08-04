@@ -2,7 +2,7 @@ import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Card, Popconfirm, Table, Tag } from 'antd'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { applicationApi, type ResourceView } from './application.api'
 
 export interface ResourceCatalogPageProps {

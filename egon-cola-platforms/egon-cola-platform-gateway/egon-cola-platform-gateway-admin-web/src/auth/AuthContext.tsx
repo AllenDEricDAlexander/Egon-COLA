@@ -7,10 +7,51 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
-import { gatewayApi } from '../api/gatewayApi'
+import {
+  createOAuthClient,
+  createTokenStore,
+  createHttpClient,
+  type OAuthClient,
+  type AuthTokens,
+} from '@egon-cola/admin-web-shared'
 import type { AdminSession } from '../api/types'
-import { gatewayOAuth } from './oauthClient'
-import { tokenStore } from './tokenStore'
+
+const requiredEnv = (key: string): string => {
+  const value = (import.meta.env as Record<string, string>)[key]
+  if (!value) throw new Error(`${key} is required`)
+  return value
+}
+
+const tokenStore = createTokenStore()
+
+const oauthClient: OAuthClient = createOAuthClient({
+  issuer: requiredEnv('VITE_IDP_ISSUER'),
+  clientId: requiredEnv('VITE_IDP_CLIENT_ID'),
+  audience: requiredEnv('VITE_IDP_AUDIENCE'),
+  redirectUri: (import.meta.env as Record<string, string>).VITE_IDP_REDIRECT_URI
+    ?? `${window.location.origin}/oauth/callback`,
+  tokenStore,
+}, {
+  fetch: globalThis.fetch.bind(globalThis),
+  storage: window.sessionStorage,
+  randomValues: (target: Uint8Array<ArrayBuffer>) => crypto.getRandomValues(target),
+  digest: (value: Uint8Array<ArrayBuffer>) => crypto.subtle.digest('SHA-256', value),
+  navigate: (url: string) => { window.location.assign(url) },
+  now: () => Date.now(),
+})
+
+const httpClient = createHttpClient({
+  baseUrl: (import.meta.env as Record<string, string>).VITE_GATEWAY_ADMIN_API_BASE_URL ?? '',
+  credentials: 'include',
+  getAccessToken: () => tokenStore.get()?.accessToken ?? null,
+  onAuthError: () => oauthClient.refresh(),
+  onFatalAuthError: () => {
+    tokenStore.clear()
+    window.location.assign('/login')
+  },
+})
+
+export { oauthClient, httpClient, tokenStore }
 
 type AuthState = {
   loading: boolean
@@ -27,6 +68,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<AdminSession>()
   const [error, setError] = useState<string>()
+  const [tokens, setTokens] = useState<AuthTokens | null>(tokenStore.get())
 
   const clearSession = useCallback(() => {
     tokenStore.clear()
@@ -35,37 +77,32 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [])
 
   const logout = useCallback(async () => {
-    await gatewayOAuth.revoke()
+    await oauthClient.revoke()
     setSession(undefined)
     setLoading(false)
   }, [])
 
   const refreshSession = useCallback(async () => {
-    setSession(await gatewayApi.session())
+    setSession(await httpClient.request<AdminSession>('/api/gateway/admin/v1/session'))
   }, [])
 
   const login = useCallback(async (tenantId: string, returnTo = '/dashboard') => {
     setError(undefined)
-    await gatewayOAuth.beginAuthorization(tenantId, returnTo)
+    await oauthClient.beginAuthorization(tenantId, returnTo)
   }, [])
+
+  useEffect(() => tokenStore.subscribe(setTokens), [])
 
   useEffect(() => {
     let active = true
     const initialize = async () => {
+      if (!tokens) {
+        if (active) { setSession(undefined); setLoading(false) }
+        return
+      }
       try {
-        let returnTo: string | undefined
-        if (window.location.pathname === '/oauth/callback') {
-          returnTo = await gatewayOAuth.handleCallback(window.location.search)
-        } else if (!tokenStore.get()) {
-          await gatewayOAuth.refresh()
-        }
-        const value = await gatewayApi.session()
-        if (!active) return
-        setSession(value)
-        if (returnTo) {
-          window.history.replaceState({}, '', returnTo)
-          window.dispatchEvent(new PopStateEvent('popstate'))
-        }
+        const value = await httpClient.request<AdminSession>('/api/gateway/admin/v1/session')
+        if (active) setSession(value)
       } catch (failure) {
         if (!active) return
         tokenStore.clear()
@@ -79,20 +116,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     }
     void initialize()
     return () => { active = false }
-  }, [])
+  }, [tokens])
 
-  useEffect(() => tokenStore.subscribe(() => {
-    if (!tokenStore.get()) setSession(undefined)
-  }), [])
-
+  // Proactive token refresh
   useEffect(() => {
-    const expiresAt = tokenStore.get()?.expiresAt
-    if (!expiresAt || !session) return
-    const delay = Math.max(1_000, Date.parse(expiresAt) - Date.now() - 60_000)
+    const stored = tokenStore.get()
+    if (!stored?.expiresAt || !session) return
+    const delay = Math.max(1_000, Date.parse(stored.expiresAt) - Date.now() - 60_000)
     const timer = window.setTimeout(() => {
-      void gatewayOAuth.refresh()
-        .then(refreshSession)
-        .catch(clearSession)
+      void oauthClient.refresh().then(refreshSession).catch(clearSession)
     }, delay)
     return () => window.clearTimeout(timer)
   }, [clearSession, refreshSession, session])

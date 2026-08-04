@@ -1,6 +1,6 @@
 import { Alert, Button, Card, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
-import { idpOAuth } from './oauthClient'
+import { oauthClient } from './AuthContext'
 
 interface LoginForm {
   readonly tenantId: string
@@ -68,7 +68,7 @@ export const CentralLoginPage = () => {
       if (returnTo) {
         window.location.assign(returnTo)
       } else {
-        await idpOAuth.beginAuthorization(values.tenantId, '/')
+        await oauthClient.beginAuthorization(values.tenantId, '/')
       }
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : '登录失败')
