@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc -b --emitDeclarationOnly && vite build",
+    "postbuild": "rm -rf node_modules",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "lint": "eslint ."

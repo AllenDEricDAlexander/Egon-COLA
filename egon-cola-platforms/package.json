@@ -1,0 +1,14 @@
+{
+  "name": "egon-cola-platforms-root",
+  "private": true,
+  "description": "Shared hoisted dependencies for all admin-web projects",
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "antd": "^6.5.2",
+    "react-router-dom": "^7.18.0",
+    "@tanstack/react-query": "^5.101.4",
+    "i18next": "^24.0.0",
+    "react-i18next": "^15.0.0"
+  }
+}
