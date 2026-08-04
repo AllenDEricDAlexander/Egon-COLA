@@ -1,0 +1,30 @@
+import type { zhCN } from './zh-CN'
+
+export const enUS: typeof zhCN = {
+  common: {
+    loading: 'Loading...',
+    error: 'Load Failed',
+    empty: 'No Data',
+    retry: 'Retry',
+    save: 'Save',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    delete: 'Delete',
+    create: 'Create',
+    search: 'Search',
+    reset: 'Reset',
+    back: 'Back',
+    refresh: 'Refresh',
+    logout: 'Logout',
+    operation: 'Actions',
+    status: 'Status',
+    close: 'Close',
+    'error.network': 'Network error, please check your connection and try again',
+    'error.auth': 'Session expired, please login again',
+    'error.permission': 'Access Denied',
+    'error.server': 'Service temporarily unavailable, please try again later',
+    'error.unknown': 'Unknown Error',
+    'page.crash': 'Something went wrong',
+    'page.crash.reload': 'Reload Page',
+  },
+}

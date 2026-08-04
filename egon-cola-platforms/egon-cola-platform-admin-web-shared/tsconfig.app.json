@@ -8,8 +8,6 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
     "declaration": true,
     "declarationMap": true,

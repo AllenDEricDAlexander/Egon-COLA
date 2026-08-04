@@ -8,7 +8,7 @@ export class ApiError extends Error {
     message: string,
     status: number,
     code: string,
-    options?: { requestId?: string; retryable?: boolean },
+    options?: { requestId?: string | undefined; retryable?: boolean },
   ) {
     super(message)
     this.name = 'ApiError'
