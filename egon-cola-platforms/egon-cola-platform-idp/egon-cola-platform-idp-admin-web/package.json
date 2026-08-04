@@ -7,14 +7,18 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest",
+    "test": "vitest run",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@egon-cola/admin-web-shared": "file:../../egon-cola-platform-admin-web-shared",
     "@tanstack/react-query": "^5.101.4",
     "antd": "^6.5.2",
+    "i18next": "^24.0.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-i18next": "^15.0.0",
+    "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
