@@ -8,4 +8,5 @@ export interface FeatureRouteDescriptor {
   readonly componentKey: string
   readonly component: ComponentType
   readonly navigationOrder: number
+  readonly hideFromNav?: boolean
 }

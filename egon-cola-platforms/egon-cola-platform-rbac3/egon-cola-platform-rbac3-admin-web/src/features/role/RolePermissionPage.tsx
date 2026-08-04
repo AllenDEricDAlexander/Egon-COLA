@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Card, Descriptions, Form, Input, Modal, Tag } from 'antd'
 import { useState } from 'react'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { roleApi } from './role.api'
 
 export interface RolePermissionPageProps {

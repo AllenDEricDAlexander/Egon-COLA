@@ -1,11 +1,11 @@
 import { Rbac3Provider } from '@egon-cola/rbac3-react-sdk'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
+import { AppErrorBoundary } from '@egon-cola/admin-web-shared'
 import { createAdminApiClients } from '../api/adminApiClient'
 import { AuthenticationShell } from '../features/auth/AuthenticationShell'
 import { UnifiedOAuthGate } from '../features/auth/UnifiedOAuthGate'
 import { FeatureApiProvider } from '../features/shared/FeatureApi'
-import { AppErrorBoundary } from './AppErrorBoundary'
 import { createAdminQueryClient } from './queryClient'
 import { ApplicationRouter } from './router'
 
@@ -18,7 +18,9 @@ export const App = () => (
       <Rbac3Provider client={clients.rbac3Client} accessTokenStore={clients.accessTokenStore}>
         <FeatureApiProvider client={clients.featureClient}>
           <BrowserRouter>
-            <AppErrorBoundary>
+            <AppErrorBoundary onError={(error, info) => {
+              console.error('[RBAC3] Unhandled error:', error, info.componentStack)
+            }}>
               <AuthenticationShell>
                 <ApplicationRouter />
               </AuthenticationShell>

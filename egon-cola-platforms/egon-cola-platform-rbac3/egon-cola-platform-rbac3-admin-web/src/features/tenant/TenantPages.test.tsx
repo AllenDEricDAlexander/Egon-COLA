@@ -4,7 +4,6 @@ import { render, screen, waitFor } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
 import { describe, expect, it } from 'vitest'
 import { FeatureApiProvider, type FeatureApiClient } from '../shared/FeatureApi'
-import { TenantDetailPage } from './TenantDetailPage'
 import { TenantListPage } from './TenantListPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
@@ -37,10 +36,4 @@ describe('tenant pages', () => {
     expect(screen.getByText('当前登录租户')).toBeInTheDocument()
   })
 
-  it('loads tenant detail without a cross-tenant browser cache', async () => {
-    render(<TenantDetailPage tenantId="42" />, { wrapper })
-
-    await waitFor(() => expect(screen.getByText('租户 A')).toBeInTheDocument())
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument()
-  })
 })

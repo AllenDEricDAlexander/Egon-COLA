@@ -3,19 +3,21 @@ import { useQuery } from '@tanstack/react-query'
 import { Button, Card, Col, Form, Input, Row, Select, Space, Table, Tag, Typography } from 'antd'
 import { useState } from 'react'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { AuditDetailDrawer } from './AuditDetailDrawer'
 import { auditApi, type AuditFilter, type AuditView } from './audit.api'
 
-const now = new Date()
-const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-const initialFilter: AuditFilter = { from: yesterday.toISOString(), to: now.toISOString(), limit: 50 }
+const makeInitialFilter = (): AuditFilter => {
+  const now = new Date()
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  return { from: yesterday.toISOString(), to: now.toISOString(), limit: 50 }
+}
 
 export const AuditLogPage = () => {
   const { status } = useRbac3Session()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = auditApi(useFeatureApi())
-  const [filter, setFilter] = useState(initialFilter)
+  const [filter, setFilter] = useState<AuditFilter>(makeInitialFilter)
   const [selected, setSelected] = useState<AuditView | null>(null)
   const query = useQuery({
     queryKey: ['rbac3', 'audit', effectiveTenantId ?? 'none', filter],
@@ -25,7 +27,7 @@ export const AuditLogPage = () => {
   return (
     <Card title="授权审计">
       <Typography.Paragraph type="secondary">只使用服务端允许的精确过滤字段和签名游标；详情再次执行防御性脱敏。</Typography.Paragraph>
-      <Form<AuditFilter> layout="vertical" initialValues={initialFilter} onFinish={(values) => setFilter({ ...values, limit: 50 })}>
+      <Form<AuditFilter> layout="vertical" initialValues={makeInitialFilter()} onFinish={(values) => setFilter({ ...values, limit: 50 })}>
         <Row gutter={12}>
           <Col span={6}><Form.Item name="from" label="From" rules={[{ required: true }]}><Input /></Form.Item></Col>
           <Col span={6}><Form.Item name="to" label="To" rules={[{ required: true }]}><Input /></Form.Item></Col>

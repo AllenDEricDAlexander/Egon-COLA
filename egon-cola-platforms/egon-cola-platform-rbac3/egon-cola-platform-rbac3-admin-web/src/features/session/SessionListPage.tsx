@@ -2,7 +2,7 @@ import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Card, Popconfirm, Table, Tag, Typography } from 'antd'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { sessionApi, type SessionView } from './session.api'
 
 export const SessionListPage = () => {

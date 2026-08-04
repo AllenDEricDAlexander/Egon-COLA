@@ -2,7 +2,7 @@ import { useQueries, useQuery } from '@tanstack/react-query'
 import { Card, List, Space, Tag, Typography } from 'antd'
 import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { roleApi, type RoleImpactView } from './role.api'
 
 export interface RoleGraphPageProps {

@@ -2,7 +2,7 @@ import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useMutation } from '@tanstack/react-query'
 import { Alert, Button, Card, Col, Descriptions, Form, Input, Row, Space, Tag, Typography } from 'antd'
 import { useFeatureApi } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { simulationApi, type AuthorizationSimulationCommand, type SimulationDecisionBundle } from './simulation.api'
 
 interface SimulationForm {

@@ -3,7 +3,7 @@ import { Alert, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Spa
 import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useState } from 'react'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { applicationApi } from './application.api'
 
 export interface ManifestDetailPageProps {

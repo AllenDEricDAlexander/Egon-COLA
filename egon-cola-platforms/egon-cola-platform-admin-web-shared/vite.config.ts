@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   build: {
+    emptyOutDir: false,
     lib: {
       entry: resolve(import.meta.dirname, 'src/index.ts'),
       formats: ['es'],

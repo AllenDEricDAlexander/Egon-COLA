@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, Table, Tag } from 'antd'
 import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '../shared/PageState'
+import { PageState } from '@egon-cola/admin-web-shared'
 import { applicationApi, type ApplicationView } from './application.api'
 
 export const ApplicationListPage = () => {
