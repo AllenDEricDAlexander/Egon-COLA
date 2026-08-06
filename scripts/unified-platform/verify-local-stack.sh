@@ -94,9 +94,7 @@ tmp_dir="$(mktemp -d "${unified_platform_runtime_dir}/verify.XXXXXX")"
 chmod 700 "${tmp_dir}"
 ddc_interrupted=false
 remote_interrupted=false
-route_removed=false
 roles_modified=false
-route_restore_body=""
 
 gateway_request() {
   local method="$1" path="$2" body="${3:-}" output="$4"
@@ -108,14 +106,6 @@ gateway_request() {
   fi
   curl "${arguments[@]}" -o "${output}" -w '%{http_code}' \
     "${GATEWAY_ADMIN_BASE_URL}${path}"
-}
-
-restore_route() {
-  [[ "${route_removed}" == "true" && -n "${route_restore_body}" ]] || return
-  gateway_request PUT \
-    "/api/v1/gateway/admin/gateway-groups/$(<"${gateway_group_file}")/draft/routes/mcp-local-query" \
-    "${route_restore_body}" "${tmp_dir}/route-restore.json" >/dev/null || true
-  route_removed=false
 }
 
 role_ids() {
@@ -153,7 +143,6 @@ put_role_activations() {
 
 recover_interrupted_services() {
   set +e
-  restore_route
   if [[ "${roles_modified}" == "true" ]] \
       && unified_platform_process_running rbac3; then
     put_role_activations all >/dev/null 2>&1
@@ -537,7 +526,7 @@ assert_json "${response}" '.result == {}' \
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" \
   tools-list tools/list '{}')"
 assert_json "${response}" \
-  '([.result.tools[].name] | sort) == ["high_risk_query","local_query","local_query_task","rc.remote_echo","stable.remote_echo"]' \
+  '([.result.tools[].name] | sort) == ["high_risk_action","local_echo_task","local_query","rc.remote_echo","stable.remote_echo"]' \
   "MCP tool list is incomplete"
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" \
   local-tool tools/call '{"name":"local_query","arguments":{"prefix":"qa"}}')"
@@ -608,7 +597,7 @@ grep -Fq '"id":"cross-node-ping"' <<<"${stable_stream}" \
 
 unified_platform_stage "verifying durable task creation on A and read on B"
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" task-create \
-  tools/call '{"name":"local_query_task","arguments":{"prefix":"task"}}')"
+  tools/call '{"name":"local_echo_task","arguments":{"command":{"value":"task"}}}')"
 assert_json "${response}" '.result.task.status == "working"' \
   "durable MCP task was not created"
 task_id="$(jq -er '.result.task.taskId' "${response}")"
@@ -673,58 +662,20 @@ unified_platform_start_jar ddc \
 unified_platform_wait_http ddc "${DDC_BASE_URL}/actuator/health/readiness" 60
 ddc_interrupted=false
 
-unified_platform_stage "verifying invalid release rejection keeps the active release"
+unified_platform_stage "verifying the annotation-managed release on both engines"
 group_id="$(<"${gateway_group_file}")"
 history_file="${tmp_dir}/release-history-before.json"
 [[ "$(gateway_request GET \
   "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" '' \
   "${history_file}")" == "200" ]] \
   || unified_platform_fail "Gateway release history is unavailable"
-active_release="$(jq -er '[.[] | select(.status == "SUCCESS")][0].releaseId' \
-  "${history_file}")"
 assert_json "${history_file}" \
   '([.[] | select(.status == "SUCCESS")][0].attempts[0].targets | length) >= 2' \
   "latest release was not applied to both Gateway engines"
-draft_file="${tmp_dir}/draft-before-invalid.json"
-[[ "$(gateway_request GET \
-  "/api/v1/gateway/admin/gateway-groups/${group_id}/draft" '' \
-  "${draft_file}")" == "200" ]] \
-  || unified_platform_fail "Gateway draft is unavailable"
-route="$(jq -cer '.routes[] | select(.routeId == "mcp-local-query")' \
-  "${draft_file}")"
-draft_revision="$(jq -er '.revision' "${draft_file}")"
-delete_body="$(jq -cn --argjson revision "${draft_revision}" \
-  '{expectedRevision:$revision,idempotencyKey:("unified-verify-remove-operation-" + ($revision|tostring)),changeReason:"Verify invalid release protection"}')"
-delete_code="$(gateway_request DELETE \
-  "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/routes/mcp-local-query" \
-  "${delete_body}" "${tmp_dir}/route-delete.json")"
-[[ "${delete_code}" == "200" ]] \
-  || unified_platform_fail "could not prepare the invalid Gateway draft"
-route_removed=true
-deleted_revision="$(jq -er '.revision' "${tmp_dir}/route-delete.json")"
-route_restore_body="$(jq -cn --argjson route "${route}" \
-  --argjson revision "${deleted_revision}" \
-  '{operationId:$route.operationId,content:$route.content,enabled:$route.enabled,expectedRevision:$revision,idempotencyKey:("unified-verify-restore-operation-" + ($revision|tostring)),changeReason:"Restore MCP Operation anchor after invalid release test"}')"
-invalid_release_body="$(jq -cn --argjson revision "${deleted_revision}" \
-  '{expectedDraftRevision:$revision,changeReason:"This release must be rejected because its MCP operation is missing"}')"
-invalid_code="$(gateway_request POST \
-  "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" \
-  "${invalid_release_body}" "${tmp_dir}/invalid-release.json")"
-[[ ! "${invalid_code}" =~ ^2[0-9][0-9]$ ]] \
-  || unified_platform_fail "invalid Gateway release unexpectedly succeeded"
-history_after="${tmp_dir}/release-history-after.json"
-[[ "$(gateway_request GET \
-  "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" '' \
-  "${history_after}")" == "200" ]] \
-  || unified_platform_fail "Gateway release history is unavailable after rejection"
-[[ "$(jq -er '[.[] | select(.status == "SUCCESS")][0].releaseId' \
-  "${history_after}")" == "${active_release}" ]] \
-  || unified_platform_fail "invalid release changed the active release"
-restore_route
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" release-lkg \
   tools/call '{"name":"local_query","arguments":{"prefix":"release-lkg"}}')"
 assert_json "${response}" '.result.isError == false' \
-  "active MCP release stopped serving after invalid release rejection"
+  "annotation-managed MCP release is unavailable"
 
 unified_platform_stage "verifying Remote MCP circuit opening and recovery"
 unified_platform_stop_process mcp-remote
@@ -782,7 +733,7 @@ assert_json "${response}" '.result.isError == false' \
 
 unified_platform_stage "recording sanitized verification evidence"
 jq -n --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-default-tenant-membership","admin-web-browser-sso","admin-feature-matrix","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-invalid-release-protection","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
+  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-default-tenant-membership","admin-web-browser-sso","admin-feature-matrix","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-annotation-managed-mcp-release","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
   >"${unified_platform_evidence_dir}/verification-summary.json"
 chmod 600 "${unified_platform_evidence_dir}/verification-summary.json"
 

@@ -95,72 +95,14 @@
     "allowedOrigins": [],
     "content": "<!doctype html><html><body><main><h1>Unified Local MCP</h1><p>Verified host-local App artifact.</p></main></body></html>"
   },
-  "capabilities": [
+  "remoteTools": [
     {
-      "plural": "tools",
-      "name": "local_query",
-      "content": {
-        "description": "Queries the host-local Gateway Operation provider",
-        "sourceType": "LOCAL_OPERATION",
-        "operationMethod": "GET /api/mcp-fixtures/query",
-        "inputSchema": "{\"type\":\"object\",\"properties\":{\"prefix\":{\"type\":\"string\"}}}",
-        "outputSchema": "{\"type\":\"object\"}",
-        "argumentBindings": {"prefix": "prefix"},
-        "resultBindings": {},
-        "annotations": {"readOnlyHint": "true"},
-        "requiredPermissions": ["mock:read"],
-        "riskLevel": "LOW",
-        "idempotent": true
-      },
-      "enabled": true
-    },
-    {
-      "plural": "tools",
-      "name": "local_query_task",
-      "content": {
-        "description": "Executes the local query through the durable task store",
-        "sourceType": "LOCAL_OPERATION",
-        "operationMethod": "GET /api/mcp-fixtures/query",
-        "inputSchema": "{\"type\":\"object\",\"properties\":{\"prefix\":{\"type\":\"string\"}}}",
-        "outputSchema": "{\"type\":\"object\"}",
-        "argumentBindings": {"prefix": "prefix"},
-        "resultBindings": {},
-        "annotations": {"taskSupport": "required"},
-        "requiredPermissions": ["mock:read"],
-        "riskLevel": "MEDIUM",
-        "idempotent": true
-      },
-      "enabled": true
-    },
-    {
-      "plural": "tools",
-      "name": "high_risk_query",
-      "content": {
-        "description": "Exercises one-time approval on a reviewed local Operation",
-        "sourceType": "LOCAL_OPERATION",
-        "operationMethod": "GET /api/mcp-fixtures/query",
-        "inputSchema": "{\"type\":\"object\"}",
-        "outputSchema": "{\"type\":\"object\"}",
-        "argumentBindings": {},
-        "resultBindings": {},
-        "annotations": {},
-        "requiredPermissions": ["mock:admin"],
-        "riskLevel": "HIGH",
-        "idempotent": false
-      },
-      "enabled": true
-    },
-    {
-      "plural": "tools",
       "name": "stable.remote_echo",
       "content": {
         "description": "Calls the host-local Stable remote MCP fixture",
-        "sourceType": "REMOTE_MCP",
         "remoteMountNamespace": "stable",
         "inputSchema": "{\"type\":\"object\"}",
         "outputSchema": "{\"type\":\"object\"}",
-        "argumentBindings": {},
-        "resultBindings": {},
         "annotations": {},
         "requiredPermissions": ["mock:read"],
         "riskLevel": "LOW",
@@ -169,23 +111,21 @@
       "enabled": true
     },
     {
-      "plural": "tools",
       "name": "rc.remote_echo",
       "content": {
         "description": "Calls the host-local RC remote MCP fixture",
-        "sourceType": "REMOTE_MCP",
         "remoteMountNamespace": "rc",
         "inputSchema": "{\"type\":\"object\"}",
         "outputSchema": "{\"type\":\"object\"}",
-        "argumentBindings": {},
-        "resultBindings": {},
         "annotations": {},
         "requiredPermissions": ["mock:read"],
         "riskLevel": "LOW",
         "idempotent": true
       },
       "enabled": true
-    },
+    }
+  ],
+  "capabilities": [
     {
       "plural": "resources",
       "name": "local_status",
@@ -255,7 +195,7 @@
     },
     {
       "plural": "task-policies",
-      "name": "local_query_task",
+      "name": "local_echo_task",
       "content": {
         "durable": true,
         "inputAllowed": false,

@@ -212,44 +212,6 @@ wait_mcp_provider_catalog() {
   unified_platform_fail "MCP Provider Gateway catalog did not become active"
 }
 
-operation_id() {
-  local method="$1" application_id catalog id
-  application_id="$(<"${unified_platform_runtime_dir}/mcp-provider-application.id")"
-  catalog="$(gateway_api GET \
-    "/api/v1/gateway/admin/applications/${application_id}/catalog")"
-  id="$(jq -r --arg method "${method}" \
-    '.. | objects | select(.methodIdentity? == $method and .lifecycleStatus? == "ACTIVE") | .id' \
-    <<<"${catalog}" | head -1)"
-  [[ -n "${id}" ]] || unified_platform_fail \
-    "MCP Provider operation is missing: ${method}"
-  printf '%s' "${id}"
-}
-
-ensure_local_operation_route() {
-  local group_id="$1" operation draft revision response
-  operation="$(operation_id 'GET /api/mcp-fixtures/query')"
-  draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
-  if jq -e --arg operation "${operation}" '
-      .routes[]
-      | select(
-          .routeId == "mcp-local-query"
-          and .operationId == $operation
-          and .enabled == false
-          and .content.host == "*"
-          and .content.httpMethod == "GET"
-          and .content.pathPattern == "/api/mcp-fixtures/query"
-          and .content.accessZones == ["INTERNAL"]
-        )' <<<"${draft}" >/dev/null; then
-    return
-  fi
-  revision="$(jq -er '.revision' <<<"${draft}")"
-  response="$(gateway_api PUT \
-    "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/routes/mcp-local-query" \
-    "$(jq -cn --arg operation "${operation}" --argjson revision "${revision}" \
-      '{operationId:$operation,content:{host:"*",httpMethod:"GET",pathPattern:"/api/mcp-fixtures/query",accessZones:["INTERNAL"],priority:110},enabled:false,expectedRevision:$revision,idempotencyKey:("unified-local-operation-route-" + ($revision | tostring)),changeReason:"Anchor the internal Operation used only by MCP tools"}')")"
-  jq -e '.revision > 0' <<<"${response}" >/dev/null
-}
-
 ensure_mcp_server() {
   local group_id="$1" servers server_id revision response body
   servers="$(gateway_api GET \
@@ -416,14 +378,8 @@ restore_app_artifact() {
 }
 
 resolved_capability_content() {
-  local item="$1" content method namespace artifact_code resolved
+  local item="$1" content namespace artifact_code resolved
   content="$(jq -c '.content' <<<"${item}")"
-  method="$(jq -r '.operationMethod // empty' <<<"${content}")"
-  if [[ -n "${method}" ]]; then
-    resolved="$(operation_id "${method}")"
-    content="$(jq -c --arg id "${resolved}" \
-      'del(.operationMethod) | .operationId = $id' <<<"${content}")"
-  fi
   namespace="$(jq -r '.remoteMountNamespace // empty' <<<"${content}")"
   if [[ -n "${namespace}" ]]; then
     resolved="$(<"${unified_platform_runtime_dir}/mcp-mount-${namespace}.id")"
@@ -437,6 +393,69 @@ resolved_capability_content() {
       'del(.appArtifactCode) | .appArtifactId = $id' <<<"${content}")"
   fi
   printf '%s' "${content}"
+}
+
+ensure_remote_tools() {
+  local group_id="$1" server_id="$2" item name enabled existing existing_item
+  local tool_id tool_revision content desired current revision body response
+  existing="$(gateway_api GET \
+    "/api/v1/gateway/admin/mcp/remote-tools?gatewayGroupId=${group_id}&serverId=${server_id}")"
+  while IFS= read -r item; do
+    name="$(jq -er '.name' <<<"${item}")"
+    enabled="$(jq -er '.enabled' <<<"${item}")"
+    existing_item="$(jq -c --arg name "${name}" \
+      '.[] | select(.name == $name)' <<<"${existing}" | head -1)"
+    content="$(resolved_capability_content "${item}")"
+    desired="$(jq -cn --argjson content "${content}" \
+      --argjson enabled "${enabled}" \
+      '$content | {
+        description:(.description // null),
+        remoteMountId,
+        inputSchema:(.inputSchema // null),
+        outputSchema:(.outputSchema // null),
+        annotations:(.annotations // {}),
+        requiredPermissions:((.requiredPermissions // []) | sort),
+        riskLevel:(.riskLevel // "LOW"),
+        idempotent:(.idempotent // false),
+        enabled:$enabled
+      }')"
+    revision="$(draft_revision "${group_id}")"
+    if [[ -n "${existing_item}" ]]; then
+      current="$(jq -c '{
+        description:(.description // null),
+        remoteMountId,
+        inputSchema:(.inputSchema // null),
+        outputSchema:(.outputSchema // null),
+        annotations:(.annotations // {}),
+        requiredPermissions:((.requiredPermissions // []) | sort),
+        riskLevel,
+        idempotent,
+        enabled
+      }' <<<"${existing_item}")"
+      if [[ "${current}" == "${desired}" ]]; then
+        continue
+      fi
+      tool_id="$(jq -er '.id' <<<"${existing_item}")"
+      tool_revision="$(jq -er '.revision' <<<"${existing_item}")"
+      body="$(jq -cn --arg group "${group_id}" --arg server "${server_id}" \
+        --arg name "${name}" --argjson content "${content}" \
+        --argjson enabled "${enabled}" --argjson expected "${tool_revision}" \
+        --argjson draft "${revision}" \
+        '$content + {gatewayGroupId:$group,serverId:$server,name:$name,enabled:$enabled,expectedRevision:$expected,expectedDraftRevision:$draft,changeReason:("Reconcile host-local Remote MCP Tool " + $name)}')"
+      response="$(gateway_api PUT \
+        "/api/v1/gateway/admin/mcp/remote-tools/${tool_id}" \
+        "${body}" "unified-local-remote-tool-${name}-update-${revision}")"
+      jq -e '.resourceId != null' <<<"${response}" >/dev/null
+      continue
+    fi
+    body="$(jq -cn --arg group "${group_id}" --arg server "${server_id}" \
+      --arg name "${name}" --argjson content "${content}" \
+      --argjson enabled "${enabled}" --argjson draft "${revision}" \
+      '$content + {gatewayGroupId:$group,serverId:$server,name:$name,enabled:$enabled,expectedRevision:0,expectedDraftRevision:$draft,changeReason:("Create host-local Remote MCP Tool " + $name)}')"
+    response="$(gateway_api POST /api/v1/gateway/admin/mcp/remote-tools \
+      "${body}" "unified-local-remote-tool-${name}-v1")"
+    jq -e '.resourceId != null' <<<"${response}" >/dev/null
+  done < <(jq -c '.remoteTools[]' "${release_fixture}")
 }
 
 ensure_capabilities() {
@@ -570,13 +589,13 @@ unified_platform_wait_http mcp-provider \
 wait_mcp_provider_catalog
 
 group_id="$(<"${gateway_group_file}")"
-ensure_local_operation_route "${group_id}"
 ensure_mcp_server "${group_id}"
 server_id="$(<"${unified_platform_runtime_dir}/mcp-server.id")"
-ensure_remote_providers "${group_id}"
-ensure_remote_mounts "${group_id}" "${server_id}"
-ensure_app_artifact "${group_id}"
-ensure_capabilities "${group_id}" "${server_id}"
+  ensure_remote_providers "${group_id}"
+  ensure_remote_mounts "${group_id}" "${server_id}"
+  ensure_app_artifact "${group_id}"
+  ensure_remote_tools "${group_id}" "${server_id}"
+  ensure_capabilities "${group_id}" "${server_id}"
 
 unified_platform_stage "publishing one unified HTTP and MCP release"
 publish_mcp_release "${group_id}" "${server_id}"

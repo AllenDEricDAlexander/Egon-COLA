@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRiskLevel;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
@@ -32,7 +33,8 @@ import java.util.concurrent.atomic.AtomicLong;
         entityDomainName = "Fixture",
         code = "mcp-fixture-operations",
         name = "MCP Fixture Operations",
-        description = "完全本地且确定性的 MCP Operation 测试接口"
+        description = "完全本地且确定性的 MCP Operation 测试接口",
+        mcpServerCode = "unified-local"
 )
 public class McpJobController {
 
@@ -47,6 +49,10 @@ public class McpJobController {
             owner = "gateway-test",
             externalAccessible = false,
             idempotent = true,
+            registerMcp = true,
+            mcpName = "local_echo_task",
+            mcpRequiredPermissions = "mock:read",
+            mcpRiskLevel = McpRiskLevel.MEDIUM,
             tags = {"mcp", "query"}
     )
     public EchoView echo(@RequestBody EchoCommand command) {
@@ -60,6 +66,9 @@ public class McpJobController {
             owner = "gateway-test",
             externalAccessible = false,
             idempotent = true,
+            registerMcp = true,
+            mcpName = "local_query",
+            mcpRequiredPermissions = "mock:read",
             tags = {"mcp", "query"},
             responseSchemaFields = @GatewaySchemaField(
                     path = "items",
@@ -92,6 +101,10 @@ public class McpJobController {
             summary = "用于一次性审批验证的高风险操作",
             owner = "gateway-test",
             externalAccessible = false,
+            registerMcp = true,
+            mcpName = "high_risk_action",
+            mcpRequiredPermissions = "mock:admin",
+            mcpRiskLevel = McpRiskLevel.HIGH,
             tags = {"mcp", "command", "high-risk"}
     )
     public ApprovalView highRisk(@RequestBody ApprovalCommand command) {
