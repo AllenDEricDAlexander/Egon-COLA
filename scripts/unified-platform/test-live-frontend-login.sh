@@ -175,6 +175,19 @@ verify_fresh_admin_json() {
       "fresh Admin endpoint returned invalid JSON: ${label}"
 }
 
+verify_fresh_admin_array() {
+  local label="$1" url="$2" token_file="$3"
+  local output="${fresh_dir}/${label}.json" http_code
+  http_code="$(curl --max-time 15 -sS -o "${output}" -w '%{http_code}' \
+    -H "Authorization: Bearer $(<"${token_file}")" "${url}")"
+  [[ "${http_code}" == '200' ]] \
+    || unified_platform_fail \
+      "fresh Admin endpoint returned HTTP ${http_code}: ${label}"
+  jq -e 'type == "array"' "${output}" >/dev/null \
+    || unified_platform_fail \
+      "fresh Admin endpoint returned invalid JSON: ${label}"
+}
+
 expected_role_pairs="$(jq -cn '[
   {applicationCode:"ddc-admin",rootRoleCode:"DDC_LOCAL_ADMIN"},
   {applicationCode:"gateway-admin",rootRoleCode:"GATEWAY_LOCAL_ADMIN"},
@@ -208,6 +221,18 @@ expected_active_roles="$(jq -cer --argjson expected "${expected_role_pairs}" '
 verify_fresh_admin_json idp-bootstrap \
   "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
   "${fresh_dir}/idp.refreshed.access.jwt"
+verify_fresh_admin_array idp-users \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/users" \
+  "${fresh_dir}/idp.refreshed.access.jwt"
+verify_fresh_admin_array idp-clients \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/clients" \
+  "${fresh_dir}/idp.refreshed.access.jwt"
+verify_fresh_admin_array idp-signing-keys \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/signing-keys" \
+  "${fresh_dir}/idp.refreshed.access.jwt"
+verify_fresh_admin_json idp-audits \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/audits?page=0&size=20" \
+  "${fresh_dir}/idp.refreshed.access.jwt"
 
 curl --max-time 15 -fsS -o "${fresh_dir}/active-roles.json" \
   -H "Authorization: Bearer $(<"${fresh_dir}/rbac3.access.jwt")" \
@@ -233,4 +258,4 @@ verify_fresh_admin_json ddc-bootstrap \
   "${fresh_dir}/ddc.access.jwt"
 
 printf '%s\n' \
-  'live-frontend-login: memberships, refresh, and four password+PKCE Admin endpoints PASS'
+  'live-frontend-login: memberships, refresh, IdP pages, and four Admin endpoints PASS'
