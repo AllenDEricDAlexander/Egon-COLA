@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { oauthClient, useAuth } from './AuthContext'
 
+const missingTransaction = 'OAuth transaction not found or expired'
+
 export const CallbackPage = () => {
   const auth = useAuth()
   const navigate = useNavigate()
@@ -11,17 +13,27 @@ export const CallbackPage = () => {
 
   useEffect(() => {
     let active = true
-    void oauthClient.handleCallback(window.location.search)
-      .then((target) => {
+    const process = async () => {
+      try {
+        const target = await oauthClient.handleCallback(window.location.search)
         if (active) setReturnTo(target)
-      })
-      .catch((failure) => {
-        if (active) {
-          setCallbackError(failure instanceof Error ? failure.message : '统一身份登录失败')
+      } catch (failure) {
+        const message = failure instanceof Error ? failure.message : '统一身份登录失败'
+        if (message === missingTransaction) {
+          try {
+            await oauthClient.refresh()
+            if (active) setReturnTo('/dashboard')
+          } catch {
+            if (active) navigate('/login', { replace: true })
+          }
+        } else if (active) {
+          setCallbackError(message)
         }
-      })
+      }
+    }
+    void process()
     return () => { active = false }
-  }, [])
+  }, [navigate])
 
   useEffect(() => {
     if (returnTo && auth.session && !auth.loading) {

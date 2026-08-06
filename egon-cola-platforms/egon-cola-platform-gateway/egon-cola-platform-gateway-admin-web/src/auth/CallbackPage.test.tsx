@@ -10,10 +10,11 @@ const callback = vi.hoisted(() => ({
     error: undefined as string | undefined,
   },
   handle: vi.fn(),
+  refresh: vi.fn(),
 }))
 
 vi.mock('./AuthContext', () => ({
-  oauthClient: { handleCallback: callback.handle },
+  oauthClient: { handleCallback: callback.handle, refresh: callback.refresh },
   useAuth: () => callback.auth,
 }))
 
@@ -22,6 +23,7 @@ const TestRouter = () => (
     <Routes>
       <Route path="/oauth/callback" element={<CallbackPage />} />
       <Route path="/dashboard" element={<div>Gateway 控制台</div>} />
+      <Route path="/login" element={<div>Gateway 登录</div>} />
     </Routes>
   </MemoryRouter>
 )
@@ -31,6 +33,7 @@ beforeEach(() => {
   callback.auth.session = undefined
   callback.auth.error = undefined
   callback.handle.mockReset().mockResolvedValue('/dashboard')
+  callback.refresh.mockReset().mockResolvedValue('access-token')
 })
 
 afterEach(cleanup)
@@ -46,5 +49,27 @@ describe('Gateway OAuth callback', () => {
     view.rerender(<TestRouter />)
 
     await waitFor(() => expect(screen.getByText('Gateway 控制台')).toBeInTheDocument())
+  })
+
+  it('restores an already exchanged callback through the refresh cookie', async () => {
+    callback.handle.mockRejectedValue(new Error('OAuth transaction not found or expired'))
+    const view = render(<TestRouter />)
+
+    await waitFor(() => expect(callback.refresh).toHaveBeenCalled())
+    expect(screen.queryByText('登录失败')).not.toBeInTheDocument()
+
+    callback.auth.session = {}
+    view.rerender(<TestRouter />)
+
+    await waitFor(() => expect(screen.getByText('Gateway 控制台')).toBeInTheDocument())
+  })
+
+  it('returns to login when a missing transaction cannot be refreshed', async () => {
+    callback.handle.mockRejectedValue(new Error('OAuth transaction not found or expired'))
+    callback.refresh.mockRejectedValue(new Error('invalid_grant'))
+
+    render(<TestRouter />)
+
+    await waitFor(() => expect(screen.getByText('Gateway 登录')).toBeInTheDocument())
   })
 })

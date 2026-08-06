@@ -133,7 +133,7 @@ export const createOAuthClient = (
 
     handleCallback: (search: string): Promise<string> => {
       if (!callbackInFlight) {
-        callbackInFlight = (async () => {
+        callbackInFlight = Promise.resolve().then(async () => {
           try {
             const encoded = runtime.storage.getItem(TRANSACTION_KEY)
             if (!encoded) throw new Error('OAuth transaction not found or expired')
@@ -151,8 +151,6 @@ export const createOAuthClient = (
             if (params.get('state') !== transaction.state) {
               throw new Error('OAuth state validation failed')
             }
-            // Only remove transaction after successful validation
-            runtime.storage.removeItem(TRANSACTION_KEY)
             const code = params.get('code')
             if (!code) throw new Error('code is required')
             const response = await requestToken(new URLSearchParams({
@@ -163,12 +161,12 @@ export const createOAuthClient = (
               redirect_uri: configuration.redirectUri,
             }))
             storeToken(response, transaction.nonce)
+            runtime.storage.removeItem(TRANSACTION_KEY)
             return safeReturnTo(transaction.returnTo)
           } finally {
-            // FIX: clear inFlight on failure to allow retry
             callbackInFlight = undefined
           }
-        })()
+        })
       }
       return callbackInFlight
     },
