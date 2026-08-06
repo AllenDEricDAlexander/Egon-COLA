@@ -137,6 +137,21 @@ fresh_oauth_token gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}" \
 fresh_oauth_token ddc-admin-web "${DDC_ADMIN_WEB_URL}" \
   "${fresh_dir}/ddc.access.jwt"
 
+idp_refresh_code="$(curl --max-time 10 -sS \
+  -o "${fresh_dir}/idp.refresh.json" -w '%{http_code}' \
+  -c "${fresh_cookie}" -b "${fresh_cookie}" \
+  -H "Origin: ${IDP_ADMIN_WEB_URL}" \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode grant_type=refresh_token \
+  --data-urlencode client_id=idp-admin-web \
+  "${IDP_BASE_URL}/oauth2/token")"
+[[ "${idp_refresh_code}" == '200' ]] \
+  || unified_platform_fail \
+    "idp-admin-web refresh token returned HTTP ${idp_refresh_code}"
+jq -er '.access_token' "${fresh_dir}/idp.refresh.json" \
+  >"${fresh_dir}/idp.refreshed.access.jwt"
+chmod 600 "${fresh_dir}/idp.refreshed.access.jwt"
+
 fresh_sid_count="$(for token_file in \
   "${fresh_dir}/idp.access.jwt" \
   "${fresh_dir}/rbac3.access.jwt" \
@@ -192,7 +207,7 @@ expected_active_roles="$(jq -cer --argjson expected "${expected_role_pairs}" '
 
 verify_fresh_admin_json idp-bootstrap \
   "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
-  "${fresh_dir}/idp.access.jwt"
+  "${fresh_dir}/idp.refreshed.access.jwt"
 
 curl --max-time 15 -fsS -o "${fresh_dir}/active-roles.json" \
   -H "Authorization: Bearer $(<"${fresh_dir}/rbac3.access.jwt")" \
@@ -218,4 +233,4 @@ verify_fresh_admin_json ddc-bootstrap \
   "${fresh_dir}/ddc.access.jwt"
 
 printf '%s\n' \
-  'live-frontend-login: memberships and four fresh password+PKCE Admin endpoints PASS'
+  'live-frontend-login: memberships, refresh, and four password+PKCE Admin endpoints PASS'

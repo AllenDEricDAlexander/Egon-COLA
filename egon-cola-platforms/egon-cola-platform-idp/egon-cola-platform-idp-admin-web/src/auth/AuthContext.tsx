@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react'
@@ -66,6 +67,8 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [loading, setLoading] = useState(true)
   const [bootstrap, setBootstrap] = useState<AuthorizationBootstrap>()
   const [tokens, setTokens] = useState<AuthTokens | null>(tokenStore.get())
+  const refreshAttempted = useRef(false)
+  const refreshInFlight = useRef<Promise<string> | undefined>(undefined)
 
   const login = useCallback(async (tenantId: string, returnTo = '/') => {
     await oauthClient.beginAuthorization(tenantId, returnTo)
@@ -82,9 +85,32 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     let active = true
     const initialize = async () => {
       if (!tokens) {
-        if (active) { setBootstrap(undefined); setLoading(false) }
+        if (active) setBootstrap(undefined)
+        if (window.location.pathname === '/oauth/callback') {
+          if (active) setLoading(false)
+          return
+        }
+        if (!refreshAttempted.current) {
+          refreshAttempted.current = true
+          refreshInFlight.current = oauthClient.refresh()
+        }
+        const refresh = refreshInFlight.current
+        if (!refresh) {
+          if (active) setLoading(false)
+          return
+        }
+        if (active) setLoading(true)
+        try {
+          await refresh
+          if (active && !tokenStore.get()) setLoading(false)
+        } catch {
+          if (active) setLoading(false)
+        } finally {
+          if (refreshInFlight.current === refresh) refreshInFlight.current = undefined
+        }
         return
       }
+      if (active) setLoading(true)
       try {
         const value = await httpClient.request<AuthorizationBootstrap>('/api/v1/auth/bootstrap')
         if (active) setBootstrap(value)
