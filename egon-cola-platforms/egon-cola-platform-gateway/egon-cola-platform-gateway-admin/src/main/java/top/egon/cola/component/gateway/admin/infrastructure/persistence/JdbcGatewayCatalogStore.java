@@ -189,6 +189,71 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
     }
 
     @Override
+    public List<CurrentOperationDefinition> loadCurrentOperationDefinitions(
+            String gatewayGroupId) {
+        return jdbc.query("""
+                SELECT o.id, o.application_id, o.interface_group_id,
+                       o.operation_key, o.protocol, o.method_identity,
+                       o.external_accessible,
+                       o.provider_service_identity::text AS provider_identity,
+                       o.source_type, o.lifecycle_status,
+                       o.current_definition_id, o.revision,
+                       o.created_at, o.updated_at,
+                       d.id AS definition_id,
+                       d.definition_version, d.definition_sha256,
+                       d.summary, d.tags::text AS definition_tags,
+                       d.request_schema::text AS definition_request_schema,
+                       d.response_schema::text AS definition_response_schema,
+                       d.error_schema::text AS definition_error_schema,
+                       d.descriptor_snapshot::text
+                           AS definition_descriptor_snapshot,
+                       d.attributes::text AS definition_attributes,
+                       d.external_accessible AS definition_external_accessible,
+                       d.created_at AS definition_created_at,
+                       d.created_by AS definition_created_by
+                  FROM gateway_group release_group
+                  JOIN gateway_application a
+                    ON a.env = release_group.env
+                   AND a.namespace = release_group.namespace
+                   AND a.deleted = FALSE
+                  JOIN gateway_operation o ON o.application_id = a.id
+                  JOIN gateway_operation_definition d
+                    ON d.id = o.current_definition_id
+                 WHERE release_group.id = ?
+                   AND release_group.deleted = FALSE
+                   AND o.lifecycle_status <> 'OFFLINE'
+                 ORDER BY a.application_code, o.operation_key
+                """, (result, row) -> new CurrentOperationDefinition(
+                operation(result),
+                new OperationDefinition(
+                        result.getString("definition_id"),
+                        result.getString("id"),
+                        result.getLong("definition_version"),
+                        result.getString("definition_sha256"),
+                        result.getString("summary"),
+                        list(result.getString("definition_tags")),
+                        map(result.getString("definition_request_schema")),
+                        map(result.getString("definition_response_schema")),
+                        mapList(result.getString("definition_error_schema")),
+                        result.getString(
+                                "definition_descriptor_snapshot"
+                        ) == null
+                                ? null
+                                : map(result.getString(
+                                "definition_descriptor_snapshot"
+                        )),
+                        map(result.getString("definition_attributes")),
+                        result.getBoolean(
+                                "definition_external_accessible"
+                        ),
+                        result.getTimestamp("definition_created_at")
+                                .toInstant(),
+                        result.getString("definition_created_by")
+                )
+        ), gatewayGroupId);
+    }
+
+    @Override
     public void insertOperation(OperationRecord operation) {
         jdbc.update("""
                 INSERT INTO gateway_operation(

@@ -442,14 +442,45 @@ public class GatewayReleaseService {
     private GatewayRuleContent content(
             GatewayGroupEntity group,
             GatewayDraftService.DraftView draft) {
+        McpRuleContent mcp = mcpContentFactory == null
+                ? McpRuleContent.empty()
+                : mcpContentFactory.compileForRelease(
+                        group.getId(),
+                        draft.revision()
+                );
+        Set<String> referencedOperationIds = new LinkedHashSet<>();
+        draft.routes().stream()
+                .filter(GatewayDraftStore.RouteDraft::enabled)
+                .map(GatewayDraftStore.RouteDraft::operationId)
+                .forEach(referencedOperationIds::add);
+        mcp.tools().stream()
+                .filter(tool -> tool.enabled()
+                        && "LOCAL_OPERATION".equals(tool.sourceType()))
+                .map(tool -> tool.operationId())
+                .forEach(referencedOperationIds::add);
+        mcp.resources().stream()
+                .filter(resource -> resource.enabled()
+                        && "LOCAL_OPERATION".equals(resource.driverType()))
+                .map(resource -> resource.operationId())
+                .forEach(referencedOperationIds::add);
+        mcp.resourceTemplates().stream()
+                .filter(template -> template.enabled()
+                        && "LOCAL_OPERATION".equals(template.driverType()))
+                .map(template -> template.operationId())
+                .forEach(referencedOperationIds::add);
+        mcp.prompts().stream()
+                .filter(prompt -> prompt.enabled()
+                        && "LOCAL_OPERATION".equals(prompt.sourceType()))
+                .map(prompt -> prompt.operationId())
+                .forEach(referencedOperationIds::add);
         Map<String, GatewayCatalogStore.OperationRecord> operations =
                 new LinkedHashMap<>();
-        draft.routes().forEach(route -> operations.put(
-                route.operationId(),
-                catalog.findOperation(route.operationId())
+        referencedOperationIds.forEach(operationId -> operations.put(
+                operationId,
+                catalog.findOperation(operationId)
                         .orElseThrow(() -> new GatewayAdminNotFoundException(
                                 "gateway operation "
-                                        + route.operationId()
+                                        + operationId
                                         + " was not found"
                         ))
         ));
@@ -512,12 +543,6 @@ public class GatewayReleaseService {
                 )))
                 .distinct()
                 .toList();
-        McpRuleContent mcp = mcpContentFactory == null
-                ? McpRuleContent.empty()
-                : mcpContentFactory.compileForRelease(
-                        group.getId(),
-                        draft.revision()
-                );
         return new GatewayRuleContent(
                 group.getId(),
                 group.getGatewayGroupCode(),

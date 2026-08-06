@@ -17,12 +17,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Service
 public class GatewayDefinitionReportService {
 
     private static final String IDEMPOTENCY_SCOPE =
             "GATEWAY_DEFINITION_REPORT";
+
+    private static final Pattern MCP_PERMISSION = Pattern.compile(
+            "^[a-z][a-z0-9._-]*(?::[A-Za-z0-9._*-]+)+$"
+    );
 
     private final GatewayDefinitionReportStore reports;
 
@@ -261,8 +266,96 @@ public class GatewayDefinitionReportService {
                                                         + "accessible"
                                         );
                                     }
+                                    validateMcpExposure(operation);
                                 }))));
         validateCodes(report);
+    }
+
+    private void validateMcpExposure(
+            GatewayInterfaceDefinitionReport.Operation operation) {
+        Object reported = operation.attributes().get("mcpExposure");
+        if (reported == null) {
+            return;
+        }
+        if (!(reported instanceof Map<?, ?>)) {
+            invalidMcp(operation, "mcpExposure must be an object");
+        }
+        Map<?, ?> exposure = (Map<?, ?>) reported;
+        if (!Boolean.TRUE.equals(exposure.get("registerMcp"))) {
+            invalidMcp(operation, "registerMcp must be true");
+        }
+        requiredMcp(exposure, "mcpServerCode", operation);
+        requiredMcp(exposure, "mcpName", operation);
+        Object permissions = exposure.get("requiredPermissions");
+        if (!(permissions instanceof List<?>)) {
+            invalidMcp(operation, "requiredPermissions must be an array");
+        }
+        List<?> values = (List<?>) permissions;
+        for (Object value : values) {
+            if (!(value instanceof String permission)
+                    || !MCP_PERMISSION.matcher(permission).matches()) {
+                invalidMcp(operation, "invalid requiredPermissions value");
+            }
+        }
+        Object risk = exposure.get("riskLevel");
+        if (!(risk instanceof String riskName)
+                || !Set.of("LOW", "MEDIUM", "HIGH", "CRITICAL")
+                .contains(riskName)) {
+            invalidMcp(operation, "invalid riskLevel");
+        }
+        if (!(exposure.get("idempotent") instanceof Boolean)) {
+            invalidMcp(operation, "idempotent must be boolean");
+        }
+        if (Boolean.TRUE.equals(operation.attributes().get("streaming"))) {
+            invalidMcp(operation, "streaming operations are unsupported");
+        }
+        int bodyParameters = 0;
+        for (GatewayInterfaceDefinitionReport.Parameter parameter
+                : operation.parameters()) {
+            if ("PART".equals(parameter.location())) {
+                invalidMcp(
+                        operation,
+                        "PART parameters are unsupported"
+                );
+            }
+            if ("HEADER".equals(parameter.location())
+                    || "COOKIE".equals(parameter.location())) {
+                boolean injectedAuthorization = "HEADER".equals(
+                        parameter.location()
+                ) && "Authorization".equalsIgnoreCase(parameter.name());
+                if (parameter.required() && !injectedAuthorization) {
+                    invalidMcp(
+                            operation,
+                            "required " + parameter.location()
+                                    + " parameter is unsupported: "
+                                    + parameter.name()
+                    );
+                }
+                continue;
+            }
+            if ("BODY".equals(parameter.location()) && ++bodyParameters > 1) {
+                invalidMcp(operation, "multiple BODY parameters are unsupported");
+            }
+        }
+    }
+
+    private void requiredMcp(
+            Map<?, ?> exposure,
+            String field,
+            GatewayInterfaceDefinitionReport.Operation operation) {
+        Object value = exposure.get(field);
+        if (!(value instanceof String text) || text.isBlank()) {
+            invalidMcp(operation, field + " is required");
+        }
+    }
+
+    private void invalidMcp(
+            GatewayInterfaceDefinitionReport.Operation operation,
+            String message) {
+        throw new IllegalArgumentException(
+                "invalid mcpExposure for " + operation.operationKey()
+                        + ": " + message
+        );
     }
 
     private void validateCodes(GatewayInterfaceDefinitionReport report) {

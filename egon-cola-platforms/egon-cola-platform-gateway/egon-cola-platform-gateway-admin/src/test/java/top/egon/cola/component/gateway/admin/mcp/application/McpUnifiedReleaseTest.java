@@ -42,6 +42,55 @@ class McpUnifiedReleaseTest {
         assertEquals("GATEWAY_MCP_OPERATION_NOT_FOUND", error.code());
     }
 
+    @Test
+    void rejectsDuplicateToolNameWithinOneServer() {
+        McpValidationService service = new McpValidationService(
+                mock(GatewayCatalogStore.class),
+                mock(JdbcMcpArtifactMetadataStore.class),
+                new ObjectMapper()
+        );
+        McpRuleContent original = content("operation-1");
+        McpRuntimeTool duplicate = new McpRuntimeTool(
+                "tool-2",
+                "billing",
+                "invoice.get",
+                null,
+                "REMOTE_MCP",
+                null,
+                null,
+                "mount-1",
+                "{\"type\":\"object\"}",
+                "{\"type\":\"object\"}",
+                Map.of(),
+                Map.of(),
+                Set.of(),
+                "LOW",
+                true,
+                true
+        );
+        McpRuleContent duplicated = new McpRuleContent(
+                original.servers(),
+                List.of(original.tools().getFirst(), duplicate),
+                original.resources(),
+                original.resourceTemplates(),
+                original.prompts(),
+                original.taskPolicies(),
+                original.apps(),
+                original.remoteProviders(),
+                original.remoteMounts()
+        );
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.requireValid(duplicated)
+        );
+
+        assertEquals(
+                "duplicate MCP capability name: invoice.get",
+                error.getMessage()
+        );
+    }
+
     private McpRuleContent content(String operationId) {
         return new McpRuleContent(
                 List.of(new McpRuntimeServer(
@@ -62,10 +111,10 @@ class McpUnifiedReleaseTest {
                         null,
                         "LOCAL_OPERATION",
                         operationId,
+                        "HTTP",
                         null,
                         "{\"type\":\"object\"}",
                         "{\"type\":\"object\"}",
-                        Map.of(),
                         Map.of(),
                         Map.of(),
                         Set.of("mcp:billing:tool:invoice.get:call"),

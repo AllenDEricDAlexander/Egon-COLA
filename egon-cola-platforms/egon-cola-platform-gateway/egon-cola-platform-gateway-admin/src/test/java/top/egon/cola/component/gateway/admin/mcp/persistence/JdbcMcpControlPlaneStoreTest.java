@@ -31,30 +31,44 @@ class JdbcMcpControlPlaneStoreTest {
     );
 
     @Test
-    void capabilityAndRemoteWritesFenceEveryMutableRevision() {
+    void managedOverrideAndRemoteToolFenceEveryMutableRevision() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.update(any(String.class), any(Object[].class)))
                 .thenReturn(1);
-        JdbcMcpCapabilityDraftStore capabilities =
-                new JdbcMcpCapabilityDraftStore(jdbc, new ObjectMapper());
+        JdbcMcpManagedToolOverrideStore managed =
+                new JdbcMcpManagedToolOverrideStore(jdbc, new ObjectMapper());
+        JdbcMcpRemoteToolDraftStore remoteTools =
+                new JdbcMcpRemoteToolDraftStore(jdbc, new ObjectMapper());
         JdbcMcpRemoteProviderStore remote =
                 new JdbcMcpRemoteProviderStore(jdbc, new ObjectMapper());
 
-        var mutation = capabilities.save(
-                new JdbcMcpCapabilityDraftStore.CapabilityDraft(
-                        JdbcMcpCapabilityDraftStore.CapabilityKind.TOOL,
+        var mutation = managed.save(
+                new JdbcMcpManagedToolOverrideStore.ManagedToolOverride(
                         "tool-1",
                         "group-1",
+                        "operation-1",
                         "server-1",
-                        "orders.get",
-                        Map.of(
-                                "sourceType", "LOCAL_OPERATION",
-                                "operationId", "orders"
-                        ),
-                        true,
+                        Set.of("mcp:orders:admin"),
+                        "HIGH",
+                        false,
                         3
                 ),
                 3,
+                actor,
+                NOW
+        );
+        remoteTools.save(
+                new JdbcMcpRemoteToolDraftStore.RemoteToolDraft(
+                        "remote-tool-1",
+                        "group-1",
+                        "server-1",
+                        "remote.orders",
+                        "mount-1",
+                        Map.of("riskLevel", "LOW"),
+                        true,
+                        2
+                ),
+                2,
                 actor,
                 NOW
         );
@@ -79,7 +93,11 @@ class JdbcMcpControlPlaneStoreTest {
 
         assertEquals(4, mutation.revision());
         verify(jdbc).update(
-                contains("gateway_mcp_tool_draft"),
+                contains("gateway_mcp_managed_tool_override"),
+                any(Object[].class)
+        );
+        verify(jdbc).update(
+                contains("gateway_mcp_remote_tool_draft"),
                 any(Object[].class)
         );
         verify(jdbc).update(

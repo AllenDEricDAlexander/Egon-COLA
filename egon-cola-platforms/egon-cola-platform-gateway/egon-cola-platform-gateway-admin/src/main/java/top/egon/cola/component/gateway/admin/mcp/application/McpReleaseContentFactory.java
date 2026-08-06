@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
+import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
 import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpArtifactMetadataStore;
 import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpCapabilityDraftStore;
+import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpManagedToolOverrideStore;
 import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteProviderStore;
+import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteToolDraftStore;
 import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerEntity;
 import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerRepository;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
@@ -23,26 +26,44 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class McpReleaseContentFactory {
 
+    private static final List<String> RISK_LEVELS = List.of(
+            "LOW", "MEDIUM", "HIGH", "CRITICAL"
+    );
+
     private final McpServerRepository servers;
 
     private final JdbcMcpCapabilityDraftStore capabilities;
+
+    private final JdbcMcpManagedToolOverrideStore managedOverrides;
+
+    private final JdbcMcpRemoteToolDraftStore remoteTools;
 
     private final JdbcMcpRemoteProviderStore remote;
 
     private final JdbcMcpArtifactMetadataStore artifacts;
 
     private final GatewayDraftRepository drafts;
+
+    private final GatewayCatalogStore catalog;
 
     private final McpValidationService validation;
 
@@ -51,16 +72,22 @@ public class McpReleaseContentFactory {
     public McpReleaseContentFactory(
             McpServerRepository servers,
             JdbcMcpCapabilityDraftStore capabilities,
+            JdbcMcpManagedToolOverrideStore managedOverrides,
+            JdbcMcpRemoteToolDraftStore remoteTools,
             JdbcMcpRemoteProviderStore remote,
             JdbcMcpArtifactMetadataStore artifacts,
             GatewayDraftRepository drafts,
+            GatewayCatalogStore catalog,
             McpValidationService validation,
             ObjectMapper objectMapper) {
         this.servers = servers;
         this.capabilities = capabilities;
+        this.managedOverrides = managedOverrides;
+        this.remoteTools = remoteTools;
         this.remote = remote;
         this.artifacts = artifacts;
         this.drafts = drafts;
+        this.catalog = catalog;
         this.validation = validation;
         this.objectMapper = objectMapper.copy();
     }
@@ -84,15 +111,24 @@ public class McpReleaseContentFactory {
         return create(gatewayGroupId);
     }
 
+    @Transactional(readOnly = true)
+    public List<ManagedToolProjection> managedTools(String gatewayGroupId) {
+        List<McpServerEntity> serverEntities = servers
+                .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
+                        gatewayGroupId
+                );
+        return managedTools(gatewayGroupId, serverEntities);
+    }
+
     private McpRuleContent create(String gatewayGroupId) {
         List<McpServerEntity> serverEntities = servers
                 .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
                         gatewayGroupId
                 );
         Map<String, McpServerEntity> serverById = serverEntities.stream()
-                .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                .collect(Collectors.toUnmodifiableMap(
                         McpServerEntity::getId,
-                        java.util.function.Function.identity()
+                        Function.identity()
                 ));
         var draft = capabilities.load(gatewayGroupId);
         List<JdbcMcpRemoteProviderStore.RemoteProviderDraft> providers =
@@ -107,9 +143,7 @@ public class McpReleaseContentFactory {
 
         return new McpRuleContent(
                 serverEntities.stream().map(this::server).toList(),
-                draft.capabilities(
-                        JdbcMcpCapabilityDraftStore.CapabilityKind.TOOL
-                ).stream().map(item -> tool(item, serverById)).toList(),
+                tools(gatewayGroupId, serverEntities, serverById),
                 draft.capabilities(
                         JdbcMcpCapabilityDraftStore.CapabilityKind.RESOURCE
                 ).stream().map(item -> resource(item, serverById)).toList(),
@@ -137,6 +171,150 @@ public class McpReleaseContentFactory {
         );
     }
 
+    private List<McpRuntimeTool> tools(
+            String gatewayGroupId,
+            List<McpServerEntity> serverEntities,
+            Map<String, McpServerEntity> serverById) {
+        List<McpRuntimeTool> result = new ArrayList<>();
+        managedTools(gatewayGroupId, serverEntities).stream()
+                .map(ManagedToolProjection::tool)
+                .forEach(result::add);
+        remoteTools.load(gatewayGroupId).stream()
+                .map(item -> remoteTool(item, serverById))
+                .forEach(result::add);
+        return List.copyOf(result);
+    }
+
+    private List<ManagedToolProjection> managedTools(
+            String gatewayGroupId,
+            List<McpServerEntity> serverEntities) {
+        Map<String, McpServerEntity> serverById = serverEntities.stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        McpServerEntity::getId,
+                        Function.identity()
+                ));
+        Map<String, McpServerEntity> serverByCode = serverEntities.stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        McpServerEntity::getServerCode,
+                        Function.identity()
+                ));
+        Map<String, JdbcMcpManagedToolOverrideStore.ManagedToolOverride>
+                overrideByOperationId = managedOverrides.load(gatewayGroupId)
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        JdbcMcpManagedToolOverrideStore.ManagedToolOverride
+                                ::operationId,
+                        Function.identity()
+                ));
+        List<ManagedToolProjection> result = new ArrayList<>();
+        for (GatewayCatalogStore.CurrentOperationDefinition current
+                : catalog.loadCurrentOperationDefinitions(gatewayGroupId)) {
+            if (!"STARTER".equals(current.operation().sourceType())) {
+                continue;
+            }
+            Map<String, Object> exposure = objectMap(
+                    current.definition().attributes().get("mcpExposure")
+            );
+            if (!bool(exposure, "registerMcp", false)) {
+                continue;
+            }
+            result.add(managedTool(
+                    gatewayGroupId,
+                    current,
+                    exposure,
+                    serverById,
+                    serverByCode,
+                    overrideByOperationId
+            ));
+        }
+        return List.copyOf(result);
+    }
+
+    private ManagedToolProjection managedTool(
+            String gatewayGroupId,
+            GatewayCatalogStore.CurrentOperationDefinition current,
+            Map<String, Object> exposure,
+            Map<String, McpServerEntity> serverById,
+            Map<String, McpServerEntity> serverByCode,
+            Map<String, JdbcMcpManagedToolOverrideStore.ManagedToolOverride>
+                    overrideByOperationId) {
+        GatewayCatalogStore.OperationRecord operation = current.operation();
+        GatewayCatalogStore.OperationDefinition definition =
+                current.definition();
+        String codeServerCode = required(exposure, "mcpServerCode");
+        McpServerEntity codeServer = serverByCode.get(codeServerCode);
+        if (codeServer == null) {
+            throw new McpValidationException(
+                    "GATEWAY_MCP_SERVER_NOT_FOUND",
+                    "operations." + operation.operationKey()
+                            + ".mcpExposure.mcpServerCode",
+                    "MCP Server " + codeServerCode + " was not found"
+            );
+        }
+        String toolId = managedToolId(codeServerCode, operation.operationKey());
+        JdbcMcpManagedToolOverrideStore.ManagedToolOverride override =
+                overrideByOperationId.get(operation.id());
+        McpServerEntity effectiveServer = override == null
+                || override.serverId() == null
+                ? codeServer
+                : serverById.get(override.serverId());
+        if (effectiveServer == null) {
+            throw new McpValidationException(
+                    "GATEWAY_MCP_SERVER_NOT_FOUND",
+                    "managedTools." + toolId + ".serverId",
+                    "override MCP Server was not found"
+            );
+        }
+        Set<String> codePermissions = strings(
+                exposure.get("requiredPermissions")
+        );
+        Set<String> additionalPermissions = override == null
+                ? Set.of()
+                : override.additionalPermissions();
+        LinkedHashSet<String> effectivePermissions = new LinkedHashSet<>(
+                codePermissions
+        );
+        effectivePermissions.addAll(additionalPermissions);
+        String codeRisk = text(exposure, "riskLevel", "LOW");
+        String minimumRisk = override == null
+                ? null
+                : override.minimumRiskLevel();
+        String effectiveRisk = maximumRisk(codeRisk, minimumRisk);
+        ToolInput input = input(operation, definition);
+        boolean enabled = override == null || override.enabled() == null;
+        McpRuntimeTool tool = new McpRuntimeTool(
+                toolId,
+                effectiveServer.getServerCode(),
+                required(exposure, "mcpName"),
+                description(definition),
+                "LOCAL_OPERATION",
+                operation.id(),
+                operation.protocol(),
+                null,
+                schema(input.schema()),
+                schema(definition.responseSchema()),
+                input.locations(),
+                Map.of(),
+                Set.copyOf(effectivePermissions),
+                effectiveRisk,
+                bool(exposure, "idempotent", false),
+                enabled
+        );
+        return new ManagedToolProjection(
+                gatewayGroupId,
+                operation.operationKey(),
+                codeServer.getId(),
+                codeServer.getServerCode(),
+                effectiveServer.getId(),
+                codePermissions,
+                additionalPermissions,
+                codeRisk,
+                minimumRisk,
+                override == null ? 0 : override.revision(),
+                tool
+        );
+    }
+
     private McpRuntimeServer server(McpServerEntity server) {
         return new McpRuntimeServer(
                 server.getId(),
@@ -153,8 +331,8 @@ public class McpReleaseContentFactory {
         );
     }
 
-    private McpRuntimeTool tool(
-            JdbcMcpCapabilityDraftStore.CapabilityDraft draft,
+    private McpRuntimeTool remoteTool(
+            JdbcMcpRemoteToolDraftStore.RemoteToolDraft draft,
             Map<String, McpServerEntity> serverById) {
         Map<String, Object> value = draft.content();
         return new McpRuntimeTool(
@@ -162,13 +340,13 @@ public class McpReleaseContentFactory {
                 serverCode(draft.serverId(), serverById),
                 draft.name(),
                 optional(value, "description"),
-                required(value, "sourceType"),
-                optional(value, "operationId"),
-                optional(value, "remoteMountId"),
+                "REMOTE_MCP",
+                null,
+                null,
+                draft.remoteMountId(),
                 schema(value.get("inputSchema")),
                 schema(value.get("outputSchema")),
-                stringMap(value.get("argumentBindings")),
-                stringMap(value.get("resultBindings")),
+                Map.of(),
                 stringMap(value.get("annotations")),
                 strings(value.get("requiredPermissions")),
                 text(value, "riskLevel", "LOW"),
@@ -354,6 +532,140 @@ public class McpReleaseContentFactory {
         return server.getServerCode();
     }
 
+    private ToolInput input(
+            GatewayCatalogStore.OperationRecord operation,
+            GatewayCatalogStore.OperationDefinition definition) {
+        if ("RPC".equals(operation.protocol())) {
+            return new ToolInput(definition.requestSchema(), Map.of());
+        }
+        if (!"HTTP".equals(operation.protocol())) {
+            throw new McpValidationException(
+                    "GATEWAY_MCP_OPERATION_PROTOCOL_UNSUPPORTED",
+                    "operations." + operation.operationKey() + ".protocol",
+                    "managed MCP Tool requires HTTP or RPC Operation"
+            );
+        }
+        if (bool(definition.attributes(), "streaming", false)) {
+            throw new McpValidationException(
+                    "GATEWAY_MCP_STREAMING_UNSUPPORTED",
+                    "operations." + operation.operationKey() + ".streaming",
+                    "streaming Operation cannot be projected as an MCP Tool"
+            );
+        }
+        Object reported = definition.attributes().get("parameters");
+        Collection<?> parameters = reported instanceof Collection<?> values
+                ? values
+                : List.of();
+        Map<String, Object> properties = new LinkedHashMap<>();
+        Map<String, String> locations = new LinkedHashMap<>();
+        List<String> requiredNames = new ArrayList<>();
+        int bodyCount = 0;
+        for (Object value : parameters) {
+            Map<String, Object> parameter = objectMap(value);
+            String name = required(parameter, "name");
+            String location = required(parameter, "location")
+                    .toUpperCase(Locale.ROOT);
+            boolean required = bool(parameter, "required", false);
+            if ("PART".equals(location)) {
+                throw unsupportedParameter(operation, name, location);
+            }
+            if ("HEADER".equals(location) || "COOKIE".equals(location)) {
+                boolean injectedAuthorization = "HEADER".equals(location)
+                        && "Authorization".equalsIgnoreCase(name);
+                if (required && !injectedAuthorization) {
+                    throw unsupportedParameter(operation, name, location);
+                }
+                continue;
+            }
+            if (!Set.of("PATH", "QUERY", "BODY").contains(location)) {
+                throw unsupportedParameter(operation, name, location);
+            }
+            if ("BODY".equals(location) && ++bodyCount > 1) {
+                throw new McpValidationException(
+                        "GATEWAY_MCP_MULTIPLE_BODY_PARAMETERS",
+                        "operations." + operation.operationKey()
+                                + ".parameters",
+                        "managed MCP Tool cannot declare multiple BODY inputs"
+                );
+            }
+            if (properties.putIfAbsent(
+                    name,
+                    objectMap(parameter.get("schema"))
+            ) != null) {
+                throw new McpValidationException(
+                        "GATEWAY_MCP_PARAMETER_DUPLICATE",
+                        "operations." + operation.operationKey()
+                                + ".parameters." + name,
+                        "managed MCP Tool input names must be unique"
+                );
+            }
+            locations.put(name, location);
+            if (required) {
+                requiredNames.add(name);
+            }
+        }
+        Map<String, Object> inputSchema = new LinkedHashMap<>();
+        inputSchema.put("type", "object");
+        inputSchema.put("properties", properties);
+        if (!requiredNames.isEmpty()) {
+            inputSchema.put("required", requiredNames);
+        }
+        inputSchema.put("additionalProperties", false);
+        return new ToolInput(Map.copyOf(inputSchema), Map.copyOf(locations));
+    }
+
+    private McpValidationException unsupportedParameter(
+            GatewayCatalogStore.OperationRecord operation,
+            String name,
+            String location) {
+        return new McpValidationException(
+                "GATEWAY_MCP_PARAMETER_LOCATION_UNSUPPORTED",
+                "operations." + operation.operationKey()
+                        + ".parameters." + name,
+                location + " input " + name
+                        + " is unsupported for managed MCP Tool"
+        );
+    }
+
+    private String description(
+            GatewayCatalogStore.OperationDefinition definition) {
+        String description = optional(definition.attributes(), "description");
+        return description == null ? definition.summary() : description;
+    }
+
+    static String managedToolId(String serverCode, String operationKey) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(serverCode.getBytes(StandardCharsets.UTF_8));
+            digest.update((byte) 0);
+            digest.update(operationKey.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 is unavailable", impossible);
+        }
+    }
+
+    private String maximumRisk(String codeRisk, String minimumRisk) {
+        int code = risk(codeRisk);
+        if (minimumRisk == null) {
+            return codeRisk;
+        }
+        int minimum = risk(minimumRisk);
+        return code >= minimum ? codeRisk : minimumRisk;
+    }
+
+    private int risk(String value) {
+        int level = RISK_LEVELS.indexOf(value);
+        if (level < 0) {
+            throw new McpValidationException(
+                    "GATEWAY_MCP_RISK_INVALID",
+                    "riskLevel",
+                    "unsupported MCP Tool risk level " + value
+            );
+        }
+        return level;
+    }
+
     private String required(Map<String, Object> value, String key) {
         String result = optional(value, key);
         if (result == null) {
@@ -429,6 +741,18 @@ public class McpReleaseContentFactory {
         return Map.copyOf(result);
     }
 
+    private Map<String, Object> objectMap(Object value) {
+        if (value == null) {
+            return Map.of();
+        }
+        if (!(value instanceof Map<?, ?> source)) {
+            throw new IllegalArgumentException("MCP value must be an object");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        source.forEach((key, item) -> result.put(key.toString(), item));
+        return Map.copyOf(result);
+    }
+
     private String schema(Object value) {
         if (value == null) {
             return null;
@@ -444,5 +768,26 @@ public class McpReleaseContentFactory {
                     failure
             );
         }
+    }
+
+    public record ManagedToolProjection(
+            String gatewayGroupId,
+            String operationKey,
+            String codeServerId,
+            String codeServerCode,
+            String serverId,
+            Set<String> codePermissions,
+            Set<String> additionalPermissions,
+            String codeRiskLevel,
+            String minimumRiskLevel,
+            long overrideRevision,
+            McpRuntimeTool tool
+    ) {
+    }
+
+    private record ToolInput(
+            Map<String, Object> schema,
+            Map<String, String> locations
+    ) {
     }
 }

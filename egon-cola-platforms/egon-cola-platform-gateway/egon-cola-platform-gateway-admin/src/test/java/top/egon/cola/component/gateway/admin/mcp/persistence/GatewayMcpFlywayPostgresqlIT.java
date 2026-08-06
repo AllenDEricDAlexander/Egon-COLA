@@ -33,7 +33,8 @@ class GatewayMcpFlywayPostgresqlIT {
 
     private static final Set<String> MCP_TABLES = Set.of(
             "gateway_mcp_server",
-            "gateway_mcp_tool_draft",
+            "gateway_mcp_managed_tool_override",
+            "gateway_mcp_remote_tool_draft",
             "gateway_mcp_resource_draft",
             "gateway_mcp_resource_template_draft",
             "gateway_mcp_prompt_draft",
@@ -65,11 +66,14 @@ class GatewayMcpFlywayPostgresqlIT {
 
     private final String storeSchema = schema("store");
 
+    private final String toolMigrationSchema = schema("tool_migration");
+
     @BeforeAll
     void createSchemas() throws SQLException {
         execute("CREATE SCHEMA " + upgradeSchema);
         execute("CREATE SCHEMA " + emptySchema);
         execute("CREATE SCHEMA " + storeSchema);
+        execute("CREATE SCHEMA " + toolMigrationSchema);
     }
 
     @AfterAll
@@ -77,6 +81,7 @@ class GatewayMcpFlywayPostgresqlIT {
         execute("DROP SCHEMA IF EXISTS " + upgradeSchema + " CASCADE");
         execute("DROP SCHEMA IF EXISTS " + emptySchema + " CASCADE");
         execute("DROP SCHEMA IF EXISTS " + storeSchema + " CASCADE");
+        execute("DROP SCHEMA IF EXISTS " + toolMigrationSchema + " CASCADE");
     }
 
     @Test
@@ -92,7 +97,153 @@ class GatewayMcpFlywayPostgresqlIT {
         latest.migrate();
 
         assertTrue(tableNames(upgradeSchema).containsAll(MCP_TABLES));
-        assertEquals("9", latest.info().current().getVersion().getVersion());
+        assertEquals("10", latest.info().current().getVersion().getVersion());
+    }
+
+    @Test
+    void v10MigratesOnlyRemoteToolsAndPreservesTheirIds() throws SQLException {
+        Flyway throughNine = flyway(toolMigrationSchema, "9");
+        throughNine.migrate();
+        JdbcTemplate jdbc = jdbc(toolMigrationSchema);
+        Instant now = Instant.parse("2026-08-02T00:00:00Z");
+        Timestamp timestamp = Timestamp.from(now);
+        jdbc.update("""
+                INSERT INTO gateway_group(
+                    id, gateway_group_code, display_name, env, namespace,
+                    enabled, revision, deleted, created_at, created_by,
+                    updated_at, updated_by
+                ) VALUES (
+                    'group-1', 'group-1', 'Group 1', 'DEV', 'default',
+                    TRUE, 0, FALSE, ?, 'admin', ?, 'admin'
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_application(
+                    id, biz_code, application_code, display_name, env,
+                    namespace, revision, deleted, created_at, created_by,
+                    updated_at, updated_by
+                ) VALUES (
+                    'app-1', 'biz', 'orders', 'Orders', 'DEV', 'default',
+                    0, FALSE, ?, 'admin', ?, 'admin'
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_business_domain(
+                    id, application_id, code, display_name, deleted,
+                    created_at, updated_at
+                ) VALUES (
+                    'business-1', 'app-1', 'orders', 'Orders', FALSE, ?, ?
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_entity_domain(
+                    id, business_domain_id, code, display_name, deleted,
+                    created_at, updated_at
+                ) VALUES (
+                    'entity-1', 'business-1', 'order', 'Order', FALSE, ?, ?
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_interface_group(
+                    id, entity_domain_id, code, display_name, source_type,
+                    deleted, created_at, updated_at
+                ) VALUES (
+                    'interface-1', 'entity-1', 'orders', 'Orders', 'STARTER',
+                    FALSE, ?, ?
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_operation(
+                    id, application_id, interface_group_id, operation_key,
+                    protocol, method_identity, external_accessible,
+                    provider_service_identity, source_type, lifecycle_status,
+                    revision, created_at, updated_at
+                ) VALUES (
+                    'operation-1', 'app-1', 'interface-1', 'orders.get',
+                    'HTTP', 'GET /orders/{id}', FALSE, '{}'::jsonb,
+                    'STARTER', 'ACTIVE', 0, ?, ?
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_mcp_server(
+                    id, gateway_group_id, server_code, display_name,
+                    dialects, oauth_audience, enabled, revision, deleted,
+                    created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                    'server-1', 'group-1', 'orders', 'Orders',
+                    '["STABLE_2025_11_25"]'::jsonb, 'gateway-mcp', TRUE,
+                    0, FALSE, ?, 'admin', ?, 'admin'
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_mcp_remote_provider(
+                    id, gateway_group_id, provider_code, display_name,
+                    dialect, transport_type, endpoint_reference, status,
+                    enabled, revision, deleted, created_at, created_by,
+                    updated_at, updated_by
+                ) VALUES (
+                    'provider-1', 'group-1', 'remote', 'Remote',
+                    'STABLE_2025_11_25', 'STREAMABLE_HTTP', 'remote:orders',
+                    'CONFIGURED', TRUE, 0, FALSE, ?, 'admin', ?, 'admin'
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_mcp_remote_mount_draft(
+                    id, gateway_group_id, server_id, provider_id, namespace,
+                    capability_fingerprint, content, enabled, revision,
+                    deleted, created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                    'mount-1', 'group-1', 'server-1', 'provider-1', 'remote',
+                    'fingerprint', '{}'::jsonb, TRUE, 0, FALSE,
+                    ?, 'admin', ?, 'admin'
+                )
+                """, timestamp, timestamp);
+        jdbc.update("""
+                INSERT INTO gateway_mcp_tool_draft(
+                    id, gateway_group_id, server_id, tool_name, source_type,
+                    operation_id, remote_mount_id, content, enabled, revision,
+                    deleted, created_at, created_by, updated_at, updated_by
+                ) VALUES
+                    ('local-tool', 'group-1', 'server-1', 'orders.get',
+                     'LOCAL_OPERATION', 'operation-1', NULL,
+                     '{"sourceType":"LOCAL_OPERATION"}'::jsonb,
+                     TRUE, 0, FALSE, ?, 'admin', ?, 'admin'),
+                    ('remote-tool', 'group-1', 'server-1', 'remote.get',
+                     'REMOTE_MCP', NULL, 'mount-1',
+                     '{"sourceType":"REMOTE_MCP","riskLevel":"HIGH"}'::jsonb,
+                     TRUE, 4, FALSE, ?, 'admin', ?, 'admin')
+                """,
+                timestamp, timestamp,
+                timestamp, timestamp
+        );
+
+        Flyway latest = flyway(toolMigrationSchema, null);
+        latest.migrate();
+
+        assertFalse(tableNames(toolMigrationSchema).contains(
+                "gateway_mcp_tool_draft"
+        ));
+        assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM gateway_mcp_remote_tool_draft",
+                Integer.class
+        ));
+        assertEquals("remote-tool", jdbc.queryForObject(
+                "SELECT id FROM gateway_mcp_remote_tool_draft",
+                String.class
+        ));
+        assertEquals(4L, jdbc.queryForObject(
+                "SELECT revision FROM gateway_mcp_remote_tool_draft",
+                Long.class
+        ));
+        assertFalse(Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT content ? 'sourceType' "
+                        + "FROM gateway_mcp_remote_tool_draft",
+                Boolean.class
+        )));
+        assertEquals(0, jdbc.queryForObject(
+                "SELECT count(*) FROM gateway_mcp_managed_tool_override",
+                Integer.class
+        ));
     }
 
     @Test

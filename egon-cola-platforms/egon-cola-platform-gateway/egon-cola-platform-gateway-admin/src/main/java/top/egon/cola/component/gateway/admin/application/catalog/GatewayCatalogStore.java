@@ -24,6 +24,9 @@ public interface GatewayCatalogStore {
 
     List<OperationDefinition> loadDefinitions(String operationId);
 
+    List<CurrentOperationDefinition> loadCurrentOperationDefinitions(
+            String gatewayGroupId);
+
     void insertOperation(OperationRecord operation);
 
     void appendDefinition(OperationDefinition definition);
@@ -91,6 +94,12 @@ public interface GatewayCatalogStore {
             boolean externalAccessible,
             Instant createdAt,
             String createdBy
+    ) {
+    }
+
+    record CurrentOperationDefinition(
+            OperationRecord operation,
+            OperationDefinition definition
     ) {
     }
 

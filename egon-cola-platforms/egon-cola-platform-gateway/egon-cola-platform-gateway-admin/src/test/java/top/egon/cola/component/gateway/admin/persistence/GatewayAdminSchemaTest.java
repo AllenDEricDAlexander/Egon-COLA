@@ -19,7 +19,7 @@ class GatewayAdminSchemaTest {
                              "src/main/resources",
                              root
                      ))) {
-            assertEquals(9, migrations.filter(
+            assertEquals(10, migrations.filter(
                     path -> path.getFileName().toString().endsWith(".sql")
             ).count());
         }
@@ -84,5 +84,22 @@ class GatewayAdminSchemaTest {
         assertTrue(mcp.contains("CREATE TABLE gateway_mcp_server"));
         assertTrue(mcp.contains("CREATE TABLE gateway_mcp_approval"));
         assertTrue(mcp.contains("CREATE TABLE gateway_mcp_task_instance"));
+
+        String managedMcp = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root
+                                + "/V10__project_annotation_managed_mcp_tools.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(managedMcp.contains(
+                "CREATE TABLE gateway_mcp_managed_tool_override"
+        ));
+        assertTrue(managedMcp.contains(
+                "CREATE TABLE gateway_mcp_remote_tool_draft"
+        ));
+        assertTrue(managedMcp.contains(
+                "DROP TABLE gateway_mcp_tool_draft"
+        ));
     }
 }

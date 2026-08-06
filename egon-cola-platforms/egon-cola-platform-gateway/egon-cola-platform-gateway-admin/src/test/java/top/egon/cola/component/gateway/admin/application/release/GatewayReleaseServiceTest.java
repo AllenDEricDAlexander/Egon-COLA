@@ -25,6 +25,7 @@ import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
@@ -239,6 +240,78 @@ class GatewayReleaseServiceTest {
         verify(mcp).compileForRelease("group-1", 0L);
     }
 
+    @Test
+    void managedToolPublishesItsOperationWithoutAnEnabledRoute() {
+        McpReleaseContentFactory mcp = mock(McpReleaseContentFactory.class);
+        McpRuleContent mcpContent = new McpRuleContent(
+                List.of(new McpRuntimeServer(
+                        "server-1",
+                        "billing",
+                        "Billing",
+                        null,
+                        null,
+                        Set.of(McpProtocolDialect.STABLE_2025_11_25),
+                        "gateway-mcp",
+                        30,
+                        true
+                )),
+                List.of(new McpRuntimeTool(
+                        "tool-1",
+                        "billing",
+                        "orders.get",
+                        "Get an order",
+                        "LOCAL_OPERATION",
+                        "operation-1",
+                        "HTTP",
+                        null,
+                        "{\"type\":\"object\"}",
+                        "{\"type\":\"object\"}",
+                        Map.of("id", "PATH"),
+                        Map.of(),
+                        Set.of(),
+                        "LOW",
+                        true,
+                        true
+                )),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+        when(mcp.compileForRelease("group-1", 0L)).thenReturn(mcpContent);
+        CreateFixture fixture = createFixture(Map.of(
+                "host", "ai.example.com",
+                "listener", "PUBLIC",
+                "method", "GET",
+                "path", "/orders/{id}"
+        ), mcp, false);
+
+        fixture.service.create(
+                "group-1",
+                new GatewayReleaseService.CreateRelease(
+                        0L,
+                        "publish managed Tool without Route"
+                ),
+                actor(),
+                request()
+        );
+
+        ArgumentCaptor<CompiledGatewayRelease> compiled =
+                ArgumentCaptor.forClass(CompiledGatewayRelease.class);
+        verify(fixture.releases).insert(
+                any(GatewayReleaseStore.ReleaseRecord.class),
+                compiled.capture(),
+                eq(1)
+        );
+        assertThat(compiled.getValue().snapshot().content().routes()).isEmpty();
+        assertThat(compiled.getValue().snapshot().content().operations())
+                .extracting(operation -> operation.operationId())
+                .containsExactly("operation-1");
+    }
+
     private CreateFixture createFixture(Map<String, Object> routeContent) {
         return createFixture(routeContent, null);
     }
@@ -246,6 +319,13 @@ class GatewayReleaseServiceTest {
     private CreateFixture createFixture(
             Map<String, Object> routeContent,
             McpReleaseContentFactory mcpContentFactory) {
+        return createFixture(routeContent, mcpContentFactory, true);
+    }
+
+    private CreateFixture createFixture(
+            Map<String, Object> routeContent,
+            McpReleaseContentFactory mcpContentFactory,
+            boolean routeEnabled) {
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
         GatewayDraftService draftService = mock(GatewayDraftService.class);
@@ -274,7 +354,7 @@ class GatewayReleaseServiceTest {
                         "route-1",
                         "operation-1",
                         routeContent,
-                        true,
+                        routeEnabled,
                         NOW,
                         "admin"
                 );

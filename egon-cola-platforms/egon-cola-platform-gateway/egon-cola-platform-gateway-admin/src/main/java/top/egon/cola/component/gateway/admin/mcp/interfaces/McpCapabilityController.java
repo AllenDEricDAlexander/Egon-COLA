@@ -32,13 +32,17 @@ import java.util.Map;
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
 public class McpCapabilityController {
 
+    private static final String CAPABILITY_COLLECTION =
+            "{plural:resources|resource-templates|prompts|"
+                    + "task-policies|app-bindings}";
+
     private final McpControlPlaneService service;
 
     public McpCapabilityController(McpControlPlaneService service) {
         this.service = service;
     }
 
-    @GetMapping("/servers/{serverId}/{plural}")
+    @GetMapping("/servers/{serverId}/" + CAPABILITY_COLLECTION)
     public List<JdbcMcpCapabilityDraftStore.CapabilityDraft> list(
             @PathVariable String serverId,
             @PathVariable String plural,
@@ -50,7 +54,7 @@ public class McpCapabilityController {
         );
     }
 
-    @PostMapping("/servers/{serverId}/{plural}")
+    @PostMapping("/servers/{serverId}/" + CAPABILITY_COLLECTION)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public McpControlPlaneService.MutationResult create(
@@ -69,7 +73,7 @@ public class McpCapabilityController {
         );
     }
 
-    @PutMapping("/{plural}/{id}")
+    @PutMapping("/" + CAPABILITY_COLLECTION + "/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public McpControlPlaneService.MutationResult update(
             @PathVariable String plural,
@@ -87,7 +91,7 @@ public class McpCapabilityController {
         );
     }
 
-    @DeleteMapping("/{plural}/{id}")
+    @DeleteMapping("/" + CAPABILITY_COLLECTION + "/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public McpControlPlaneService.MutationResult delete(
             @PathVariable String plural,
@@ -110,7 +114,7 @@ public class McpCapabilityController {
         );
     }
 
-    @PostMapping("/{plural}/{id}/validate")
+    @PostMapping("/" + CAPABILITY_COLLECTION + "/{id}/validate")
     public McpValidationService.ValidationReport validate(
             @PathVariable String plural,
             @PathVariable String id,
@@ -123,7 +127,6 @@ public class McpCapabilityController {
         String normalized = value.toUpperCase(Locale.ROOT)
                 .replace('-', '_');
         return switch (normalized) {
-            case "TOOLS" -> JdbcMcpCapabilityDraftStore.CapabilityKind.TOOL;
             case "RESOURCES" ->
                     JdbcMcpCapabilityDraftStore.CapabilityKind.RESOURCE;
             case "RESOURCE_TEMPLATES" ->

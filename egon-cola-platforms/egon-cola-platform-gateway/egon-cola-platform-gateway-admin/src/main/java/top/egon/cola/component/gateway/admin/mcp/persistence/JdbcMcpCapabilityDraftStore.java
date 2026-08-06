@@ -192,15 +192,6 @@ public class JdbcMcpCapabilityDraftStore {
     private Binding binding(CapabilityDraft draft) {
         Map<String, Object> content = draft.content();
         return switch (draft.kind()) {
-            case TOOL -> new Binding(
-                    "source_type, operation_id, remote_mount_id",
-                    "source_type = ?, operation_id = ?, remote_mount_id = ?",
-                    nullableValues(
-                            requiredContent(content, "sourceType"),
-                            optionalContent(content, "operationId"),
-                            optionalContent(content, "remoteMountId")
-                    )
-            );
             case RESOURCE -> new Binding(
                     "resource_uri, driver_type, operation_id, remote_mount_id",
                     "resource_uri = ?, driver_type = ?, operation_id = ?, "
@@ -299,7 +290,6 @@ public class JdbcMcpCapabilityDraftStore {
     }
 
     public enum CapabilityKind {
-        TOOL("gateway_mcp_tool_draft", "tool_name"),
         RESOURCE("gateway_mcp_resource_draft", "resource_name"),
         RESOURCE_TEMPLATE(
                 "gateway_mcp_resource_template_draft",

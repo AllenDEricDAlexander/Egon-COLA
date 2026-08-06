@@ -217,6 +217,12 @@ class GatewayCatalogServiceTest {
         }
 
         @Override
+        public List<CurrentOperationDefinition> loadCurrentOperationDefinitions(
+                String gatewayGroupId) {
+            return List.of();
+        }
+
+        @Override
         public void insertOperation(OperationRecord value) {
             operation = value;
         }
