@@ -29,7 +29,8 @@ public interface EchoRpc {
             summary = "回显消息并返回调用元数据",
             owner = "gateway-test",
             externalAccessible = false,
-            tags = {"rpc", "idempotent"}
+            idempotent = true,
+            tags = {"rpc"}
     )
     EchoResponse echo(EchoRequest request);
 }

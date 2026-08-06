@@ -22,4 +22,6 @@ public @interface GatewayInterfaceGroup {
     String name();
 
     String description() default "";
+
+    String mcpServerCode() default "";
 }

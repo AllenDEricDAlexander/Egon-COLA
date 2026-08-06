@@ -36,7 +36,8 @@ public class ReactiveInventoryController {
             summary = "通过 Mono 返回单个库存对象",
             owner = "gateway-test",
             externalAccessible = true,
-            tags = {"query", "idempotent", "webflux"}
+            idempotent = true,
+            tags = {"query", "webflux"}
     )
     public Mono<InventoryResponse> item(@PathVariable("id") String id) {
         return Mono.just(new InventoryResponse(id, providerId, "webflux"));

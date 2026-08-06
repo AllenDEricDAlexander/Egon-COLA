@@ -33,7 +33,8 @@ public class OrderController {
             summary = "按订单 ID 查询",
             owner = "gateway-test",
             externalAccessible = true,
-            tags = {"query", "idempotent"},
+            idempotent = true,
+            tags = {"query"},
             requestSchemaFields = {
                     @GatewaySchemaField(
                             path = "id",
@@ -72,7 +73,7 @@ public class OrderController {
             summary = "创建新的测试订单",
             owner = "gateway-test",
             externalAccessible = true,
-            tags = {"command", "non-idempotent"},
+            tags = {"command"},
             requestSchemaFields = {
                     @GatewaySchemaField(
                             path = "customerId",
@@ -112,7 +113,8 @@ public class OrderController {
     @GatewayOperation(
             name = "搜索订单",
             externalAccessible = true,
-            tags = {"query", "idempotent"},
+            idempotent = true,
+            tags = {"query"},
             requestSchemaFields = {
                     @GatewaySchemaField(
                             path = "customerId",
@@ -148,7 +150,8 @@ public class OrderController {
     @GatewayOperation(
             name = "取消订单",
             externalAccessible = true,
-            tags = {"command", "idempotent"},
+            idempotent = true,
+            tags = {"command"},
             requestSchemaFields = {
                     @GatewaySchemaField(
                             path = "id",

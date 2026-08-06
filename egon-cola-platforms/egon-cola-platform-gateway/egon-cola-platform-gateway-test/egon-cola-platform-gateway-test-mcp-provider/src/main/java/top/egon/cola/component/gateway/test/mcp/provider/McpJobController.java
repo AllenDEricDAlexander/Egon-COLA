@@ -46,7 +46,8 @@ public class McpJobController {
             summary = "返回原始本地输入",
             owner = "gateway-test",
             externalAccessible = false,
-            tags = {"mcp", "query", "idempotent"}
+            idempotent = true,
+            tags = {"mcp", "query"}
     )
     public EchoView echo(@RequestBody EchoCommand command) {
         return new EchoView(command.value(), "HTTP");
@@ -58,7 +59,8 @@ public class McpJobController {
             summary = "确定性查询",
             owner = "gateway-test",
             externalAccessible = false,
-            tags = {"mcp", "query", "idempotent"},
+            idempotent = true,
+            tags = {"mcp", "query"},
             responseSchemaFields = @GatewaySchemaField(
                     path = "items",
                     description = "排序后的确定性结果"
@@ -77,7 +79,8 @@ public class McpJobController {
             summary = "确定性写操作",
             owner = "gateway-test",
             externalAccessible = false,
-            tags = {"mcp", "command", "idempotent"}
+            idempotent = true,
+            tags = {"mcp", "command"}
     )
     public WriteView write(@RequestBody WriteCommand command) {
         return new WriteView("write-" + command.key(), command.value());
@@ -149,7 +152,8 @@ public class McpJobController {
             summary = "向等待输入的任务提交一次输入",
             owner = "gateway-test",
             externalAccessible = false,
-            tags = {"mcp", "job", "command", "idempotent"}
+            idempotent = true,
+            tags = {"mcp", "job", "command"}
     )
     public JobView submitInput(
             @PathVariable String id,
@@ -175,7 +179,8 @@ public class McpJobController {
             summary = "取消未结束的本地任务",
             owner = "gateway-test",
             externalAccessible = false,
-            tags = {"mcp", "job", "command", "idempotent"}
+            idempotent = true,
+            tags = {"mcp", "job", "command"}
     )
     public JobView cancelJob(@PathVariable String id) {
         JobView current = required(id);

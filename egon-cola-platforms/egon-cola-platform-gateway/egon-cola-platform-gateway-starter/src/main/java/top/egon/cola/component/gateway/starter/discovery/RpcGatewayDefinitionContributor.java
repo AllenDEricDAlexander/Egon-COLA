@@ -15,6 +15,7 @@ import top.egon.cola.component.rpc.contract.RpcType;
 
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +51,7 @@ public final class RpcGatewayDefinitionContributor
             List<GatewayInterfaceDefinitionReport.Operation> operations =
                     snapshot.methods().stream()
                             .map(method -> operation(
+                                    group,
                                     contract,
                                     snapshot,
                                     method
@@ -87,6 +89,7 @@ public final class RpcGatewayDefinitionContributor
     }
 
     private GatewayInterfaceDefinitionReport.Operation operation(
+            GatewayInterfaceGroup group,
             RpcContractDescriptor contract,
             RpcContractSnapshot snapshot,
             RpcMethodSnapshot method) {
@@ -106,6 +109,17 @@ public final class RpcGatewayDefinitionContributor
                 ));
         GatewayOperation annotation = descriptor.javaMethod()
                 .getAnnotation(GatewayOperation.class);
+        boolean idempotent = GatewayOperationSemantics.idempotent(annotation);
+        if (descriptor.idempotent() != idempotent) {
+            throw new IllegalArgumentException(
+                    "RPC idempotency mismatch for "
+                            + method.fullMethodName()
+                            + ": @EgonRpcMethod="
+                            + descriptor.idempotent()
+                            + ", @GatewayOperation="
+                            + idempotent
+            );
+        }
         Map<String, Object> descriptorSnapshot = Map.of(
                 "descriptorId",
                 snapshot.serviceName()
@@ -119,6 +133,21 @@ public final class RpcGatewayDefinitionContributor
                         snapshot.fileDescriptorSet()
                 )
         );
+        Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("rpcType", method.rpcType().name());
+        attributes.put("descriptorSha256", snapshot.descriptorSha256());
+        attributes.put("responseMode", "TRANSPARENT");
+        attributes.put("idempotent", idempotent);
+        Map<String, Object> mcpExposure = McpExposureMapper.map(
+                group,
+                annotation,
+                method.fullMethodName(),
+                false,
+                List.of()
+        );
+        if (!mcpExposure.isEmpty()) {
+            attributes.put(McpExposureMapper.ATTRIBUTE_NAME, mcpExposure);
+        }
         return new GatewayInterfaceDefinitionReport.Operation(
                 GatewayOperationKey.rpc(
                         properties.getApplicationCode(),
@@ -164,14 +193,7 @@ public final class RpcGatewayDefinitionContributor
                 ),
                 List.of(),
                 descriptorSnapshot,
-                Map.of(
-                        "rpcType", method.rpcType().name(),
-                        "descriptorSha256",
-                        snapshot.descriptorSha256(),
-                        "responseMode", "TRANSPARENT",
-                        "idempotent",
-                        GatewayOperationSemantics.idempotent(annotation)
-                ),
+                attributes,
                 descriptor.javaMethod().isAnnotationPresent(
                         Deprecated.class
                 )

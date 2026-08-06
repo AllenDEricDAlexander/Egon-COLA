@@ -52,7 +52,8 @@ public class BehaviorController {
     @GatewayOperation(
             name = "回显请求体",
             externalAccessible = true,
-            tags = {"body", "idempotent"}
+            idempotent = true,
+            tags = {"body"}
     )
     public byte[] echo(@RequestBody byte[] body) {
         return body;

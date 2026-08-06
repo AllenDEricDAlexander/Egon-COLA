@@ -59,7 +59,7 @@ final class GatewayHttpOperationMapper {
             for (String method : mapping.methods()) {
                 for (String path : mapping.paths()) {
                     GatewayInterfaceDefinitionReport.Operation operation =
-                            operation(mapping, method, path);
+                            operation(annotation, mapping, method, path);
                     GatewayInterfaceDefinitionReport.Operation previous =
                             operations.putIfAbsent(
                                     operation.operationKey(),
@@ -100,6 +100,7 @@ final class GatewayHttpOperationMapper {
     }
 
     private GatewayInterfaceDefinitionReport.Operation operation(
+            GatewayInterfaceGroup group,
             Mapping mapping,
             String httpMethod,
             String path) {
@@ -150,6 +151,16 @@ final class GatewayHttpOperationMapper {
                 "idempotent",
                 GatewayOperationSemantics.idempotent(annotation)
         );
+        Map<String, Object> mcpExposure = McpExposureMapper.map(
+                group,
+                annotation,
+                httpMethod + " " + path,
+                streaming,
+                parameters
+        );
+        if (!mcpExposure.isEmpty()) {
+            attributes.put(McpExposureMapper.ATTRIBUTE_NAME, mcpExposure);
+        }
         return new GatewayInterfaceDefinitionReport.Operation(
                 operationKey,
                 "HTTP",

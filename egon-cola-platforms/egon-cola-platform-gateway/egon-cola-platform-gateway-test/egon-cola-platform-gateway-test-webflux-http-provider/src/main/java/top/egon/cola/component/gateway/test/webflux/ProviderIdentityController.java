@@ -37,7 +37,8 @@ public class ProviderIdentityController {
             summary = "返回实际处理请求的 Provider 实例与运行时类型",
             owner = "gateway-test",
             externalAccessible = true,
-            tags = {"query", "idempotent", "provider-identity"}
+            idempotent = true,
+            tags = {"query", "provider-identity"}
     )
     public Mono<ProviderIdentity> identity(
             @PathVariable("requestId") String requestId) {

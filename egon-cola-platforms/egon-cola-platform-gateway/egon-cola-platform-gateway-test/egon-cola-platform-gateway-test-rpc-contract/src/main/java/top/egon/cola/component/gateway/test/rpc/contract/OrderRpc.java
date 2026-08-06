@@ -31,7 +31,8 @@ public interface OrderRpc {
     @GatewayOperation(
             name = "RPC 查询订单",
             externalAccessible = false,
-            tags = {"rpc", "query", "idempotent"}
+            idempotent = true,
+            tags = {"rpc", "query"}
     )
     OrderResponse getOrder(GetOrderRequest request);
 
@@ -39,7 +40,7 @@ public interface OrderRpc {
     @GatewayOperation(
             name = "RPC 创建订单",
             externalAccessible = false,
-            tags = {"rpc", "command", "non-idempotent"},
+            tags = {"rpc", "command"},
             requestSchemaFields = {
                     @GatewaySchemaField(
                             path = "customerId",
