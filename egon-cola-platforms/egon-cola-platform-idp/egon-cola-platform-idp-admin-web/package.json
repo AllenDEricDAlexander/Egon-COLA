@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "vite --config vite.config.ts",
+    "build": "tsc -b && vite build --config vite.config.ts",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest run",
+    "test": "vitest run --config vite.config.ts",
     "lint": "eslint ."
   },
   "dependencies": {

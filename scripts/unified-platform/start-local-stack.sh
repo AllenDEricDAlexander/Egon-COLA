@@ -533,6 +533,7 @@ start_admin_web() {
     export VITE_IDP_REDIRECT_URI="${web_url}/oauth/callback"
     export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
     exec nohup "${vite}" \
+      --config "${web_dir}/vite.config.ts" \
       --host 127.0.0.1 --port "${port}" --strictPort
   ) >"${unified_platform_log_dir}/${name}.log" 2>&1 </dev/null &
   printf '%s' "$!" >"${unified_platform_pid_dir}/${name}.pid"
