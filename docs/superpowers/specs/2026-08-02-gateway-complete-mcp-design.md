@@ -1,5 +1,10 @@
 # Egon Gateway 全能力 MCP 网关需求与技术设计
 
+> 本文保留为初始实现记录。其中本地 Tool Draft、手工 Schema/bindings 和
+> disabled Route 锚点已经废弃；当前设计以
+> [Gateway 注解托管 MCP 设计与破坏性迁移](./2026-08-06-gateway-annotation-managed-mcp-design.md)
+> 为准。
+
 - 日期：2026-08-02
 - 状态：设计自审通过；按用户授权无需二次确认
 - 范围：Gateway MCP 控制面、数据面、Admin Web、IdP/RBAC3/DDC 集成与端到端验证

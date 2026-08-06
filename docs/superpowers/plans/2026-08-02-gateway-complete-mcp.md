@@ -1,5 +1,10 @@
 # Egon Gateway Complete MCP Implementation Plan
 
+> 本文保留为初始实施记录，不再代表当前本地 Tool 注册方式。手工本地 Tool
+> Draft 和 disabled Route 锚点已由
+> [Gateway 注解托管 MCP 设计与破坏性迁移](../specs/2026-08-06-gateway-annotation-managed-mcp-design.md)
+> 取代。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. This plan is inline-only; do not create or dispatch subagents.
 
 **Goal:** Build the complete MCP control plane, runtime, Admin Web, federation, security, release integration, and multi-process validation on top of the existing Egon Gateway.

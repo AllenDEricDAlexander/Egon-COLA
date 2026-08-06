@@ -39,7 +39,7 @@ Gateway 只执行用户存在性、JWT 合法性等基础身份校验；业务�
 scripts/unified-platform/start-local-stack.sh
 ```
 
-首次执行会完成 Maven 打包、Admin Web 构建、数据库初始化、IdP 用户引导、RBAC3 多租户角色初始化、DDC 应用与注册初始化，以及 Gateway HTTP/MCP 统一发布。重复执行会复用已有数据并协调缺失的 MCP 配置。
+首次执行会完成 Maven 打包、Admin Web 构建、数据库初始化、IdP 用户引导、RBAC3 多租户角色初始化、DDC 应用与注册初始化，以及 Gateway HTTP/MCP 统一发布。本地 MCP Tool 由 Provider 的 `@GatewayInterfaceGroup` 和 `@GatewayOperation` 注解投影，脚本只协调 Server、Remote MCP 和其他控制面能力，不创建本地 Tool 或 disabled Route 锚点。
 
 需要验证交付给开发者的原生命令时，先执行一次：
 
@@ -114,13 +114,13 @@ scripts/unified-platform/verify-local-stack.sh
 - IdP SSO、tokenVersion 撤销和重新登录；
 - RBAC3 角色激活、授权撤销传播及原 JWT 下的权限恢复；
 - DDC 注册、配置中断时 LKG 连续服务和恢复；
-- 非法 Gateway 发布拒绝且当前发布保持有效；
+- 注解托管的 MCP Operation 不依赖 Route，并在两个 Engine 上进入同一发布；
 - Stable、RC、Legacy SSE，以及 Tools、Resources、Templates、Prompts、Completion、Apps、订阅；
 - Engine A 创建会话/任务、Engine B 读取会话/任务；
 - 本地 Operation、远端 MCP 联邦、熔断开启与恢复；
 - PostgreSQL 持久任务和 Redis 跨节点会话/事件流。
 
-验收会短暂中断并恢复 DDC、Remote MCP、RBAC3 权限和一条草稿路由；`trap` 会在成功或失败时尽力恢复现场。若终端被强制杀死，重新执行启动脚本即可协调完整拓扑。
+验收会短暂中断并恢复 DDC、Remote MCP 和 RBAC3 权限；不会创建、删除或恢复用于 MCP 占位的草稿路由。`trap` 会在成功或失败时尽力恢复现场。若终端被强制杀死，重新执行启动脚本即可协调完整拓扑。
 
 运行 MCP 官方 conformance：
 
