@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest, GatewayApiError } from './client'
 import { createLogicalTrace } from './trace'
-import { tokenStore } from '../auth/tokenStore'
+import { tokenStore } from '../auth/AuthContext'
 
 afterEach(() => {
   tokenStore.clear()

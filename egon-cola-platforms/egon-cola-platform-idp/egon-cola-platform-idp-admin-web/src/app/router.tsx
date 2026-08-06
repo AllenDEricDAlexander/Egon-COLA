@@ -15,6 +15,13 @@ const AuditLogPage = lazy(() => import('../features/audits/AuditLogPage').then(m
 
 const PageFallback = () => <Spin style={{ display: 'grid', placeItems: 'center', minHeight: 200 }} />
 
+const LoginRoute = () => {
+  const auth = useAuth()
+  if (auth.loading) return <Spin fullscreen description="校验统一登录态" />
+  if (auth.bootstrap) return <Navigate to="/overview" replace />
+  return <CentralLoginPage />
+}
+
 const ConsoleGuard = () => {
   const auth = useAuth()
   if (auth.loading) return <Spin fullscreen description="校验统一登录态" />
@@ -31,7 +38,7 @@ export const AppRouter = () => (
     <AuthProvider>
       <Suspense fallback={<PageFallback />}>
         <Routes>
-          <Route path="/login" element={<CentralLoginPage />} />
+          <Route path="/login" element={<LoginRoute />} />
           <Route path="/oauth/callback" element={<CallbackPage />} />
           <Route element={<ConsoleGuard />}>
             <Route index element={<Navigate to="/overview" replace />} />

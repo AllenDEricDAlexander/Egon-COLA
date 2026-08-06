@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { CapabilityProvider } from './capabilities'
 import { AuthProvider } from '../auth/AuthContext'
+import { CallbackPage } from '../auth/CallbackPage'
 import { LoginPage } from '../auth/LoginPage'
 import { RequireAuth, RequireCapability } from '../auth/RouteGuards'
 import { LoadingBlock } from '../components/QueryState'
@@ -89,7 +90,7 @@ const McpRemoteProvidersPage = lazy(() =>
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
-  { path: '/oauth/callback', element: <LoadingBlock /> },
+  { path: '/oauth/callback', element: <CallbackPage /> },
   {
     path: '/',
     element: (

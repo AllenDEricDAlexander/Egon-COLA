@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [])
 
   const refreshSession = useCallback(async () => {
-    setSession(await httpClient.request<AdminSession>('/api/gateway/admin/v1/session'))
+    setSession(await httpClient.request<AdminSession>('/api/v1/gateway/admin/session'))
   }, [])
 
   const login = useCallback(async (tenantId: string, returnTo = '/dashboard') => {
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         return
       }
       try {
-        const value = await httpClient.request<AdminSession>('/api/gateway/admin/v1/session')
+        const value = await httpClient.request<AdminSession>('/api/v1/gateway/admin/session')
         if (active) setSession(value)
       } catch (failure) {
         if (!active) return

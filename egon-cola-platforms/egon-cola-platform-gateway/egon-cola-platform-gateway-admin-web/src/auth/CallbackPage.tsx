@@ -1,35 +1,35 @@
 import { Button, Result, Spin } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { oauthClient } from './AuthContext'
-import { useAuth } from './AuthContext'
+import { oauthClient, useAuth } from './AuthContext'
 
 export const CallbackPage = () => {
   const auth = useAuth()
   const navigate = useNavigate()
-  const [error, setError] = useState<string>()
   const [returnTo, setReturnTo] = useState<string>()
+  const [callbackError, setCallbackError] = useState<string>()
 
   useEffect(() => {
     let active = true
-    const process = async () => {
-      try {
-        const target = await oauthClient.handleCallback(window.location.search)
+    void oauthClient.handleCallback(window.location.search)
+      .then((target) => {
         if (active) setReturnTo(target)
-      } catch (e) {
-        if (active) setError(e instanceof Error ? e.message : '统一身份登录失败，请重试')
-      }
-    }
-    void process()
+      })
+      .catch((failure) => {
+        if (active) {
+          setCallbackError(failure instanceof Error ? failure.message : '统一身份登录失败')
+        }
+      })
     return () => { active = false }
   }, [])
 
   useEffect(() => {
-    if (returnTo && auth.bootstrap && !auth.loading) {
+    if (returnTo && auth.session && !auth.loading) {
       navigate(returnTo, { replace: true })
     }
-  }, [auth.bootstrap, auth.loading, navigate, returnTo])
+  }, [auth.loading, auth.session, navigate, returnTo])
 
+  const error = callbackError ?? auth.error
   if (error) {
     return (
       <Result
@@ -41,5 +41,5 @@ export const CallbackPage = () => {
     )
   }
 
-  return <Spin fullscreen description={auth.bootstrap && returnTo ? '登录成功，跳转中' : '完成统一身份登录'} />
+  return <Spin fullscreen description={auth.session && returnTo ? '登录成功，跳转中' : '完成统一身份登录'} />
 }
