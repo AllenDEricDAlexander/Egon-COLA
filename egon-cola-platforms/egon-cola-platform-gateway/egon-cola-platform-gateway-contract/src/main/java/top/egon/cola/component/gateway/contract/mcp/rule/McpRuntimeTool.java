@@ -10,11 +10,11 @@ public record McpRuntimeTool(
         String description,
         String sourceType,
         String operationId,
+        String operationProtocol,
         String remoteMountId,
         String inputSchema,
         String outputSchema,
-        Map<String, String> argumentBindings,
-        Map<String, String> resultBindings,
+        Map<String, String> inputLocations,
         Map<String, String> annotations,
         Set<String> requiredPermissions,
         String riskLevel,
@@ -29,11 +29,11 @@ public record McpRuntimeTool(
         description = McpContractSupport.optional(description);
         sourceType = McpContractSupport.required(sourceType, "sourceType");
         operationId = McpContractSupport.optional(operationId);
+        operationProtocol = McpContractSupport.optional(operationProtocol);
         remoteMountId = McpContractSupport.optional(remoteMountId);
         inputSchema = McpContractSupport.optional(inputSchema);
         outputSchema = McpContractSupport.optional(outputSchema);
-        argumentBindings = McpContractSupport.sortedMap(argumentBindings);
-        resultBindings = McpContractSupport.sortedMap(resultBindings);
+        inputLocations = McpContractSupport.sortedMap(inputLocations);
         annotations = McpContractSupport.sortedMap(annotations);
         requiredPermissions = McpContractSupport.sortedStrings(
                 requiredPermissions

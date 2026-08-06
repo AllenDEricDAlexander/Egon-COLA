@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.mcp.resource;
 
 import reactor.core.publisher.Mono;
+import top.egon.cola.component.gateway.core.operation.GatewayOperationCall;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
 
@@ -31,12 +32,15 @@ public final class OperationResourceDriver implements McpResourceDriver {
         if (request.operationId() == null) {
             throw rejected("MCP resource operation is not configured");
         }
-        LinkedHashMap<String, Object> arguments = new LinkedHashMap<>();
-        arguments.put("uri", request.uri());
-        arguments.putAll(request.uriVariables());
+        LinkedHashMap<String, Object> pathArguments = new LinkedHashMap<>();
+        pathArguments.putAll(request.uriVariables());
         GatewayOperationInvocation invocation = new GatewayOperationInvocation(
-                request.operationId(),
-                Map.copyOf(arguments),
+                new GatewayOperationCall(
+                        request.operationId(),
+                        pathArguments,
+                        Map.of("uri", request.uri()),
+                        null
+                ),
                 attribute(request, "originalBearerToken"),
                 attribute(request, "callerId"),
                 attribute(request, "clientIp"),

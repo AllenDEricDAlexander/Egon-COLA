@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.mcp.prompt;
 
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimePrompt;
+import top.egon.cola.component.gateway.core.operation.GatewayOperationCall;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
 
@@ -41,8 +42,12 @@ public final class OperationPromptDriver implements McpPromptDriver {
             );
         }
         GatewayOperationInvocation invocation = new GatewayOperationInvocation(
-                prompt.operationId(),
-                Map.copyOf(arguments),
+                new GatewayOperationCall(
+                        prompt.operationId(),
+                        Map.of(),
+                        Map.copyOf(arguments),
+                        null
+                ),
                 attribute(attributes, "originalBearerToken"),
                 attribute(attributes, "callerId"),
                 attribute(attributes, "clientIp"),

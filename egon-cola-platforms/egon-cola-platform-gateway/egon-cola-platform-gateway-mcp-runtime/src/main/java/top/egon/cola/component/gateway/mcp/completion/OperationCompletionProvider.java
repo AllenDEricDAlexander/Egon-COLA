@@ -3,6 +3,7 @@ package top.egon.cola.component.gateway.mcp.completion;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Mono;
+import top.egon.cola.component.gateway.core.operation.GatewayOperationCall;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
@@ -49,12 +50,16 @@ public final class OperationCompletionProvider
             );
         }
         GatewayOperationInvocation invocation = new GatewayOperationInvocation(
-                request.operationId(),
-                Map.of(
-                        "referenceType", request.referenceType(),
-                        "referenceName", request.referenceName(),
-                        "argumentName", request.argumentName(),
-                        "value", request.valuePrefix()
+                new GatewayOperationCall(
+                        request.operationId(),
+                        Map.of(),
+                        Map.of(
+                                "referenceType", request.referenceType(),
+                                "referenceName", request.referenceName(),
+                                "argumentName", request.argumentName(),
+                                "value", request.valuePrefix()
+                        ),
+                        null
                 ),
                 attribute(request, "originalBearerToken"),
                 attribute(request, "callerId"),

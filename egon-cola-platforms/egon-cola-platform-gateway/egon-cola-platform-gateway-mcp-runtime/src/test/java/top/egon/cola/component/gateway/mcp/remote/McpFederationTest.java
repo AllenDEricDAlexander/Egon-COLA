@@ -19,7 +19,6 @@ import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
-import top.egon.cola.component.gateway.mcp.tool.McpArgumentBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpResultBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpToolCatalog;
 import top.egon.cola.component.gateway.mcp.tool.McpToolsCallHandler;
@@ -92,7 +91,6 @@ class McpFederationTest {
         );
         McpToolsCallHandler handler = new McpToolsCallHandler(
                 new McpToolCatalog(() -> rules),
-                new McpArgumentBinder(),
                 new McpResultBinder(MAPPER),
                 invocation -> Mono.error(new AssertionError(
                         "remote MCP must not use the local invoker"
@@ -269,10 +267,10 @@ class McpFederationTest {
                         "Create a reviewed issue",
                         "REMOTE_MCP",
                         null,
+                        null,
                         "mount-1",
                         "{\"type\":\"object\"}",
                         "{\"type\":\"object\"}",
-                        Map.of(),
                         Map.of(),
                         Map.of(),
                         Set.of("issue:create"),

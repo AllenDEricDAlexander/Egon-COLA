@@ -9,6 +9,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.core.operation.GatewayInvocationResult;
+import top.egon.cola.component.gateway.core.operation.GatewayOperationCall;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.provider.ProviderHealthState;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
@@ -34,7 +35,9 @@ class EngineGatewayOperationInvokerTest {
 
     @Test
     void invokesTrustedOperationDirectlyAndForwardsOnlyLocalBearer() {
-        var compiled = new EngineGatewayRuleCompiler().compile(snapshot());
+        var compiled = new EngineGatewayRuleCompiler().compile(snapshot(
+                "GET /invoices/{invoiceId}"
+        ));
         AtomicBoolean released = new AtomicBoolean();
         AtomicReference<EngineGatewayOperationInvoker.PreparedRequest> prepared =
                 new AtomicReference<>();
@@ -62,10 +65,14 @@ class EngineGatewayOperationInvokerTest {
 
         GatewayInvocationResult result = Mono.from(invoker.invoke(
                 new GatewayOperationInvocation(
-                        "operation-42",
-                        Map.of(
-                                "invoiceId", "invoice-9",
-                                "providerUrl", "https://attacker.invalid"
+                        new GatewayOperationCall(
+                                "operation-42",
+                                Map.of("invoiceId", "invoice-9"),
+                                Map.of(
+                                        "providerUrl",
+                                        "https://attacker.invalid"
+                                ),
+                                null
                         ),
                         "Bearer local-jwt",
                         "user-7",
@@ -84,12 +91,66 @@ class EngineGatewayOperationInvokerTest {
         assertTrue(released.get());
     }
 
-    private GatewayRuleSnapshot snapshot() {
+    @Test
+    void keepsHttpQueryAndBodyArgumentsInTheirDeclaredLocations() {
+        var compiled = new EngineGatewayRuleCompiler().compile(snapshot(
+                "POST /invoices/{invoiceId}"
+        ));
+        AtomicReference<EngineGatewayOperationInvoker.PreparedRequest> prepared =
+                new AtomicReference<>();
+        EngineGatewayOperationInvoker invoker =
+                new EngineGatewayOperationInvoker(
+                        () -> compiled,
+                        serviceKey -> new ProviderSelectionHandle(
+                                provider(serviceKey),
+                                () -> {
+                                }
+                        ),
+                        GatewayTrafficGovernance.noop(),
+                        (provider, request, timeout) -> {
+                            prepared.set(request);
+                            return Mono.just(new GatewayInvocationResult(
+                                    200,
+                                    Map.of(),
+                                    new byte[0]
+                            ));
+                        },
+                        new ObjectMapper(),
+                        Duration.ofSeconds(5),
+                        1024,
+                        4096
+                );
+
+        Mono.from(invoker.invoke(new GatewayOperationInvocation(
+                new GatewayOperationCall(
+                        "operation-42",
+                        Map.of("invoiceId", "invoice-9"),
+                        Map.of("dryRun", true),
+                        Map.of("amount", 12)
+                ),
+                null,
+                "user-7",
+                "127.0.0.1",
+                Map.of()
+        ))).block();
+
+        assertEquals("POST", prepared.get().method());
+        assertEquals(
+                "/invoices/invoice-9?dryRun=true",
+                prepared.get().pathAndQuery()
+        );
+        assertEquals(
+                "{\"amount\":12}",
+                new String(prepared.get().body(), StandardCharsets.UTF_8)
+        );
+    }
+
+    private GatewayRuleSnapshot snapshot(String methodIdentity) {
         GatewayRuntimeOperation operation = new GatewayRuntimeOperation(
                 "operation-42",
-                "billing:http:GET:/invoices/{invoiceId}",
+                "billing:http:" + methodIdentity.replace(' ', ':'),
                 GatewayProtocol.HTTP,
-                "GET /invoices/{invoiceId}",
+                methodIdentity,
                 "{}",
                 "{}",
                 false,

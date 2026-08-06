@@ -2,7 +2,6 @@ package top.egon.cola.component.gateway.mcp.tool;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.core.operation.GatewayInvocationResult;
 
 import java.nio.charset.StandardCharsets;
@@ -22,12 +21,10 @@ public final class McpResultBinder {
         );
     }
 
-    public Map<String, Object> bind(
-            McpRuntimeTool tool,
-            GatewayInvocationResult result) {
+    public Map<String, Object> bind(GatewayInvocationResult result) {
         String text = new String(result.body(), StandardCharsets.UTF_8);
         Object decoded = decode(text);
-        Object structured = select(tool, decoded);
+        Object structured = decoded;
         if (structured == null) {
             structured = Map.of();
         }
@@ -53,17 +50,4 @@ public final class McpResultBinder {
         }
     }
 
-    private Object select(McpRuntimeTool tool, Object decoded) {
-        if (tool.resultBindings().isEmpty()
-                || !(decoded instanceof Map<?, ?> values)) {
-            return decoded;
-        }
-        LinkedHashMap<String, Object> selected = new LinkedHashMap<>();
-        tool.resultBindings().forEach((source, target) -> {
-            if (values.containsKey(source)) {
-                selected.put(target, values.get(source));
-            }
-        });
-        return selected;
-    }
 }

@@ -9,6 +9,7 @@ import top.egon.cola.component.gateway.contract.mcp.protocol.McpJsonRpcRequest;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpJsonRpcResponse;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
+import top.egon.cola.component.gateway.core.operation.GatewayOperationCall;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
@@ -24,15 +25,24 @@ import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public final class McpToolsCallHandler implements McpMethodHandler {
 
-    private final McpToolCatalog catalog;
+    private static final Set<String> FORBIDDEN_REMOTE_ARGUMENTS = Set.of(
+            "operationid",
+            "providerurl",
+            "routeid",
+            "servicename",
+            "authorization",
+            "tlsprofile"
+    );
 
-    private final McpArgumentBinder argumentBinder;
+    private final McpToolCatalog catalog;
 
     private final McpResultBinder resultBinder;
 
@@ -50,13 +60,11 @@ public final class McpToolsCallHandler implements McpMethodHandler {
 
     public McpToolsCallHandler(
             McpToolCatalog catalog,
-            McpArgumentBinder argumentBinder,
             McpResultBinder resultBinder,
             GatewayOperationInvoker invoker,
             McpSecurityGate securityGate) {
         this(
                 catalog,
-                argumentBinder,
                 resultBinder,
                 invoker,
                 securityGate,
@@ -69,7 +77,6 @@ public final class McpToolsCallHandler implements McpMethodHandler {
 
     public McpToolsCallHandler(
             McpToolCatalog catalog,
-            McpArgumentBinder argumentBinder,
             McpResultBinder resultBinder,
             GatewayOperationInvoker invoker,
             McpSecurityGate securityGate,
@@ -78,7 +85,6 @@ public final class McpToolsCallHandler implements McpMethodHandler {
             Supplier<CompiledMcpRules> rules) {
         this(
                 catalog,
-                argumentBinder,
                 resultBinder,
                 invoker,
                 securityGate,
@@ -91,7 +97,6 @@ public final class McpToolsCallHandler implements McpMethodHandler {
 
     public McpToolsCallHandler(
             McpToolCatalog catalog,
-            McpArgumentBinder argumentBinder,
             McpResultBinder resultBinder,
             GatewayOperationInvoker invoker,
             McpSecurityGate securityGate,
@@ -100,10 +105,6 @@ public final class McpToolsCallHandler implements McpMethodHandler {
             Supplier<CompiledMcpRules> rules,
             RemoteMcpToolDriver remote) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
-        this.argumentBinder = Objects.requireNonNull(
-                argumentBinder,
-                "argumentBinder"
-        );
         this.resultBinder = Objects.requireNonNull(
                 resultBinder,
                 "resultBinder"
@@ -150,9 +151,9 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                     "MCP identity context is incomplete"
             );
         }
-        Map<String, Object> boundArguments = tool.remoteMountId() == null
-                ? argumentBinder.bind(tool, arguments)
-                : argumentBinder.bindRemote(arguments);
+        Map<String, Object> remoteArguments = tool.remoteMountId() == null
+                ? Map.of()
+                : remoteArguments(arguments);
         return Mono.from(securityGate.authorizeToolCall(
                         tool,
                         identity,
@@ -169,7 +170,7 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                         }
                         return Mono.from(remote.invoke(
                                         tool,
-                                        boundArguments,
+                                        remoteArguments,
                                         identity,
                                         context.dialect(),
                                         request.meta(),
@@ -183,10 +184,13 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                                         result
                                 ));
                     }
+                    GatewayOperationCall operationCall = operationCall(
+                            tool,
+                            arguments
+                    );
                     GatewayOperationInvocation invocation =
                             new GatewayOperationInvocation(
-                                    tool.operationId(),
-                                    boundArguments,
+                                    operationCall,
                                     attribute(
                                             context,
                                             "originalBearerToken"
@@ -204,7 +208,7 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                                 ))
                                 .map(result -> McpJsonRpcResponse.success(
                                         request.id(),
-                                        resultBinder.bind(tool, result)
+                                        resultBinder.bind(result)
                                 ));
                     }
                     if (taskService == null) {
@@ -221,12 +225,7 @@ public final class McpToolsCallHandler implements McpMethodHandler {
                                             objectMapper,
                                             arguments
                                     ),
-                                    Map.of(
-                                            "operationId",
-                                            tool.operationId(),
-                                            "arguments",
-                                            boundArguments
-                                    ),
+                                    taskInput(operationCall),
                                     seconds(
                                             policy.executionTimeoutSeconds(),
                                             300L
@@ -276,6 +275,87 @@ public final class McpToolsCallHandler implements McpMethodHandler {
         return policy != null && policy.enabled() && policy.durable()
                 ? policy
                 : null;
+    }
+
+    private GatewayOperationCall operationCall(
+            McpRuntimeTool tool,
+            Map<String, Object> arguments) {
+        if ("RPC".equals(tool.operationProtocol())) {
+            return new GatewayOperationCall(
+                    tool.operationId(),
+                    Map.of(),
+                    Map.of(),
+                    arguments
+            );
+        }
+        if (!"HTTP".equals(tool.operationProtocol())) {
+            throw invalid("MCP local Tool protocol is invalid");
+        }
+        if (!tool.inputLocations().keySet().containsAll(arguments.keySet())) {
+            throw invalid("MCP Tool contains an undeclared argument");
+        }
+        LinkedHashMap<String, Object> path = new LinkedHashMap<>();
+        LinkedHashMap<String, Object> query = new LinkedHashMap<>();
+        Object body = null;
+        boolean bodySet = false;
+        for (Map.Entry<String, String> entry
+                : tool.inputLocations().entrySet()) {
+            if (!arguments.containsKey(entry.getKey())) {
+                continue;
+            }
+            switch (entry.getValue()) {
+                case "PATH" -> path.put(
+                        entry.getKey(),
+                        arguments.get(entry.getKey())
+                );
+                case "QUERY" -> query.put(
+                        entry.getKey(),
+                        arguments.get(entry.getKey())
+                );
+                case "BODY" -> {
+                    if (bodySet) {
+                        throw invalid("MCP Tool declares multiple body arguments");
+                    }
+                    body = arguments.get(entry.getKey());
+                    bodySet = true;
+                }
+                default -> throw invalid(
+                        "MCP Tool input location is unsupported"
+                );
+            }
+        }
+        return new GatewayOperationCall(
+                tool.operationId(),
+                path,
+                query,
+                body
+        );
+    }
+
+    private Map<String, Object> remoteArguments(
+            Map<String, Object> arguments) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        arguments.forEach((name, value) -> {
+            String normalized = name.replace("_", "")
+                    .replace("-", "")
+                    .toLowerCase(Locale.ROOT);
+            if (!name.isBlank()
+                    && !FORBIDDEN_REMOTE_ARGUMENTS.contains(normalized)) {
+                result.put(name, value);
+            }
+        });
+        return Map.copyOf(result);
+    }
+
+    private Map<String, Object> taskInput(GatewayOperationCall call) {
+        LinkedHashMap<String, Object> input = new LinkedHashMap<>();
+        input.put("operationId", call.operationId());
+        input.put("pathArguments", call.pathArguments());
+        input.put("queryArguments", call.queryArguments());
+        if (call.body() != null) {
+            input.put("body", call.body());
+        }
+        return Map.copyOf(input);
     }
 
     private Duration seconds(long configured, long fallback) {

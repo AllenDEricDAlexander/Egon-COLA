@@ -1,6 +1,5 @@
 package top.egon.cola.component.gateway.core.operation;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -9,8 +8,7 @@ import java.util.Map;
  * Trusted operation identity plus caller data for an in-process invocation.
  */
 public record GatewayOperationInvocation(
-        String operationId,
-        Map<String, Object> arguments,
+        GatewayOperationCall call,
         String originalBearerToken,
         String callerId,
         String clientIp,
@@ -25,25 +23,15 @@ public record GatewayOperationInvocation(
             );
 
     public GatewayOperationInvocation {
-        operationId = required(operationId, "operationId");
-        arguments = immutableArguments(arguments);
+        call = java.util.Objects.requireNonNull(call, "call");
         originalBearerToken = optional(originalBearerToken);
         callerId = optional(callerId);
         clientIp = optional(clientIp);
         traceHeaders = allowedTraceHeaders(traceHeaders);
     }
 
-    private static Map<String, Object> immutableArguments(
-            Map<String, Object> source) {
-        if (source == null || source.isEmpty()) {
-            return Map.of();
-        }
-        LinkedHashMap<String, Object> copy = new LinkedHashMap<>();
-        source.forEach((key, value) -> copy.put(
-                required(key, "argument name"),
-                value
-        ));
-        return Collections.unmodifiableMap(copy);
+    public String operationId() {
+        return call.operationId();
     }
 
     private static Map<String, String> allowedTraceHeaders(

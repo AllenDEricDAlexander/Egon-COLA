@@ -273,7 +273,7 @@ public final class EngineGatewayOperationInvoker
                 ? identity[1]
                 : "/rpc/" + encodePath(operation.methodIdentity());
         LinkedHashMap<String, Object> remaining = new LinkedHashMap<>(
-                invocation.arguments()
+                invocation.call().pathArguments()
         );
         LinkedHashMap<String, String> pathVariables = new LinkedHashMap<>();
         Matcher matcher = PATH_VARIABLE.matcher(path);
@@ -293,17 +293,20 @@ public final class EngineGatewayOperationInvoker
             );
         }
         matcher.appendTail(resolved);
-        LinkedHashMap<String, String> query = new LinkedHashMap<>();
-        byte[] body;
-        if (Set.of("GET", "HEAD", "DELETE", "OPTIONS").contains(method)) {
-            remaining.forEach((key, value) -> query.put(
-                    key,
-                    Objects.toString(value, "")
-            ));
-            body = new byte[0];
-        } else {
-            body = json(remaining);
+        if (!remaining.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "GATEWAY_OPERATION_PATH_ARGUMENT_UNKNOWN: "
+                            + remaining.keySet().iterator().next()
+            );
         }
+        LinkedHashMap<String, String> query = new LinkedHashMap<>();
+        invocation.call().queryArguments().forEach((key, value) -> query.put(
+                key,
+                Objects.toString(value, "")
+        ));
+        byte[] body = invocation.call().body() == null
+                ? new byte[0]
+                : json(invocation.call().body());
         String pathAndQuery = resolved + query(query);
         LinkedHashMap<String, List<String>> headers = new LinkedHashMap<>();
         headers.put("accept", List.of("application/json"));
@@ -370,9 +373,9 @@ public final class EngineGatewayOperationInvoker
         ));
     }
 
-    private byte[] json(Map<String, Object> arguments) {
+    private byte[] json(Object body) {
         try {
-            return objectMapper.writeValueAsBytes(arguments);
+            return objectMapper.writeValueAsBytes(body);
         } catch (Exception failure) {
             throw new IllegalArgumentException(
                     "GATEWAY_OPERATION_ARGUMENTS_INVALID",

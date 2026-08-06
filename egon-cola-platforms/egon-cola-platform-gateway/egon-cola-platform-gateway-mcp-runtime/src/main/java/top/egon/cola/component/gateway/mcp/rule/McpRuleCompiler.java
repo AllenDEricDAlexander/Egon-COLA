@@ -130,9 +130,37 @@ public final class McpRuleCompiler {
                     operationIds,
                     mounts
             );
+            validateToolInvocation(tool);
             requirePrimitive(mounts, tool.remoteMountId(), "TOOL");
         });
         return tools;
+    }
+
+    private void validateToolInvocation(McpRuntimeTool tool) {
+        if (tool.operationId() == null) {
+            if (tool.operationProtocol() != null
+                    || !tool.inputLocations().isEmpty()) {
+                throw invalid(
+                        "remote MCP Tool cannot declare Operation input locations"
+                );
+            }
+            return;
+        }
+        if (tool.operationProtocol() == null
+                || !Set.of("HTTP", "RPC").contains(tool.operationProtocol())) {
+            throw invalid(
+                    "local MCP Tool requires HTTP or RPC operation protocol"
+            );
+        }
+        if ("RPC".equals(tool.operationProtocol())
+                && !tool.inputLocations().isEmpty()) {
+            throw invalid("RPC MCP Tool cannot declare input locations");
+        }
+        if ("HTTP".equals(tool.operationProtocol())
+                && !Set.of("PATH", "QUERY", "BODY")
+                .containsAll(tool.inputLocations().values())) {
+            throw invalid("HTTP MCP Tool has an unsupported input location");
+        }
     }
 
     private Map<String, McpRuntimeResource> compileResources(

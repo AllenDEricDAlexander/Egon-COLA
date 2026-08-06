@@ -151,7 +151,6 @@ import top.egon.cola.component.gateway.mcp.task.McpTasksCancelHandler;
 import top.egon.cola.component.gateway.mcp.task.McpTasksGetHandler;
 import top.egon.cola.component.gateway.mcp.task.McpTasksUpdateHandler;
 import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
-import top.egon.cola.component.gateway.mcp.tool.McpArgumentBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpResultBinder;
 import top.egon.cola.component.gateway.mcp.tool.McpToolCatalog;
 import top.egon.cola.component.gateway.mcp.tool.McpToolsCallHandler;
@@ -741,7 +740,6 @@ public class GatewayEngineConfiguration {
                 new McpToolsListHandler(toolCatalog, objectMapper),
                 new McpToolsCallHandler(
                         toolCatalog,
-                        new McpArgumentBinder(),
                         new McpResultBinder(objectMapper),
                         operationInvoker,
                         securityGate,
@@ -859,23 +857,25 @@ public class GatewayEngineConfiguration {
                         ))
                 );
             }
-            LinkedHashMap<String, Object> arguments = new LinkedHashMap<>();
-            Object configured = task.inputPayload().get("arguments");
-            if (configured instanceof Map<?, ?> source) {
-                source.forEach((key, value) -> {
-                    if (key instanceof String name) {
-                        arguments.put(name, value);
-                    }
-                });
-            }
-            Object input = task.inputPayload().get("inputResponse");
-            if (input instanceof Map<?, ?>) {
-                arguments.put("input", input);
-            }
+            Map<String, Object> pathArguments = taskArguments(
+                    task.inputPayload().get("pathArguments")
+            );
+            Map<String, Object> queryArguments = taskArguments(
+                    task.inputPayload().get("queryArguments")
+            );
+            Object body = taskBody(
+                    task.inputPayload().get("body"),
+                    task.inputPayload().get("inputResponse")
+            );
             var invocation = new top.egon.cola.component.gateway.core
                     .operation.GatewayOperationInvocation(
-                    operationId,
-                    Map.copyOf(arguments),
+                    new top.egon.cola.component.gateway.core.operation
+                            .GatewayOperationCall(
+                            operationId,
+                            pathArguments,
+                            queryArguments,
+                            body
+                    ),
                     null,
                     task.subjectId(),
                     null,
@@ -885,6 +885,35 @@ public class GatewayEngineConfiguration {
                     operationInvoker.invoke(invocation)
             ).map(result -> taskOutcome(result, objectMapper));
         };
+    }
+
+    private Map<String, Object> taskArguments(Object configured) {
+        if (!(configured instanceof Map<?, ?> source)) {
+            return Map.of();
+        }
+        LinkedHashMap<String, Object> arguments = new LinkedHashMap<>();
+        source.forEach((key, value) -> {
+            if (key instanceof String name) {
+                arguments.put(name, value);
+            }
+        });
+        return Map.copyOf(arguments);
+    }
+
+    private Object taskBody(Object configured, Object inputResponse) {
+        if (!(inputResponse instanceof Map<?, ?> input)) {
+            return configured;
+        }
+        LinkedHashMap<String, Object> body = new LinkedHashMap<>();
+        if (configured instanceof Map<?, ?> source) {
+            source.forEach((key, value) -> {
+                if (key instanceof String name) {
+                    body.put(name, value);
+                }
+            });
+        }
+        body.put("input", input);
+        return Map.copyOf(body);
     }
 
     private McpTaskExecutor.Outcome taskOutcome(
