@@ -63,13 +63,8 @@ export const McpAppsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
     queryFn: ({ signal }) => gatewayApi.mcpAppArtifacts(gatewayGroupId, signal),
   })
   const tools = useQuery({
-    queryKey: ['mcp-capabilities', gatewayGroupId, serverId, 'tools'],
-    queryFn: ({ signal }) => gatewayApi.mcpCapabilities(
-      gatewayGroupId,
-      serverId,
-      'tools',
-      signal,
-    ),
+    queryKey: ['mcp-tool-references', gatewayGroupId, serverId],
+    queryFn: ({ signal }) => gatewayApi.mcpToolReferences(gatewayGroupId, serverId, signal),
   })
   const [artifactForm] = Form.useForm<ArtifactForm>()
   const [bindingForm] = Form.useForm<BindingForm>()
@@ -328,7 +323,9 @@ export const McpAppsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
           <Form.Item name="allowedTools" label="Allowed Tools">
             <Select
               mode="multiple"
-              options={(tools.data ?? []).map((tool) => ({ value: tool.name, label: tool.name }))}
+              options={(tools.data ?? [])
+                .filter((tool) => tool.enabled)
+                .map((tool) => ({ value: tool.name, label: tool.name }))}
             />
           </Form.Item>
           <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>

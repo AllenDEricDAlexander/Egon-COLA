@@ -47,13 +47,8 @@ export const McpTasksPanel = ({ serverId, gatewayGroupId, draftRevision }: {
     draftRevision,
   )
   const tools = useQuery({
-    queryKey: ['mcp-capabilities', gatewayGroupId, serverId, 'tools'],
-    queryFn: ({ signal }) => gatewayApi.mcpCapabilities(
-      gatewayGroupId,
-      serverId,
-      'tools',
-      signal,
-    ),
+    queryKey: ['mcp-tool-references', gatewayGroupId, serverId],
+    queryFn: ({ signal }) => gatewayApi.mcpToolReferences(gatewayGroupId, serverId, signal),
   })
   const [tenantId, setTenantId] = useState('')
   const [clientId, setClientId] = useState('')
@@ -252,7 +247,9 @@ export const McpTasksPanel = ({ serverId, gatewayGroupId, draftRevision }: {
           <Form.Item name="toolName" label="Tool" rules={[{ required: true }]}>
             <Select
               disabled={Boolean(editing)}
-              options={(tools.data ?? []).map((tool) => ({ value: tool.name, label: tool.name }))}
+              options={(tools.data ?? [])
+                .filter((tool) => tool.enabled)
+                .map((tool) => ({ value: tool.name, label: tool.name }))}
             />
           </Form.Item>
           <Form.Item name="durable" label="Durable" valuePropName="checked"><Switch /></Form.Item>

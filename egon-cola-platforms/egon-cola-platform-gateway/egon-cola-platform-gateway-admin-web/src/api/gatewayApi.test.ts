@@ -195,4 +195,57 @@ describe('gateway API response adapters', () => {
       consistent: false,
     })
   })
+
+  it('uses dedicated Managed and Remote Tool endpoints', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse([])))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await gatewayApi.mcpManagedTools('group-1', 'server-1')
+    await gatewayApi.mcpRemoteTools('group-1', 'server-1')
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/v1/gateway/admin/mcp/groups/group-1/managed-tools?serverId=server-1',
+    )
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      '/api/v1/gateway/admin/mcp/remote-tools?gatewayGroupId=group-1&serverId=server-1',
+    )
+  })
+
+  it('sends only strict Managed Tool override fields to the override endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      draftRevision: 8,
+      resourceId: 'tool-1',
+      resourceRevision: 2,
+      replayed: false,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await gatewayApi.updateMcpManagedToolOverride('tool-1', {
+      gatewayGroupId: 'group-1',
+      serverId: 'server-2',
+      additionalPermissions: ['order:audit'],
+      minimumRiskLevel: 'HIGH',
+      enabled: false,
+      expectedRevision: 1,
+      expectedDraftRevision: 7,
+      changeReason: 'harden production access',
+    })
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/v1/gateway/admin/mcp/managed-tools/tool-1/override',
+    )
+    const request = fetchMock.mock.calls[0][1] as RequestInit
+    expect(request.method).toBe('PUT')
+    expect(JSON.parse(String(request.body))).toEqual({
+      gatewayGroupId: 'group-1',
+      serverId: 'server-2',
+      additionalPermissions: ['order:audit'],
+      minimumRiskLevel: 'HIGH',
+      enabled: false,
+      expectedRevision: 1,
+      expectedDraftRevision: 7,
+      changeReason: 'harden production access',
+    })
+    expect(new Headers(request.headers).has('Idempotency-Key')).toBe(true)
+  })
 })

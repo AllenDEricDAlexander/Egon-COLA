@@ -20,6 +20,8 @@ import type {
   McpCapabilityPreview,
   McpAppArtifact,
   McpApproval,
+  McpManagedTool,
+  McpManagedToolOverrideMutation,
   McpMutationResult,
   McpOperationOption,
   McpProtocolDialect,
@@ -29,10 +31,13 @@ import type {
   McpRemoteMountMutation,
   McpRemoteProvider,
   McpRemoteProviderMutation,
+  McpRemoteTool,
+  McpRemoteToolMutation,
   McpServer,
   McpServerMutation,
   McpValidationReport,
   McpTask,
+  McpToolReference,
   OperationDetail,
   Page,
   ProviderInstance,
@@ -462,6 +467,90 @@ export const gatewayApi = {
       `${admin}/mcp/servers/${serverId}/capability-preview`,
       { signal },
     ),
+  mcpManagedTools: (
+    gatewayGroupId: string,
+    serverId: string,
+    signal?: AbortSignal,
+  ) => apiRequest<McpManagedTool[]>(
+    `${admin}/mcp/groups/${gatewayGroupId}/managed-tools?${new URLSearchParams({ serverId })}`,
+    { signal },
+  ),
+  updateMcpManagedToolOverride: (
+    toolId: string,
+    override: McpManagedToolOverrideMutation,
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/managed-tools/${toolId}/override`, {
+    method: 'PUT',
+    body: override,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  deleteMcpManagedToolOverride: (
+    toolId: string,
+    control: {
+      gatewayGroupId: string
+      expectedRevision: number
+      expectedDraftRevision: number
+      changeReason: string
+    },
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/managed-tools/${toolId}/override`, {
+    method: 'DELETE',
+    body: control,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  mcpRemoteTools: (
+    gatewayGroupId: string,
+    serverId: string,
+    signal?: AbortSignal,
+  ) => apiRequest<McpRemoteTool[]>(
+    `${admin}/mcp/remote-tools?${new URLSearchParams({ gatewayGroupId, serverId })}`,
+    { signal },
+  ),
+  createMcpRemoteTool: (tool: McpRemoteToolMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/remote-tools`, {
+      method: 'POST',
+      body: tool,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  updateMcpRemoteTool: (toolId: string, tool: McpRemoteToolMutation) =>
+    apiRequest<McpMutationResult>(`${admin}/mcp/remote-tools/${toolId}`, {
+      method: 'PUT',
+      body: tool,
+      idempotencyKey: newIdempotencyKey(),
+    }),
+  deleteMcpRemoteTool: (
+    toolId: string,
+    control: {
+      gatewayGroupId: string
+      expectedRevision: number
+      expectedDraftRevision: number
+      changeReason: string
+    },
+  ) => apiRequest<McpMutationResult>(`${admin}/mcp/remote-tools/${toolId}`, {
+    method: 'DELETE',
+    body: control,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  mcpToolReferences: async (
+    gatewayGroupId: string,
+    serverId: string,
+    signal?: AbortSignal,
+  ): Promise<McpToolReference[]> => {
+    const [managedTools, remoteTools] = await Promise.all([
+      gatewayApi.mcpManagedTools(gatewayGroupId, serverId, signal),
+      gatewayApi.mcpRemoteTools(gatewayGroupId, serverId, signal),
+    ])
+    return [
+      ...managedTools.map((tool) => ({
+        name: tool.name,
+        riskLevel: tool.effectiveRiskLevel,
+        enabled: tool.enabled,
+      })),
+      ...remoteTools.map((tool) => ({
+        name: tool.name,
+        riskLevel: tool.riskLevel,
+        enabled: tool.enabled,
+      })),
+    ].sort((left, right) => left.name.localeCompare(right.name))
+  },
   mcpCapabilities: (
     gatewayGroupId: string,
     serverId: string,

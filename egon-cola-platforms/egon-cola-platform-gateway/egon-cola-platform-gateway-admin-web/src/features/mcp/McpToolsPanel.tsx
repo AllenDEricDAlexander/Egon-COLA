@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
+  Descriptions,
   Form,
   Input,
   Modal,
@@ -10,184 +11,220 @@ import {
   Switch,
   Table,
   Tag,
+  Typography,
   message,
 } from 'antd'
 import { useState } from 'react'
 import { gatewayApi } from '../../api/gatewayApi'
-import type { McpCapabilityDraft, McpCapabilityMutation } from '../../api/types'
+import type { McpManagedTool, McpToolRiskLevel } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { QueryFailure } from '../../components/QueryState'
-import { useScope } from '../../hooks/useScope'
-import { formatJson, parseStringList, validateJsonSchema } from './mcpValidation'
 
-type ToolForm = {
-  name: string
-  description?: string
-  sourceType: 'LOCAL_OPERATION' | 'REMOTE_MCP'
-  operationId?: string
-  remoteMountId?: string
-  inputSchema: string
-  outputSchema: string
-  requiredPermissions?: string
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
-  idempotent: boolean
-  enabled: boolean
+type OverrideForm = {
+  serverId: string
+  additionalPermissions: string[]
+  minimumRiskLevel: McpToolRiskLevel
+  disabled: boolean
   changeReason: string
 }
+
+const riskLevels: McpToolRiskLevel[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+const riskRank = (riskLevel: McpToolRiskLevel): number => riskLevels.indexOf(riskLevel)
+const riskColor = (riskLevel: McpToolRiskLevel): string => ({
+  LOW: 'green',
+  MEDIUM: 'orange',
+  HIGH: 'red',
+  CRITICAL: 'magenta',
+})[riskLevel]
+
+const permissionTags = (permissions: string[]) => permissions.length > 0
+  ? <Space wrap size={[0, 4]}>{permissions.map((permission) => <Tag key={permission}>{permission}</Tag>)}</Space>
+  : <Typography.Text type="secondary">无</Typography.Text>
 
 export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
   serverId: string
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const { scope } = useScope()
   const canWrite = useCapability('gateway:mcp:write')
   const queryClient = useQueryClient()
-  const [form] = Form.useForm<ToolForm>()
-  const sourceType = Form.useWatch('sourceType', form)
-  const [editing, setEditing] = useState<McpCapabilityDraft>()
-  const [modalOpen, setModalOpen] = useState(false)
+  const [messageApi, messageContext] = message.useMessage()
+  const [form] = Form.useForm<OverrideForm>()
+  const [editing, setEditing] = useState<McpManagedTool>()
   const tools = useQuery({
-    queryKey: ['mcp-capabilities', gatewayGroupId, serverId, 'tools'],
-    queryFn: ({ signal }) => gatewayApi.mcpCapabilities(
-      gatewayGroupId,
-      serverId,
-      'tools',
-      signal,
-    ),
+    queryKey: ['mcp-managed-tools', gatewayGroupId, serverId],
+    queryFn: ({ signal }) => gatewayApi.mcpManagedTools(gatewayGroupId, serverId, signal),
   })
-  const operations = useQuery({
-    queryKey: ['mcp-operation-options', scope],
-    queryFn: ({ signal }) => gatewayApi.mcpOperationOptions(scope, signal),
+  const servers = useQuery({
+    queryKey: ['mcp-servers', gatewayGroupId],
+    queryFn: ({ signal }) => gatewayApi.mcpServers(gatewayGroupId, signal),
   })
+
+  const invalidateTools = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['mcp-managed-tools', gatewayGroupId] }),
+      queryClient.invalidateQueries({ queryKey: ['mcp-tool-references', gatewayGroupId] }),
+      queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+      queryClient.invalidateQueries({ queryKey: ['mcp-capability-preview', serverId] }),
+    ])
+  }
   const save = useMutation({
-    mutationFn: (values: ToolForm) => {
-      const capability: McpCapabilityMutation = {
+    mutationFn: (values: OverrideForm) => {
+      if (!editing) throw new Error('Managed Tool 不存在')
+      const additionalPermissions = [...new Set(values.additionalPermissions ?? [])]
+        .filter((permission) => !editing.codePermissions.includes(permission))
+        .sort()
+      const removedPermission = editing.additionalPermissions.find(
+        (permission) => !additionalPermissions.includes(permission),
+      )
+      if (removedPermission) throw new Error(`Override 只能追加权限，不能移除 ${removedPermission}`)
+      const currentMinimumRisk = editing.minimumRiskLevel ?? editing.codeRiskLevel
+      if (riskRank(values.minimumRiskLevel) < riskRank(currentMinimumRisk)) {
+        throw new Error('Override 只能提高最低风险，不能降低当前最低风险')
+      }
+      const serverOverride = values.serverId === editing.codeServerId ? undefined : values.serverId
+      const riskOverride = values.minimumRiskLevel === editing.codeRiskLevel
+        ? undefined
+        : values.minimumRiskLevel
+      if (!serverOverride && additionalPermissions.length === 0 && !riskOverride && !values.disabled) {
+        throw new Error('请至少设置一项严格 Override，或使用“恢复注解默认”')
+      }
+      return gatewayApi.updateMcpManagedToolOverride(editing.toolId, {
         gatewayGroupId,
-        serverId,
-        name: values.name,
-        enabled: values.enabled,
-        expectedRevision: editing?.revision ?? 0,
+        serverId: serverOverride,
+        additionalPermissions,
+        minimumRiskLevel: riskOverride,
+        enabled: values.disabled ? false : undefined,
+        expectedRevision: editing.overrideRevision,
         expectedDraftRevision: draftRevision,
         changeReason: values.changeReason,
-        content: {
-          description: values.description,
-          sourceType: values.sourceType,
-          operationId: values.sourceType === 'LOCAL_OPERATION' ? values.operationId : undefined,
-          remoteMountId: values.sourceType === 'REMOTE_MCP' ? values.remoteMountId : undefined,
-          inputSchema: validateJsonSchema(values.inputSchema, 'Input Schema'),
-          outputSchema: validateJsonSchema(values.outputSchema, 'Output Schema'),
-          argumentBindings: {},
-          resultBindings: {},
-          annotations: {},
-          requiredPermissions: parseStringList(values.requiredPermissions),
-          riskLevel: values.riskLevel,
-          idempotent: values.idempotent,
-        },
-      }
-      return editing
-        ? gatewayApi.updateMcpCapability('tools', editing.id, capability)
-        : gatewayApi.createMcpCapability('tools', capability)
+      })
     },
     onSuccess: async () => {
-      setModalOpen(false)
       setEditing(undefined)
       form.resetFields()
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['mcp-capabilities', gatewayGroupId, serverId, 'tools'],
-        }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
-      ])
-      void message.success('MCP Tool 已保存')
+      await invalidateTools()
+      void messageApi.success('Managed Tool Override 已保存')
     },
   })
-  const remove = useMutation({
-    mutationFn: (tool: McpCapabilityDraft) => gatewayApi.deleteMcpCapability(
-      'tools',
-      tool.id,
-      {
-        gatewayGroupId,
-        expectedRevision: tool.revision,
-        expectedDraftRevision: draftRevision,
-        changeReason: 'Delete MCP Tool from Admin Web',
-      },
-    ),
+  const reset = useMutation({
+    mutationFn: (tool: McpManagedTool) => gatewayApi.deleteMcpManagedToolOverride(tool.toolId, {
+      gatewayGroupId,
+      expectedRevision: tool.overrideRevision,
+      expectedDraftRevision: draftRevision,
+      changeReason: 'Restore annotation-defined Managed Tool defaults from Admin Web',
+    }),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['mcp-capabilities', gatewayGroupId, serverId, 'tools'],
-        }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
-      ])
-      void message.success('MCP Tool 已删除')
+      await invalidateTools()
+      void messageApi.success('Managed Tool 已恢复注解默认')
     },
   })
 
-  const openEditor = (tool?: McpCapabilityDraft) => {
-    const content = tool?.content ?? {}
-    setEditing(tool)
+  const openOverride = (tool: McpManagedTool) => {
     save.reset()
-    form.setFieldsValue(tool ? {
-      name: tool.name,
-      description: String(content.description ?? ''),
-      sourceType: content.sourceType === 'REMOTE_MCP' ? 'REMOTE_MCP' : 'LOCAL_OPERATION',
-      operationId: typeof content.operationId === 'string' ? content.operationId : undefined,
-      remoteMountId: typeof content.remoteMountId === 'string' ? content.remoteMountId : undefined,
-      inputSchema: formatJson(content.inputSchema),
-      outputSchema: formatJson(content.outputSchema),
-      requiredPermissions: Array.isArray(content.requiredPermissions)
-        ? content.requiredPermissions.join(', ')
-        : '',
-      riskLevel: content.riskLevel === 'HIGH' || content.riskLevel === 'MEDIUM'
-        ? content.riskLevel
-        : 'LOW',
-      idempotent: content.idempotent === true,
-      enabled: tool.enabled,
-      changeReason: '',
-    } : {
-      name: '',
-      sourceType: 'LOCAL_OPERATION',
-      inputSchema: formatJson({ type: 'object', additionalProperties: false }),
-      outputSchema: formatJson({ type: 'object' }),
-      riskLevel: 'LOW',
-      idempotent: false,
-      enabled: true,
+    setEditing(tool)
+    form.setFieldsValue({
+      serverId: tool.serverId,
+      additionalPermissions: tool.additionalPermissions,
+      minimumRiskLevel: tool.minimumRiskLevel ?? tool.codeRiskLevel,
+      disabled: !tool.enabled,
       changeReason: '',
     })
-    setModalOpen(true)
   }
 
   return (
     <section>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" disabled={!canWrite} onClick={() => openEditor()}>
-          新增 Tool
-        </Button>
-      </Space>
+      {messageContext}
       {tools.error && <QueryFailure error={tools.error} retry={() => void tools.refetch()} />}
-      <Table<McpCapabilityDraft>
-        rowKey="id"
+      {reset.error && <QueryFailure error={reset.error} />}
+      <Table<McpManagedTool>
+        rowKey="toolId"
         loading={tools.isLoading}
         dataSource={tools.data ?? []}
+        scroll={{ x: 1240 }}
         columns={[
-          { title: 'Tool Name', dataIndex: 'name' },
           {
-            title: 'Source',
-            render: (_, tool) => <Tag>{String(tool.content.sourceType ?? '-')}</Tag>,
+            title: 'Tool',
+            width: 220,
+            fixed: 'start',
+            render: (_, tool) => (
+              <Space orientation="vertical" size={0}>
+                <Typography.Text strong>{tool.name}</Typography.Text>
+                <Typography.Text type="secondary">{tool.description || '无描述'}</Typography.Text>
+              </Space>
+            ),
           },
           {
-            title: 'Operation / Mount',
-            render: (_, tool) => String(tool.content.operationId ?? tool.content.remoteMountId ?? '-'),
+            title: 'Protocol / Operation',
+            width: 260,
+            render: (_, tool) => (
+              <Space orientation="vertical" size={0}>
+                <Tag>{tool.operationProtocol}</Tag>
+                <Typography.Text code>{tool.operationKey}</Typography.Text>
+              </Space>
+            ),
           },
-          { title: 'Revision', dataIndex: 'revision' },
+          {
+            title: 'Server',
+            width: 180,
+            render: (_, tool) => (
+              <Space orientation="vertical" size={0}>
+                <Typography.Text>{tool.serverCode}</Typography.Text>
+                {tool.serverId !== tool.codeServerId && (
+                  <Typography.Text type="secondary">代码默认：{tool.codeServerCode}</Typography.Text>
+                )}
+              </Space>
+            ),
+          },
+          {
+            title: 'Permissions',
+            width: 320,
+            render: (_, tool) => (
+              <Space orientation="vertical" size={4}>
+                <Typography.Text type="secondary">Code</Typography.Text>
+                {permissionTags(tool.codePermissions)}
+                <Typography.Text type="secondary">Effective</Typography.Text>
+                {permissionTags(tool.effectivePermissions)}
+              </Space>
+            ),
+          },
+          {
+            title: 'Risk',
+            width: 180,
+            render: (_, tool) => (
+              <Space orientation="vertical" size={2}>
+                <span>Code <Tag color={riskColor(tool.codeRiskLevel)}>{tool.codeRiskLevel}</Tag></span>
+                <span>Effective <Tag color={riskColor(tool.effectiveRiskLevel)}>{tool.effectiveRiskLevel}</Tag></span>
+              </Space>
+            ),
+          },
+          {
+            title: 'Runtime',
+            width: 140,
+            render: (_, tool) => (
+              <Space orientation="vertical" size={2}>
+                <Tag color={tool.enabled ? 'green' : 'default'}>
+                  {tool.enabled ? 'ENABLED' : 'DISABLED'}
+                </Tag>
+                <Typography.Text type="secondary">
+                  {tool.idempotent ? 'Idempotent' : 'Non-idempotent'}
+                </Typography.Text>
+              </Space>
+            ),
+          },
           {
             title: '操作',
+            width: 200,
+            fixed: 'end',
             render: (_, tool) => (
               <Space>
-                <Button disabled={!canWrite} onClick={() => openEditor(tool)}>编辑</Button>
-                <Popconfirm title="确认删除 Tool？" onConfirm={() => remove.mutate(tool)}>
-                  <Button danger disabled={!canWrite}>删除</Button>
+                <Button disabled={!canWrite} onClick={() => openOverride(tool)}>严格 Override</Button>
+                <Popconfirm
+                  title="恢复注解默认？"
+                  description="这会清除该 Tool 的全部 Admin Override。"
+                  onConfirm={() => reset.mutate(tool)}
+                >
+                  <Button disabled={!canWrite || tool.overrideRevision === 0}>恢复默认</Button>
                 </Popconfirm>
               </Space>
             ),
@@ -195,56 +232,64 @@ export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
         ]}
       />
       <Modal
-        title={editing ? '编辑 Tool' : '新增 Tool'}
-        open={modalOpen}
-        width={760}
-        onCancel={() => setModalOpen(false)}
+        title="Managed Tool 严格 Override"
+        open={Boolean(editing)}
+        width={680}
+        onCancel={() => setEditing(undefined)}
         onOk={() => form.submit()}
         confirmLoading={save.isPending}
         destroyOnHidden
       >
         {save.error && <QueryFailure error={save.error} />}
-        <Form form={form} layout="vertical" onFinish={(values) => save.mutate(values)}>
-          <Form.Item name="name" label="Tool Name" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="description" label="描述"><Input.TextArea /></Form.Item>
-          <Form.Item name="sourceType" label="来源" rules={[{ required: true }]}>
-            <Select options={[
-              { value: 'LOCAL_OPERATION', label: 'Local Operation' },
-              { value: 'REMOTE_MCP', label: 'Remote MCP Mount' },
-            ]} />
-          </Form.Item>
-          {sourceType === 'REMOTE_MCP' ? (
-            <Form.Item name="remoteMountId" label="Remote Mount" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-          ) : (
-            <Form.Item name="operationId" label="Operation" rules={[{ required: true }]}>
-              <Select
-                showSearch
-                loading={operations.isLoading}
-                options={operations.data ?? []}
-                optionFilterProp="label"
-              />
-            </Form.Item>
-          )}
-          <Form.Item name="inputSchema" label="Input Schema" rules={[{ required: true }]}>
-            <Input.TextArea rows={6} />
-          </Form.Item>
-          <Form.Item name="outputSchema" label="Output Schema" rules={[{ required: true }]}>
-            <Input.TextArea rows={6} />
-          </Form.Item>
-          <Form.Item name="requiredPermissions" label="RBAC3 Permissions（逗号分隔）">
-            <Input />
-          </Form.Item>
-          <Form.Item name="riskLevel" label="风险级别" rules={[{ required: true }]}>
-            <Select options={['LOW', 'MEDIUM', 'HIGH'].map((value) => ({ value, label: value }))} />
-          </Form.Item>
-          <Form.Item name="idempotent" label="幂等" valuePropName="checked"><Switch /></Form.Item>
-          <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>
-          <Form.Item name="changeReason" label="变更原因" rules={[{ required: true }]}>
-            <Input.TextArea />
-          </Form.Item>
-        </Form>
+        {editing && (
+          <>
+            <Descriptions size="small" column={1} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="Tool">{editing.name}</Descriptions.Item>
+              <Descriptions.Item label="Operation">{editing.operationKey}</Descriptions.Item>
+              <Descriptions.Item label="代码权限">
+                {permissionTags(editing.codePermissions)}
+              </Descriptions.Item>
+              <Descriptions.Item label="代码风险">
+                <Tag color={riskColor(editing.codeRiskLevel)}>{editing.codeRiskLevel}</Tag>
+              </Descriptions.Item>
+            </Descriptions>
+            <Form form={form} layout="vertical" onFinish={(values) => save.mutate(values)}>
+              <Form.Item name="serverId" label="MCP Server" rules={[{ required: true }]}>
+                <Select
+                  loading={servers.isLoading}
+                  options={(servers.data ?? []).map((server) => ({
+                    value: server.id,
+                    label: `${server.displayName} · ${server.serverCode}`,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item name="additionalPermissions" label="追加权限">
+                <Select
+                  mode="tags"
+                  tokenSeparators={[',']}
+                  options={editing.additionalPermissions.map((permission) => ({
+                    value: permission,
+                    label: permission,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item name="minimumRiskLevel" label="最低风险" rules={[{ required: true }]}>
+                <Select options={riskLevels
+                  .filter((riskLevel) => riskRank(riskLevel) >= riskRank(
+                    editing.minimumRiskLevel ?? editing.codeRiskLevel,
+                  ))
+                  .map((riskLevel) => ({ value: riskLevel, label: riskLevel }))}
+                />
+              </Form.Item>
+              <Form.Item name="disabled" label="禁用 Tool" valuePropName="checked">
+                <Switch disabled={!editing.enabled} />
+              </Form.Item>
+              <Form.Item name="changeReason" label="变更原因" rules={[{ required: true }]}>
+                <Input.TextArea />
+              </Form.Item>
+            </Form>
+          </>
+        )}
       </Modal>
     </section>
   )

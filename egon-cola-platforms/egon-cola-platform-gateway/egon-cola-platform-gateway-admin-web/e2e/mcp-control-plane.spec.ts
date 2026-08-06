@@ -50,11 +50,31 @@ const capability = (
   revision: 1,
 })
 
-const tool = capability('TOOL', 'tool-e2e', 'order.query', {
-  bindingType: 'LOCAL_OPERATION',
+const tool = {
+  toolId: 'tool-e2e',
+  gatewayGroupId: group.id,
   operationId: 'operation-e2e',
-  riskLevel: 'HIGH',
-})
+  operationKey: 'order.query',
+  name: 'order.query',
+  description: 'Query an order',
+  operationProtocol: 'HTTP',
+  inputSchema: { type: 'object' },
+  outputSchema: { type: 'object' },
+  inputLocations: {},
+  codeServerId: server.id,
+  codeServerCode: server.serverCode,
+  serverId: server.id,
+  serverCode: server.serverCode,
+  codePermissions: ['order:read'],
+  additionalPermissions: ['order:audit'],
+  effectivePermissions: ['order:audit', 'order:read'],
+  codeRiskLevel: 'MEDIUM',
+  minimumRiskLevel: 'HIGH',
+  effectiveRiskLevel: 'HIGH',
+  idempotent: true,
+  enabled: true,
+  overrideRevision: 1,
+}
 const remoteProvider = {
   id: 'provider-e2e',
   gatewayGroupId: group.id,
@@ -86,6 +106,23 @@ const remoteMount = {
   namespace: 'inventory',
   capabilityFingerprint: remoteCapability.capabilityFingerprint,
   content: { primitiveTypes: ['TOOL', 'RESOURCE', 'PROMPT', 'APP'], conflictPolicy: 'REJECT' },
+  enabled: true,
+  revision: 1,
+}
+const remoteTool = {
+  id: 'remote-tool-e2e',
+  gatewayGroupId: group.id,
+  serverId: server.id,
+  serverCode: server.serverCode,
+  name: 'inventory.lookup',
+  description: 'Lookup remote inventory',
+  remoteMountId: remoteMount.id,
+  inputSchema: { type: 'object' },
+  outputSchema: { type: 'object' },
+  annotations: {},
+  requiredPermissions: ['inventory:read'],
+  riskLevel: 'LOW',
+  idempotent: true,
   enabled: true,
   revision: 1,
 }
@@ -135,7 +172,11 @@ const authenticate = async (page: Page) => {
   }))
   await page.route('**/api/v1/gateway/admin/mcp/servers?**', (route) => json(route, [server]))
   await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}`, (route) => json(route, server))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/tools?**`, (route) => json(route, [tool]))
+  await page.route(
+    `**/api/v1/gateway/admin/mcp/groups/${group.id}/managed-tools?**`,
+    (route) => json(route, [tool]),
+  )
+  await page.route('**/api/v1/gateway/admin/mcp/remote-tools?**', (route) => json(route, [remoteTool]))
   await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/resources?**`, (route) => json(route, [
     capability('RESOURCE', 'resource-e2e', 'order-schema', {
       uri: 'schema://commerce/order',
@@ -303,12 +344,16 @@ test('MCP Server workbench covers the complete control-plane lifecycle', async (
   await page.getByRole('button', { name: '工作台' }).click()
   await expect(page.getByRole('heading', { name: 'Commerce MCP' })).toBeVisible()
 
-  await page.getByRole('button', { name: '新增 Tool' }).click()
-  await expect(page.getByLabel('Operation')).toBeVisible()
-  await expect(page.getByLabel('Provider URL')).toHaveCount(0)
-  await page.getByRole('button', { name: /取\s*消/ }).click()
-
   await expect(page.getByText(tool.name, { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /新增.*Tool/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '严格 Override' })).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Remote Tools' }).click()
+  await expect(page.getByText(remoteTool.name, { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '新增 Remote Tool' }).click()
+  await expect(page.getByLabel('Remote Mount')).toBeVisible()
+  await expect(page.getByLabel('Operation')).toHaveCount(0)
+  await page.getByRole('button', { name: /取\s*消/ }).click()
 
   await page.getByRole('tab', { name: 'Resources', exact: true }).first().click()
   await expect(page.getByText('order-schema', { exact: true })).toBeVisible()

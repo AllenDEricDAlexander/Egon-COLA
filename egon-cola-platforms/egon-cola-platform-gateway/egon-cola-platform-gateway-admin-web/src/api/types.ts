@@ -370,7 +370,6 @@ export type McpServerMutation = Omit<
 }
 
 export type McpCapabilityPlural =
-  | 'tools'
   | 'resources'
   | 'resource-templates'
   | 'prompts'
@@ -378,7 +377,6 @@ export type McpCapabilityPlural =
   | 'app-bindings'
 
 export type McpCapabilityKind =
-  | 'TOOL'
   | 'RESOURCE'
   | 'RESOURCE_TEMPLATE'
   | 'PROMPT'
@@ -438,6 +436,75 @@ export type McpProtocolInspection = {
 export type McpOperationOption = {
   value: string
   label: string
+}
+
+export type McpToolRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+export type McpManagedTool = {
+  toolId: string
+  gatewayGroupId: string
+  operationId: string
+  operationKey: string
+  name: string
+  description?: string
+  operationProtocol: string
+  inputSchema: Record<string, unknown>
+  outputSchema: Record<string, unknown>
+  inputLocations: Record<string, string>
+  codeServerId: string
+  codeServerCode: string
+  serverId: string
+  serverCode: string
+  codePermissions: string[]
+  additionalPermissions: string[]
+  effectivePermissions: string[]
+  codeRiskLevel: McpToolRiskLevel
+  minimumRiskLevel?: McpToolRiskLevel
+  effectiveRiskLevel: McpToolRiskLevel
+  idempotent: boolean
+  enabled: boolean
+  overrideRevision: number
+}
+
+export type McpManagedToolOverrideMutation = {
+  gatewayGroupId: string
+  serverId?: string
+  additionalPermissions: string[]
+  minimumRiskLevel?: McpToolRiskLevel
+  enabled?: false
+  expectedRevision: number
+  expectedDraftRevision: number
+  changeReason: string
+}
+
+export type McpRemoteTool = {
+  id: string
+  gatewayGroupId: string
+  serverId: string
+  serverCode: string
+  name: string
+  description?: string
+  remoteMountId: string
+  inputSchema: Record<string, unknown>
+  outputSchema: Record<string, unknown>
+  annotations: Record<string, unknown>
+  requiredPermissions: string[]
+  riskLevel: McpToolRiskLevel
+  idempotent: boolean
+  enabled: boolean
+  revision: number
+}
+
+export type McpRemoteToolMutation = Omit<McpRemoteTool, 'id' | 'revision' | 'serverCode'> & {
+  expectedRevision: number
+  expectedDraftRevision: number
+  changeReason: string
+}
+
+export type McpToolReference = {
+  name: string
+  riskLevel: McpToolRiskLevel
+  enabled: boolean
 }
 
 export type McpRemoteProvider = {

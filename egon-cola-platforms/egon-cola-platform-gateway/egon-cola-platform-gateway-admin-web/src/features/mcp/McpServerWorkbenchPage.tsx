@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { gatewayApi } from '../../api/gatewayApi'
 import { LoadingBlock, QueryFailure } from '../../components/QueryState'
 import { McpProtocolInspector } from './McpProtocolInspector'
+import { McpRemoteToolsPanel } from './McpRemoteToolsPanel'
 import { McpToolsPanel } from './McpToolsPanel'
 import { McpAppsPanel } from './McpAppsPanel'
 import { McpApprovalPanel } from './McpApprovalPanel'
@@ -62,9 +63,20 @@ export const McpServerWorkbenchPage = () => {
         items={[
           {
             key: 'tools',
-            label: 'Tools',
+            label: 'Managed Tools',
             children: (
               <McpToolsPanel
+                serverId={server.data.id}
+                gatewayGroupId={server.data.gatewayGroupId}
+                draftRevision={draft.data.revision}
+              />
+            ),
+          },
+          {
+            key: 'remote-tools',
+            label: 'Remote Tools',
+            children: (
+              <McpRemoteToolsPanel
                 serverId={server.data.id}
                 gatewayGroupId={server.data.gatewayGroupId}
                 draftRevision={draft.data.revision}

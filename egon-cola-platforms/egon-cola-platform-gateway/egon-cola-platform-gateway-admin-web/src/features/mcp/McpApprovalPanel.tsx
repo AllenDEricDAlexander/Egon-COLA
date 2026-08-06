@@ -25,13 +25,8 @@ export const McpApprovalPanel = ({
   const [form] = Form.useForm<ApprovalForm>()
   const [visibleToken, setVisibleToken] = useState<string>()
   const tools = useQuery({
-    queryKey: ['mcp-capabilities', gatewayGroupId, serverId, 'tools'],
-    queryFn: ({ signal }) => gatewayApi.mcpCapabilities(
-      gatewayGroupId,
-      serverId,
-      'tools',
-      signal,
-    ),
+    queryKey: ['mcp-tool-references', gatewayGroupId, serverId],
+    queryFn: ({ signal }) => gatewayApi.mcpToolReferences(gatewayGroupId, serverId, signal),
   })
   const issue = useMutation({
     mutationFn: (values: ApprovalForm) => gatewayApi.issueMcpApproval({
@@ -69,7 +64,7 @@ export const McpApprovalPanel = ({
           </Form.Item>
           <datalist id="mcp-approval-tools">
             {(tools.data ?? [])
-              .filter((tool) => tool.content.riskLevel === 'HIGH')
+              .filter((tool) => tool.enabled && ['HIGH', 'CRITICAL'].includes(tool.riskLevel))
               .map((tool) => <option key={tool.name} value={tool.name} />)}
           </datalist>
           <Form.Item name="arguments" label="Tool Arguments JSON" rules={[{ required: true }]}>
