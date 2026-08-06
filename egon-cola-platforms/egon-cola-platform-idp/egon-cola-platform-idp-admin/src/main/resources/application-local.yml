@@ -1,8 +1,13 @@
 spring:
+  datasource:
+    url: ${IDP_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/egon_identity_local}
+    username: ${IDP_POSTGRES_USER:postgres}
+    password: ${IDP_POSTGRES_PASSWORD:HomeLab666}
   data:
     redis:
       host: ${IDP_REDIS_HOST:127.0.0.1}
       port: ${IDP_REDIS_PORT:6379}
+      password: ${IDP_REDIS_PASSWORD:HomeLab666}
       database: ${IDP_REDIS_DATABASE:0}
 
 egon.cola.platform:
@@ -12,6 +17,7 @@ egon.cola.platform:
   rbac3:
     runtime:
       redis-address: ${IDP_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+      password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
     authorization:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
       service-credential-file: ${IDP_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/idp-admin.service.jwt}
@@ -25,3 +31,8 @@ egon:
       login-uri: ${IDP_OAUTH_LOGIN_URI:http://127.0.0.1:18121/login}
       allowed-origins: ${IDP_OAUTH_ALLOWED_ORIGINS:http://127.0.0.1:18121,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152}
       refresh-cookie-secure: false
+  cola:
+    component:
+      ddc:
+        redis:
+          password: ${DDC_REGISTRY_REDIS_PASSWORD:HomeLab666}

@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${RBAC3_POSTGRES_URL:jdbc:postgresql://localhost:5432/rbac3}
+    url: ${RBAC3_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/egon_rbac3_unified_identity_local}
     username: ${RBAC3_POSTGRES_USER:postgres}
-    password: ${RBAC3_POSTGRES_PASSWORD:postgres}
+    password: ${RBAC3_POSTGRES_PASSWORD:HomeLab666}
   security:
     oauth2:
       resourceserver:
@@ -26,6 +26,7 @@ egon.cola.platform:
   rbac3:
     runtime:
       redis-address: ${RBAC3_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+      password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
     authorization:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
       service-credential-file: ${RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/rbac3-admin.service.jwt}
@@ -41,7 +42,7 @@ egon:
     component-keys: ${RBAC3_COMPONENT_KEYS:rbac3-page}
     runtime:
       redis-address: ${RBAC3_RUNTIME_REDIS_ADDRESS:redis://localhost:6379}
-      redis-password-file: ${RBAC3_RUNTIME_REDIS_PASSWORD_FILE:}
+      redis-password-file: ${RBAC3_RUNTIME_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
     gateway-status:
       admin-base-url: ${GATEWAY_ADMIN_BASE_URL:http://localhost:8088}
       gateway-group-id: ${GATEWAY_GROUP_ID:local}
@@ -61,6 +62,8 @@ egon:
       ddc:
         enabled: ${RBAC3_DDC_ENABLED:false}
         env: local
+        redis:
+          password: ${DDC_REGISTRY_REDIS_PASSWORD:HomeLab666}
         registry:
           enabled: ${RBAC3_DDC_ENABLED:false}
       gateway:

@@ -1,3 +1,9 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/egon_ddc_local}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:HomeLab666}
+
 egon:
   cola:
     platform:
@@ -7,6 +13,12 @@ egon:
       rbac3:
         runtime:
           redis-address: ${DDC_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+          password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
         authorization:
           endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
           service-credential-file: ${DDC_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/ddc-admin.service.jwt}
+    component:
+      ddc:
+        admin:
+          redis:
+            password: ${DDC_REDIS_PASSWORD:HomeLab666}
