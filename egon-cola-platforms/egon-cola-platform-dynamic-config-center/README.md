@@ -4,9 +4,10 @@
 
 ## Scope
 
-`egon-cola-platform-dynamic-config-center` provides a dynamic-configuration SDK
-with typed management APIs, a standalone Admin application, and a Redis-backed
-service registry for RPC Providers and internal Gateways.
+`egon-cola-platform-dynamic-config-center` provides a Spring Boot ConfigData SDK
+for one YAML business-configuration document, typed management APIs, a standalone
+Admin application, and a Redis-backed service registry for RPC Providers and
+internal Gateways.
 
 The Maven modules use the `egon-cola-platform-*` prefix. Existing Java packages and
 the `egon.cola.component.ddc` configuration namespace remain unchanged for source and
@@ -43,7 +44,7 @@ ACK, operation, and configuration-client projection data.
 
 | Module | Responsibility |
 |---|---|
-| `egon-cola-platform-dynamic-config-center-starter` | The only consumer SDK: `@DdcValue`, typed management APIs, startup synchronization, refresh, ACK, CONFIG_CLIENT leases, HMAC, and service-registry contracts |
+| `egon-cola-platform-dynamic-config-center-starter` | The only consumer SDK: native ConfigData loading, `@DdcValue`, selective refresh, typed management APIs, ACK, CONFIG_CLIENT leases, HMAC, and service-registry contracts |
 | `egon-cola-platform-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
 | `egon-cola-platform-dynamic-config-center-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
 | `egon-cola-platform-dynamic-config-center-test` | Starter-only sample and black-box consumer verification; it has no Admin dependency |
@@ -59,10 +60,12 @@ DDC Admin exposes `GET /actuator/health/readiness` for startup and readiness
 checks. `GET /actuator/info` exposes the application name and the Maven-filtered
 component version under `app.name` and `app.version`.
 
-Applications add only the Starter. `egon.cola.component.ddc.enabled=true` explicitly
-starts the `CONFIG_CLIENT` registration, default-report, pull, Redis subscription,
-heartbeat, and shutdown-offline lifecycle. `egon.cola.component.ddc.registry.enabled=true`
-independently enables RPC/Gateway service registration; those `RPC_PROVIDER`,
+Applications add only the Starter and import `ddc:application.yml` through
+`spring.config.import`. `egon.cola.component.ddc.enabled=true` loads the remote YAML
+during ConfigData processing, then starts the `CONFIG_CLIENT` registration, pull,
+Redis subscription, heartbeat, and shutdown-offline lifecycle.
+`egon.cola.component.ddc.registry.enabled=true` independently enables RPC/Gateway
+service registration; those `RPC_PROVIDER`,
 `HTTP_PROVIDER`, and `INTERNAL_GATEWAY` leases are not configuration-client registrations. Every enabled
 remote path must explicitly configure the Admin Endpoint, matching HMAC credentials,
 and Redis topology. With `redis.enabled=false`, no registration, pull, subscription,
@@ -93,15 +96,15 @@ DDC-specific trace filter.
 
 ## Configuration Client Lifecycle
 
-`DdcRuntimeCoordinator` starts only after the Redis subscription is active and
+The initial remote YAML is loaded by Spring Boot ConfigData before beans are bound.
+`DdcRuntimeCoordinator` then starts only after the Redis subscription is active and
 executes this order:
 
 1. register the configuration client and receive a new `leaseId`;
-2. report annotation defaults;
-3. pull and apply the complete configuration snapshot;
-4. enter `READY`;
-5. heartbeat on the configured interval;
-6. actively take the current lease offline during shutdown.
+2. pull `application.yml` and reconcile it with the startup snapshot;
+3. enter `READY`;
+4. heartbeat on the configured interval;
+5. actively take the current lease offline during shutdown.
 
 Each registration replaces the old lease. Heartbeat and offline operations
 atomically match `instanceId + leaseId`; a stale lease cannot renew or delete
@@ -109,13 +112,20 @@ the replacement lease. When a current lease is missing or mismatched, the SDK
 registers again and repeats initial synchronization.
 
 ```java
-@DdcValue("rateLimit:100")
+@DdcValue(value = "order.rate-limit", defaultValue = "100")
 private volatile Integer rateLimit;
 
-@DdcValue(value = "", key = "downgradeSwitch",
+@DdcValue(value = "order.downgrade-switch",
         defaultValue = "false", type = Boolean.class)
 private volatile Boolean downgradeSwitch;
 ```
+
+Runtime publication atomically replaces the DDC PropertySource and computes YAML
+leaf changes. Explicit `DdcConfigApplier` registrations and refreshable `@DdcValue`
+fields receive matching leaves. A setter-based `@ConfigurationProperties` class is
+rebound only when it is annotated with `@DdcRefreshable`; immutable properties and
+all other changed keys are reported as restart-required without restarting the
+ApplicationContext.
 
 ## Lease Protocol
 
@@ -169,7 +179,7 @@ pessimistic lock on the configuration row, rejects another active task for the
 same resource, updates the configuration version, and freezes the current Redis
 lease targets as exact `instanceId + leaseId` pairs. The database task and row
 conditions coordinate concurrent Admin processes for
-`appCode + env + namespace + configKey`; the in-memory waiter is only a wake-up
+`bizCode + env + appCode + application.yml`; the in-memory waiter is only a wake-up
 optimization. Completion polling reads the shared task state, and startup recovery
 marks stale `PENDING` or `PUBLISHING` tasks as `UNKNOWN` before another request retries.
 
@@ -203,7 +213,7 @@ curl -X POST \
   -H 'Content-Type: application/json' \
   -d '{
     "changeId": "019c9f0d-7b9b-7e00-8000-000000000001",
-    "configValue": "200",
+    "configValue": "order:\n  rate-limit: 200\n",
     "expectedVersion": 1,
     "timeoutMs": 30000
   }'
@@ -245,11 +255,16 @@ checks clock skew, access key, body digest, signature, and nonce replay.
 Business application:
 
 ```yaml
+spring:
+  config:
+    import: ddc:application.yml
+
 egon:
   cola:
     component:
       ddc:
         enabled: true
+        biz-code: orders
         app-code: order-service
         env: dev
         namespace: default
@@ -275,6 +290,14 @@ egon:
         consistency:
           fail-fast: true
 ```
+
+Use `optional:ddc:application.yml` when absence of the remote document is allowed.
+DDC contributes one PropertySource above local ConfigData and below Spring Boot's
+higher-priority command-line and system sources; it does not merge local and remote
+documents. The Admin accepts only one Map-root, single-document YAML resource named
+`application.yml` per `bizCode + env + appCode`. Remote YAML containing
+`egon.cola.component.ddc.*`, `spring.config.*`, or Spring profile-control keys is
+rejected as a whole, so DDC connection and bootstrap controls remain local.
 
 Production Admin:
 
@@ -321,7 +344,7 @@ egon:
                 namespace-patterns: [default]
                 allowed-operations: [SDK_REGISTER, SDK_HEARTBEAT,
                   SDK_OFFLINE, CONFIG_PULL, CONFIG_VALUE, PUBLISH_ACK,
-                  DEFAULTS_REPORT, REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
+                  REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
                   REGISTRY_DEREGISTER, REGISTRY_READ]
           publish:
             dispatch-timeout-ms: 5000
@@ -356,5 +379,7 @@ runtime evidence, use the [developer integration runbook](../egon-cola-platform-
 - multi-Admin operation requires shared PostgreSQL and Redis; the platform does not provision database or Redis HA;
 - no distributed consensus or general-purpose distributed lock service;
 - no embedded Redis and no database-backed service registry;
-- no UI, account system, RBAC, or MySQL compatibility target;
+- no embedded Admin UI or account system; the standalone Admin Web uses the
+  platform identity and authorization integration, and MySQL compatibility is
+  not a target;
 - no asynchronous, quorum, or partial-success publish mode in V1.

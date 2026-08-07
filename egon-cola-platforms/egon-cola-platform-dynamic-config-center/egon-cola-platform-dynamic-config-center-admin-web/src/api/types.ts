@@ -40,10 +40,9 @@ export type DdcConfig = {
   appCode: string
   env: string
   visibleNamespaces: string[]
-  configKey: string
+  configKey: 'application.yml'
   configValue: string
-  defaultValue?: string
-  valueType: string
+  valueType: 'YAML'
   currentVersion: number
   description?: string
   createdAt?: string

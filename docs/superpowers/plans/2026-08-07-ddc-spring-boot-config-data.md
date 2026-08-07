@@ -101,18 +101,28 @@
 
 **Steps:**
 
-- [ ] Replace key/type/default controls with one YAML editor for the selected biz/env/app scope.
-- [ ] Keep scope selection, optimistic version update, publish, rollback, and server error feedback.
-- [ ] Remove JSON/TOML/TXT/Gateway-inline editor adapters that are no longer reachable.
-- [ ] Run Admin Web unit tests, typecheck/lint/build without browser or E2E startup.
-- [ ] Run focused DDC Starter/Admin/Test and affected Gateway/IdP Maven suites.
-- [ ] Run `git diff --check`, verify only requested paths were committed, and commit as `refactor(ddc): provide YAML-only admin editor`.
+- [x] Replace key/type/default controls with one YAML editor for the selected biz/env/app scope.
+- [x] Keep scope selection, optimistic version update, publish, rollback, and server error feedback.
+- [x] Remove JSON/TOML/TXT/Gateway-inline editor adapters that are no longer reachable.
+- [x] Run Admin Web unit tests, typecheck/lint/build without browser or E2E startup.
+- [x] Run focused DDC Starter/Admin/Test and affected Gateway/IdP Maven suites.
+- [x] Run `git diff --check`, verify only task-owned commit paths, and commit as `refactor(ddc): provide YAML-only admin editor`.
+
+## Validation Record
+
+- DDC Admin Web: `npm test` with the required non-secret `VITE_IDP_*` test values passed 15 files and 25 tests; `npm run typecheck`, `npm run lint`, and the environment-qualified `npm run build` passed. A first bare `npm test` stopped during import because those required values were absent. The build retained the existing large-chunk warning.
+- DDC reactor: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test -am test` passed all 20 reactor modules; Admin ran 162 tests and the consumer module ran 6 tests.
+- Gateway Admin: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am test` passed all 24 reactor modules and all 167 Admin tests.
+- Gateway Engine: the focused `GatewayEngineConfigurationTest,GatewayRuleActivationApplierTest` reactor command passed 15 tests.
+- IdP Admin: the focused `IdpDdcPolicyApplierTest,IdpDdcPolicyConfigurationTest` reactor command passed 5 tests.
+- RBAC3 Admin: the standard focused reactor command is blocked during test compilation by the unrelated `Rbac3GatewayDocumentCatalogContractTest` calls to the removed `Operation.parameters()` method at lines 223-224. Direct Surefire execution of the generated DDC test classes passed 8 tests; isolated compilation and Surefire execution of `Rbac3DdcPolicyConfigurationTest` passed another 4 tests. No RBAC3 source was changed.
+- `git diff --check` passed. No application server or browser was started.
 
 ## Completion Gate
 
-- [ ] Initial remote YAML binds before Bean creation.
-- [ ] DDC wins over local ConfigData but not Boot's higher-order non-ConfigData sources.
-- [ ] DDC cannot overwrite its own bootstrap/config/profile controls.
-- [ ] Runtime refresh is atomic and accurately separates refreshed from restart-required keys.
-- [ ] Admin, Admin Web, Gateway publication, `@DdcValue`, and custom Appliers all use the YAML-only model.
-- [ ] No application was started and all validation commands/results are recorded.
+- [x] Initial remote YAML binds before Bean creation.
+- [x] DDC wins over local ConfigData but not Boot's higher-order non-ConfigData sources.
+- [x] DDC cannot overwrite its own bootstrap/config/profile controls.
+- [x] Runtime refresh is atomic and accurately separates refreshed from restart-required keys.
+- [x] Admin, Admin Web, Gateway publication, `@DdcValue`, and custom Appliers all use the YAML-only model.
+- [x] No application was started and all validation commands/results are recorded.

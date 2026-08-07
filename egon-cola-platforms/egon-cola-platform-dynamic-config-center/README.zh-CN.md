@@ -4,8 +4,9 @@
 
 ## 范围
 
-`egon-cola-platform-dynamic-config-center` 提供包含类型化管理 API 的动态配置 SDK、
-可独立部署的 Admin 应用，以及面向 RPC Provider 和内部 Gateway 的 Redis 服务注册中心。
+`egon-cola-platform-dynamic-config-center` 提供基于 Spring Boot ConfigData、每个作用域
+一份 YAML 业务配置文档的 SDK、类型化管理 API、可独立部署的 Admin 应用，以及面向
+RPC Provider 和内部 Gateway 的 Redis 服务注册中心。
 
 Maven 模块统一使用 `egon-cola-platform-*` 前缀。为保持源码和配置兼容，现有 Java 包名
 以及 `egon.cola.component.ddc` 配置命名空间保持不变。
@@ -37,7 +38,7 @@ Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL
 
 | 模块 | 职责 |
 |---|---|
-| `egon-cola-platform-dynamic-config-center-starter` | 唯一业务侧 SDK：`@DdcValue`、类型化管理 API、启动同步、刷新、ACK、CONFIG_CLIENT 租约、HMAC 和服务注册契约 |
+| `egon-cola-platform-dynamic-config-center-starter` | 唯一业务侧 SDK：原生 ConfigData 加载、`@DdcValue`、选择性刷新、类型化管理 API、ACK、CONFIG_CLIENT 租约、HMAC 和服务注册契约 |
 | `egon-cola-platform-dynamic-config-center-admin` | 独立 REST Admin、PostgreSQL 持久化、Redis 缓存与租约、注册中心 API 和同步发布状态机 |
 | `egon-cola-platform-dynamic-config-center-admin-web` | 独立管理控制台（React + antd + Vite，纯 Node 工程，不进 Maven reactor）；构建与部署说明见 `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
 | `egon-cola-platform-dynamic-config-center-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
@@ -52,8 +53,9 @@ DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
 `GET /actuator/info` 在 `app.name` 和 `app.version` 中暴露应用名称与 Maven
 过滤后的组件版本。
 
-业务应用只引入 Starter。`egon.cola.component.ddc.enabled=true` 会显式启动
-`CONFIG_CLIENT` 注册、默认值上报、配置拉取、Redis 订阅、心跳和停机下线闭环；
+业务应用只引入 Starter，并通过 `spring.config.import` 导入 `ddc:application.yml`。
+`egon.cola.component.ddc.enabled=true` 会在 ConfigData 阶段加载远端 YAML，随后启动
+`CONFIG_CLIENT` 注册、配置拉取、Redis 订阅、心跳和停机下线闭环；
 `egon.cola.component.ddc.registry.enabled=true` 独立启用 RPC/Gateway 服务注册，
 其中 `RPC_PROVIDER`、`HTTP_PROVIDER` 和 `INTERNAL_GATEWAY` 租约不是配置客户端注册。启用任一远程
 路径时都必须显式配置 Admin Endpoint、匹配的 HMAC 凭据和 Redis 拓扑。
@@ -81,27 +83,32 @@ DDC 私有 Trace Filter。
 
 ## 配置客户端生命周期
 
+初始远端 YAML 由 Spring Boot ConfigData 在 Bean 绑定前加载。之后
 `DdcRuntimeCoordinator` 只在 Redis 订阅已经可用后启动，并严格按以下顺序执行：
 
 1. 注册配置客户端并取得新的 `leaseId`；
-2. 上报注解默认值；
-3. 拉取并应用完整配置快照；
-4. 进入 `READY`；
-5. 按配置周期发送心跳；
-6. 停止时主动下线当前租约。
+2. 拉取 `application.yml` 并与启动快照校准；
+3. 进入 `READY`；
+4. 按配置周期发送心跳；
+5. 停止时主动下线当前租约。
 
 每次注册都会替换旧租约。心跳和下线原子匹配
 `instanceId + leaseId`，旧租约不能续期或删除替换后的新租约。当前租约丢失或
 不匹配时，SDK 会重新注册并重复首次同步。
 
 ```java
-@DdcValue("rateLimit:100")
+@DdcValue(value = "order.rate-limit", defaultValue = "100")
 private volatile Integer rateLimit;
 
-@DdcValue(value = "", key = "downgradeSwitch",
+@DdcValue(value = "order.downgrade-switch",
         defaultValue = "false", type = Boolean.class)
 private volatile Boolean downgradeSwitch;
 ```
+
+运行期发布会原子替换 DDC PropertySource，并按 YAML 叶子计算差异。显式注册的
+`DdcConfigApplier` 与允许刷新的 `@DdcValue` 字段接收对应叶子；只有标注
+`@DdcRefreshable` 且采用 setter 绑定的 `@ConfigurationProperties` 会被重新绑定。
+不可变配置和其他变更会被标记为需要重启，但不会重启 ApplicationContext。
 
 ## 租约协议
 
@@ -149,7 +156,7 @@ V1 只有一种发布模式：`SYNC_ALL_ACK`。
 调用方传入 UUIDv7 `changeId`。准备事务会对配置行加悲观锁，拒绝同一资源已有的
 活跃任务，更新配置版本，并将 Redis 当前配置客户端租约固化为精确的
 `instanceId + leaseId` 目标集合。数据库任务和行条件更新负责协调
-`appCode + env + namespace + configKey` 的并发 Admin；进程内 Waiter 只负责唤醒优化。
+`bizCode + env + appCode + application.yml` 的并发 Admin；进程内 Waiter 只负责唤醒优化。
 完成轮询读取共享任务状态；Admin 启动恢复会把过期的 `PENDING` 或 `PUBLISHING`
 任务置为 `UNKNOWN`，之后由其他请求重试。
 
@@ -181,7 +188,7 @@ curl -X POST \
   -H 'Content-Type: application/json' \
   -d '{
     "changeId": "019c9f0d-7b9b-7e00-8000-000000000001",
-    "configValue": "200",
+    "configValue": "order:\n  rate-limit: 200\n",
     "expectedVersion": 1,
     "timeoutMs": 30000
   }'
@@ -223,11 +230,16 @@ content-sha256
 业务应用：
 
 ```yaml
+spring:
+  config:
+    import: ddc:application.yml
+
 egon:
   cola:
     component:
       ddc:
         enabled: true
+        biz-code: orders
         app-code: order-service
         env: dev
         namespace: default
@@ -253,6 +265,13 @@ egon:
         consistency:
           fail-fast: true
 ```
+
+允许远端文档不存在时可使用 `optional:ddc:application.yml`。DDC 只贡献一个
+PropertySource，其优先级高于本地 ConfigData、低于 Spring Boot 的命令行参数和系统
+属性；本地与远端文档不做自定义合并。Admin 在每个 `bizCode + env + appCode` 下只接受
+一份名为 `application.yml` 的单文档、Map 根节点 YAML。远端 YAML 一旦包含
+`egon.cola.component.ddc.*`、`spring.config.*` 或 Spring Profile 控制键，整份文档都会
+被拒绝，因此 DDC 连接和引导参数只能来自本地配置。
 
 生产 Admin：
 
@@ -299,7 +318,7 @@ egon:
                 namespace-patterns: [default]
                 allowed-operations: [SDK_REGISTER, SDK_HEARTBEAT,
                   SDK_OFFLINE, CONFIG_PULL, CONFIG_VALUE, PUBLISH_ACK,
-                  DEFAULTS_REPORT, REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
+                  REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
                   REGISTRY_DEREGISTER, REGISTRY_READ]
           publish:
             dispatch-timeout-ms: 5000
@@ -334,5 +353,6 @@ egon:
 - 多 Admin 运行要求共享 PostgreSQL 和 Redis；平台不负责提供数据库或 Redis HA；
 - 不提供分布式共识或通用分布式锁服务；
 - 不内嵌 Redis，不使用数据库持久化服务注册信息；
-- 不包含 UI、账号系统、RBAC 或 MySQL 兼容目标；
+- 不内嵌 Admin UI 或账号系统；独立 Admin Web 接入平台统一身份与授权，且不以兼容
+  MySQL 为目标；
 - V1 不支持异步、多数派或部分成功发布模式。

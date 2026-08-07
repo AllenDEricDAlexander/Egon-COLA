@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { App } from 'antd'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
 import ConfigsPage from './ConfigsPage'
@@ -13,8 +14,8 @@ const jsonResponse = (body: unknown, status = 200) =>
 const configRow = {
   id: 'cfg-1', bizCode: 'pay-biz', appCode: 'orders', env: 'dev',
   visibleNamespaces: ['default', 'ops'],
-  configKey: 'feature.flags', configValue: '{"enabled":true}', defaultValue: '',
-  valueType: 'JSON', currentVersion: 3, description: '功能开关',
+  configKey: 'application.yml' as const, configValue: 'feature:\n  enabled: true\n',
+  valueType: 'YAML' as const, currentVersion: 3, description: '业务配置',
   createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-02T00:00:00Z',
 }
 
@@ -25,7 +26,7 @@ describe('ConfigsPage', () => {
     vi.stubGlobal('fetch', vi.fn())
   })
 
-  it('renders config rows with format badge and actions', async () => {
+  it('renders the YAML document once with actions', async () => {
     vi.mocked(fetch).mockImplementation((input) => {
       const url = String(input)
       if (url.includes('/bizs') || url.includes('/namespaces')
@@ -36,19 +37,20 @@ describe('ConfigsPage', () => {
       return Promise.resolve(jsonResponse(record(null)))
     })
 
-    render(<ConfigsPage />)
-    await waitFor(() => expect(screen.getByText('feature.flags')).toBeInTheDocument())
-    expect(screen.getAllByText('JSON').length).toBeGreaterThan(0)
-    expect(screen.getByText('功能开关')).toBeInTheDocument()
+    render(<App><ConfigsPage /></App>)
+    await waitFor(() => expect(screen.getByText('application.yml')).toBeInTheDocument())
+    expect(screen.getByText('YAML')).toBeInTheDocument()
+    expect(screen.getByText('业务配置')).toBeInTheDocument()
     expect(screen.getByText('default')).toBeInTheDocument()
     expect(screen.getByText('ops')).toBeInTheDocument()
-    expect(screen.getAllByText('feature.flags')).toHaveLength(1)
+    expect(screen.getAllByText('application.yml')).toHaveLength(1)
     const listRequest = vi.mocked(fetch).mock.calls
       .map(([input]) => String(input))
       .find((url) => url.includes('/api/v1/ddc/configs?'))
     expect(listRequest).toContain('includeDeleted=false')
     expect(listRequest).not.toContain('bizCode=')
     expect(listRequest).not.toContain('namespaceCode=')
+    expect(listRequest).not.toContain('configKey=')
   })
 
   it('publishes with uuid changeId and refreshes', async () => {
@@ -73,8 +75,8 @@ describe('ConfigsPage', () => {
       return Promise.resolve(jsonResponse(record(null)))
     })
 
-    render(<ConfigsPage />)
-    await waitFor(() => expect(screen.getByText('feature.flags')).toBeInTheDocument())
+    render(<App><ConfigsPage /></App>)
+    await waitFor(() => expect(screen.getByText('application.yml')).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: /发\s*布/ }))
     await waitFor(() => expect(screen.getByText(/发布任务 change-1/)).toBeInTheDocument())
     confirm.mockRestore()

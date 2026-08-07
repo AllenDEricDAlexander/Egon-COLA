@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, Card, Input, Modal, Space, Table, Tag, Typography, message } from 'antd'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { App, Button, Card, Modal, Space, Table, Tag, Typography } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcConfig, DdcConfigVersion, DdcPublishResult } from '../api/types'
 import ScopeSelects, { type ScopeValue } from '../components/scope/ScopeSelects'
-import { prepareConfigEditor, detectConfigFormat } from '../lib/configFormat'
 import { buildQuery, formatTime } from '../lib/query'
 import { uuidV7 } from '../lib/uuid'
 import ConfigEditorDialog, { type ConfigScope } from './ConfigEditorDialog'
 
-type ConfigFilter = ScopeValue & { configKey: string }
+type ConfigFilter = ScopeValue
 
 export default function ConfigsPage() {
-  const [draft, setDraft] = useState<ConfigFilter>({ bizCode: '', namespaceCode: '', env: '', appCode: '', configKey: '' })
+  const { message } = App.useApp()
+  const [draft, setDraft] = useState<ConfigFilter>({ bizCode: '', namespaceCode: '', env: '', appCode: '' })
   const [configs, setConfigs] = useState<DdcConfig[]>([])
   const [loading, setLoading] = useState(false)
-  const filterRef = useRef<ConfigFilter>({ bizCode: '', namespaceCode: '', env: '', appCode: '', configKey: '' })
+  const filterRef = useRef<ConfigFilter>({ bizCode: '', namespaceCode: '', env: '', appCode: '' })
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingConfig, setEditingConfig] = useState<DdcConfig | null>(null)
   const [versionsConfig, setVersionsConfig] = useState<DdcConfig | null>(null)
@@ -34,7 +34,7 @@ export default function ConfigsPage() {
     loadConfigs().catch((error) => {
       message.error(error instanceof Error ? error.message : String(error))
     })
-  }, [loadConfigs])
+  }, [loadConfigs, message])
 
   const refresh = async () => {
     setLoading(true)
@@ -62,12 +62,12 @@ export default function ConfigsPage() {
     setDialogOpen(true)
   }
 
-  const defaultScope: ConfigScope = {
+  const defaultScope: ConfigScope = useMemo(() => ({
     bizCode: draft.bizCode,
     namespaceCode: draft.namespaceCode,
     env: draft.env,
     appCode: draft.appCode,
-  }
+  }), [draft.appCode, draft.bizCode, draft.env, draft.namespaceCode])
 
   const publish = async (config: DdcConfig) => {
     if (!window.confirm(`确认发布 ${config.configKey} 当前版本？`)) return
@@ -131,8 +131,17 @@ export default function ConfigsPage() {
   }
 
   const columns = [
-    { title: '配置 Key', dataIndex: 'configKey', key: 'configKey', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
-    { title: '值类型', dataIndex: 'valueType', key: 'valueType' },
+    {
+      title: '配置文件',
+      dataIndex: 'configKey',
+      key: 'configKey',
+      render: (value: string) => (
+        <Space>
+          <Typography.Text code>{value}</Typography.Text>
+          <Tag color="blue">YAML</Tag>
+        </Space>
+      ),
+    },
     {
       title: '可见命名空间',
       dataIndex: 'visibleNamespaces',
@@ -144,15 +153,10 @@ export default function ConfigsPage() {
       ),
     },
     {
-      title: '格式',
-      key: 'format',
-      render: (_: unknown, row: DdcConfig) => <Tag color="blue">{detectConfigFormat(row)}</Tag>,
-    },
-    {
-      title: '配置值',
+      title: 'YAML 内容',
       key: 'value',
       render: (_: unknown, row: DdcConfig) => {
-        const content = prepareConfigEditor(row).content.replace(/\s+/g, ' ').trim()
+        const content = row.configValue.replace(/\s+/g, ' ').trim()
         const preview = content.length > 96 ? `${content.slice(0, 96)}…` : content
         return (
           <span>
@@ -191,9 +195,8 @@ export default function ConfigsPage() {
             value={{ bizCode: draft.bizCode, namespaceCode: draft.namespaceCode, env: draft.env, appCode: draft.appCode }}
             onChange={(scope) => setDraft({ ...draft, ...scope })}
           />
-          <Input placeholder="configKey" value={draft.configKey} onChange={(event) => setDraft({ ...draft, configKey: event.target.value })} style={{ width: 180 }} />
           <Button type="primary" onClick={applyFilter}>查询</Button>
-          <Button onClick={openNewDialog}>新建配置</Button>
+          <Button onClick={openNewDialog}>新建 application.yml</Button>
         </Space>
       </Card>
       <Card size="small" title={`配置（${configs.length}）`}>
@@ -218,7 +221,7 @@ export default function ConfigsPage() {
       />
       <Modal
         open={versionsConfig !== null}
-        title={`版本历史：${versionsConfig?.configKey ?? ''}`}
+        title="application.yml 版本历史"
         onCancel={() => setVersionsConfig(null)}
         footer={null}
         width={860}
