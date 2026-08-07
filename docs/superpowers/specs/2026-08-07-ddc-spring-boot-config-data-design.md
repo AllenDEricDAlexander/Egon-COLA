@@ -1,6 +1,6 @@
 # DDC Spring Boot ConfigData 接入与分级刷新设计
 
-状态：草案，待确认
+状态：已确认，进入实施
 
 编写日期：2026-08-07
 
@@ -9,9 +9,13 @@
 主要涉及模块：
 
 - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter`
+- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin`
+- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web`
 - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test`
+- `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin`
+- `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine`
 
-本文只定义待实现方案。确认本文末尾的决策项并审核通过前，不修改 DDC Starter 实现。
+本文已按 2026-08-07 的确认结论关闭决策项，后续实现必须以本设计和对应实施计划为准。
 
 ---
 
@@ -86,8 +90,8 @@ Gateway 规则和 IdP 策略已经注册精确 Key 或前缀 Applier。本次新
 
 本次目标是使用 Spring Boot 原生 ConfigData SPI，因此 DDC 不能在内部依赖
 `PropertySourceLocator`、`BootstrapConfiguration` 或 Spring Cloud Context 的
-`ConfigurationPropertiesRebinder`。是否继续借助现有 Spring Cloud 机制加载本地
-`bootstrap.yml`，需要按第 15 节确认。
+`ConfigurationPropertiesRebinder`。本轮已确认使用第 6.1 节的纯 Spring Boot ConfigData 方式；
+现有 archetype 的 Spring Cloud bootstrap 不作为 DDC Starter 的运行前提。
 
 ---
 
@@ -104,7 +108,8 @@ Gateway 规则和 IdP 策略已经注册精确 Key 或前缀 Applier。本次新
 7. 仅重绑显式声明可刷新的、可变的 `@ConfigurationProperties` Bean；
 8. 不适合热更新的配置只在下次启动完整生效，并通过变更事件明确标记；
 9. 保持现有发布版本、checksum、目标租约、ACK 和 reconcile 语义；
-10. 保持现有 scalar config、`@DdcValue`、Gateway/IdP 自定义 Applier 的兼容链路。
+10. 删除现有 scalar/JSON/TXT 配置与默认值上报链路；`@DdcValue` 和 Gateway/IdP 自定义
+    Applier 改为消费 YAML 展平后的叶子属性。
 
 ### 3.2 非目标
 
@@ -116,31 +121,31 @@ Gateway 规则和 IdP 策略已经注册精确 Key 或前缀 Applier。本次新
 - 不允许远端递归导入其他 ConfigData；
 - 不把本地 YAML、远端 YAML 和系统属性合并成 DDC 自有配置对象；
 - 不修改现有 Flyway 文件；本轮推荐方案不需要数据库迁移；
-- 不重构 DDC 管理 Client、服务注册、Redis 拓扑或 Admin 发布状态机；
+- 不重构服务注册、Redis 拓扑或 Admin 发布状态机；
 - 不自动启动 DDC Admin、Redis、PostgreSQL 或任何业务应用。
 
 ---
 
 ## 4. 配置资源契约
 
-### 4.1 推荐的远端资源模型
+### 4.1 唯一远端资源模型
 
 复用现有 DDC 配置项，不新增数据库字段：
 
 ```text
 configKey   = application.yml
 configValue = 完整 Spring Boot YAML 文本
-valueType   = STRING
+valueType   = YAML
 version     = DDC 发布版本
 ```
 
-推荐 V1 每个 `bizCode + env + appCode` 只有一个参与 ConfigData 的完整 YAML 资源
-`application.yml`。其他现有配置项继续是 scalar/JSON/TXT 资源，由旧 Applier 链路处理，不在
-ConfigData 阶段拼装成 YAML。
+V1 每个 `bizCode + env + appCode` 只允许一个完整 YAML 资源 `application.yml`。Admin 不再接受
+调用方提供 `configKey`、`valueType` 或 `defaultValue`，也不再创建或发布 scalar/JSON/TXT 配置项；
+底层现有列可继续存储常量以避免无意义的数据库迁移。
 
 这样满足“不 merge”：
 
-- DDC 不把多条 scalar 配置组装成一棵 Map；
+- DDC 不把多条配置项组装成一棵 Map；
 - DDC 不把本地 YAML 与远端 YAML 合并；
 - `YamlPropertySourceLoader` 只解析远端完整文档；
 - 同名属性最终取值完全由 Spring Environment 的 PropertySource 顺序决定。
@@ -171,7 +176,7 @@ spring:
 
 ### 4.3 多文档和 profile 资源
 
-推荐 V1 只允许单 YAML 文档。DDC 已由 `env` 隔离运行环境，无需再把
+V1 只允许单 YAML 文档。DDC 已由 `env` 隔离运行环境，无需再把
 `application-{profile}.yml` 和 `---` 多文档激活规则叠加到远端。
 
 限制单文档的原因不是 YAML 解析能力不足，而是运行期刷新必须保持 ConfigData 初始建立的
@@ -179,11 +184,7 @@ PropertySource 数量、激活条件和相对位置。动态增加/删除文档�
 `spring.config.activate.on-profile` 需要重跑整个 ConfigData 处理器，不能通过单个动态
 PropertySource 安全模拟。
 
-如果确认必须支持远端 profile 文件或多文档，需扩展 `resolveProfileSpecific(...)`，并明确：
-
-- 初始加载交给 Boot 判断激活文档；
-- 运行期只允许内容更新，不允许改变文档数量和激活表达式；
-- 结构变化标记为 restart-required，不做热切换。
+V1 不实现 `resolveProfileSpecific(...)`，也不接受远端 profile 文件或多文档结构。
 
 ---
 
@@ -306,15 +307,10 @@ DDC 不自动扫描 `bootstrap.yml`，也不新增 EnvironmentPostProcessor 偷�
 没有更高优先级外部 ConfigData 的应用。它不是“DDC 始终为 ConfigData 层最高”的通用证明，不能作为
 本次优先级验收的唯一配置。
 
-### 6.2 保留 Spring Cloud bootstrap 的兼容方案
+### 6.2 Spring Cloud bootstrap 边界
 
-若应用继续依赖 `spring-cloud-starter-bootstrap`，可把相同 DDC 配置和
-`spring.config.import: ddc:application.yml` 放在现有 `bootstrap.yml` 中，但必须用启动测试证明：
-
-- Resolver 的 Binder 在解析 `ddc:` 时已经能读取 bootstrap 中的 DDC 设置；
-- `bootstrap.yml` 不会被 Cloud 和 Boot 重复处理成两个冲突来源；
-- 最终优先级满足第 7 节；
-- DDC Starter 本身不新增 Spring Cloud 依赖。
+DDC Starter 不新增 Spring Cloud 依赖，也不对 Spring Cloud bootstrap 提供第二套加载实现。应用可
+继续包含 Spring Cloud 依赖，但 DDC 的验收链路只认第 6.1 节的 Boot ConfigData additional-location。
 
 ---
 
@@ -352,10 +348,8 @@ Spring Boot 标准的非 ConfigData 高阶来源（保持各自官方顺序）
 当远端删除一个属性时，`DdcDynamicPropertySource` 不再返回该属性，Spring Environment 自然
 回退到下一个本地 PropertySource。这是 PropertySource 查找，不是 DDC merge。
 
-同一逻辑业务 Key 不应同时存在于完整 YAML 和 legacy scalar 配置项。Starter 检测到该冲突时应
-明确告警；是否升级为失败随第 15 节资源粒度决策一起确认。完整 YAML 中的属性由 Spring
-Environment 消费，legacy scalar 继续只服务 `@DdcValue`/自定义 Applier，两条链路不能互相伪装成
-同一优先级体系。
+运行时只接受 `application.yml`。任何其他远端 `configKey` 都视为服务端契约错误并拒绝，Starter
+不会尝试把它拼入 YAML，也不会继续维护第二套配置优先级体系。
 
 ---
 
@@ -392,7 +386,8 @@ spring.profiles.group
 - reconcile：记录告警并保留旧版本/checksum；
 - 不允许“忽略违规键但应用其他键”，避免 Admin 显示发布成功而客户端只应用部分内容。
 
-Starter 是最终强制边界。是否同时在 Admin 创建、更新和发布阶段提前拒绝，需要按第 15 节确认。
+Starter 是最终强制边界。Admin 在创建、更新、回滚和发布阶段使用相同规则提前拒绝，以便在配置
+进入发布状态机前给出明确反馈。
 
 ---
 
@@ -434,8 +429,8 @@ Starter 是最终强制边界。是否同时在 Admin 创建、更新和发布�
 | 普通 `@Value` | 使用远端 | 不重注入 | 下次启动生效 |
 | 普通 `@ConfigurationProperties` | 使用远端 | 不重绑 | 下次启动生效 |
 | `@DdcRefreshable` + 可变 `@ConfigurationProperties` | 使用远端 | 受控重绑 | 校验成功才确认刷新 |
-| `@DdcValue(refreshable = true)` | 保持兼容 | 继续刷新 | legacy 链路 |
-| `@DdcValue(refreshable = false)` | 保持兼容 | 不刷新 | 下次启动/默认值语义不变 |
+| `@DdcValue(refreshable = true)` | 读取 YAML 叶子 | 继续刷新 | 兼容注解，不再对应独立配置项 |
+| `@DdcValue(refreshable = false)` | 读取 YAML 叶子 | 不刷新 | 下次启动生效 |
 | 已注册 `DdcConfigApplier` | 按现状 | 继续调用 | 适合 Gateway 规则等领域原子切换 |
 | Web Server/DataSource/JPA/线程池等基础设施 | 启动时使用远端 | 默认不重建 | 除非组件提供专用 Applier |
 
@@ -488,7 +483,7 @@ public @interface DdcRefreshable {
   -> 计算 old/new resolved property names
   -> 原子切换 DdcDynamicPropertySource
   -> 重绑命中的 @DdcRefreshable Bean
-  -> 兼容的 @DdcValue / 自定义 Applier 各走原有资源链路
+  -> 将 changed YAML 叶子分发给 @DdcValue / 自定义 Applier
   -> 发布 DdcConfigurationChangedEvent
   -> 更新本地 version/checksum
   -> ACK
@@ -534,7 +529,6 @@ ConfigData Loader 首次拉取发生在 CONFIG_CLIENT 注册前。ApplicationCon
 ```text
 建立 Redis 订阅
   -> 注册 CONFIG_CLIENT
-  -> 上报 legacy @DdcValue 默认值
   -> 再次 pull/reconcile
   -> READY
 ```
@@ -542,23 +536,24 @@ ConfigData Loader 首次拉取发生在 CONFIG_CLIENT 注册前。ApplicationCon
 再次 pull 必须用动态 PropertySource 中的初始 version/checksum 做幂等判断，不能重复触发相同版本的
 Bean 重绑或变更事件。
 
-### 11.2 YAML 与 legacy 路由
+### 11.2 YAML 叶子路由
 
-`DdcRefreshService` 继续负责版本、checksum、锁、目标校验和 ACK：
+`DdcRefreshService` 继续负责版本、checksum、锁、目标校验和 ACK，但只接收
+`application.yml`。`DdcYamlConfigApplier` 在原子切换动态 PropertySource 后计算 changed leaf keys，
+按现有精确 Key、最长前缀和 fallback 顺序逐叶调用 `DdcConfigApplierRegistry`。默认 fallback 只负责
+刷新匹配的 `@DdcValue` 字段，不再处理独立远端配置项。
 
-- `application.yml` 等确认的 ConfigData 资源交给 `DdcYamlConfigApplier`；
-- 其他 scalar/JSON/TXT configKey 继续交给 `DdcConfigApplierRegistry`；
-- 默认 legacy fallback 继续服务 `@DdcValue`；
-- 现有 Gateway/IdP 精确 Key 和前缀注册顺序不变。
+Gateway Admin 发布规则时，发布日志仍记录 `gateway.rules.chunk.*` 或
+`gateway.rules.active` 叶子 Key；实际 DDC 配置资源始终是 `application.yml`。每个发布阶段读取当前
+YAML、更新一个规则叶子、校验完整文档，并以当前文档版本发布。Gateway Engine 继续收到同名叶子
+Key，因此现有规则原子激活 Applier 不需要改变领域契约。
 
 ### 11.3 非动态配置的 ACK
 
-推荐语义：只要新 YAML 已通过校验并原子更新动态 PropertySource，ACK 可为 `SUCCESS`。未重绑的
+确认语义：只要新 YAML 已通过校验并原子更新动态 PropertySource，ACK 可为 `SUCCESS`。未重绑的
 Bean Key 进入 `restartRequiredKeys`，下次启动生效。
 
-这表示 ACK 确认“客户端接受了目标配置版本”，不等价于“所有基础设施对象已热重建”。若同步发布
-必须要求所有 Key 当场生效，则需要新增发布策略或 ACK 状态，超出 Starter 单模块改造范围，见第
-15 节待确认项。
+这表示 ACK 确认“客户端接受了目标配置版本”，不等价于“所有基础设施对象已热重建”。
 
 ---
 
@@ -601,11 +596,11 @@ top.egon.cola.component.ddc
 
 - `DdcConfigApplier` 和 `DdcConfigApplierRegistry` 的包名、方法签名保持不变；
 - `@DdcValue` 的包名和属性保持不变；
-- `DdcFieldBindingService` 若移动到 `legacy`，原 `service` 包保留 deprecated 兼容类型，或在确认
-  没有外部公共 API 承诺后才做破坏性移动；
+- `DdcFieldBindingService` 可留在现有包中，避免仅为目录美观制造破坏；
 - `DdcRefreshService` 当前被测试和运行协调器直接使用。移动包前需保留兼容入口或同步修复所有当前
   消费者，不能仅为目录美观制造无关破坏；
-- 不改现有 Admin OpenAPI 路径、JSON 字段、HMAC 规范请求、Redis Topic 或发布消息字段。
+- 保留 Admin 现有配置 CRUD/publish 路径、HMAC 规范请求、Redis Topic 和发布消息字段；配置请求字段
+  收敛为 YAML 文档契约，并删除 `/defaults/report`。
 
 ---
 
@@ -621,7 +616,7 @@ top.egon.cola.component.ddc
 采用 Strategy + Registry：
 
 - 保留现有 `DdcConfigApplier` / `DdcConfigApplierRegistry`；
-- YAML PropertySource、Gateway 规则、IdP 策略和 legacy 字段是确实不同的动态应用策略；
+- YAML PropertySource、Gateway 规则、IdP 策略和兼容字段是确实不同的动态应用策略；
 - 精确 Key、最长前缀和 fallback 已是当前项目的稳定扩展方式。
 
 ### 13.2 不采用的模式
@@ -630,6 +625,11 @@ top.egon.cola.component.ddc
 - 不使用 Template Method：启动加载和运行刷新共享解析/校验组件即可，不需要继承层级；
 - 不使用 Chain of Responsibility 扫描所有 Bean：刷新对象必须显式标记或注册，避免不可控副作用；
 - 不引入 Decorator 包装所有 PropertySource：只有 DDC 远端来源需要动态快照。
+
+采用 Observer：
+
+- `DdcConfigurationChangedEvent` 只用于通知已经完成的刷新结果；
+- 需要参与成功/失败判定的逻辑仍走同步 Applier 或 Rebinder，不把事务语义交给事件监听器。
 
 ---
 
@@ -673,7 +673,16 @@ top.egon.cola.component.ddc
 9. `@DdcValue`、Gateway/IdP 自定义 Applier 回归通过；
 10. 事件 changed/refreshed/restartRequired 分类准确且不携带值。
 
-### 14.4 回归范围
+### 14.4 Admin 与 Gateway
+
+1. Admin 创建、更新、回滚、发布只接受单文档 YAML；
+2. 空文档、多文档、非法 YAML、非 Map 根节点、保留键整份拒绝；
+3. 每个 scope 只能存在 `application.yml`，返回模型固定显示 `application.yml/YAML`；
+4. 默认值上报接口和客户端调用删除；
+5. Gateway 的 chunk/activation 发布实际更新完整 YAML，且 Engine 仍收到原叶子 Key；
+6. Admin Web 只展示 YAML 编辑器，不再显示 Key、类型和默认值控件，并展示服务端校验错误。
+
+### 14.5 回归范围
 
 至少执行：
 
@@ -694,27 +703,14 @@ git diff --check
 
 ---
 
-## 15. 待确认决策
+## 15. 已确认决策
 
-以下问题会改变实现契约，需要一次性确认：
-
-1. **远端资源粒度**：是否确认 V1 使用单个 `application.yml` 配置项，`configValue` 是完整 YAML，
-   现有其他 scalar configKey 继续走 legacy/Applier，不把它们合并进 ConfigData？
-2. **profile 与多文档**：是否接受 V1 远端单文档、由 DDC `env` 隔离环境，不支持远端
-   `application-{profile}.yml` 和 `---` 多文档动态结构？推荐接受，以保证“不 merge”和可预测刷新。
-3. **bootstrap 加载**：选择纯 Boot 的早期
-   `spring.config.additional-location=classpath:/bootstrap.yml`，再由 bootstrap 导入 `ddc:`；还是继续
-   依赖现有 `spring-cloud-starter-bootstrap` 加载本地 bootstrap？推荐纯 Boot 链，DDC Starter 不依赖
-   Spring Cloud。若只在 `application.yml` import bootstrap，则不能无条件证明远端高于所有外部 ConfigData。
-4. **“最高优先级”范围**：是否确认 DDC 只在 ConfigData 层最高，OS 环境变量、System Property、CLI
-   和测试属性仍按 Boot 官方规则覆盖 DDC？推荐确认。
-5. **保留键范围**：除 `egon.cola.component.ddc.*` 外，是否确认同时禁止远端
-   `spring.config.*` 和 profile 选择键？推荐确认，并对整份 YAML fail-fast。
-6. **Admin 是否联动**：本轮是否严格只改 Starter/Test，由客户端强制保留键；还是允许同步修改 Admin，
-   在创建、更新、发布 YAML 时提前校验？客户端强制校验不可省，Admin 校验是提前反馈。
-7. **非动态配置 ACK**：PropertySource 已接受新版本、但部分 Bean 需重启时，ACK 是否仍为 `SUCCESS`
-   并通过 `restartRequiredKeys` 事件表达？推荐确认，否则需要扩展 Admin 发布/ACK 协议。
-8. **`@DdcRefreshable` 边界**：是否确认只支持 setter 可变的 `@ConfigurationProperties` Bean，普通
-   `@Value`、record/constructor-bound Bean 和基础设施 Bean 不做通用热刷新？推荐确认。
-
-确认这些决策并审核 spec 后，再编写实施计划和代码。
+1. V1 每个 `bizCode + env + appCode` 只有一个 `application.yml`，只支持单 YAML 文档；
+2. 使用纯 Spring Boot ConfigData 链，由本地 `bootstrap.yml` 保存 DDC 客户端配置并导入 `ddc:`；
+3. DDC 只在 ConfigData 范围内最高，其他来源继续遵循 Boot 官方优先级；
+4. 远端禁止 `egon.cola.component.ddc.*`、`spring.config.*` 和 profile 选择键，违规时整份拒绝；
+5. Starter 和 Admin 都执行 YAML/保留键校验，Admin Web 同步改为 YAML-only；
+6. 未热刷新的 Key 可 ACK `SUCCESS`，通过 `restartRequiredKeys` 明确表达；
+7. `@DdcRefreshable` 只支持 setter 可变的 `@ConfigurationProperties` Bean；
+8. `@DdcValue` 仅作为 YAML 叶子属性兼容注解，不再上报默认值或创建独立配置；
+9. 现有数据为空，不提供 scalar 数据迁移或双读兼容期。
