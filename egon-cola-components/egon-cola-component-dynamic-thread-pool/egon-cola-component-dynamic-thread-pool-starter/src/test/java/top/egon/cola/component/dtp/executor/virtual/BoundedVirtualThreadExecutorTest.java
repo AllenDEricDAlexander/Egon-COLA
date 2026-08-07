@@ -8,6 +8,7 @@ import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
 import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
+import top.egon.cola.component.dtp.executor.ManagedExecutor;
 import top.egon.cola.component.dtp.executor.adapter.BoundedVirtualThreadManagedExecutor;
 
 import java.util.Collections;
@@ -351,7 +352,7 @@ public class BoundedVirtualThreadExecutorTest {
     @Test
     public void test_adapterSnapshotAndUpdate() {
         BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 2);
-        BoundedVirtualThreadManagedExecutor managedExecutor = new BoundedVirtualThreadManagedExecutor(
+        ManagedExecutor managedExecutor = new BoundedVirtualThreadManagedExecutor(
                 "test-app", "instance-01", "virtualExecutor", executor
         );
         try {
@@ -395,6 +396,29 @@ public class BoundedVirtualThreadExecutorTest {
             assertThat(failedResult.getAfter().getConcurrencyLimit()).isEqualTo(4);
         } finally {
             executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void test_adapterSubmitShouldPropagateContextOnVirtualThread() throws Exception {
+        BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 1);
+        ManagedExecutor managedExecutor = new BoundedVirtualThreadManagedExecutor(
+                "test-app", "instance-01", "virtualExecutor", executor
+        );
+        try {
+            TraceContext expected = TraceContext.root("adapter-request");
+            Future<TaskContext> future;
+            try (TraceContext.Scope ignored = expected.open()) {
+                MDC.put(EXTERNAL_MDC_KEY, "adapter");
+                future = managedExecutor.submit(BoundedVirtualThreadExecutorTest::currentTaskContext);
+            }
+
+            assertCapturedContext(future.get(3, TimeUnit.SECONDS), expected, "adapter");
+            assertThat(executor.submittedTasks()).isEqualTo(1L);
+            assertThat(executor.completedTasks()).isEqualTo(1L);
+            assertThat(executor.failedTasks()).isEqualTo(0L);
+        } finally {
+            managedExecutor.shutdownNow();
         }
     }
 

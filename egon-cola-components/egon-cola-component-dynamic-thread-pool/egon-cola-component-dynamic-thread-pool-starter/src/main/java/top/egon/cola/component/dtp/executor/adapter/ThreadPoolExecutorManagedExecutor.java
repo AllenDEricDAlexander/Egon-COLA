@@ -1,5 +1,6 @@
 package top.egon.cola.component.dtp.executor.adapter;
 
+import top.egon.cola.component.dtp.context.DtpContextAwareExecutorService;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * @description 平台线程池托管执行器
  * @Date        上午8:55 2026/6/29
  **/
-public class ThreadPoolExecutorManagedExecutor implements ManagedExecutor {
+public class ThreadPoolExecutorManagedExecutor extends DtpContextAwareExecutorService implements ManagedExecutor {
 
     private final String appName;
 
@@ -28,6 +29,7 @@ public class ThreadPoolExecutorManagedExecutor implements ManagedExecutor {
     private final ThreadPoolExecutor executor;
 
     public ThreadPoolExecutorManagedExecutor(String appName, String instanceId, String executorName, ThreadPoolExecutor executor) {
+        super(executor);
         this.appName = appName;
         this.instanceId = instanceId;
         this.executorName = executorName;

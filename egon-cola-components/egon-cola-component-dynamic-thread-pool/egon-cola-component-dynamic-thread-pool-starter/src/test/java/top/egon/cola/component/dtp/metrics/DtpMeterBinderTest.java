@@ -14,6 +14,7 @@ import top.egon.cola.component.dtp.executor.adapter.ThreadPoolExecutorManagedExe
 import top.egon.cola.component.dtp.executor.virtual.BoundedVirtualThreadExecutor;
 
 import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -114,7 +115,36 @@ public class DtpMeterBinderTest {
         assertThat(meterRegistry.find("dtp.executor.completed").tags(tags).gauge().value()).isEqualTo(0D);
     }
 
-    private static class NullableSnapshotManagedExecutor implements ManagedExecutor {
+    private static class NullableSnapshotManagedExecutor extends AbstractExecutorService implements ManagedExecutor {
+
+        @Override
+        public void shutdown() {
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return List.of();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return false;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return false;
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return false;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            throw new UnsupportedOperationException("metrics test executor");
+        }
 
         @Override
         public String appName() {

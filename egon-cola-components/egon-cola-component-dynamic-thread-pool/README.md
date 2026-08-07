@@ -12,7 +12,7 @@ The component consists of a business-side starter and a standalone admin service
 
 | Module | Description |
 |---|---|
-| `egon-cola-component-dynamic-thread-pool-starter` | Business application starter responsible for executor discovery, snapshot collection, Redis registration, configuration change listening, virtual-thread Trace propagation, audit events, and Micrometer metrics |
+| `egon-cola-component-dynamic-thread-pool-starter` | Business application starter responsible for executor discovery, snapshot collection, Redis registration, configuration change listening, platform- and virtual-thread Trace propagation, audit events, and Micrometer metrics |
 | `egon-cola-component-dynamic-thread-pool-admin` | Standalone Spring Boot Admin service that provides management REST APIs, a manifest, Redis queries, and configuration change publication |
 | `egon-cola-component-dynamic-thread-pool-test` | Component sample and integration verification module |
 
@@ -24,9 +24,9 @@ The starter collects the following Beans from the Spring container and adapts th
 
 | Executor Type | Adapter | Supported Capabilities |
 |---|---|---|
-| `ThreadPoolExecutor` | `ThreadPoolExecutorManagedExecutor` | Snapshots, core/maximum thread count and keepAlive adjustment, queue metrics |
-| `ThreadPoolTaskExecutor` | `ThreadPoolTaskExecutorManagedExecutor` | Snapshots, core/maximum thread count and keepAlive adjustment, queue metrics |
-| `BoundedVirtualThreadExecutor` | `BoundedVirtualThreadManagedExecutor` | Snapshots, virtual-thread concurrency limit adjustment, running/submitted/failed/rejected metrics |
+| `ThreadPoolExecutor` | `ThreadPoolExecutorManagedExecutor` | Trace-aware submission, snapshots, core/maximum thread count and keepAlive adjustment, queue metrics |
+| `ThreadPoolTaskExecutor` | `ThreadPoolTaskExecutorManagedExecutor` | Trace-aware submission, snapshots, core/maximum thread count and keepAlive adjustment, queue metrics |
+| `BoundedVirtualThreadExecutor` | `BoundedVirtualThreadManagedExecutor` | Trace-aware submission, snapshots, virtual-thread concurrency limit adjustment, running/submitted/failed/rejected metrics |
 
 ### Redis Registration and Change Listening
 
@@ -46,7 +46,9 @@ The starter creates a Redisson client named `dynamicThreadRedissonClient` and wr
 
 ### Trace Context Propagation
 
-`common-trace` owns the complete `TraceContext` and the three local-thread templates. DTP keeps its existing executor adapters: `DtpRunnable`, `DtpCallable`, and `DtpSupplier` extend those templates; `DtpContextAwareExecutorService`, `DtpTaskDecorator`, and `DtpThreads` apply them at the relevant submission boundary. `BoundedVirtualThreadExecutor` reuses `DtpContextAwareExecutorService`, so virtual-thread tasks receive the same complete Trace and MDC context. DTP discovers the original executor Beans for governance but never replaces or proxies them.
+`common-trace` owns the complete `TraceContext` and the three local-thread templates. DTP keeps its existing executor adapters: `DtpRunnable`, `DtpCallable`, and `DtpSupplier` extend those templates; `DtpContextAwareExecutorService`, `DtpTaskDecorator`, and `DtpThreads` apply them at the relevant submission boundary. `ManagedExecutor` is itself an `ExecutorService`, and all three governance adapters are context-aware submission boundaries. Platform, Spring platform, and virtual threads therefore share the same Trace and MDC capture, restoration, and cleanup semantics.
+
+DTP does not replace or proxy executor Beans defined by the business application. Direct calls to a raw `ThreadPoolExecutor` bypass the adapter; submit through the same-name `ManagedExecutor` obtained from `ManagedExecutorRegistry`, or explicitly use `DtpContextAwareExecutorService`. Direct `ThreadPoolTaskExecutor` usage can still install `DtpTaskDecorator`.
 
 The Admin explicitly uses the common Trace Spring Boot starter for W3C HTTP propagation. Redis change messages carry only `traceparent`, `tracestate`, and `x-egon-request-id`; they never transport a complete MDC snapshot.
 
@@ -100,6 +102,7 @@ The Trace Spring Boot starter is explicit. The DTP starter depends only on the c
 
 | Submission Boundary | DTP API |
 |---|---|
+| DTP-managed platform, Spring, or virtual executor | `ManagedExecutor` from `ManagedExecutorRegistry` |
 | `ExecutorService` | `DtpContextAwareExecutorService` |
 | Spring `ThreadPoolTaskExecutor` | `DtpTaskDecorator` |
 | Direct `Runnable`, `Callable`, or `Supplier` wrapping | `DtpRunnable`, `DtpCallable`, `DtpSupplier` |
@@ -228,18 +231,17 @@ package demo.order;
 
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.dtp.context.DtpContextAwareExecutorService;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
+import top.egon.cola.component.dtp.executor.ManagedExecutor;
+import top.egon.cola.component.dtp.executor.ManagedExecutorRegistry;
 
 @Service
 public class OrderAsyncService {
 
-    private final ExecutorService executor;
+    private final ManagedExecutor executor;
 
-    public OrderAsyncService(ThreadPoolExecutor orderPlatformExecutor) {
-        this.executor = new DtpContextAwareExecutorService(orderPlatformExecutor);
+    public OrderAsyncService(ManagedExecutorRegistry registry) {
+        this.executor = registry.get("orderPlatformExecutor")
+                .orElseThrow(() -> new IllegalStateException("orderPlatformExecutor is not managed"));
     }
 
     public void submitOrderTask(String orderId) {
@@ -314,7 +316,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 - `DynamicThreadPoolAutoConfig` is registered through `AutoConfiguration.imports`. Its configuration prefix is `egon.cola.component.dtp`, and `enabled` defaults to `true`.
 - `resolveAppName` first uses `egon.cola.component.dtp.app-name`, then `spring.application.name`, and finally falls back to `default-app`.
 - `resolveInstanceId` first uses the explicit configuration, then `{appName}-{server.port}`, and finally the JVM runtime name.
-- `ManagedExecutorRegistry` stores all managed executors, and `DynamicThreadPoolService` queries snapshots and performs updates.
+- `ManagedExecutorRegistry` stores all managed executors; `ManagedExecutor` also provides context-aware task submission, and `DynamicThreadPoolService` queries snapshots and performs updates.
 - `ThreadPoolConfigAdjustListener` subscribes to `DTP:CHANGE_TOPIC:{appName}`. After receiving a `DtpConfigChangeMessage`, it calls `IDynamicThreadPoolService.updateExecutor`.
 - `BoundedVirtualThreadExecutor` uses `Semaphore` to control its concurrency limit and `DtpContextAwareExecutorService` to capture one `TraceContext` per submission. It includes submitted/running/completed/failed/rejected metrics and supports runtime permit adjustment through `updateConcurrencyLimit`.
 - `ThreadPoolDataReportJob` periodically writes snapshot, apps, instances, and audit data. Reporting can be disabled with `egon.cola.component.dtp.report.enabled=false`.

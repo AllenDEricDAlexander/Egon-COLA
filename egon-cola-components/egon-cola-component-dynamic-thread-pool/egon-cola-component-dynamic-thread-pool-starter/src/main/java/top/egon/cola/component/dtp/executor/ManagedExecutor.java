@@ -5,12 +5,14 @@ import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
 import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
 
+import java.util.concurrent.ExecutorService;
+
 /**
  * @author      有罗敷的马同学
  * @description 托管执行器接口
  * @Date        上午8:55 2026/6/29
  **/
-public interface ManagedExecutor {
+public interface ManagedExecutor extends ExecutorService {
 
     String appName();
 

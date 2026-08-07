@@ -1,11 +1,16 @@
 package top.egon.cola.component.dtp.executor.adapter;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
+import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
 import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
+import top.egon.cola.component.dtp.executor.ManagedExecutor;
 
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -13,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -23,6 +29,49 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @Version: 1.0
  */
 public class ThreadPoolExecutorManagedExecutorTest {
+
+    private static final String BUSINESS_ID = "businessId";
+
+    @AfterEach
+    public void clearMdc() {
+        MDC.clear();
+    }
+
+    @Test
+    public void test_submitShouldPropagateCompleteContextOnPlatformThread() throws Exception {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                1, 1,
+                60L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(10)
+        );
+        ManagedExecutor managedExecutor = new ThreadPoolExecutorManagedExecutor(
+                "test-app", "instance-01", "testExecutor", executor
+        );
+        try {
+            TraceContext expected = TraceContext.root("platform-request");
+            Future<TaskContext> future;
+            try (TraceContext.Scope ignored = expected.open()) {
+                MDC.put(BUSINESS_ID, "platform-business");
+                future = managedExecutor.submit(() -> new TaskContext(
+                        TraceContext.capture(),
+                        MDC.get(BUSINESS_ID),
+                        Thread.currentThread().isVirtual()
+                ));
+            }
+
+            TaskContext actual = future.get(3, TimeUnit.SECONDS);
+
+            assertEquals(expected.traceId(), actual.traceContext().traceId());
+            assertEquals(expected.spanId(), actual.traceContext().spanId());
+            assertEquals(expected.requestId(), actual.traceContext().requestId());
+            assertEquals("platform-business", actual.businessId());
+            assertFalse(actual.virtualThread());
+            assertNull(executor.submit(TraceContext::getTraceId).get(3, TimeUnit.SECONDS));
+            assertNull(executor.submit(() -> MDC.get(BUSINESS_ID)).get(3, TimeUnit.SECONDS));
+        } finally {
+            managedExecutor.shutdownNow();
+        }
+    }
 
     @Test
     public void test_snapshotFields() {
@@ -210,6 +259,11 @@ public class ThreadPoolExecutorManagedExecutorTest {
         assertEquals("success", result.getMessage());
         assertEquals(0L, executor.getKeepAliveTime(TimeUnit.SECONDS));
         assertFalse(executor.allowsCoreThreadTimeOut());
+    }
+
+    private record TaskContext(TraceContext traceContext,
+                               String businessId,
+                               boolean virtualThread) {
     }
 
 }
