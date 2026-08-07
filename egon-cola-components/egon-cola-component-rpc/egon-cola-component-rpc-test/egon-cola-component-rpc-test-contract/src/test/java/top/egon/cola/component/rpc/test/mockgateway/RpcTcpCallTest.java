@@ -19,10 +19,10 @@ import top.egon.cola.component.rpc.provider.RpcProviderLeaseManager;
 import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
 import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
 import top.egon.cola.component.rpc.provider.RpcServerServiceDefinitionFactory;
-import top.egon.cola.component.rpc.test.consumer.EchoRpcClient;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
-import top.egon.cola.component.rpc.test.provider.EchoRpcProvider;
+import top.egon.cola.component.rpc.test.fixture.consumer.EchoRpcTestClient;
+import top.egon.cola.component.rpc.test.fixture.provider.EchoRpcTestProvider;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
 import top.egon.cola.component.rpc.test.support.TestDdcScopes;
@@ -90,8 +90,8 @@ class RpcTcpCallTest {
                             3000
                     );
             consumerContext = consumerContext(proxyFactory);
-            EchoRpcClient client =
-                    consumerContext.getBean(EchoRpcClient.class);
+            EchoRpcTestClient client =
+                    consumerContext.getBean(EchoRpcTestClient.class);
 
             EchoResponse response = client.echo("hello");
 
@@ -135,8 +135,8 @@ class RpcTcpCallTest {
         AnnotationConfigApplicationContext context =
                 new AnnotationConfigApplicationContext();
         context.registerBean(
-                EchoRpcProvider.class,
-                () -> new EchoRpcProvider("provider-a")
+                EchoRpcTestProvider.class,
+                () -> new EchoRpcTestProvider("provider-a")
         );
         context.refresh();
         return context;
@@ -188,7 +188,7 @@ class RpcTcpCallTest {
                 EgonRpcReferenceBeanPostProcessor.class,
                 () -> new EgonRpcReferenceBeanPostProcessor(proxyFactory)
         );
-        context.registerBean(EchoRpcClient.class);
+        context.registerBean(EchoRpcTestClient.class);
         context.refresh();
         return context;
     }

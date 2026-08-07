@@ -86,7 +86,7 @@ cd Egon-COLA
 验证 RPC 组件及其所需的 DDC 平台客户端：
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-component-rpc-test-suite -am test
+./mvnw -B -ntp -pl :egon-cola-component-rpc-test-contract -am test
 ```
 
 ## 本地验证

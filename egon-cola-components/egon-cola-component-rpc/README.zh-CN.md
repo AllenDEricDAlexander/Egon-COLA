@@ -353,7 +353,7 @@ failure-stage Trailer。
 
 Starter 不打包生产 Gateway。Gateway 平台负责 Gateway 注册、Provider Directory、
 规则执行、HTTP/RPC 转发、健康检查和流量治理。下列能力仍是
-`rpc-test-suite/src/test` 下的测试夹具：
+`rpc-test-contract/src/test` 下的测试夹具：
 
 - Mock Gateway 注册和心跳；
 - Provider 服务目录与实例 Directory；
@@ -371,7 +371,7 @@ Consumer → Mock Gateway → Provider，不使用 gRPC In-Process Transport：
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract \
   -am test
 ```
 
@@ -386,7 +386,7 @@ Consumer 只负责在有效 Gateway Channel 间选择。
 DDC_TEST_REDIS_HOST=127.0.0.1 \
 DDC_TEST_REDIS_PORT=6379 \
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract \
   -am -Pddc-live-test -Dit.test=RpcProcessIT verify
 ```
 

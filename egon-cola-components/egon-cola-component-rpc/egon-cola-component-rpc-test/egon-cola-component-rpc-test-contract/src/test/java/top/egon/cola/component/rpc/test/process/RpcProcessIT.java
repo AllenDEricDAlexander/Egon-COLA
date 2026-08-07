@@ -78,7 +78,7 @@ class RpcProcessIT {
             )) {
                 RpcProcessHarness.Child provider = processes.start(
                         "provider",
-                        "top.egon.cola.component.rpc.test.provider."
+                        "top.egon.cola.component.rpc.test.fixture.provider."
                                 + "RpcTestProviderApplication",
                         rpcArguments(
                                 adminEndpoint,
@@ -159,7 +159,7 @@ class RpcProcessIT {
 
                 RpcProcessHarness.Child consumer = processes.start(
                         "consumer",
-                        "top.egon.cola.component.rpc.test.consumer."
+                        "top.egon.cola.component.rpc.test.fixture.consumer."
                                 + "RpcTestConsumerApplication",
                         rpcArguments(
                                 adminEndpoint,

@@ -366,7 +366,7 @@ Provider `UNAVAILABLE` status must add the framework failure-stage trailer.
 The Starter does not package the production Gateway. The separate Gateway platform
 owns Gateway registration, provider directory, route/rule execution, HTTP/RPC
 forwarding, health, and traffic governance. The following capabilities remain
-test-only fixtures under `rpc-test-suite/src/test`:
+test-only fixtures under `rpc-test-contract/src/test`:
 
 - Mock Gateway registration and heartbeat;
 - Provider service-catalog and instance Directory;
@@ -384,7 +384,7 @@ They do not use gRPC in-process transports:
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract \
   -am test
 ```
 
@@ -400,7 +400,7 @@ single server:
 DDC_TEST_REDIS_HOST=127.0.0.1 \
 DDC_TEST_REDIS_PORT=6379 \
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract \
   -am -Pddc-live-test -Dit.test=RpcProcessIT verify
 ```
 

@@ -86,7 +86,7 @@ cd Egon-COLA
 To verify the RPC component together with its required DDC platform client:
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-component-rpc-test-suite -am test
+./mvnw -B -ntp -pl :egon-cola-component-rpc-test-contract -am test
 ```
 
 ## Local Verification

@@ -24,6 +24,5 @@
         <module>egon-cola-component-rpc-test-contract</module>
         <module>egon-cola-component-rpc-test-provider</module>
         <module>egon-cola-component-rpc-test-consumer</module>
-        <module>egon-cola-component-rpc-test-suite</module>
     </modules>
 </project>
