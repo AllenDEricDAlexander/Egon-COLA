@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.repository;
 
+import org.springframework.stereotype.Repository;
 import top.egon.cola.component.ddc.model.vo.DdcFieldBinding;
 
 import java.util.Collections;
@@ -10,6 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
+@Repository
 public class DdcLocalConfigRepository {
 
     private final ConcurrentMap<String, CopyOnWriteArrayList<DdcFieldBinding>> bindings = new ConcurrentHashMap<>();

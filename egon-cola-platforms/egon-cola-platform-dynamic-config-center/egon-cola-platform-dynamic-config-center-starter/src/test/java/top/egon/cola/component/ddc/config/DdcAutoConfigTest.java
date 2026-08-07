@@ -14,6 +14,8 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcKeys;
+import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcAckDelivery;
 import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
@@ -42,7 +44,11 @@ class DdcAutoConfigTest {
     @Test
     void doesNotCreateBeansWhenDisabled() {
         contextRunner.withPropertyValues("egon.cola.component.ddc.enabled=false")
-                .run(context -> assertThat(context).doesNotHaveBean(DdcFieldBindingService.class));
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(DdcLocalConfigRepository.class);
+                    assertThat(context).doesNotHaveBean(DdcRedisConfigRepository.class);
+                    assertThat(context).doesNotHaveBean(DdcFieldBindingService.class);
+                });
     }
 
     @Test
@@ -83,6 +89,8 @@ class DdcAutoConfigTest {
                     assertThat(context).hasSingleBean(DdcAckDeliveryProperties.class);
                     assertThat(context).hasSingleBean(DdcAckDelivery.class);
                     assertThat(context).hasSingleBean(DdcFieldBindingService.class);
+                    assertThat(context).hasSingleBean(DdcLocalConfigRepository.class);
+                    assertThat(context).doesNotHaveBean(DdcRedisConfigRepository.class);
                     assertThat(context).hasSingleBean(DdcConfigApplierRegistry.class);
                     assertThat(context).hasSingleBean(DdcAdminClient.class);
                     assertThat(context.getBean(DdcAckDelivery.class).isRunning())
@@ -119,6 +127,7 @@ class DdcAutoConfigTest {
                                 .isSameAs(dedicatedClient);
                         assertThat(context.getBean("applicationRedissonClient"))
                                 .isSameAs(applicationClient);
+                        assertThat(context).hasSingleBean(DdcRedisConfigRepository.class);
                     });
         }
     }
@@ -141,8 +150,11 @@ class DdcAutoConfigTest {
                         "egon.cola.component.ddc.admin.tls."
                                 + "development-plaintext=true"
                 )
-                .run(context -> assertThat(context.getBean("ddcRedissonClient"))
-                        .isSameAs(dedicatedClient));
+                .run(context -> {
+                    assertThat(context.getBean("ddcRedissonClient"))
+                            .isSameAs(dedicatedClient);
+                    assertThat(context).hasSingleBean(DdcRedisConfigRepository.class);
+                });
     }
 
     @Test

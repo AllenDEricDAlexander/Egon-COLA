@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.client.HttpDdcAdminClient;
@@ -24,7 +25,6 @@ import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.processor.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
-import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcAckDelivery;
 import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
@@ -42,6 +42,7 @@ import java.util.List;
 
 @AutoConfiguration
 @EnableScheduling
+@ComponentScan(basePackageClasses = DdcLocalConfigRepository.class)
 @EnableConfigurationProperties({
         DdcProperties.class,
         DdcAckDeliveryProperties.class
@@ -54,11 +55,6 @@ public class DdcAutoConfig {
     @Bean
     public DdcValueConverter ddcValueConverter() {
         return new DdcValueConverter();
-    }
-
-    @Bean
-    public DdcLocalConfigRepository ddcLocalConfigRepository() {
-        return new DdcLocalConfigRepository();
     }
 
     @Bean
@@ -134,13 +130,6 @@ public class DdcAutoConfig {
                 redis.getPassword(),
                 redis.getDatabase()
         ));
-    }
-
-    @Bean
-    @ConditionalOnBean(name = "ddcRedissonClient")
-    public DdcRedisConfigRepository ddcRedisConfigRepository(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
-                                                            DdcProperties properties) {
-        return new DdcRedisConfigRepository(redissonClient, properties);
     }
 
     @Bean
