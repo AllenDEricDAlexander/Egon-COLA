@@ -11,7 +11,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@egon-cola/admin-web-shared": "file:../../egon-cola-platform-admin-web-shared",
+    "@egon-cola/admin-web-shared": "0.1.0",
     "@tanstack/react-query": "^5.101.4",
     "antd": "^6.5.2",
     "i18next": "^24.0.0",
@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.1",

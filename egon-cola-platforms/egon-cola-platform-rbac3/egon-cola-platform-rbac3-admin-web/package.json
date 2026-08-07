@@ -12,7 +12,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@egon-cola/admin-web-shared": "file:../../egon-cola-platform-admin-web-shared",
+    "@egon-cola/admin-web-shared": "0.1.0",
     "@egon-cola/rbac3-react-sdk": "0.1.0",
     "@tanstack/react-query": "^5.101.4",
     "antd": "^6.5.2",
