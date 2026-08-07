@@ -1,0 +1,4 @@
+org.springframework.boot.context.config.ConfigDataLocationResolver=\
+top.egon.cola.component.ddc.bootstrap.DdcConfigDataLocationResolver
+org.springframework.boot.context.config.ConfigDataLoader=\
+top.egon.cola.component.ddc.bootstrap.DdcConfigDataLoader

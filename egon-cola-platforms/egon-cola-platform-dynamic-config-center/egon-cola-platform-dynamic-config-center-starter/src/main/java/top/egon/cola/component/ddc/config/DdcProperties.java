@@ -20,6 +20,8 @@ public class DdcProperties {
 
     private String namespace = "default";
 
+    private long maxYamlBytes = 1024L * 1024L;
+
     private Admin admin = new Admin();
 
     private Redis redis = new Redis();
@@ -68,6 +70,14 @@ public class DdcProperties {
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+    }
+
+    public long getMaxYamlBytes() {
+        return maxYamlBytes;
+    }
+
+    public void setMaxYamlBytes(long maxYamlBytes) {
+        this.maxYamlBytes = maxYamlBytes;
     }
 
     public Admin getAdmin() {
