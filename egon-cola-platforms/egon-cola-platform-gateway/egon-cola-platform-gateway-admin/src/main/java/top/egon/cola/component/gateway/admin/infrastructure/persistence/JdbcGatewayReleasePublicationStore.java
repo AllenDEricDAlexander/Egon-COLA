@@ -129,24 +129,31 @@ public class JdbcGatewayReleasePublicationStore
     }
 
     @Override
-    public void resolveVersion(
+    public void resolveDocument(
             String changeId,
             long expectedVersion,
+            String documentContent,
             Instant now) {
         if (expectedVersion < 0) {
             throw new IllegalArgumentException(
                     "expectedVersion must not be negative"
             );
         }
+        if (documentContent == null || documentContent.isBlank()) {
+            throw new IllegalArgumentException(
+                    "documentContent must not be blank"
+            );
+        }
         int changed = jdbc.update("""
                 UPDATE gateway_release_publication
-                   SET expected_version = ?, ddc_status = 'RESOLVED',
-                       updated_at = ?
-                 WHERE change_id = ? AND ddc_status = 'PLANNED'
-                """, expectedVersion, timestamp(now), changeId);
+                   SET expected_version = ?, content_value = ?,
+                       ddc_status = 'RESOLVED', updated_at = ?
+                 WHERE change_id = ? AND ddc_status <> 'SUCCESS'
+                """, expectedVersion, documentContent,
+                timestamp(now), changeId);
         requireChanged(
                 changed,
-                "publication must be PLANNED before version resolution"
+                "successful publication cannot be resolved again"
         );
     }
 

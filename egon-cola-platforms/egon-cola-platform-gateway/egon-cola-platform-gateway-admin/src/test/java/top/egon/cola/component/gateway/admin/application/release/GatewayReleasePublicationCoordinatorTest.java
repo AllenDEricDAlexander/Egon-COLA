@@ -21,6 +21,7 @@ import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
+import top.egon.cola.component.gateway.admin.rule.GatewayDdcYamlDocument;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleChunkRef;
@@ -80,20 +81,14 @@ class GatewayReleasePublicationCoordinatorTest {
                 "gateway.rules.chunk.release-1.0",
                 "gateway.rules.chunk.release-1.1"
         );
-        assertThat(client.upsertRequests)
-                .extracting(
-                        DdcManagementConfigUpsertRequest::configKey,
-                        DdcManagementConfigUpsertRequest::expectedVersion
-                ).containsExactly(
-                        org.assertj.core.groups.Tuple.tuple(
-                                "gateway.rules.chunk.release-1.0",
-                                0L
-                        ),
-                        org.assertj.core.groups.Tuple.tuple(
-                                "gateway.rules.chunk.release-1.1",
-                                0L
-                        )
-                );
+        assertThat(client.upsertRequests).singleElement()
+                .satisfies(request -> {
+                    assertThat(request.expectedVersion()).isZero();
+                    assertThat(yaml().leafValue(
+                            request.configValue(),
+                            "gateway.rules.chunk.release-1.0"
+                    )).contains("chunk-0");
+                });
         assertThat(client.upsertRequests).allSatisfy(request -> {
             assertThat(request.bizCode()).isEqualTo("infra");
             assertThat(request.env()).isEqualTo("test");
@@ -104,6 +99,17 @@ class GatewayReleasePublicationCoordinatorTest {
             assertThat(request.env()).isEqualTo("test");
             assertThat(request.appCode()).isEqualTo("ge");
         });
+        assertThat(client.publishRequests)
+                .extracting(DdcManagementPublishRequest::expectedVersion)
+                .containsExactly(1L, 2L);
+        assertThat(yaml().leafValue(
+                client.publishRequests.get(1).configValue(),
+                "gateway.rules.chunk.release-1.0"
+        )).contains("chunk-0");
+        assertThat(yaml().leafValue(
+                client.publishRequests.get(1).configValue(),
+                "gateway.rules.chunk.release-1.1"
+        )).contains("chunk-1");
         assertThat(journal.findAttempt("release-1", 1))
                 .hasSize(3)
                 .extracting(
@@ -189,6 +195,65 @@ class GatewayReleasePublicationCoordinatorTest {
     }
 
     @Test
+    void taskMissingRecoveryRebasesTheLeafOnTheLatestYamlDocument() {
+        InMemoryPublicationStore journal = new InMemoryPublicationStore();
+        RecordingClient client = new RecordingClient(journal);
+        client.failBeforeTaskAt = 0;
+        CompiledGatewayRelease compiled = compiledInline();
+
+        GatewayReleasePublicationCoordinator.PublicationOutcome first =
+                coordinator(journal, client).execute(
+                        "release-inline",
+                        1,
+                        compiled,
+                        "admin"
+                );
+        String changeId = journal.findAttempt("release-inline", 1)
+                .getFirst()
+                .changeId();
+        client.configs.put(
+                "infra/test/ge",
+                new DdcManagementConfig(
+                        "infra",
+                        "test",
+                        "ge",
+                        "application.yml",
+                        "feature:\n  external: true\n"
+                                + "gateway:\n  rules:\n    active: old\n",
+                        "YAML",
+                        2L,
+                        true,
+                        false,
+                        NOW
+                )
+        );
+
+        GatewayReleasePublicationCoordinator.PublicationOutcome resumed =
+                coordinator(journal, client).execute(
+                        "release-inline",
+                        1,
+                        compiled,
+                        "admin"
+                );
+
+        assertThat(first.status())
+                .isEqualTo(GatewayReleasePublicationStore
+                        .PublicationStatus.UNKNOWN);
+        assertThat(resumed.successful()).isTrue();
+        assertThat(client.publishRequests).hasSize(2)
+                .allSatisfy(request -> assertThat(request.changeId())
+                        .isEqualTo(changeId));
+        DdcManagementPublishRequest recovered =
+                client.publishRequests.getLast();
+        assertThat(recovered.expectedVersion()).isEqualTo(2L);
+        assertThat(recovered.configValue()).contains("external: true");
+        assertThat(yaml().leafValue(
+                recovered.configValue(),
+                GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY
+        )).contains(compiled.activationJson());
+    }
+
+    @Test
     void resumeCompletesReleaseAfterJournalSuccessWithoutAReadyTarget() {
         InMemoryPublicationStore journal = new InMemoryPublicationStore();
         RecordingClient client = new RecordingClient(journal);
@@ -263,6 +328,14 @@ class GatewayReleasePublicationCoordinatorTest {
                 .filteredOn(request -> request.changeId().equals(
                         identities.get(crashPhase)
                 )).hasSize(2);
+        List<String> retriedDocuments = client.publishRequests.stream()
+                .filter(request -> request.changeId().equals(
+                        identities.get(crashPhase)
+                ))
+                .map(DdcManagementPublishRequest::configValue)
+                .toList();
+        assertThat(retriedDocuments)
+                .allMatch(retriedDocuments.getFirst()::equals);
         for (int phase = 0; phase < identities.size(); phase++) {
             if (phase != crashPhase) {
                 String changeId = identities.get(phase);
@@ -287,6 +360,10 @@ class GatewayReleasePublicationCoordinatorTest {
                 "infra",
                 "ge"
         );
+    }
+
+    private GatewayDdcYamlDocument yaml() {
+        return new GatewayDdcYamlDocument();
     }
 
     private CompiledGatewayRelease compiledWithChunks(int chunkCount) {
@@ -433,12 +510,14 @@ class GatewayReleasePublicationCoordinatorTest {
         }
 
         @Override
-        public void resolveVersion(
+        public void resolveDocument(
                 String changeId,
                 long expectedVersion,
+                String documentContent,
                 Instant now) {
             update(changeId, record -> copy(
                     record,
+                    documentContent,
                     expectedVersion,
                     record.ddcTargetVersion(),
                     PublicationStatus.RESOLVED,
@@ -452,6 +531,7 @@ class GatewayReleasePublicationCoordinatorTest {
         public void markSubmitted(String changeId, Instant now) {
             update(changeId, record -> copy(
                     record,
+                    record.contentValue(),
                     record.expectedVersion(),
                     record.ddcTargetVersion(),
                     PublicationStatus.SUBMITTED,
@@ -471,6 +551,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 Instant now) {
             update(changeId, record -> copy(
                     record,
+                    record.contentValue(),
                     record.expectedVersion(),
                     targetVersion,
                     status,
@@ -493,6 +574,7 @@ class GatewayReleasePublicationCoordinatorTest {
 
         private PublicationRecord copy(
                 PublicationRecord source,
+                String contentValue,
                 Long expectedVersion,
                 Long targetVersion,
                 PublicationStatus status,
@@ -505,7 +587,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     source.phaseOrder(),
                     source.phaseType(),
                     source.configKey(),
-                    source.contentValue(),
+                    contentValue,
                     source.contentSha256(),
                     expectedVersion,
                     source.changeId(),
@@ -560,7 +642,11 @@ class GatewayReleasePublicationCoordinatorTest {
         @Override
         public Optional<DdcManagementConfig> findConfig(
                 DdcManagementConfigQuery query) {
-            return Optional.ofNullable(configs.get(query.configKey()));
+            return Optional.ofNullable(configs.get(scope(
+                    query.bizCode(),
+                    query.env(),
+                    query.appCode()
+            )));
         }
 
         @Override
@@ -571,15 +657,19 @@ class GatewayReleasePublicationCoordinatorTest {
                     request.bizCode(),
                     request.env(),
                     request.appCode(),
-                    request.configKey(),
+                    "application.yml",
                     request.configValue(),
-                    request.valueType(),
+                    "YAML",
                     1L,
                     true,
                     false,
                     NOW
             );
-            configs.put(request.configKey(), config);
+            configs.put(scope(
+                    request.bizCode(),
+                    request.env(),
+                    request.appCode()
+            ), config);
             return config;
         }
 
@@ -590,18 +680,33 @@ class GatewayReleasePublicationCoordinatorTest {
         @Override
         public DdcManagementPublishResult publish(
                 DdcManagementPublishRequest request) {
-            assertThat(journal.findAttempt(
-                    releaseId(request.configKey()),
-                    1
-            )).isNotEmpty();
-            publishedKeys.add(request.configKey());
+            GatewayReleasePublicationStore.PublicationRecord operation =
+                    journal.records.get(request.changeId());
+            assertThat(operation).isNotNull();
+            publishedKeys.add(operation.configKey());
             publishRequests.add(request);
             if (publishInvocation++ == failBeforeTaskAt) {
                 throw new IllegalStateException("request not sent");
             }
             DdcManagementPublishStatus status = ddcStatus(
-                    statuses.getOrDefault(request.configKey(), SUCCESS)
+                    statuses.getOrDefault(operation.configKey(), SUCCESS)
             );
+            configs.put(scope(
+                    request.bizCode(),
+                    request.env(),
+                    request.appCode()
+            ), new DdcManagementConfig(
+                    request.bizCode(),
+                    request.env(),
+                    request.appCode(),
+                    "application.yml",
+                    request.configValue(),
+                    "YAML",
+                    request.expectedVersion() + 1,
+                    true,
+                    false,
+                    NOW
+            ));
             DdcManagementPublishResult result = result(request, status);
             tasks.put(request.changeId(), task(result));
             if (loseResponse) {
@@ -631,8 +736,10 @@ class GatewayReleasePublicationCoordinatorTest {
         public DdcManagementPublishResult retry(String changeId) {
             retryChangeIds.add(changeId);
             DdcManagementPublishTask current = tasks.get(changeId);
+            GatewayReleasePublicationStore.PublicationRecord operation =
+                    journal.records.get(changeId);
             DdcManagementPublishStatus status = ddcStatus(
-                    statuses.get("gateway.rules.active")
+                    statuses.get(operation.configKey())
             );
             DdcManagementPublishResult result = new DdcManagementPublishResult(
                     changeId,
@@ -730,14 +837,8 @@ class GatewayReleasePublicationCoordinatorTest {
             return DdcManagementPublishStatus.valueOf(status.name());
         }
 
-        private String releaseId(String configKey) {
-            if (configKey.equals("gateway.rules.active")) {
-                return journal.records.values().stream()
-                        .findFirst()
-                        .orElseThrow()
-                        .releaseId();
-            }
-            return configKey.split("\\.")[3];
+        private String scope(String bizCode, String env, String appCode) {
+            return bizCode + "/" + env + "/" + appCode;
         }
     }
 }

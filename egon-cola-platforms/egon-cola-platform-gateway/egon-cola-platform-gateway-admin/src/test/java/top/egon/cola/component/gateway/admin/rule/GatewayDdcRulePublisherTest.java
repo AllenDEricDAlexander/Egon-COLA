@@ -39,7 +39,8 @@ class GatewayDdcRulePublisherTest {
                         "test",
                         "ge",
                         "gateway.rules.chunk.release-1.0",
-                        "{\"releaseId\":\"release-1\"}",
+                        "gateway:\n  rules:\n    chunk:\n"
+                                + "      release-1:\n        '0': value\n",
                         1L,
                         changeId,
                         "admin",
@@ -54,8 +55,8 @@ class GatewayDdcRulePublisherTest {
             assertThat(request.bizCode()).isEqualTo("infra");
             assertThat(request.appCode())
                     .isEqualTo("ge");
-            assertThat(request.configKey())
-                    .isEqualTo("gateway.rules.chunk.release-1.0");
+            assertThat(request.configValue())
+                    .contains("release-1");
             assertThat(request.expectedVersion()).isEqualTo(1L);
             assertThat(request.timeoutMs()).isEqualTo(30_000L);
             assertThat(request.operator()).isEqualTo("admin");

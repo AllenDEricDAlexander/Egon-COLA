@@ -17,9 +17,10 @@ public interface GatewayReleasePublicationStore {
     List<ChunkCleanupCandidate> findChunkCleanupCandidates(
             Instant successorActivatedBefore);
 
-    void resolveVersion(
+    void resolveDocument(
             String changeId,
             long expectedVersion,
+            String documentContent,
             Instant now);
 
     void markSubmitted(String changeId, Instant now);

@@ -4,17 +4,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
 import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
+import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
+import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
+import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
+import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
 import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
+import top.egon.cola.component.gateway.admin.rule.GatewayDdcYamlDocument;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Component
@@ -32,6 +40,10 @@ public class GatewayRuleChunkGarbageCollector {
 
     private final Clock clock;
 
+    private final Duration publishTimeout;
+
+    private final GatewayDdcYamlDocument yamlDocument;
+
     private final AtomicLong deleted = new AtomicLong();
 
     private final AtomicLong failed = new AtomicLong();
@@ -40,12 +52,15 @@ public class GatewayRuleChunkGarbageCollector {
     public GatewayRuleChunkGarbageCollector(
             GatewayReleasePublicationStore journal,
             ObjectProvider<DdcManagementClient> client,
-            GatewayAdminProperties properties) {
+            GatewayAdminProperties properties,
+            @Value("${gateway.admin.ddc.publish-timeout:PT30S}")
+            Duration publishTimeout) {
         this(
                 journal,
                 client.getIfAvailable(),
                 properties,
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                publishTimeout
         );
     }
 
@@ -53,11 +68,17 @@ public class GatewayRuleChunkGarbageCollector {
             GatewayReleasePublicationStore journal,
             DdcManagementClient client,
             GatewayAdminProperties properties,
-            Clock clock) {
+            Clock clock,
+            Duration publishTimeout) {
         this.journal = Objects.requireNonNull(journal, "journal");
         this.client = client;
         this.properties = Objects.requireNonNull(properties, "properties");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.publishTimeout = positive(
+                publishTimeout,
+                "Gateway DDC publish timeout"
+        );
+        this.yamlDocument = new GatewayDdcYamlDocument();
         retention();
     }
 
@@ -88,22 +109,60 @@ public class GatewayRuleChunkGarbageCollector {
 
     private void delete(
             GatewayReleasePublicationStore.ChunkCleanupCandidate candidate) {
+        String changeId = UuidV7.string();
         try {
-            client.delete(new DdcManagementConfigDeleteRequest(
-                    properties.getDdc().getTargetBizCode(),
-                    candidate.env(),
-                    properties.getDdc().getTargetAppCode(),
-                    candidate.configKey(),
-                    candidate.targetVersion(),
-                    "gateway_rule_chunk_gc",
-                    "expired Gateway release chunk " + candidate.releaseId()
-            ));
+            DdcManagementConfig config = current(candidate).orElse(null);
+            if (config == null || config.deleted()) {
+                markCleaned(candidate);
+                return;
+            }
+            validate(config);
+            GatewayDdcYamlDocument.Removal removal =
+                    yamlDocument.removeLeaf(
+                            config.configValue(),
+                            candidate.configKey()
+                    );
+            if (!removal.removed()) {
+                markCleaned(candidate);
+                return;
+            }
+            DdcManagementPublishResult result = client.publish(
+                    new DdcManagementPublishRequest(
+                            properties.getDdc().getTargetBizCode(),
+                            candidate.env(),
+                            properties.getDdc().getTargetAppCode(),
+                            removal.content(),
+                            config.version(),
+                            changeId,
+                            publishTimeout.toMillis(),
+                            "gateway_rule_chunk_gc"
+                    )
+            );
+            if (result.status() != DdcManagementPublishStatus.SUCCESS) {
+                recordFailure(candidate, new IllegalStateException(
+                        "Gateway rule chunk cleanup publish did not succeed"
+                ));
+                return;
+            }
         } catch (RuntimeException failure) {
-            if (!alreadyDeleted(candidate)) {
+            Optional<DdcManagementPublishStatus> recovered =
+                    publishStatus(changeId);
+            if (recovered.isPresent()
+                    && recovered.get()
+                    != DdcManagementPublishStatus.SUCCESS) {
+                recordFailure(candidate, failure);
+                return;
+            }
+            if (recovered.isEmpty() && !alreadyDeleted(candidate)) {
                 recordFailure(candidate, failure);
                 return;
             }
         }
+        markCleaned(candidate);
+    }
+
+    private void markCleaned(
+            GatewayReleasePublicationStore.ChunkCleanupCandidate candidate) {
         try {
             journal.markChunkCleaned(
                     candidate.changeId(),
@@ -118,14 +177,48 @@ public class GatewayRuleChunkGarbageCollector {
     private boolean alreadyDeleted(
             GatewayReleasePublicationStore.ChunkCleanupCandidate candidate) {
         try {
-            return client.findConfig(new DdcManagementConfigQuery(
-                    properties.getDdc().getTargetBizCode(),
-                    candidate.env(),
-                    properties.getDdc().getTargetAppCode(),
-                    candidate.configKey()
-            )).map(config -> config.deleted()).orElse(true);
+            return current(candidate)
+                    .map(config -> config.deleted()
+                            || yamlDocument.leafValue(
+                                    config.configValue(),
+                                    candidate.configKey()
+                            ).isEmpty())
+                    .orElse(true);
         } catch (RuntimeException unavailable) {
             return false;
+        }
+    }
+
+    private Optional<DdcManagementConfig> current(
+            GatewayReleasePublicationStore.ChunkCleanupCandidate candidate) {
+        return client.findConfig(new DdcManagementConfigQuery(
+                properties.getDdc().getTargetBizCode(),
+                candidate.env(),
+                properties.getDdc().getTargetAppCode()
+        ));
+    }
+
+    private Optional<DdcManagementPublishStatus> publishStatus(
+            String changeId) {
+        try {
+            DdcManagementPublishTask task = client.getPublishTask(changeId);
+            return task == null
+                    ? Optional.empty()
+                    : Optional.of(task.status());
+        } catch (RuntimeException unavailable) {
+            return Optional.empty();
+        }
+    }
+
+    private void validate(DdcManagementConfig config) {
+        if (config.version() == null || config.version() < 0
+                || !config.enabled()
+                || !"application.yml".equals(config.configKey())
+                || !"YAML".equals(config.valueType())) {
+            throw new IllegalStateException(
+                    "Gateway rule cleanup requires an enabled "
+                            + "application.yml/YAML document"
+            );
         }
     }
 
@@ -144,12 +237,16 @@ public class GatewayRuleChunkGarbageCollector {
     }
 
     private Duration retention() {
-        Duration retention = properties.getRuleChunk().getRetention();
-        if (retention == null || retention.isZero() || retention.isNegative()) {
-            throw new IllegalArgumentException(
-                    "gateway rule chunk retention must be positive"
-            );
+        return positive(
+                properties.getRuleChunk().getRetention(),
+                "gateway rule chunk retention"
+        );
+    }
+
+    private Duration positive(Duration value, String name) {
+        if (value == null || value.isZero() || value.isNegative()) {
+            throw new IllegalArgumentException(name + " must be positive");
         }
-        return retention;
+        return value;
     }
 }

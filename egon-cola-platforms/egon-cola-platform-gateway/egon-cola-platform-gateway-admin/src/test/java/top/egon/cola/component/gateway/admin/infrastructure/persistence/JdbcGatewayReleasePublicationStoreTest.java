@@ -86,9 +86,10 @@ class JdbcGatewayReleasePublicationStoreTest {
         JdbcGatewayReleasePublicationStore store =
                 new JdbcGatewayReleasePublicationStore(jdbc);
 
-        store.resolveVersion(
+        store.resolveDocument(
                 "018f22d8-155d-7000-8000-000000000001",
                 3L,
+                "gateway:\n  rules:\n    active: value\n",
                 NOW
         );
         store.markSubmitted(
@@ -105,7 +106,7 @@ class JdbcGatewayReleasePublicationStoreTest {
         );
 
         verify(jdbc).update(
-                contains("expected_version = ?"),
+                contains("content_value = ?"),
                 any(Object[].class)
         );
     }

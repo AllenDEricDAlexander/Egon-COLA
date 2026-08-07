@@ -13,6 +13,7 @@ import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcPublicationCommand;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
+import top.egon.cola.component.gateway.admin.rule.GatewayDdcYamlDocument;
 import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleChunkRef;
 
@@ -56,6 +57,8 @@ public final class GatewayReleasePublicationCoordinator {
 
     private final GatewayDdcRulePublisher publisher;
 
+    private final GatewayDdcYamlDocument yamlDocument;
+
     private final String targetBizCode;
 
     private final String targetAppCode;
@@ -77,6 +80,7 @@ public final class GatewayReleasePublicationCoordinator {
         this.releases = Objects.requireNonNull(releases, "releases");
         this.client = Objects.requireNonNull(client, "client");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
+        this.yamlDocument = new GatewayDdcYamlDocument();
         this.clock = Objects.requireNonNull(clock, "clock");
         this.timeout = positive(timeout);
         this.targetBizCode = required(targetBizCode, "targetBizCode");
@@ -159,12 +163,7 @@ public final class GatewayReleasePublicationCoordinator {
             String operator) {
         GatewayReleasePublicationStore.PublicationRecord current = operation;
         if (current.status() == PLANNED) {
-            long expectedVersion = resolve(scope, current, operator);
-            current = withStatus(
-                    current,
-                    expectedVersion,
-                    RESOLVED
-            );
+            current = resolve(scope, current, operator);
         }
         if (current.status() == RESOLVED) {
             journal.markSubmitted(current.changeId(), clock.instant());
@@ -205,7 +204,7 @@ public final class GatewayReleasePublicationCoordinator {
             if (exception.code()
                     == DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND
                     .getCode()) {
-                return publish(scope, operation, operator);
+                return republish(scope, operation, operator);
             }
             return unknown(operation, exception);
         } catch (RuntimeException failure) {
@@ -231,7 +230,7 @@ public final class GatewayReleasePublicationCoordinator {
             if (exception.code()
                     == DdcManagementErrorCode.PUBLISH_TASK_NOT_FOUND
                     .getCode()) {
-                return publish(scope, operation, operator);
+                return republish(scope, operation, operator);
             }
             return unknown(operation, exception);
         } catch (RuntimeException failure) {
@@ -250,60 +249,84 @@ public final class GatewayReleasePublicationCoordinator {
         }
     }
 
-    private long resolve(
+    private GatewayReleasePublicationStore.PublicationRecord resolve(
             Scope scope,
             GatewayReleasePublicationStore.PublicationRecord operation,
             String operator) {
+        return resolve(
+                scope,
+                operation,
+                operator,
+                operation.contentValue()
+        );
+    }
+
+    private GatewayReleasePublicationStore.PublicationRecord resolve(
+            Scope scope,
+            GatewayReleasePublicationStore.PublicationRecord operation,
+            String operator,
+            String leafValue) {
         DdcManagementConfigQuery query = new DdcManagementConfigQuery(
                 scope.bizCode(),
                 scope.env(),
-                scope.appCode(),
-                operation.configKey()
+                scope.appCode()
         );
         DdcManagementConfig config = client.findConfig(query).orElse(null);
         if (config == null) {
-            config = create(scope, operation, operator, query);
+            String initialDocument = yamlDocument.putLeaf(
+                    null,
+                    operation.configKey(),
+                    leafValue
+            );
+            config = create(
+                    scope,
+                    operation,
+                    operator,
+                    query,
+                    initialDocument
+            );
         }
         validateConfig(config, operation.configKey());
-        journal.resolveVersion(
+        String documentContent = yamlDocument.putLeaf(
+                config.configValue(),
+                operation.configKey(),
+                leafValue
+        );
+        journal.resolveDocument(
                 operation.changeId(),
                 config.version(),
+                documentContent,
                 clock.instant()
         );
-        return config.version();
+        return current(
+                operation.releaseId(),
+                operation.attemptNo(),
+                operation.changeId()
+        );
     }
 
     private DdcManagementConfig create(
             Scope scope,
             GatewayReleasePublicationStore.PublicationRecord operation,
             String operator,
-            DdcManagementConfigQuery query) {
+            DdcManagementConfigQuery query,
+            String documentContent) {
         try {
-            client.upsert(new DdcManagementConfigUpsertRequest(
+            return client.upsert(new DdcManagementConfigUpsertRequest(
                     scope.bizCode(),
                     scope.env(),
                     scope.appCode(),
-                    operation.configKey(),
-                    operation.contentValue(),
-                    operation.phaseType() == ACTIVATION ? "JSON" : "STRING",
+                    documentContent,
                     "Gateway release " + operation.releaseId(),
                     0L,
                     operator
             ));
         } catch (RuntimeException failure) {
             DdcManagementConfig recovered = client.findConfig(query)
-                    .filter(config -> Objects.equals(
-                            config.configValue(),
-                            operation.contentValue()
-                    ))
                     .orElseThrow(() -> failure);
             validateConfig(recovered, operation.configKey());
             return recovered;
         }
-        return client.findConfig(query).orElseThrow(() ->
-                new IllegalStateException(
-                        "created DDC config cannot be queried"
-                ));
     }
 
     private void validateConfig(
@@ -324,6 +347,32 @@ public final class GatewayReleasePublicationCoordinator {
                     "DDC config is disabled: " + configKey
             );
         }
+        if (!"application.yml".equals(config.configKey())
+                || !"YAML".equals(config.valueType())) {
+            throw new IllegalStateException(
+                    "DDC config is not application.yml/YAML: " + configKey
+            );
+        }
+    }
+
+    private DdcManagementPublishResult republish(
+            Scope scope,
+            GatewayReleasePublicationStore.PublicationRecord operation,
+            String operator) {
+        String leafValue = yamlDocument.leafValue(
+                operation.contentValue(),
+                operation.configKey()
+        ).orElseThrow(() -> new IllegalStateException(
+                "resolved Gateway rule leaf is missing"
+        ));
+        GatewayReleasePublicationStore.PublicationRecord resolved = resolve(
+                scope,
+                operation,
+                operator,
+                leafValue
+        );
+        journal.markSubmitted(resolved.changeId(), clock.instant());
+        return publish(scope, resolved, operator);
     }
 
     private GatewayDdcPublicationCommand command(
@@ -437,29 +486,6 @@ public final class GatewayReleasePublicationCoordinator {
                 ));
     }
 
-    private GatewayReleasePublicationStore.PublicationRecord withStatus(
-            GatewayReleasePublicationStore.PublicationRecord operation,
-            long expectedVersion,
-            GatewayReleasePublicationStore.PublicationStatus status) {
-        return new GatewayReleasePublicationStore.PublicationRecord(
-                operation.releaseId(),
-                operation.attemptNo(),
-                operation.phaseOrder(),
-                operation.phaseType(),
-                operation.configKey(),
-                operation.contentValue(),
-                operation.contentSha256(),
-                expectedVersion,
-                operation.changeId(),
-                operation.ddcTargetVersion(),
-                status,
-                operation.errorCode(),
-                operation.errorMessage(),
-                operation.createdAt(),
-                clock.instant()
-        );
-    }
-
     private void recordResult(
             String changeId,
             DdcManagementPublishResult result,
@@ -480,7 +506,7 @@ public final class GatewayReleasePublicationCoordinator {
                 operation.changeId(),
                 DdcManagementPublishStatus.SUCCESS,
                 operation.ddcTargetVersion(),
-                operation.contentSha256(),
+                checksum(operation.contentValue()),
                 0,
                 List.of(),
                 null,
@@ -521,7 +547,7 @@ public final class GatewayReleasePublicationCoordinator {
                 operation.changeId(),
                 DdcManagementPublishStatus.UNKNOWN,
                 operation.ddcTargetVersion(),
-                operation.contentSha256(),
+                checksum(operation.contentValue()),
                 0,
                 List.of(),
                 failure.getMessage(),

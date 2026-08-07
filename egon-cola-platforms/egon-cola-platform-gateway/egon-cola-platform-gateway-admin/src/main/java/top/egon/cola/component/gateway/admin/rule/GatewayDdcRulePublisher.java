@@ -13,7 +13,8 @@ import java.util.Objects;
 
 public final class GatewayDdcRulePublisher {
 
-    public static final String ACTIVE_CONFIG_KEY = "gateway.rules.active";
+    public static final String ACTIVE_CONFIG_KEY =
+            GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY;
 
     private final DdcManagementClient client;
 
@@ -28,7 +29,6 @@ public final class GatewayDdcRulePublisher {
                 command.bizCode(),
                 command.env(),
                 command.appCode(),
-                command.configKey(),
                 command.value(),
                 command.expectedVersion(),
                 command.changeId(),

@@ -33,12 +33,12 @@
 
 **Steps:**
 
-- [ ] Register the Resolver and Loader through the ConfigData SPI and parse only `ddc:application.yml`.
-- [ ] Bind local DDC bootstrap settings through the Resolver context without remote access in `isResolvable`.
-- [ ] Pull exactly one published YAML value using the existing HTTP/HMAC/TLS contract.
-- [ ] Parse through Boot's official loader, reject multiple/root-scalar/reserved-key documents, and return a dynamic PropertySource with `IGNORE_IMPORTS` and `IGNORE_PROFILES`.
-- [ ] Prove startup binding, optional semantics, source ordering, local fallback, and non-ConfigData override precedence with focused tests.
-- [ ] Run Starter tests and commit as `feat(ddc): load remote YAML through ConfigData`.
+- [x] Register the Resolver and Loader through the ConfigData SPI and parse only `ddc:application.yml`.
+- [x] Bind local DDC bootstrap settings through the Resolver context without remote access in `isResolvable`.
+- [x] Pull exactly one published YAML value using the existing HTTP/HMAC/TLS contract.
+- [x] Parse through Boot's official loader, reject multiple/root-scalar/reserved-key documents, and return a dynamic PropertySource with `IGNORE_IMPORTS` and `IGNORE_PROFILES`.
+- [x] Prove startup binding, optional semantics, source ordering, local fallback, and non-ConfigData override precedence with focused tests.
+- [x] Run Starter tests and commit as `feat(ddc): load remote YAML through ConfigData`.
 
 ## Task 2: YAML Refresh and Compatibility Consumers
 
@@ -86,11 +86,11 @@
 
 **Steps:**
 
-- [ ] Resolve the current `application.yml` document and version for every release phase.
-- [ ] Parse the document, replace one `gateway.rules.chunk.*` or `gateway.rules.active` leaf, serialize valid YAML, and publish the document key.
-- [ ] Preserve release journal leaf keys and change IDs while querying/retrying DDC tasks by their existing identities.
-- [ ] Prove chunk ordering, conflict recovery, retry, inline activation, and Engine leaf dispatch.
-- [ ] Run affected Gateway Admin/Engine tests and commit as `refactor(gateway): publish rules through DDC YAML`.
+- [x] Resolve the current `application.yml` document and version for every release phase.
+- [x] Parse the document, replace one `gateway.rules.chunk.*` or `gateway.rules.active` leaf, serialize valid YAML, and publish the document key.
+- [x] Preserve release journal leaf keys and change IDs while querying/retrying DDC tasks by their existing identities.
+- [x] Prove chunk ordering, conflict recovery, retry, inline activation, and Engine leaf dispatch.
+- [x] Run affected Gateway Admin/Engine tests and commit as `refactor(gateway): publish rules through DDC YAML`.
 
 ## Task 5: Admin Web YAML Editor and Final Verification
 
