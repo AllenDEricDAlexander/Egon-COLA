@@ -286,6 +286,7 @@ class McpSecurityIT {
                 Map.of(),
                 Map.of(),
                 null,
+                null,
                 Duration.ofSeconds(1)
         );
     }
@@ -360,7 +361,6 @@ class McpSecurityIT {
                 "mount-security",
                 inputSchema,
                 "{\"type\":\"object\"}",
-                Map.of(),
                 Map.of(),
                 Set.of("invoice:pay"),
                 risk,

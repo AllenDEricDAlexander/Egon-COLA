@@ -137,7 +137,6 @@ class GatewayRuleWireCompatibilityTest {
                 "POST /v1/responses",
                 "{}",
                 "{}",
-                List.of(),
                 true,
                 new GatewayProviderServiceRef(
                         "test-biz",
