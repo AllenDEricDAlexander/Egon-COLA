@@ -1,0 +1,142 @@
+package top.egon.cola.component.gateway.starter.annotation;
+
+import org.junit.jupiter.api.Test;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class GatewaySchemaAnnotationContractTest {
+
+    @Test
+    void requestSchemaFieldHasTheApprovedDefaults() throws Exception {
+        assertEquals(
+                RetentionPolicy.RUNTIME,
+                GatewayRequestSchemaField.class
+                        .getAnnotation(Retention.class)
+                        .value()
+        );
+        assertArrayEquals(
+                new ElementType[0],
+                GatewayRequestSchemaField.class
+                        .getAnnotation(Target.class)
+                        .value()
+        );
+        GatewayRequestSchemaField annotation = Defaults.class
+                .getAnnotation(Holder.class)
+                .request();
+        assertNull(GatewayRequestSchemaField.class
+                .getDeclaredMethod("location")
+                .getDefaultValue());
+        assertNull(GatewayRequestSchemaField.class
+                .getDeclaredMethod("schema")
+                .getDefaultValue());
+        assertEquals(GatewayRequestLocation.PATH, annotation.location());
+        assertEquals(String.class, annotation.schema());
+        assertEquals("", annotation.name());
+        assertEquals(GatewaySchemaShape.AUTO, annotation.shape());
+        assertFalse(annotation.expanded());
+    }
+
+    @Test
+    void responseSchemaUsesVoidSentinels() {
+        assertEquals(
+                RetentionPolicy.RUNTIME,
+                GatewayResponseSchema.class
+                        .getAnnotation(Retention.class)
+                        .value()
+        );
+        assertArrayEquals(
+                new ElementType[0],
+                GatewayResponseSchema.class
+                        .getAnnotation(Target.class)
+                        .value()
+        );
+        GatewayResponseSchema annotation = Defaults.class
+                .getAnnotation(Holder.class)
+                .response();
+        assertEquals(Void.class, annotation.wrapper());
+        assertEquals("", annotation.payloadField());
+        assertEquals(Void.class, annotation.schema());
+        assertEquals(GatewaySchemaShape.AUTO, annotation.shape());
+    }
+
+    @Test
+    void schemaEnumsExposeTheApprovedMembers() {
+        assertArrayEquals(
+                new GatewayRequestLocation[]{
+                        GatewayRequestLocation.PATH,
+                        GatewayRequestLocation.QUERY,
+                        GatewayRequestLocation.HEADER,
+                        GatewayRequestLocation.COOKIE,
+                        GatewayRequestLocation.BODY,
+                        GatewayRequestLocation.PART,
+                        GatewayRequestLocation.RPC_MESSAGE
+                },
+                GatewayRequestLocation.values()
+        );
+        assertArrayEquals(
+                new GatewaySchemaShape[]{
+                        GatewaySchemaShape.AUTO,
+                        GatewaySchemaShape.VALUE,
+                        GatewaySchemaShape.OBJECT,
+                        GatewaySchemaShape.LIST,
+                        GatewaySchemaShape.MAP,
+                        GatewaySchemaShape.VOID
+                },
+                GatewaySchemaShape.values()
+        );
+        assertArrayEquals(
+                new GatewaySchemaType[]{
+                        GatewaySchemaType.AUTO,
+                        GatewaySchemaType.STRING,
+                        GatewaySchemaType.INTEGER,
+                        GatewaySchemaType.NUMBER,
+                        GatewaySchemaType.BOOLEAN,
+                        GatewaySchemaType.OBJECT,
+                        GatewaySchemaType.ARRAY,
+                        GatewaySchemaType.MAP
+                },
+                GatewaySchemaType.values()
+        );
+        assertArrayEquals(
+                new GatewaySchemaRequired[]{
+                        GatewaySchemaRequired.AUTO,
+                        GatewaySchemaRequired.REQUIRED,
+                        GatewaySchemaRequired.OPTIONAL
+                },
+                GatewaySchemaRequired.values()
+        );
+    }
+
+    @Test
+    void newAnnotationsAreRuntimeDocumented() {
+        assertTrue(GatewayRequestSchemaField.class.isAnnotationPresent(
+                java.lang.annotation.Documented.class
+        ));
+        assertTrue(GatewayResponseSchema.class.isAnnotationPresent(
+                java.lang.annotation.Documented.class
+        ));
+    }
+
+    @java.lang.annotation.Retention(RetentionPolicy.RUNTIME)
+    private @interface Holder {
+
+        GatewayRequestSchemaField request() default @GatewayRequestSchemaField(
+                location = GatewayRequestLocation.PATH,
+                schema = String.class
+        );
+
+        GatewayResponseSchema response() default @GatewayResponseSchema;
+    }
+
+    @Holder
+    private static final class Defaults {
+    }
+}

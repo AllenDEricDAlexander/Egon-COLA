@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package egon.gateway.schema.v1;
+
+option java_package =
+    "top.egon.cola.component.gateway.contract.schema.proto";
+option java_multiple_files = true;
+
+import "google/protobuf/descriptor.proto";
+
+enum GatewayRequiredOption {
+  GATEWAY_REQUIRED_AUTO = 0;
+  GATEWAY_REQUIRED = 1;
+  GATEWAY_OPTIONAL = 2;
+}
+
+message GatewaySchemaFieldOption {
+  string description = 1;
+  string format = 2;
+  GatewayRequiredOption required = 3;
+  string example = 4;
+}
+
+extend google.protobuf.FieldOptions {
+  GatewaySchemaFieldOption gateway_schema = 51001;
+}
