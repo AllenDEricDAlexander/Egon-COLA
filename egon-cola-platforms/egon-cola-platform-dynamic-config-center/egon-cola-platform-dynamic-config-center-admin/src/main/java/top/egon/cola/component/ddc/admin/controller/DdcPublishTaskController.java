@@ -9,7 +9,7 @@ import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.ddc.admin.service.DdcPublishService;
+import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 
 import java.util.List;
 

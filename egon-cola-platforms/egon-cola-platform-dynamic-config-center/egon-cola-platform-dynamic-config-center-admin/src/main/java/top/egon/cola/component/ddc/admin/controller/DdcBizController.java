@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.entity.DdcBizEntity;
-import top.egon.cola.component.ddc.admin.service.DdcBizService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcBizService;
 
 import java.util.List;
 

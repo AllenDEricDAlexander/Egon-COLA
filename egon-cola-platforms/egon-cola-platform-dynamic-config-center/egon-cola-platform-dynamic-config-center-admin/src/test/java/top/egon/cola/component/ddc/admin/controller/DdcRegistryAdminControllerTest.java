@@ -5,7 +5,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.component.ddc.admin.config.DdcGlobalExceptionHandler;
-import top.egon.cola.component.ddc.admin.service.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceInstance;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceKey;

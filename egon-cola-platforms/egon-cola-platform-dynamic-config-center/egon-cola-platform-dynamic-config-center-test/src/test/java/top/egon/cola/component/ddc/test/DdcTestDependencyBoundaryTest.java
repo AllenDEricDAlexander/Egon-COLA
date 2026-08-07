@@ -9,7 +9,7 @@ class DdcTestDependencyBoundaryTest {
     @Test
     void adminImplementationIsNotOnTheTestClasspath() {
         assertThatThrownBy(() -> Class.forName(
-                "top.egon.cola.component.ddc.admin.service.DdcConfigService"
+                "top.egon.cola.component.ddc.admin.service.config.DdcConfigService"
         )).isInstanceOf(ClassNotFoundException.class);
     }
 }

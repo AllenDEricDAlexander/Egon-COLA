@@ -8,7 +8,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
-import top.egon.cola.component.ddc.admin.service.DdcAppService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcAppService;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 
 import java.util.List;

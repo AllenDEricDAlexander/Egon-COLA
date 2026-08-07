@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.dto.DdcNamespaceEnvAppBindingRequest;
 import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
-import top.egon.cola.component.ddc.admin.service.DdcNamespaceEnvAppBindingService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 
 import java.util.List;
 

@@ -66,7 +66,7 @@ class DdcStarterRuntimeFlowTest {
         assertThat(adminClient.events()).containsExactly("register", "defaults", "pull");
         assertThat(sampleConfigService.getRateLimit()).isEqualTo(250);
         assertThatThrownBy(() -> Class.forName(
-                "top.egon.cola.component.ddc.admin.service.DdcConfigService"
+                "top.egon.cola.component.ddc.admin.service.config.DdcConfigService"
         )).isInstanceOf(ClassNotFoundException.class);
 
         runtimeCoordinator.stop();

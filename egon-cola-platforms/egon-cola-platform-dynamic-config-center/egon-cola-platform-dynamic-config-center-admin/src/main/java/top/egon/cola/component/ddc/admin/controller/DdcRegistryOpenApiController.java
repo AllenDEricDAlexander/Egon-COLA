@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.component.ddc.admin.service.DdcServiceRegistryService;
+import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;

@@ -12,17 +12,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
-import top.egon.cola.component.ddc.admin.service.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.ddc.admin.security.openapi.DdcNonceStore;
 import top.egon.cola.component.ddc.admin.security.openapi.InMemoryDdcNonceStore;
 import top.egon.cola.component.ddc.admin.security.openapi.RedisDdcNonceStore;
-import top.egon.cola.component.ddc.admin.service.DdcConfigLeaseService;
-import top.egon.cola.component.ddc.admin.service.DdcLeaseExpiryScanner;
-import top.egon.cola.component.ddc.admin.service.DdcLeaseValidator;
-import top.egon.cola.component.ddc.admin.service.DdcServiceRegistryService;
+import top.egon.cola.component.ddc.admin.service.lease.DdcConfigLeaseService;
+import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseExpiryScanner;
+import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
+import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
 import top.egon.cola.component.ddc.config.DdcRedisTopology;
 
 @Configuration

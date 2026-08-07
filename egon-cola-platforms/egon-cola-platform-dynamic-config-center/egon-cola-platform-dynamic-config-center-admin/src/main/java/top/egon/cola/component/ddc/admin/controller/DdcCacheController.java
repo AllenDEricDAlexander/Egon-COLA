@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.vo.DdcCacheCheckRow;
-import top.egon.cola.component.ddc.admin.service.DdcCacheService;
+import top.egon.cola.component.ddc.admin.service.cache.DdcCacheService;
 
 import java.util.List;
 
