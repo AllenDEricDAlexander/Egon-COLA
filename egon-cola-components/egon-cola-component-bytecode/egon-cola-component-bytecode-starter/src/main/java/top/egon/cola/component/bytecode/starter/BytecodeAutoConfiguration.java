@@ -22,7 +22,6 @@ import top.egon.cola.component.bytecode.runtime.executor.RuntimeTaskDetector;
 import top.egon.cola.component.bytecode.runtime.methodextension.MethodExtensionInvocationEvaluator;
 import top.egon.cola.component.bytecode.runtime.observation.ObservationRuntime;
 import top.egon.cola.component.bytecode.starter.context.MdcContextCarrier;
-import top.egon.cola.component.bytecode.starter.dtp.DtpTaskDetector;
 import top.egon.cola.component.bytecode.starter.accessguard.CombinedPolicyDispatcher;
 import top.egon.cola.component.bytecode.bridge.BytecodeRuntimeDispatcher;
 import top.egon.cola.component.common.trace.TraceContext;
@@ -63,12 +62,6 @@ public class BytecodeAutoConfiguration {
     @ConditionalOnMissingBean(name = "mdcContextCarrier")
     public MdcContextCarrier mdcContextCarrier() {
         return new MdcContextCarrier();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public DtpTaskDetector dtpTaskDetector() {
-        return new DtpTaskDetector();
     }
 
     @Bean

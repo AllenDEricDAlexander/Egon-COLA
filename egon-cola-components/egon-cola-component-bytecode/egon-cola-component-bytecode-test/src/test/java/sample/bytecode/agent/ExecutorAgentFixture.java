@@ -57,7 +57,7 @@ public final class ExecutorAgentFixture {
             verifiesAllFourCallSitesAndFutureIdentity();
             verifiesContextAndCleanup();
             verifiesFailureRejectionCancellationAndInterrupts();
-            verifiesConcurrencyNestedTasksVirtualThreadsAndDtpDeduplication();
+            verifiesConcurrencyNestedTasksAndVirtualThreads();
             require(events.stream().anyMatch(event -> "SUBMITTED".equals(event.phase())),
                     "submission event missing");
             require(events.stream().anyMatch(event -> "COMPLETED".equals(event.phase())),
@@ -192,7 +192,7 @@ public final class ExecutorAgentFixture {
         }
     }
 
-    private static void verifiesConcurrencyNestedTasksVirtualThreadsAndDtpDeduplication()
+    private static void verifiesConcurrencyNestedTasksAndVirtualThreads()
             throws Exception {
         try (ExecutorService virtual = Executors.newVirtualThreadPerTaskExecutor()) {
             List<Future<Integer>> futures = new ArrayList<>();
@@ -212,11 +212,6 @@ public final class ExecutorAgentFixture {
                     .get(10, TimeUnit.SECONDS);
             require(result == 11, "nested task result changed");
         }
-
-        IdentityExecutor executor = new IdentityExecutor();
-        Runnable dtpTask = new top.egon.cola.component.dtp.context.DtpRunnable();
-        submitRunnable(executor, dtpTask);
-        require(executor.submitted == dtpTask, "DTP task was double wrapped");
     }
 
     private static void require(boolean condition, String message) {

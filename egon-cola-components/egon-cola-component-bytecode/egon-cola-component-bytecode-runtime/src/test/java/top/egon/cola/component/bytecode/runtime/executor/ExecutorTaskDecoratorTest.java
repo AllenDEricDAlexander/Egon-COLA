@@ -104,14 +104,12 @@ class ExecutorTaskDecoratorTest {
     }
 
     @Test
-    void avoidsDoubleWrappingEgonAndDtpTasks() {
+    void avoidsDoubleWrappingEgonTasks() {
         ExecutorTaskDecorator decorator = decorator(noopCarrier(), new ArrayList<>());
         Runnable first = decorator.decorateRunnable(DIRECT, () -> { }, 10L);
         Runnable second = decorator.decorateRunnable(DIRECT, first, 11L);
-        Runnable dtp = new top.egon.cola.component.dtp.context.DtpRunnable();
 
         assertSame(first, second);
-        assertSame(dtp, decorator.decorateRunnable(DIRECT, dtp, 12L));
     }
 
     @Test

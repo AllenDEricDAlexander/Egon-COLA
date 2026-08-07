@@ -84,7 +84,7 @@ Agent 只会重写已包含应用类中的以下接口调用点：
 
 底层 executor API 恰好调用一次。`submit` 返回该 executor 创建的原始 `Future`，而业务异常、`RejectedExecutionException`、中断和取消行为均保留原有身份与时序。包装器在任务执行期间恢复捕获的上下文，并在 `finally` 中清理工作线程状态；如果 carrier 已经执行了捕获，取消操作无法阻止这次捕获工作。
 
-存在 SLF4J 时会启用 MDC 传播，`MdcContextCarrier` 使用 `common-trace` 的 `TraceSnapshot` 捕获和恢复上下文。其他 carrier 实现仅依赖 JDK 的 `ContextCarrier` API。Egon 已包装的任务以及类型精确为 `DtpRunnable` 和 `DtpCallable` 的 DTP 包装器不会被再次包装；既不会修改动态线程池注册表，也不会使用它进行发现。
+存在 SLF4J 时会启用 MDC 传播，`MdcContextCarrier` 使用 `common-trace` 的 `TraceSnapshot` 捕获和恢复上下文。其他 carrier 实现仅依赖 JDK 的 `ContextCarrier` API。带有 `EgonInstrumentedTask` 标记的任务不会被再次包装；既不会修改动态线程池注册表，也不会使用它进行发现。
 
 Spring 运行时设置使用 `egon.cola.component.bytecode` 前缀：
 
