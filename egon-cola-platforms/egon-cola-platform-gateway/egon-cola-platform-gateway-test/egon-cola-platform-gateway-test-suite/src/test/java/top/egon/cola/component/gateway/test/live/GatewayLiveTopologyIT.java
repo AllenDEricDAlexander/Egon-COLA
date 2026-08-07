@@ -112,7 +112,7 @@ class GatewayLiveTopologyIT {
                     ddcPort
             ));
             processes.awaitHttp(
-                    ddcBase.resolve("/api/v1/ddc/manifest"),
+                    ddcBase.resolve("/actuator/health/readiness"),
                     STARTUP_TIMEOUT,
                     ddc
             );
@@ -665,7 +665,7 @@ class GatewayLiveTopologyIT {
                     ddcPort
             ));
             processes.awaitHttp(
-                    ddcBase.resolve("/api/v1/ddc/manifest"),
+                    ddcBase.resolve("/actuator/health/readiness"),
                     STARTUP_TIMEOUT,
                     ddc
             );

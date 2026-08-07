@@ -2,7 +2,11 @@ package top.egon.cola.component.ddc.admin;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.autoconfigure.info.InfoContributorAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.info.InfoEndpointAutoConfiguration;
+import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
@@ -10,6 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Guards the shipped {@code application.yml} against placeholders that no property source
  * can resolve.
  *
- * <p>The manifest version is the load-bearing case: {@code manifest.version: ${sdk.version}}
+ * <p>The Actuator info version is the load-bearing case: {@code info.app.version: ${sdk.version}}
  * only resolves because {@code application.yml} declares
  * {@code spring.config.import: classpath:META-INF/egon-cola-ddc.properties}, and that file is
  * Maven-filtered in the starter module. Drop the import, rename the key, or lose the filtering
@@ -31,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(classes = DdcAdminContextSmokeTest.Holder.class)
 @ActiveProfiles("test")
+@Import({InfoContributorAutoConfiguration.class, InfoEndpointAutoConfiguration.class})
 class DdcAdminContextSmokeTest {
 
     static class Holder {
@@ -39,17 +45,28 @@ class DdcAdminContextSmokeTest {
     @Autowired
     private ConfigurableEnvironment environment;
 
+    @Autowired
+    private InfoEndpoint infoEndpoint;
+
     @Test
-    void manifestVersionResolvesToAConcreteValue() {
+    void actuatorInfoVersionResolvesToAConcreteValue() {
         String version = environment.getProperty(
-                "egon.cola.component.ddc.admin.manifest.version"
+                "info.app.version"
         );
 
         assertThat(version)
-                .as("manifest version must be supplied by the build, not left as a placeholder")
+                .as("Actuator info version must be supplied by the build, not left as a placeholder")
                 .isNotBlank()
                 .doesNotContain("${")
                 .doesNotContain("@");
+        assertThat(environment.getProperty("management.info.env.enabled", Boolean.class))
+                .as("Actuator environment info contributor must expose info.app.version")
+                .isTrue();
+        assertThat(infoEndpoint.info())
+                .containsEntry("app", Map.of(
+                        "name", "egon-cola-ddc-admin",
+                        "version", version
+                ));
     }
 
     @Test

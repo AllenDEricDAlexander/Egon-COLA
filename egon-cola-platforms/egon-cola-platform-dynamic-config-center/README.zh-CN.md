@@ -46,6 +46,12 @@ Admin 的 webui 已从 jar 中摘出（`/ddc-admin` 不再由 Admin 提供服务
 独立容器部署，经 `DDC_ADMIN_API_BASE_URL` 指向 Admin，`/api` 请求由 static-server
 同源反代，Admin 侧无需 CORS 配置。
 
+## 运维端点
+
+DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
+`GET /actuator/info` 在 `app.name` 和 `app.version` 中暴露应用名称与 Maven
+过滤后的组件版本。
+
 业务应用只引入 Starter。`egon.cola.component.ddc.enabled=true` 会显式启动
 `CONFIG_CLIENT` 注册、默认值上报、配置拉取、Redis 订阅、心跳和停机下线闭环；
 `egon.cola.component.ddc.registry.enabled=true` 独立启用 RPC/Gateway 服务注册，

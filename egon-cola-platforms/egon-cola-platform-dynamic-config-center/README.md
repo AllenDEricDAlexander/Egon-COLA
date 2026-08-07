@@ -53,6 +53,12 @@ by Admin). The console deploys as its own container, points at Admin via
 `DDC_ADMIN_API_BASE_URL`, and proxies `/api` same-origin through its static
 server, so Admin needs no CORS configuration.
 
+## Operations Endpoints
+
+DDC Admin exposes `GET /actuator/health/readiness` for startup and readiness
+checks. `GET /actuator/info` exposes the application name and the Maven-filtered
+component version under `app.name` and `app.version`.
+
 Applications add only the Starter. `egon.cola.component.ddc.enabled=true` explicitly
 starts the `CONFIG_CLIENT` registration, default-report, pull, Redis subscription,
 heartbeat, and shutdown-offline lifecycle. `egon.cola.component.ddc.registry.enabled=true`

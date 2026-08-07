@@ -55,7 +55,7 @@ PostgreSQL 初始化两个 Database，避免 DDC 与 Gateway Admin 的 Flyway �
 推荐检查：
 
 ```text
-DDC Admin  GET /api/v1/ddc/manifest
+DDC Admin  GET /actuator/health/readiness
 Admin      GET /actuator/health/liveness
 Admin      GET /actuator/health/readiness
 Engine     GET :18083/actuator/health/liveness

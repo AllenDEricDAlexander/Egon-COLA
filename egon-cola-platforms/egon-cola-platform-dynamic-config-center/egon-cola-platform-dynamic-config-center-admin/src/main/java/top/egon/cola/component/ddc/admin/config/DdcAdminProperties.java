@@ -20,8 +20,6 @@ public class DdcAdminProperties {
 
     private Publish publish = new Publish();
 
-    private Manifest manifest = new Manifest();
-
     public long getMaxValueBytes() {
         return maxValueBytes;
     }
@@ -68,14 +66,6 @@ public class DdcAdminProperties {
 
     public void setPublish(Publish publish) {
         this.publish = publish;
-    }
-
-    public Manifest getManifest() {
-        return manifest;
-    }
-
-    public void setManifest(Manifest manifest) {
-        this.manifest = manifest;
     }
 
     public static class Redis {
@@ -191,19 +181,6 @@ public class DdcAdminProperties {
 
         public void setScanIntervalMillis(long scanIntervalMillis) {
             this.scanIntervalMillis = scanIntervalMillis;
-        }
-    }
-
-    public static class Manifest {
-
-        private String version;
-
-        public String getVersion() {
-            return version;
-        }
-
-        public void setVersion(String version) {
-            this.version = version;
         }
     }
 

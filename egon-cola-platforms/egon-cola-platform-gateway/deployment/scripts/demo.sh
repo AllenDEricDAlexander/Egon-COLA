@@ -87,7 +87,7 @@ command_build() {
 
 command_up_control() {
   compose up -d postgres ddc-redis rate-limit-redis kafka ddc-admin gateway-admin gateway-engine gateway-engine-2
-  "${script_dir}/wait-ready.sh" http://127.0.0.1:18070/api/v1/ddc/manifest
+  "${script_dir}/wait-ready.sh" http://127.0.0.1:18070/actuator/health/readiness
   "${script_dir}/wait-ready.sh" http://127.0.0.1:18080/actuator/health/readiness
 }
 

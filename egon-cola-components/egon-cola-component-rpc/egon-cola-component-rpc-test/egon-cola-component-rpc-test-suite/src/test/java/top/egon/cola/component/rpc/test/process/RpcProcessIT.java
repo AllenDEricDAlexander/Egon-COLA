@@ -64,7 +64,7 @@ class RpcProcessIT {
                     )
             );
             processes.awaitHttp(
-                    adminEndpoint + "/api/v1/ddc/manifest",
+                    adminEndpoint + "/actuator/health/readiness",
                     STARTUP_TIMEOUT,
                     admin
             );

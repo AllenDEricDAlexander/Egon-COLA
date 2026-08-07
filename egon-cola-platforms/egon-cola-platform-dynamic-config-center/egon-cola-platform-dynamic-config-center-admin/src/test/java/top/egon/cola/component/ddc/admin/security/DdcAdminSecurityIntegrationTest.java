@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.ddc.admin.controller.DdcCacheController;
 import top.egon.cola.component.ddc.admin.controller.DdcConfigController;
-import top.egon.cola.component.ddc.admin.controller.DdcManifestController;
 import top.egon.cola.component.ddc.admin.controller.DdcOpenApiController;
 import top.egon.cola.component.ddc.admin.controller.DdcPublishTaskController;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
@@ -50,7 +49,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {
-        DdcManifestController.class,
         DdcConfigController.class,
         DdcPublishTaskController.class,
         DdcCacheController.class,
@@ -65,7 +63,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DdcAdminSecurityIntegrationTest.NonceConfiguration.class
 })
 @TestPropertySource(properties = {
-        "egon.cola.component.ddc.admin.manifest.version=5.2.3-test",
         "egon.cola.component.ddc.admin.security.local-dev=true",
         "egon.cola.component.ddc.admin.openapi.signature-enabled=true",
         "egon.cola.component.ddc.admin.openapi.credentials[0].credential-id=sdk-a",
@@ -99,9 +96,9 @@ class DdcAdminSecurityIntegrationTest {
 
     @Test
     void permitsOnlyDeclaredAnonymousEndpoints() throws Exception {
-        mockMvc.perform(get("/api/v1/ddc/manifest"))
-                .andExpect(status().isOk());
         mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/actuator/health/readiness"))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isOk());
@@ -342,7 +339,11 @@ class DdcAdminSecurityIntegrationTest {
     @RestController
     static class HealthInfoController {
 
-        @GetMapping({"/actuator/health", "/actuator/info"})
+        @GetMapping({
+                "/actuator/health",
+                "/actuator/health/readiness",
+                "/actuator/info"
+        })
         Map<String, String> status() {
             return Map.of("status", "UP");
         }

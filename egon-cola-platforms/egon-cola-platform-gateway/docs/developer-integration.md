@@ -186,7 +186,7 @@ Function Calling, or select a business model.
 ## Manual success criteria
 
 ```bash
-curl -fsS http://127.0.0.1:18070/api/v1/ddc/manifest
+curl -fsS http://127.0.0.1:18070/actuator/health/readiness
 curl -fsS http://127.0.0.1:18080/actuator/health/readiness
 curl -fsS -H 'Host: providers.gateway.demo' \
   http://127.0.0.1:18081/api/providers/manual-1 | jq

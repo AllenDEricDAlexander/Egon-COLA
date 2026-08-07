@@ -56,7 +56,7 @@ that DDC and Gateway Admin Flyway histories cannot interfere with each other.
 Recommended checks:
 
 ```text
-DDC Admin  GET /api/v1/ddc/manifest
+DDC Admin  GET /actuator/health/readiness
 Admin      GET /actuator/health/liveness
 Admin      GET /actuator/health/readiness
 Engine     GET :18083/actuator/health/liveness

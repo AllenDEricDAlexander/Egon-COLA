@@ -6,10 +6,18 @@ management:
     web:
       exposure:
         include: health,info,metrics
+  info:
+    env:
+      enabled: true
   endpoint:
     health:
       probes:
         enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: ${sdk.version}
 
 spring:
   application:
@@ -58,8 +66,6 @@ egon:
               audience: ${DDC_ADMIN_JWT_AUDIENCE:}
               jwk-set-uri: ${DDC_ADMIN_JWT_JWK_SET_URI:}
               hmac-secret-base64: ${DDC_ADMIN_JWT_HMAC_SECRET_BASE64:}
-          manifest:
-            version: ${sdk.version}
           transport-security:
             mode: DEVELOPMENT_PLAINTEXT
           max-value-bytes: 1048576
