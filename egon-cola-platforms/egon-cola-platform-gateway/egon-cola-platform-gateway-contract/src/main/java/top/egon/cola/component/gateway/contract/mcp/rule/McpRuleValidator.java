@@ -5,6 +5,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
+/**
+ * MCP 规则内容的跨对象一致性校验器。
+ *
+ * <p>负责检查 Server、能力名称、远程 provider 和 namespace 的唯一性及引用完整性。
+ */
 public final class McpRuleValidator {
 
     private McpRuleValidator() {

@@ -9,6 +9,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * MCP 契约记录共用的规范化和校验工具。
+ *
+ * <p>该类仅供规则包内部使用，统一保证列表、集合和映射在发布前具有稳定顺序及不可变语义。
+ */
 final class McpContractSupport {
 
     private McpContractSupport() {

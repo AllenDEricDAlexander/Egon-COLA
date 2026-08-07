@@ -4,7 +4,10 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Stable protocol identity used for definition idempotency and route references.
+ * 稳定的协议操作身份。
+ *
+ * <p>HTTP 和 RPC 分别按应用、协议及方法信息生成该键，用于定义上报幂等、路由引用和自动 MCP
+ * 工具身份，不能使用数据库随机 ID 替代。
  */
 public final class GatewayOperationKey {
 

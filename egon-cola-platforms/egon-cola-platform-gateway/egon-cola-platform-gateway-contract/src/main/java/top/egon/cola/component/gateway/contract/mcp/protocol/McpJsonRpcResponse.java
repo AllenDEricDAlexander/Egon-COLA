@@ -1,5 +1,10 @@
 package top.egon.cola.component.gateway.contract.mcp.protocol;
 
+/**
+ * MCP JSON-RPC 2.0 响应。
+ *
+ * <p>响应只能在 {@code result} 和 {@code error} 之间二选一；通知请求由协议层直接忽略响应。
+ */
 public record McpJsonRpcResponse(
         String jsonrpc,
         Object id,

@@ -4,6 +4,11 @@ import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 
 import java.util.Set;
 
+/**
+ * MCP Server 的运行时定义。
+ *
+ * <p>Server 是工具、资源和 Prompt 的命名及协议承载边界，同时携带平台级 OAuth 和缓存配置。
+ */
 public record McpRuntimeServer(
         String serverId,
         String serverCode,

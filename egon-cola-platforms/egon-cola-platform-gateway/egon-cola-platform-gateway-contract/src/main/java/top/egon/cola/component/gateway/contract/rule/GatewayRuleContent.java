@@ -6,6 +6,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Gateway Engine 一次发布所需的完整规则集合。
+ *
+ * <p>内容包含操作、路由、各类治理策略、RPC Descriptor 和 MCP 规则；所有列表在构造时按稳定
+ * 标识排序，保证快照摘要和发布结果可重复。
+ */
 public record GatewayRuleContent(
         String gatewayGroupId,
         String gatewayGroupCode,

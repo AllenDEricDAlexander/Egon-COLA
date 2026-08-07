@@ -1,5 +1,10 @@
 package top.egon.cola.component.gateway.contract.mcp.protocol;
 
+/**
+ * MCP JSON-RPC 错误码及其网关内部语义。
+ *
+ * <p>枚举值同时提供标准 JSON-RPC 数字码和网关可审计的业务码，响应构造时应优先使用本类型。
+ */
 public enum McpErrorCode {
     MCP_PARSE_ERROR(-32700),
     MCP_INVALID_REQUEST(-32600),

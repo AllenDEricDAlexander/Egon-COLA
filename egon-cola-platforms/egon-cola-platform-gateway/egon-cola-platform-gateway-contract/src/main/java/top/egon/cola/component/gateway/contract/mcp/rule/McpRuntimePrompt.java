@@ -3,6 +3,9 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * MCP Prompt 的运行时定义，支持本地模板、网关操作引用或远程挂载来源。
+ */
 public record McpRuntimePrompt(
         String promptId,
         String serverCode,

@@ -5,24 +5,17 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Typed view over the call-governance policies that apply to one operation.
+ * 作用于单个 Operation 的调用治理策略的类型化视图。
  *
- * <p>The gateway already governs calls through {@link GatewayRuntimePolicy} records whose
- * {@code configuration} is an untyped {@code Map<String, Object>}. That is workable for the
- * engine, which knows the keys it wants, but it leaves the management surface with nothing to
- * bind a form to and no way to validate a value before publishing it. This record is the typed
- * projection of those policies; {@link ServiceCallPolicyCodec} converts in both directions.
+ * <p>Engine 仍以 {@link GatewayRuntimePolicy} 的无类型配置运行，本类型为管理端和发布校验
+ * 提供明确字段，并由 {@link ServiceCallPolicyCodec} 负责双向转换。它不新增另一套治理机制，
+ * 而是把超时、重试、负载均衡、熔断和缓存统一表达为可校验的契约。
  *
- * <p>It deliberately introduces no new governance mechanism. Every field except
- * {@link #cache()} maps onto a policy type the engine already compiles — {@code TIMEOUT},
- * {@code RETRY}, {@code CIRCUIT_BREAKER} and the provider-side load-balance policy — using the
- * key names those compilers already read.
- *
- * @param timeout        overall call deadline
- * @param retry          retry behaviour, including the idempotency guard
- * @param loadBalance    provider selection strategy
- * @param circuitBreaker failure-rate tripping
- * @param cache          response caching; the one genuinely new capability here
+ * @param timeout 调用总超时时间
+ * @param retry 重试行为及幂等保护
+ * @param loadBalance provider 实例选择策略
+ * @param circuitBreaker 失败率熔断策略
+ * @param cache 响应缓存策略
  */
 public record ServiceCallPolicy(
         Duration timeout,
@@ -32,7 +25,7 @@ public record ServiceCallPolicy(
         CachePolicy cache
 ) {
 
-    /** Matches the engine's fallback when no TIMEOUT policy is present. */
+    /** 未配置 TIMEOUT 策略时 Engine 使用的默认调用超时。 */
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3);
 
     private static final ServiceCallPolicy DEFAULTS = new ServiceCallPolicy(
@@ -58,11 +51,9 @@ public record ServiceCallPolicy(
     }
 
     /**
-     * Whether this policy is safe to apply to an operation with the given idempotency.
+     * 检查策略与操作幂等性组合是否存在安全风险。
      *
-     * <p>Returns a description of the problem, or empty when the combination is sound. This is
-     * surfaced in the management UI rather than enforced here, because the enforcement point
-     * is {@link RetryPolicy#appliesTo(boolean)} at call time.
+     * @return 描述问题的中文信息；组合安全时返回空值
      */
     public java.util.Optional<String> unsafeReason(boolean operationIsIdempotent) {
         if (retry.enabled() && retry.maxAttempts() > 1
@@ -79,14 +70,10 @@ public record ServiceCallPolicy(
     }
 
     /**
-     * Retry behaviour.
+     * 调用失败重试策略。
      *
-     * <p>Field names and defaults mirror the keys the engine's retry compiler already reads, so
-     * a policy authored through this type and one hand-written before it behave identically.
-     *
-     * @param retryOnlyIdempotent when true — the default — a non-idempotent operation is never
-     *                            retried regardless of the other settings. This is the guard
-     *                            that stops the gateway turning one timed-out payment into two.
+     * <p>字段名称和默认值与 Engine 的 RETRY 编译器保持一致；默认只重试幂等操作，避免超时的
+     * 写请求被重复执行。
      */
     public record RetryPolicy(
             boolean enabled,
@@ -139,7 +126,7 @@ public record ServiceCallPolicy(
                     Duration.ofMillis(20), Set.of(), Set.of(), true);
         }
 
-        /** Whether retries may actually be attempted for an operation with this idempotency. */
+        /** 判断当前操作是否允许实际发起重试。 */
         public boolean appliesTo(boolean operationIsIdempotent) {
             if (!enabled || maxAttempts <= 1) {
                 return false;
@@ -149,12 +136,10 @@ public record ServiceCallPolicy(
     }
 
     /**
-     * Provider selection.
+     * provider 实例选择策略。
      *
-     * @param strategy       algorithm; names match the engine's load balancer registry
-     * @param hashKey        request attribute hashed by {@code CONSISTENT_HASH}; ignored otherwise
-     * @param preferSameZone try same-zone instances first, falling back across zones when none
-     *                       are available rather than failing the call
+     * <p>算法名称与 Engine 注册表一致；一致性哈希使用 {@code hashKey} 指定参与哈希的请求
+     * 属性，并可优先选择同可用区实例。
      */
     public record LoadBalancePolicy(
             LoadBalanceStrategy strategy,
@@ -180,10 +165,9 @@ public record ServiceCallPolicy(
     }
 
     /**
-     * Circuit breaking.
+     * 基于失败率的熔断策略。
      *
-     * <p>Defaults match the engine's built-in circuit policy so adopting this type does not
-     * silently change tripping behaviour.
+     * <p>默认值与 Engine 内置策略一致，使用该类型不会悄悄改变原有熔断行为。
      */
     public record CircuitBreakerPolicy(
             boolean enabled,
@@ -210,8 +194,7 @@ public record ServiceCallPolicy(
                 throw new IllegalArgumentException("minimumNumberOfCalls must be positive");
             }
             if (minimumNumberOfCalls > slidingWindowSize) {
-                // Otherwise the breaker can never evaluate: the window is discarded before
-                // enough calls accumulate to reach the minimum.
+                // 否则窗口会在积累到最小调用数前被丢弃，熔断器永远无法评估失败率。
                 throw new IllegalArgumentException(
                         "minimumNumberOfCalls must not exceed slidingWindowSize");
             }
@@ -227,14 +210,10 @@ public record ServiceCallPolicy(
     }
 
     /**
-     * Response caching.
+     * 响应缓存策略。
      *
-     * <p>The only capability here the engine does not already have. Caching is unsafe for
-     * anything that mutates state, so enabling it is gated on the operation being idempotent
-     * and read-shaped; see {@link #cacheableRequestMethod(String)}.
-     *
-     * @param varyHeaders request headers that participate in the cache key, so a response
-     *                    tailored to one caller is not served to another
+     * <p>缓存只适用于幂等且读型请求，{@link #cacheableRequestMethod(String)} 提供基础方法
+     * 白名单；{@code varyHeaders} 用于把调用方差异纳入缓存键。
      */
     public record CachePolicy(
             boolean enabled,
@@ -268,12 +247,7 @@ public record ServiceCallPolicy(
             return DISABLED;
         }
 
-        /**
-         * Whether a request method is eligible for caching at all.
-         *
-         * <p>Restricted to the read-only methods. Caching a POST would let one caller's write
-         * be answered from another's response.
-         */
+        /** 判断请求方法是否属于允许缓存的只读方法。 */
         public static boolean cacheableRequestMethod(String requestMethod) {
             return "GET".equalsIgnoreCase(requestMethod) || "HEAD".equalsIgnoreCase(requestMethod);
         }

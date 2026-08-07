@@ -5,6 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * MCP JSON-RPC 错误对象。
+ *
+ * <p>{@code data.code} 固定保留为 {@link McpErrorCode} 名称，其他诊断信息作为附加字段传递，
+ * 便于客户端区分协议错误和网关治理错误。
+ */
 public record McpJsonRpcError(
         int code,
         String message,

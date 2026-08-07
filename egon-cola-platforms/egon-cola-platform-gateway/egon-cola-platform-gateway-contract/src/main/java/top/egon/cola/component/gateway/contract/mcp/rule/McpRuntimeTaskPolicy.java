@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.contract.mcp.rule;
 
+/**
+ * MCP 长任务执行策略，规定工具是否持久化、超时、结果保留和最大重试次数。
+ */
 public record McpRuntimeTaskPolicy(
         String taskPolicyId,
         String serverCode,

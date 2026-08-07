@@ -8,6 +8,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * 发布到 Engine 的协议无关操作定义。
+ *
+ * <p>操作是路由和 MCP Tool 共同引用的核心资源；其中 attributes 承载扩展元数据，例如注解
+ * 生成的 MCP exposure 信息。
+ */
 public record GatewayRuntimeOperation(
         String operationId,
         String operationKey,

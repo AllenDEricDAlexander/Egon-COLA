@@ -5,7 +5,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Safe public error contract shared by HTTP and RPC transports.
+ * HTTP 和 RPC 共同使用的安全错误契约。
+ *
+ * <p>网关将内部异常转换为该类型后再交给协议适配层，避免把实现细节直接暴露给调用方。
  */
 public record GatewayError(
         String code,

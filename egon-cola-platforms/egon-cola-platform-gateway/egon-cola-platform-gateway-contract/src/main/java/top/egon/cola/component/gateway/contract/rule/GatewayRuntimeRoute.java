@@ -9,6 +9,12 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * 将外部请求匹配到 Gateway Operation 的运行时路由。
+ *
+ * <p>路由只描述入口匹配和传输覆盖项；操作本身及其 provider 信息由
+ * {@link GatewayRuntimeOperation} 统一承载。
+ */
 public record GatewayRuntimeRoute(
         String routeId,
         String operationId,

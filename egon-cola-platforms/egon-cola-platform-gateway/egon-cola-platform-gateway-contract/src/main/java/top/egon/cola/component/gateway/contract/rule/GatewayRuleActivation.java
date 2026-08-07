@@ -4,6 +4,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 告知 Engine 如何读取某次发布规则的激活元数据。
+ *
+ * <p>规则体较小时内联传输，较大时通过有序分片引用读取；两种模式互斥。
+ */
 public record GatewayRuleActivation(
         String activationSchemaVersion,
         String releaseId,

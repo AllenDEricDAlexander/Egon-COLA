@@ -2,6 +2,9 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 
 import java.util.Set;
 
+/**
+ * MCP App 的运行时发布定义，描述可加载前端资源及其权限边界。
+ */
 public record McpRuntimeApp(
         String appId,
         String serverCode,

@@ -6,6 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Starter 发现到的完整 Gateway 接口定义报告。
+ *
+ * <p>报告按业务域、实体域、接口分组和操作组织，HTTP 与 RPC 共用该目录模型；操作的
+ * {@code attributes} 可携带 MCP 暴露元数据等扩展信息。
+ */
 public record GatewayInterfaceDefinitionReport(
         String contractVersion,
         String reportId,
@@ -41,6 +47,9 @@ public record GatewayInterfaceDefinitionReport(
         );
     }
 
+    /**
+     * 产生接口报告的业务应用身份和部署位置。
+     */
     public record Application(
             String bizCode,
             String applicationCode,
@@ -61,6 +70,9 @@ public record GatewayInterfaceDefinitionReport(
         }
     }
 
+    /**
+     * 产生报告的构建版本及可审计构建元数据。
+     */
     public record Build(
             String artifactVersion,
             String buildId,
@@ -80,6 +92,9 @@ public record GatewayInterfaceDefinitionReport(
         }
     }
 
+    /**
+     * 业务域目录节点，包含该域下的实体域。
+     */
     public record BusinessDomain(
             String code,
             String name,
@@ -97,6 +112,9 @@ public record GatewayInterfaceDefinitionReport(
         }
     }
 
+    /**
+     * 实体域目录节点，包含接口分组。
+     */
     public record EntityDomain(
             String code,
             String name,
@@ -114,6 +132,9 @@ public record GatewayInterfaceDefinitionReport(
         }
     }
 
+    /**
+     * 接口分组节点，描述 Controller 或 RPC Contract 的协议边界及其操作。
+     */
     public record InterfaceGroup(
             String code,
             String name,
@@ -138,6 +159,12 @@ public record GatewayInterfaceDefinitionReport(
         }
     }
 
+    /**
+     * 可被路由和暴露的单个 Gateway 操作定义。
+     *
+     * <p>这里同时保存接口文档 Schema、provider 身份、访问属性和 RPC Descriptor 快照，
+     * 使 HTTP、RPC 以及自动 MCP 工具都引用同一份操作事实。
+     */
     public record Operation(
             String operationKey,
             String protocol,
@@ -190,6 +217,9 @@ public record GatewayInterfaceDefinitionReport(
         }
     }
 
+    /**
+     * 操作实际提供方服务的定位信息。
+     */
     public record ProviderService(
             String bizCode,
             String appCode,

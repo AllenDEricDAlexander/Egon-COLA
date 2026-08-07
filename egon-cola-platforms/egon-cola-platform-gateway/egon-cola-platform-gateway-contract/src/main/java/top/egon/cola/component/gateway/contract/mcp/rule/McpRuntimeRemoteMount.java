@@ -3,6 +3,9 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 将远程 MCP provider 挂载到本地 Server namespace 的运行时规则。
+ */
 public record McpRuntimeRemoteMount(
         String mountId,
         String serverCode,

@@ -3,6 +3,12 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * MCP Tool 的运行时定义。
+ *
+ * <p>Tool 可以引用本地 HTTP/RPC Operation，也可以来自远程挂载；自动投影的工具通过
+ * {@code operationId} 复用 Gateway 接口的输入输出 Schema 和权限语义。
+ */
 public record McpRuntimeTool(
         String toolId,
         String serverCode,

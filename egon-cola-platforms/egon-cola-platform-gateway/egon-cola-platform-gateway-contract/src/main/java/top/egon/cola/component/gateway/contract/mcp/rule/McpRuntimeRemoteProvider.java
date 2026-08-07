@@ -4,6 +4,11 @@ import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 
 import java.util.Objects;
 
+/**
+ * 远程 MCP provider 的运行时连接定义。
+ *
+ * <p>endpoint、认证和 TLS 使用引用值，不在契约中携带明文凭据。
+ */
 public record McpRuntimeRemoteProvider(
         String providerId,
         String providerCode,

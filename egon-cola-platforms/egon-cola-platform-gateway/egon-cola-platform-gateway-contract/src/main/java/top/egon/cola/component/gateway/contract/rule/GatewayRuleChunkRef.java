@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.contract.rule;
 
+/**
+ * 一段分片规则内容在配置存储中的引用及完整性校验信息。
+ */
 public record GatewayRuleChunkRef(
         String configKey,
         int index,

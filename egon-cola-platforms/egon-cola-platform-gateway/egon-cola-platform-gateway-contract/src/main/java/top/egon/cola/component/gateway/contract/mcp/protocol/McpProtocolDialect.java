@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.contract.mcp.protocol;
 
+/**
+ * 网关支持的 MCP 协议方言及其协商版本。
+ */
 public enum McpProtocolDialect {
     STABLE_2025_11_25("2025-11-25", false),
     RC_2026_07_28("2026-07-28", true),

@@ -3,6 +3,12 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * 一份可发布的 MCP 规则内容。
+ *
+ * <p>集中承载本地 Server、自动或手工 Tool、Resource、Prompt、Task、App 以及远程挂载定义，
+ * 构造时会按稳定键排序，发布前通过 {@link McpRuleValidator} 校验跨对象引用。
+ */
 public record McpRuleContent(
         List<McpRuntimeServer> servers,
         List<McpRuntimeTool> tools,

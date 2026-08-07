@@ -3,6 +3,9 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * MCP Resource 模板的运行时定义，用 URI 模板描述一组可参数化的资源。
+ */
 public record McpRuntimeResourceTemplate(
         String templateId,
         String serverCode,

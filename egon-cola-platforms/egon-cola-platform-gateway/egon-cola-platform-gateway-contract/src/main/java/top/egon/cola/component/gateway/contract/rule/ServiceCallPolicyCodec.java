@@ -14,19 +14,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Projects between {@link ServiceCallPolicy} and the {@link GatewayRuntimePolicy} records the
- * engine compiles.
+ * 在 {@link ServiceCallPolicy} 类型化策略与 Engine 编译的 {@link GatewayRuntimePolicy} 之间
+ * 进行投影转换。
  *
- * <p>Two properties matter more than the field mapping itself:
- *
- * <p><strong>Unknown keys survive.</strong> {@link #encode} starts from the existing policy
- * configuration and overwrites only the keys this type owns. A key written by a newer admin, or
- * one the engine reads but this type does not model, is carried through untouched. Without this,
- * two admin versions editing the same policy would silently delete each other's settings.
- *
- * <p><strong>Decoding is total.</strong> Any policy list decodes to a valid policy, falling back
- * to the engine's own defaults per field. Rules are published data; a malformed value must not
- * make the whole rule set unreadable.
+ * <p>编码时只覆盖本类型拥有的键，未知配置会保留；解码时对每个字段使用 Engine 默认值兜底，
+ * 保证一条格式异常的已发布规则不会导致整份规则不可读。
  */
 public final class ServiceCallPolicyCodec {
 
@@ -61,7 +53,7 @@ public final class ServiceCallPolicyCodec {
     private ServiceCallPolicyCodec() {
     }
 
-    /** Builds the typed view from the policies attached to an operation. */
+    /** 从 Operation 绑定的运行时策略构建类型化视图。 */
     public static ServiceCallPolicy decode(Collection<GatewayRuntimePolicy> policies) {
         if (policies == null || policies.isEmpty()) {
             return ServiceCallPolicy.defaults();
@@ -81,13 +73,12 @@ public final class ServiceCallPolicyCodec {
     }
 
     /**
-     * Renders the typed view back to policies, preserving anything already present that this
-     * type does not model.
+     * 将类型化视图编码回运行时策略，并保留本类型未建模的既有配置。
      *
-     * @param policy   the edited view
-     * @param existing the policies currently attached, matched by type; may be empty
-     * @param policyId supplies an id for a policy type that did not exist before
-     * @return one policy per type, in a stable order
+     * @param policy 编辑后的类型化策略
+     * @param existing 当前已绑定的策略，按类型匹配，可以为空
+     * @param policyId 为此前不存在的策略类型生成 ID
+     * @return 按稳定顺序排列的各类型策略
      */
     public static List<GatewayRuntimePolicy> encode(
             ServiceCallPolicy policy,
@@ -117,7 +108,7 @@ public final class ServiceCallPolicyCodec {
             String type,
             Map<String, Object> owned) {
         GatewayRuntimePolicy previous = current.get(type);
-        // Start from what is already stored so keys outside this type's model survive the edit.
+        // 从已存配置开始，确保本类型未建模的键在编辑后仍然保留。
         Map<String, Object> configuration = new LinkedHashMap<>();
         if (previous != null) {
             configuration.putAll(previous.configuration());
@@ -190,8 +181,7 @@ public final class ServiceCallPolicyCodec {
                 string(config, KEY_STRATEGY, null), defaults.strategy());
         String hashKey = string(config, KEY_HASH_KEY, defaults.hashKey());
         if (strategy == LoadBalanceStrategy.CONSISTENT_HASH && (hashKey == null || hashKey.isBlank())) {
-            // Constructing it would throw; a published rule missing its hash key degrades to
-            // the default algorithm rather than making the rule set undecodable.
+            // 构造该策略会抛错；缺少 hashKey 时降级为默认算法，避免整份规则无法解码。
             strategy = defaults.strategy();
         }
         return new ServiceCallPolicy.LoadBalancePolicy(
@@ -331,8 +321,8 @@ public final class ServiceCallPolicyCodec {
     }
 
     /**
-     * Reads a duration, accepting every form the engine already tolerates: a {@link Duration},
-     * a number of milliseconds, an ISO-8601 string, or a sibling {@code <key>Millis} entry.
+     * 读取时长，兼容 Engine 已支持的 Duration、毫秒数、ISO-8601 字符串及同级
+     * {@code <key>Millis} 字段。
      */
     private static Duration duration(Map<String, Object> config, String key, Duration fallback) {
         Object value = config.get(key);
@@ -367,7 +357,7 @@ public final class ServiceCallPolicyCodec {
             try {
                 parsed.add(Integer.parseInt(item));
             } catch (NumberFormatException ignored) {
-                // Skip the bad entry rather than discarding the whole status list.
+                // 忽略非法项，不丢弃整个状态码列表。
             }
         }
         return parsed.isEmpty() ? fallback : Set.copyOf(parsed);

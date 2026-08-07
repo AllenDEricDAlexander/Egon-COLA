@@ -3,6 +3,9 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * MCP Resource 的运行时定义，可由网关操作、本地驱动或远程挂载提供内容。
+ */
 public record McpRuntimeResource(
         String resourceId,
         String serverCode,

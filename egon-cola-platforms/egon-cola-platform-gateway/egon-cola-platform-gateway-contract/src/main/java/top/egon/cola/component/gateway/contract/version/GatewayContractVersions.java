@@ -1,7 +1,9 @@
 package top.egon.cola.component.gateway.contract.version;
 
 /**
- * Independent compatibility versions for Gateway cross-process contracts.
+ * 网关跨进程契约使用的独立版本号。
+ *
+ * <p>API、事件和规则分别演进，避免某一类消息升级时被迫同步升级所有消费者。
  */
 public final class GatewayContractVersions {
 

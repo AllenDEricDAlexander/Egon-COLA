@@ -4,7 +4,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Protocol-independent success or failure result.
+ * 与具体传输协议无关的成功或失败结果。
+ *
+ * <p>成功结果不携带错误，失败结果必须包含 {@link GatewayError}，供 HTTP、RPC 和运行时统一处理。
  */
 public final class GatewayResult {
 

@@ -9,6 +9,12 @@ import top.egon.cola.component.common.trace.TraceState;
 import java.util.Locale;
 import java.util.Objects;
 
+/**
+ * 网关一次调用使用的分布式链路上下文。
+ *
+ * <p>该类型负责校验并规范化入口请求的 W3C Trace Context，同时保存网关引擎 span、请求 ID
+ * 以及头部冲突信息，供 HTTP 和 RPC provider 继续传播。
+ */
 public record GatewayTraceContext(
         String traceId,
         String requestId,
@@ -124,6 +130,9 @@ public record GatewayTraceContext(
                 : Source.GENERATED;
     }
 
+    /**
+     * Trace ID 的来源，表示是从合法的 traceparent 提取，还是由网关生成。
+     */
     public enum Source {
         TRACEPARENT,
         GENERATED

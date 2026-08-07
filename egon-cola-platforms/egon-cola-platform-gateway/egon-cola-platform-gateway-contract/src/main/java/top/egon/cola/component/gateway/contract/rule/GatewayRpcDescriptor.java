@@ -1,5 +1,10 @@
 package top.egon.cola.component.gateway.contract.rule;
 
+/**
+ * RPC provider 的 Protobuf Descriptor 集合及其内容摘要。
+ *
+ * <p>运行时据此解析服务、方法和消息结构；{@code sha256} 用于校验快照未被篡改。
+ */
 public record GatewayRpcDescriptor(
         String descriptorId,
         String sha256,

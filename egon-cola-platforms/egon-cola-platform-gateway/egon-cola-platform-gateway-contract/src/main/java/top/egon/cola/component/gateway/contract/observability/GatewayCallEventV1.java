@@ -4,6 +4,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 网关调用观测事件 v1。
+ *
+ * <p>事件把链路、请求、路由、治理决策、最终结果和每次 provider 尝试统一封装，供审计、指标和
+ * 故障分析使用；它描述事实，不参与调用流程控制。
+ */
 public record GatewayCallEventV1(
         String eventSchemaVersion,
         String eventId,
@@ -38,6 +44,9 @@ public record GatewayCallEventV1(
         ));
     }
 
+    /**
+     * 调用关联的链路标识。
+     */
     public record Trace(
             String traceId,
             String engineSpanId,
@@ -45,6 +54,9 @@ public record GatewayCallEventV1(
     ) {
     }
 
+    /**
+     * 进入网关的请求摘要，不包含请求体等敏感业务数据。
+     */
     public record Request(
             String requestId,
             String protocol,
@@ -56,6 +68,9 @@ public record GatewayCallEventV1(
     ) {
     }
 
+    /**
+     * 本次调用实际使用的发布、操作、路由和 provider 身份。
+     */
     public record Routing(
             String env,
             String namespace,
@@ -74,6 +89,9 @@ public record GatewayCallEventV1(
         }
     }
 
+    /**
+     * 限流、熔断、安全和重试等治理阶段的最终决策。
+     */
     public record Governance(
             String terminalStage,
             String rateLimitDecision,
@@ -83,6 +101,9 @@ public record GatewayCallEventV1(
     ) {
     }
 
+    /**
+     * 调用最终结果及传输层状态、响应大小和耗时。
+     */
     public record Result(
             String category,
             String gatewayErrorCode,
@@ -101,6 +122,9 @@ public record GatewayCallEventV1(
         }
     }
 
+    /**
+     * 一次具体 provider 尝试的执行记录，用于还原重试和选址过程。
+     */
     public record Attempt(
             int attempt,
             String spanId,
