@@ -1,8 +1,10 @@
 {
   "name": "@egon-cola/admin-web-shared",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "main": "./dist/admin-web-shared.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -50,5 +52,8 @@
     "typescript-eslint": "^8.65.0",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
