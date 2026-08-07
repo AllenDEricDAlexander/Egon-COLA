@@ -77,8 +77,7 @@ class GatewaySchemaAnnotationContractTest {
                         GatewayRequestLocation.HEADER,
                         GatewayRequestLocation.COOKIE,
                         GatewayRequestLocation.BODY,
-                        GatewayRequestLocation.PART,
-                        GatewayRequestLocation.RPC_MESSAGE
+                        GatewayRequestLocation.PART
                 },
                 GatewayRequestLocation.values()
         );

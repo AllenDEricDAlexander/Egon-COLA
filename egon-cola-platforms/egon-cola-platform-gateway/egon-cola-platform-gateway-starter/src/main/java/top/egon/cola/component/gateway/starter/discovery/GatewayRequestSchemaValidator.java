@@ -150,9 +150,6 @@ final class GatewayRequestSchemaValidator {
             HandlerMethod handler,
             RequestParameter parameter,
             GatewayRequestSchemaField declaration) {
-        if (declaration.location() == GatewayRequestLocation.RPC_MESSAGE) {
-            throw invalid(handler, "RPC_MESSAGE is not valid for HTTP");
-        }
         if (declaration.expanded()
                 && (declaration.location() != GatewayRequestLocation.QUERY
                 || declaration.shape() != GatewaySchemaShape.OBJECT)) {

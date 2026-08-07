@@ -5,8 +5,6 @@ import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefini
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
-import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
@@ -112,7 +110,7 @@ public final class RpcGatewayDefinitionContributor
                 ));
         GatewayOperation annotation = descriptor.javaMethod()
                 .getAnnotation(GatewayOperation.class);
-        validateSchemaDeclarations(descriptor, annotation, method);
+        rejectSchemaDeclarations(annotation, method);
         boolean idempotent = GatewayOperationSemantics.idempotent(annotation);
         if (descriptor.idempotent() != idempotent) {
             throw new IllegalArgumentException(
@@ -207,160 +205,22 @@ public final class RpcGatewayDefinitionContributor
         );
     }
 
-    private void validateSchemaDeclarations(
-            RpcMethodDescriptor descriptor,
+    private void rejectSchemaDeclarations(
             GatewayOperation operation,
             RpcMethodSnapshot method) {
-        GatewayRequestSchemaField[] requests = operation == null
-                ? new GatewayRequestSchemaField[0]
-                : operation.requestSchemaFields();
-        if (operation != null && operation.registerMcp()
-                && requests.length == 0) {
-            throw invalid(method, "registerMcp requires one RPC_MESSAGE");
-        }
-        if (requests.length > 0) {
-            if (requests.length != 1) {
-                throw invalid(method, "RPC request must declare one RPC_MESSAGE");
-            }
-            GatewayRequestSchemaField request = requests[0];
-            if (request.location() != GatewayRequestLocation.RPC_MESSAGE
-                    || request.expanded()
-                    || !request.name().isBlank()
-                    || request.shape() != GatewaySchemaShape.OBJECT) {
-                throw invalid(
-                        method,
-                        "RPC request declaration must be RPC_MESSAGE + OBJECT"
-                );
-            }
-            Class<?> actual = descriptor.javaMethod().getParameterTypes()[0];
-            if (!actual.equals(request.schema())) {
-                throw invalid(
-                        method,
-                        "RPC request root class mismatch: declared="
-                                + request.schema().getName() + ", actual="
-                                + actual.getName()
-                );
-            }
-        }
-        GatewayResponseSchema response = operation == null
-                ? null : operation.responseSchema();
-        boolean explicitResponse = response != null
-                && !defaultResponse(response);
-        if (operation != null && operation.registerMcp()
-                && !explicitResponse) {
-            throw invalid(method, "registerMcp requires explicit responseSchema");
-        }
-        if (explicitResponse) {
-            validateResponse(descriptor, response, method);
-        }
-    }
-
-    private void validateResponse(
-            RpcMethodDescriptor descriptor,
-            GatewayResponseSchema response,
-            RpcMethodSnapshot method) {
-        Class<?> actual = descriptor.javaMethod().getReturnType();
-        if (response.wrapper() == Void.class) {
-            if (!response.payloadField().isBlank()) {
-                throw invalid(method, "direct RPC response has no payloadField");
-            }
-            if (response.shape() != GatewaySchemaShape.OBJECT
-                    || !actual.equals(response.schema())) {
-                throw invalid(method, "RPC response root class mismatch");
-            }
+        if (operation == null) {
             return;
         }
-        if (!actual.equals(response.wrapper())) {
-            throw invalid(method, "RPC response wrapper mismatch");
-        }
-        if (response.payloadField().isBlank()) {
-            throw invalid(method, "RPC response payloadField is required");
-        }
-        com.google.protobuf.Descriptors.FieldDescriptor payload =
-                descriptor.protoMethod().getOutputType().getFields().stream()
-                        .filter(field -> field.getJsonName().equals(
-                                response.payloadField()
-                        ) || field.getName().equals(response.payloadField()))
-                        .findFirst()
-                        .orElseThrow(() -> invalid(
-                                method,
-                                "RPC response payloadField does not exist: "
-                                        + response.payloadField()
-                        ));
-        GatewaySchemaShape actualShape = payload.isMapField()
-                ? GatewaySchemaShape.MAP
-                : payload.isRepeated()
-                ? GatewaySchemaShape.LIST
-                : payload.getJavaType()
-                == com.google.protobuf.Descriptors.FieldDescriptor.JavaType.MESSAGE
-                ? GatewaySchemaShape.OBJECT : GatewaySchemaShape.VALUE;
-        GatewaySchemaShape declaredShape = response.shape()
-                == GatewaySchemaShape.AUTO ? actualShape : response.shape();
-        if (actualShape != declaredShape) {
-            throw invalid(method, "RPC response payload shape mismatch");
-        }
-        com.google.protobuf.Descriptors.FieldDescriptor value = payload;
-        if (payload.isMapField()) {
-            value = payload.getMessageType().findFieldByName("value");
-        }
-        if (value.getJavaType()
-                == com.google.protobuf.Descriptors.FieldDescriptor.JavaType.MESSAGE) {
-            if (!descriptorClassMatches(response.schema(), value.getMessageType())) {
-                throw invalid(method, "RPC response payload class mismatch");
-            }
-        } else if (!scalarClass(value).equals(box(response.schema()))) {
-            throw invalid(method, "RPC response scalar class mismatch");
-        }
-    }
-
-    private boolean descriptorClassMatches(
-            Class<?> type,
-            com.google.protobuf.Descriptors.Descriptor descriptor) {
-        try {
-            Object value = type.getMethod("getDescriptor").invoke(null);
-            return descriptor.equals(value);
-        } catch (ReflectiveOperationException exception) {
-            return false;
-        }
-    }
-
-    private Class<?> scalarClass(
-            com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return switch (field.getJavaType()) {
-            case BOOLEAN -> Boolean.class;
-            case BYTE_STRING -> com.google.protobuf.ByteString.class;
-            case DOUBLE -> Double.class;
-            case ENUM -> String.class;
-            case FLOAT -> Float.class;
-            case INT -> Integer.class;
-            case LONG -> Long.class;
-            case STRING -> String.class;
-            case MESSAGE -> throw new IllegalArgumentException(
-                    "message field is not scalar"
+        GatewayResponseSchema response = operation.responseSchema();
+        if (operation.requestSchemaFields().length > 0
+                || !defaultResponse(response)) {
+            throw invalid(
+                    method,
+                    "RPC schema is derived from Protobuf Descriptor; "
+                            + "requestSchemaFields and responseSchema "
+                            + "must not be declared"
             );
-        };
-    }
-
-    private Class<?> box(Class<?> type) {
-        if (!type.isPrimitive()) {
-            return type;
         }
-        if (type == boolean.class) {
-            return Boolean.class;
-        }
-        if (type == int.class) {
-            return Integer.class;
-        }
-        if (type == long.class) {
-            return Long.class;
-        }
-        if (type == float.class) {
-            return Float.class;
-        }
-        if (type == double.class) {
-            return Double.class;
-        }
-        return type;
     }
 
     private boolean defaultResponse(GatewayResponseSchema response) {

@@ -423,16 +423,7 @@ class McpExposureMapperTest {
                         "order:read"
                 },
                 mcpRiskLevel = McpRiskLevel.HIGH,
-                tags = {"query"},
-                requestSchemaFields = @GatewayRequestSchemaField(
-                        location = GatewayRequestLocation.RPC_MESSAGE,
-                        schema = Empty.class,
-                        shape = GatewaySchemaShape.OBJECT
-                ),
-                responseSchema = @GatewayResponseSchema(
-                        schema = Empty.class,
-                        shape = GatewaySchemaShape.OBJECT
-                )
+                tags = {"query"}
         )
         Empty lookup(Empty request);
     }

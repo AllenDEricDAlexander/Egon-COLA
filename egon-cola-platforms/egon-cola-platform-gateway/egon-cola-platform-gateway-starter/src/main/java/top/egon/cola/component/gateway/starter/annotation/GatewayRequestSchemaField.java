@@ -6,6 +6,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * HTTP 方法中一个请求参数或请求体的根 Schema 声明。
+ *
+ * <p>RPC 输入由 Protobuf Descriptor 自动生成，不允许使用该注解重复声明。
+ */
 @Target({})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

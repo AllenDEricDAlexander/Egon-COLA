@@ -35,7 +35,13 @@ public @interface GatewayOperation {
 
     String[] tags() default {};
 
+    /**
+     * HTTP 请求参数的完整 Schema 声明；RPC 请求 Schema 由 Protobuf Descriptor 自动生成。
+     */
     GatewayRequestSchemaField[] requestSchemaFields() default {};
 
+    /**
+     * HTTP 响应及包装对象的 Schema 声明；RPC 响应 Schema 由 Protobuf Descriptor 自动生成。
+     */
     GatewayResponseSchema responseSchema() default @GatewayResponseSchema;
 }
