@@ -6,8 +6,8 @@ signing keys, and identity-security audit events.
 
 ## Boundaries
 
-- `contract` contains stable identity and OAuth DTOs with no Spring or I/O.
-- `core` contains pure identity, OAuth, and token policies behind ports.
+- `core` contains stable identity contracts and pure identity, OAuth, and token
+  policies behind ports, with no Spring or I/O.
 - `starter` verifies IdP tokens and global user state in downstream services.
 - `gateway-adapter` implements identity-only Gateway security capabilities.
 - `admin` owns persistence, OAuth HTTP endpoints, DDC/Gateway integration, and

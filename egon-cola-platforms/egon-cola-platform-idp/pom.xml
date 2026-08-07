@@ -17,7 +17,6 @@
     <description>Unified identity provider platform for Egon COLA.</description>
 
     <modules>
-        <module>egon-cola-platform-idp-contract</module>
         <module>egon-cola-platform-idp-core</module>
         <module>egon-cola-platform-idp-starter</module>
         <module>egon-cola-platform-idp-gateway-adapter</module>
@@ -27,11 +26,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-platform-idp-contract</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-idp-core</artifactId>
