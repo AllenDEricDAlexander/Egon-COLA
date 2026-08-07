@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.slf4j.MDC;
+import top.egon.cola.component.common.trace.TraceContext;
 
 import java.io.Serializable;
 
@@ -20,14 +20,14 @@ public class Response<T> implements Serializable {
     private String code;
     private String info;
     @Builder.Default
-    private String traceId = MDC.get("traceId");
+    private String traceId = TraceContext.getTraceId();
     private T data;
 
     public static <T> Response<T> success(T data) {
         return Response.<T>builder()
                 .code(Code.SUCCESS.getCode())
                 .info(Code.SUCCESS.getInfo())
-                .traceId(MDC.get("traceId"))
+                .traceId(TraceContext.getTraceId())
                 .data(data)
                 .build();
     }
@@ -36,7 +36,7 @@ public class Response<T> implements Serializable {
         return Response.<T>builder()
                 .code(Code.ILLEGAL_PARAMETER.getCode())
                 .info(info)
-                .traceId(MDC.get("traceId"))
+                .traceId(TraceContext.getTraceId())
                 .build();
     }
 
@@ -44,7 +44,7 @@ public class Response<T> implements Serializable {
         return Response.<T>builder()
                 .code(Code.UN_ERROR.getCode())
                 .info(info)
-                .traceId(MDC.get("traceId"))
+                .traceId(TraceContext.getTraceId())
                 .build();
     }
 

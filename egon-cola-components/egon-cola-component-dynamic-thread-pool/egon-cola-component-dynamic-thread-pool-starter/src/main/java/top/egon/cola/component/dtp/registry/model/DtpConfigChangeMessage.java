@@ -3,10 +3,13 @@ package top.egon.cola.component.dtp.registry.model;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import top.egon.cola.component.common.trace.TraceKeys;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * @author      有罗敷的马同学
@@ -18,11 +21,11 @@ import java.time.Instant;
 @ToString
 public class DtpConfigChangeMessage {
 
+    private static final int MAX_CARRIER_VALUE_LENGTH = 512;
+
     private String messageId;
 
-    private String traceId;
-
-    private String requestId;
+    private Map<String, String> traceContext = Map.of();
 
     private String appName;
 
@@ -37,5 +40,24 @@ public class DtpConfigChangeMessage {
     private String operator;
 
     private Instant timestamp;
+
+    public void setTraceContext(Map<String, String> traceContext) {
+        if (traceContext == null || traceContext.isEmpty()) {
+            this.traceContext = Map.of();
+            return;
+        }
+        Map<String, String> carrier = new LinkedHashMap<>();
+        copyCarrierValue(traceContext, carrier, TraceKeys.TRACEPARENT_HEADER);
+        copyCarrierValue(traceContext, carrier, TraceKeys.TRACESTATE_HEADER);
+        copyCarrierValue(traceContext, carrier, TraceKeys.REQUEST_ID_HEADER);
+        this.traceContext = Map.copyOf(carrier);
+    }
+
+    private void copyCarrierValue(Map<String, String> source, Map<String, String> target, String key) {
+        String value = source.get(key);
+        if (value != null && !value.isBlank() && value.length() <= MAX_CARRIER_VALUE_LENGTH) {
+            target.put(key, value);
+        }
+    }
 
 }

@@ -3,7 +3,10 @@ package top.egon.cola.component.dtp.trigger.listener;
 import org.redisson.api.listener.MessageListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
+import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.common.trace.TracePropagation;
+import top.egon.cola.component.common.trace.TraceScope;
+import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.dtp.domain.IDynamicThreadPoolService;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
@@ -40,32 +43,34 @@ public class ThreadPoolConfigAdjustListener implements MessageListener<DtpConfig
     public void onMessage(CharSequence channel, DtpConfigChangeMessage message) {
         if (message == null) {
             logger.warn("动态线程池，收到空配置变更消息。频道:{}", channel);
-            MDC.clear();
             return;
         }
-        try {
-            MDC.put("traceId", message.getTraceId());
-            MDC.put("requestId", message.getRequestId());
-            ExecutorUpdateCommand command = message.getPayload();
-            UpdateResult result = dynamicThreadPoolService.updateExecutor(command);
-            DtpAuditEvent event = buildAuditEvent(message, result);
-            registry.recordAuditEvent(event);
-            if (result.getAfter() != null) {
-                registry.reportSnapshot(result.getAfter());
+        TracePropagation.Extracted extracted = TracePropagation.extract(
+                name -> message.getTraceContext().get(name),
+                TracePropagation.Options.defaults()
+        );
+        try (TraceScope ignored = TraceContext.open(extracted.state())) {
+            try {
+                ExecutorUpdateCommand command = message.getPayload();
+                UpdateResult result = dynamicThreadPoolService.updateExecutor(command);
+                DtpAuditEvent event = buildAuditEvent(message, result);
+                registry.recordAuditEvent(event);
+                if (result.getAfter() != null) {
+                    registry.reportSnapshot(result.getAfter());
+                }
+            } catch (Exception e) {
+                logger.error("动态线程池，配置变更处理失败。应用:{} 实例:{} 执行器:{}",
+                        message.getAppName(), message.getInstanceId(), message.getExecutorName(), e);
             }
-        } catch (Exception e) {
-            logger.error("动态线程池，配置变更处理失败。应用:{} 实例:{} 执行器:{}",
-                    message.getAppName(), message.getInstanceId(), message.getExecutorName(), e);
-        } finally {
-            MDC.clear();
         }
     }
 
     private DtpAuditEvent buildAuditEvent(DtpConfigChangeMessage message, UpdateResult result) {
         DtpAuditEvent event = new DtpAuditEvent();
+        TraceState traceState = TraceContext.currentOrCreate();
         event.setEventId(UUID.randomUUID().toString());
-        event.setTraceId(message.getTraceId());
-        event.setRequestId(message.getRequestId());
+        event.setTraceId(traceState.traceId());
+        event.setRequestId(traceState.requestId());
         event.setAppName(message.getAppName());
         event.setInstanceId(message.getInstanceId());
         event.setExecutorName(message.getExecutorName());

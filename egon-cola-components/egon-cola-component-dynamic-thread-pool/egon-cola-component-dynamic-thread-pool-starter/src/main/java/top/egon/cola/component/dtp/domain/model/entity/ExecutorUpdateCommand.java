@@ -33,10 +33,6 @@ public class ExecutorUpdateCommand {
 
     private Integer concurrencyLimit;
 
-    private String traceId;
-
-    private String requestId;
-
     private String operator;
 
     private Long version;

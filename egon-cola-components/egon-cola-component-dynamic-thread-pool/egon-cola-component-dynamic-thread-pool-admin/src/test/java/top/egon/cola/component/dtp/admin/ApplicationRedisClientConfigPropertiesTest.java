@@ -8,12 +8,14 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.ClassPathResource;
+import top.egon.cola.component.common.trace.TraceKeys;
 import top.egon.cola.component.dtp.config.DynamicThreadPoolAutoConfig;
 import top.egon.cola.component.dtp.registry.model.DtpConfigChangeMessage;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -93,10 +95,21 @@ class ApplicationRedisClientConfigPropertiesTest {
         DtpConfigChangeMessage message = new DtpConfigChangeMessage();
         message.setAppName("order-app");
         message.setTimestamp(Instant.parse("2026-06-30T00:00:00Z"));
+        message.setTraceContext(Map.of(
+                TraceKeys.TRACEPARENT_HEADER,
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+                TraceKeys.TRACESTATE_HEADER,
+                "vendor=value",
+                TraceKeys.REQUEST_ID_HEADER,
+                "request-redis-001"
+        ));
 
         String json = objectMapper.writeValueAsString(message);
+        DtpConfigChangeMessage restored = objectMapper.readValue(json, DtpConfigChangeMessage.class);
 
         assertThat(json).contains("timestamp");
+        assertThat(json).doesNotContain("\"traceId\"", "\"requestId\"");
+        assertThat(restored.getTraceContext()).isEqualTo(message.getTraceContext());
     }
 
     @Test

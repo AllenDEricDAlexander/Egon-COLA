@@ -5,6 +5,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.MDC;
+import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.common.trace.TraceKeys;
+import top.egon.cola.component.common.trace.TracePropagation;
+import top.egon.cola.component.common.trace.TraceScope;
+import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.dtp.domain.IDynamicThreadPoolService;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
@@ -15,6 +20,9 @@ import top.egon.cola.component.dtp.registry.model.DtpAuditEvent;
 import top.egon.cola.component.dtp.registry.model.DtpConfigChangeMessage;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,7 +52,7 @@ public class ThreadPoolConfigAdjustListenerTest {
 
     @BeforeEach
     public void setUp() {
-        MDC.clear();
+        TraceContext.clearOwnedKeys();
         dynamicThreadPoolService = mock(IDynamicThreadPoolService.class);
         registry = mock(IRegistry.class);
         listener = new ThreadPoolConfigAdjustListener(dynamicThreadPoolService, registry);
@@ -53,6 +61,7 @@ public class ThreadPoolConfigAdjustListenerTest {
     @AfterEach
     public void tearDown() {
         MDC.clear();
+        TraceContext.clearOwnedKeys();
     }
 
     @Test
@@ -65,7 +74,11 @@ public class ThreadPoolConfigAdjustListenerTest {
         result.setMessage("success");
         result.setBefore(before);
         result.setAfter(after);
-        when(dynamicThreadPoolService.updateExecutor(message.getPayload())).thenReturn(result);
+        AtomicReference<TraceState> listenerTrace = new AtomicReference<>();
+        when(dynamicThreadPoolService.updateExecutor(message.getPayload())).thenAnswer(invocation -> {
+            listenerTrace.set(TraceContext.current().orElseThrow());
+            return result;
+        });
 
         listener.onMessage("test-channel", message);
 
@@ -74,8 +87,10 @@ public class ThreadPoolConfigAdjustListenerTest {
         ArgumentCaptor<DtpAuditEvent> eventCaptor = ArgumentCaptor.forClass(DtpAuditEvent.class);
         verify(registry, times(1)).recordAuditEvent(eventCaptor.capture());
         DtpAuditEvent event = eventCaptor.getValue();
-        assertEquals("trace-001", event.getTraceId());
+        assertEquals("4bf92f3577b34da6a3ce929d0e0e4736", event.getTraceId());
         assertEquals("request-001", event.getRequestId());
+        assertEquals(event.getTraceId(), listenerTrace.get().traceId());
+        assertEquals("00f067aa0ba902b7", listenerTrace.get().parentSpanId());
         assertEquals("test-app", event.getAppName());
         assertEquals("instance-001", event.getInstanceId());
         assertEquals("orderExecutor", event.getExecutorName());
@@ -137,11 +152,35 @@ public class ThreadPoolConfigAdjustListenerTest {
 
     @Test
     public void test_onMessage_ignoresNullMessage() {
-        listener.onMessage("test-channel", null);
+        TraceState workerTrace = TraceState.root("worker-request");
+        try (TraceScope ignored = TraceContext.open(workerTrace)) {
+            listener.onMessage("test-channel", null);
+            assertEquals(workerTrace, TraceContext.current().orElseThrow());
+        }
 
         verifyNoMoreInteractions(dynamicThreadPoolService, registry);
         assertNull(MDC.get("traceId"));
         assertNull(MDC.get("requestId"));
+    }
+
+    @Test
+    public void test_onMessage_restoresWorkerContextWhenUpdateThrows() {
+        DtpConfigChangeMessage message = buildMessage();
+        when(dynamicThreadPoolService.updateExecutor(message.getPayload()))
+                .thenThrow(new IllegalStateException("update failed"));
+        TraceState workerTrace = TraceState.root("worker-request");
+        MDC.put("bizKey", "worker-value");
+
+        try (TraceScope ignored = TraceContext.open(workerTrace)) {
+            listener.onMessage("test-channel", message);
+
+            assertEquals(workerTrace, TraceContext.current().orElseThrow());
+            assertEquals("worker-value", MDC.get("bizKey"));
+        }
+
+        verify(dynamicThreadPoolService, times(1)).updateExecutor(message.getPayload());
+        verifyNoMoreInteractions(registry);
+        assertEquals("worker-value", MDC.get("bizKey"));
     }
 
     private DtpConfigChangeMessage buildMessage() {
@@ -152,14 +191,24 @@ public class ThreadPoolConfigAdjustListenerTest {
         command.setExecutorKind(ExecutorKind.PLATFORM_THREAD_POOL);
         command.setCorePoolSize(3);
         command.setMaximumPoolSize(9);
-        command.setTraceId("trace-001");
-        command.setRequestId("request-001");
         command.setOperator("tester");
 
         DtpConfigChangeMessage message = new DtpConfigChangeMessage();
         message.setMessageId("message-001");
-        message.setTraceId("trace-001");
-        message.setRequestId("request-001");
+        TraceState producerTrace = new TraceState(
+                "4bf92f3577b34da6a3ce929d0e0e4736",
+                "00f067aa0ba902b7",
+                null,
+                "request-001",
+                "01",
+                "vendor=value",
+                null,
+                null
+        );
+        Map<String, String> traceContext = new LinkedHashMap<>();
+        TracePropagation.inject(producerTrace, traceContext::put);
+        message.setTraceContext(traceContext);
+        assertEquals(producerTrace.traceparent(), message.getTraceContext().get(TraceKeys.TRACEPARENT_HEADER));
         message.setAppName("test-app");
         message.setInstanceId("instance-001");
         message.setExecutorName("orderExecutor");

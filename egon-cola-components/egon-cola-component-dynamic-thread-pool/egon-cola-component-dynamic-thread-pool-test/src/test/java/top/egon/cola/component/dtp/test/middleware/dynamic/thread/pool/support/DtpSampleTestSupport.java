@@ -1,5 +1,6 @@
 package top.egon.cola.component.dtp.test.middleware.dynamic.thread.pool.support;
 
+import top.egon.cola.component.common.trace.TracePropagation;
 import top.egon.cola.component.dtp.domain.IDynamicThreadPoolService;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
@@ -7,7 +8,9 @@ import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
 import top.egon.cola.component.dtp.registry.model.DtpConfigChangeMessage;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,8 +59,6 @@ public final class DtpSampleTestSupport {
         command.setInstanceId(snapshot.getInstanceId());
         command.setExecutorName(snapshot.getExecutorName());
         command.setExecutorKind(snapshot.getExecutorKind());
-        command.setTraceId("sample-test-" + UUID.randomUUID());
-        command.setRequestId("sample-test-" + UUID.randomUUID());
         command.setOperator("sample-test");
         return command;
     }
@@ -65,8 +66,9 @@ public final class DtpSampleTestSupport {
     public static DtpConfigChangeMessage changeMessage(ExecutorUpdateCommand command) {
         DtpConfigChangeMessage message = new DtpConfigChangeMessage();
         message.setMessageId(UUID.randomUUID().toString());
-        message.setTraceId(command.getTraceId());
-        message.setRequestId(command.getRequestId());
+        Map<String, String> traceContext = new LinkedHashMap<>();
+        TracePropagation.inject(TracePropagation.childForOutbound(), traceContext::put);
+        message.setTraceContext(traceContext);
         message.setAppName(command.getAppName());
         message.setInstanceId(command.getInstanceId());
         message.setExecutorName(command.getExecutorName());
