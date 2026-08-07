@@ -29,14 +29,6 @@ egon:
         report:
           enabled: true
           interval: 20s
-        trace:
-          enabled: true
-          mdc-enabled: true
-          trace-id-key: traceId
-          request-id-key: requestId
-        virtual:
-          enabled: true
-          default-concurrency-limit: 500
 
 # 日志
 logging:

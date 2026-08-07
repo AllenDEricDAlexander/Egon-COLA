@@ -1,7 +1,6 @@
 package top.egon.cola.component.dtp.executor.virtual;
 
-import top.egon.cola.component.dtp.context.DtpCallable;
-import top.egon.cola.component.dtp.context.DtpRunnable;
+import top.egon.cola.component.common.trace.TraceSnapshot;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -71,7 +70,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
             schedule(command, false);
             return;
         }
-        schedule(DtpRunnable.wrap(command), true);
+        schedule(TraceSnapshot.capture().wrap(command), true);
     }
 
     @Override
@@ -97,12 +96,14 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new MetricsFutureTask<>(this, Objects.requireNonNull(runnable, "runnable"), value);
+        Runnable task = Objects.requireNonNull(runnable, "runnable");
+        return new MetricsFutureTask<>(this, TraceSnapshot.capture().wrap(task), value);
     }
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-        return new MetricsFutureTask<>(this, Objects.requireNonNull(callable, "callable"));
+        Callable<T> task = Objects.requireNonNull(callable, "callable");
+        return new MetricsFutureTask<>(this, TraceSnapshot.capture().wrap(task));
     }
 
     @Override
@@ -180,7 +181,8 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
     }
 
     private <T> Future<T> submitForCompletion(Callable<T> task, BlockingQueue<Future<T>> completionQueue) {
-        QueueingMetricsFutureTask<T> future = new QueueingMetricsFutureTask<>(task, completionQueue);
+        Callable<T> wrapped = TraceSnapshot.capture().wrap(Objects.requireNonNull(task, "task"));
+        QueueingMetricsFutureTask<T> future = new QueueingMetricsFutureTask<>(wrapped, completionQueue);
         schedule(future, false);
         return future;
     }
@@ -232,10 +234,9 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
     }
 
     private <T> Callable<T> callAndCount(Callable<T> callable) {
-        Callable<T> wrapped = DtpCallable.wrap(callable);
         return () -> {
             try {
-                T result = wrapped.call();
+                T result = callable.call();
                 completedTasks.incrementAndGet();
                 return result;
             } catch (Throwable e) {

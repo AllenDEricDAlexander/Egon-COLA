@@ -32,10 +32,6 @@ public class DynamicThreadPoolAutoProperties {
 
     private Report report = new Report();
 
-    private Trace trace = new Trace();
-
-    private Virtual virtual = new Virtual();
-
     @Getter
     @Setter
     @ToString
@@ -89,34 +85,6 @@ public class DynamicThreadPoolAutoProperties {
         private boolean enabled = true;
 
         private Duration interval = Duration.ofSeconds(20);
-
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    @EqualsAndHashCode
-    public static class Trace {
-
-        private boolean enabled = true;
-
-        private boolean mdcEnabled = true;
-
-        private String traceIdKey = "traceId";
-
-        private String requestIdKey = "requestId";
-
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    @EqualsAndHashCode
-    public static class Virtual {
-
-        private boolean enabled = true;
-
-        private int defaultConcurrencyLimit = 500;
 
     }
 

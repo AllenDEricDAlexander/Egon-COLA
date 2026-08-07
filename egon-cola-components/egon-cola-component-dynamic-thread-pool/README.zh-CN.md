@@ -4,7 +4,7 @@
 
 ## 简要介绍
 
-`egon-cola-component-dynamic-thread-pool` 是 Egon COLA 的动态线程池治理组件，面向 Spring Boot 业务应用提供线程池注册、运行时快照上报、Redis 配置变更监听、动态容量调整、虚拟线程并发限制、MDC 上下文传播、审计事件和 Micrometer 指标绑定能力。
+`egon-cola-component-dynamic-thread-pool` 是 Egon COLA 的动态线程池治理组件，面向 Spring Boot 业务应用提供线程池注册、运行时快照上报、Redis 配置变更监听、动态容量调整、虚拟线程并发限制、common-trace 集成、审计事件和 Micrometer 指标绑定能力。
 
 组件由业务侧 starter 和独立 admin 服务组成。starter 接入业务应用并托管应用内的执行器，admin 通过 REST API 查询 Redis 中的应用/实例/执行器快照，并发布容量调整消息。组件目录不包含 UI，前端可通过 manifest 接口做外部模块发现。
 
@@ -12,7 +12,7 @@
 
 | Module | 说明 |
 |---|---|
-| `egon-cola-component-dynamic-thread-pool-starter` | 业务应用 starter，负责执行器发现、快照采集、Redis 注册、配置变更监听、MDC 传播、审计事件、Micrometer 指标 |
+| `egon-cola-component-dynamic-thread-pool-starter` | 业务应用 starter，负责执行器发现、快照采集、Redis 注册、配置变更监听、虚拟线程 Trace 传播、审计事件、Micrometer 指标 |
 | `egon-cola-component-dynamic-thread-pool-admin` | 独立 Spring Boot Admin 服务，提供管理 REST API、manifest、Redis 查询和配置变更发布 |
 | `egon-cola-component-dynamic-thread-pool-test` | 组件样例和集成验证模块 |
 
@@ -44,9 +44,11 @@ starter 会创建名为 `dynamicThreadRedissonClient` 的 Redisson 客户端，�
 
 `ThreadPoolDataReportJob` 按 `egon.cola.component.dtp.report.interval` 周期上报快照。若业务应用存在 `MeterRegistry`，`DtpMeterBinder` 会绑定执行器指标到 Micrometer。
 
-### MDC 上下文传播
+### Trace 上下文传播
 
-`DtpRunnable`、`DtpCallable`、`DtpSupplier`、`DtpContextAwareExecutorService` 和 `DtpThreads` 通过 `common-trace` 的 `TraceSnapshot` 捕获提交任务时的 Trace/MDC，并在任务执行时恢复，避免异步线程丢失 `traceId` / `spanId` / `requestId`。DTP 不提供独立 Trace Starter，也不会再次包装已经由 Bytecode 或业务显式包装过的任务。
+Trace 传播统一由 `common-trace` 负责，DTP 不再维护自己的上下文包装层。`ThreadPoolExecutor` 在业务提交边界使用 `TraceExecutors.contextAware(...)`，`ThreadPoolTaskExecutor` 显式配置 `TraceTaskDecorator`。`BoundedVirtualThreadExecutor` 在每次提交时内部捕获 `TraceSnapshot`。DTP 只发现原始执行器 Bean 用于治理，不替换或代理它们。
+
+Admin 显式使用 common Trace Spring Boot Starter 处理 W3C HTTP 传播。Redis 变更消息只携带 `traceparent`、`tracestate` 和 `x-egon-request-id`，不会传输完整 MDC 快照。
 
 ### Admin REST API
 
@@ -85,8 +87,25 @@ Admin API 基础路径为 `/api/v1/dtp`：
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
     </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-trace-spring-boot-starter</artifactId>
+    </dependency>
 </dependencies>
 ```
+
+Trace Spring Boot Starter 必须显式引入。DTP Starter 只依赖 common Trace Core，不会向业务应用强制传递 HTTP Filter 或 Spring Trace 自动配置。
+
+### 破坏式 Trace 迁移
+
+| 已删除的 DTP API / 配置 | 替代方式 |
+|---|---|
+| `DtpContextAwareExecutorService` | `TraceExecutors.contextAware(ExecutorService)` |
+| `DtpTaskDecorator` | common Trace 的 `TraceTaskDecorator` |
+| `DtpRunnable`、`DtpCallable`、`DtpSupplier` | 通过上下文感知执行器提交，或在自定义边界直接使用 `TraceSnapshot` |
+| `DtpThreads` | JDK 执行器配合 `TraceExecutors`；需要 DTP 治理时使用 `BoundedVirtualThreadExecutor` |
+| `egon.cola.component.dtp.trace.*` | `egon.cola.component.trace.*` 下的 common Trace 配置 |
+| `egon.cola.component.dtp.virtual.*` | `BoundedVirtualThreadExecutor` 构造参数和运行时更新 |
 
 Admin 服务作为组件内独立应用构建和部署：
 
@@ -131,14 +150,6 @@ egon:
         report:
           enabled: true
           interval: 20s
-        trace:
-          enabled: true
-          mdc-enabled: true
-          trace-id-key: traceId
-          request-id-key: requestId
-        virtual:
-          enabled: true
-          default-concurrency-limit: 500
 ```
 
 Admin 默认激活 `dev` profile，`application-dev.yml` 中 Redis 默认指向本机：
@@ -170,6 +181,7 @@ package demo.order.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import top.egon.cola.component.common.trace.autoconfigure.TraceTaskDecorator;
 import top.egon.cola.component.dtp.executor.virtual.BoundedVirtualThreadExecutor;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -198,6 +210,7 @@ public class OrderExecutorConfig {
         executor.setCorePoolSize(8);
         executor.setMaxPoolSize(32);
         executor.setQueueCapacity(1000);
+        executor.setTaskDecorator(new TraceTaskDecorator());
         executor.initialize();
         return executor;
     }
@@ -209,14 +222,14 @@ public class OrderExecutorConfig {
 }
 ```
 
-### 2. 提交任务时传播 MDC
+### 2. 提交任务时传播 Trace 上下文
 
 ```java
 package demo.order;
 
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
-import top.egon.cola.component.dtp.context.DtpContextAwareExecutorService;
+import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.common.trace.TraceExecutors;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -227,14 +240,12 @@ public class OrderAsyncService {
     private final ExecutorService executor;
 
     public OrderAsyncService(ThreadPoolExecutor orderPlatformExecutor) {
-        this.executor = new DtpContextAwareExecutorService(orderPlatformExecutor);
+        this.executor = TraceExecutors.contextAware(orderPlatformExecutor);
     }
 
     public void submitOrderTask(String orderId) {
-        MDC.put("traceId", "trace-" + orderId);
         executor.submit(() -> {
-            String traceId = MDC.get("traceId");
-            // 这里可以继续写日志、调用下游或执行业务逻辑，traceId 与提交线程一致。
+            String traceId = TraceContext.currentOrCreate().traceId();
             process(orderId, traceId);
         });
     }
@@ -297,7 +308,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 2. Admin 不直连业务应用，所有状态读取和变更通知都通过 Redis 完成，降低运行时耦合。
 3. 执行器能力通过 `ManagedExecutor` 适配，平台线程池、Spring 线程池、虚拟线程执行器共享一套快照和更新模型。
 4. 调整命令携带 `appName`、`instanceId`、`executorName`、`executorKind`，starter 端先校验身份再更新，避免错误实例消费错误命令。
-5. MDC 传播独立为包装器，不强制改写业务线程池使用方式。
+5. DTP 负责执行器治理，`common-trace` 负责上下文捕获与恢复，业务提交边界显式完成集成。
 
 ### 实现细节
 
@@ -306,7 +317,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 - `resolveInstanceId` 优先使用显式配置，其次使用 `{appName}-{server.port}`，最后使用 JVM runtime name。
 - `ManagedExecutorRegistry` 保存所有托管执行器，`DynamicThreadPoolService` 负责查询快照和执行更新。
 - `ThreadPoolConfigAdjustListener` 订阅 `DTP:CHANGE_TOPIC:{appName}`，收到 `DtpConfigChangeMessage` 后调用 `IDynamicThreadPoolService.updateExecutor`。
-- `BoundedVirtualThreadExecutor` 使用 `Semaphore` 控制并发上限，内置 submitted/running/completed/failed/rejected 指标，`updateConcurrencyLimit` 可以运行时调整许可数量。
+- `BoundedVirtualThreadExecutor` 使用 `Semaphore` 控制并发上限，每次提交时捕获 `TraceSnapshot`，内置 submitted/running/completed/failed/rejected 指标，`updateConcurrencyLimit` 可以运行时调整许可数量。
 - `ThreadPoolDataReportJob` 周期性写入 snapshot、apps、instances 和审计数据；report 可以通过 `egon.cola.component.dtp.report.enabled=false` 关闭。
 - Admin 的 `/resize` 只允许 `PLATFORM_THREAD_POOL` 和 `SPRING_THREAD_POOL_TASK_EXECUTOR`，`/virtual-limit` 只发布 `VIRTUAL_THREAD_PER_TASK` 更新命令。
 

@@ -21,10 +21,7 @@ class DynamicThreadPoolAutoPropertiesTest {
                     "egon.cola.component.dtp.registry.redis.host=127.0.0.1",
                     "egon.cola.component.dtp.registry.redis.port=6379",
                     "egon.cola.component.dtp.registry.redis.password=pwd",
-                    "egon.cola.component.dtp.report.interval=20s",
-                    "egon.cola.component.dtp.trace.trace-id-key=traceId",
-                    "egon.cola.component.dtp.trace.request-id-key=requestId",
-                    "egon.cola.component.dtp.virtual.default-concurrency-limit=500"
+                    "egon.cola.component.dtp.report.interval=20s"
             );
 
     @Test
@@ -37,9 +34,6 @@ class DynamicThreadPoolAutoPropertiesTest {
             assertThat(properties.getRegistry().getRedis().getPort()).isEqualTo(6379);
             assertThat(properties.getRegistry().getRedis().getPassword()).isEqualTo("pwd");
             assertThat(properties.getReport().getInterval()).hasSeconds(20);
-            assertThat(properties.getTrace().getTraceIdKey()).isEqualTo("traceId");
-            assertThat(properties.getTrace().getRequestIdKey()).isEqualTo("requestId");
-            assertThat(properties.getVirtual().getDefaultConcurrencyLimit()).isEqualTo(500);
         });
     }
 

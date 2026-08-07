@@ -4,7 +4,7 @@
 
 ## Overview
 
-`egon-cola-component-dynamic-thread-pool` is the Egon COLA dynamic thread-pool governance component. It provides Spring Boot business applications with executor registration, runtime snapshot reporting, Redis configuration change listening, dynamic capacity adjustment, virtual-thread concurrency limiting, MDC context propagation, audit events, and Micrometer metric binding.
+`egon-cola-component-dynamic-thread-pool` is the Egon COLA dynamic thread-pool governance component. It provides Spring Boot business applications with executor registration, runtime snapshot reporting, Redis configuration change listening, dynamic capacity adjustment, virtual-thread concurrency limiting, common-trace integration, audit events, and Micrometer metric binding.
 
 The component consists of a business-side starter and a standalone admin service. The starter integrates with a business application and manages executors within that application. The admin queries application, instance, and executor snapshots from Redis through REST APIs and publishes capacity adjustment messages. The component directory does not include a UI; an external frontend can discover the module through the manifest endpoint.
 
@@ -12,7 +12,7 @@ The component consists of a business-side starter and a standalone admin service
 
 | Module | Description |
 |---|---|
-| `egon-cola-component-dynamic-thread-pool-starter` | Business application starter responsible for executor discovery, snapshot collection, Redis registration, configuration change listening, MDC propagation, audit events, and Micrometer metrics |
+| `egon-cola-component-dynamic-thread-pool-starter` | Business application starter responsible for executor discovery, snapshot collection, Redis registration, configuration change listening, virtual-thread Trace propagation, audit events, and Micrometer metrics |
 | `egon-cola-component-dynamic-thread-pool-admin` | Standalone Spring Boot Admin service that provides management REST APIs, a manifest, Redis queries, and configuration change publication |
 | `egon-cola-component-dynamic-thread-pool-test` | Component sample and integration verification module |
 
@@ -44,9 +44,11 @@ The starter creates a Redisson client named `dynamicThreadRedissonClient` and wr
 
 `ThreadPoolDataReportJob` reports snapshots at the interval configured by `egon.cola.component.dtp.report.interval`. If a `MeterRegistry` exists in the business application, `DtpMeterBinder` binds executor metrics to Micrometer.
 
-### MDC Context Propagation
+### Trace Context Propagation
 
-`DtpRunnable`, `DtpCallable`, `DtpSupplier`, `DtpContextAwareExecutorService`, and `DtpThreads` use the `TraceSnapshot` from `common-trace` to capture Trace/MDC when a task is submitted and restore it while the task runs, preventing asynchronous threads from losing `traceId` / `spanId` / `requestId`. DTP does not provide a separate trace starter and does not wrap tasks that were already wrapped by Bytecode or business code.
+Trace propagation is owned by `common-trace`; DTP no longer provides its own context wrappers. Use `TraceExecutors.contextAware(...)` at the business submission boundary for `ThreadPoolExecutor`, and configure `TraceTaskDecorator` explicitly for `ThreadPoolTaskExecutor`. `BoundedVirtualThreadExecutor` captures a `TraceSnapshot` internally for every submission. DTP discovers the original executor Beans for governance but never replaces or proxies them.
+
+The Admin explicitly uses the common Trace Spring Boot starter for W3C HTTP propagation. Redis change messages carry only `traceparent`, `tracestate`, and `x-egon-request-id`; they never transport a complete MDC snapshot.
 
 ### Admin REST API
 
@@ -85,8 +87,25 @@ Include the starter in a business application:
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
     </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-trace-spring-boot-starter</artifactId>
+    </dependency>
 </dependencies>
 ```
+
+The Trace Spring Boot starter is explicit. The DTP starter depends only on the common Trace core and does not force HTTP filters or Spring Trace auto-configuration into business applications.
+
+### Breaking Trace Migration
+
+| Removed DTP API / Setting | Replacement |
+|---|---|
+| `DtpContextAwareExecutorService` | `TraceExecutors.contextAware(ExecutorService)` |
+| `DtpTaskDecorator` | common Trace `TraceTaskDecorator` |
+| `DtpRunnable`, `DtpCallable`, `DtpSupplier` | submit through a context-aware executor, or use `TraceSnapshot` directly at a custom boundary |
+| `DtpThreads` | JDK executors with `TraceExecutors`, or `BoundedVirtualThreadExecutor` when DTP governance is required |
+| `egon.cola.component.dtp.trace.*` | common Trace configuration under `egon.cola.component.trace.*` |
+| `egon.cola.component.dtp.virtual.*` | constructor arguments and runtime updates on `BoundedVirtualThreadExecutor` |
 
 Build and deploy the Admin service as a standalone application within the component:
 
@@ -131,14 +150,6 @@ egon:
         report:
           enabled: true
           interval: 20s
-        trace:
-          enabled: true
-          mdc-enabled: true
-          trace-id-key: traceId
-          request-id-key: requestId
-        virtual:
-          enabled: true
-          default-concurrency-limit: 500
 ```
 
 The admin activates the `dev` profile by default. Redis points to the local machine in `application-dev.yml`:
@@ -170,6 +181,7 @@ package demo.order.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import top.egon.cola.component.common.trace.autoconfigure.TraceTaskDecorator;
 import top.egon.cola.component.dtp.executor.virtual.BoundedVirtualThreadExecutor;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -198,6 +210,7 @@ public class OrderExecutorConfig {
         executor.setCorePoolSize(8);
         executor.setMaxPoolSize(32);
         executor.setQueueCapacity(1000);
+        executor.setTaskDecorator(new TraceTaskDecorator());
         executor.initialize();
         return executor;
     }
@@ -209,14 +222,14 @@ public class OrderExecutorConfig {
 }
 ```
 
-### 2. Propagate MDC When Submitting Tasks
+### 2. Propagate Trace Context When Submitting Tasks
 
 ```java
 package demo.order;
 
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
-import top.egon.cola.component.dtp.context.DtpContextAwareExecutorService;
+import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.common.trace.TraceExecutors;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -227,14 +240,12 @@ public class OrderAsyncService {
     private final ExecutorService executor;
 
     public OrderAsyncService(ThreadPoolExecutor orderPlatformExecutor) {
-        this.executor = new DtpContextAwareExecutorService(orderPlatformExecutor);
+        this.executor = TraceExecutors.contextAware(orderPlatformExecutor);
     }
 
     public void submitOrderTask(String orderId) {
-        MDC.put("traceId", "trace-" + orderId);
         executor.submit(() -> {
-            String traceId = MDC.get("traceId");
-            // Logs, downstream calls, and business logic continue with the submitting thread's traceId.
+            String traceId = TraceContext.currentOrCreate().traceId();
             process(orderId, traceId);
         });
     }
@@ -297,7 +308,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 2. The admin does not connect directly to business applications. All state reads and change notifications pass through Redis, reducing runtime coupling.
 3. `ManagedExecutor` adapts executor capabilities so platform thread pools, Spring thread pools, and virtual-thread executors share one snapshot and update model.
 4. Adjustment commands include `appName`, `instanceId`, `executorName`, and `executorKind`. The starter validates the identity before updating, preventing a command from being applied to the wrong instance.
-5. MDC propagation is implemented as wrappers and does not require business code to replace its thread-pool usage model.
+5. DTP owns executor governance, while `common-trace` owns context capture and restoration. Integration is explicit at each business submission boundary.
 
 ### Implementation Details
 
@@ -306,7 +317,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 - `resolveInstanceId` first uses the explicit configuration, then `{appName}-{server.port}`, and finally the JVM runtime name.
 - `ManagedExecutorRegistry` stores all managed executors, and `DynamicThreadPoolService` queries snapshots and performs updates.
 - `ThreadPoolConfigAdjustListener` subscribes to `DTP:CHANGE_TOPIC:{appName}`. After receiving a `DtpConfigChangeMessage`, it calls `IDynamicThreadPoolService.updateExecutor`.
-- `BoundedVirtualThreadExecutor` uses `Semaphore` to control its concurrency limit, includes submitted/running/completed/failed/rejected metrics, and supports runtime permit adjustment through `updateConcurrencyLimit`.
+- `BoundedVirtualThreadExecutor` uses `Semaphore` to control its concurrency limit, captures `TraceSnapshot` per submission, includes submitted/running/completed/failed/rejected metrics, and supports runtime permit adjustment through `updateConcurrencyLimit`.
 - `ThreadPoolDataReportJob` periodically writes snapshot, apps, instances, and audit data. Reporting can be disabled with `egon.cola.component.dtp.report.enabled=false`.
 - Admin `/resize` accepts only `PLATFORM_THREAD_POOL` and `SPRING_THREAD_POOL_TASK_EXECUTOR`; `/virtual-limit` publishes only `VIRTUAL_THREAD_PER_TASK` update commands.
 
