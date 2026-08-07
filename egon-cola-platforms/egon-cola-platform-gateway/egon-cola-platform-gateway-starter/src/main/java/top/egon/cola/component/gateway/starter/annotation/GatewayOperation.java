@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.starter.annotation;
 
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRiskLevel;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -9,6 +10,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
+@Documented
 public @interface GatewayOperation {
 
     String name() default "";
@@ -33,7 +35,7 @@ public @interface GatewayOperation {
 
     String[] tags() default {};
 
-    GatewaySchemaField[] requestSchemaFields() default {};
+    GatewayRequestSchemaField[] requestSchemaFields() default {};
 
-    GatewaySchemaField[] responseSchemaFields() default {};
+    GatewayResponseSchema responseSchema() default @GatewayResponseSchema;
 }

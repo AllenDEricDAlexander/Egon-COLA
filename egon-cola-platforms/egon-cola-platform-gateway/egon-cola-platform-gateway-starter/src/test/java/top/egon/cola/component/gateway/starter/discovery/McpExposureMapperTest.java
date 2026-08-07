@@ -13,6 +13,10 @@ import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefini
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
+import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaField;
+import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
@@ -168,7 +172,7 @@ class McpExposureMapperTest {
             Class<?> groupType,
             String methodName,
             boolean streaming,
-            List<GatewayInterfaceDefinitionReport.Parameter> parameters)
+            List<GatewayRequestSchemaValidator.RequestParameter> parameters)
             throws Exception {
         GatewayOperation operation = ExposureMethods.class
                 .getDeclaredMethod(methodName)
@@ -182,18 +186,17 @@ class McpExposureMapperTest {
         );
     }
 
-    private GatewayInterfaceDefinitionReport.Parameter parameter(
+    private GatewayRequestSchemaValidator.RequestParameter parameter(
             String name,
             String location,
             boolean required) {
-        return new GatewayInterfaceDefinitionReport.Parameter(
+        return new GatewayRequestSchemaValidator.RequestParameter(
+                GatewayRequestLocation.valueOf(location),
                 name,
-                location,
                 required,
-                String.class.getName(),
-                Map.of("type", "string"),
+                false,
+                new ObjectMapper().constructType(String.class),
                 null,
-                Map.of(),
                 null
         );
     }
@@ -365,7 +368,25 @@ class McpExposureMapperTest {
                         "order:read"
                 },
                 mcpRiskLevel = McpRiskLevel.HIGH,
-                tags = {"query"}
+                tags = {"query"},
+                requestSchemaFields = {
+                        @GatewayRequestSchemaField(
+                                location = GatewayRequestLocation.QUERY,
+                                name = "id",
+                                schema = String.class,
+                                shape = GatewaySchemaShape.VALUE
+                        ),
+                        @GatewayRequestSchemaField(
+                                location = GatewayRequestLocation.HEADER,
+                                name = "Authorization",
+                                schema = String.class,
+                                shape = GatewaySchemaShape.VALUE
+                        )
+                },
+                responseSchema = @GatewayResponseSchema(
+                        schema = String.class,
+                        shape = GatewaySchemaShape.VALUE
+                )
         )
         String lookup(
                 @RequestParam("id") String id,
@@ -402,7 +423,16 @@ class McpExposureMapperTest {
                         "order:read"
                 },
                 mcpRiskLevel = McpRiskLevel.HIGH,
-                tags = {"query"}
+                tags = {"query"},
+                requestSchemaFields = @GatewayRequestSchemaField(
+                        location = GatewayRequestLocation.RPC_MESSAGE,
+                        schema = Empty.class,
+                        shape = GatewaySchemaShape.OBJECT
+                ),
+                responseSchema = @GatewayResponseSchema(
+                        schema = Empty.class,
+                        shape = GatewaySchemaShape.OBJECT
+                )
         )
         Empty lookup(Empty request);
     }

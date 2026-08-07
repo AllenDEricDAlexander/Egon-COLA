@@ -210,7 +210,9 @@ class HttpProviderContractTest {
             String schemaName,
             Map<String, Object> schema,
             Set<String> expectedNames) {
-        Object value = schema.get("properties");
+        Object value = "gateway-operation-request/v2".equals(
+                schema.get("x-egon-schema-model")
+        ) ? requestProperties(schema) : schema.get("properties");
         assertTrue(value instanceof Map<?, ?>, schemaName);
         Map<?, ?> fields = (Map<?, ?>) value;
         assertEquals(expectedNames, fields.keySet(), schemaName);
@@ -223,6 +225,23 @@ class HttpProviderContractTest {
                             && !description.isBlank(),
                     schemaName + "." + name + " description");
         });
+    }
+
+    private Map<String, Object> requestProperties(
+            Map<String, Object> schema) {
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        Map<?, ?> locations = (Map<?, ?>) schema.get("properties");
+        locations.values().forEach(location -> {
+            Map<?, ?> locationSchema = (Map<?, ?>) location;
+            Object properties = locationSchema.get("properties");
+            if (properties instanceof Map<?, ?> fields) {
+                fields.forEach((name, field) -> result.put(
+                        String.valueOf(name),
+                        field
+                ));
+            }
+        });
+        return result;
     }
 
     private record SchemaExpectation(

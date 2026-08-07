@@ -26,6 +26,10 @@
             <artifactId>egon-cola-platform-gateway-starter</artifactId>
         </dependency>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-platform-gateway-contract</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
         </dependency>

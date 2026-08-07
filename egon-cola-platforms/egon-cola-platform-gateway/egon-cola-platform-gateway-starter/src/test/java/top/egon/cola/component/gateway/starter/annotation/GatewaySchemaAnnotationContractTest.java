@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.starter.annotation;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -123,6 +124,57 @@ class GatewaySchemaAnnotationContractTest {
         assertTrue(GatewayResponseSchema.class.isAnnotationPresent(
                 java.lang.annotation.Documented.class
         ));
+    }
+
+    @Test
+    void operationAndFieldExposeOnlyTheApprovedSchemaContract()
+            throws Exception {
+        assertTrue(GatewayOperation.class.isAnnotationPresent(Documented.class));
+        assertTrue(GatewayInterfaceGroup.class.isAnnotationPresent(
+                Documented.class
+        ));
+        assertTrue(GatewaySchemaField.class.isAnnotationPresent(Documented.class));
+        assertArrayEquals(
+                new ElementType[]{
+                        ElementType.FIELD,
+                        ElementType.RECORD_COMPONENT,
+                        ElementType.METHOD,
+                        ElementType.PARAMETER
+                },
+                GatewaySchemaField.class.getAnnotation(Target.class).value()
+        );
+        assertEquals(
+                GatewayRequestSchemaField[].class,
+                GatewayOperation.class.getDeclaredMethod("requestSchemaFields")
+                        .getReturnType()
+        );
+        assertEquals(
+                GatewayResponseSchema.class,
+                GatewayOperation.class.getDeclaredMethod("responseSchema")
+                        .getReturnType()
+        );
+        assertThatMethodIsAbsent(
+                GatewayOperation.class,
+                "responseSchema" + "Fields"
+        );
+        assertThatMethodIsAbsent(GatewaySchemaField.class, "path");
+        assertEquals("", GatewaySchemaField.class
+                .getDeclaredMethod("description").getDefaultValue());
+        assertEquals(GatewaySchemaType.AUTO, GatewaySchemaField.class
+                .getDeclaredMethod("type").getDefaultValue());
+        assertEquals("", GatewaySchemaField.class
+                .getDeclaredMethod("format").getDefaultValue());
+        assertEquals(GatewaySchemaRequired.AUTO, GatewaySchemaField.class
+                .getDeclaredMethod("required").getDefaultValue());
+        assertEquals("", GatewaySchemaField.class
+                .getDeclaredMethod("example").getDefaultValue());
+        assertEquals(Void.class, GatewaySchemaField.class
+                .getDeclaredMethod("implementation").getDefaultValue());
+    }
+
+    private void assertThatMethodIsAbsent(Class<?> type, String name) {
+        assertFalse(java.util.Arrays.stream(type.getDeclaredMethods())
+                .anyMatch(method -> method.getName().equals(name)));
     }
 
     @java.lang.annotation.Retention(RetentionPolicy.RUNTIME)

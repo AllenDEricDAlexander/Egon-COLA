@@ -5,6 +5,8 @@ package egon.gateway.test.v1;
 option java_multiple_files = true;
 option java_package = "top.egon.cola.component.gateway.test.rpc.contract.proto";
 
+import "egon/gateway/schema_options.proto";
+
 service EchoService {
   rpc Echo(EchoRequest) returns (EchoResponse);
 }
@@ -32,14 +34,26 @@ message GetOrderRequest {
 }
 
 message CreateOrderRequest {
-  string customer_id = 1;
-  repeated string sku = 2;
-  Address delivery_address = 3;
+  string customer_id = 1 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "客户编号"
+    required: GATEWAY_REQUIRED
+    example: "customer-1001"
+  }];
+  repeated string sku = 2 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "商品 SKU 列表"
+  }];
+  Address delivery_address = 3 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "配送地址"
+  }];
 }
 
 message Address {
-  string province = 1;
-  string city = 2;
+  string province = 1 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "配送省份"
+  }];
+  string city = 2 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "配送城市"
+  }];
 }
 
 message SlowCallRequest {
@@ -52,7 +66,13 @@ message FailRequest {
 }
 
 message OrderResponse {
-  string order_id = 1;
-  string status = 2;
-  string provider_id = 3;
+  string order_id = 1 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "订单编号"
+  }];
+  string status = 2 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "订单状态"
+  }];
+  string provider_id = 3 [(egon.gateway.schema.v1.gateway_schema) = {
+    description: "服务提供者实例编号"
+  }];
 }

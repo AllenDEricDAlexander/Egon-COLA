@@ -1,8 +1,8 @@
 package top.egon.cola.component.gateway.starter.discovery;
 
-import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +25,7 @@ final class McpExposureMapper {
             GatewayOperation operation,
             String operationIdentity,
             boolean streaming,
-            List<GatewayInterfaceDefinitionReport.Parameter> parameters) {
+            List<GatewayRequestSchemaValidator.RequestParameter> parameters) {
         if (operation == null || !operation.registerMcp()) {
             return Map.of();
         }
@@ -73,19 +73,19 @@ final class McpExposureMapper {
 
     private static void validateParameter(
             String operationIdentity,
-            GatewayInterfaceDefinitionReport.Parameter parameter) {
-        if ("PART".equals(parameter.location())) {
+            GatewayRequestSchemaValidator.RequestParameter parameter) {
+        if (parameter.location() == GatewayRequestLocation.PART) {
             invalid(operationIdentity, "multipart operations are unsupported");
         }
         if (!parameter.required()) {
             return;
         }
-        if ("HEADER".equals(parameter.location())
+        if (parameter.location() == GatewayRequestLocation.HEADER
                 && "Authorization".equalsIgnoreCase(parameter.name())) {
             return;
         }
-        if ("HEADER".equals(parameter.location())
-                || "COOKIE".equals(parameter.location())) {
+        if (parameter.location() == GatewayRequestLocation.HEADER
+                || parameter.location() == GatewayRequestLocation.COOKIE) {
             invalid(
                     operationIdentity,
                     "required " + parameter.location()

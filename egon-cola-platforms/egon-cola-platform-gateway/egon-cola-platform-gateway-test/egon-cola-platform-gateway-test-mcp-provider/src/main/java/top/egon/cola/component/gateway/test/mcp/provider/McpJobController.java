@@ -12,7 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRiskLevel;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
+import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaField;
+import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -53,7 +57,16 @@ public class McpJobController {
             mcpName = "local_echo_task",
             mcpRequiredPermissions = "mock:read",
             mcpRiskLevel = McpRiskLevel.MEDIUM,
-            tags = {"mcp", "query"}
+            tags = {"mcp", "query"},
+            requestSchemaFields = @GatewayRequestSchemaField(
+                    location = GatewayRequestLocation.BODY,
+                    schema = EchoCommand.class,
+                    shape = GatewaySchemaShape.OBJECT
+            ),
+            responseSchema = @GatewayResponseSchema(
+                    schema = EchoView.class,
+                    shape = GatewaySchemaShape.OBJECT
+            )
     )
     public EchoView echo(@RequestBody EchoCommand command) {
         return new EchoView(command.value(), "HTTP");
@@ -70,9 +83,15 @@ public class McpJobController {
             mcpName = "local_query",
             mcpRequiredPermissions = "mock:read",
             tags = {"mcp", "query"},
-            responseSchemaFields = @GatewaySchemaField(
-                    path = "items",
-                    description = "排序后的确定性结果"
+            requestSchemaFields = @GatewayRequestSchemaField(
+                    location = GatewayRequestLocation.QUERY,
+                    name = "prefix",
+                    schema = String.class,
+                    shape = GatewaySchemaShape.VALUE
+            ),
+            responseSchema = @GatewayResponseSchema(
+                    schema = QueryView.class,
+                    shape = GatewaySchemaShape.OBJECT
             )
     )
     public QueryView query(
@@ -105,7 +124,16 @@ public class McpJobController {
             mcpName = "high_risk_action",
             mcpRequiredPermissions = "mock:admin",
             mcpRiskLevel = McpRiskLevel.HIGH,
-            tags = {"mcp", "command", "high-risk"}
+            tags = {"mcp", "command", "high-risk"},
+            requestSchemaFields = @GatewayRequestSchemaField(
+                    location = GatewayRequestLocation.BODY,
+                    schema = ApprovalCommand.class,
+                    shape = GatewaySchemaShape.OBJECT
+            ),
+            responseSchema = @GatewayResponseSchema(
+                    schema = ApprovalView.class,
+                    shape = GatewaySchemaShape.OBJECT
+            )
     )
     public ApprovalView highRisk(@RequestBody ApprovalCommand command) {
         return new ApprovalView(command.action(), "APPROVED_FIXTURE");
@@ -216,13 +244,21 @@ public class McpJobController {
         return job;
     }
 
-    public record EchoCommand(String value) {
+    public record EchoCommand(
+            @GatewaySchemaField(description = "回显内容") String value
+    ) {
     }
 
-    public record EchoView(String value, String protocol) {
+    public record EchoView(
+            @GatewaySchemaField(description = "回显内容") String value,
+            @GatewaySchemaField(description = "调用协议") String protocol
+    ) {
     }
 
-    public record QueryView(List<String> items) {
+    public record QueryView(
+            @GatewaySchemaField(description = "排序后的确定性结果")
+            List<String> items
+    ) {
     }
 
     public record WriteCommand(String key, String value) {
@@ -231,10 +267,15 @@ public class McpJobController {
     public record WriteView(String id, String value) {
     }
 
-    public record ApprovalCommand(String action) {
+    public record ApprovalCommand(
+            @GatewaySchemaField(description = "待审批动作") String action
+    ) {
     }
 
-    public record ApprovalView(String action, String outcome) {
+    public record ApprovalView(
+            @GatewaySchemaField(description = "审批动作") String action,
+            @GatewaySchemaField(description = "审批结果") String outcome
+    ) {
     }
 
     public record StartJob(String payload, boolean inputRequired) {

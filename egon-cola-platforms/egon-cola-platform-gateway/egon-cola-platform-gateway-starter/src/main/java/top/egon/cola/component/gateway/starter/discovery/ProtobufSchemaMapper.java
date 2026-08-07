@@ -1,173 +1,336 @@
 package top.egon.cola.component.gateway.starter.discovery;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
+import top.egon.cola.component.gateway.contract.schema.proto.GatewayRequiredOption;
+import top.egon.cola.component.gateway.contract.schema.proto.GatewaySchemaFieldOption;
+import top.egon.cola.component.gateway.contract.schema.proto.SchemaOptions;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 final class ProtobufSchemaMapper {
 
-    private static final int MAX_DEPTH = 6;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    Map<String, Object> schema(
-            Descriptors.Descriptor descriptor,
-            GatewaySchemaField[] documentation) {
-        DocumentationIndex descriptions = new DocumentationIndex(
-                documentation
-        );
-        Map<String, Object> schema = messageSchema(
-                descriptor,
-                "",
-                0,
-                new LinkedHashSet<>(),
-                descriptions
-        );
-        descriptions.verifyAllFieldsExist(descriptor.getFullName());
-        return schema;
-    }
-
-    private Map<String, Object> messageSchema(
-            Descriptors.Descriptor descriptor,
-            String path,
-            int depth,
-            Set<String> ancestors,
-            DocumentationIndex descriptions) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("type", "object");
-        result.put("messageType", descriptor.getFullName());
-        if (depth > MAX_DEPTH
-                || ancestors.contains(descriptor.getFullName())) {
-            result.put("$ref", descriptor.getFullName());
-            result.put("truncated", true);
-            return result;
+    Map<String, Object> schema(Descriptors.Descriptor descriptor) {
+        Context context = new Context();
+        Map<String, Object> root = context.message(descriptor);
+        Object reference = root.get("$ref");
+        Map<String, Object> result;
+        if (reference instanceof String value
+                && value.startsWith("#/$defs/")) {
+            String key = value.substring("#/$defs/".length());
+            result = copyMap(map(context.definitions.get(key)));
+        } else {
+            result = copyMap(root);
         }
-
-        Set<String> nestedAncestors = new LinkedHashSet<>(ancestors);
-        nestedAncestors.add(descriptor.getFullName());
-        Map<String, Object> properties = new LinkedHashMap<>();
-        List<String> required = new ArrayList<>();
-        for (Descriptors.FieldDescriptor field : descriptor.getFields()) {
-            String fieldPath = childPath(path, field.getJsonName());
-            properties.put(
-                    field.getJsonName(),
-                    fieldSchema(
-                            field,
-                            fieldPath,
-                            depth,
-                            nestedAncestors,
-                            descriptions
-                    )
-            );
-            if (field.isRequired()) {
-                required.add(field.getJsonName());
-            }
-        }
-        result.put("properties", properties);
-        if (!required.isEmpty()) {
-            result.put("required", required);
+        result.put("$schema", GatewayJavaSchemaMapper.JSON_SCHEMA_2020_12);
+        if (!context.definitions.isEmpty()) {
+            result.put("$defs", context.definitions);
         }
         return result;
     }
 
-    private Map<String, Object> fieldSchema(
-            Descriptors.FieldDescriptor field,
-            String path,
-            int depth,
-            Set<String> ancestors,
-            DocumentationIndex descriptions) {
-        if (field.isMapField()) {
-            Descriptors.FieldDescriptor valueField = field.getMessageType()
-                    .findFieldByName("value");
-            Map<String, Object> additionalProperties = valueSchema(
-                    valueField,
-                    path,
-                    depth + 1,
-                    ancestors,
-                    descriptions
+    private final class Context {
+
+        private final Map<String, Object> definitions = new LinkedHashMap<>();
+
+        private final Map<String, String> keys = new LinkedHashMap<>();
+
+        private Map<String, Object> message(
+                Descriptors.Descriptor descriptor) {
+            Map<String, Object> wellKnown = wellKnown(descriptor);
+            if (wellKnown != null) {
+                return wellKnown;
+            }
+            String key = keys.computeIfAbsent(
+                    descriptor.getFullName(),
+                    ignored -> definitionKey(descriptor)
             );
-            addTechnicalMetadata(additionalProperties, valueField);
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("type", "object");
-            result.put("additionalProperties", additionalProperties);
-            addTechnicalMetadata(result, field);
-            descriptions.addDescription(path, result);
+            if (definitions.containsKey(key)) {
+                return reference(key);
+            }
+            Map<String, Object> definition = new LinkedHashMap<>();
+            definitions.put(key, definition);
+            Map<String, Object> properties = new LinkedHashMap<>();
+            List<String> required = new ArrayList<>();
+            for (Descriptors.FieldDescriptor field : descriptor.getFields()) {
+                properties.put(field.getJsonName(), field(field));
+                if (required(field)) {
+                    required.add(field.getJsonName());
+                }
+            }
+            definition.put("type", "object");
+            definition.put("messageType", descriptor.getFullName());
+            definition.put("properties", properties);
+            if (!required.isEmpty()) {
+                definition.put("required", required);
+            }
+            definition.put("additionalProperties", false);
+            addOneOf(definition, descriptor);
+            return reference(key);
+        }
+
+        private Map<String, Object> field(
+                Descriptors.FieldDescriptor field) {
+            Map<String, Object> result;
+            if (field.isMapField()) {
+                Descriptors.FieldDescriptor keyField = field.getMessageType()
+                        .findFieldByName("key");
+                if (keyField.getJavaType()
+                        != Descriptors.FieldDescriptor.JavaType.STRING) {
+                    throw new IllegalArgumentException(
+                            "protobuf map key is not a string: "
+                                    + field.getFullName()
+                    );
+                }
+                Descriptors.FieldDescriptor valueField = field.getMessageType()
+                        .findFieldByName("value");
+                result = type("object");
+                result.put("additionalProperties", value(valueField));
+            } else {
+                Map<String, Object> value = value(field);
+                if (field.isRepeated()) {
+                    result = type("array");
+                    result.put("items", value);
+                } else {
+                    result = copyMap(value);
+                }
+            }
+            result.put("protobufName", field.getName());
+            result.put("protobufType", field.getType().name());
+            result.put("fieldNumber", field.getNumber());
+            if (field.getContainingOneof() != null) {
+                result.put(
+                        "protobufOneof",
+                        field.getContainingOneof().getName()
+                );
+            }
+            applyOption(result, field);
             return result;
         }
-        Map<String, Object> valueSchema = valueSchema(
-                field,
-                path,
-                depth,
-                ancestors,
-                descriptions
-        );
-        addTechnicalMetadata(valueSchema, field);
-        if (field.isRepeated()) {
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("type", "array");
-            result.put("items", valueSchema);
-            addTechnicalMetadata(result, field);
-            descriptions.addDescription(path, result);
-            return result;
+
+        private Map<String, Object> value(
+                Descriptors.FieldDescriptor field) {
+            return switch (field.getJavaType()) {
+                case BOOLEAN -> type("boolean");
+                case BYTE_STRING -> formatted("string", "byte");
+                case DOUBLE -> formatted("number", "double");
+                case FLOAT -> formatted("number", "float");
+                case INT -> formatted("integer", switch (field.getType()) {
+                    case UINT32, FIXED32 -> "uint32";
+                    default -> "int32";
+                });
+                case LONG -> formatted("integer", switch (field.getType()) {
+                    case UINT64, FIXED64 -> "uint64";
+                    default -> "int64";
+                });
+                case ENUM -> enumSchema(field.getEnumType());
+                case MESSAGE -> message(field.getMessageType());
+                case STRING -> type("string");
+            };
         }
-        descriptions.addDescription(path, valueSchema);
-        return valueSchema;
+
+        private boolean required(Descriptors.FieldDescriptor field) {
+            GatewaySchemaFieldOption option = option(field);
+            if (option != null
+                    && option.getRequired()
+                    == GatewayRequiredOption.GATEWAY_OPTIONAL
+                    && field.isRequired()) {
+                throw new IllegalArgumentException(
+                        "protobuf Gateway Option cannot weaken required field: "
+                                + field.getFullName()
+                );
+            }
+            return field.isRequired() || option != null
+                    && option.getRequired()
+                    == GatewayRequiredOption.GATEWAY_REQUIRED;
+        }
+
+        private void applyOption(
+                Map<String, Object> schema,
+                Descriptors.FieldDescriptor field) {
+            GatewaySchemaFieldOption option = option(field);
+            if (option == null) {
+                return;
+            }
+            if (!option.getDescription().isBlank()) {
+                schema.put("description", option.getDescription().trim());
+            }
+            if (!option.getFormat().isBlank()) {
+                schema.put("format", option.getFormat().trim());
+            }
+            if (!option.getExample().isBlank()) {
+                schema.put(
+                        "example",
+                        parseExample(option.getExample(), schema, field)
+                );
+            }
+        }
+
+        private GatewaySchemaFieldOption option(
+                Descriptors.FieldDescriptor field) {
+            return field.getOptions().hasExtension(SchemaOptions.gatewaySchema)
+                    ? field.getOptions().getExtension(
+                    SchemaOptions.gatewaySchema
+            ) : null;
+        }
+
+        private void addOneOf(
+                Map<String, Object> definition,
+                Descriptors.Descriptor descriptor) {
+            List<Map<String, Object>> groups = new ArrayList<>();
+            for (Descriptors.OneofDescriptor oneof
+                    : descriptor.getRealOneofs()) {
+                List<Map<String, Object>> branches = oneof.getFields().stream()
+                        .map(field -> Map.<String, Object>of(
+                                "required",
+                                List.of(field.getJsonName())
+                        ))
+                        .toList();
+                Map<String, Object> group = new LinkedHashMap<>();
+                group.put("oneOf", branches);
+                group.put("x-protobuf-oneof", oneof.getName());
+                groups.add(group);
+            }
+            if (!groups.isEmpty()) {
+                definition.put("allOf", groups);
+            }
+        }
+
+        private String definitionKey(Descriptors.Descriptor descriptor) {
+            return descriptor.getFullName().replace('.', '_');
+        }
     }
 
-    private Map<String, Object> valueSchema(
-            Descriptors.FieldDescriptor field,
-            String path,
-            int depth,
-            Set<String> ancestors,
-            DocumentationIndex descriptions) {
-        Map<String, Object> result;
-        switch (field.getJavaType()) {
-            case BOOLEAN -> result = type("boolean");
-            case BYTE_STRING -> {
-                result = type("string");
-                result.put("format", "byte");
-            }
-            case DOUBLE -> {
-                result = type("number");
-                result.put("format", "double");
-            }
-            case FLOAT -> {
-                result = type("number");
-                result.put("format", "float");
-            }
-            case INT -> {
-                result = type("integer");
-                result.put("format", integerFormat(field));
-            }
-            case LONG -> {
-                result = type("integer");
-                result.put("format", longFormat(field));
-            }
-            case ENUM -> {
-                result = type("string");
-                result.put(
-                        "enum",
-                        field.getEnumType().getValues().stream()
-                                .map(Descriptors.EnumValueDescriptor::getName)
-                                .toList()
-                );
-                result.put("enumType", field.getEnumType().getFullName());
-            }
-            case MESSAGE -> result = messageSchema(
-                    field.getMessageType(),
-                    path,
-                    depth + 1,
-                    ancestors,
-                    descriptions
+    private Map<String, Object> wellKnown(
+            Descriptors.Descriptor descriptor) {
+        return switch (descriptor.getFullName()) {
+            case "google.protobuf.Timestamp" -> formatted(
+                    "string",
+                    "date-time"
             );
-            case STRING -> result = type("string");
-            default -> result = type("object");
+            case "google.protobuf.Duration" -> formatted(
+                    "string",
+                    "duration"
+            );
+            case "google.protobuf.FieldMask" -> type("string");
+            case "google.protobuf.Empty" -> object();
+            case "google.protobuf.Struct" -> {
+                Map<String, Object> result = type("object");
+                result.put("additionalProperties", Map.of());
+                yield result;
+            }
+            case "google.protobuf.ListValue" -> {
+                Map<String, Object> result = type("array");
+                result.put("items", Map.of());
+                yield result;
+            }
+            case "google.protobuf.Value", "google.protobuf.Any" ->
+                    new LinkedHashMap<>();
+            case "google.protobuf.StringValue" -> type("string");
+            case "google.protobuf.BoolValue" -> type("boolean");
+            case "google.protobuf.Int32Value",
+                 "google.protobuf.UInt32Value" -> formatted(
+                    "integer",
+                    "int32"
+            );
+            case "google.protobuf.Int64Value",
+                 "google.protobuf.UInt64Value" -> formatted(
+                    "integer",
+                    "int64"
+            );
+            case "google.protobuf.FloatValue" -> formatted(
+                    "number",
+                    "float"
+            );
+            case "google.protobuf.DoubleValue" -> formatted(
+                    "number",
+                    "double"
+            );
+            case "google.protobuf.BytesValue" -> formatted("string", "byte");
+            default -> null;
+        };
+    }
+
+    private Object parseExample(
+            String value,
+            Map<String, Object> schema,
+            Descriptors.FieldDescriptor field) {
+        try {
+            String type = String.valueOf(schema.get("type"));
+            return switch (type) {
+                case "string" -> {
+                    Object values = schema.get("enum");
+                    if (values instanceof Collection<?> collection
+                            && !collection.contains(value)) {
+                        throw new IllegalArgumentException();
+                    }
+                    yield value;
+                }
+                case "integer" -> new BigInteger(value);
+                case "number" -> new BigDecimal(value);
+                case "boolean" -> {
+                    if (!"true".equals(value) && !"false".equals(value)) {
+                        throw new IllegalArgumentException();
+                    }
+                    yield Boolean.valueOf(value);
+                }
+                case "array" -> requireExampleType(
+                        objectMapper.readValue(value, Object.class),
+                        List.class
+                );
+                case "object" -> requireExampleType(
+                        objectMapper.readValue(value, Object.class),
+                        Map.class
+                );
+                default -> throw new IllegalArgumentException();
+            };
+        } catch (Exception exception) {
+            throw new IllegalArgumentException(
+                    "invalid protobuf Gateway Option example for "
+                            + field.getFullName() + ": " + value,
+                    exception
+            );
         }
+    }
+
+    private Object requireExampleType(Object value, Class<?> expected) {
+        if (!expected.isInstance(value)) {
+            throw new IllegalArgumentException();
+        }
+        return value;
+    }
+
+    private Map<String, Object> enumSchema(
+            Descriptors.EnumDescriptor descriptor) {
+        Map<String, Object> result = type("string");
+        result.put(
+                "enum",
+                descriptor.getValues().stream()
+                        .map(Descriptors.EnumValueDescriptor::getName)
+                        .toList()
+        );
+        result.put("enumType", descriptor.getFullName());
+        return result;
+    }
+
+    private Map<String, Object> object() {
+        Map<String, Object> result = type("object");
+        result.put("properties", Map.of());
+        result.put("additionalProperties", false);
+        return result;
+    }
+
+    private Map<String, Object> formatted(String type, String format) {
+        Map<String, Object> result = type(type);
+        result.put("format", format);
         return result;
     }
 
@@ -177,86 +340,21 @@ final class ProtobufSchemaMapper {
         return result;
     }
 
-    private String integerFormat(Descriptors.FieldDescriptor field) {
-        return switch (field.getType()) {
-            case UINT32, FIXED32 -> "uint32";
-            default -> "int32";
-        };
+    private Map<String, Object> reference(String key) {
+        return new LinkedHashMap<>(Map.of("$ref", "#/$defs/" + key));
     }
 
-    private String longFormat(Descriptors.FieldDescriptor field) {
-        return switch (field.getType()) {
-            case UINT64, FIXED64 -> "uint64";
-            default -> "int64";
-        };
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> map(Object value) {
+        return (Map<String, Object>) value;
     }
 
-    private void addTechnicalMetadata(
-            Map<String, Object> schema,
-            Descriptors.FieldDescriptor field) {
-        schema.put("protobufType", field.getType().name());
-        schema.put("protobufName", field.getName());
-        schema.put("fieldNumber", field.getNumber());
-    }
-
-    private String childPath(String parent, String child) {
-        return parent.isEmpty() ? child : parent + "." + child;
-    }
-
-    private static final class DocumentationIndex {
-
-        private final Map<String, String> descriptions =
-                new LinkedHashMap<>();
-
-        private final Set<String> consumed = new HashSet<>();
-
-        private DocumentationIndex(GatewaySchemaField[] documentation) {
-            for (GatewaySchemaField field : documentation) {
-                String path = field.path().trim();
-                String description = field.description().trim();
-                if (path.isEmpty()) {
-                    throw new IllegalArgumentException(
-                            "gateway schema field path must not be blank"
-                    );
-                }
-                if (description.isEmpty()) {
-                    throw new IllegalArgumentException(
-                            "gateway schema field description must not be "
-                                    + "blank: " + path
-                    );
-                }
-                String previous = descriptions.putIfAbsent(
-                        path,
-                        description
-                );
-                if (previous != null) {
-                    throw new IllegalArgumentException(
-                            "duplicate gateway schema field path: " + path
-                    );
-                }
-            }
-        }
-
-        private void addDescription(
-                String path,
-                Map<String, Object> schema) {
-            String description = descriptions.get(path);
-            if (description != null) {
-                schema.put("description", description);
-                consumed.add(path);
-            }
-        }
-
-        private void verifyAllFieldsExist(String messageType) {
-            List<String> unknown = descriptions.keySet().stream()
-                    .filter(path -> !consumed.contains(path))
-                    .toList();
-            if (!unknown.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "gateway schema field path does not exist in "
-                                + messageType + ": " + unknown
-                );
-            }
-        }
+    private Map<String, Object> copyMap(Map<?, ?> source) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        source.forEach((key, value) -> result.put(
+                String.valueOf(key),
+                value
+        ));
+        return result;
     }
 }
