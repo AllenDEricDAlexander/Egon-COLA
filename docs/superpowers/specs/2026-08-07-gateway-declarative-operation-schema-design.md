@@ -1,6 +1,8 @@
 # Gateway 声明式 Operation Schema 与 MCP 参数装配设计
 
-状态：待用户审核
+状态：已审核通过（2026-08-07），待按实施 Plan 执行
+
+实施计划：`../plans/2026-08-07-gateway-declarative-operation-schema.md`
 
 关联文档：
 
@@ -1496,13 +1498,15 @@ export type McpManagedTool = {
 11. 旧字段数组、扁平参数绑定、Raw Class 泛型丢失和旧 RPC Path Documentation 代码已删除。
 12. 前后端、Engine、Starter、Contract 和测试夹具在同一次破坏性版本中完成切换。
 
-## 20. 本轮审核项
+## 20. 审核结论
 
-1. 是否确认 `requestSchemaFields` 使用完整声明，Managed MCP 方法不允许局部省略？
-2. 是否确认 `responseSchemaFields` 删除，统一改为单一 `responseSchema`？
-3. 是否确认 `GatewaySchemaField` 删除 `path`，字段说明迁移到 DTO 属性/参数？
-4. 是否确认 HTTP requestSchema 使用位置分组，Managed MCP 只保留 `path/query/body`？
-5. 是否确认 RPC 字段说明改用 `schema_options.proto` 自定义 Field Option？
-6. 是否确认 Reporting 升级到 v2，并删除独立 `Parameter`/`attributes.parameters`？
-7. 是否确认 `inputLocations` 从后端、Rule、Runtime、API、前端和测试中彻底删除？
-8. 是否确认不做兼容、不自动改写历史 Definition、不允许旧 Release 重新激活？
+2026-08-07 用户已确认本文全部设计决策：
+
+1. `requestSchemaFields` 使用完整声明，Managed MCP 方法不允许局部省略；
+2. 删除 `responseSchemaFields`，统一使用单一 `responseSchema`；
+3. `GatewaySchemaField` 删除 `path`，字段说明迁移到 DTO 属性/参数；
+4. HTTP requestSchema 使用位置分组，Managed MCP 只保留 `path/query/body`；
+5. RPC 字段说明使用 `schema_options.proto` 自定义 Field Option；
+6. Reporting 升级到 v2，删除独立 `Parameter`/`attributes.parameters`；
+7. 从后端、Rule、Runtime、API、前端和测试中彻底删除 `inputLocations`；
+8. 不做兼容、不自动改写历史 Definition、不允许旧 Release 重新激活。
