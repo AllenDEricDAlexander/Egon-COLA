@@ -8,9 +8,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigQueryRequest;
+import top.egon.cola.component.ddc.admin.model.dto.DdcConfigRollbackRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigUpdateRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
@@ -88,15 +90,76 @@ class DdcConfigServiceTest {
     void updateCreatesNewVersion() {
         DdcConfigCreateRequest create = new DdcConfigCreateRequest(
                 "default", "dev", "demo", null,
-                "switch", "false", "false", "BOOLEAN", "switch");
+                "feature:\n  enabled: false\n", "switch");
         DdcConfigVO created = configService.create(create, "tester");
 
-        DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(created.getId(), "true",
+        DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(
+                created.getId(), "feature:\n  enabled: true\n",
                 "enable switch", created.getCurrentVersion());
         DdcConfigVO updated = configService.update(update, "tester");
 
         assertThat(updated.getCurrentVersion()).isEqualTo(2L);
         assertThat(versionRepository.findByConfigIdOrderByVersionDesc(created.getId())).hasSize(2);
+    }
+
+    @Test
+    void createAndUpsertRejectInvalidYaml() {
+        DdcConfigCreateRequest malformed = new DdcConfigCreateRequest(
+                "default", "dev", "create-invalid", null,
+                "feature: [", "invalid"
+        );
+        DdcConfigCreateRequest reserved = new DdcConfigCreateRequest(
+                "default", "dev", "upsert-invalid", null,
+                "spring:\n  profiles:\n    active: prod\n", "invalid"
+        );
+
+        assertThatThrownBy(() -> configService.create(malformed, "tester"))
+                .hasMessageContaining("invalid application.yml");
+        assertThatThrownBy(() -> configService.upsert(
+                reserved,
+                null,
+                "tester"
+        )).hasMessageContaining("reserved");
+    }
+
+    @Test
+    void updateAndRollbackRejectInvalidYaml() {
+        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
+                "default", "dev", "mutation-invalid", null,
+                "feature:\n  enabled: false\n", "valid"
+        ), "tester");
+        DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(
+                created.getId(),
+                "egon:\n  cola:\n    component:\n      ddc:\n        enabled: false\n",
+                "invalid",
+                created.getCurrentVersion()
+        );
+
+        assertThatThrownBy(() -> configService.update(update, "tester"))
+                .hasMessageContaining("reserved");
+
+        DdcConfigVersionEntity invalidVersion = new DdcConfigVersionEntity();
+        invalidVersion.setId("invalid-version");
+        invalidVersion.setConfigId(created.getId());
+        invalidVersion.setBizCode("default");
+        invalidVersion.setAppCode("mutation-invalid");
+        invalidVersion.setEnv("dev");
+        invalidVersion.setConfigKey("application.yml");
+        invalidVersion.setVersion(99L);
+        invalidVersion.setNewValue("feature: [");
+        invalidVersion.setValueType("YAML");
+        invalidVersion.setChangeType("UPDATE");
+        invalidVersion.setCreatedAt(LocalDateTime.now());
+        versionRepository.saveAndFlush(invalidVersion);
+
+        assertThatThrownBy(() -> configService.rollback(
+                new DdcConfigRollbackRequest(
+                        created.getId(),
+                        99L,
+                        "invalid"
+                ),
+                "tester"
+        )).hasMessageContaining("invalid application.yml");
     }
 
     @Test
@@ -106,10 +169,7 @@ class DdcConfigServiceTest {
                 "dev",
                 "gateway",
                 null,
-                "gateway.routes",
-                "{}",
-                null,
-                "JSON",
+                "gateway:\n  enabled: false\n",
                 "routes"
         );
         DdcConfigVO created = configService.upsert(request, null, "gateway-admin");
@@ -119,10 +179,7 @@ class DdcConfigServiceTest {
                         "dev",
                         "gateway",
                         null,
-                        "gateway.routes",
-                        "{\"enabled\":true}",
-                        null,
-                        "JSON",
+                        "gateway:\n  enabled: true\n",
                         "routes"
                 ),
                 created.getCurrentVersion(),
@@ -134,7 +191,6 @@ class DdcConfigServiceTest {
                 "infra",
                 "dev",
                 "gateway",
-                "gateway.routes",
                 1L,
                 "gateway-admin",
                 "release removed"
@@ -144,7 +200,6 @@ class DdcConfigServiceTest {
                 "infra",
                 "dev",
                 "gateway",
-                "gateway.routes",
                 updated.getCurrentVersion(),
                 "gateway-admin",
                 "release removed"
@@ -153,7 +208,6 @@ class DdcConfigServiceTest {
                 "infra",
                 "dev",
                 "gateway",
-                "gateway.routes",
                 deleted.getCurrentVersion(),
                 "gateway-admin",
                 "repeat"
@@ -175,10 +229,7 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
-                "feature.rules",
-                "{\"version\":1}",
-                null,
-                "JSON",
+                "feature:\n  version: 1\n",
                 "rules"
         ), "tester");
         configService.upsert(new DdcConfigCreateRequest(
@@ -186,10 +237,7 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
-                "feature.rules",
-                "version: 2",
-                null,
-                "YAML",
+                "feature:\n  version: 2\n",
                 "rules"
         ), created.getCurrentVersion(), "tester");
         DdcConfigItemEntity item = configItemRepository.findById(created.getId())
@@ -200,16 +248,12 @@ class DdcConfigServiceTest {
         assertThat(configService.pull("commerce", "test", "orders"))
                 .singleElement()
                 .satisfies(value -> {
-                    assertThat(value.getConfigValue()).isEqualTo("{\"version\":1}");
-                    assertThat(value.getValueType()).isEqualTo("JSON");
+                    assertThat(value.getConfigValue())
+                            .isEqualTo("feature:\n  version: 1\n");
+                    assertThat(value.getConfigKey()).isEqualTo("application.yml");
+                    assertThat(value.getValueType()).isEqualTo("YAML");
                     assertThat(value.getVersion()).isEqualTo(1L);
                 });
-        assertThat(configService.value(
-                "commerce", "test", "orders", "feature.rules"
-        )).satisfies(value -> {
-            assertThat(value.getConfigValue()).isEqualTo("{\"version\":1}");
-            assertThat(value.getVersion()).isEqualTo(1L);
-        });
     }
 
     @Test
@@ -219,17 +263,11 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
-                "new.draft",
-                "draft",
-                null,
-                "STRING",
+                "feature:\n  state: draft\n",
                 "new draft"
         ), "tester");
 
         assertThat(configService.pull("commerce", "test", "orders")).isEmpty();
-        assertThat(configService.value(
-                "commerce", "test", "orders", "new.draft"
-        )).isNull();
     }
 
     @Test
@@ -239,10 +277,7 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
-                "stable.value",
-                "published",
-                null,
-                "STRING",
+                "feature:\n  state: published\n",
                 "stable value"
         ), "tester");
         DdcConfigItemEntity item = configItemRepository.findById(created.getId())
@@ -255,16 +290,10 @@ class DdcConfigServiceTest {
         );
 
         assertThat(deleted.getDeleted()).isTrue();
-        assertThat(configService.value(
-                "commerce", "test", "orders", "stable.value"
-        )).satisfies(value -> {
-            assertThat(value.getConfigValue()).isEqualTo("published");
-            assertThat(value.getVersion()).isEqualTo(1L);
-        });
         assertThat(configService.pull("commerce", "test", "orders"))
                 .singleElement()
                 .satisfies(value -> assertThat(value.getConfigKey())
-                        .isEqualTo("stable.value"));
+                        .isEqualTo("application.yml"));
 
         item = configItemRepository.findById(created.getId()).orElseThrow();
         item.setPublishedVersion(2L);
@@ -279,10 +308,7 @@ class DdcConfigServiceTest {
                 env,
                 appCode,
                 null,
-                configKey,
-                "1",
-                null,
-                "INTEGER",
+                "test:\n  value: 1\n",
                 configKey
         );
     }

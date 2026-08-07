@@ -4,7 +4,6 @@ public record DdcManagementConfigDeleteRequest(
         String bizCode,
         String env,
         String appCode,
-        String configKey,
         Long expectedVersion,
         String operator,
         String reason

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
+import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
@@ -25,7 +26,8 @@ public class DdcRefreshService {
     private static final String RESOURCE_NAME =
             DdcYamlConfigApplier.RESOURCE_NAME;
 
-    private static final String VALUE_TYPE = "YAML";
+    private static final String VALUE_TYPE =
+            DdcYamlPropertySourceLoader.VALUE_TYPE;
 
     private final DdcLocalConfigRepository repository;
 

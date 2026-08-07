@@ -121,14 +121,12 @@ public class DdcManagementFacade {
         validateScope(
                 query.bizCode(),
                 query.env(),
-                query.appCode(),
-                query.configKey()
+                query.appCode()
         );
         return config(configService.find(
                 query.bizCode(),
                 query.env(),
-                query.appCode(),
-                query.configKey()
+                query.appCode()
         ).orElseThrow(() -> new DdcAdminException(
                 DdcManagementErrorCode.CONFIG_NOT_FOUND
         )));
@@ -139,8 +137,7 @@ public class DdcManagementFacade {
         validateScope(
                 request.bizCode(),
                 request.env(),
-                request.appCode(),
-                request.configKey()
+                request.appCode()
         );
         requireText(request.operator(), "operator");
         DdcConfigVO saved = configService.upsert(
@@ -149,10 +146,7 @@ public class DdcManagementFacade {
                         request.env(),
                         request.appCode(),
                         null,
-                        request.configKey(),
                         request.configValue(),
-                        null,
-                        request.valueType(),
                         request.description()
                 ),
                 request.expectedVersion(),
@@ -166,15 +160,13 @@ public class DdcManagementFacade {
         validateScope(
                 request.bizCode(),
                 request.env(),
-                request.appCode(),
-                request.configKey()
+                request.appCode()
         );
         requireText(request.operator(), "operator");
         configService.delete(
                 request.bizCode(),
                 request.env(),
                 request.appCode(),
-                request.configKey(),
                 request.expectedVersion(),
                 request.operator(),
                 request.reason()
@@ -186,8 +178,7 @@ public class DdcManagementFacade {
         validateScope(
                 request.bizCode(),
                 request.env(),
-                request.appCode(),
-                request.configKey()
+                request.appCode()
         );
         requireText(request.operator(), "operator");
         DdcPublishRequest command = new DdcPublishRequest();
@@ -195,7 +186,6 @@ public class DdcManagementFacade {
         command.setBizCode(request.bizCode());
         command.setEnv(request.env());
         command.setAppCode(request.appCode());
-        command.setConfigKey(request.configKey());
         command.setConfigValue(request.configValue());
         command.setExpectedVersion(request.expectedVersion());
         command.setTimeoutMs(request.timeoutMs());
@@ -433,16 +423,11 @@ public class DdcManagementFacade {
     private void validateScope(
             String bizCode,
             String env,
-            String appCode,
-            String configKey
+            String appCode
     ) {
         requireText(bizCode, "bizCode");
         requireText(appCode, "appCode");
         requireText(env, "env");
-        String exactKey = requireText(configKey, "configKey");
-        if (exactKey.contains("*") || exactKey.contains("?")) {
-            throw new DdcAdminException("an exact configKey is required");
-        }
     }
 
     private String requireText(String value, String fieldName) {

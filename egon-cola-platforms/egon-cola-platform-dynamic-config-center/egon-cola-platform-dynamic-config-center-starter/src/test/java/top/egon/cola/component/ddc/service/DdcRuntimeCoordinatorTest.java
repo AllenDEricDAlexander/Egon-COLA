@@ -6,7 +6,6 @@ import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
@@ -389,11 +388,6 @@ class DdcRuntimeCoordinatorTest {
                 throw new IllegalStateException("pull failed");
             }
             return List.of(snapshot);
-        }
-
-        @Override
-        public void reportDefaults(DdcDefaultReportRequest request) {
-            events.add("defaults");
         }
 
         @Override

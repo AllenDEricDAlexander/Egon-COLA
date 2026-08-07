@@ -14,6 +14,10 @@ import java.util.Map;
 
 public final class DdcYamlPropertySourceLoader {
 
+    public static final String RESOURCE_NAME = "application.yml";
+
+    public static final String VALUE_TYPE = "YAML";
+
     private static final String PROPERTY_SOURCE_PREFIX = "ddc:";
 
     private final YamlPropertySourceLoader delegate =

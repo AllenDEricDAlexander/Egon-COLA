@@ -15,8 +15,6 @@ public class DdcPublishRequest {
 
     private String appCode;
 
-    private String configKey;
-
     private String configValue;
 
     private Long expectedVersion;

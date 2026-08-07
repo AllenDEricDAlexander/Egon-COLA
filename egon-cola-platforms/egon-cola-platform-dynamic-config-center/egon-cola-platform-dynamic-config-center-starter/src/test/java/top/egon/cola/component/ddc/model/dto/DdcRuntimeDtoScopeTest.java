@@ -26,12 +26,6 @@ class DdcRuntimeDtoScopeTest {
         heartbeat.setAppCode("order");
         heartbeat.setNamespace("namespace-a");
 
-        DdcDefaultReportRequest defaults = new DdcDefaultReportRequest();
-        defaults.setBizCode("retail");
-        defaults.setEnv("dev");
-        defaults.setAppCode("order");
-        defaults.setNamespace("namespace-a");
-
         DdcAckRequest ack = new DdcAckRequest();
         ack.setBizCode("retail");
         ack.setEnv("dev");
@@ -44,7 +38,7 @@ class DdcRuntimeDtoScopeTest {
         publish.setAppCode("order");
         publish.setNamespace("namespace-a");
 
-        for (Object payload : List.of(register, heartbeat, defaults, ack, publish)) {
+        for (Object payload : List.of(register, heartbeat, ack, publish)) {
             JsonNode json = objectMapper.valueToTree(payload);
             assertThat(json.path("bizCode").asText()).isEqualTo("retail");
             assertThat(json.path("env").asText()).isEqualTo("dev");

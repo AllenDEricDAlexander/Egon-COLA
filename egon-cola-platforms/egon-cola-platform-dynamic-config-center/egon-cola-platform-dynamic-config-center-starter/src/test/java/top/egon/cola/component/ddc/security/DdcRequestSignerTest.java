@@ -59,7 +59,7 @@ class DdcRequestSignerTest {
     private DdcCanonicalRequest request(byte[] body) {
         return new DdcCanonicalRequest(
                 "POST",
-                "/api/v1/ddc/openapi/defaults/report",
+                "/api/v1/ddc/openapi/publish/ack",
                 Map.of(),
                 1700000000000L,
                 "nonce-1",

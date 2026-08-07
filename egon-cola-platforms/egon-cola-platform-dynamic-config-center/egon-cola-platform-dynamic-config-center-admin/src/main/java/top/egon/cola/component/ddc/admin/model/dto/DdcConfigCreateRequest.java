@@ -19,13 +19,7 @@ public class DdcConfigCreateRequest {
 
     private String namespaceCode;
 
-    private String configKey;
-
     private String configValue;
-
-    private String defaultValue;
-
-    private String valueType;
 
     private String description;
 }

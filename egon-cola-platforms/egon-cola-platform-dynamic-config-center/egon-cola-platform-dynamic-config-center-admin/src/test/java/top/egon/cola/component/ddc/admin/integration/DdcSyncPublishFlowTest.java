@@ -23,6 +23,7 @@ import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.service.lease.DdcConfigLeaseService;
@@ -94,6 +95,9 @@ class DdcSyncPublishFlowTest {
     private DdcPublishTaskRepository taskRepository;
 
     @Autowired
+    private DdcPublishAckRepository ackRepository;
+
+    @Autowired
     private DdcConfigLeaseService leaseService;
 
     @Autowired
@@ -104,6 +108,9 @@ class DdcSyncPublishFlowTest {
 
     @BeforeEach
     void setUp() {
+        ackRepository.deleteAll();
+        taskRepository.deleteAll();
+        configItemRepository.deleteAll();
         reset(leaseService, redisRepository);
     }
 
@@ -185,7 +192,7 @@ class DdcSyncPublishFlowTest {
                     assertThat(task.getFailureStage()).isEqualTo("REDIS_DISPATCH");
                 });
         assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
-                "default", "dev", "demo", "dispatch-failure"
+                "default", "dev", "demo", "application.yml"
         )).get()
                 .extracting(DdcConfigItemEntity::getPublishedVersion)
                 .isNull();
@@ -282,17 +289,17 @@ class DdcSyncPublishFlowTest {
         return published;
     }
 
-    private void saveConfig(String configKey) {
+    private void saveConfig(String ignoredLabel) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(UuidV7.simpleString());
         config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setConfigKey(configKey);
-        config.setConfigValue("false");
-        config.setDefaultValue("false");
-        config.setValueType("BOOLEAN");
+        config.setConfigKey("application.yml");
+        config.setConfigValue("feature:\n  value: false\n");
+        config.setDefaultValue(null);
+        config.setValueType("YAML");
         config.setCurrentVersion(1L);
         config.setEnabled(true);
         config.setDeleted(false);
@@ -309,8 +316,7 @@ class DdcSyncPublishFlowTest {
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setConfigKey(configKey);
-        request.setConfigValue(value);
+        request.setConfigValue("feature:\n  value: " + value + "\n");
         request.setExpectedVersion(1L);
         request.setTimeoutMs(timeoutMs);
         return request;

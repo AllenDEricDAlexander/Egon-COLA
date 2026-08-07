@@ -8,7 +8,6 @@ import org.springframework.web.client.ResourceAccessException;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
@@ -225,11 +224,6 @@ class DdcAckDeliveryTest {
 
         @Override
         public List<DdcConfigValue> pull() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void reportDefaults(DdcDefaultReportRequest request) {
             throw new UnsupportedOperationException();
         }
 

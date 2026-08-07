@@ -5,7 +5,6 @@ import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
@@ -160,11 +159,6 @@ class DdcLeaseLifecycleTest {
         public List<DdcConfigValue> pull() {
             events.add("snapshot");
             return List.of();
-        }
-
-        @Override
-        public void reportDefaults(DdcDefaultReportRequest request) {
-            events.add("defaults");
         }
 
         @Override

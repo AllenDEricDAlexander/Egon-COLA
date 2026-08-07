@@ -21,7 +21,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
+import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 
 import java.time.LocalDateTime;
@@ -32,6 +32,12 @@ import java.util.Optional;
 @Service
 public class DdcConfigService {
 
+    public static final String CONFIG_KEY =
+            DdcYamlPropertySourceLoader.RESOURCE_NAME;
+
+    public static final String VALUE_TYPE =
+            DdcYamlPropertySourceLoader.VALUE_TYPE;
+
     private final DdcConfigItemRepository configItemRepository;
 
     private final DdcConfigVersionRepository versionRepository;
@@ -40,7 +46,7 @@ public class DdcConfigService {
 
     private final DdcNamespaceEnvAppBindingRepository bindingRepository;
 
-    private final DdcConfigValueGuard valueGuard;
+    private final DdcYamlConfigValidator yamlValidator;
 
     @Autowired
     public DdcConfigService(
@@ -55,7 +61,9 @@ public class DdcConfigService {
         this.bindingRepository = bindingRepository;
         DdcAdminProperties properties =
                 propertiesProvider.getIfAvailable(DdcAdminProperties::new);
-        this.valueGuard = new DdcConfigValueGuard(properties.getMaxValueBytes());
+        this.yamlValidator = new DdcYamlConfigValidator(
+                properties.getMaxValueBytes()
+        );
     }
 
     public DdcConfigService(
@@ -77,7 +85,7 @@ public class DdcConfigService {
         validateDraft(request);
         configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
                         request.getBizCode(), request.getEnv(),
-                        request.getAppCode(), request.getConfigKey())
+                        request.getAppCode(), CONFIG_KEY)
                 .ifPresent(item -> {
                     throw new DdcAdminException("config item already exists");
                 });
@@ -96,7 +104,7 @@ public class DdcConfigService {
                         request.getBizCode(),
                         request.getEnv(),
                         request.getAppCode(),
-                        request.getConfigKey()
+                        CONFIG_KEY
                 ).orElse(null);
         if (existing == null) {
             if (expectedVersion != null && expectedVersion != 0L) {
@@ -113,7 +121,8 @@ public class DdcConfigService {
         }
         String oldValue = existing.getConfigValue();
         existing.setConfigValue(request.getConfigValue());
-        existing.setValueType(request.getValueType());
+        existing.setDefaultValue(null);
+        existing.setValueType(VALUE_TYPE);
         existing.setDescription(request.getDescription());
         existing.setCurrentVersion(existing.getCurrentVersion() + 1);
         existing.setUpdatedAt(LocalDateTime.now());
@@ -145,10 +154,10 @@ public class DdcConfigService {
         entity.setBizCode(request.getBizCode());
         entity.setAppCode(request.getAppCode());
         entity.setEnv(request.getEnv());
-        entity.setConfigKey(request.getConfigKey());
+        entity.setConfigKey(CONFIG_KEY);
         entity.setConfigValue(request.getConfigValue());
-        entity.setDefaultValue(request.getDefaultValue());
-        entity.setValueType(request.getValueType());
+        entity.setDefaultValue(null);
+        entity.setValueType(VALUE_TYPE);
         entity.setDescription(request.getDescription());
         entity.setCurrentVersion(1L);
         entity.setPublishedVersion(null);
@@ -167,7 +176,7 @@ public class DdcConfigService {
         if (request == null) {
             throw new DdcAdminException("config update request is required");
         }
-        valueGuard.check(request.getConfigValue());
+        yamlValidator.validate(request.getConfigValue());
         DdcConfigItemEntity entity = getConfig(request.getId());
         if (request.getCurrentVersion() != null && !Objects.equals(request.getCurrentVersion(), entity.getCurrentVersion())) {
             throw new DdcAdminException("config version changed");
@@ -196,7 +205,6 @@ public class DdcConfigService {
             String bizCode,
             String env,
             String appCode,
-            String configKey,
             Long expectedVersion,
             String operator,
             String reason
@@ -206,7 +214,7 @@ public class DdcConfigService {
                         bizCode,
                         env,
                         appCode,
-                        configKey
+                        CONFIG_KEY
                 ).orElse(null);
         if (entity == null) {
             return null;
@@ -242,7 +250,7 @@ public class DdcConfigService {
         DdcConfigItemEntity entity = getConfig(request.getConfigId());
         DdcConfigVersionEntity target = versionRepository.findByConfigIdAndVersion(request.getConfigId(), request.getVersion())
                 .orElseThrow(() -> new DdcAdminException("config version not found"));
-        valueGuard.check(target.getNewValue());
+        yamlValidator.validate(target.getNewValue());
         String oldValue = entity.getConfigValue();
         entity.setConfigValue(target.getNewValue());
         entity.setDeleted(false);
@@ -264,7 +272,7 @@ public class DdcConfigService {
                         optional(query.getNamespaceCode()),
                         optional(query.getEnv()),
                         optional(query.getAppCode()),
-                        optional(query.getConfigKey()),
+                        CONFIG_KEY,
                         query.isIncludeDeleted()
                 ).stream()
                 .map(this::config)
@@ -278,51 +286,29 @@ public class DdcConfigService {
     public Optional<DdcConfigVO> find(
             String bizCode,
             String env,
-            String appCode,
-            String configKey
+            String appCode
     ) {
         return configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
                 bizCode,
                 env,
                 appCode,
-                configKey
+                CONFIG_KEY
         ).map(this::config);
     }
 
     public List<DdcConfigValue> pull(String bizCode, String env, String appCode) {
-        return configItemRepository.findByBizCodeAndEnvAndAppCode(
-                        bizCode, env, appCode
-                ).stream()
-                .map(this::publishedVersion)
-                .flatMap(Optional::stream)
-                .filter(this::isRuntimeValue)
-                .map(this::toConfigValue)
-                .toList();
-    }
-
-    public DdcConfigValue value(
-            String bizCode, String env, String appCode, String configKey) {
-        return configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
-                        bizCode, env, appCode, configKey)
+        return configItemRepository
+                .findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                        bizCode,
+                        env,
+                        appCode,
+                        CONFIG_KEY
+                )
                 .flatMap(this::publishedVersion)
                 .filter(this::isRuntimeValue)
                 .map(this::toConfigValue)
-                .orElse(null);
-    }
-
-    @Transactional
-    public void reportDefaults(DdcDefaultReportRequest request) {
-        if (request == null || request.getConfigs() == null) {
-            return;
-        }
-        request.getConfigs().forEach(config ->
-                valueGuard.check(config.getDefaultValue()));
-        for (DdcDefaultReportRequest.DdcConfigValueRequest config : request.getConfigs()) {
-            configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
-                            request.getBizCode(), request.getEnv(),
-                            request.getAppCode(), config.getConfigKey())
-                    .orElseGet(() -> createDefaultConfig(request, config));
-        }
+                .map(List::of)
+                .orElseGet(List::of);
     }
 
     public List<DdcConfigVersionVO> versions(String configId) {
@@ -372,31 +358,6 @@ public class DdcConfigService {
         operationLogRepository.save(log);
     }
 
-    private DdcConfigItemEntity createDefaultConfig(DdcDefaultReportRequest request,
-                                                    DdcDefaultReportRequest.DdcConfigValueRequest config) {
-        LocalDateTime now = LocalDateTime.now();
-        DdcConfigItemEntity entity = new DdcConfigItemEntity();
-        entity.setId(UuidV7.simpleString());
-        entity.setBizCode(request.getBizCode());
-        entity.setAppCode(request.getAppCode());
-        entity.setEnv(request.getEnv());
-        entity.setConfigKey(config.getConfigKey());
-        entity.setConfigValue(config.getDefaultValue());
-        entity.setDefaultValue(config.getDefaultValue());
-        entity.setValueType(config.getValueType());
-        entity.setCurrentVersion(1L);
-        entity.setPublishedVersion(null);
-        entity.setEnabled(true);
-        entity.setDeleted(false);
-        entity.setDescription("reported by " + request.getInstanceId());
-        entity.setCreatedAt(now);
-        entity.setUpdatedAt(now);
-        DdcConfigItemEntity saved = configItemRepository.save(entity);
-        saveVersion(saved, null, saved.getConfigValue(), ChangeType.CREATE, "report default", request.getInstanceId());
-        saveOperation(saved, ChangeType.CREATE, request.getInstanceId(), "report default");
-        return saved;
-    }
-
     private Optional<DdcConfigVersionEntity> publishedVersion(
             DdcConfigItemEntity entity
     ) {
@@ -413,9 +374,9 @@ public class DdcConfigService {
 
     private DdcConfigValue toConfigValue(DdcConfigVersionEntity version) {
         DdcConfigValue value = new DdcConfigValue();
-        value.setConfigKey(version.getConfigKey());
+        value.setConfigKey(CONFIG_KEY);
         value.setConfigValue(version.getNewValue());
-        value.setValueType(version.getValueType());
+        value.setValueType(VALUE_TYPE);
         value.setVersion(version.getVersion());
         return value;
     }
@@ -437,9 +398,7 @@ public class DdcConfigService {
         requireText(request.getBizCode(), "bizCode");
         requireText(request.getAppCode(), "appCode");
         requireText(request.getEnv(), "env");
-        requireText(request.getConfigKey(), "configKey");
-        requireText(request.getValueType(), "valueType");
-        valueGuard.check(request.getConfigValue());
+        yamlValidator.validate(request.getConfigValue());
     }
 
     private DdcConfigVO config(DdcConfigItemEntity entity) {

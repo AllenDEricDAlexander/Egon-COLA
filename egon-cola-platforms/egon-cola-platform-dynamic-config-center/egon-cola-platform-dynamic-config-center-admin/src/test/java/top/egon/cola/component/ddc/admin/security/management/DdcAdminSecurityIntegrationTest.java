@@ -332,9 +332,7 @@ class DdcAdminSecurityIntegrationTest {
                   "bizCode":"biz-a",
                   "appCode":"app-a",
                   "env":"dev",
-                  "configKey":"feature.enabled",
-                  "configValue":"true",
-                  "valueType":"BOOLEAN"
+                  "configValue":"feature:\\n  enabled: true\\n"
                 }
                 """;
     }

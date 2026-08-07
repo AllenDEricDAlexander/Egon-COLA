@@ -25,8 +25,6 @@ public class DdcConfigVO {
 
     private String configValue;
 
-    private String defaultValue;
-
     private String valueType;
 
     private Long currentVersion;
@@ -47,7 +45,6 @@ public class DdcConfigVO {
         vo.setEnv(entity.getEnv());
         vo.setConfigKey(entity.getConfigKey());
         vo.setConfigValue(entity.getConfigValue());
-        vo.setDefaultValue(entity.getDefaultValue());
         vo.setValueType(entity.getValueType());
         vo.setCurrentVersion(entity.getCurrentVersion());
         vo.setDescription(entity.getDescription());

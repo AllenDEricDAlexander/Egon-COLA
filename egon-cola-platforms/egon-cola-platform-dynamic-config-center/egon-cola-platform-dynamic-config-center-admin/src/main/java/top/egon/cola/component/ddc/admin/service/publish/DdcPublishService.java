@@ -24,7 +24,8 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.ddc.admin.service.config.DdcConfigValueGuard;
+import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
+import top.egon.cola.component.ddc.admin.service.config.DdcYamlConfigValidator;
 import top.egon.cola.component.ddc.admin.service.lease.DdcConfigLeaseService;
 import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
@@ -81,7 +82,7 @@ public class DdcPublishService {
 
     private final DdcAdminProperties properties;
 
-    private final DdcConfigValueGuard valueGuard;
+    private final DdcYamlConfigValidator yamlValidator;
 
     private final TransactionTemplate transactionTemplate;
 
@@ -147,7 +148,9 @@ public class DdcPublishService {
         this.stateTransitions = stateTransitions;
         this.failureRecorder = failureRecorder;
         this.properties = properties;
-        this.valueGuard = new DdcConfigValueGuard(properties.getMaxValueBytes());
+        this.yamlValidator = new DdcYamlConfigValidator(
+                properties.getMaxValueBytes()
+        );
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -362,7 +365,7 @@ public class DdcPublishService {
                                 request.getBizCode(),
                                 request.getEnv(),
                                 request.getAppCode(),
-                                request.getConfigKey()
+                                DdcConfigService.CONFIG_KEY
                         )
                         .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
                         .orElseThrow(() -> new DdcAdminException("config item not found"));
@@ -371,7 +374,7 @@ public class DdcPublishService {
                         request.getBizCode(),
                         request.getEnv(),
                         request.getAppCode(),
-                        request.getConfigKey(),
+                        DdcConfigService.CONFIG_KEY,
                         ACTIVE_STATUSES
                 )
                 .isPresent()) {
@@ -557,8 +560,7 @@ public class DdcPublishService {
         requireText(request.getBizCode(), "bizCode");
         requireText(request.getEnv(), "env");
         requireText(request.getAppCode(), "appCode");
-        requireText(request.getConfigKey(), "configKey");
-        valueGuard.check(request.getConfigValue());
+        yamlValidator.validate(request.getConfigValue());
         if (request.getExpectedVersion() == null || request.getExpectedVersion() < 0) {
             throw new DdcAdminException("expectedVersion is required");
         }
@@ -585,7 +587,10 @@ public class DdcPublishService {
         boolean matches = Objects.equals(task.getBizCode(), request.getBizCode())
                 && Objects.equals(task.getAppCode(), request.getAppCode())
                 && Objects.equals(task.getEnv(), request.getEnv())
-                && Objects.equals(task.getConfigKey(), request.getConfigKey())
+                && Objects.equals(
+                        task.getConfigKey(),
+                        DdcConfigService.CONFIG_KEY
+                )
                 && Objects.equals(task.getContentChecksum(),
                 DdcChecksum.content(request.getConfigValue()))
                 && Objects.equals(task.getTimeoutMs(), timeoutMs)
@@ -642,7 +647,7 @@ public class DdcPublishService {
                     request.getBizCode(),
                     request.getEnv(),
                     request.getAppCode(),
-                    request.getConfigKey(),
+                    DdcConfigService.CONFIG_KEY,
                     exception.getMessage()
             );
         } catch (RuntimeException ignored) {
@@ -660,7 +665,7 @@ public class DdcPublishService {
                 request.getBizCode(),
                 request.getEnv(),
                 request.getAppCode(),
-                request.getConfigKey()
+                DdcConfigService.CONFIG_KEY
         );
     }
 

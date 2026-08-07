@@ -66,7 +66,7 @@ class DdcManagementFacadeTest {
                 "gateway",
                 "dev",
                 "runtime",
-                "gateway.routes",
+                "application.yml",
                 2L,
                 false
         );
@@ -77,43 +77,38 @@ class DdcManagementFacadeTest {
                 "gateway",
                 "dev",
                 "runtime",
-                "gateway.routes",
-                "{\"routes\":[]}",
-                "JSON",
+                "gateway:\n  routes: []\n",
                 "route draft",
                 1L,
                 "gateway-admin"
         ));
 
-        assertThat(response.configKey()).isEqualTo("gateway.routes");
+        assertThat(response.configKey()).isEqualTo("application.yml");
         assertThat(response.version()).isEqualTo(2L);
         verify(configService).upsert(any(), eq(1L), eq("gateway-admin"));
     }
 
     @Test
-    void deleteRejectsWildcardBeforeCallingTheConfigService() {
+    void deleteMapsTheFixedYamlResourceToConfigService() {
         DdcManagementConfigDeleteRequest request =
                 new DdcManagementConfigDeleteRequest(
                         "gateway",
                         "dev",
                         "runtime",
-                        "gateway.rules.*",
                         2L,
                         "gateway-admin",
                         "release removed"
                 );
 
-        assertThatThrownBy(() -> facade.delete(request))
-                .isInstanceOf(DdcAdminException.class)
-                .hasMessageContaining("exact");
-        verify(configService, never()).delete(
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any()
+        facade.delete(request);
+
+        verify(configService).delete(
+                "gateway",
+                "dev",
+                "runtime",
+                2L,
+                "gateway-admin",
+                "release removed"
         );
     }
 
@@ -123,31 +118,31 @@ class DdcManagementFacadeTest {
                 "gateway",
                 "dev",
                 "runtime",
-                "gateway.routes",
+                "application.yml",
                 2L,
                 true
         );
         when(configService.find(
-                "gateway", "dev", "runtime", "gateway.routes"
+                "gateway", "dev", "runtime"
         )).thenReturn(Optional.of(value));
 
         DdcManagementConfig response = facade.findConfig(new DdcManagementConfigQuery(
-                "gateway", "dev", "runtime", "gateway.routes"
+                "gateway", "dev", "runtime"
         ));
 
         assertThat(response.enabled()).isFalse();
         assertThat(response.deleted()).isTrue();
-        verify(configService).find("gateway", "dev", "runtime", "gateway.routes");
+        verify(configService).find("gateway", "dev", "runtime");
     }
 
     @Test
     void missingExactConfigUsesStableManagementCode() {
         when(configService.find(
-                "gateway", "dev", "runtime", "gateway.routes"
+                "gateway", "dev", "runtime"
         )).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> facade.findConfig(new DdcManagementConfigQuery(
-                "gateway", "dev", "runtime", "gateway.routes"
+                "gateway", "dev", "runtime"
         )))
                 .isInstanceOfSatisfying(DdcAdminException.class, exception -> {
                     assertThat(exception.getCode())
@@ -221,8 +216,8 @@ class DdcManagementFacadeTest {
         value.setAppCode(appCode);
         value.setEnv(env);
         value.setConfigKey(key);
-        value.setConfigValue("{}");
-        value.setValueType("JSON");
+        value.setConfigValue("gateway:\n  enabled: true\n");
+        value.setValueType("YAML");
         value.setCurrentVersion(version);
         value.setEnabled(!deleted);
         value.setDeleted(deleted);

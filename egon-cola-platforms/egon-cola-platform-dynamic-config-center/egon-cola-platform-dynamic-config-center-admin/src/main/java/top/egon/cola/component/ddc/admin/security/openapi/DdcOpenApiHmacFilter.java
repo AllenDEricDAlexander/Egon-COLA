@@ -263,17 +263,9 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                 && "configs/pull".equals(relative)) {
             return queryScope(request, "SDK", "CONFIG_PULL", true);
         }
-        if ("GET".equals(method)
-                && relative.startsWith("configs/")) {
-            return queryScope(request, "SDK", "CONFIG_VALUE", true);
-        }
         if ("POST".equals(method)
                 && "publish/ack".equals(relative)) {
             return bodyScope("SDK", "PUBLISH_ACK", body);
-        }
-        if ("POST".equals(method)
-                && "defaults/report".equals(relative)) {
-            return bodyScope("SDK", "DEFAULTS_REPORT", body);
         }
         if (relative.startsWith("registry/")) {
             return registryScope(request, method, relative, body);
@@ -327,17 +319,17 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             String method,
             String relative) {
         String[] segments = relative.split("/");
-        if (segments.length >= 6
+        if (segments.length >= 5
                 && "management".equals(segments[0])
                 && "configs".equals(segments[1])) {
             String operation;
-            if (segments.length == 6 && "GET".equals(method)) {
+            if (segments.length == 5 && "GET".equals(method)) {
                 operation = "MANAGEMENT_CONFIG_READ";
-            } else if (segments.length == 6
+            } else if (segments.length == 5
                     && ("PUT".equals(method) || "DELETE".equals(method))) {
                 operation = "MANAGEMENT_CONFIG_WRITE";
-            } else if (segments.length == 7
-                    && "publish".equals(segments[6])
+            } else if (segments.length == 6
+                    && "publish".equals(segments[5])
                     && "POST".equals(method)) {
                 operation = "MANAGEMENT_PUBLISH";
             } else {

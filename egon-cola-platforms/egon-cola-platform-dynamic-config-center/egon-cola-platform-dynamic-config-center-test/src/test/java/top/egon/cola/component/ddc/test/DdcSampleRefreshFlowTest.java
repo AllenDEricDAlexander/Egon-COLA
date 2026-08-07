@@ -6,7 +6,6 @@ import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.common.DdcValueConverter;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
@@ -141,10 +140,6 @@ class DdcSampleRefreshFlowTest {
         @Override
         public List<DdcConfigValue> pull() {
             return Collections.emptyList();
-        }
-
-        @Override
-        public void reportDefaults(DdcDefaultReportRequest request) {
         }
 
         @Override

@@ -54,7 +54,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 })
 class DdcAckServiceTest {
 
-    private static final String CHECKSUM = DdcChecksum.content("true");
+    private static final String CONFIG_VALUE =
+            "feature:\n  enabled: true\n";
+
+    private static final String CHECKSUM = DdcChecksum.content(CONFIG_VALUE);
 
     @Autowired
     private DdcPublishService publishService;
@@ -198,19 +201,19 @@ class DdcAckServiceTest {
                 .isEqualTo(DdcAckStatus.TIMEOUT.name());
     }
 
-    private DdcPublishTaskEntity savePublishingTask(String configKey) {
+    private DdcPublishTaskEntity savePublishingTask(String label) {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         String configId = UuidV7.simpleString();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(configId);
         config.setBizCode("default");
-        config.setAppCode("demo");
+        config.setAppCode(label);
         config.setEnv("dev");
-        config.setConfigKey(configKey);
-        config.setConfigValue("true");
-        config.setDefaultValue("false");
-        config.setValueType("BOOLEAN");
+        config.setConfigKey("application.yml");
+        config.setConfigValue(CONFIG_VALUE);
+        config.setDefaultValue(null);
+        config.setValueType("YAML");
         config.setCurrentVersion(2L);
         config.setPublishedVersion(2L);
         config.setEnabled(true);
@@ -223,10 +226,10 @@ class DdcAckServiceTest {
         task.setChangeId(UuidV7.simpleString());
         task.setConfigId(configId);
         task.setBizCode("default");
-        task.setAppCode("demo");
+        task.setAppCode(label);
         task.setEnv("dev");
         task.setNamespace("default");
-        task.setConfigKey(configKey);
+        task.setConfigKey("application.yml");
         task.setTargetVersion(2L);
         task.setContentChecksum(CHECKSUM);
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());

@@ -68,6 +68,10 @@ import static org.mockito.Mockito.verify;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishDispatchConsistencyTest {
 
+    private static final String OLD_YAML = "feature:\n  value: old\n";
+
+    private static final String NEW_YAML = "feature:\n  value: new\n";
+
     @Autowired
     private DdcPendingPublishDispatcher dispatcher;
 
@@ -111,10 +115,13 @@ class DdcPublishDispatchConsistencyTest {
                 .get()
                 .extracting(DdcConfigItemEntity::getPublishedVersion)
                 .isEqualTo(1L);
-        assertThat(configService.value(
-                "default", "dev", "demo", task.getConfigKey()
-        )).extracting(DdcConfigValue::getVersion, DdcConfigValue::getConfigValue)
-                .containsExactly(1L, "old");
+        assertThat(configService.pull("default", "dev", task.getAppCode()))
+                .singleElement()
+                .extracting(
+                        DdcConfigValue::getVersion,
+                        DdcConfigValue::getConfigValue
+                )
+                .containsExactly(1L, OLD_YAML);
     }
 
     @Test
@@ -215,18 +222,18 @@ class DdcPublishDispatchConsistencyTest {
                 .isEqualTo(2L);
     }
 
-    private DdcPublishTaskEntity savePreparedPublish(String configKey) {
+    private DdcPublishTaskEntity savePreparedPublish(String label) {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 26, 8, 0);
         String configId = UuidV7.simpleString();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(configId);
         config.setBizCode("default");
-        config.setAppCode("demo");
+        config.setAppCode(label);
         config.setEnv("dev");
-        config.setConfigKey(configKey);
-        config.setConfigValue("new");
-        config.setDefaultValue("old");
-        config.setValueType("STRING");
+        config.setConfigKey(DdcConfigService.CONFIG_KEY);
+        config.setConfigValue(NEW_YAML);
+        config.setDefaultValue(null);
+        config.setValueType(DdcConfigService.VALUE_TYPE);
         config.setCurrentVersion(2L);
         config.setPublishedVersion(1L);
         config.setEnabled(true);
@@ -235,8 +242,8 @@ class DdcPublishDispatchConsistencyTest {
         config.setUpdatedAt(createdAt);
         configItemRepository.saveAndFlush(config);
 
-        saveVersion(config, 1L, null, "old", createdAt.minusDays(1));
-        saveVersion(config, 2L, "old", "new", createdAt);
+        saveVersion(config, 1L, null, OLD_YAML, createdAt.minusDays(1));
+        saveVersion(config, 2L, OLD_YAML, NEW_YAML, createdAt);
 
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(UuidV7.simpleString());
@@ -246,10 +253,10 @@ class DdcPublishDispatchConsistencyTest {
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
         task.setNamespace(null);
-        task.setConfigKey(configKey);
+        task.setConfigKey(DdcConfigService.CONFIG_KEY);
         task.setTargetVersion(2L);
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
-        task.setContentChecksum(DdcChecksum.content("new"));
+        task.setContentChecksum(DdcChecksum.content(NEW_YAML));
         task.setAttemptCount(0);
         task.setStatus(PublishStatus.PENDING.name());
         task.setTargetCount(1);

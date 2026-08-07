@@ -1,7 +1,6 @@
 package top.egon.cola.component.ddc.admin.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,7 +11,6 @@ import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
@@ -62,23 +60,8 @@ public class DdcOpenApiController {
         return ResultRecord.success(configService.pull(bizCode, env, appCode));
     }
 
-    @GetMapping("/configs/{key}")
-    public ResultRecord<DdcConfigValue> value(
-            @RequestParam("bizCode") String bizCode,
-            @RequestParam("env") String env,
-            @RequestParam("appCode") String appCode,
-            @PathVariable("key") String key) {
-        return ResultRecord.success(configService.value(bizCode, env, appCode, key));
-    }
-
     @PostMapping("/publish/ack")
     public ResultRecord<?> ack(@RequestBody DdcAckRequest request) {
         return ResultRecord.success(publishService.ack(request));
-    }
-
-    @PostMapping("/defaults/report")
-    public ResultRecord<Void> reportDefaults(@RequestBody DdcDefaultReportRequest request) {
-        configService.reportDefaults(request);
-        return ResultRecord.success(null);
     }
 }

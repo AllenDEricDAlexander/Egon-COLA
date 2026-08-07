@@ -27,7 +27,7 @@ class DdcOpenApiHmacFilterTest {
     private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 
     private static final String PATH =
-            "/api/v1/ddc/openapi/management/configs/infra/dev/gateway/gateway.routes";
+            "/api/v1/ddc/openapi/management/configs/infra/dev/gateway";
 
     private static final byte[] BODY = "{\"instanceId\":\"i1\"}".getBytes(StandardCharsets.UTF_8);
 

@@ -13,7 +13,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
@@ -154,11 +153,6 @@ class DdcStarterRuntimeFlowTest {
             value.setValueType("YAML");
             value.setVersion(1L);
             return List.of(value);
-        }
-
-        @Override
-        public void reportDefaults(DdcDefaultReportRequest request) {
-            events.add("defaults");
         }
 
         @Override

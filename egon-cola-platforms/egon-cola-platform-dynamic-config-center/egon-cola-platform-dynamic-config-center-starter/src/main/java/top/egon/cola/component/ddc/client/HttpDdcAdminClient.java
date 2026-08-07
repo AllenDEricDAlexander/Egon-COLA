@@ -15,7 +15,6 @@ import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.management.client.DdcClientTransportSecurity;
 import top.egon.cola.component.ddc.management.client.DdcRestClientFactory;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
@@ -144,17 +143,6 @@ public class HttpDdcAdminClient implements DdcAdminClient {
                 });
         List<DdcConfigValue> values = data(result, false);
         return values == null ? Collections.emptyList() : values;
-    }
-
-    @Override
-    public void reportDefaults(DdcDefaultReportRequest request) {
-        post(
-                "/api/v1/ddc/openapi/defaults/report",
-                request,
-                new ParameterizedTypeReference<ResultRecord<Void>>() {
-                },
-                false
-        );
     }
 
     @Override

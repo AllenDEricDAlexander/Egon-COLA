@@ -45,27 +45,24 @@ public class DdcManagementOpenApiController {
         this.bindingService = bindingService;
     }
 
-    @GetMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}")
+    @GetMapping("/configs/{bizCode}/{env}/{appCode}")
     public ResultRecord<DdcManagementConfig> config(
             @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
-            @PathVariable("appCode") String appCode,
-            @PathVariable("configKey") String configKey
+            @PathVariable("appCode") String appCode
     ) {
         return ResultRecord.success(facade.findConfig(new DdcManagementConfigQuery(
                 bizCode,
                 env,
-                appCode,
-                configKey
+                appCode
         )));
     }
 
-    @PutMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}")
+    @PutMapping("/configs/{bizCode}/{env}/{appCode}")
     public ResultRecord<DdcManagementConfig> upsert(
             @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
             @PathVariable("appCode") String appCode,
-            @PathVariable("configKey") String configKey,
             @RequestBody DdcManagementConfigUpsertRequest request,
             HttpServletRequest servletRequest
     ) {
@@ -73,21 +70,18 @@ public class DdcManagementOpenApiController {
                 bizCode,
                 env,
                 appCode,
-                configKey,
                 request.configValue(),
-                request.valueType(),
                 request.description(),
                 request.expectedVersion(),
                 trustedOperator(servletRequest, request.operator())
         )));
     }
 
-    @DeleteMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}")
+    @DeleteMapping("/configs/{bizCode}/{env}/{appCode}")
     public ResultRecord<Void> delete(
             @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
             @PathVariable("appCode") String appCode,
-            @PathVariable("configKey") String configKey,
             @RequestBody DdcManagementConfigDeleteRequest request,
             HttpServletRequest servletRequest
     ) {
@@ -95,7 +89,6 @@ public class DdcManagementOpenApiController {
                 bizCode,
                 env,
                 appCode,
-                configKey,
                 request.expectedVersion(),
                 trustedOperator(servletRequest, request.operator()),
                 request.reason()
@@ -103,12 +96,11 @@ public class DdcManagementOpenApiController {
         return ResultRecord.success(null);
     }
 
-    @PostMapping("/configs/{bizCode}/{env}/{appCode}/{configKey}/publish")
+    @PostMapping("/configs/{bizCode}/{env}/{appCode}/publish")
     public ResultRecord<DdcManagementPublishResult> publish(
             @PathVariable("bizCode") String bizCode,
             @PathVariable("env") String env,
             @PathVariable("appCode") String appCode,
-            @PathVariable("configKey") String configKey,
             @RequestBody DdcManagementPublishRequest request,
             HttpServletRequest servletRequest
     ) {
@@ -116,7 +108,6 @@ public class DdcManagementOpenApiController {
                 bizCode,
                 env,
                 appCode,
-                configKey,
                 request.configValue(),
                 request.expectedVersion(),
                 request.changeId(),

@@ -15,7 +15,5 @@ public class DdcConfigQueryRequest {
 
     private String appCode;
 
-    private String configKey;
-
     private boolean includeDeleted;
 }

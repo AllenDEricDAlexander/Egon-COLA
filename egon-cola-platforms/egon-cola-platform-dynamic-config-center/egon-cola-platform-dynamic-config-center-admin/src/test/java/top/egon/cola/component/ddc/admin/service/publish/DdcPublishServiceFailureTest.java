@@ -60,8 +60,7 @@ class DdcPublishServiceFailureTest {
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setConfigKey("switch");
-        request.setConfigValue("true");
+        request.setConfigValue("feature:\n  enabled: true\n");
         request.setExpectedVersion(1L);
 
         assertThatThrownBy(() -> publishService.publish(request, "tester"))

@@ -44,9 +44,9 @@ class DdcManagementOpenApiControllerTest {
                 "infra",
                 "dev",
                 "gateway",
-                "gateway.routes",
-                "{}",
-                "JSON",
+                "application.yml",
+                "gateway:\n  enabled: true\n",
+                "YAML",
                 1L,
                 true,
                 false,
@@ -55,7 +55,7 @@ class DdcManagementOpenApiControllerTest {
 
         mockMvc.perform(put(
                         "/api/v1/ddc/openapi/management/configs"
-                                + "/infra/dev/gateway/gateway.routes"
+                                + "/infra/dev/gateway"
                 )
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -63,9 +63,7 @@ class DdcManagementOpenApiControllerTest {
                                   "bizCode":"forged-biz",
                                   "appCode":"forged",
                                   "env":"prod",
-                                  "configKey":"other.key",
-                                  "configValue":"{}",
-                                  "valueType":"JSON",
+                                  "configValue":"gateway:\\n  enabled: true\\n",
                                   "description":"routes",
                                   "operator":"gateway-admin"
                                 }
@@ -73,7 +71,7 @@ class DdcManagementOpenApiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.appCode").value("gateway"))
-                .andExpect(jsonPath("$.data.configKey").value("gateway.routes"));
+                .andExpect(jsonPath("$.data.configKey").value("application.yml"));
     }
 
     @Test
@@ -82,9 +80,9 @@ class DdcManagementOpenApiControllerTest {
                 "gateway",
                 "dev",
                 "runtime",
-                "gateway.routes",
-                "{}",
-                "JSON",
+                "application.yml",
+                "gateway:\n  enabled: true\n",
+                "YAML",
                 2L,
                 false,
                 true,
@@ -93,11 +91,11 @@ class DdcManagementOpenApiControllerTest {
 
         mockMvc.perform(get(
                         "/api/v1/ddc/openapi/management/configs"
-                                + "/gateway/dev/runtime/gateway.routes"
+                                + "/gateway/dev/runtime"
                 ))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.configKey").value("gateway.routes"))
+                .andExpect(jsonPath("$.data.configKey").value("application.yml"))
                 .andExpect(jsonPath("$.data.version").value(2))
                 .andExpect(jsonPath("$.data.enabled").value(false))
                 .andExpect(jsonPath("$.data.deleted").value(true));

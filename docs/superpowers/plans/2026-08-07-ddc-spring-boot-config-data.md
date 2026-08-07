@@ -71,11 +71,11 @@
 
 **Steps:**
 
-- [ ] Make `application.yml` and `YAML` server-owned constants; remove caller-controlled key/type/default fields.
-- [ ] Enforce one config document per scope and return at most one published runtime document.
-- [ ] Validate UTF-8 size, one Map-root YAML document, and reserved keys on create, upsert, update, rollback, and publish.
-- [ ] Delete `/defaults/report` and related client calls while keeping registration, pull, ACK, topic, and publish state semantics intact.
-- [ ] Run Admin and management-client tests and commit as `refactor(ddc): enforce YAML-only admin configuration`.
+- [x] Make `application.yml` and `YAML` server-owned constants; remove caller-controlled key/type/default fields.
+- [x] Enforce one config document per scope and return at most one published runtime document.
+- [x] Validate UTF-8 size, one Map-root YAML document, and reserved keys on create, upsert, update, rollback, and publish.
+- [x] Delete `/defaults/report` and related client calls while keeping registration, pull, ACK, topic, and publish state semantics intact.
+- [x] Run Admin and management-client tests and commit as `refactor(ddc): enforce YAML-only admin configuration`.
 
 ## Task 4: Gateway YAML Publication
 

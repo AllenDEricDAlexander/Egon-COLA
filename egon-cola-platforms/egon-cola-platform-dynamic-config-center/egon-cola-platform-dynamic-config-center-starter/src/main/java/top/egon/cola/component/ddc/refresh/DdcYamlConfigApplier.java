@@ -26,7 +26,8 @@ import java.util.Set;
 
 public class DdcYamlConfigApplier implements SmartInitializingSingleton {
 
-    public static final String RESOURCE_NAME = "application.yml";
+    public static final String RESOURCE_NAME =
+            DdcYamlPropertySourceLoader.RESOURCE_NAME;
 
     public static final String PROPERTY_SOURCE_NAME = "ddc:" + RESOURCE_NAME;
 

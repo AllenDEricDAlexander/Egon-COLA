@@ -70,6 +70,16 @@ class DdcHmacScopeTest {
                         )
                 ),
                 credential(
+                        "sdk-readonly",
+                        "sdk-readonly-access",
+                        "sdk-readonly-secret",
+                        "SDK",
+                        List.of("app-a"),
+                        List.of("dev"),
+                        List.of("biz-a"),
+                        List.of("CONFIG_PULL")
+                ),
+                credential(
                         "management-a",
                         "management-access",
                         "management-secret",
@@ -151,7 +161,7 @@ class DdcHmacScopeTest {
     @Test
     void permitsExactManagementReadUpsertAndPublish() throws Exception {
         String configPath = "/api/v1/ddc/openapi/management/configs/"
-                + "biz-a/dev/app-a/gateway.routes";
+                + "biz-a/dev/app-a";
         assertAllowed(signed(
                 "GET",
                 configPath,
@@ -212,14 +222,14 @@ class DdcHmacScopeTest {
         ));
         assertDenied(signed(
                 "POST",
-                "/api/v1/ddc/openapi/defaults/report",
+                "/api/v1/ddc/openapi/publish/ack",
                 Map.of(),
                 json("""
                         {"appCode":"app-a","env":"dev",
                          "bizCode":"biz-a"}
                         """),
-                "sdk-access",
-                "sdk-secret",
+                "sdk-readonly-access",
+                "sdk-readonly-secret",
                 "wrong-operation"
         ));
     }
@@ -269,14 +279,11 @@ class DdcHmacScopeTest {
                 "biz-a",
                 "dev",
                 "app-a",
-                "gateway.routes",
                 new DdcManagementConfigUpsertRequest(
                         null,
                         null,
                         null,
-                        null,
-                        "{}",
-                        "JSON",
+                        "feature:\n  enabled: true\n",
                         "routes",
                         1L,
                         "claimed-user"

@@ -72,7 +72,7 @@ import static org.mockito.Mockito.when;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=1",
         "spring.flyway.enabled=false",
-        "egon.cola.component.ddc.admin.max-value-bytes=5",
+        "egon.cola.component.ddc.admin.max-value-bytes=64",
         "egon.cola.component.ddc.admin.publish.default-timeout-ms=2000",
         "egon.cola.component.ddc.admin.publish.max-timeout-ms=5000"
 })
@@ -105,6 +105,9 @@ class DdcPublishPreparationTest {
 
     @BeforeEach
     void setUp() {
+        ackRepository.deleteAll();
+        taskRepository.deleteAll();
+        configItemRepository.deleteAll();
         reset(leaseService, redisRepository);
     }
 
@@ -115,7 +118,8 @@ class DdcPublishPreparationTest {
                 new DdcPublishTarget("instance-2", "lease-2"),
                 new DdcPublishTarget("instance-1", "lease-1")
         );
-        when(leaseService.activeTargets("default", "dev", "demo")).thenReturn(targets);
+        when(leaseService.activeTargets("default", "dev", "switch-all"))
+                .thenReturn(targets);
         CountDownLatch published = new CountDownLatch(1);
         doAnswer(invocation -> {
             published.countDown();
@@ -138,7 +142,7 @@ class DdcPublishPreparationTest {
                             new DdcPublishTarget("instance-2", "lease-2")
                     );
             assertThat(message.getContentChecksum())
-                    .isEqualTo(DdcChecksum.content("true"));
+                    .isEqualTo(DdcChecksum.content(request.getConfigValue()));
             assertThat(ackRepository.findByChangeId(request.getChangeId()))
                     .extracting(target -> target.getInstanceId() + ":" + target.getLeaseId())
                     .containsExactlyInAnyOrder(
@@ -153,14 +157,15 @@ class DdcPublishPreparationTest {
             assertThat(result.get(2, TimeUnit.SECONDS).getStatus()).isEqualTo("SUCCESS");
         }
         assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
-                "default", "dev", "demo", "switch-all"
+                "default", "dev", "switch-all", "application.yml"
         )).get().extracting(DdcConfigItemEntity::getCurrentVersion).isEqualTo(2L);
     }
 
     @Test
     void noLiveRedisLeaseRollsBackConfigAndNeverReadsDatabaseOnlineState() {
         saveConfig("switch-no-live");
-        when(leaseService.activeTargets("default", "dev", "demo")).thenReturn(List.of());
+        when(leaseService.activeTargets("default", "dev", "switch-no-live"))
+                .thenReturn(List.of());
         DdcPublishRequest request = request("switch-no-live", "true");
 
         assertThatThrownBy(() -> publishService.publish(request, "tester"))
@@ -168,17 +173,18 @@ class DdcPublishPreparationTest {
                 .hasMessageContaining("no live config instance");
 
         assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
-                "default", "dev", "demo", "switch-no-live"
+                "default", "dev", "switch-no-live", "application.yml"
         )).get().satisfies(config -> {
             assertThat(config.getCurrentVersion()).isEqualTo(1L);
-            assertThat(config.getConfigValue()).isEqualTo("false");
+            assertThat(config.getConfigValue())
+                    .isEqualTo("feature:\n  value: false\n");
         });
     }
 
     @Test
     void rejectsAnotherChangeForTheSameResourceWithoutBlockingAck() throws Exception {
         saveConfig("switch-lock");
-        when(leaseService.activeTargets("default", "dev", "demo"))
+        when(leaseService.activeTargets("default", "dev", "switch-lock"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         CountDownLatch published = new CountDownLatch(1);
         doAnswer(invocation -> {
@@ -211,10 +217,10 @@ class DdcPublishPreparationTest {
         active.setId(UuidV7.simpleString());
         active.setChangeId(UuidV7.simpleString());
         active.setBizCode("default");
-        active.setAppCode("demo");
+        active.setAppCode("shared-admin-lock");
         active.setEnv("dev");
         active.setNamespace("default");
-        active.setConfigKey("shared-admin-lock");
+        active.setConfigKey("application.yml");
         active.setStatus("PUBLISHING");
         active.setTargetCount(1);
         active.setAckCount(0);
@@ -237,7 +243,7 @@ class DdcPublishPreparationTest {
     void observesTerminalStateWrittenByAnotherAdminWithoutLocalSignal()
             throws Exception {
         saveConfig("shared-admin-ack");
-        when(leaseService.activeTargets("default", "dev", "demo"))
+        when(leaseService.activeTargets("default", "dev", "shared-admin-ack"))
                 .thenReturn(List.of(
                         new DdcPublishTarget("instance-1", "lease-1")
                 ));
@@ -270,10 +276,12 @@ class DdcPublishPreparationTest {
     }
 
     @Test
-    void preparesDifferentResourcesInParallel() throws Exception {
+    void preparesDifferentScopesInParallel() throws Exception {
         saveConfig("parallel-a");
         saveConfig("parallel-b");
-        when(leaseService.activeTargets("default", "dev", "demo"))
+        when(leaseService.activeTargets("default", "dev", "parallel-a"))
+                .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
+        when(leaseService.activeTargets("default", "dev", "parallel-b"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         CountDownLatch published = new CountDownLatch(2);
         doAnswer(invocation -> {
@@ -303,7 +311,7 @@ class DdcPublishPreparationTest {
     @Test
     void uncertainDispatchFailureKeepsRecoverableTaskAndReleasesResource() {
         saveConfig("dispatch-failure");
-        when(leaseService.activeTargets("default", "dev", "demo"))
+        when(leaseService.activeTargets("default", "dev", "dispatch-failure"))
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         doThrow(new IllegalStateException("redis unavailable"))
                 .when(redisRepository)
@@ -318,45 +326,68 @@ class DdcPublishPreparationTest {
                 .extracting(task -> task.getStatus() + ":" + task.getFailureStage())
                 .isEqualTo("UNKNOWN:REDIS_DISPATCH");
         assertThat(resourceRegistry.owner(new DdcConfigResourceKey(
-                "demo", "dev", "default", "dispatch-failure"
+                "dispatch-failure", "dev", "default", "application.yml"
         ))).isEmpty();
     }
 
     @Test
     void oversizedUtf8ValueIsRejectedBeforeDatabaseOrRedisMutation() {
         saveConfig("oversized");
-        DdcPublishRequest request = request("oversized", "你好");
+        DdcPublishRequest request = request("oversized", "你".repeat(64));
 
         assertThatThrownBy(() -> publishService.publish(request, "tester"))
                 .isInstanceOf(DdcAdminException.class)
-                .hasMessageContaining("5")
-                .hasMessageNotContaining("你好");
+                .hasMessageContaining("64")
+                .hasMessageNotContaining("你你");
 
         assertThat(taskRepository.findByChangeId(request.getChangeId())).isEmpty();
         assertThat(configItemRepository
                 .findByBizCodeAndEnvAndAppCodeAndConfigKey(
                         "default",
                         "dev",
-                        "demo",
-                        "oversized"
+                        "oversized",
+                        "application.yml"
                 ))
                 .get()
                 .extracting(DdcConfigItemEntity::getConfigValue)
-                .isEqualTo("false");
+                .isEqualTo("feature:\n  value: false\n");
         verify(redisRepository, never()).dispatch(any());
     }
 
-    private void saveConfig(String configKey) {
+    @Test
+    void malformedAndReservedYamlAreRejectedBeforePublishPreparation() {
+        saveConfig("invalid-yaml");
+        DdcPublishRequest malformed = request("invalid-yaml", "true");
+        malformed.setConfigValue("feature: [");
+        DdcPublishRequest reserved = request("invalid-yaml", "true");
+        reserved.setConfigValue(
+                "spring:\n  config:\n    import: optional:file:local.yml\n"
+        );
+
+        assertThatThrownBy(() -> publishService.publish(malformed, "tester"))
+                .isInstanceOf(DdcAdminException.class)
+                .hasMessageContaining("invalid application.yml");
+        assertThatThrownBy(() -> publishService.publish(reserved, "tester"))
+                .isInstanceOf(DdcAdminException.class)
+                .hasMessageContaining("reserved");
+        assertThat(taskRepository.findByChangeId(malformed.getChangeId()))
+                .isEmpty();
+        assertThat(taskRepository.findByChangeId(reserved.getChangeId()))
+                .isEmpty();
+        verify(redisRepository, never()).dispatch(any());
+    }
+
+    private void saveConfig(String label) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(UuidV7.simpleString());
         config.setBizCode("default");
-        config.setAppCode("demo");
+        config.setAppCode(label);
         config.setEnv("dev");
-        config.setConfigKey(configKey);
-        config.setConfigValue("false");
-        config.setDefaultValue("false");
-        config.setValueType("BOOLEAN");
+        config.setConfigKey("application.yml");
+        config.setConfigValue("feature:\n  value: false\n");
+        config.setDefaultValue(null);
+        config.setValueType("YAML");
         config.setCurrentVersion(1L);
         config.setEnabled(true);
         config.setDeleted(false);
@@ -365,14 +396,13 @@ class DdcPublishPreparationTest {
         configItemRepository.saveAndFlush(config);
     }
 
-    private DdcPublishRequest request(String configKey, String value) {
+    private DdcPublishRequest request(String label, String value) {
         DdcPublishRequest request = new DdcPublishRequest();
         request.setChangeId(UuidV7.simpleString());
         request.setBizCode("default");
-        request.setAppCode("demo");
+        request.setAppCode(label);
         request.setEnv("dev");
-        request.setConfigKey(configKey);
-        request.setConfigValue(value);
+        request.setConfigValue("feature:\n  value: " + value + "\n");
         request.setExpectedVersion(1L);
         request.setTimeoutMs(2000L);
         return request;

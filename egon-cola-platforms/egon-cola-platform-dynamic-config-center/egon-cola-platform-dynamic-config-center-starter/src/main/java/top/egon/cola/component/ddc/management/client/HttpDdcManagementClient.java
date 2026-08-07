@@ -84,8 +84,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
                     configPath(
                             query.bizCode(),
                             query.env(),
-                            query.appCode(),
-                            query.configKey()
+                            query.appCode()
                     ),
                     Map.of(),
                     null,
@@ -109,8 +108,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
                 configPath(
                         request.bizCode(),
                         request.env(),
-                        request.appCode(),
-                        request.configKey()
+                        request.appCode()
                 ),
                 Map.of(),
                 request,
@@ -128,8 +126,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
                 configPath(
                         request.bizCode(),
                         request.env(),
-                        request.appCode(),
-                        request.configKey()
+                        request.appCode()
                 ),
                 Map.of(),
                 request,
@@ -147,8 +144,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
                 configPath(
                         request.bizCode(),
                         request.env(),
-                        request.appCode(),
-                        request.configKey()
+                        request.appCode()
                 ) + "/publish",
                 Map.of(),
                 request,
@@ -301,15 +297,13 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     private String configPath(
             String bizCode,
             String env,
-            String appCode,
-            String configKey
+            String appCode
     ) {
         return MANAGEMENT_PATH
                 + "/configs/"
                 + segment(bizCode, "bizCode") + "/"
                 + segment(env, "env") + "/"
-                + segment(appCode, "appCode") + "/"
-                + segment(configKey, "configKey");
+                + segment(appCode, "appCode");
     }
 
     private Map<String, List<String>> configClientQuery(DdcManagementInstanceQuery query) {

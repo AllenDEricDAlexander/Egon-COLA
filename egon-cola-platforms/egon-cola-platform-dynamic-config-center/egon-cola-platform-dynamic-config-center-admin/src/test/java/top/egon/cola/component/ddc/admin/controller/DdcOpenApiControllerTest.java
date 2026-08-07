@@ -96,7 +96,7 @@ class DdcOpenApiControllerTest {
         mockMvc.perform(post("/api/v1/ddc/openapi/publish/ack")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"changeId":"c1","instanceId":"i1","appCode":"demo","env":"dev","namespace":"default","configKey":"switch","targetVersion":2,"currentVersion":2,"status":"SUCCESS"}
+                                {"changeId":"c1","instanceId":"i1","appCode":"demo","env":"dev","namespace":"default","configKey":"application.yml","targetVersion":2,"currentVersion":2,"status":"SUCCESS"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
