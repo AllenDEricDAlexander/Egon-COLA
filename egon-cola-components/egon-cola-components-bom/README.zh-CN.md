@@ -23,7 +23,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
 | `egon-cola-component-common-trace-spring-boot-starter` | common 聚合内的 Spring Boot 日志关联和 Trace 传播 Starter |
 | `egon-cola-component-common-id-starter` | 纯 JDK Snowflake 契约与算法、已废弃的 UUIDv7 兼容 API，以及面向数据库 `BIGINT` ID 的 Spring Boot 自动配置 |
 | `egon-cola-component-common-crypto` | 摘要、HMAC、Base64、Hex |
-| `egon-cola-component-common-mask` | 数据脱敏 |
+| `egon-cola-component-common-data-desensitize-spring-boot-starter` | 基于共享策略的 Jackson 响应与 Logback 消息脱敏 |
 | `egon-cola-component-dynamic-thread-pool-starter` | 动态线程池业务侧 starter |
 | `egon-cola-component-rule-engine-starter` | 规则引擎 starter |
 | `egon-cola-component-access-guard-starter` | 方法访问治理 starter |

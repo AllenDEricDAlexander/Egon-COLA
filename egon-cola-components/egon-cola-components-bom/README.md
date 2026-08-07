@@ -26,7 +26,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common-trace-spring-boot-starter` | Common-aggregated Spring Boot log correlation and trace propagation starter |
 | `egon-cola-component-common-id-starter` | Pure-JDK Snowflake contracts and algorithm, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration for database `BIGINT` IDs |
 | `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
-| `egon-cola-component-common-mask` | Data masking |
+| `egon-cola-component-common-data-desensitize-spring-boot-starter` | Jackson response and Logback message desensitization through shared strategies |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
 | `egon-cola-component-rule-engine-starter` | Rule engine starter |
 | `egon-cola-component-access-guard-starter` | Method access governance starter |

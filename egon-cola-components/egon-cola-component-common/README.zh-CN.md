@@ -17,7 +17,7 @@
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
 | `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器、已废弃的 UUIDv7 兼容 API 和 Spring Boot 自动配置；全部测试位于本模块 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
-| `egon-cola-component-common-mask` | 手机号、邮箱、首尾保留等稳定脱敏规则 |
+| `egon-cola-component-common-data-desensitize-spring-boot-starter` | `@Sensitive` 元数据、共享脱敏策略、Jackson 响应脱敏、Logback 消息转换和 Spring Boot 自动配置 |
 | `egon-cola-component-common-test` | 组件内部使用的源码依赖边界测试工具 |
 
 ## 功能说明
@@ -62,6 +62,32 @@ CommonLogUtil.bizInfo(LOG)
         .biz("order")
         .scene("create")
         .success("order created");
+```
+
+### HTTP 响应与日志脱敏
+
+数据脱敏 Starter 会自动注册 `SensitiveJacksonModule`。String 字段或 accessor 方法声明
+`@Sensitive` 后，JSON 序列化阶段输出脱敏值，但不会修改原业务对象。默认同时作用于
+`RESPONSE` 和 `LOG`，也可以通过 `Sensitive.scenes` 分场景启用。
+
+业务声明的 `SensitiveStrategy` Spring Bean 会按相同 `SensitiveType` 覆盖内置策略，
+生成的 registry 同时提供给 Jackson 和当前 Logback Context。
+
+Logback 需要注册 `SensitiveLogConverter`，并用 `%sensitiveMsg` 替换 `%msg`；同一个
+Pattern 同时保留两者仍会输出未脱敏的原始消息。
+
+```xml
+<conversionRule conversionWord="sensitiveMsg"
+                converterClass="top.egon.cola.component.common.desensitize.logback.SensitiveLogConverter"/>
+<property name="CONSOLE_LOG_PATTERN"
+          value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger - %sensitiveMsg%n"/>
+```
+
+`log.info("user={}", user)` 这类对象参数会解析字段和 accessor 上的 `@Sensitive`。
+单独传入的 String 已经没有字段元数据，需要显式脱敏：
+
+```java
+log.info("mobile={}", SensitiveLogs.of(mobile, SensitiveType.MOBILE));
 ```
 
 ### 异步任务 Trace 传播
@@ -126,14 +152,14 @@ executor.execute(new TraceRouteRunnable() {
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-mask</artifactId>
+        <artifactId>egon-cola-component-common-data-desensitize-spring-boot-starter</artifactId>
     </dependency>
 </dependencies>
 ```
 
 ## 使用示例
 
-下面示例展示一个查询订单列表的 Controller：它使用 `PageQuery` 归一化分页参数，用 `PageResultRecord` 和 `ResultRecord` 输出响应，用 `TraceContext` 注入响应链路 ID，注入 `LongIdGenerator` 生成数据库 ID，并用 `Masking` 和 `Hmacs` 处理展示和签名。
+下面示例展示一个查询订单列表的 Controller：它使用 `PageQuery` 归一化分页参数，用 `PageResultRecord` 和 `ResultRecord` 输出响应，注入 `LongIdGenerator` 生成数据库 ID，用 `@Sensitive` 在序列化阶段完成响应脱敏，并用 `Hmacs` 处理签名。
 
 ```java
 package demo.order;
@@ -142,8 +168,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.crypto.hmac.Hmacs;
+import top.egon.cola.component.common.desensitize.annotation.Sensitive;
+import top.egon.cola.component.common.desensitize.annotation.SensitiveType;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.mask.Masking;
 import top.egon.cola.component.common.pojo.PageQuery;
 import top.egon.cola.component.common.pojo.PageResultRecord;
 import top.egon.cola.component.common.pojo.ResultRecord;
@@ -185,8 +212,13 @@ public class OrderController {
     }
 
     public record OrderView(String orderId, String buyerMobile) {
+        @Sensitive(type = SensitiveType.MOBILE)
+        public String buyerMobile() {
+            return buyerMobile;
+        }
+
         static OrderView from(OrderRecord record) {
-            return new OrderView(record.orderId(), Masking.mobile(record.buyerMobile()));
+            return new OrderView(record.orderId(), record.buyerMobile());
         }
     }
 
@@ -249,7 +281,8 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator`；仅在 UUID 兼容契约中继续使用已废弃的 `UuidV7` |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`、`Hmacs`、`Base64s`、`Hexes` |
-| `top.egon.cola.component.common.util.MaskingUtils` | `Masking` |
+| `egon-cola-component-common-mask` | `egon-cola-component-common-data-desensitize-spring-boot-starter` |
+| `top.egon.cola.component.common.util.MaskingUtils`、`top.egon.cola.component.common.mask.Masking` | `@Sensitive`、`SensitiveStrategyRegistry`，或日志标量参数使用 `SensitiveLogs.of` |
 
 旧的 `util` 聚合包、拆分的 `model/result/structure` 包、独立结果工厂、`BaseEntity` 和 `AuditableModel` 已被有意移除。
 

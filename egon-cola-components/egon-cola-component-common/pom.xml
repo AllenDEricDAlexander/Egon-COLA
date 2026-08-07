@@ -22,7 +22,7 @@
         <module>egon-cola-component-common-trace-spring-boot-starter</module>
         <module>egon-cola-component-common-id-starter</module>
         <module>egon-cola-component-common-crypto</module>
-        <module>egon-cola-component-common-mask</module>
+        <module>egon-cola-component-common-data-desensitize-spring-boot-starter</module>
         <module>egon-cola-component-common-test</module>
     </modules>
 </project>

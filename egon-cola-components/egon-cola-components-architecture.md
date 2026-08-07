@@ -149,7 +149,7 @@ Egon-COLA/
     │   ├── egon-cola-component-common-core/
     │   ├── egon-cola-component-common-id-starter/                # ID 算法、Spring Boot 自动配置与模块内测试
     │   ├── egon-cola-component-common-crypto/
-    │   ├── egon-cola-component-common-mask/
+    │   ├── egon-cola-component-common-data-desensitize-spring-boot-starter/
     │   └── egon-cola-component-common-test/
     │
     ├── egon-cola-component-dynamic-thread-pool/                  # 动态线程池组件
@@ -698,7 +698,7 @@ egon-cola-component-common/
 │       ├── main/
 │       └── test/
 ├── egon-cola-component-common-crypto/
-├── egon-cola-component-common-mask/
+├── egon-cola-component-common-data-desensitize-spring-boot-starter/
 └── egon-cola-component-common-test/
 ```
 

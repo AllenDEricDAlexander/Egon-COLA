@@ -4,7 +4,7 @@
 
 ## Overview
 
-`egon-cola-component-common` is the common-capability aggregator for the Egon COLA component ecosystem. It provides stable contracts for result records, page metadata, request/query POJOs, enum codes, exceptions, tree construction, converters, structured business logs, trace core and Spring integration, IDs, crypto, masking, and source boundary assertions.
+`egon-cola-component-common` is the common-capability aggregator for the Egon COLA component ecosystem. It provides stable contracts for result records, page metadata, request/query POJOs, enum codes, exceptions, tree construction, converters, structured business logs, trace core and Spring integration, IDs, crypto, response/log desensitization, and source boundary assertions.
 
 This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include only the runtime modules they need. `common-core` owns stable contracts, `common-trace` owns the framework-neutral Trace Context and `CommonLogUtil`, and the Trace Spring Boot Starter owns web and client auto-configuration.
 
@@ -17,7 +17,7 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
 | `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration; all tests live in this module |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
-| `egon-cola-component-common-mask` | Stable masking rules for mobile numbers, email addresses, and prefix/suffix retention |
+| `egon-cola-component-common-data-desensitize-spring-boot-starter` | `@Sensitive` metadata, shared masking strategies, Jackson response masking, Logback message conversion, and Spring Boot auto-configuration |
 | `egon-cola-component-common-test` | Source dependency boundary test utilities used internally by components |
 
 ## Features
@@ -64,6 +64,33 @@ CommonLogUtil.bizInfo(LOG)
         .biz("order")
         .scene("create")
         .success("order created");
+```
+
+### HTTP Response and Log Desensitization
+
+The data desensitization Starter auto-registers `SensitiveJacksonModule`. Annotated String
+fields and accessor methods are masked during JSON serialization without changing the source
+object. `RESPONSE` and `LOG` are enabled by default and can be selected independently through
+`Sensitive.scenes`.
+
+A business-defined `SensitiveStrategy` Spring Bean overrides the built-in strategy with the same
+`SensitiveType`. The resulting registry is shared with Jackson and the active Logback context.
+
+For Logback, register `SensitiveLogConverter` and replace `%msg` with `%sensitiveMsg`; keeping
+both conversion words in one pattern would still emit the raw formatted message.
+
+```xml
+<conversionRule conversionWord="sensitiveMsg"
+                converterClass="top.egon.cola.component.common.desensitize.logback.SensitiveLogConverter"/>
+<property name="CONSOLE_LOG_PATTERN"
+          value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger - %sensitiveMsg%n"/>
+```
+
+An object argument such as `log.info("user={}", user)` is inspected for `@Sensitive` fields and
+accessors. A scalar String no longer carries field metadata, so mask it explicitly:
+
+```java
+log.info("mobile={}", SensitiveLogs.of(mobile, SensitiveType.MOBILE));
 ```
 
 ### Async Trace Propagation
@@ -129,14 +156,14 @@ Then include the specific modules you need:
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-mask</artifactId>
+        <artifactId>egon-cola-component-common-data-desensitize-spring-boot-starter</artifactId>
     </dependency>
 </dependencies>
 ```
 
 ## Usage Example
 
-The following example shows a Controller that queries a list of orders. It uses `PageQuery` to normalize pagination, `PageResultRecord` and `ResultRecord` for responses, `TraceContext` for response trace IDs, an injected `LongIdGenerator` for database IDs, and `Masking` plus `Hmacs` for display and signing:
+The following example shows a Controller that queries a list of orders. It uses `PageQuery` to normalize pagination, `PageResultRecord` and `ResultRecord` for responses, an injected `LongIdGenerator` for database IDs, `@Sensitive` for serialization-time response masking, and `Hmacs` for signing:
 
 ```java
 package demo.order;
@@ -145,8 +172,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.crypto.hmac.Hmacs;
+import top.egon.cola.component.common.desensitize.annotation.Sensitive;
+import top.egon.cola.component.common.desensitize.annotation.SensitiveType;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.mask.Masking;
 import top.egon.cola.component.common.pojo.PageQuery;
 import top.egon.cola.component.common.pojo.PageResultRecord;
 import top.egon.cola.component.common.pojo.ResultRecord;
@@ -188,8 +216,13 @@ public class OrderController {
     }
 
     public record OrderView(String orderId, String buyerMobile) {
+        @Sensitive(type = SensitiveType.MOBILE)
+        public String buyerMobile() {
+            return buyerMobile;
+        }
+
         static OrderView from(OrderRecord record) {
-            return new OrderView(record.orderId(), Masking.mobile(record.buyerMobile()));
+            return new OrderView(record.orderId(), record.buyerMobile());
         }
     }
 
@@ -252,7 +285,8 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator`; use deprecated `UuidV7` only for UUID compatibility contracts |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`, `Hmacs`, `Base64s`, `Hexes` |
-| `top.egon.cola.component.common.util.MaskingUtils` | `Masking` |
+| `egon-cola-component-common-mask` | `egon-cola-component-common-data-desensitize-spring-boot-starter` |
+| `top.egon.cola.component.common.util.MaskingUtils`, `top.egon.cola.component.common.mask.Masking` | `@Sensitive`, `SensitiveStrategyRegistry`, or `SensitiveLogs.of` for scalar log arguments |
 
 The legacy aggregated `util` package, split `model/result/structure` packages, separate result factories, `BaseEntity`, and `AuditableModel` were intentionally removed.
 
