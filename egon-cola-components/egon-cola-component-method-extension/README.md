@@ -10,7 +10,6 @@ running one business-defined decision handler before an annotated method.
 | Module | Purpose |
 |---|---|
 | `egon-cola-component-method-extension-starter` | Annotation, handler contract, AOP, response conversion, and auto-configuration |
-| `egon-cola-component-method-extension-test` | Black-list, gray-release, and temporary-validation samples |
 
 ## Dependency
 

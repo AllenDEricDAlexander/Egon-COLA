@@ -9,7 +9,6 @@
 | 模块 | 用途 |
 |---|---|
 | `egon-cola-component-method-extension-starter` | 提供注解、Handler 契约、AOP、响应转换和自动配置 |
-| `egon-cola-component-method-extension-test` | 提供黑名单、灰度发布和临时校验示例 |
 
 ## 依赖
 

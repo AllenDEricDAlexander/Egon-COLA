@@ -28,6 +28,5 @@
 
     <modules>
         <module>egon-cola-component-method-extension-starter</module>
-        <module>egon-cola-component-method-extension-test</module>
     </modules>
 </project>
