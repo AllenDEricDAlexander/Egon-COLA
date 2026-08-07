@@ -1,6 +1,13 @@
 package top.egon.cola.component.common.desensitize.strategy;
 
 import top.egon.cola.component.common.desensitize.annotation.SensitiveType;
+import top.egon.cola.component.common.desensitize.strategy.impl.AddressSensitiveStrategy;
+import top.egon.cola.component.common.desensitize.strategy.impl.BankCardSensitiveStrategy;
+import top.egon.cola.component.common.desensitize.strategy.impl.EmailSensitiveStrategy;
+import top.egon.cola.component.common.desensitize.strategy.impl.FullSensitiveStrategy;
+import top.egon.cola.component.common.desensitize.strategy.impl.IdCardSensitiveStrategy;
+import top.egon.cola.component.common.desensitize.strategy.impl.MobileSensitiveStrategy;
+import top.egon.cola.component.common.desensitize.strategy.impl.NameSensitiveStrategy;
 
 import java.util.Collection;
 import java.util.EnumMap;

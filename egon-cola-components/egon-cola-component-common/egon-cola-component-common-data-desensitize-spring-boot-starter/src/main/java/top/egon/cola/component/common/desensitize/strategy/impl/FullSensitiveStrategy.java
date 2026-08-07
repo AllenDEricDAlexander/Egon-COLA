@@ -1,6 +1,8 @@
-package top.egon.cola.component.common.desensitize.strategy;
+package top.egon.cola.component.common.desensitize.strategy.impl;
 
 import top.egon.cola.component.common.desensitize.annotation.SensitiveType;
+import top.egon.cola.component.common.desensitize.strategy.MaskingSupport;
+import top.egon.cola.component.common.desensitize.strategy.SensitiveStrategy;
 
 public class FullSensitiveStrategy implements SensitiveStrategy {
 
