@@ -3,11 +3,6 @@ package top.egon.cola.component.ddc.trace;
 import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceIds;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceSnapshot;
-import top.egon.cola.component.common.trace.TraceState;
 
 public final class DdcTraceSupport {
 
@@ -19,33 +14,23 @@ public final class DdcTraceSupport {
     }
 
     public static void inject(HttpHeaders headers) {
-        TraceState child = TraceContext.current()
-                .orElseGet(() -> TraceState.root(TraceIds.newTraceId()))
-                .child();
-        TracePropagation.inject(child, headers::set);
+        TraceContext.currentOrCreate().child().inject(headers::set);
     }
 
-    public static TraceSnapshot captureOrCreate() {
-        return TraceContext.current()
-                .map(ignored -> TraceContext.snapshot())
-                .orElseGet(() -> {
-                    TraceState state = TraceState.root(TraceIds.newTraceId());
-                    return new TraceSnapshot(state, state.toMdcMap());
-                });
+    public static TraceContext captureOrCreate() {
+        return TraceContext.currentOrCreate();
     }
 
     public static Scope openOperation(String operation) {
-        TraceState state = TraceContext.current()
-                .orElseGet(() -> TraceState.root(TraceIds.newTraceId()));
-        return open(state, operation);
+        return new Scope(
+                TraceContext.currentOrCreate().open(),
+                operation
+        );
     }
 
-    public static Scope openSnapshot(TraceSnapshot snapshot,
-                                     String operation) {
-        if (snapshot == null || snapshot.state() == null) {
-            return openOperation(operation);
-        }
-        return new Scope(snapshot.open(), operation);
+    public static Scope openContext(TraceContext context,
+                                    String operation) {
+        return new Scope(context.open(), operation);
     }
 
     public static Runnable wrapNewOperation(String operation,
@@ -57,29 +42,33 @@ public final class DdcTraceSupport {
         };
     }
 
-    public static Runnable wrapSnapshot(TraceSnapshot snapshot,
-                                        String operation,
-                                        Runnable runnable) {
+    public static Runnable wrapContext(TraceContext context,
+                                       String operation,
+                                       Runnable runnable) {
         return () -> {
-            try (Scope ignored = openSnapshot(snapshot, operation)) {
+            try (Scope ignored = openContext(context, operation)) {
                 runnable.run();
             }
         };
     }
 
-    private static Scope open(TraceState state, String operation) {
-        return new Scope(TraceContext.open(state), operation);
+    private static void restore(String key, String value) {
+        if (value == null) {
+            MDC.remove(key);
+        } else {
+            MDC.put(key, value);
+        }
     }
 
     public static final class Scope implements AutoCloseable {
 
-        private final TraceScope traceScope;
+        private final TraceContext.Scope traceScope;
 
         private final String previousComponent;
 
         private final String previousOperation;
 
-        private Scope(TraceScope traceScope, String operation) {
+        private Scope(TraceContext.Scope traceScope, String operation) {
             this.traceScope = traceScope;
             this.previousComponent = MDC.get(COMPONENT_KEY);
             this.previousOperation = MDC.get(OPERATION_KEY);
@@ -96,14 +85,6 @@ public final class DdcTraceSupport {
             restore(OPERATION_KEY, previousOperation);
             restore(COMPONENT_KEY, previousComponent);
             traceScope.close();
-        }
-
-        private void restore(String key, String value) {
-            if (value == null) {
-                MDC.remove(key);
-            } else {
-                MDC.put(key, value);
-            }
         }
     }
 }

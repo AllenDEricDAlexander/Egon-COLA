@@ -9,9 +9,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
 
 import java.util.List;
@@ -28,7 +25,7 @@ class RpcConsumerClientInterceptorTest {
 
     @Test
     void createsTraceMetadataWhenClientCallStarts() {
-        TraceState state = TraceState.root("request-1");
+        TraceContext state = TraceContext.root("request-1");
         AtomicReference<Metadata> observed = new AtomicReference<>();
         RpcConsumerClientInterceptor interceptor =
                 new RpcConsumerClientInterceptor(contract(), identity());
@@ -38,7 +35,7 @@ class RpcConsumerClientInterceptorTest {
                 new CapturingChannel(observed)
         );
 
-        try (TraceScope ignored = TraceContext.open(state)) {
+        try (TraceContext.Scope ignored = state.open()) {
             call.start(new ClientCall.Listener<>() {
             }, new Metadata());
         }

@@ -85,7 +85,7 @@ Calls to scheduler APIs, concrete executor-owner methods, JDK classes, and other
 
 The underlying executor API is invoked exactly once. `submit` returns the exact `Future` created by that executor, while business exceptions, `RejectedExecutionException`, interruption, and cancellation behavior retain their original identities and timing. The wrapper restores captured context around task execution and cleans worker-thread state in `finally`; cancellation cannot prevent a carrier that already performed capture from doing that capture work.
 
-MDC propagation is enabled when SLF4J is present, and `MdcContextCarrier` uses the `TraceSnapshot` from `common-trace` to capture and restore context. Additional carriers implement the JDK-only `ContextCarrier` API. Tasks marked with `EgonInstrumentedTask` are not wrapped again; the dynamic-thread-pool registry is neither modified nor used for discovery.
+MDC propagation is enabled when SLF4J is present, and `MdcContextCarrier` captures and restores one complete `TraceContext` from `common-trace`. Additional carriers implement the JDK-only `ContextCarrier` API. Tasks marked with `EgonInstrumentedTask` are not wrapped again; the dynamic-thread-pool registry is neither modified nor used for discovery.
 
 Spring runtime settings use the `egon.cola.component.bytecode` prefix:
 

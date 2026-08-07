@@ -3,7 +3,7 @@ package top.egon.cola.component.common.trace.autoconfigure;
 import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.component.common.trace.TraceState;
+import top.egon.cola.component.common.trace.TraceContext;
 
 public class TraceRestClientCustomizer implements RestClientCustomizer {
 
@@ -22,11 +22,12 @@ public class TraceRestClientCustomizer implements RestClientCustomizer {
         return (request, body, execution) -> {
             if (properties.getPropagation().isEnabled()
                     && properties.getRestClient().isEnabled()) {
-                TraceState state = TraceHeaderSupport.outboundState();
+                TraceContext context = TraceHeaderSupport.outboundContext();
                 TraceHeaderSupport.inject(
                         request.getHeaders(),
-                        state,
-                        properties.getRestClient().isTakeOverExistingTraceparent()
+                        context,
+                        properties.getRestClient()
+                                .isTakeOverExistingTraceparent()
                 );
             }
             return execution.execute(request, body);

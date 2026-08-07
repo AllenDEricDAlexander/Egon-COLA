@@ -77,7 +77,7 @@ The Starter uses `egon-cola-component-common-trace` in `HttpDdcAdminClient`, the
 OpenAPI registry client, heartbeat, pull, ACK retry, Redis topic callbacks, and
 lease recovery tasks. DDC calls triggered by a business request inherit the
 current `traceId` and create a child span. Background tasks without an upstream
-trace create a fresh `TraceScope` for each logical operation and restore the
+trace open a fresh `TraceContext` for each logical operation and restore the
 worker thread MDC afterwards. Outbound requests write only `traceparent`,
 `tracestate`, and `x-egon-request-id`; they do not write `x-egon-trace-id`.
 

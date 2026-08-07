@@ -7,9 +7,6 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceIds;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
@@ -159,11 +156,11 @@ class DdcAckDeliveryTest {
                 delivered.countDown();
             }
         };
-        TraceState parent = TraceState.root("request-1");
+        TraceContext parent = TraceContext.root("request-1");
 
         try (DdcAckDelivery delivery = delivery(client, 8, 1)) {
             delivery.start();
-            try (TraceScope ignored = TraceContext.open(parent)) {
+            try (TraceContext.Scope ignored = parent.open()) {
                 assertThat(delivery.submit(request("change-8"))).isTrue();
             }
             TraceContext.clearOwnedKeys();
@@ -174,7 +171,7 @@ class DdcAckDeliveryTest {
 
         assertThat(traces).hasSize(2);
         assertThat(traces.get(0)).isEqualTo(parent.traceId());
-        assertThat(TraceIds.isValidTraceId(traces.get(1))).isTrue();
+        assertThat(TraceContext.normalizeTraceId(traces.get(1))).isNotNull();
         assertThat(traces.get(1)).isNotEqualTo("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
     }
 

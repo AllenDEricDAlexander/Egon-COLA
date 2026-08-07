@@ -11,10 +11,6 @@ import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.util.PatternMatchUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 
 import java.io.IOException;
 
@@ -43,17 +39,22 @@ public class TraceServletFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         long startedAt = System.nanoTime();
         Throwable failure = null;
-        TracePropagation.Extracted extracted = TraceHeaderSupport.extract(
+        TraceContext context = TraceHeaderSupport.extract(
                 new ServletServerHttpRequest(request).getHeaders(),
                 properties
         );
-        TraceState state = extracted.state();
-        try (TraceScope ignored = TraceContext.open(state)) {
+        try (TraceContext.Scope ignored = context.open()) {
             if (properties.getPropagation().isResponseHeaders()
                     && properties.getServlet().isResponseHeaders()) {
-                response.setHeader(TraceKeys.TRACEPARENT_HEADER, state.traceparent());
-                if (state.requestId() != null) {
-                    response.setHeader(TraceKeys.REQUEST_ID_HEADER, state.requestId());
+                response.setHeader(
+                        TraceContext.TRACEPARENT_HEADER,
+                        context.traceparent()
+                );
+                if (context.requestId() != null) {
+                    response.setHeader(
+                            TraceContext.REQUEST_ID_HEADER,
+                            context.requestId()
+                    );
                 }
             }
             filterChain.doFilter(request, response);
@@ -62,14 +63,14 @@ public class TraceServletFilter extends OncePerRequestFilter {
             throw exception;
         } finally {
             if (properties.getServlet().isAccessLog()) {
-                logAccess(request, response, state, startedAt, failure);
+                logAccess(request, response, context, startedAt, failure);
             }
         }
     }
 
     private void logAccess(HttpServletRequest request,
                            HttpServletResponse response,
-                           TraceState state,
+                           TraceContext context,
                            long startedAt,
                            Throwable failure) {
         long costMs = (System.nanoTime() - startedAt) / 1_000_000L;
@@ -77,14 +78,6 @@ public class TraceServletFilter extends OncePerRequestFilter {
                 && request.getQueryString() != null
                 ? request.getRequestURI() + "?" + request.getQueryString()
                 : request.getRequestURI();
-        if (properties.getServlet().isRecordHeaders()
-                || properties.getServlet().isRecordRequestBody()
-                || properties.getServlet().isRecordResponseBody()) {
-            LOGGER.debug(
-                    "trace access verbose logging is disabled by default "
-                            + "unless application code supplies a safe logger"
-            );
-        }
         String clientIp = properties.getServlet().isTrustedProxyHeaders()
                 ? firstForwardedFor(request)
                 : request.getRemoteAddr();
@@ -99,9 +92,9 @@ public class TraceServletFilter extends OncePerRequestFilter {
                 path,
                 response.getStatus(),
                 costMs,
-                state.traceId(),
-                state.spanId(),
-                state.requestId(),
+                context.traceId(),
+                context.spanId(),
+                context.requestId(),
                 clientIp,
                 errorCode,
                 responseBytes

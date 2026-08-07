@@ -8,11 +8,7 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class RpcProviderServerInterceptor implements ServerInterceptor {
@@ -27,35 +23,28 @@ public class RpcProviderServerInterceptor implements ServerInterceptor {
             ServerCall<ReqT, RespT> call,
             Metadata headers,
             ServerCallHandler<ReqT, RespT> next) {
-        TracePropagation.Extracted extracted = TracePropagation.extract(
-                name -> metadata(headers, name),
-                TracePropagation.Options.defaults()
-        );
-        TraceState traceState = extracted.state().withSource(
-                safe(headers.get(RpcMetadataKeys.SOURCE_APP)),
-                safe(headers.get(RpcMetadataKeys.SOURCE_INSTANCE))
-        );
+        String sourceApp = safe(headers.get(RpcMetadataKeys.SOURCE_APP));
+        String sourceInstance = safe(headers.get(RpcMetadataKeys.SOURCE_INSTANCE));
+        TraceContext traceContext = TraceContext.fromHeaders(
+                name -> traceHeader(headers, name),
+                false
+        ).withSource(sourceApp, sourceInstance);
         RpcInvocationMetadata invocation = new RpcInvocationMetadata(
                 safe(headers.get(RpcMetadataKeys.SERVICE)),
                 safe(headers.get(RpcMetadataKeys.GROUP)),
                 safe(headers.get(RpcMetadataKeys.VERSION)),
                 safe(headers.get(RpcMetadataKeys.INVOCATION_ID)),
-                safe(headers.get(RpcMetadataKeys.SOURCE_APP)),
-                safe(headers.get(RpcMetadataKeys.SOURCE_INSTANCE)),
-                traceState.traceId(),
-                traceState.spanId(),
-                traceState.parentSpanId(),
-                traceState.requestId(),
-                traceState.traceparent(),
-                traceState.tracestate()
+                traceContext
         );
         Context context = Context.current().withValue(
                 RpcInvocationMetadata.CONTEXT_KEY,
                 invocation
         );
-        ServerCall.Listener<ReqT> listener =
-                Contexts.interceptCall(context, call, headers, next);
-        return new TraceServerCallListener<>(listener, traceState);
+        ServerCall.Listener<ReqT> listener;
+        try (TraceContext.Scope ignored = traceContext.open()) {
+            listener = Contexts.interceptCall(context, call, headers, next);
+        }
+        return new TraceServerCallListener<>(listener, traceContext);
     }
 
     private String safe(String value) {
@@ -64,14 +53,14 @@ public class RpcProviderServerInterceptor implements ServerInterceptor {
                 : null;
     }
 
-    private String metadata(Metadata headers, String name) {
-        if (Objects.equals(name, "traceparent")) {
+    private String traceHeader(Metadata headers, String name) {
+        if (TraceContext.TRACEPARENT_HEADER.equals(name)) {
             return headers.get(RpcMetadataKeys.TRACEPARENT);
         }
-        if (Objects.equals(name, "tracestate")) {
+        if (TraceContext.TRACESTATE_HEADER.equals(name)) {
             return headers.get(RpcMetadataKeys.TRACESTATE);
         }
-        if (Objects.equals(name, "x-egon-request-id")) {
+        if (TraceContext.REQUEST_ID_HEADER.equals(name)) {
             return headers.get(RpcMetadataKeys.REQUEST_ID);
         }
         return null;
@@ -81,12 +70,12 @@ public class RpcProviderServerInterceptor implements ServerInterceptor {
             extends ForwardingServerCallListener
             .SimpleForwardingServerCallListener<ReqT> {
 
-        private final TraceState traceState;
+        private final TraceContext traceContext;
 
         private TraceServerCallListener(ServerCall.Listener<ReqT> delegate,
-                                        TraceState traceState) {
+                                        TraceContext traceContext) {
             super(delegate);
-            this.traceState = traceState;
+            this.traceContext = traceContext;
         }
 
         @Override
@@ -115,7 +104,7 @@ public class RpcProviderServerInterceptor implements ServerInterceptor {
         }
 
         private void withScope(Runnable callback) {
-            try (TraceScope ignored = TraceContext.open(traceState)) {
+            try (TraceContext.Scope ignored = traceContext.open()) {
                 callback.run();
             }
         }

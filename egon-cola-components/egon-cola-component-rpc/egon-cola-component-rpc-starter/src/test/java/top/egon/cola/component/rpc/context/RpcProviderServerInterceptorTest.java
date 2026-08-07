@@ -10,7 +10,7 @@ import io.grpc.Status;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
-import top.egon.cola.component.common.trace.TraceKeys;
+import top.egon.cola.component.common.trace.TraceContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,7 +87,7 @@ class RpcProviderServerInterceptorTest {
                         next
                 );
 
-        MDC.put(TraceKeys.TRACE_ID, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        MDC.put(TraceContext.TRACE_ID, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         listener.onMessage("request");
         listener.onHalfClose();
         listener.onReady();
@@ -95,17 +95,17 @@ class RpcProviderServerInterceptorTest {
 
         assertThat(callbacks.toString())
                 .isEqualTo("message;halfClose;ready;complete;");
-        assertThat(MDC.get(TraceKeys.TRACE_ID))
+        assertThat(MDC.get(TraceContext.TRACE_ID))
                 .isEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     }
 
     private void assertTrace(StringBuilder callbacks, String callback) {
         callbacks.append(callback).append(';');
-        assertThat(MDC.get(TraceKeys.TRACE_ID))
+        assertThat(MDC.get(TraceContext.TRACE_ID))
                 .isEqualTo("4bf92f3577b34da6a3ce929d0e0e4736");
-        assertThat(MDC.get(TraceKeys.PARENT_SPAN_ID))
+        assertThat(MDC.get(TraceContext.PARENT_SPAN_ID))
                 .isEqualTo("00f067aa0ba902b7");
-        assertThat(MDC.get(TraceKeys.REQUEST_ID)).isEqualTo("request-1");
+        assertThat(MDC.get(TraceContext.REQUEST_ID)).isEqualTo("request-1");
         assertThat(RpcInvocationMetadata.current().invocationId())
                 .isEqualTo("invoke-1");
     }

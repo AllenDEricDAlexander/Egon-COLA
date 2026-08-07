@@ -1,70 +1,52 @@
 package top.egon.cola.component.common.trace.autoconfigure;
 
 import org.springframework.http.HttpHeaders;
-import top.egon.cola.component.common.trace.TraceIds;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TraceParent;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceState;
+import top.egon.cola.component.common.trace.TraceContext;
 
 final class TraceHeaderSupport {
 
     private TraceHeaderSupport() {
     }
 
-    static TracePropagation.Extracted extract(HttpHeaders headers,
-                                              TraceProperties properties) {
+    static TraceContext extract(HttpHeaders headers,
+                                TraceProperties properties) {
         if (!properties.getPropagation().isEnabled()) {
-            return new TracePropagation.Extracted(
-                    TraceState.root(),
-                    TracePropagation.Source.GENERATED,
-                    false
-            );
+            return TraceContext.root();
         }
-        TracePropagation.Extracted extracted = TracePropagation.extract(
+        return TraceContext.fromHeaders(
                 headers::getFirst,
-                new TracePropagation.Options(
-                        properties.getPropagation().isLegacyTraceIdReadOnly()
-                )
-        );
-        if (!properties.getPropagation().isSourceHeaders()) {
-            return extracted;
-        }
-        return new TracePropagation.Extracted(
-                extracted.state().withSource(
-                        headers.getFirst(TraceKeys.SOURCE_APP_HEADER),
-                        headers.getFirst(TraceKeys.SOURCE_INSTANCE_HEADER)
-                ),
-                extracted.source(),
-                extracted.headerConflict()
+                properties.getPropagation().isLegacyTraceIdReadOnly()
         );
     }
 
     static void inject(HttpHeaders headers,
-                       TraceState state,
+                       TraceContext context,
                        boolean takeOverExistingTraceparent) {
         if (takeOverExistingTraceparent
-                || !TraceParent.parse(headers.getFirst(
-                TraceKeys.TRACEPARENT_HEADER
-        )).isPresent()) {
-            headers.set(TraceKeys.TRACEPARENT_HEADER, state.traceparent());
+                || !TraceContext.isValidTraceparent(headers.getFirst(
+                TraceContext.TRACEPARENT_HEADER
+        ))) {
+            headers.set(
+                    TraceContext.TRACEPARENT_HEADER,
+                    context.traceparent()
+            );
         }
-        if (state.tracestate() != null && !state.tracestate().isBlank()) {
-            headers.set(TraceKeys.TRACESTATE_HEADER, state.tracestate());
+        if (context.tracestate() != null) {
+            headers.set(
+                    TraceContext.TRACESTATE_HEADER,
+                    context.tracestate()
+            );
         }
-        if (headers.getFirst(TraceKeys.REQUEST_ID_HEADER) == null
-                && state.requestId() != null
-                && !state.requestId().isBlank()) {
-            headers.set(TraceKeys.REQUEST_ID_HEADER, state.requestId());
+        if (headers.getFirst(TraceContext.REQUEST_ID_HEADER) == null
+                && context.requestId() != null) {
+            headers.set(
+                    TraceContext.REQUEST_ID_HEADER,
+                    context.requestId()
+            );
         }
     }
 
-    static TraceState outboundState() {
-        TraceState current = top.egon.cola.component.common.trace.TraceContext
-                .currentOrCreate();
-        if (TraceIds.isValidSpanId(current.spanId())) {
-            return current.child();
-        }
-        return TraceState.root(current.requestId());
+    static TraceContext outboundContext() {
+        return TraceContext.currentOrCreate().child();
     }
 }

@@ -4,8 +4,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
@@ -50,8 +48,8 @@ public class BoundedVirtualThreadExecutorTest {
         try {
             CountDownLatch done = new CountDownLatch(1);
             AtomicReference<TaskContext> taskContext = new AtomicReference<>();
-            TraceState state = TraceState.root("request-execute");
-            try (TraceScope ignored = TraceContext.open(state)) {
+            TraceContext state = TraceContext.root("request-execute");
+            try (TraceContext.Scope ignored = TraceContext.open(state)) {
                 MDC.put(EXTERNAL_MDC_KEY, "execute");
                 executor.execute(() -> {
                     taskContext.set(currentTaskContext());
@@ -78,9 +76,9 @@ public class BoundedVirtualThreadExecutorTest {
         BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 1);
         try {
             AtomicReference<TaskContext> taskContext = new AtomicReference<>();
-            TraceState state = TraceState.root("request-submit-runnable");
+            TraceContext state = TraceContext.root("request-submit-runnable");
             Future<?> future;
-            try (TraceScope ignored = TraceContext.open(state)) {
+            try (TraceContext.Scope ignored = TraceContext.open(state)) {
                 MDC.put(EXTERNAL_MDC_KEY, "submit-runnable");
                 future = executor.submit(() -> taskContext.set(currentTaskContext()));
             }
@@ -104,9 +102,9 @@ public class BoundedVirtualThreadExecutorTest {
         BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 1);
         try {
             AtomicReference<TaskContext> taskContext = new AtomicReference<>();
-            TraceState state = TraceState.root("request-submit-result");
+            TraceContext state = TraceContext.root("request-submit-result");
             Future<String> future;
-            try (TraceScope ignored = TraceContext.open(state)) {
+            try (TraceContext.Scope ignored = TraceContext.open(state)) {
                 MDC.put(EXTERNAL_MDC_KEY, "submit-result");
                 future = executor.submit(() -> taskContext.set(currentTaskContext()), "completed");
             }
@@ -124,9 +122,9 @@ public class BoundedVirtualThreadExecutorTest {
     public void test_submitCallableShouldRunVirtualTaskWithCapturedTraceAndExternalMdc() throws Exception {
         BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 1);
         try {
-            TraceState state = TraceState.root("request-submit-callable");
+            TraceContext state = TraceContext.root("request-submit-callable");
             Future<TaskContext> future;
-            try (TraceScope ignored = TraceContext.open(state)) {
+            try (TraceContext.Scope ignored = TraceContext.open(state)) {
                 MDC.put(EXTERNAL_MDC_KEY, "submit-callable");
                 future = executor.submit(BoundedVirtualThreadExecutorTest::currentTaskContext);
             }
@@ -147,9 +145,9 @@ public class BoundedVirtualThreadExecutorTest {
     public void test_invokeAllShouldRunVirtualTaskWithCapturedTraceAndExternalMdc() throws Exception {
         BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 1);
         try {
-            TraceState state = TraceState.root("request-invoke-all");
+            TraceContext state = TraceContext.root("request-invoke-all");
             List<Future<TaskContext>> futures;
-            try (TraceScope ignored = TraceContext.open(state)) {
+            try (TraceContext.Scope ignored = TraceContext.open(state)) {
                 MDC.put(EXTERNAL_MDC_KEY, "invoke-all");
                 futures = executor.invokeAll(List.of(BoundedVirtualThreadExecutorTest::currentTaskContext));
             }
@@ -170,9 +168,9 @@ public class BoundedVirtualThreadExecutorTest {
     public void test_invokeAnyShouldRunVirtualTaskWithCapturedTraceAndExternalMdc() throws Exception {
         BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 1);
         try {
-            TraceState state = TraceState.root("request-invoke-any");
+            TraceContext state = TraceContext.root("request-invoke-any");
             TaskContext taskContext;
-            try (TraceScope ignored = TraceContext.open(state)) {
+            try (TraceContext.Scope ignored = TraceContext.open(state)) {
                 MDC.put(EXTERNAL_MDC_KEY, "invoke-any");
                 taskContext = executor.invokeAny(List.of(BoundedVirtualThreadExecutorTest::currentTaskContext));
             }
@@ -221,9 +219,9 @@ public class BoundedVirtualThreadExecutorTest {
         BoundedVirtualThreadExecutor executor = new BoundedVirtualThreadExecutor("dtp-virtual", 1);
         try {
             AtomicReference<TaskContext> taskContext = new AtomicReference<>();
-            TraceState state = TraceState.root("request-submit-failure");
+            TraceContext state = TraceContext.root("request-submit-failure");
             Future<String> future;
-            try (TraceScope ignored = TraceContext.open(state)) {
+            try (TraceContext.Scope ignored = TraceContext.open(state)) {
                 MDC.put(EXTERNAL_MDC_KEY, "submit-failure");
                 future = executor.submit(() -> {
                     taskContext.set(currentTaskContext());
@@ -416,14 +414,19 @@ public class BoundedVirtualThreadExecutorTest {
         );
     }
 
-    private static void assertCapturedContext(TaskContext actual, TraceState expected, String externalMdc) {
+    private static void assertCapturedContext(TaskContext actual, TraceContext expected, String externalMdc) {
         assertThat(actual).isNotNull();
-        assertThat(actual.traceState()).isEqualTo(expected);
+        assertThat(actual.traceContext().traceId()).isEqualTo(expected.traceId());
+        assertThat(actual.traceContext().spanId()).isEqualTo(expected.spanId());
+        assertThat(actual.traceContext().parentSpanId()).isEqualTo(expected.parentSpanId());
+        assertThat(actual.traceContext().requestId()).isEqualTo(expected.requestId());
+        assertThat(actual.traceContext().traceFlags()).isEqualTo(expected.traceFlags());
+        assertThat(actual.traceContext().tracestate()).isEqualTo(expected.tracestate());
         assertThat(actual.externalMdc()).isEqualTo(externalMdc);
         assertThat(actual.virtualThread()).isTrue();
     }
 
-    private record TaskContext(TraceState traceState, String externalMdc, boolean virtualThread) {
+    private record TaskContext(TraceContext traceContext, String externalMdc, boolean virtualThread) {
     }
 
 }

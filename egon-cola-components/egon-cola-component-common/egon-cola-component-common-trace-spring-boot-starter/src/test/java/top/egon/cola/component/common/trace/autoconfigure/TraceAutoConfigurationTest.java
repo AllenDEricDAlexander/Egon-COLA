@@ -23,10 +23,8 @@ class TraceAutoConfigurationTest {
 
     @Test
     void registersRestClientCustomizerByDefault() {
-        contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(TraceRestClientCustomizer.class);
-            assertThat(context).doesNotHaveBean(TraceTaskDecorator.class);
-        });
+        contextRunner.run(context -> assertThat(context)
+                .hasSingleBean(TraceRestClientCustomizer.class));
     }
 
     @Test

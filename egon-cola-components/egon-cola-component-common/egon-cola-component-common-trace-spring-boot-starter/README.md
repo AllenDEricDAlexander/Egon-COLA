@@ -18,7 +18,7 @@ and OpenTelemetry.
 
 | Module | Responsibility |
 |---|---|
-| `egon-cola-component-common-trace` | Pure core: Trace state and propagation plus the MDC-aware `CommonLogUtil` business-log builder |
+| `egon-cola-component-common-trace` | Pure core: one complete `TraceContext`, W3C propagation, MDC capture, and three local-thread task templates |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
 
 ## Protocol
@@ -33,8 +33,9 @@ W3C Trace Context is the primary protocol:
 | Not propagated | `x-egon-trace-id`, `x-trace-id`, `X-Trace-Id` |
 
 `traceId` identifies the whole trace, `spanId` identifies the current unit of
-work, `parentSpanId` identifies the upstream span, `requestId` is a request
-troubleshooting ID, and `invocationId` is an RPC call ID. Identity or sensitive
+work, `parentSpanId` identifies the upstream span, and `requestId` is a request
+troubleshooting ID. `traceFlags`, `tracestate`, `sourceApp`, and
+`sourceInstance` are stored on the same `TraceContext`. Identity or sensitive
 fields such as user IDs, account IDs, tokens, phone numbers, and device
 details are not part of the core trace context. Future baggage must use an
 explicit allowlist.
@@ -88,27 +89,25 @@ limits.
 ## Core API
 
 ```java
-TraceState state = TraceContext.currentOrCreate();
-try (TraceScope ignored = TraceContext.open(state.child())) {
+TraceContext child = TraceContext.currentOrCreate().child();
+try (TraceContext.Scope ignored = child.open()) {
     log.info("calling downstream");
 }
 
-TraceSnapshot snapshot = TraceContext.snapshot();
-executor.execute(snapshot.wrap(task));
-
-ExecutorService tracedExecutor = TraceExecutors.contextAware(executor);
-tracedExecutor.submit(task);
+executor.execute(new TraceRouteRunnable() {
+    @Override
+    protected void doRun() {
+        task.run();
+    }
+});
 ```
 
-`TraceScope` restores only MDC keys owned by the trace component. It does not
-clear business or framework MDC entries. `TraceSnapshot` restores the
-submitting thread context before a wrapped task runs and restores the worker
-thread context afterwards, avoiding MDC leaks in reused pools.
-
-`TraceExecutors.contextAware(...)` captures a fresh snapshot for every task
-submission and supports both platform-thread and virtual-thread executor
-services. Spring `ThreadPoolTaskExecutor` instances can explicitly use
-`new TraceTaskDecorator()` when they are built. The starter does not replace or
+`TraceContext` contains the trace fields and one complete MDC snapshot.
+`TraceContext.Scope` restores the worker thread's previous MDC when closed.
+`TraceRouteRunnable`, `TraceRouteCallable`, and `TraceRouteSupplier` each store
+one captured `TraceContext`. Executor-specific adapters are supplied by the
+owning component; the DTP starter provides adapters for platform threads,
+Spring task executors, and virtual threads. This starter does not replace or
 post-process application executor beans.
 
 ## Auto-Configuration Boundaries

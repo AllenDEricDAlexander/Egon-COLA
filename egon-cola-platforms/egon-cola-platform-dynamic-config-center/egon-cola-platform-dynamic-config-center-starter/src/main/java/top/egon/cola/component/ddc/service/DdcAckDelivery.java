@@ -6,8 +6,8 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
+import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.common.trace.TraceSnapshot;
 import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.time.Duration;
@@ -297,8 +297,8 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
                              long delayMs) {
         try {
             current.schedule(
-                    DdcTraceSupport.wrapSnapshot(
-                            delivery.traceSnapshot(),
+                    DdcTraceSupport.wrapContext(
+                            delivery.traceContext(),
                             "ack",
                             () -> deliver(delivery)
                     ),
@@ -408,14 +408,14 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
     private record PendingDelivery(
             AckKey key,
             DdcAckRequest request,
-            TraceSnapshot traceSnapshot,
+            TraceContext traceContext,
             AtomicInteger attempts
     ) {
 
         private PendingDelivery(AckKey key,
                                 DdcAckRequest request,
-                                TraceSnapshot traceSnapshot) {
-            this(key, request, traceSnapshot, new AtomicInteger());
+                                TraceContext traceContext) {
+            this(key, request, traceContext, new AtomicInteger());
         }
     }
 }

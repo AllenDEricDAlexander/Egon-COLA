@@ -6,7 +6,6 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceState;
 
 public class TraceWebClientCustomizer implements WebClientCustomizer {
 
@@ -27,16 +26,20 @@ public class TraceWebClientCustomizer implements WebClientCustomizer {
                     || !properties.getWebClient().isEnabled()) {
                 return next.exchange(request);
             }
-            TraceState parent = TraceReactorContext.get(contextView);
+            TraceContext parent = contextView.getOrDefault(
+                    TraceContext.class,
+                    null
+            );
             if (parent == null) {
                 parent = TraceContext.currentOrCreate();
             }
-            TraceState child = parent.child();
+            TraceContext child = parent.child();
             ClientRequest.Builder builder = ClientRequest.from(request);
             builder.headers(headers -> TraceHeaderSupport.inject(
                     headers,
                     child,
-                    properties.getWebClient().isTakeOverExistingTraceparent()
+                    properties.getWebClient()
+                            .isTakeOverExistingTraceparent()
             ));
             return next.exchange(builder.build());
         });

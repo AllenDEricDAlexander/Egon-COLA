@@ -15,9 +15,6 @@ import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
@@ -140,11 +137,7 @@ public class DynamicThreadPoolControllerTest {
 
     @Test
     public void shouldPublishResizeMessage() {
-        TraceState requestTrace = requestTrace(
-                "4bf92f3577b34da6a3ce929d0e0e4736",
-                "00f067aa0ba902b7",
-                "request-001"
-        );
+        TraceContext requestContext = TraceContext.root("request-resize");
         ResizeExecutorRequest request = new ResizeExecutorRequest();
         request.setExecutorKind(ExecutorKind.PLATFORM_THREAD_POOL);
         request.setCorePoolSize(4);
@@ -155,23 +148,18 @@ public class DynamicThreadPoolControllerTest {
         when(mockRedissonClient.getTopic(DtpRedisKeys.changeTopic("order-app"))).thenReturn(mockRTopic);
 
         Response<Boolean> response;
-        try (TraceScope ignored = TraceContext.open(requestTrace)) {
+        try (TraceContext.Scope ignored = requestContext.open()) {
             response = controller.resizeExecutor("order-app", "order-8093", "orderExecutor", request);
         }
 
         assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
-        assertEquals(requestTrace.traceId(), response.getTraceId());
+        assertEquals(requestContext.traceId(), response.getTraceId());
         assertTrue(response.getData());
         ArgumentCaptor<DtpConfigChangeMessage> captor = ArgumentCaptor.forClass(DtpConfigChangeMessage.class);
         verify(mockRTopic).publish(captor.capture());
         DtpConfigChangeMessage message = captor.getValue();
         assertNotNull(message.getMessageId());
-        assertTrue(message.getTraceContext().get(TraceKeys.TRACEPARENT_HEADER)
-                .startsWith("00-" + requestTrace.traceId() + "-"));
-        assertFalse(message.getTraceContext().get(TraceKeys.TRACEPARENT_HEADER)
-                .contains("-" + requestTrace.spanId() + "-"));
-        assertEquals("vendor=value", message.getTraceContext().get(TraceKeys.TRACESTATE_HEADER));
-        assertEquals("request-001", message.getTraceContext().get(TraceKeys.REQUEST_ID_HEADER));
+        assertTraceCarrier(message, requestContext);
         assertEquals("order-app", message.getAppName());
         assertEquals("order-8093", message.getInstanceId());
         assertEquals("orderExecutor", message.getExecutorName());
@@ -289,18 +277,14 @@ public class DynamicThreadPoolControllerTest {
 
     @Test
     public void shouldPublishVirtualLimitMessage() {
-        TraceState requestTrace = requestTrace(
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "bbbbbbbbbbbbbbbb",
-                "request-002"
-        );
+        TraceContext requestContext = TraceContext.root("request-virtual-limit");
         VirtualLimitRequest request = new VirtualLimitRequest();
         request.setConcurrencyLimit(200);
         request.setOperator("ops");
         when(mockRedissonClient.getTopic(DtpRedisKeys.changeTopic("order-app"))).thenReturn(mockRTopic);
 
         Response<Boolean> response;
-        try (TraceScope ignored = TraceContext.open(requestTrace)) {
+        try (TraceContext.Scope ignored = requestContext.open()) {
             response = controller.updateVirtualLimit("order-app", "order-8093", "virtualExecutor", request);
         }
 
@@ -316,9 +300,7 @@ public class DynamicThreadPoolControllerTest {
         assertEquals(200, message.getPayload().getConcurrencyLimit());
         assertNull(message.getPayload().getCorePoolSize());
         assertNull(message.getPayload().getMaximumPoolSize());
-        assertTrue(message.getTraceContext().get(TraceKeys.TRACEPARENT_HEADER)
-                .startsWith("00-" + requestTrace.traceId() + "-"));
-        assertEquals("request-002", message.getTraceContext().get(TraceKeys.REQUEST_ID_HEADER));
+        assertTraceCarrier(message, requestContext);
     }
 
     @Test
@@ -350,33 +332,35 @@ public class DynamicThreadPoolControllerTest {
 
     @Test
     public void shouldReturnTraceIdFromTraceContext() {
-        TraceState trace = requestTrace(
-                "cccccccccccccccccccccccccccccccc",
-                "dddddddddddddddd",
-                "request-response"
-        );
+        TraceContext traceContext = TraceContext.root("request-controller");
         when(mockRedissonClient.<String>getSet(DtpRedisKeys.apps())).thenReturn(mockRSet);
         when(mockRSet.readAll()).thenReturn(Set.of("order-app"));
 
         Response<Set<String>> response;
-        try (TraceScope ignored = TraceContext.open(trace)) {
+        try (TraceContext.Scope ignored = traceContext.open()) {
             response = controller.queryApps();
         }
 
-        assertEquals(trace.traceId(), response.getTraceId());
+        assertEquals(traceContext.traceId(), response.getTraceId());
     }
 
-    private TraceState requestTrace(String traceId, String spanId, String requestId) {
-        return new TraceState(
-                traceId,
-                spanId,
-                null,
-                requestId,
-                "01",
-                "vendor=value",
-                null,
-                null
-        );
+    private void assertTraceCarrier(DtpConfigChangeMessage message, TraceContext expected) {
+        TraceContext extracted = TraceContext.fromHeaders(name -> {
+            if (TraceContext.TRACEPARENT_HEADER.equals(name)) {
+                return message.getTraceparent();
+            }
+            if (TraceContext.TRACESTATE_HEADER.equals(name)) {
+                return message.getTracestate();
+            }
+            if (TraceContext.REQUEST_ID_HEADER.equals(name)) {
+                return message.getRequestId();
+            }
+            return null;
+        }, false);
+        assertEquals(expected.traceId(), extracted.traceId());
+        assertEquals(expected.requestId(), extracted.requestId());
+        assertNotNull(extracted.parentSpanId());
+        assertFalse(expected.spanId().equals(extracted.parentSpanId()));
     }
 
 }

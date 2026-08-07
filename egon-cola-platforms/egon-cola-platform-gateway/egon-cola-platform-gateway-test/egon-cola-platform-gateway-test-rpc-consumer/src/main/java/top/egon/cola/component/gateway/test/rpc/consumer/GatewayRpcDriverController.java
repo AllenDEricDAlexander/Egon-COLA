@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TracePropagation;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.EchoResponse;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.OrderResponse;
 
@@ -103,19 +101,19 @@ public class GatewayRpcDriverController {
     private <T> T traced(String traceparent,
                          String requestId,
                          Supplier<T> invocation) {
-        TracePropagation.Extracted extracted = TracePropagation.extract(
+        TraceContext context = TraceContext.fromHeaders(
                 name -> {
-                    if (TraceKeys.TRACEPARENT_HEADER.equals(name)) {
+                    if (TraceContext.TRACEPARENT_HEADER.equals(name)) {
                         return traceparent;
                     }
-                    if (TraceKeys.REQUEST_ID_HEADER.equals(name)) {
+                    if (TraceContext.REQUEST_ID_HEADER.equals(name)) {
                         return requestId;
                     }
                     return null;
                 },
-                new TracePropagation.Options(false)
+                false
         );
-        try (var ignored = TraceContext.open(extracted.state())) {
+        try (TraceContext.Scope ignored = context.open()) {
             return invocation.get();
         }
     }

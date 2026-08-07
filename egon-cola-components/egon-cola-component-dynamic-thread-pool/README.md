@@ -46,7 +46,7 @@ The starter creates a Redisson client named `dynamicThreadRedissonClient` and wr
 
 ### Trace Context Propagation
 
-Trace propagation is owned by `common-trace`; DTP no longer provides its own context wrappers. Use `TraceExecutors.contextAware(...)` at the business submission boundary for `ThreadPoolExecutor`, and configure `TraceTaskDecorator` explicitly for `ThreadPoolTaskExecutor`. `BoundedVirtualThreadExecutor` captures a `TraceSnapshot` internally for every submission. DTP discovers the original executor Beans for governance but never replaces or proxies them.
+`common-trace` owns the complete `TraceContext` and the three local-thread templates. DTP keeps its existing executor adapters: `DtpRunnable`, `DtpCallable`, and `DtpSupplier` extend those templates; `DtpContextAwareExecutorService`, `DtpTaskDecorator`, and `DtpThreads` apply them at the relevant submission boundary. `BoundedVirtualThreadExecutor` reuses `DtpContextAwareExecutorService`, so virtual-thread tasks receive the same complete Trace and MDC context. DTP discovers the original executor Beans for governance but never replaces or proxies them.
 
 The Admin explicitly uses the common Trace Spring Boot starter for W3C HTTP propagation. Redis change messages carry only `traceparent`, `tracestate`, and `x-egon-request-id`; they never transport a complete MDC snapshot.
 
@@ -96,16 +96,15 @@ Include the starter in a business application:
 
 The Trace Spring Boot starter is explicit. The DTP starter depends only on the common Trace core and does not force HTTP filters or Spring Trace auto-configuration into business applications.
 
-### Breaking Trace Migration
+### Trace Integration APIs
 
-| Removed DTP API / Setting | Replacement |
+| Submission Boundary | DTP API |
 |---|---|
-| `DtpContextAwareExecutorService` | `TraceExecutors.contextAware(ExecutorService)` |
-| `DtpTaskDecorator` | common Trace `TraceTaskDecorator` |
-| `DtpRunnable`, `DtpCallable`, `DtpSupplier` | submit through a context-aware executor, or use `TraceSnapshot` directly at a custom boundary |
-| `DtpThreads` | JDK executors with `TraceExecutors`, or `BoundedVirtualThreadExecutor` when DTP governance is required |
-| `egon.cola.component.dtp.trace.*` | common Trace configuration under `egon.cola.component.trace.*` |
-| `egon.cola.component.dtp.virtual.*` | constructor arguments and runtime updates on `BoundedVirtualThreadExecutor` |
+| `ExecutorService` | `DtpContextAwareExecutorService` |
+| Spring `ThreadPoolTaskExecutor` | `DtpTaskDecorator` |
+| Direct `Runnable`, `Callable`, or `Supplier` wrapping | `DtpRunnable`, `DtpCallable`, `DtpSupplier` |
+| Standalone platform or virtual thread | `DtpThreads` |
+| Governed virtual-thread executor | `BoundedVirtualThreadExecutor` |
 
 Build and deploy the Admin service as a standalone application within the component:
 
@@ -181,7 +180,7 @@ package demo.order.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import top.egon.cola.component.common.trace.autoconfigure.TraceTaskDecorator;
+import top.egon.cola.component.dtp.context.DtpTaskDecorator;
 import top.egon.cola.component.dtp.executor.virtual.BoundedVirtualThreadExecutor;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -210,7 +209,7 @@ public class OrderExecutorConfig {
         executor.setCorePoolSize(8);
         executor.setMaxPoolSize(32);
         executor.setQueueCapacity(1000);
-        executor.setTaskDecorator(new TraceTaskDecorator());
+        executor.setTaskDecorator(new DtpTaskDecorator());
         executor.initialize();
         return executor;
     }
@@ -229,7 +228,7 @@ package demo.order;
 
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceExecutors;
+import top.egon.cola.component.dtp.context.DtpContextAwareExecutorService;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -240,7 +239,7 @@ public class OrderAsyncService {
     private final ExecutorService executor;
 
     public OrderAsyncService(ThreadPoolExecutor orderPlatformExecutor) {
-        this.executor = TraceExecutors.contextAware(orderPlatformExecutor);
+        this.executor = new DtpContextAwareExecutorService(orderPlatformExecutor);
     }
 
     public void submitOrderTask(String orderId) {
@@ -308,7 +307,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 2. The admin does not connect directly to business applications. All state reads and change notifications pass through Redis, reducing runtime coupling.
 3. `ManagedExecutor` adapts executor capabilities so platform thread pools, Spring thread pools, and virtual-thread executors share one snapshot and update model.
 4. Adjustment commands include `appName`, `instanceId`, `executorName`, and `executorKind`. The starter validates the identity before updating, preventing a command from being applied to the wrong instance.
-5. DTP owns executor governance, while `common-trace` owns context capture and restoration. Integration is explicit at each business submission boundary.
+5. `common-trace` owns context capture and restoration; DTP owns executor governance and the adapters that apply that context at each submission boundary.
 
 ### Implementation Details
 
@@ -317,7 +316,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 - `resolveInstanceId` first uses the explicit configuration, then `{appName}-{server.port}`, and finally the JVM runtime name.
 - `ManagedExecutorRegistry` stores all managed executors, and `DynamicThreadPoolService` queries snapshots and performs updates.
 - `ThreadPoolConfigAdjustListener` subscribes to `DTP:CHANGE_TOPIC:{appName}`. After receiving a `DtpConfigChangeMessage`, it calls `IDynamicThreadPoolService.updateExecutor`.
-- `BoundedVirtualThreadExecutor` uses `Semaphore` to control its concurrency limit, captures `TraceSnapshot` per submission, includes submitted/running/completed/failed/rejected metrics, and supports runtime permit adjustment through `updateConcurrencyLimit`.
+- `BoundedVirtualThreadExecutor` uses `Semaphore` to control its concurrency limit and `DtpContextAwareExecutorService` to capture one `TraceContext` per submission. It includes submitted/running/completed/failed/rejected metrics and supports runtime permit adjustment through `updateConcurrencyLimit`.
 - `ThreadPoolDataReportJob` periodically writes snapshot, apps, instances, and audit data. Reporting can be disabled with `egon.cola.component.dtp.report.enabled=false`.
 - Admin `/resize` accepts only `PLATFORM_THREAD_POOL` and `SPRING_THREAD_POOL_TASK_EXECUTOR`; `/virtual-limit` publishes only `VIRTUAL_THREAD_PER_TASK` update commands.
 

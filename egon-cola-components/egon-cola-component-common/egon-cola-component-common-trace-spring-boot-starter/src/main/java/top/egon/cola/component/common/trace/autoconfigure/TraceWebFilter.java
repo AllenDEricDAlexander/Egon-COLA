@@ -9,10 +9,6 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 
 public class TraceWebFilter implements WebFilter {
 
@@ -36,35 +32,40 @@ public class TraceWebFilter implements WebFilter {
             return chain.filter(exchange);
         }
         long startedAt = System.nanoTime();
-        TracePropagation.Extracted extracted = TraceHeaderSupport.extract(
+        TraceContext context = TraceHeaderSupport.extract(
                 exchange.getRequest().getHeaders(),
                 properties
         );
-        TraceState state = extracted.state();
         if (properties.getPropagation().isResponseHeaders()
                 && properties.getWebflux().isResponseHeaders()) {
             exchange.getResponse().getHeaders()
-                    .set(TraceKeys.TRACEPARENT_HEADER, state.traceparent());
-            if (state.requestId() != null) {
-                exchange.getResponse().getHeaders()
-                        .set(TraceKeys.REQUEST_ID_HEADER, state.requestId());
+                    .set(
+                            TraceContext.TRACEPARENT_HEADER,
+                            context.traceparent()
+                    );
+            if (context.requestId() != null) {
+                exchange.getResponse().getHeaders().set(
+                        TraceContext.REQUEST_ID_HEADER,
+                        context.requestId()
+                );
             }
         }
         return Mono.using(
-                        () -> TraceContext.open(state),
+                        context::open,
                         ignored -> chain.filter(exchange)
-                                .contextWrite(context -> TraceReactorContext.put(context, state)),
-                        TraceScope::close
+                                .contextWrite(reactorContext ->
+                                        reactorContext.put(TraceContext.class, context)),
+                        TraceContext.Scope::close
                 )
                 .doFinally(signalType -> {
                     if (properties.getWebflux().isAccessLog()) {
-                        logAccess(exchange, state, startedAt);
+                        logAccess(exchange, context, startedAt);
                     }
                 });
     }
 
     private void logAccess(ServerWebExchange exchange,
-                           TraceState state,
+                           TraceContext context,
                            long startedAt) {
         long costMs = (System.nanoTime() - startedAt) / 1_000_000L;
         String path = exchange.getRequest().getPath()
@@ -73,14 +74,6 @@ public class TraceWebFilter implements WebFilter {
         if (properties.getWebflux().isRecordQuery()
                 && exchange.getRequest().getURI().getRawQuery() != null) {
             path = path + "?" + exchange.getRequest().getURI().getRawQuery();
-        }
-        if (properties.getWebflux().isRecordHeaders()
-                || properties.getWebflux().isRecordRequestBody()
-                || properties.getWebflux().isRecordResponseBody()) {
-            LOGGER.debug(
-                    "trace access verbose logging is disabled by default "
-                            + "unless application code supplies a safe logger"
-            );
         }
         String responseBytes = exchange.getResponse().getHeaders()
                 .getFirst(HttpHeaders.CONTENT_LENGTH);
@@ -92,9 +85,9 @@ public class TraceWebFilter implements WebFilter {
                 path,
                 exchange.getResponse().getStatusCode(),
                 costMs,
-                state.traceId(),
-                state.spanId(),
-                state.requestId(),
+                context.traceId(),
+                context.spanId(),
+                context.requestId(),
                 clientIp(exchange),
                 null,
                 responseBytes

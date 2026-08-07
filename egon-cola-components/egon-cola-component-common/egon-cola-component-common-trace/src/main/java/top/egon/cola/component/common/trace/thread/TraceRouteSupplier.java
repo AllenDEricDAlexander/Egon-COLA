@@ -1,31 +1,30 @@
 package top.egon.cola.component.common.trace.thread;
 
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceSnapshot;
+import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
- * Supplier template that restores the trace snapshot captured at construction.
+ * Supplier template that restores the trace context captured at construction.
  *
  * @param <T> supplied value type
  */
 public abstract class TraceRouteSupplier<T> implements Supplier<T> {
 
-    private final TraceSnapshot snapshot;
+    private final TraceContext context;
 
     protected TraceRouteSupplier() {
-        this(TraceSnapshot.capture());
+        this(TraceContext.capture());
     }
 
-    protected TraceRouteSupplier(TraceSnapshot snapshot) {
-        this.snapshot = Objects.requireNonNull(snapshot, "snapshot");
+    protected TraceRouteSupplier(TraceContext context) {
+        this.context = Objects.requireNonNull(context, "context");
     }
 
     @Override
     public final T get() {
-        try (TraceScope ignored = snapshot.open()) {
+        try (TraceContext.Scope ignored = context.open()) {
             return doGet();
         }
     }

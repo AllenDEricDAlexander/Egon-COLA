@@ -4,9 +4,6 @@ import org.redisson.api.listener.MessageListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.dtp.domain.IDynamicThreadPoolService;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
@@ -45,15 +42,19 @@ public class ThreadPoolConfigAdjustListener implements MessageListener<DtpConfig
             logger.warn("动态线程池，收到空配置变更消息。频道:{}", channel);
             return;
         }
-        TracePropagation.Extracted extracted = TracePropagation.extract(
-                name -> message.getTraceContext().get(name),
-                TracePropagation.Options.defaults()
+        TraceContext traceContext = TraceContext.fromHeaders(
+                name -> readTraceHeader(message, name),
+                false
         );
-        try (TraceScope ignored = TraceContext.open(extracted.state())) {
+        try (TraceContext.Scope ignored = traceContext.open()) {
             try {
                 ExecutorUpdateCommand command = message.getPayload();
                 UpdateResult result = dynamicThreadPoolService.updateExecutor(command);
-                DtpAuditEvent event = buildAuditEvent(message, result);
+                DtpAuditEvent event = buildAuditEvent(
+                        message,
+                        result,
+                        traceContext
+                );
                 registry.recordAuditEvent(event);
                 if (result.getAfter() != null) {
                     registry.reportSnapshot(result.getAfter());
@@ -65,12 +66,13 @@ public class ThreadPoolConfigAdjustListener implements MessageListener<DtpConfig
         }
     }
 
-    private DtpAuditEvent buildAuditEvent(DtpConfigChangeMessage message, UpdateResult result) {
+    private DtpAuditEvent buildAuditEvent(DtpConfigChangeMessage message,
+                                          UpdateResult result,
+                                          TraceContext traceContext) {
         DtpAuditEvent event = new DtpAuditEvent();
-        TraceState traceState = TraceContext.currentOrCreate();
         event.setEventId(UUID.randomUUID().toString());
-        event.setTraceId(traceState.traceId());
-        event.setRequestId(traceState.requestId());
+        event.setTraceId(traceContext.traceId());
+        event.setRequestId(traceContext.requestId());
         event.setAppName(message.getAppName());
         event.setInstanceId(message.getInstanceId());
         event.setExecutorName(message.getExecutorName());
@@ -83,6 +85,19 @@ public class ThreadPoolConfigAdjustListener implements MessageListener<DtpConfig
         event.setErrorMessage(result.isSuccess() ? null : result.getMessage());
         event.setCreatedAt(Instant.now());
         return event;
+    }
+
+    private String readTraceHeader(DtpConfigChangeMessage message, String name) {
+        if (TraceContext.TRACEPARENT_HEADER.equals(name)) {
+            return message.getTraceparent();
+        }
+        if (TraceContext.TRACESTATE_HEADER.equals(name)) {
+            return message.getTracestate();
+        }
+        if (TraceContext.REQUEST_ID_HEADER.equals(name)) {
+            return message.getRequestId();
+        }
+        return null;
     }
 
 }

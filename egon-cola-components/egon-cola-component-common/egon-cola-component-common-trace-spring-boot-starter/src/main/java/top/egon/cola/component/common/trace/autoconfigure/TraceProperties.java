@@ -38,8 +38,6 @@ public class TraceProperties {
         private boolean legacyTraceIdReadOnly = true;
 
         private boolean responseHeaders = true;
-
-        private boolean sourceHeaders = false;
     }
 
     @Getter
@@ -93,6 +91,5 @@ public class TraceProperties {
     public static class Reactor {
 
         private boolean automaticContextPropagation = true;
-
     }
 }

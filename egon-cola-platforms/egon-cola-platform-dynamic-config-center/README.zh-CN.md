@@ -67,7 +67,7 @@ Admin 的 webui 已从 jar 中摘出（`/ddc-admin` 不再由 Admin 提供服务
 Starter 的 `HttpDdcAdminClient`、OpenAPI 注册客户端、心跳、拉取、ACK 重试、Redis
 Topic 回调和租约恢复任务统一使用 `egon-cola-component-common-trace`。业务请求触发的
 DDC 调用会继承当前 `traceId` 并创建 child span；后台任务没有上游 Trace 时会为每次
-逻辑操作创建新的 `TraceScope`，并在结束后恢复原线程 MDC。出站只写
+逻辑操作打开新的 `TraceContext`，并在结束后恢复原线程 MDC。出站只写
 `traceparent`、`tracestate` 和 `x-egon-request-id`，不写 `x-egon-trace-id`。
 
 Spring MVC Admin 侧直接引入 `egon-cola-component-common-trace-spring-boot-starter`，不再维护

@@ -99,12 +99,10 @@ public class TraceAutoConfiguration {
             matchIfMissing = true)
     static class ReactorContextPropagationConfiguration {
 
-        @Bean
+        @Bean(destroyMethod = "close")
         @ConditionalOnMissingBean
         TraceThreadLocalAccessor traceThreadLocalAccessor() {
-            TraceThreadLocalAccessor accessor = new TraceThreadLocalAccessor();
-            ContextRegistry.getInstance().registerThreadLocalAccessor(accessor);
-            return accessor;
+            return new TraceThreadLocalAccessor();
         }
     }
 }

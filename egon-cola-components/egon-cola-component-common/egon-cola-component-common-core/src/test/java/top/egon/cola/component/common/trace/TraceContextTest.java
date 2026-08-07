@@ -29,11 +29,14 @@ class TraceContextTest {
     }
 
     @Test
-    void snapshotCapturesCurrentTraceId() {
+    void captureCopiesCurrentTraceId() {
         TraceContext.setTraceId("trace-2");
 
-        TraceSnapshot snapshot = TraceContext.snapshot();
+        var context = TraceContext.capture();
 
-        assertEquals("trace-2", snapshot.getTraceId());
+        assertEquals(
+                "trace-2",
+                context.mdcContext().get(TraceContext.TRACE_ID)
+        );
     }
 }

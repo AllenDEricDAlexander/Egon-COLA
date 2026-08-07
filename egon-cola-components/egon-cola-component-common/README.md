@@ -4,16 +4,16 @@
 
 ## Overview
 
-`egon-cola-component-common` is the common-capability aggregator for the Egon COLA component ecosystem. It provides stable contracts for result records, page metadata, request/query POJOs, enum codes, exceptions, tree construction, converters, structured business logs, trace core and Spring integration, IDs, crypto, response/log desensitization, and source boundary assertions.
+`egon-cola-component-common` is the common-capability aggregator for the Egon COLA component ecosystem. It provides stable contracts for result records, page metadata, request/query POJOs, enum codes, exceptions, tree construction, converters, trace core and Spring integration, IDs, crypto, response/log desensitization, and source boundary assertions.
 
-This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include only the runtime modules they need. `common-core` owns stable contracts, `common-trace` owns the framework-neutral Trace Context and `CommonLogUtil`, and the Trace Spring Boot Starter owns web and client auto-configuration.
+This directory is a `pom` aggregator, not a runtime JAR that business applications should depend on directly. Business applications should manage versions through `egon-cola-components-bom` and include only the runtime modules they need. `common-core` owns stable contracts, `common-trace` owns the framework-neutral `TraceContext` and local-thread task templates, and the Trace Spring Boot Starter owns web and client auto-configuration.
 
 ## Module Layout
 
 | Module | Description |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`, common exceptions, converter contracts, POJO records, and tree construction |
-| `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core, W3C `traceparent` propagation, and MDC-aware `CommonLogUtil` business logs |
+| `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core, W3C `traceparent` propagation, complete MDC capture, and local-thread task templates |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
 | `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration; all tests live in this module |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
@@ -50,22 +50,6 @@ The main contracts in `common-core` use Java records with stable Jackson field n
 
 `BaseConverter<S, T>` defines `toTarget`, `toSource`, list conversion, and simple `Date` / `String` mapping defaults. MapStruct and MapStruct Plus examples live in the `common-core` test package so production code exposes only the lightweight contract.
 
-### Structured Business Logs
-
-`common-trace` exposes one top-level logging API, `CommonLogUtil`, with a nested
-business-log builder. `bizDebug`, `bizInfo`, `bizWarn`, and `bizError` support
-stable business fields, result helpers, elapsed time, and throwable logging.
-Every terminal log call captures the complete current MDC and renders it before
-the business fields in the final single-line message, so correlation does not
-depend on a logging pattern containing `%X`, `%mdc`, or `%kvp`.
-
-```java
-CommonLogUtil.bizInfo(LOG)
-        .biz("order")
-        .scene("create")
-        .success("order created");
-```
-
 ### HTTP Response and Log Desensitization
 
 The data desensitization Starter auto-registers `SensitiveJacksonModule`. Annotated String
@@ -96,9 +80,9 @@ log.info("mobile={}", SensitiveLogs.of(mobile, SensitiveType.MOBILE));
 ### Async Trace Propagation
 
 `common-trace` provides `TraceRouteRunnable`, `TraceRouteCallable<T>`, and
-`TraceRouteSupplier<T>`. Each wrapper captures the current `TraceSnapshot` when
-it is created, restores Trace and MDC before execution, and restores the worker
-thread's original context after completion or failure.
+`TraceRouteSupplier<T>`. Each template stores one `TraceContext` captured when
+it is created, restores its complete MDC before execution, and restores the
+worker thread's previous MDC after completion or failure.
 
 ```java
 executor.execute(new TraceRouteRunnable() {
@@ -109,8 +93,10 @@ executor.execute(new TraceRouteRunnable() {
 });
 ```
 
-Functional code can continue using `TraceContext.snapshot().wrap(task)`; both
-entry points use the same `TraceScope` restoration mechanism.
+Executor-specific adapters remain in their owning components. For example, the
+dynamic-thread-pool starter provides `DtpRunnable`, `DtpCallable`,
+`DtpSupplier`, `DtpContextAwareExecutorService`, `DtpTaskDecorator`, and
+`DtpThreads` on top of these three templates.
 
 ## Dependency Setup
 
@@ -254,8 +240,8 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 2. Prefer Java records for common PO contracts to preserve immutability, serializability, and stable JSON field ordering.
 3. Use direct record factory methods instead of separate `ResultDtos` or `ResultModels` classes.
 4. Keep `common-core` free of Spring runtime dependencies; Jackson annotations are explicit lightweight dependencies because core owns JSON contracts.
-5. Keep `common-trace` limited to the JDK and `slf4j-api`; Trace propagation and `CommonLogUtil` do not depend on Spring, Servlet, WebFlux, Reactor, gRPC, Gateway, Jackson, or a Logback implementation.
-6. Render MDC directly in `CommonLogUtil` messages so business-log correlation does not depend on backend-specific patterns.
+5. Keep `common-trace` limited to the JDK and `slf4j-api`; Trace propagation does not depend on Spring, Servlet, WebFlux, Reactor, gRPC, Gateway, Jackson, or a Logback implementation.
+6. Keep executor-specific adapters in their owning components; `common-trace` exposes only `TraceContext` and three local-thread task templates.
 7. Keep the Trace Spring Boot Starter in the same common aggregator without leaking Spring dependencies into `common-trace`.
 8. Expose converter contracts, not generated converter implementations. MapStruct and MapStruct Plus implementations belong in consumers or tests.
 

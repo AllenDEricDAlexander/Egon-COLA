@@ -7,12 +7,9 @@ import top.egon.cola.component.common.trace.thread.TraceRouteCallable;
 import top.egon.cola.component.common.trace.thread.TraceRouteRunnable;
 import top.egon.cola.component.common.trace.thread.TraceRouteSupplier;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TraceRouteTaskTest {
@@ -20,101 +17,60 @@ class TraceRouteTaskTest {
     @AfterEach
     void tearDown() {
         MDC.clear();
-        TraceContext.clearOwnedKeys();
     }
 
     @Test
-    void runnablePropagatesCapturedContextToVirtualThread() throws Exception {
-        TraceState parent = TraceState.root();
-        AtomicReference<String> actualTraceId = new AtomicReference<>();
-        TraceRouteRunnable task;
-        try (TraceScope ignored = TraceContext.open(parent)) {
-            MDC.put("biz", "order");
-            task = new TraceRouteRunnable() {
+    void wrappersCaptureCompleteMdcAndRestoreWorker() throws Exception {
+        AtomicReference<String> runnableTrace = new AtomicReference<>();
+        TraceContext context = TraceContext.root("request-1");
+        TraceRouteRunnable runnable;
+        TraceRouteCallable<String> callable;
+        TraceRouteSupplier<String> supplier;
+        try (TraceContext.Scope ignored = context.open()) {
+            MDC.put("tenantId", "tenant-1");
+            runnable = new TraceRouteRunnable() {
                 @Override
                 protected void doRun() {
-                    actualTraceId.set(TraceContext.getTraceId());
-                    assertEquals("order", MDC.get("biz"));
+                    runnableTrace.set(
+                            TraceContext.getTraceId() + ":" + MDC.get("tenantId")
+                    );
                 }
             };
-        }
-
-        try (ExecutorService executor =
-                     Executors.newVirtualThreadPerTaskExecutor()) {
-            executor.submit(task).get();
-        }
-
-        assertEquals(parent.traceId(), actualTraceId.get());
-        assertNull(TraceContext.getTraceId());
-        assertEquals("order", MDC.get("biz"));
-    }
-
-    @Test
-    void callableReturnsResultAndRestoresWorkerContext() throws Exception {
-        TraceState parent = TraceState.root();
-        TraceRouteCallable<String> task;
-        try (TraceScope ignored = TraceContext.open(parent)) {
-            task = new TraceRouteCallable<>() {
+            callable = new TraceRouteCallable<>() {
                 @Override
                 protected String doCall() {
-                    return TraceContext.getTraceId();
+                    return TraceContext.getTraceId() + ":" + MDC.get("tenantId");
+                }
+            };
+            supplier = new TraceRouteSupplier<>() {
+                @Override
+                protected String doGet() {
+                    return TraceContext.getTraceId() + ":" + MDC.get("tenantId");
                 }
             };
         }
+        MDC.put(TraceContext.TRACE_ID, "worker-trace");
 
-        TraceState worker = TraceState.root();
-        try (TraceScope ignored = TraceContext.open(worker)) {
-            assertEquals(parent.traceId(), task.call());
-            assertEquals(worker.traceId(), TraceContext.getTraceId());
-        }
+        runnable.run();
+        String expected = context.traceId() + ":tenant-1";
+
+        assertEquals(expected, runnableTrace.get());
+        assertEquals(expected, callable.call());
+        assertEquals(expected, supplier.get());
+        assertEquals("worker-trace", TraceContext.getTraceId());
     }
 
     @Test
-    void callablePreservesCheckedExceptionAndRestoresContext() {
-        TraceState parent = TraceState.root();
-        TraceRouteCallable<Void> task;
-        try (TraceScope ignored = TraceContext.open(parent)) {
-            task = new TraceRouteCallable<>() {
-                @Override
-                protected Void doCall() throws Exception {
-                    throw new Exception("expected");
-                }
-            };
-        }
+    void wrapperRestoresWorkerAfterFailure() {
+        TraceRouteRunnable runnable = new TraceRouteRunnable() {
+            @Override
+            protected void doRun() {
+                throw new IllegalStateException("failed");
+            }
+        };
+        MDC.put("workerKey", "worker-value");
 
-        TraceState worker = TraceState.root();
-        try (TraceScope ignored = TraceContext.open(worker)) {
-            Exception error = assertThrows(Exception.class, task::call);
-            assertEquals("expected", error.getMessage());
-            assertEquals(worker.traceId(), TraceContext.getTraceId());
-        }
-    }
-
-    @Test
-    void supplierReturnsResultAndRestoresContextAfterFailure() {
-        TraceState parent = TraceState.root();
-        TraceRouteSupplier<String> success;
-        TraceRouteSupplier<String> failure;
-        try (TraceScope ignored = TraceContext.open(parent)) {
-            success = new TraceRouteSupplier<>() {
-                @Override
-                protected String doGet() {
-                    return TraceContext.getTraceId();
-                }
-            };
-            failure = new TraceRouteSupplier<>() {
-                @Override
-                protected String doGet() {
-                    throw new IllegalStateException("expected");
-                }
-            };
-        }
-
-        TraceState worker = TraceState.root();
-        try (TraceScope ignored = TraceContext.open(worker)) {
-            assertEquals(parent.traceId(), success.get());
-            assertThrows(IllegalStateException.class, failure::get);
-            assertEquals(worker.traceId(), TraceContext.getTraceId());
-        }
+        assertThrows(IllegalStateException.class, runnable::run);
+        assertEquals("worker-value", MDC.get("workerKey"));
     }
 }

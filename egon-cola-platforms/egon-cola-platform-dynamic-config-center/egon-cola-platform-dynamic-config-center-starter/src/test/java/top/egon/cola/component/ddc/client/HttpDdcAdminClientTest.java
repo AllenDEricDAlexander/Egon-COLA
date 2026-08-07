@@ -8,9 +8,6 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
@@ -107,12 +104,12 @@ class HttpDdcAdminClientTest {
         RestClient.Builder builder = RestClient.builder().baseUrl(properties.getAdmin().getEndpoint());
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         HttpDdcAdminClient client = new HttpDdcAdminClient(properties, builder);
-        TraceState parent = TraceState.root("request-1");
+        TraceContext parent = TraceContext.root("request-1");
         server.expect(requestTo("http://ddc.test/api/v1/ddc/openapi/instances/register"))
                 .andExpect(request -> {
-                    assertThat(request.getHeaders().getFirst(TraceKeys.TRACEPARENT_HEADER))
+                    assertThat(request.getHeaders().getFirst(TraceContext.TRACEPARENT_HEADER))
                             .startsWith("00-" + parent.traceId() + "-");
-                    assertThat(request.getHeaders().getFirst(TraceKeys.REQUEST_ID_HEADER))
+                    assertThat(request.getHeaders().getFirst(TraceContext.REQUEST_ID_HEADER))
                             .isEqualTo("request-1");
                     assertThat(request.getHeaders().getFirst("x-egon-trace-id"))
                             .isNull();
@@ -135,7 +132,7 @@ class HttpDdcAdminClientTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        try (TraceScope ignored = TraceContext.open(parent)) {
+        try (TraceContext.Scope ignored = parent.open()) {
             DdcInstanceRegisterRequest registerRequest = new DdcInstanceRegisterRequest();
             registerRequest.setInstanceId("instance-1");
             client.register(registerRequest);

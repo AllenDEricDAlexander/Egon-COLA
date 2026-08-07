@@ -19,7 +19,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
 | Artifact | 用途 |
 |---|---|
 | `egon-cola-component-common-core` | 错误状态、异常、枚举契约、请求/结果模型和树结构构建 |
-| `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace Context、MDC 投影、W3C `traceparent` 解析、任务包装和 `CommonLogUtil` |
+| `egon-cola-component-common-trace` | 纯 JDK + SLF4J `TraceContext`、MDC 投影、W3C `traceparent` 解析和本地线程任务模板 |
 | `egon-cola-component-common-trace-spring-boot-starter` | common 聚合内的 Spring Boot 日志关联和 Trace 传播 Starter |
 | `egon-cola-component-common-id-starter` | 纯 JDK Snowflake 契约与算法、已废弃的 UUIDv7 兼容 API，以及面向数据库 `BIGINT` ID 的 Spring Boot 自动配置 |
 | `egon-cola-component-common-crypto` | 摘要、HMAC、Base64、Hex |

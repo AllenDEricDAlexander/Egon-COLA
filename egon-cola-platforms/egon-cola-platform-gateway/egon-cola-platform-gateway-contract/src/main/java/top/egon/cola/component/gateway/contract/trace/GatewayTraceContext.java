@@ -1,11 +1,7 @@
 package top.egon.cola.component.gateway.contract.trace;
 
-import top.egon.cola.component.common.trace.function.TraceCarrierReader;
-import top.egon.cola.component.common.trace.TraceIds;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceState;
-
+import java.security.SecureRandom;
+import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -26,21 +22,30 @@ public record GatewayTraceContext(
         boolean headerConflict
 ) {
 
+    private static final int TRACEPARENT_LENGTH = 55;
+
+    private static final int MAX_HEADER_LENGTH = 512;
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private static final HexFormat HEX = HexFormat.of();
+
     public GatewayTraceContext {
-        traceId = TraceIds.normalizeTraceId(traceId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("invalid traceId"));
+        traceId = normalizeHex(traceId, 32, true);
+        if (traceId == null) {
+            throw new IllegalArgumentException("invalid traceId");
+        }
         requestId = boundedValue(requestId, traceId);
         if (parentSpanId != null
-                && !TraceIds.isValidSpanId(parentSpanId)) {
+                && normalizeHex(parentSpanId, 16, true) == null) {
             throw new IllegalArgumentException("invalid parentSpanId");
         }
         if (engineSpanId == null
-                || !TraceIds.isValidSpanId(engineSpanId)) {
+                || normalizeHex(engineSpanId, 16, true) == null) {
             throw new IllegalArgumentException("invalid engineSpanId");
         }
         traceFlags = traceFlags == null
-                || !TraceIds.isValidTraceFlags(traceFlags)
+                || normalizeHex(traceFlags, 2, false) == null
                 ? "00"
                 : traceFlags.toLowerCase(Locale.ROOT);
         tracestate = boundedValue(tracestate, null);
@@ -51,20 +56,36 @@ public record GatewayTraceContext(
             String traceparent,
             String tracestate,
             String requestId) {
-        TracePropagation.Extracted extracted = TracePropagation.extract(
-                reader(traceparent, tracestate, requestId),
-                new TracePropagation.Options(false)
+        String normalizedRequestId = boundedValue(
+                requestId,
+                newTraceId(),
+                128
         );
-        TraceState state = extracted.state();
+        if (!isValidTraceparent(traceparent)) {
+            return new GatewayTraceContext(
+                    newTraceId(),
+                    normalizedRequestId,
+                    null,
+                    newSpanId(),
+                    "00",
+                    null,
+                    Source.GENERATED,
+                    false
+            );
+        }
+        String version = traceparent.substring(0, 2);
+        String traceFlags = traceparent.substring(53, 55);
         return new GatewayTraceContext(
-                state.traceId(),
-                state.requestId(),
-                state.parentSpanId(),
-                state.spanId(),
-                state.traceFlags(),
-                state.tracestate(),
-                source(extracted.source()),
-                extracted.headerConflict()
+                traceparent.substring(3, 35),
+                normalizedRequestId,
+                traceparent.substring(36, 52),
+                newSpanId(),
+                "00".equals(version)
+                        ? traceFlags
+                        : sampled(traceFlags) ? "01" : "00",
+                boundedValue(tracestate, null),
+                Source.TRACEPARENT,
+                false
         );
     }
 
@@ -79,26 +100,32 @@ public record GatewayTraceContext(
 
     public String childTraceparent(String childSpanId) {
         if (childSpanId == null
-                || !TraceIds.isValidSpanId(childSpanId)) {
+                || normalizeHex(childSpanId, 16, true) == null) {
             throw new IllegalArgumentException("invalid childSpanId");
         }
         return "00-" + traceId + "-" + childSpanId + "-" + traceFlags;
     }
 
     public String newChildSpanId() {
-        return TraceIds.newSpanId();
+        return newSpanId();
     }
 
     public boolean sampled() {
-        return (Integer.parseInt(traceFlags, 16) & 1) == 1;
+        return sampled(traceFlags);
     }
 
     private static String boundedValue(String value, String fallback) {
+        return boundedValue(value, fallback, MAX_HEADER_LENGTH);
+    }
+
+    private static String boundedValue(String value,
+                                       String fallback,
+                                       int maxLength) {
         if (value == null || value.isBlank()) {
             return fallback;
         }
         String trimmed = value.trim();
-        if (trimmed.length() > 512
+        if (trimmed.length() > maxLength
                 || trimmed.indexOf('\r') >= 0
                 || trimmed.indexOf('\n') >= 0) {
             return fallback;
@@ -106,32 +133,80 @@ public record GatewayTraceContext(
         return trimmed;
     }
 
-    private static TraceCarrierReader reader(
-            String traceparent,
-            String tracestate,
-            String requestId) {
-        return name -> {
-            if (TraceKeys.TRACEPARENT_HEADER.equals(name)) {
-                return traceparent;
-            }
-            if (TraceKeys.TRACESTATE_HEADER.equals(name)) {
-                return tracestate;
-            }
-            if (TraceKeys.REQUEST_ID_HEADER.equals(name)) {
-                return requestId;
-            }
-            return null;
-        };
+    private static boolean isValidTraceparent(String value) {
+        if (value == null
+                || value.length() < TRACEPARENT_LENGTH
+                || value.length() > MAX_HEADER_LENGTH
+                || !value.equals(value.trim())
+                || value.charAt(2) != '-'
+                || value.charAt(35) != '-'
+                || value.charAt(52) != '-') {
+            return false;
+        }
+        String version = value.substring(0, 2);
+        if (!isLowercaseHex(version)
+                || "ff".equals(version)
+                || normalizeHex(value.substring(3, 35), 32, true) == null
+                || normalizeHex(value.substring(36, 52), 16, true) == null
+                || !isLowercaseHex(value.substring(53, 55))) {
+            return false;
+        }
+        return "00".equals(version)
+                ? value.length() == TRACEPARENT_LENGTH
+                : value.length() == TRACEPARENT_LENGTH
+                || value.charAt(TRACEPARENT_LENGTH) == '-';
     }
 
-    private static Source source(TracePropagation.Source source) {
-        return source == TracePropagation.Source.TRACEPARENT
-                ? Source.TRACEPARENT
-                : Source.GENERATED;
+    private static boolean sampled(String traceFlags) {
+        return (Integer.parseInt(traceFlags, 16) & 1) == 1;
+    }
+
+    private static String normalizeHex(String value,
+                                       int length,
+                                       boolean rejectAllZeros) {
+        if (value == null || value.length() != length) {
+            return null;
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (!isLowercaseHex(normalized)
+                || rejectAllZeros
+                && normalized.chars().allMatch(character -> character == '0')) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private static boolean isLowercaseHex(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            if (!((character >= '0' && character <= '9')
+                    || (character >= 'a' && character <= 'f'))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String newTraceId() {
+        return randomHex(16);
+    }
+
+    private static String newSpanId() {
+        return randomHex(8);
+    }
+
+    private static String randomHex(int bytes) {
+        byte[] value = new byte[bytes];
+        String hex;
+        do {
+            RANDOM.nextBytes(value);
+            hex = HEX.formatHex(value);
+        } while (hex.chars().allMatch(character -> character == '0'));
+        return hex;
     }
 
     /**
-     * Trace ID 的来源，表示是从合法的 traceparent 提取，还是由网关生成。
+     * Trace ID 的来源，表示来自 W3C Header，还是由网关生成。
      */
     public enum Source {
         TRACEPARENT,

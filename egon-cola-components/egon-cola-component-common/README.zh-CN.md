@@ -4,16 +4,16 @@
 
 ## 简要介绍
 
-`egon-cola-component-common` 是 Egon COLA 组件体系的通用能力聚合模块，提供结果 record、分页元数据、请求/查询 PO、枚举错误码、异常、树结构构建、转换器契约、结构化业务日志、Trace 核心与 Spring 自动装配、ID、加密、脱敏和源码边界断言等基础能力。
+`egon-cola-component-common` 是 Egon COLA 组件体系的通用能力聚合模块，提供结果 record、分页元数据、请求/查询 PO、枚举错误码、异常、树结构构建、转换器契约、Trace 核心与 Spring 自动装配、ID、加密、脱敏和源码边界断言等基础能力。
 
-这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，`common-trace` 负责纯核心 Trace Context 和 `CommonLogUtil`，Trace Spring Boot Starter 负责 Web 与客户端自动装配。
+这个目录本身是 `pom` 聚合模块，不是业务应用应该直接依赖的运行时 Jar。业务侧应通过 `egon-cola-components-bom` 管理版本，然后引入需要的运行时模块。`common-core` 负责稳定通用契约，`common-trace` 负责框架无关的 `TraceContext` 和本地线程任务模板，Trace Spring Boot Starter 负责 Web 与客户端自动装配。
 
 ## 模块结构
 
 | Module | 说明 |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record 和树结构构建 |
-| `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace 核心、W3C `traceparent` 传播和包含 MDC 的 `CommonLogUtil` 业务日志 |
+| `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace 核心、W3C `traceparent` 传播、完整 MDC 捕获和本地线程任务模板 |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
 | `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器、已废弃的 UUIDv7 兼容 API 和 Spring Boot 自动配置；全部测试位于本模块 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
@@ -50,20 +50,6 @@ common-core 的异常类名不再使用 `Egon` 前缀。
 
 `BaseConverter<S, T>` 定义 `toTarget`、`toSource`、列表转换，以及简单的 `Date` / `String` 默认转换。MapStruct 和 MapStruct Plus 示例放在 `common-core` 的 test 包下，生产代码只暴露轻量契约。
 
-### 结构化业务日志
-
-`common-trace` 只对外提供一个顶层日志工具类 `CommonLogUtil`，业务日志 Builder
-是它的内部类。`bizDebug`、`bizInfo`、`bizWarn`、`bizError` 支持稳定业务字段、
-结果状态、耗时和异常日志。每次真正打印时都会读取完整 MDC，并将 MDC 字段放在业务字段
-之前直接写入最终单行日志，不依赖日志 Pattern 是否配置 `%X`、`%mdc` 或 `%kvp`。
-
-```java
-CommonLogUtil.bizInfo(LOG)
-        .biz("order")
-        .scene("create")
-        .success("order created");
-```
-
 ### HTTP 响应与日志脱敏
 
 数据脱敏 Starter 会自动注册 `SensitiveJacksonModule`。String 字段或 accessor 方法声明
@@ -93,8 +79,8 @@ log.info("mobile={}", SensitiveLogs.of(mobile, SensitiveType.MOBILE));
 ### 异步任务 Trace 传播
 
 `common-trace` 提供 `TraceRouteRunnable`、`TraceRouteCallable<T>` 和
-`TraceRouteSupplier<T>`。包装器在创建时捕获当前 `TraceSnapshot`，任务执行前恢复
-Trace 与 MDC，执行完成或抛出异常后恢复工作线程原上下文。
+`TraceRouteSupplier<T>`。每个模板在创建时只保存一个 `TraceContext`，任务执行前恢复
+其中的完整 MDC，执行完成或抛出异常后恢复工作线程原 MDC。
 
 ```java
 executor.execute(new TraceRouteRunnable() {
@@ -105,8 +91,9 @@ executor.execute(new TraceRouteRunnable() {
 });
 ```
 
-需要函数式包装时，可以继续使用 `TraceContext.snapshot().wrap(task)`；两种入口使用
-相同的 `TraceScope` 恢复机制。
+执行器相关适配保留在各自组件中。例如，动态线程池 Starter 基于这三个模板提供
+`DtpRunnable`、`DtpCallable`、`DtpSupplier`、`DtpContextAwareExecutorService`、
+`DtpTaskDecorator` 和 `DtpThreads`。
 
 ## 依赖方式
 
@@ -250,8 +237,8 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 2. 公共 PO 契约优先使用 Java record，保持不可变、可序列化、JSON 字段顺序稳定。
 3. 用 record 自身的静态工厂方法替代独立的 `ResultDtos` 或 `ResultModels` 工厂类。
 4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 是显式轻量依赖，因为 core 负责 JSON 契约。
-5. `common-trace` 只依赖 JDK 和 `slf4j-api`；Trace 传播和 `CommonLogUtil` 都不依赖 Spring、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson 或 Logback 实现。
-6. `CommonLogUtil` 将 MDC 直接写进业务日志消息，日志关联不依赖具体日志实现的 Pattern。
+5. `common-trace` 只依赖 JDK 和 `slf4j-api`；Trace 传播不依赖 Spring、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson 或 Logback 实现。
+6. 执行器适配保留在所属组件内；`common-trace` 只提供 `TraceContext` 和三个本地线程任务模板。
 7. Trace Spring Boot Starter 与 Trace Core 同属 common 聚合，但 Spring 依赖不会进入 `common-trace`。
 8. 只暴露 converter 契约，不在生产代码里提供生成式 converter 实现。MapStruct 和 MapStruct Plus 实现由业务侧或测试示例承载。
 

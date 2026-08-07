@@ -1,28 +1,27 @@
 package top.egon.cola.component.common.trace.thread;
 
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceSnapshot;
+import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.Objects;
 
 /**
- * Runnable template that restores the trace snapshot captured at construction.
+ * Runnable template that restores the trace context captured at construction.
  */
 public abstract class TraceRouteRunnable implements Runnable {
 
-    private final TraceSnapshot snapshot;
+    private final TraceContext context;
 
     protected TraceRouteRunnable() {
-        this(TraceSnapshot.capture());
+        this(TraceContext.capture());
     }
 
-    protected TraceRouteRunnable(TraceSnapshot snapshot) {
-        this.snapshot = Objects.requireNonNull(snapshot, "snapshot");
+    protected TraceRouteRunnable(TraceContext context) {
+        this.context = Objects.requireNonNull(context, "context");
     }
 
     @Override
     public final void run() {
-        try (TraceScope ignored = snapshot.open()) {
+        try (TraceContext.Scope ignored = context.open()) {
             doRun();
         }
     }

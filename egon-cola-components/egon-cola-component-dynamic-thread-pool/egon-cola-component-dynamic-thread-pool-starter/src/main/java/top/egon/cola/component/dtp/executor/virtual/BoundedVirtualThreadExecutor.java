@@ -1,6 +1,6 @@
 package top.egon.cola.component.dtp.executor.virtual;
 
-import top.egon.cola.component.common.trace.TraceSnapshot;
+import top.egon.cola.component.dtp.context.DtpContextAwareExecutorService;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,9 +58,10 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         this.threadNamePrefix = Objects.requireNonNull(threadNamePrefix, "threadNamePrefix");
         this.concurrencyLimit = new AtomicInteger(concurrencyLimit);
         this.semaphore = new AdjustableSemaphore(concurrencyLimit);
-        this.delegate = Executors.newThreadPerTaskExecutor(
+        ExecutorService virtualExecutor = Executors.newThreadPerTaskExecutor(
                 Thread.ofVirtual().name(threadNamePrefix + "-", 0).factory()
         );
+        this.delegate = new DtpContextAwareExecutorService(virtualExecutor);
     }
 
     @Override
@@ -70,7 +71,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
             schedule(command, false);
             return;
         }
-        schedule(TraceSnapshot.capture().wrap(command), true);
+        schedule(command, true);
     }
 
     @Override
@@ -97,13 +98,13 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
         Runnable task = Objects.requireNonNull(runnable, "runnable");
-        return new MetricsFutureTask<>(this, TraceSnapshot.capture().wrap(task), value);
+        return new MetricsFutureTask<>(this, task, value);
     }
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
         Callable<T> task = Objects.requireNonNull(callable, "callable");
-        return new MetricsFutureTask<>(this, TraceSnapshot.capture().wrap(task));
+        return new MetricsFutureTask<>(this, task);
     }
 
     @Override
@@ -181,8 +182,10 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
     }
 
     private <T> Future<T> submitForCompletion(Callable<T> task, BlockingQueue<Future<T>> completionQueue) {
-        Callable<T> wrapped = TraceSnapshot.capture().wrap(Objects.requireNonNull(task, "task"));
-        QueueingMetricsFutureTask<T> future = new QueueingMetricsFutureTask<>(wrapped, completionQueue);
+        QueueingMetricsFutureTask<T> future = new QueueingMetricsFutureTask<>(
+                Objects.requireNonNull(task, "task"),
+                completionQueue
+        );
         schedule(future, false);
         return future;
     }

@@ -6,7 +6,6 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.mock.http.client.MockClientHttpRequest;
@@ -16,9 +15,6 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceKeys;
-import top.egon.cola.component.common.trace.TraceScope;
-import top.egon.cola.component.common.trace.TraceState;
 
 import java.io.IOException;
 import java.net.URI;
@@ -34,28 +30,65 @@ class TraceClientPropagationTest {
     }
 
     @Test
-    void restClientInterceptorPropagatesChildTraceWithoutEgonTraceId() throws IOException {
-        TraceRestClientCustomizer customizer = new TraceRestClientCustomizer(new TraceProperties());
-        TraceState parent = TraceState.root("request-1");
-        MockClientHttpRequest request = new MockClientHttpRequest(HttpMethod.GET, URI.create("https://example.test"));
-        ClientHttpRequestExecution execution = (httpRequest, body) -> response();
+    void restClientInterceptorPropagatesChildContext() throws IOException {
+        TraceRestClientCustomizer customizer =
+                new TraceRestClientCustomizer(new TraceProperties());
+        TraceContext parent = TraceContext.root("request-1");
+        MockClientHttpRequest request = new MockClientHttpRequest(
+                HttpMethod.GET,
+                URI.create("https://example.test")
+        );
+        ClientHttpRequestExecution execution =
+                (httpRequest, body) -> response();
 
-        try (TraceScope ignored = TraceContext.open(parent)) {
-            customizer.interceptor().intercept(request, new byte[0], execution);
+        try (TraceContext.Scope ignored = parent.open()) {
+            customizer.interceptor().intercept(
+                    request,
+                    new byte[0],
+                    execution
+            );
         }
 
-        assertThat(request.getHeaders().getFirst(TraceKeys.TRACEPARENT_HEADER))
-                .startsWith("00-" + parent.traceId() + "-");
-        assertThat(request.getHeaders().getFirst(TraceKeys.REQUEST_ID_HEADER))
-                .isEqualTo("request-1");
-        assertThat(request.getHeaders().getFirst("x-egon-trace-id")).isNull();
+        assertThat(request.getHeaders().getFirst(
+                TraceContext.TRACEPARENT_HEADER
+        )).startsWith("00-" + parent.traceId() + "-");
+        assertThat(request.getHeaders().getFirst(
+                TraceContext.REQUEST_ID_HEADER
+        )).isEqualTo("request-1");
+        assertThat(request.getHeaders().getFirst(
+                TraceContext.LEGACY_TRACE_ID_HEADER
+        )).isNull();
     }
 
     @Test
-    void webClientFilterReadsReactorContextBeforeMdc() {
-        TraceWebClientCustomizer customizer = new TraceWebClientCustomizer(new TraceProperties());
-        TraceState reactorState = TraceState.root("reactor-request");
-        TraceState mdcState = TraceState.root("mdc-request");
+    void restClientInterceptorKeepsValidExistingTraceparent() throws IOException {
+        TraceRestClientCustomizer customizer =
+                new TraceRestClientCustomizer(new TraceProperties());
+        MockClientHttpRequest request = new MockClientHttpRequest(
+                HttpMethod.GET,
+                URI.create("https://example.test")
+        );
+        String existing = "00-4bf92f3577b34da6a3ce929d0e0e4736-"
+                + "00f067aa0ba902b7-01";
+        request.getHeaders().set(TraceContext.TRACEPARENT_HEADER, existing);
+
+        customizer.interceptor().intercept(
+                request,
+                new byte[0],
+                (httpRequest, body) -> response()
+        );
+
+        assertThat(request.getHeaders().getFirst(
+                TraceContext.TRACEPARENT_HEADER
+        )).isEqualTo(existing);
+    }
+
+    @Test
+    void webClientFilterReadsReactorContextBeforeThreadMdc() {
+        TraceWebClientCustomizer customizer =
+                new TraceWebClientCustomizer(new TraceProperties());
+        TraceContext reactorContext = TraceContext.root("reactor-request");
+        TraceContext threadContext = TraceContext.root("thread-request");
         AtomicReference<ClientRequest> captured = new AtomicReference<>();
         ExchangeFunction exchange = request -> {
             captured.set(request);
@@ -67,19 +100,22 @@ class TraceClientPropagationTest {
                 .create(HttpMethod.GET, URI.create("https://example.test"))
                 .build();
 
-        try (TraceScope ignored = TraceContext.open(mdcState)) {
+        try (TraceContext.Scope ignored = threadContext.open()) {
             StepVerifier.create(customizer.filter().filter(request, exchange)
-                            .contextWrite(context -> TraceReactorContext.put(context, reactorState)))
-                    .expectNextMatches(response -> response.statusCode().is2xxSuccessful())
+                            .contextWrite(context -> context.put(
+                                    TraceContext.class,
+                                    reactorContext
+                            )))
+                    .expectNextMatches(response ->
+                            response.statusCode().is2xxSuccessful())
                     .verifyComplete();
         }
 
         HttpHeaders headers = captured.get().headers();
-        assertThat(headers.getFirst(TraceKeys.TRACEPARENT_HEADER))
-                .startsWith("00-" + reactorState.traceId() + "-");
-        assertThat(headers.getFirst(TraceKeys.REQUEST_ID_HEADER))
+        assertThat(headers.getFirst(TraceContext.TRACEPARENT_HEADER))
+                .startsWith("00-" + reactorContext.traceId() + "-");
+        assertThat(headers.getFirst(TraceContext.REQUEST_ID_HEADER))
                 .isEqualTo("reactor-request");
-        assertThat(headers.getFirst("x-egon-trace-id")).isNull();
     }
 
     private ClientHttpResponse response() {

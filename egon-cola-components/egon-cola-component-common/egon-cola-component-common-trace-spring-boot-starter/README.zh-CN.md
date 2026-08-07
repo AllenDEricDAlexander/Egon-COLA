@@ -15,7 +15,7 @@ OpenTelemetry SDK。它只负责统一 Trace Context、MDC 投影和跨协议 He
 
 | 模块 | 职责 |
 |---|---|
-| `egon-cola-component-common-trace` | 纯核心：Trace 状态与传播，以及包含 MDC 的 `CommonLogUtil` 业务日志 Builder |
+| `egon-cola-component-common-trace` | 纯核心：一个完整 `TraceContext`、W3C 传播、MDC 捕获和三个本地线程任务模板 |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
 
 ## 协议和字段
@@ -30,8 +30,8 @@ OpenTelemetry SDK。它只负责统一 Trace Context、MDC 投影和跨协议 He
 | 不再传播 | `x-egon-trace-id`、`x-trace-id`、`X-Trace-Id` |
 
 `traceId` 是一次链路的全局 ID，`spanId` 是当前处理单元 ID，
-`parentSpanId` 是上游 span，`requestId` 是请求级业务排错 ID，
-`invocationId` 是 RPC 单次调用 ID。不要把 `userId`、`accountId`、Token、手机号、
+`parentSpanId` 是上游 span，`requestId` 是请求级业务排错 ID；`traceFlags`、
+`tracestate`、`sourceApp`、`sourceInstance` 也都保存在同一个 `TraceContext` 中。不要把 `userId`、`accountId`、Token、手机号、
 设备信息等身份或敏感数据放进核心 Trace Context；未来 baggage 必须通过显式
 allowlist。
 
@@ -82,25 +82,23 @@ egon:
 ## 核心 API
 
 ```java
-TraceState state = TraceContext.currentOrCreate();
-try (TraceScope ignored = TraceContext.open(state.child())) {
+TraceContext child = TraceContext.currentOrCreate().child();
+try (TraceContext.Scope ignored = child.open()) {
     log.info("calling downstream");
 }
 
-TraceSnapshot snapshot = TraceContext.snapshot();
-executor.execute(snapshot.wrap(task));
-
-ExecutorService tracedExecutor = TraceExecutors.contextAware(executor);
-tracedExecutor.submit(task);
+executor.execute(new TraceRouteRunnable() {
+    @Override
+    protected void doRun() {
+        task.run();
+    }
+});
 ```
 
-`TraceScope` 关闭时只恢复组件拥有的 MDC 字段，不会清空业务或其他框架写入的 MDC。
-`TraceSnapshot` 会保存提交线程上下文，包装后的任务执行完会恢复工作线程原上下文，避免
-线程池复用造成 MDC 泄漏。
-
-`TraceExecutors.contextAware(...)` 会在每次任务提交时捕获新快照，同时支持平台线程和
-虚拟线程执行器。业务构建 Spring `ThreadPoolTaskExecutor` 时可以显式设置
-`new TraceTaskDecorator()`；Starter 不会替换或后处理业务执行器 Bean。
+`TraceContext` 同时保存 Trace 字段和一份完整 MDC 快照，`TraceContext.Scope` 关闭时恢复
+工作线程原 MDC。`TraceRouteRunnable`、`TraceRouteCallable`、`TraceRouteSupplier`
+各自只保存一个捕获的 `TraceContext`。执行器适配由所属组件提供；DTP Starter 提供平台
+线程、Spring 任务执行器和虚拟线程适配。当前 Starter 不会替换或后处理业务执行器 Bean。
 
 ## 自动配置边界
 

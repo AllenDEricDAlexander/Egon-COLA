@@ -15,8 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.trace.TracePropagation;
-import top.egon.cola.component.common.trace.TraceState;
+import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorSnapshot;
 import top.egon.cola.component.dtp.domain.model.entity.ExecutorUpdateCommand;
 import top.egon.cola.component.dtp.domain.model.valobj.ExecutorKind;
@@ -29,9 +28,7 @@ import top.egon.cola.component.dtp.admin.types.Response;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -209,10 +206,10 @@ public class DynamicThreadPoolController {
                                                             ExecutorKind executorKind, String operator) {
         DtpConfigChangeMessage message = new DtpConfigChangeMessage();
         message.setMessageId(UUID.randomUUID().toString().replace("-", ""));
-        Map<String, String> traceContext = new LinkedHashMap<>();
-        TraceState outboundState = TracePropagation.childForOutbound();
-        TracePropagation.inject(outboundState, traceContext::put);
-        message.setTraceContext(traceContext);
+        TraceContext traceContext = TraceContext.currentOrCreate().child();
+        message.setTraceparent(traceContext.traceparent());
+        message.setTracestate(traceContext.tracestate());
+        message.setRequestId(traceContext.requestId());
         message.setAppName(appName);
         message.setInstanceId(instanceId);
         message.setExecutorName(executorName);

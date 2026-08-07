@@ -30,7 +30,7 @@ class CoreConsolidationTest {
             assertEquals(1, result.data().page().total());
             assertEquals(1, tree.size());
             assertEquals(1, tree.get(0).getChildren().size());
-            assertNotNull(TraceContext.snapshot());
+            assertNotNull(TraceContext.capture());
         } finally {
             TraceContext.clearTraceId();
         }

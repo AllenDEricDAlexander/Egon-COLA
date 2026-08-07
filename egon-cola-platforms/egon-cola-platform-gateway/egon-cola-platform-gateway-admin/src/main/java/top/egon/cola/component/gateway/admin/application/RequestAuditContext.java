@@ -1,7 +1,6 @@
 package top.egon.cola.component.gateway.admin.application;
 
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.common.trace.TraceState;
 
 public record RequestAuditContext(String requestId, String traceId) {
 
@@ -10,13 +9,13 @@ public record RequestAuditContext(String requestId, String traceId) {
     }
 
     public static RequestAuditContext current(String requestId) {
-        TraceState state = TraceContext.currentOrCreate();
+        TraceContext context = TraceContext.currentOrCreate();
         String resolvedRequestId = safe(requestId)
                 ? requestId.trim()
-                : state.requestId() == null
-                ? state.traceId()
-                : state.requestId();
-        return new RequestAuditContext(resolvedRequestId, state.traceId());
+                : context.requestId() == null
+                ? context.traceId()
+                : context.requestId();
+        return new RequestAuditContext(resolvedRequestId, context.traceId());
     }
 
     private static boolean safe(String value) {
