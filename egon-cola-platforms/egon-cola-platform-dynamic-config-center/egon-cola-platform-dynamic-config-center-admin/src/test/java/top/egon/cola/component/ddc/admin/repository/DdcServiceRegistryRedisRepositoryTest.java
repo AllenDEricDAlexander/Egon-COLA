@@ -4,9 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
-import org.redisson.api.RScript;
+import org.mockito.ArgumentCaptor;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
+import org.redisson.api.RLock;
+import org.redisson.api.RScoredSortedSet;
 import org.redisson.api.RSet;
+import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
@@ -17,15 +21,12 @@ import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -36,123 +37,169 @@ class DdcServiceRegistryRedisRepositoryTest {
 
     private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 
+    private final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
+
     @Test
-    void registrationPassesLuaEpochFieldsAndMapsInstanceConflicts() throws Exception {
+    void registrationUsesRedissonObjectsAndStoresEpochProjection() throws Exception {
         RedissonClient redisson = mock(RedissonClient.class);
-        RScript script = mock(RScript.class);
-        RSet<String> globalCatalog = mock(RSet.class);
+        RLock scopeLock = mock(RLock.class);
+        RLock globalLock = mock(RLock.class);
+        RBucket<String> bucket = bucket();
+        RScoredSortedSet<String> instances = scoredSet();
+        RAtomicLong serviceRevision = mock(RAtomicLong.class);
+        RSet<String> catalog = set();
+        RAtomicLong catalogRevision = mock(RAtomicLong.class);
+        RTopic topic = mock(RTopic.class);
+        RSet<String> globalCatalog = set();
         RAtomicLong globalRevision = mock(RAtomicLong.class);
-        AtomicReference<Object[]> arguments = new AtomicReference<>();
-        AtomicReference<List<Object>> scriptKeys = new AtomicReference<>();
-        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
-        when(redisson.<String>getSet(DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE))
-                .thenReturn(globalCatalog);
+        when(redisson.getLock(DdcKeys.v3RegistryInstance(SERVICE_KEY, "scope") + ":lock"))
+                .thenReturn(scopeLock);
+        when(redisson.getLock(DdcKeys.v3GlobalRegistryCatalog() + ":lock"))
+                .thenReturn(globalLock);
+        when(redisson.<String>getBucket(
+                DdcKeys.v3RegistryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+        )).thenReturn(bucket);
+        when(redisson.<String>getScoredSortedSet(
+                DdcKeys.v3RegistryService(SERVICE_KEY), StringCodec.INSTANCE
+        )).thenReturn(instances);
+        when(redisson.getAtomicLong(DdcKeys.v3RegistryRevision(SERVICE_KEY)))
+                .thenReturn(serviceRevision);
+        when(serviceRevision.incrementAndGet()).thenReturn(7L);
+        when(redisson.<String>getSet(catalogKey(), StringCodec.INSTANCE)).thenReturn(catalog);
+        when(catalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
+        when(redisson.getAtomicLong(catalogRevisionKey())).thenReturn(catalogRevision);
+        when(catalogRevision.incrementAndGet()).thenReturn(3L);
+        when(redisson.getTopic(topicKey(), StringCodec.INSTANCE)).thenReturn(topic);
+        when(redisson.<String>getSet(
+                DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
+        )).thenReturn(globalCatalog);
+        when(globalCatalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
         when(redisson.getAtomicLong(DdcKeys.v3GlobalRegistryCatalogRevision()))
                 .thenReturn(globalRevision);
-        when(globalCatalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
-        when(script.eval(
-                eq(RScript.Mode.READ_WRITE),
-                anyString(),
-                eq(RScript.ReturnType.MULTI),
-                anyList(),
-                any(Object[].class)
-        )).thenAnswer(invocation -> {
-            arguments.set(invocation.getArguments());
-            scriptKeys.set(invocation.getArgument(3));
-            return List.of(1L, 1L, 1L);
-        });
-        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         DdcServiceRegistryRedisRepository repository =
                 new DdcServiceRegistryRedisRepository(redisson, objectMapper);
 
         repository.register(instance());
 
-        JsonNode stored = objectMapper.readTree((String) arguments.get()[7]);
+        ArgumentCaptor<String> storedJson = ArgumentCaptor.forClass(String.class);
+        verify(bucket).set(storedJson.capture(), eq(Duration.ofSeconds(30)));
+        JsonNode stored = objectMapper.readTree(storedJson.getValue());
         assertThat(stored.path("serviceKeyCanonical").asText())
                 .isEqualTo(SERVICE_KEY.canonicalValue());
         assertThat(stored.path("lastHeartbeatAtEpochMillis").asLong())
                 .isEqualTo(NOW.toEpochMilli());
         assertThat(stored.path("leaseExpireAtEpochMillis").asLong())
                 .isEqualTo(NOW.plusSeconds(30).toEpochMilli());
-        assertThat(scriptKeys.get())
-                .hasSize(6)
-                .allMatch(key -> key.toString().startsWith("ddc:v3:{"))
-                .doesNotContain(DdcKeys.v3GlobalRegistryCatalog());
-        verify(globalCatalog).add(SERVICE_KEY.canonicalValue());
+        assertThat(stored.path("revision").asLong()).isEqualTo(7L);
+        verify(instances).add(NOW.plusSeconds(30).toEpochMilli(), "provider-1");
+        verify(topic).publish(anyString());
         verify(globalRevision).incrementAndGet();
-
-        when(script.eval(
-                eq(RScript.Mode.READ_WRITE),
-                anyString(),
-                eq(RScript.ReturnType.MULTI),
-                anyList(),
-                any(Object[].class)
-        )).thenReturn(List.of(2L, 0L, 0L));
-
-        assertThatThrownBy(() -> repository.register(instance()))
-                .isInstanceOf(DdcAdminException.class)
-                .hasMessageContaining("instance id conflict");
+        verify(scopeLock).unlock();
+        verify(globalLock).unlock();
     }
 
     @Test
-    void heartbeatAndDeregisterPreserveStrictLeaseOutcomes() {
+    void registrationRejectsAnInstanceOwnedByAnotherService() throws Exception {
         RedissonClient redisson = mock(RedissonClient.class);
-        RScript script = mock(RScript.class);
-        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
-        when(script.eval(
-                eq(RScript.Mode.READ_WRITE),
-                anyString(),
-                eq(RScript.ReturnType.MULTI),
-                anyList(),
-                any(Object[].class)
-        )).thenReturn(List.of(3L, 0L));
-        DdcServiceRegistryRedisRepository repository =
-                new DdcServiceRegistryRedisRepository(
-                        redisson,
-                        new ObjectMapper().registerModule(new JavaTimeModule())
-                );
+        RLock lock = mock(RLock.class);
+        RBucket<String> bucket = bucket();
+        DdcServiceKey otherService = new DdcServiceKey(
+                "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER,
+                "order.v1.OtherService", "default", "1.0.0", "grpc"
+        );
+        when(redisson.getLock(DdcKeys.v3RegistryInstance(SERVICE_KEY, "scope") + ":lock"))
+                .thenReturn(lock);
+        when(redisson.<String>getBucket(
+                DdcKeys.v3RegistryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+        )).thenReturn(bucket);
+        when(bucket.get()).thenReturn(objectMapper.writeValueAsString(
+                instance(otherService, "lease-1")));
 
-        assertThat(repository.heartbeat(leaseRequest(), NOW).status())
+        assertThatThrownBy(() -> new DdcServiceRegistryRedisRepository(
+                redisson, objectMapper).register(instance()))
+                .isInstanceOf(DdcAdminException.class)
+                .hasMessageContaining("instance id conflict");
+        verify(lock).unlock();
+    }
+
+    @Test
+    void heartbeatAndDeregisterPreserveStrictLeaseOutcomes() throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RLock lock = mock(RLock.class);
+        RBucket<String> bucket = bucket();
+        when(redisson.getLock(DdcKeys.v3RegistryInstance(SERVICE_KEY, "scope") + ":lock"))
+                .thenReturn(lock);
+        when(redisson.<String>getBucket(
+                DdcKeys.v3RegistryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+        )).thenReturn(bucket);
+        when(bucket.get()).thenReturn(objectMapper.writeValueAsString(instance()));
+        DdcServiceRegistryRedisRepository repository =
+                new DdcServiceRegistryRedisRepository(redisson, objectMapper);
+        DdcServiceLeaseRequest request = leaseRequest("different-lease");
+
+        assertThat(repository.heartbeat(request, NOW).status())
                 .isEqualTo(DdcLeaseOperationStatus.LEASE_MISMATCH);
-        assertThat(repository.deregister(leaseRequest(), NOW).status())
+        assertThat(repository.deregister(request, NOW).status())
                 .isEqualTo(DdcLeaseOperationStatus.NOT_DELETED);
+        verify(lock, org.mockito.Mockito.times(2)).unlock();
     }
 
     private DdcServiceInstance instance() {
+        return instance(SERVICE_KEY, "lease-1");
+    }
+
+    private DdcServiceInstance instance(DdcServiceKey serviceKey, String leaseId) {
         return new DdcServiceInstance(
-                "provider-1",
-                "lease-1",
-                SERVICE_KEY,
-                "127.0.0.1",
-                19090,
-                false,
-                Map.of("zone", "east"),
-                30,
-                10,
-                NOW,
-                NOW,
-                NOW.plusSeconds(30),
-                "ONLINE",
-                0L
+                "provider-1", leaseId, serviceKey, "127.0.0.1", 19090, false,
+                Map.of("zone", "east"), 30, 10, NOW, NOW,
+                NOW.plusSeconds(30), "ONLINE", 0L
         );
     }
 
-    private DdcServiceLeaseRequest leaseRequest() {
+    private DdcServiceLeaseRequest leaseRequest(String leaseId) {
         DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
         request.setServiceKey(SERVICE_KEY);
         request.setInstanceId("provider-1");
-        request.setLeaseId("lease-1");
+        request.setLeaseId(leaseId);
         return request;
     }
 
+    private String catalogKey() {
+        return DdcKeys.v3RegistryCatalog(
+                SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
+                SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
+    }
+
+    private String catalogRevisionKey() {
+        return DdcKeys.v3RegistryCatalogRevision(
+                SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
+                SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
+    }
+
+    private String topicKey() {
+        return DdcKeys.v3RegistryTopic(
+                SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
+                SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> RBucket<T> bucket() {
+        return mock(RBucket.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> RSet<T> set() {
+        return mock(RSet.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> RScoredSortedSet<T> scoredSet() {
+        return mock(RScoredSortedSet.class);
+    }
+
     private static final DdcServiceKey SERVICE_KEY = new DdcServiceKey(
-            "pay-biz",
-            "dev",
-            "orders-app",
-            DdcServiceKind.RPC_PROVIDER,
-            "order.v1.OrderQueryService",
-            "default",
-            "1.0.0",
-            "grpc"
+            "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER,
+            "order.v1.OrderQueryService", "default", "1.0.0", "grpc"
     );
 }

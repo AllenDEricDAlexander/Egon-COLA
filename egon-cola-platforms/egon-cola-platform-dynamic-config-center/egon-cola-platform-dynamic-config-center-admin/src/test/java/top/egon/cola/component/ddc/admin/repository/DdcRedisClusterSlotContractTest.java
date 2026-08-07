@@ -1,154 +1,60 @@
 package top.egon.cola.component.ddc.admin.repository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RSet;
-import org.redisson.api.RScript;
-import org.redisson.api.RedissonClient;
-import org.redisson.client.codec.StringCodec;
 import org.redisson.connection.CRC16;
 import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class DdcRedisClusterSlotContractTest {
 
-    private static final Instant NOW = Instant.parse("2026-07-26T00:00:00Z");
-
     @Test
-    void configKeysAndLeaseScriptKeysShareTheScopeSlot() {
-        List<String> projectionKeys = List.of(
+    void configProjectionLeaseAndLockKeysShareTheScopeSlot() {
+        List<String> keys = List.of(
                 DdcKeys.v3Config("retail", "dev", "demo", "switch"),
                 DdcKeys.v3Version("retail", "dev", "demo", "switch"),
                 DdcKeys.v3PublishIdempotency(
-                        "retail", "dev", "demo", "change-1"
-                ),
-                DdcKeys.v3Topic("retail", "dev", "demo")
-        );
-        AtomicReference<List<Object>> scriptKeys = new AtomicReference<>();
-        RedissonClient redisson = scriptingClient(scriptKeys, 1L);
-        DdcConfigLeaseRedisRepository repository =
-                new DdcConfigLeaseRedisRepository(redisson, new ObjectMapper());
-
-        repository.register(
-                new DdcInstanceIdentity(
-                        "instance-1", "retail", "demo", "dev",
-                        "127.0.0.1", 8080, "100", "5.2.3"
-                ),
-                new DdcLeaseSession(
-                        "instance-1", "lease-1", DdcLeaseRole.CONFIG_CLIENT,
-                        30, 10, NOW, NOW.plusSeconds(30)
-                ),
-                NOW
+                        "retail", "dev", "demo", "change-1"),
+                DdcKeys.v3Topic("retail", "dev", "demo"),
+                DdcKeys.v3Topic("retail", "dev", "demo") + ":lock",
+                DdcKeys.v3ConfigLeaseInstance(
+                        "retail", "dev", "demo", "instance-1"),
+                DdcKeys.v3ConfigLeaseInstances("retail", "dev", "demo"),
+                DdcKeys.v3ConfigLeaseInstances("retail", "dev", "demo") + ":lock"
         );
 
-        assertOneSlot(projectionKeys);
-        assertOneSlot(scriptKeys.get().stream().map(Object::toString).toList());
-        assertThat(slot(scriptKeys.get().getFirst().toString()))
-                .isEqualTo(slot(projectionKeys.getFirst()));
+        assertOneSlot(keys);
     }
 
     @Test
-    void registryScriptUsesOnlyV3KeysInOnePhysicalScopeSlot() {
-        AtomicReference<List<Object>> scriptKeys = new AtomicReference<>();
-        AtomicReference<Object[]> arguments = new AtomicReference<>();
-        RedissonClient redisson = scriptingClient(scriptKeys, List.of(1L, 1L, 1L), arguments);
-        DdcServiceRegistryRedisRepository repository =
-                new DdcServiceRegistryRedisRepository(
-                        redisson,
-                        new ObjectMapper().registerModule(new JavaTimeModule())
-                );
-
-        repository.register(instance());
-
-        List<String> keys = scriptKeys.get().stream().map(Object::toString).toList();
-        assertThat(keys).hasSize(6).allMatch(key -> key.startsWith("ddc:v3:{"));
-        assertOneSlot(keys);
-        assertThat(keys.get(5)).isEqualTo(DdcKeys.v3RegistryTopic(
-                "pay-biz", "dev", "orders-app",
-                DdcServiceKind.RPC_PROVIDER, "grpc"
-        ));
-        assertThat(arguments.get()).doesNotContain("default");
-    }
-
-    private RedissonClient scriptingClient(AtomicReference<List<Object>> scriptKeys,
-                                            Object result) {
-        return scriptingClient(scriptKeys, result, new AtomicReference<>());
-    }
-
-    private RedissonClient scriptingClient(AtomicReference<List<Object>> scriptKeys,
-                                            Object result,
-                                            AtomicReference<Object[]> arguments) {
-        RedissonClient redisson = mock(RedissonClient.class);
-        RScript script = mock(RScript.class);
-        RSet<String> globalCatalog = mock(RSet.class);
-        RAtomicLong globalRevision = mock(RAtomicLong.class);
-        when(redisson.getScript(StringCodec.INSTANCE)).thenReturn(script);
-        when(redisson.<String>getSet(anyString(), eq(StringCodec.INSTANCE)))
-                .thenReturn(globalCatalog);
-        when(globalCatalog.add(anyString())).thenReturn(true);
-        when(redisson.getAtomicLong(anyString())).thenReturn(globalRevision);
-        when(script.eval(
-                eq(RScript.Mode.READ_WRITE),
-                anyString(),
-                any(RScript.ReturnType.class),
-                anyList(),
-                any(Object[].class)
-        )).thenAnswer(invocation -> {
-            scriptKeys.set(invocation.getArgument(3));
-            arguments.set(invocation.getArguments());
-            return result;
-        });
-        return redisson;
-    }
-
-    private DdcServiceInstance instance() {
+    void registryObjectsAndScopeLockUseOnePhysicalSlot() {
         DdcServiceKey serviceKey = new DdcServiceKey(
-                "pay-biz",
-                "dev",
-                "orders-app",
-                DdcServiceKind.RPC_PROVIDER,
-                "order.v1.OrderQueryService",
-                "default",
-                "1.0.0",
-                "grpc"
+                "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER,
+                "order.v1.OrderQueryService", "default", "1.0.0", "grpc"
         );
-        return new DdcServiceInstance(
-                "provider-1",
-                "lease-1",
-                serviceKey,
-                "127.0.0.1",
-                19090,
-                false,
-                Map.of("zone", "east"),
-                30,
-                10,
-                NOW,
-                NOW,
-                NOW.plusSeconds(30),
-                "ONLINE",
-                0L
+        List<String> keys = List.of(
+                DdcKeys.v3RegistryInstance(serviceKey, "provider-1"),
+                DdcKeys.v3RegistryService(serviceKey),
+                DdcKeys.v3RegistryRevision(serviceKey),
+                DdcKeys.v3RegistryCatalog(
+                        serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
+                        serviceKey.serviceKind(), serviceKey.protocol()),
+                DdcKeys.v3RegistryCatalogRevision(
+                        serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
+                        serviceKey.serviceKind(), serviceKey.protocol()),
+                DdcKeys.v3RegistryTopic(
+                        serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
+                        serviceKey.serviceKind(), serviceKey.protocol()),
+                DdcKeys.v3RegistryInstance(serviceKey, "scope") + ":lock"
         );
+
+        assertThat(keys).allMatch(key -> key.startsWith("ddc:v3:{"));
+        assertOneSlot(keys);
     }
 
     private void assertOneSlot(List<String> keys) {

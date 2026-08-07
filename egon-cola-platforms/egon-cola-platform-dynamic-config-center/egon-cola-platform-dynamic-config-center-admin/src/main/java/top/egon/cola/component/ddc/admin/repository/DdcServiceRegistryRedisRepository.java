@@ -4,15 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.redisson.api.RScript;
+import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
+import org.redisson.api.RLock;
+import org.redisson.api.RScoredSortedSet;
+import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
-import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
@@ -20,8 +24,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,14 +33,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DdcServiceRegistryRedisRepository {
-
-    private static final String REGISTER_SCRIPT = script("redis/ddc_service_register.lua");
-
-    private static final String HEARTBEAT_SCRIPT = script("redis/ddc_service_heartbeat.lua");
-
-    private static final String DEREGISTER_SCRIPT = script("redis/ddc_service_deregister.lua");
-
-    private static final String EXPIRE_SCRIPT = script("redis/ddc_service_expire.lua");
 
     private final RedissonClient redissonClient;
 
@@ -53,108 +48,104 @@ public class DdcServiceRegistryRedisRepository {
 
     public void register(DdcServiceInstance instance) {
         DdcServiceKey serviceKey = instance.serviceKey();
-        List<?> result = redissonClient.getScript(StringCodec.INSTANCE).eval(
-                RScript.Mode.READ_WRITE,
-                REGISTER_SCRIPT,
-                RScript.ReturnType.MULTI,
-                keys(serviceKey, instance.instanceId()),
-                instance.instanceId(),
-                instance.leaseId(),
-                serviceKey.canonicalValue(),
-                instanceJson(instance),
-                instance.leaseSeconds(),
-                instance.leaseExpireAt().toEpochMilli(),
-                json(serviceKey)
-        );
-        int code = number(result, 0).intValue();
-        if (code == 2) {
-            throw new DdcAdminException(DdcErrorStatus.INSTANCE_ID_CONFLICT);
+        RLock lock = serviceLock(serviceKey);
+        lock.lock();
+        try {
+            String current = instanceBucket(serviceKey, instance.instanceId()).get();
+            if (current != null
+                    && !serviceKey.equals(instance(current).serviceKey())) {
+                throw new DdcAdminException(DdcErrorStatus.INSTANCE_ID_CONFLICT);
+            }
+
+            long serviceRevision = serviceRevision(serviceKey).incrementAndGet();
+            long catalogRevision = addServiceCatalog(serviceKey);
+            instanceBucket(serviceKey, instance.instanceId()).set(
+                    instanceJson(instance, serviceRevision),
+                    Duration.ofSeconds(instance.leaseSeconds())
+            );
+            serviceInstances(serviceKey).add(
+                    instance.leaseExpireAt().toEpochMilli(), instance.instanceId());
+            publishEvent(serviceKey, serviceRevision, catalogRevision);
+            addGlobalCatalog(serviceKey);
+        } finally {
+            lock.unlock();
         }
-        if (code != 1) {
-            throw new IllegalStateException("invalid DDC service registration status: " + code);
-        }
-        addGlobalCatalog(serviceKey);
         knownServiceKeys.add(serviceKey);
     }
 
     public DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request,
                                              Instant heartbeatAt) {
         DdcServiceKey serviceKey = request.getServiceKey();
-        List<?> result = redissonClient.getScript(StringCodec.INSTANCE).eval(
-                RScript.Mode.READ_WRITE,
-                HEARTBEAT_SCRIPT,
-                RScript.ReturnType.MULTI,
-                List.of(
-                        DdcKeys.v3RegistryInstance(serviceKey, request.getInstanceId()),
-                        DdcKeys.v3RegistryService(serviceKey)
-                ),
-                request.getInstanceId(),
-                request.getLeaseId(),
-                serviceKey.canonicalValue(),
-                heartbeatAt.toEpochMilli()
-        );
-        int code = number(result, 0).intValue();
-        DdcLeaseOperationResult operation = switch (code) {
-            case 1 -> new DdcLeaseOperationResult(
-                    DdcLeaseOperationStatus.RENEWED,
-                    Instant.ofEpochMilli(number(result, 1).longValue())
+        RLock lock = serviceLock(serviceKey);
+        lock.lock();
+        try {
+            String current = instanceBucket(serviceKey, request.getInstanceId()).get();
+            if (current == null) {
+                return new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_FOUND, null);
+            }
+            DdcServiceInstance instance = instance(current);
+            if (!sameIdentity(instance, request)) {
+                return new DdcLeaseOperationResult(DdcLeaseOperationStatus.LEASE_MISMATCH, null);
+            }
+            Instant leaseExpireAt = heartbeatAt.plusSeconds(instance.leaseSeconds());
+            DdcServiceInstance renewed = new DdcServiceInstance(
+                    instance.instanceId(), instance.leaseId(), instance.serviceKey(),
+                    instance.host(), instance.port(), instance.secure(), instance.metadata(),
+                    instance.leaseSeconds(), instance.heartbeatIntervalSeconds(),
+                    instance.registeredAt(), heartbeatAt, leaseExpireAt,
+                    instance.status(), instance.revision()
             );
-            case 2 -> new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_FOUND, null);
-            case 3 -> new DdcLeaseOperationResult(DdcLeaseOperationStatus.LEASE_MISMATCH, null);
-            default -> throw new IllegalStateException(
-                    "invalid DDC service heartbeat status: " + code
+            instanceBucket(serviceKey, request.getInstanceId()).set(
+                    instanceJson(renewed, renewed.revision()),
+                    Duration.ofSeconds(renewed.leaseSeconds())
             );
-        };
-        if (operation.status() == DdcLeaseOperationStatus.RENEWED) {
+            serviceInstances(serviceKey).add(
+                    leaseExpireAt.toEpochMilli(), request.getInstanceId());
             addGlobalCatalog(serviceKey);
+            return new DdcLeaseOperationResult(DdcLeaseOperationStatus.RENEWED, leaseExpireAt);
+        } finally {
+            lock.unlock();
         }
-        return operation;
     }
 
     public DdcLeaseOperationResult deregister(DdcServiceLeaseRequest request,
                                               Instant deregisteredAt) {
         DdcServiceKey serviceKey = request.getServiceKey();
-        List<?> result = redissonClient.getScript(StringCodec.INSTANCE).eval(
-                RScript.Mode.READ_WRITE,
-                DEREGISTER_SCRIPT,
-                RScript.ReturnType.MULTI,
-                keys(serviceKey, request.getInstanceId()),
-                request.getInstanceId(),
-                request.getLeaseId(),
-                serviceKey.canonicalValue(),
-                json(serviceKey),
-                deregisteredAt.toEpochMilli()
-        );
-        int code = number(result, 0).intValue();
-        DdcLeaseOperationResult operation = switch (code) {
-            case 1 -> new DdcLeaseOperationResult(DdcLeaseOperationStatus.DELETED, null);
-            case 2 -> new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_FOUND, null);
-            case 3 -> new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_DELETED, null);
-            default -> throw new IllegalStateException(
-                    "invalid DDC service deregistration status: " + code
-            );
-        };
-        if (operation.status() == DdcLeaseOperationStatus.DELETED) {
+        DdcLeaseOperationResult result;
+        RLock lock = serviceLock(serviceKey);
+        lock.lock();
+        try {
+            String current = instanceBucket(serviceKey, request.getInstanceId()).get();
+            if (current == null) {
+                return new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_FOUND, null);
+            }
+            if (!sameIdentity(instance(current), request)) {
+                return new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_DELETED, null);
+            }
+            instanceBucket(serviceKey, request.getInstanceId()).delete();
+            serviceInstances(serviceKey).remove(request.getInstanceId());
+            long serviceRevision = serviceRevision(serviceKey).incrementAndGet();
+            CatalogUpdate catalog = removeServiceCatalogIfEmpty(serviceKey);
+            publishEvent(serviceKey, serviceRevision, catalog.revision());
             removeGlobalCatalogIfEmpty(serviceKey);
+            result = new DdcLeaseOperationResult(DdcLeaseOperationStatus.DELETED, null);
+        } finally {
+            lock.unlock();
         }
-        return operation;
+        return result;
     }
 
     public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey, Instant now) {
         knownServiceKeys.add(serviceKey);
-        Collection<String> expired = redissonClient.<String>getScoredSortedSet(
-                        DdcKeys.v3RegistryService(serviceKey), StringCodec.INSTANCE)
+        Collection<String> expired = serviceInstances(serviceKey)
                 .valueRange(Double.NEGATIVE_INFINITY, true, now.toEpochMilli(), true);
         expired.forEach(instanceId -> expire(serviceKey, instanceId, now));
 
-        Collection<String> members = redissonClient.<String>getScoredSortedSet(
-                        DdcKeys.v3RegistryService(serviceKey), StringCodec.INSTANCE)
+        Collection<String> members = serviceInstances(serviceKey)
                 .valueRange(now.toEpochMilli(), false, Double.POSITIVE_INFINITY, true);
         List<DdcServiceInstance> instances = new ArrayList<>();
         for (String instanceId : members) {
-            String value = redissonClient.<String>getBucket(
-                    DdcKeys.v3RegistryInstance(serviceKey, instanceId), StringCodec.INSTANCE
-            ).get();
+            String value = instanceBucket(serviceKey, instanceId).get();
             if (value == null) {
                 expire(serviceKey, instanceId, now);
                 continue;
@@ -171,60 +162,43 @@ public class DdcServiceRegistryRedisRepository {
         if (instances.isEmpty()) {
             expire(serviceKey, "", now);
         }
-        long revision =
-                redissonClient.getAtomicLong(DdcKeys.v3RegistryRevision(serviceKey)).get();
-        return new DdcServiceSnapshot(serviceKey, revision, instances, now);
+        return new DdcServiceSnapshot(
+                serviceKey, serviceRevision(serviceKey).get(), instances, now);
     }
 
     public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query,
                                                     Instant now) {
         String catalogKey = query.hasExactCatalogScope()
                 ? DdcKeys.v3RegistryCatalog(
-                        query.bizCode(),
-                        query.env(),
-                        query.appCode(),
-                        query.serviceKind(),
-                        query.protocol()
-                )
+                        query.bizCode(), query.env(), query.appCode(),
+                        query.serviceKind(), query.protocol())
                 : DdcKeys.v3GlobalRegistryCatalog();
         Set<String> members = redissonClient.<String>getSet(
-                catalogKey, StringCodec.INSTANCE
-        ).readAll();
+                catalogKey, StringCodec.INSTANCE).readAll();
         List<DdcServiceKey> serviceKeys = new ArrayList<>();
         for (String member : members) {
             DdcServiceKey serviceKey = DdcServiceKey.parse(member);
-            if (!query.matches(serviceKey)) {
-                continue;
+            if (query.matches(serviceKey)
+                    && !getInstances(serviceKey, now).instances().isEmpty()) {
+                serviceKeys.add(serviceKey);
             }
-            if (getInstances(serviceKey, now).instances().isEmpty()) {
-                continue;
-            }
-            serviceKeys.add(serviceKey);
         }
         serviceKeys.sort(DdcServiceKey::compareTo);
         String revisionKey = query.hasExactCatalogScope()
                 ? DdcKeys.v3RegistryCatalogRevision(
-                        query.bizCode(),
-                        query.env(),
-                        query.appCode(),
-                        query.serviceKind(),
-                        query.protocol()
-                )
+                        query.bizCode(), query.env(), query.appCode(),
+                        query.serviceKind(), query.protocol())
                 : DdcKeys.v3GlobalRegistryCatalogRevision();
-        long revision = redissonClient.getAtomicLong(revisionKey).get();
-        return new DdcServiceCatalogSnapshot(query, revision, serviceKeys, now);
+        return new DdcServiceCatalogSnapshot(
+                query, redissonClient.getAtomicLong(revisionKey).get(), serviceKeys, now);
     }
 
     public int expireKnown(Instant now) {
         int removed = 0;
         for (DdcServiceKey serviceKey : List.copyOf(knownServiceKeys)) {
-            int before = redissonClient.<String>getScoredSortedSet(
-                    DdcKeys.v3RegistryService(serviceKey), StringCodec.INSTANCE
-            ).size();
+            int before = serviceInstances(serviceKey).size();
             getInstances(serviceKey, now);
-            int after = redissonClient.<String>getScoredSortedSet(
-                    DdcKeys.v3RegistryService(serviceKey), StringCodec.INSTANCE
-            ).size();
+            int after = serviceInstances(serviceKey).size();
             removed += Math.max(0, before - after);
             if (after == 0) {
                 knownServiceKeys.remove(serviceKey);
@@ -234,78 +208,160 @@ public class DdcServiceRegistryRedisRepository {
     }
 
     private void expire(DdcServiceKey serviceKey, String instanceId, Instant now) {
-        redissonClient.getScript(StringCodec.INSTANCE).eval(
-                RScript.Mode.READ_WRITE,
-                EXPIRE_SCRIPT,
-                RScript.ReturnType.MULTI,
-                keys(serviceKey, instanceId),
-                instanceId,
-                serviceKey.canonicalValue(),
-                now.toEpochMilli(),
-                json(serviceKey)
-        );
-        removeGlobalCatalogIfEmpty(serviceKey);
+        boolean changed = false;
+        RLock lock = serviceLock(serviceKey);
+        lock.lock();
+        try {
+            if (instanceId.isEmpty()) {
+                if (!serviceInstances(serviceKey).isEmpty()) {
+                    return;
+                }
+            } else {
+                Double score = serviceInstances(serviceKey).getScore(instanceId);
+                if (score == null || score > now.toEpochMilli()) {
+                    return;
+                }
+                String current = instanceBucket(serviceKey, instanceId).get();
+                if (current != null) {
+                    DdcServiceInstance instance = instance(current);
+                    if (serviceKey.equals(instance.serviceKey())
+                            && instance.leaseExpireAt().isAfter(now)) {
+                        serviceInstances(serviceKey).add(
+                                instance.leaseExpireAt().toEpochMilli(), instanceId);
+                        return;
+                    }
+                    if (serviceKey.equals(instance.serviceKey())) {
+                        instanceBucket(serviceKey, instanceId).delete();
+                    }
+                }
+                serviceInstances(serviceKey).remove(instanceId);
+                changed = true;
+            }
+
+            long serviceRevision = changed
+                    ? serviceRevision(serviceKey).incrementAndGet()
+                    : serviceRevision(serviceKey).get();
+            CatalogUpdate catalog = removeServiceCatalogIfEmpty(serviceKey);
+            if (changed || catalog.changed()) {
+                publishEvent(serviceKey, serviceRevision, catalog.revision());
+            }
+            removeGlobalCatalogIfEmpty(serviceKey);
+        } finally {
+            lock.unlock();
+        }
     }
 
-    private List<Object> keys(DdcServiceKey serviceKey, String instanceId) {
-        return List.of(
-                DdcKeys.v3RegistryInstance(serviceKey, instanceId),
-                DdcKeys.v3RegistryService(serviceKey),
-                DdcKeys.v3RegistryRevision(serviceKey),
-                DdcKeys.v3RegistryCatalog(
-                        serviceKey.bizCode(),
-                        serviceKey.env(),
-                        serviceKey.appCode(),
-                        serviceKey.serviceKind(),
-                        serviceKey.protocol()
-                ),
-                DdcKeys.v3RegistryCatalogRevision(
-                        serviceKey.bizCode(),
-                        serviceKey.env(),
-                        serviceKey.appCode(),
-                        serviceKey.serviceKind(),
-                        serviceKey.protocol()
-                ),
-                DdcKeys.v3RegistryTopic(
-                        serviceKey.bizCode(),
-                        serviceKey.env(),
-                        serviceKey.appCode(),
-                        serviceKey.serviceKind(),
-                        serviceKey.protocol()
-                )
-        );
+    private boolean sameIdentity(DdcServiceInstance instance,
+                                 DdcServiceLeaseRequest request) {
+        return request.getInstanceId().equals(instance.instanceId())
+                && request.getLeaseId().equals(instance.leaseId())
+                && request.getServiceKey().equals(instance.serviceKey());
+    }
+
+    private long addServiceCatalog(DdcServiceKey serviceKey) {
+        boolean added = serviceCatalog(serviceKey).add(serviceKey.canonicalValue());
+        return added
+                ? catalogRevision(serviceKey).incrementAndGet()
+                : catalogRevision(serviceKey).get();
+    }
+
+    private CatalogUpdate removeServiceCatalogIfEmpty(DdcServiceKey serviceKey) {
+        if (!serviceInstances(serviceKey).isEmpty()) {
+            return new CatalogUpdate(catalogRevision(serviceKey).get(), false);
+        }
+        boolean removed = serviceCatalog(serviceKey).remove(serviceKey.canonicalValue());
+        long revision = removed
+                ? catalogRevision(serviceKey).incrementAndGet()
+                : catalogRevision(serviceKey).get();
+        return new CatalogUpdate(revision, removed);
     }
 
     private void addGlobalCatalog(DdcServiceKey serviceKey) {
-        boolean added = redissonClient.<String>getSet(
-                DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
-        ).add(serviceKey.canonicalValue());
-        if (added) {
-            redissonClient.getAtomicLong(
-                    DdcKeys.v3GlobalRegistryCatalogRevision()
-            ).incrementAndGet();
+        RLock lock = globalCatalogLock();
+        lock.lock();
+        try {
+            boolean added = redissonClient.<String>getSet(
+                    DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
+            ).add(serviceKey.canonicalValue());
+            if (added) {
+                redissonClient.getAtomicLong(
+                        DdcKeys.v3GlobalRegistryCatalogRevision()).incrementAndGet();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
     private void removeGlobalCatalogIfEmpty(DdcServiceKey serviceKey) {
-        int instances = redissonClient.<String>getScoredSortedSet(
-                DdcKeys.v3RegistryService(serviceKey), StringCodec.INSTANCE
-        ).size();
-        if (instances != 0) {
-            return;
-        }
-        boolean removed = redissonClient.<String>getSet(
-                DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
-        ).remove(serviceKey.canonicalValue());
-        if (removed) {
-            redissonClient.getAtomicLong(
-                    DdcKeys.v3GlobalRegistryCatalogRevision()
-            ).incrementAndGet();
+        RLock lock = globalCatalogLock();
+        lock.lock();
+        try {
+            if (!serviceInstances(serviceKey).isEmpty()) {
+                return;
+            }
+            boolean removed = redissonClient.<String>getSet(
+                    DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
+            ).remove(serviceKey.canonicalValue());
+            if (removed) {
+                redissonClient.getAtomicLong(
+                        DdcKeys.v3GlobalRegistryCatalogRevision()).incrementAndGet();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
-    private String instanceJson(DdcServiceInstance instance) {
+    private RBucket<String> instanceBucket(DdcServiceKey serviceKey, String instanceId) {
+        return redissonClient.getBucket(
+                DdcKeys.v3RegistryInstance(serviceKey, instanceId), StringCodec.INSTANCE);
+    }
+
+    private RScoredSortedSet<String> serviceInstances(DdcServiceKey serviceKey) {
+        return redissonClient.getScoredSortedSet(
+                DdcKeys.v3RegistryService(serviceKey), StringCodec.INSTANCE);
+    }
+
+    private RSet<String> serviceCatalog(DdcServiceKey serviceKey) {
+        return redissonClient.getSet(
+                DdcKeys.v3RegistryCatalog(
+                        serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
+                        serviceKey.serviceKind(), serviceKey.protocol()),
+                StringCodec.INSTANCE
+        );
+    }
+
+    private RAtomicLong serviceRevision(DdcServiceKey serviceKey) {
+        return redissonClient.getAtomicLong(DdcKeys.v3RegistryRevision(serviceKey));
+    }
+
+    private RAtomicLong catalogRevision(DdcServiceKey serviceKey) {
+        return redissonClient.getAtomicLong(DdcKeys.v3RegistryCatalogRevision(
+                serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
+                serviceKey.serviceKind(), serviceKey.protocol()));
+    }
+
+    private RLock serviceLock(DdcServiceKey serviceKey) {
+        return redissonClient.getLock(
+                DdcKeys.v3RegistryInstance(serviceKey, "scope") + ":lock");
+    }
+
+    private RLock globalCatalogLock() {
+        return redissonClient.getLock(DdcKeys.v3GlobalRegistryCatalog() + ":lock");
+    }
+
+    private void publishEvent(DdcServiceKey serviceKey,
+                              long serviceRevision,
+                              long catalogRevision) {
+        redissonClient.getTopic(DdcKeys.v3RegistryTopic(
+                serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
+                serviceKey.serviceKind(), serviceKey.protocol()), StringCodec.INSTANCE
+        ).publish(json(new DdcRegistryEvent(
+                serviceKey, serviceRevision, catalogRevision)));
+    }
+
+    private String instanceJson(DdcServiceInstance instance, long revision) {
         ObjectNode value = objectMapper.valueToTree(instance);
+        value.put("revision", revision);
         value.put("serviceKeyCanonical", instance.serviceKey().canonicalValue());
         value.put("lastHeartbeatAtEpochMillis", instance.lastHeartbeatAt().toEpochMilli());
         value.put("leaseExpireAtEpochMillis", instance.leaseExpireAt().toEpochMilli());
@@ -320,16 +376,12 @@ public class DdcServiceRegistryRedisRepository {
                 JsonNode leaseExpireAt = objectNode.remove("leaseExpireAtEpochMillis");
                 objectNode.remove("serviceKeyCanonical");
                 if (lastHeartbeatAt != null && lastHeartbeatAt.canConvertToLong()) {
-                    objectNode.put(
-                            "lastHeartbeatAt",
-                            Instant.ofEpochMilli(lastHeartbeatAt.longValue()).toString()
-                    );
+                    objectNode.put("lastHeartbeatAt",
+                            Instant.ofEpochMilli(lastHeartbeatAt.longValue()).toString());
                 }
                 if (leaseExpireAt != null && leaseExpireAt.canConvertToLong()) {
-                    objectNode.put(
-                            "leaseExpireAt",
-                            Instant.ofEpochMilli(leaseExpireAt.longValue()).toString()
-                    );
+                    objectNode.put("leaseExpireAt",
+                            Instant.ofEpochMilli(leaseExpireAt.longValue()).toString());
                 }
             }
             return objectMapper.treeToValue(node, DdcServiceInstance.class);
@@ -346,20 +398,6 @@ public class DdcServiceRegistryRedisRepository {
         }
     }
 
-    private Number number(List<?> result, int index) {
-        if (result == null
-                || result.size() <= index
-                || !(result.get(index) instanceof Number number)) {
-            throw new IllegalStateException("invalid DDC service registry script result");
-        }
-        return number;
-    }
-
-    private static String script(String path) {
-        try {
-            return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
-        } catch (IOException exception) {
-            throw new IllegalStateException("load DDC service registry script failed: " + path, exception);
-        }
+    private record CatalogUpdate(long revision, boolean changed) {
     }
 }
