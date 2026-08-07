@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security;
+package top.egon.cola.component.ddc.admin.security.openapi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;

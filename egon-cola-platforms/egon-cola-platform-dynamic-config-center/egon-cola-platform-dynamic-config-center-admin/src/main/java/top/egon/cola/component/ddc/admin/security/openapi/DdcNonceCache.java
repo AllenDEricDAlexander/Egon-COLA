@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security;
+package top.egon.cola.component.ddc.admin.security.openapi;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;

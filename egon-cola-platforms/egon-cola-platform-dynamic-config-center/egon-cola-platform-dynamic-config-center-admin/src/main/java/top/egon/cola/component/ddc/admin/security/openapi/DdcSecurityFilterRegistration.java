@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security;
+package top.egon.cola.component.ddc.admin.security.openapi;
 
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;

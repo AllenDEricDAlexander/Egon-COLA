@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security;
+package top.egon.cola.component.ddc.admin.security.management;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;

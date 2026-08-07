@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security;
+package top.egon.cola.component.ddc.admin.security.management;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,6 +22,9 @@ import top.egon.cola.component.ddc.admin.controller.DdcOpenApiController;
 import top.egon.cola.component.ddc.admin.controller.DdcPublishTaskController;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
+import top.egon.cola.component.ddc.admin.security.openapi.DdcNonceStore;
+import top.egon.cola.component.ddc.admin.security.openapi.DdcSecurityFilterRegistration;
+import top.egon.cola.component.ddc.admin.security.openapi.InMemoryDdcNonceStore;
 import top.egon.cola.component.ddc.admin.service.DdcCacheService;
 import top.egon.cola.component.ddc.admin.service.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.DdcInstanceAdminService;

@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security;
+package top.egon.cola.component.ddc.admin.security.openapi;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

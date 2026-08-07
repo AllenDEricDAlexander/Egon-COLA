@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security;
+package top.egon.cola.component.ddc.admin.security.management;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
@@ -24,9 +24,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
+import top.egon.cola.component.ddc.admin.security.openapi.DdcOpenApiHmacFilter;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
-import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 
 import java.util.Base64;
 import javax.crypto.spec.SecretKeySpec;
