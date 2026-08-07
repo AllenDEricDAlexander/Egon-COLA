@@ -9,38 +9,23 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
-import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
-import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.Map;
 
 public final class GatewayRuleCanonicalizer {
 
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .addModule(new JavaTimeModule())
-            .addMixIn(GatewayRuntimeOperation.class, OperationWireShape.class)
             .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .serializationInclusion(JsonInclude.Include.NON_NULL)
             .build();
-
-    /**
-     * Drops an empty parameter list from the wire form, so that publishing an
-     * operation without parameters produces the bytes the engine already
-     * checksums. Must mirror the mix-in in {@code GatewayRuleJsonCodec}.
-     */
-    private abstract static class OperationWireShape {
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public abstract List<GatewayRuntimeParameter> parameters();
-    }
 
     public byte[] canonicalBytes(Object value) {
         try {

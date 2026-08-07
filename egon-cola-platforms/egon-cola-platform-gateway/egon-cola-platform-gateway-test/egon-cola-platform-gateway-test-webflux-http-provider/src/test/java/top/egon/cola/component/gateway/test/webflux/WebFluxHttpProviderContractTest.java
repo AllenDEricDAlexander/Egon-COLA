@@ -50,6 +50,8 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -136,10 +138,13 @@ class WebFluxHttpProviderContractTest {
         );
         assertFalse((Boolean) operation.attributes().get("streaming"));
         assertEquals("SUPPORTED", operation.gatewaySupport());
+        assertEquals("gateway-operation-response/v2",
+                operation.responseSchema().get("x-egon-schema-model"));
+        assertEquals("object", operation.responseSchema().get("type"));
         assertEquals(
-                ReactiveInventoryController.InventoryResponse.class
-                        .getName(),
-                operation.responseSchema().get("javaType")
+                Set.of("id", "providerId", "framework"),
+                ((Map<?, ?>) operation.responseSchema().get("properties"))
+                        .keySet()
         );
 
         webTestClient.get()

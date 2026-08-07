@@ -11,7 +11,6 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
 import top.egon.cola.component.gateway.contract.rule.GatewayRouteTransportPolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
-import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
@@ -52,14 +51,6 @@ class GatewayRuleWireCompatibilityTest {
                 "GET /api/orders/{id}",
                 "{}",
                 "{}",
-                List.of(new GatewayRuntimeParameter(
-                        "id",
-                        "PATH",
-                        true,
-                        "java.lang.String",
-                        null,
-                        "order identifier"
-                )),
                 true,
                 new GatewayProviderServiceRef(
                         "test-biz",

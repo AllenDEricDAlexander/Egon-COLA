@@ -10,7 +10,6 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
 import top.egon.cola.component.gateway.contract.rule.GatewayRouteTransportPolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
-import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
@@ -178,61 +177,6 @@ class GatewayRuleCompilerTest {
         assertTrue(failure.getMessage().contains(
                 "Retry requires an explicitly idempotent operation"
         ));
-    }
-
-    @Test
-    void compiledSnapshotPublishesOperationParameters() {
-        GatewayRuntimeOperation operation = new GatewayRuntimeOperation(
-                "orders",
-                "orders",
-                GatewayProtocol.HTTP,
-                "GET /orders/{orderId}",
-                "{}",
-                "{}",
-                List.of(new GatewayRuntimeParameter(
-                        "orderId",
-                        "PATH",
-                        true,
-                        "java.lang.String",
-                        null,
-                        "the order identifier"
-                )),
-                true,
-                service(),
-                "TRANSPARENT",
-                Set.of(),
-                Map.of(),
-                false
-        );
-
-        CompiledGatewayRelease release = compiler.compile(
-                "release-1",
-                Instant.parse("2026-07-25T00:00:00Z"),
-                content(List.of(operation), List.of(route("orders", "orders")))
-        );
-
-        assertTrue(release.snapshotJson().contains("\"orderId\""));
-        assertTrue(release.snapshotJson().contains("the order identifier"));
-        canonicalizer.verify(release.snapshot());
-    }
-
-    /**
-     * An operation without parameters must publish the bytes it published
-     * before the component existed, or every already-released snapshot fails
-     * the engine's ruleContentSha256 check.
-     */
-    @Test
-    void operationWithoutParametersPublishesItsPreviousWireShape() {
-        CompiledGatewayRelease release = compiler.compile(
-                "release-1",
-                Instant.parse("2026-07-25T00:00:00Z"),
-                content(
-                        List.of(operation("orders", true)),
-                        List.of(route("orders", "orders"))
-                )
-        );
-
-        assertFalse(release.snapshotJson().contains("\"parameters\""));
     }
 
     @Test
