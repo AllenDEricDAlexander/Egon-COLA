@@ -95,12 +95,21 @@ try (TraceScope ignored = TraceContext.open(state.child())) {
 
 TraceSnapshot snapshot = TraceContext.snapshot();
 executor.execute(snapshot.wrap(task));
+
+ExecutorService tracedExecutor = TraceExecutors.contextAware(executor);
+tracedExecutor.submit(task);
 ```
 
 `TraceScope` restores only MDC keys owned by the trace component. It does not
 clear business or framework MDC entries. `TraceSnapshot` restores the
 submitting thread context before a wrapped task runs and restores the worker
 thread context afterwards, avoiding MDC leaks in reused pools.
+
+`TraceExecutors.contextAware(...)` captures a fresh snapshot for every task
+submission and supports both platform-thread and virtual-thread executor
+services. Spring `ThreadPoolTaskExecutor` instances can explicitly use
+`new TraceTaskDecorator()` when they are built. The starter does not replace or
+post-process application executor beans.
 
 ## Auto-Configuration Boundaries
 

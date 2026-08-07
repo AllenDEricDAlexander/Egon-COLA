@@ -89,11 +89,18 @@ try (TraceScope ignored = TraceContext.open(state.child())) {
 
 TraceSnapshot snapshot = TraceContext.snapshot();
 executor.execute(snapshot.wrap(task));
+
+ExecutorService tracedExecutor = TraceExecutors.contextAware(executor);
+tracedExecutor.submit(task);
 ```
 
 `TraceScope` 关闭时只恢复组件拥有的 MDC 字段，不会清空业务或其他框架写入的 MDC。
 `TraceSnapshot` 会保存提交线程上下文，包装后的任务执行完会恢复工作线程原上下文，避免
 线程池复用造成 MDC 泄漏。
+
+`TraceExecutors.contextAware(...)` 会在每次任务提交时捕获新快照，同时支持平台线程和
+虚拟线程执行器。业务构建 Spring `ThreadPoolTaskExecutor` 时可以显式设置
+`new TraceTaskDecorator()`；Starter 不会替换或后处理业务执行器 Bean。
 
 ## 自动配置边界
 
