@@ -80,7 +80,7 @@ public final class GatewayDefinitionReportFactory {
                 "build", build,
                 "businessDomains", domains,
                 "complete", true,
-                "definitionSchemaVersion", "v1"
+                "definitionSchemaVersion", "v2"
         )));
         String definitionSetId = sha256(
                 String.join(
@@ -96,7 +96,7 @@ public final class GatewayDefinitionReportFactory {
         );
         GatewayInterfaceDefinitionReport report =
                 new GatewayInterfaceDefinitionReport(
-                        "v1",
+                        "v2",
                         UuidV7.simpleString(),
                         clock.instant(),
                         application,

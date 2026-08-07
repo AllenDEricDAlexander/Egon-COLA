@@ -41,7 +41,7 @@ class GatewayReportCanonicalizerTest {
         ).getBytes(StandardCharsets.UTF_8));
         GatewayInterfaceDefinitionReport report =
                 new GatewayInterfaceDefinitionReport(
-                        "v1",
+                        "v2",
                         "report-1",
                         Instant.parse("2026-07-27T00:00:00Z"),
                         application,
@@ -73,7 +73,7 @@ class GatewayReportCanonicalizerTest {
                 "build", build,
                 "businessDomains", domains,
                 "complete", true,
-                "definitionSchemaVersion", "v1"
+                "definitionSchemaVersion", "v2"
         )));
     }
 

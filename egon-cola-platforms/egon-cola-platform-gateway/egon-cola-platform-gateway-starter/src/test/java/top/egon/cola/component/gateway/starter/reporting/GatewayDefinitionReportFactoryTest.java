@@ -96,7 +96,6 @@ class GatewayDefinitionReportFactoryTest {
                                 "1.0.0",
                                 "HTTP"
                         ),
-                        List.of(),
                         Map.of(),
                         Map.of(),
                         List.of(),

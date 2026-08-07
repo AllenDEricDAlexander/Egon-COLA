@@ -20,6 +20,12 @@ public record GatewayInterfaceDefinitionReport(
 
     public GatewayInterfaceDefinitionReport {
         contractVersion = required(contractVersion, "contractVersion");
+        if (!"v2".equals(contractVersion)) {
+            throw new IllegalArgumentException(
+                    "unsupported gateway reporting contract version: "
+                            + contractVersion
+            );
+        }
         reportId = required(reportId, "reportId");
         reportedAt = Objects.requireNonNull(reportedAt, "reportedAt");
         application = Objects.requireNonNull(application, "application");
@@ -144,7 +150,6 @@ public record GatewayInterfaceDefinitionReport(
             boolean externalAccessible,
             String gatewaySupport,
             ProviderService providerService,
-            List<Parameter> parameters,
             Map<String, Object> requestSchema,
             Map<String, Object> responseSchema,
             List<Map<String, Object>> errorSchema,
@@ -163,8 +168,6 @@ public record GatewayInterfaceDefinitionReport(
                     "providerService"
             );
             tags = sortedStrings(tags);
-            parameters = sorted(parameters, parameter ->
-                    parameter.location() + ":" + parameter.name());
             requestSchema = Map.copyOf(Objects.requireNonNull(
                     requestSchema,
                     "requestSchema"
@@ -212,38 +215,6 @@ public record GatewayInterfaceDefinitionReport(
             group = required(group, "providerService.group");
             version = required(version, "providerService.version");
             transport = required(transport, "providerService.transport");
-        }
-    }
-
-    public record Parameter(
-            String name,
-            String location,
-            boolean required,
-            String javaTypeDisplay,
-            Map<String, Object> schema,
-            String defaultValue,
-            Map<String, Object> constraints,
-            String description
-    ) {
-
-        public Parameter {
-            name = GatewayInterfaceDefinitionReport.required(
-                    name,
-                    "parameter.name"
-            );
-            location = GatewayInterfaceDefinitionReport.required(
-                    location,
-                    "parameter.location"
-            );
-            javaTypeDisplay = GatewayInterfaceDefinitionReport.required(
-                    javaTypeDisplay,
-                    "parameter.javaTypeDisplay"
-            );
-            schema = Map.copyOf(Objects.requireNonNull(schema, "schema"));
-            constraints = Map.copyOf(Objects.requireNonNull(
-                    constraints,
-                    "constraints"
-            ));
         }
     }
 

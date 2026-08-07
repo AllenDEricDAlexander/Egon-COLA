@@ -162,7 +162,6 @@ final class GatewayHttpOperationMapper {
                         properties.getArtifactVersion(),
                         "HTTP"
                 ),
-                List.of(),
                 request.schema(),
                 response,
                 List.of(),

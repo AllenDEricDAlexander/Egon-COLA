@@ -33,7 +33,7 @@ public final class GatewayReportCanonicalizer {
                 "build", report.build(),
                 "businessDomains", report.businessDomains(),
                 "complete", report.complete(),
-                "definitionSchemaVersion", "v1"
+                "definitionSchemaVersion", "v2"
         )));
         if (!fingerprint.equals(report.definitionFingerprint())) {
             throw new IllegalArgumentException(

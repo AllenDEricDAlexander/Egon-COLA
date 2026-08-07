@@ -1,6 +1,5 @@
 package top.egon.cola.component.gateway.admin.rule;
 
-import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 
 import java.util.ArrayList;
@@ -11,12 +10,11 @@ import java.util.Map;
  * Maps reported operation parameters onto the lean runtime model published in
  * gateway rules.
  *
- * <p>The definition report keeps its parameters under the {@link #ATTRIBUTE_KEY}
- * entry of an operation definition's attribute map (written by
- * {@code JdbcGatewayDefinitionReportStore}). Depending on whether that map has
- * been through the JSONB column, an entry is either a report
- * {@code Parameter} record or its generic {@code Map} form, so both are
- * accepted.
+ * <p>This is a temporary reader for already-persisted generic JSON values. New
+ * v2 definition reports no longer persist a flattened parameter list; the
+ * structured schema is consumed directly by the release compiler and this
+ * compatibility reader will be removed with the legacy runtime parameter
+ * model.
  *
  * <p>Entries that carry no name or no location are dropped rather than
  * rejected: parameter metadata drives an optional admin test form, and a
@@ -44,16 +42,6 @@ public final class GatewayRuntimeParameterMapper {
     }
 
     private static GatewayRuntimeParameter parameter(Object value) {
-        if (value instanceof GatewayInterfaceDefinitionReport.Parameter param) {
-            return of(
-                    param.name(),
-                    param.location(),
-                    param.required(),
-                    param.javaTypeDisplay(),
-                    param.defaultValue(),
-                    param.description()
-            );
-        }
         if (value instanceof Map<?, ?> param) {
             return of(
                     text(param.get("name")),

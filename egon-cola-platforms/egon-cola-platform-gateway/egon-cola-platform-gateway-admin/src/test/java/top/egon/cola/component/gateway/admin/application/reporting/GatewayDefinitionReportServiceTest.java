@@ -22,18 +22,7 @@ class GatewayDefinitionReportServiceTest {
                         mock(IdempotencyStore.class),
                         new ObjectMapper()
                 );
-        GatewayInterfaceDefinitionReport report = report(
-                new GatewayInterfaceDefinitionReport.Parameter(
-                        "tenant",
-                        "HEADER",
-                        true,
-                        String.class.getName(),
-                        Map.of("type", "string"),
-                        null,
-                        Map.of(),
-                        null
-                )
-        );
+        GatewayInterfaceDefinitionReport report = report();
 
         assertThatThrownBy(() -> service.accept(
                 new GatewayReportAuthentication(
@@ -46,15 +35,14 @@ class GatewayDefinitionReportServiceTest {
                 ),
                 report,
                 "report-1",
-                "v1"
+                "v2"
                 )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("invalid mcpExposure")
                 .hasMessageContaining("required HEADER parameter")
                 .hasMessageContaining("tenant");
     }
 
-    private GatewayInterfaceDefinitionReport report(
-            GatewayInterfaceDefinitionReport.Parameter parameter) {
+    private GatewayInterfaceDefinitionReport report() {
         var provider = new GatewayInterfaceDefinitionReport.ProviderService(
                 "trade",
                 "orders",
@@ -78,9 +66,30 @@ class GatewayDefinitionReportServiceTest {
                 false,
                 "SUPPORTED",
                 provider,
-                List.of(parameter),
-                Map.of("type", "object"),
-                Map.of("type", "object"),
+                Map.of(
+                        "$schema", "https://json-schema.org/draft/2020-12/schema",
+                        "x-egon-schema-model", "gateway-operation-request/v2",
+                        "type", "object",
+                        "properties", Map.of(
+                                "header", Map.of(
+                                        "type", "object",
+                                        "properties", Map.of(
+                                                "tenant", Map.of("type", "string")
+                                        ),
+                                        "required", List.of("tenant"),
+                                        "additionalProperties", false
+                                )
+                        ),
+                        "required", List.of("header"),
+                        "additionalProperties", false
+                ),
+                Map.of(
+                        "$schema", "https://json-schema.org/draft/2020-12/schema",
+                        "x-egon-schema-model", "gateway-operation-response/v2",
+                        "type", "object",
+                        "properties", Map.of(),
+                        "additionalProperties", false
+                ),
                 List.of(),
                 null,
                 Map.of("mcpExposure", Map.of(
@@ -118,7 +127,7 @@ class GatewayDefinitionReportServiceTest {
                 List.of(entity)
         );
         return new GatewayInterfaceDefinitionReport(
-                "v1",
+                "v2",
                 "report-1",
                 Instant.parse("2026-08-06T00:00:00Z"),
                 new GatewayInterfaceDefinitionReport.Application(

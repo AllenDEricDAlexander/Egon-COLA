@@ -35,6 +35,8 @@ public class GatewayDefinitionReportService {
 
     private final ObjectMapper objectMapper;
 
+    private final GatewayOperationSchemaValidator schemaValidator;
+
     private final GatewayReportCanonicalizer canonicalizer =
             new GatewayReportCanonicalizer();
 
@@ -56,6 +58,7 @@ public class GatewayDefinitionReportService {
         this.reports = reports;
         this.idempotency = idempotency;
         this.objectMapper = objectMapper;
+        this.schemaValidator = new GatewayOperationSchemaValidator(objectMapper);
         this.clock = clock;
     }
 
@@ -214,8 +217,8 @@ public class GatewayDefinitionReportService {
             GatewayInterfaceDefinitionReport report,
             String headerReportId,
             String headerContractVersion) {
-        if (!"v1".equals(headerContractVersion)
-                || !"v1".equals(report.contractVersion())) {
+        if (!"v2".equals(headerContractVersion)
+                || !"v2".equals(report.contractVersion())) {
             throw new IllegalArgumentException(
                     "unsupported gateway reporting contract version"
             );
@@ -267,6 +270,17 @@ public class GatewayDefinitionReportService {
                                         );
                                     }
                                     validateMcpExposure(operation);
+                                    try {
+                                        schemaValidator.validate(operation);
+                                    } catch (IllegalArgumentException failure) {
+                                        if (registeredForMcp(operation)) {
+                                            invalidMcp(
+                                                    operation,
+                                                    failure.getMessage()
+                                            );
+                                        }
+                                        throw failure;
+                                    }
                                 }))));
         validateCodes(report);
     }
@@ -309,34 +323,13 @@ public class GatewayDefinitionReportService {
         if (Boolean.TRUE.equals(operation.attributes().get("streaming"))) {
             invalidMcp(operation, "streaming operations are unsupported");
         }
-        int bodyParameters = 0;
-        for (GatewayInterfaceDefinitionReport.Parameter parameter
-                : operation.parameters()) {
-            if ("PART".equals(parameter.location())) {
-                invalidMcp(
-                        operation,
-                        "PART parameters are unsupported"
-                );
-            }
-            if ("HEADER".equals(parameter.location())
-                    || "COOKIE".equals(parameter.location())) {
-                boolean injectedAuthorization = "HEADER".equals(
-                        parameter.location()
-                ) && "Authorization".equalsIgnoreCase(parameter.name());
-                if (parameter.required() && !injectedAuthorization) {
-                    invalidMcp(
-                            operation,
-                            "required " + parameter.location()
-                                    + " parameter is unsupported: "
-                                    + parameter.name()
-                    );
-                }
-                continue;
-            }
-            if ("BODY".equals(parameter.location()) && ++bodyParameters > 1) {
-                invalidMcp(operation, "multiple BODY parameters are unsupported");
-            }
-        }
+    }
+
+    private boolean registeredForMcp(
+            GatewayInterfaceDefinitionReport.Operation operation) {
+        Object reported = operation.attributes().get("mcpExposure");
+        return reported instanceof Map<?, ?> exposure
+                && Boolean.TRUE.equals(exposure.get("registerMcp"));
     }
 
     private void requiredMcp(

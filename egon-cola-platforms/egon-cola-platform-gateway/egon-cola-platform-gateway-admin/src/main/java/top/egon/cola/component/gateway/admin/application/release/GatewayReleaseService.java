@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.admin.application.release;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
 import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftService;
 import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftStore;
+import top.egon.cola.component.gateway.admin.application.reporting.GatewayOperationSchemaValidator;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.domain.GatewayReleaseStatus;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogEntity;
@@ -80,6 +82,9 @@ public class GatewayReleaseService {
 
     private final GatewayRouteTransportPolicyValidator transportValidator =
             new GatewayRouteTransportPolicyValidator();
+
+    private final GatewayOperationSchemaValidator schemaValidator =
+            new GatewayOperationSchemaValidator(new ObjectMapper());
 
     private final Clock clock;
 
@@ -571,6 +576,13 @@ public class GatewayReleaseService {
                                         + operation.id()
                         ));
         Map<String, Object> reported = definition.attributes();
+        schemaValidator.validate(
+                operation.operationKey(),
+                operation.protocol(),
+                definition.requestSchema(),
+                definition.responseSchema(),
+                reported
+        );
         List<GatewayRuntimeParameter> parameters =
                 GatewayRuntimeParameterMapper.map(
                         reported.get(GatewayRuntimeParameterMapper.ATTRIBUTE_KEY)

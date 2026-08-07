@@ -544,8 +544,20 @@ class GatewayReleaseServiceTest {
                 "sha256",
                 "orders",
                 List.of(),
-                Map.of("type", "object"),
-                Map.of("type", "object"),
+                Map.of(
+                        "$schema", "https://json-schema.org/draft/2020-12/schema",
+                        "x-egon-schema-model", "gateway-operation-request/v2",
+                        "type", "object",
+                        "properties", Map.of(),
+                        "additionalProperties", false
+                ),
+                Map.of(
+                        "$schema", "https://json-schema.org/draft/2020-12/schema",
+                        "x-egon-schema-model", "gateway-operation-response/v2",
+                        "type", "object",
+                        "properties", Map.of(),
+                        "additionalProperties", false
+                ),
                 List.of(),
                 null,
                 Map.of("responseMode", "TRANSPARENT"),

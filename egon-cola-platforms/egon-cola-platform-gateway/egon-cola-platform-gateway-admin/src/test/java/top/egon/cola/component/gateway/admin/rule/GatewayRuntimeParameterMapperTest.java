@@ -1,7 +1,6 @@
 package top.egon.cola.component.gateway.admin.rule;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeParameter;
 
 import java.util.HashMap;
@@ -16,7 +15,13 @@ class GatewayRuntimeParameterMapperTest {
     @Test
     void mapsReportedParametersOntoTheRuntimeModel() {
         List<GatewayRuntimeParameter> parameters =
-                GatewayRuntimeParameterMapper.map(List.of(reported()));
+                GatewayRuntimeParameterMapper.map(List.of(Map.of(
+                        "name", "orderId",
+                        "location", "PATH",
+                        "required", true,
+                        "javaTypeDisplay", "java.lang.String",
+                        "description", "the order identifier"
+                )));
 
         assertThat(parameters).containsExactly(new GatewayRuntimeParameter(
                 "orderId",
@@ -78,16 +83,4 @@ class GatewayRuntimeParameterMapperTest {
                 .isEqualTo(true);
     }
 
-    private GatewayInterfaceDefinitionReport.Parameter reported() {
-        return new GatewayInterfaceDefinitionReport.Parameter(
-                "orderId",
-                "PATH",
-                true,
-                "java.lang.String",
-                Map.of("type", "string"),
-                null,
-                Map.of(),
-                "the order identifier"
-        );
-    }
 }

@@ -52,7 +52,6 @@ class GatewayHttpOperationMapperTest {
                 .containsEntry("type", "object");
         assertThat(map(request.get("properties")))
                 .containsOnlyKeys("path", "query", "header", "body");
-        assertThat(operation.parameters()).isEmpty();
         assertThat(operation.responseSchema())
                 .containsEntry("x-egon-schema-model", "gateway-operation-response/v2")
                 .containsEntry("type", "object");

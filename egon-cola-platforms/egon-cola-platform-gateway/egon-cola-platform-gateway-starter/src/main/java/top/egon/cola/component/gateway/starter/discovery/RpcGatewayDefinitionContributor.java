@@ -196,7 +196,6 @@ public final class RpcGatewayDefinitionContributor
                         snapshot.version(),
                         "GRPC"
                 ),
-                List.of(),
                 requestSchema,
                 responseSchema,
                 List.of(),

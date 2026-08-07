@@ -481,7 +481,6 @@ public class JdbcGatewayDefinitionReportStore
         attributes.put("description", nullable(operation.description()));
         attributes.put("owner", nullable(operation.owner()));
         attributes.put("gatewaySupport", operation.gatewaySupport());
-        attributes.put("parameters", operation.parameters());
         attributes.put("deprecated", operation.deprecated());
         return attributes;
     }

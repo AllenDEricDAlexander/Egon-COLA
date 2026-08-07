@@ -78,7 +78,7 @@ public final class GatewayReportHttpClient {
                                     properties.getSecretKey()
                             )
                     )
-                    .header("X-Gateway-Contract-Version", "v1")
+                    .header("X-Gateway-Contract-Version", "v2")
                     .header(
                             "X-Gateway-Application-Code",
                             properties.getApplicationCode()

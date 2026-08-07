@@ -5,11 +5,9 @@ import java.util.Locale;
 /**
  * Form-shaped projection of a reported operation parameter.
  *
- * <p>Deliberately leaner than
- * {@code GatewayInterfaceDefinitionReport.Parameter}: it keeps only what a
- * caller needs to render and submit an interface-test request. The full JSON
- * schema and the constraint map stay on the report side, because the operation
- * already publishes {@code requestSchema} and rule content is size-bounded.
+ * <p>This legacy runtime test-form model is retained only until the structured
+ * GatewayOperationCall migration. The v2 operation definition carries the
+ * complete request schema instead of flattening parameters into this model.
  *
  * <p>Only {@code name} and {@code location} are validated. Everything else is
  * presentation metadata and may be absent, so that a rule snapshot never
