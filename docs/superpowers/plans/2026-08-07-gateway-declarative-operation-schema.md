@@ -8,7 +8,7 @@
 > **For agentic workers:** Execute this plan inline, task by task. Do not create
 > subagents or worktrees unless the user explicitly changes that instruction.
 
-**Goal:** 将 Gateway HTTP/Unary RPC 的接口 Schema、Managed MCP Tool Schema 和运行时参数装配统一切换到已确认的声明式注解模型，并彻底删除旧字段路径、Reporting Parameter 和 `inputLocations` 链路。
+**Goal:** 将 Gateway HTTP 的接口 Schema 切换到声明式注解模型，Unary RPC Schema 切换到 Proto Descriptor 单一事实源，并彻底删除旧字段路径、Reporting Parameter、RPC 重复 Schema 声明和 `inputLocations` 链路。
 
 **Architecture:** Starter 使用 Java/Protobuf Adapter 生成同一套 JSON Schema Draft 2020-12；HTTP requestSchema 按位置分组，RPC requestSchema 保持完整 Message。Admin 只接收 Definition Report v2，并将当前 Operation Definition 投影成只读 Managed Tool。Runtime 直接把 HTTP `path/query/body` 或完整 RPC arguments 组装成 `GatewayOperationCall`。Admin Web 解析 `$defs/$ref` 并展示 Operation/Managed Tool 的完整只读 Schema。
 
@@ -232,12 +232,12 @@ This Task changes the public annotation API and all repository consumers in one 
 
 **Interfaces:**
 
-- `GatewayOperation.requestSchemaFields` becomes `GatewayRequestSchemaField[]`.
-- `GatewayOperation.responseSchemaFields` is deleted and replaced by `GatewayResponseSchema responseSchema()`.
+- `GatewayOperation.requestSchemaFields` becomes the HTTP-only `GatewayRequestSchemaField[]`.
+- `GatewayOperation.responseSchemaFields` is deleted and replaced by the HTTP-only `GatewayResponseSchema responseSchema()`.
 - `GatewaySchemaField.path` is deleted; metadata moves to actual DTO properties/parameters.
 - All public Gateway Schema annotations match the approved `@Target`, runtime retention and `@Documented` contract.
 - HTTP requestSchema becomes a location-grouped Draft 2020-12 Schema.
-- RPC request/response remain Descriptor-root Schemas and read Proto Field Options.
+- RPC request/response are generated only from Descriptor-root Schemas and read Proto Field Options; Java Schema declarations are rejected.
 - For this Task only, `GatewayInterfaceDefinitionReport.Operation.parameters` receives `List.of()` until Task 3 removes the field. No old behavior reads or writes it.
 
 - [ ] **Step 1: Write failing Java Schema tests**
@@ -270,7 +270,7 @@ Failure cases must cover missing declaration, duplicate declaration, wrong locat
 
 Use a real Descriptor with nested Message, repeated, Map, Enum, oneof, supported well-known types, recursion and Gateway Field Options. Assert JSON field name plus `protobufName/protobufType/fieldNumber`, option metadata and `$defs/$ref`.
 
-RPC Contributor tests must reject zero/multiple `RPC_MESSAGE`, root class mismatch, response Wrapper/Payload mismatch, Streaming and idempotency disagreement.
+RPC Contributor tests must accept `registerMcp=true` without Java Schema declarations, assert complete Descriptor input/output discovery, reject Java Schema declarations, Streaming and idempotency disagreement. Java/Proto root type mismatch remains owned by `RpcContractValidator`.
 
 - [ ] **Step 4: Run RED**
 
@@ -297,11 +297,11 @@ Generate only present `path/query/header/cookie/body/part` groups with stable or
 
 - [ ] **Step 7: Implement Descriptor mapping and RPC validation**
 
-Read the generated Gateway Field Option from the live Descriptor. Include the option Proto in Descriptor Snapshot dependencies. Type, shape, Enum and Map come only from Descriptor.
+Read the generated Gateway Field Option from the live Descriptor. Include the option Proto in Descriptor Snapshot dependencies. Type, shape, Enum and Map come only from Descriptor. Remove `RPC_MESSAGE` and reject `requestSchemaFields`/`responseSchema` on RPC methods.
 
 - [ ] **Step 8: Migrate every repository annotation consumer**
 
-Move Java field descriptions onto records/DTO fields and scalar method parameters. Import the shared Proto option in the RPC test contract. For every `registerMcp=true` operation, add a complete request declaration and explicit response declaration.
+Move Java field descriptions onto records/DTO fields and scalar method parameters. For every HTTP `registerMcp=true` operation, add a complete request declaration and explicit response declaration. Import the shared Proto option in RPC test contracts and remove all RPC Java Schema declarations.
 
 Do not add empty declarations just to compile; each fixture must express its real signature.
 
@@ -686,7 +686,7 @@ Expected: all fixture tests pass without starting long-lived processes.
 - [ ] **Step 6: Run the destructive deletion scan**
 
 ```bash
-rg -n 'responseSchemaFields|inputLocations|GatewaySchemaDescriptions|GatewayInterfaceDefinitionReport\.Parameter' \
+rg -n 'responseSchemaFields|inputLocations|RPC_MESSAGE|GatewaySchemaDescriptions|GatewayInterfaceDefinitionReport\.Parameter' \
   egon-cola-platforms/egon-cola-platform-gateway \
   --glob '**/src/main/**' --glob '**/src/test/**' --glob '**/e2e/**' \
   --glob '*.java' --glob '*.ts' --glob '*.tsx' --glob '*.json' --glob '*.proto'

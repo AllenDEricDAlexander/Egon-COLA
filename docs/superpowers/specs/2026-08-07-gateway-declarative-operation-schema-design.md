@@ -1,6 +1,6 @@
 # Gateway 声明式 Operation Schema 与 MCP 参数装配设计
 
-状态：已审核通过（2026-08-07），待按实施 Plan 执行
+状态：已审核通过（2026-08-07），RPC Proto 单一事实源增补已确认
 
 实施计划：`../plans/2026-08-07-gateway-declarative-operation-schema.md`
 
@@ -27,10 +27,10 @@ Remote MCP 边界和手工本地 Tool 入口删除规则继续有效。
 
 ## 2. 目标
 
-1. `GatewayOperation.requestSchemaFields` 继续保留，但升级为完整的请求位置与根类型声明。
+1. `GatewayOperation.requestSchemaFields` 继续保留，用于 HTTP 请求位置与根类型声明。
 2. `GatewaySchemaField` 放在 DTO 字段、Record Component、Getter 或方法参数上，字段说明不再集中写在 `GatewayOperation`。
 3. 明确区分 Spring `@RequestBody` 与复杂 Query/`@ModelAttribute`，不能再把未标注的复杂参数默认当作 Body。
-4. 正确描述 PATH、QUERY、HEADER、COOKIE、BODY、PART 和 Unary RPC Message。
+4. HTTP 正确描述 PATH、QUERY、HEADER、COOKIE、BODY、PART；Unary RPC 完全从 Proto Descriptor 发现。
 5. 正确描述 `ResultRecord<T>`、`ResultRecord<List<T>>`、`ResultRecord<Map<String, T>>`、`ResultRecord<基础类型>` 和 `PageResultRecord<T>`。
 6. 使用 Jackson `JavaType` 保留嵌套泛型，统一支持对象、数组、Map、枚举、基本类型、递归引用和 Jakarta Validation。
 7. RPC 继续以 Protobuf Descriptor 为类型事实来源，并通过自定义 Field Option 补充字段业务说明。
@@ -147,13 +147,13 @@ public @interface GatewayRequestSchemaField {
 | --- | --- |
 | `location` | 请求根节点的位置，必须与真实 Spring 参数或 RPC 输入匹配 |
 | `schema` | `OBJECT/VALUE` 的实际类型，或 `LIST/MAP` 的元素/Value 类型 |
-| `name` | PATH、普通 QUERY、HEADER、COOKIE、PART 的线上名称；BODY、展开 Query 和 RPC Message 留空 |
+| `name` | PATH、普通 QUERY、HEADER、COOKIE、PART 的线上名称；BODY 和展开 Query 留空 |
 | `shape` | 根值形态；`AUTO` 从真实泛型类型推导并校验 |
 | `expanded` | 只允许用于 `QUERY + OBJECT`，表示 Spring `@ModelAttribute` 风格字段展开 |
 
-`requestSchemaFields` 是完整声明，不是局部覆盖。一个方法一旦填写该数组，所有外部业务参数都必须恰好出现一次；缺失、重复、多写或位置不一致都使 Starter 扫描失败。
+`requestSchemaFields` 是 HTTP 完整声明，不是局部覆盖。一个 HTTP 方法一旦填写该数组，所有外部业务参数都必须恰好出现一次；缺失、重复、多写或位置不一致都使 Starter 扫描失败。
 
-对于 `registerMcp = true` 的方法，`requestSchemaFields` 必须完整显式声明。非 MCP Operation 可以继续由框架签名自动发现，但不得再使用旧的字段路径数组。
+对于 `registerMcp = true` 的 HTTP 方法，`requestSchemaFields` 必须完整显式声明。非 MCP HTTP Operation 可以继续由框架签名自动发现。RPC 禁止填写该字段，请求 Schema 只从 Proto Input Descriptor 生成。
 
 ### 4.4 `GatewayResponseSchema`
 
@@ -190,7 +190,7 @@ public @interface GatewayResponseSchema {
 - `MAP` 的 `schema` 是 Value 类型，不是 `Map.class`；
 - `VALUE` 只允许字符串、数字、布尔、枚举及受支持的格式化标量；
 - `VOID` 要求 `wrapper = Void.class`、`schema = Void.class`，并且真实方法无响应体；
-- 对 `registerMcp = true` 的方法，非 Void 响应必须显式声明 `responseSchema`。
+- 对 `registerMcp = true` 的 HTTP 方法，非 Void 响应必须显式声明 `responseSchema`；RPC 禁止填写该字段，响应 Schema 只从 Proto Output Descriptor 生成。
 
 ### 4.5 `GatewaySchemaField`
 
@@ -248,8 +248,7 @@ public enum GatewayRequestLocation {
     HEADER,
     COOKIE,
     BODY,
-    PART,
-    RPC_MESSAGE
+    PART
 }
 
 public enum GatewaySchemaShape {
@@ -720,17 +719,9 @@ Nullability 只来自明确的 `@Nullable`、受支持的 Optional 类型或已�
 
 ### 9.1 类型来源
 
-Unary RPC 的请求/响应结构只从 `RpcContractCatalog` 和 Protobuf Descriptor 生成。Java 生成类只用于 `GatewayOperation` 根类型声明的签名校验，不能用 Java 反射代替 Descriptor。
+Unary RPC 的请求/响应结构只从 `RpcContractCatalog` 和 Protobuf Descriptor 生成。`RpcContractValidator` 负责校验 Java 方法只有一个 Protobuf Message 参数、返回值也是 Protobuf Message，且两者分别匹配 Proto Input/Output Descriptor；Gateway Starter 不再重复声明或重复校验根 Java 类型。
 
-RPC 请求必须只有一个根声明：
-
-```java
-@GatewayRequestSchemaField(
-        location = GatewayRequestLocation.RPC_MESSAGE,
-        schema = UpdateOrderRequest.class,
-        shape = GatewaySchemaShape.OBJECT
-)
-```
+RPC 方法不得填写 `GatewayOperation.requestSchemaFields` 或 `responseSchema`。Starter 遇到显式声明时直接拒绝，不能静默忽略或让 Java 注解覆盖 Proto。RPC Managed Tool 的 inputSchema 是完整 Input Message，outputSchema 是完整 Output Message。
 
 Protobuf 生成类不能稳定承载手写 Java 字段注解。字段说明、格式、示例和 Required 语义使用 Gateway 自有 Proto Field Option。
 
@@ -909,18 +900,7 @@ public interface OrderRpc {
             mcpName = "rpc_order_update",
             mcpRequiredPermissions = {"order:write"},
             mcpRiskLevel = McpRiskLevel.MEDIUM,
-            tags = {"rpc", "order", "command"},
-            requestSchemaFields = @GatewayRequestSchemaField(
-                    location = GatewayRequestLocation.RPC_MESSAGE,
-                    schema = UpdateOrderRequest.class,
-                    shape = GatewaySchemaShape.OBJECT
-            ),
-            responseSchema = @GatewayResponseSchema(
-                    wrapper = UpdateOrderResult.class,
-                    payloadField = "data",
-                    schema = OrderAggregateView.class,
-                    shape = GatewaySchemaShape.OBJECT
-            )
+            tags = {"rpc", "order", "command"}
     )
     UpdateOrderResult updateOrder(UpdateOrderRequest request);
 
@@ -935,18 +915,7 @@ public interface OrderRpc {
             mcpName = "rpc_order_list",
             mcpRequiredPermissions = {"order:read"},
             mcpRiskLevel = McpRiskLevel.LOW,
-            tags = {"rpc", "order", "query"},
-            requestSchemaFields = @GatewayRequestSchemaField(
-                    location = GatewayRequestLocation.RPC_MESSAGE,
-                    schema = OrderListRequest.class,
-                    shape = GatewaySchemaShape.OBJECT
-            ),
-            responseSchema = @GatewayResponseSchema(
-                    wrapper = OrderListResult.class,
-                    payloadField = "data",
-                    schema = OrderSummaryView.class,
-                    shape = GatewaySchemaShape.LIST
-            )
+            tags = {"rpc", "order", "query"}
     )
     OrderListResult listOrders(OrderListRequest request);
 }
@@ -1211,7 +1180,7 @@ queryArguments = {}
 - 升级 Protobuf Schema Adapter 并读取自定义 Field Option；
 - 增加 Result/PageResult/通用 Wrapper Adapter；
 - HTTP Mapper 输出位置分组 Schema；
-- RPC Contributor 校验唯一 `RPC_MESSAGE` 和响应 Envelope；
+- RPC Contributor 只使用 Proto Input/Output Descriptor 生成完整 Schema，并拒绝 Java Schema 重复声明；
 - Definition Report 升级为 v2；
 - `McpExposureMapper` 继续只写 MCP Exposure，不复制 Schema。
 
@@ -1356,7 +1325,7 @@ export type McpManagedTool = {
 1. 发布新的 Gateway Contract/Starter 编译依赖；
 2. 所有业务 DTO 把字段说明迁移到 `GatewaySchemaField`；
 3. 所有 Managed MCP HTTP 方法补齐完整 `requestSchemaFields` 和 `responseSchema`；
-4. 所有 Managed MCP RPC Contract 使用唯一 `RPC_MESSAGE` 根声明；
+4. 所有 RPC Contract 删除 `requestSchemaFields` 和 `responseSchema`；
 5. RPC `.proto` 导入 `schema_options.proto` 并迁移字段说明；
 6. 删除所有旧 Path 字段数组；
 7. 每个 Provider 使用全新 `buildId` 构建并上报 v2 Definition；
@@ -1430,7 +1399,8 @@ export type McpManagedTool = {
 
 ### 18.3 RPC Discovery
 
-- 唯一 RPC_MESSAGE 根声明；
+- 未声明 Java Schema 时自动发现完整 Proto Input/Output Message；
+- RPC 显式声明 `requestSchemaFields` 或 `responseSchema` 时失败；
 - Descriptor scalar/repeated/map/enum/nested/oneof/well-known type；
 - Proto Field Option description/format/required/example；
 - Option 依赖进入 Descriptor Snapshot；
@@ -1486,7 +1456,7 @@ export type McpManagedTool = {
 ## 19. 验收标准
 
 1. `GatewaySchemaField` 只在具体 Java 属性/参数上声明，不再使用字符串 Path。
-2. `GatewayOperation.requestSchemaFields` 被保留，并能完整表达 PATH、QUERY、HEADER、COOKIE、BODY、PART 和 RPC_MESSAGE。
+2. `GatewayOperation.requestSchemaFields` 被保留，并能完整表达 HTTP 的 PATH、QUERY、HEADER、COOKIE、BODY 和 PART；RPC 不使用该字段。
 3. 复杂 `@RequestBody` 与复杂 Query/ModelAttribute 被严格区分并通过签名校验。
 4. HTTP/RPC 的对象、List、Map、基础类型和嵌套泛型生成正确 JSON Schema。
 5. `ResultRecord`、`PageResultRecord` 和 Proto Result 输出完整 Wrapper Schema，不只输出 Payload。
@@ -1502,11 +1472,11 @@ export type McpManagedTool = {
 
 2026-08-07 用户已确认本文全部设计决策：
 
-1. `requestSchemaFields` 使用完整声明，Managed MCP 方法不允许局部省略；
-2. 删除 `responseSchemaFields`，统一使用单一 `responseSchema`；
+1. HTTP `requestSchemaFields` 使用完整声明，Managed MCP HTTP 方法不允许局部省略；
+2. 删除 `responseSchemaFields`，HTTP 统一使用单一 `responseSchema`；
 3. `GatewaySchemaField` 删除 `path`，字段说明迁移到 DTO 属性/参数；
 4. HTTP requestSchema 使用位置分组，Managed MCP 只保留 `path/query/body`；
-5. RPC 字段说明使用 `schema_options.proto` 自定义 Field Option；
+5. RPC 请求和响应 Schema 只从 Proto Descriptor 生成，字段说明使用 `schema_options.proto` 自定义 Field Option；
 6. Reporting 升级到 v2，删除独立 `Parameter`/`attributes.parameters`；
 7. 从后端、Rule、Runtime、API、前端和测试中彻底删除 `inputLocations`；
 8. 不做兼容、不自动改写历史 Definition、不允许旧 Release 重新激活。
