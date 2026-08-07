@@ -74,9 +74,9 @@ class McpLocalToolFlowTest {
                 request(2L, "tools/call", Map.of(
                         "name", "find_invoice",
                         "arguments", Map.of(
-                                "invoiceId", "invoice-9",
-                                "includeLines", true,
-                                "request", Map.of("currency", "CNY")
+                                "path", Map.of("invoiceId", "invoice-9"),
+                                "query", Map.of("includeLines", true),
+                                "body", Map.of("currency", "CNY")
                         )
                 )),
                 context
@@ -160,13 +160,6 @@ class McpLocalToolFlowTest {
                         null,
                         "{\"type\":\"object\"}",
                         "{\"type\":\"object\"}",
-                        "HTTP".equals(protocol)
-                                ? Map.of(
-                                        "invoiceId", "PATH",
-                                        "includeLines", "QUERY",
-                                        "request", "BODY"
-                                )
-                                : Map.of(),
                         Map.of("readOnlyHint", "true"),
                         Set.of("invoice:read"),
                         "LOW",

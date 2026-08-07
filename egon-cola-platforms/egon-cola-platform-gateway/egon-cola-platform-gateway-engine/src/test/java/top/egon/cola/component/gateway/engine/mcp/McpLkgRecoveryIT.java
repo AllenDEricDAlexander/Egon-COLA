@@ -165,7 +165,6 @@ class McpLkgRecoveryIT {
                         "{}",
                         "{}",
                         Map.of(),
-                        Map.of(),
                         Set.of(),
                         "LOW",
                         true,

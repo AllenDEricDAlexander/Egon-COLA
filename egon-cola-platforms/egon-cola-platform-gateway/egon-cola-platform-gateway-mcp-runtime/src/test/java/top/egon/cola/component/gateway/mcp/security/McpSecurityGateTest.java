@@ -230,7 +230,6 @@ class McpSecurityGateTest {
                 "{\"type\":\"object\"}",
                 "{\"type\":\"object\"}",
                 Map.of(),
-                Map.of(),
                 Set.of("invoice:pay"),
                 riskLevel,
                 false,

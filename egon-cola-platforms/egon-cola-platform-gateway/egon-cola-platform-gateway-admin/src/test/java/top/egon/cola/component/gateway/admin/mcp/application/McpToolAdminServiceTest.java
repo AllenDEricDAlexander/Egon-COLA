@@ -264,7 +264,6 @@ class McpToolAdminServiceTest {
                 "{\"type\":\"object\"}",
                 "{\"type\":\"object\"}",
                 Map.of(),
-                Map.of(),
                 Set.of("mcp:orders:read"),
                 minimumRisk == null ? "LOW" : minimumRisk,
                 true,

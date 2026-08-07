@@ -402,7 +402,6 @@ class McpHaRecoveryIT {
                         "{}",
                         "{}",
                         Map.of(),
-                        Map.of(),
                         Set.of(),
                         "LOW",
                         true,

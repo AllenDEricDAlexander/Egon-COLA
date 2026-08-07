@@ -133,7 +133,6 @@ class McpContractTest {
                 null,
                 "{\"type\":\"object\"}",
                 "{\"type\":\"object\"}",
-                Map.of("invoiceId", "PATH"),
                 Map.of("readOnlyHint", "true"),
                 Set.of("mcp:billing:tool:" + name + ":call"),
                 "LOW",

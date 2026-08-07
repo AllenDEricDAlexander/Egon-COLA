@@ -122,7 +122,6 @@ class GatewayMcpRuleCompilerTest {
                         "{}",
                         "{}",
                         Map.of(),
-                        Map.of(),
                         Set.of("mcp:orders:tool:orders.get:call"),
                         "LOW",
                         true,

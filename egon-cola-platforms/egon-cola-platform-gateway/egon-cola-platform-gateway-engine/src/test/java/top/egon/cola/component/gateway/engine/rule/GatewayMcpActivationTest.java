@@ -149,7 +149,6 @@ class GatewayMcpActivationTest {
                         "{}",
                         "{}",
                         Map.of(),
-                        Map.of(),
                         Set.of(),
                         "LOW",
                         true,

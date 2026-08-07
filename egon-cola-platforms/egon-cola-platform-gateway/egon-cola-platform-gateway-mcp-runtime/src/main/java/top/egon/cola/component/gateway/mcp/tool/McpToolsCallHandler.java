@@ -291,45 +291,41 @@ public final class McpToolsCallHandler implements McpMethodHandler {
         if (!"HTTP".equals(tool.operationProtocol())) {
             throw invalid("MCP local Tool protocol is invalid");
         }
-        if (!tool.inputLocations().keySet().containsAll(arguments.keySet())) {
-            throw invalid("MCP Tool contains an undeclared argument");
+        Set<String> allowed = Set.of("path", "query", "body");
+        if (!allowed.containsAll(arguments.keySet())) {
+            throw invalid(
+                    "MCP Tool arguments may only contain path, query, and body"
+            );
         }
-        LinkedHashMap<String, Object> path = new LinkedHashMap<>();
-        LinkedHashMap<String, Object> query = new LinkedHashMap<>();
-        Object body = null;
-        boolean bodySet = false;
-        for (Map.Entry<String, String> entry
-                : tool.inputLocations().entrySet()) {
-            if (!arguments.containsKey(entry.getKey())) {
-                continue;
-            }
-            switch (entry.getValue()) {
-                case "PATH" -> path.put(
-                        entry.getKey(),
-                        arguments.get(entry.getKey())
-                );
-                case "QUERY" -> query.put(
-                        entry.getKey(),
-                        arguments.get(entry.getKey())
-                );
-                case "BODY" -> {
-                    if (bodySet) {
-                        throw invalid("MCP Tool declares multiple body arguments");
-                    }
-                    body = arguments.get(entry.getKey());
-                    bodySet = true;
-                }
-                default -> throw invalid(
-                        "MCP Tool input location is unsupported"
-                );
-            }
-        }
+        Map<String, Object> path = locationArguments(arguments, "path");
+        Map<String, Object> query = locationArguments(arguments, "query");
         return new GatewayOperationCall(
                 tool.operationId(),
                 path,
                 query,
-                body
+                arguments.get("body")
         );
+    }
+
+    private Map<String, Object> locationArguments(
+            Map<String, Object> arguments,
+            String location) {
+        Object value = arguments.get(location);
+        if (value == null) {
+            return Map.of();
+        }
+        if (!(value instanceof Map<?, ?> source)) {
+            throw invalid("MCP Tool " + location + " arguments must be an object");
+        }
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        source.forEach((key, item) -> {
+            if (!(key instanceof String name) || name.isBlank()) {
+                throw invalid("MCP Tool " + location
+                        + " argument names must be non-blank strings");
+            }
+            result.put(name, item);
+        });
+        return Map.copyOf(result);
     }
 
     private Map<String, Object> remoteArguments(

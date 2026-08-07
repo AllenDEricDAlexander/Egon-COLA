@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -76,43 +75,44 @@ class McpReleaseContentFactoryTest {
                         "HTTP",
                         Map.of(
                                 "description", "Get one order",
-                                "streaming", false,
-                                "parameters", List.of(
-                                        parameter(
-                                                "id",
-                                                "PATH",
-                                                true,
-                                                Map.of("type", "string")
-                                        ),
-                                        parameter(
-                                                "verbose",
-                                                "QUERY",
-                                                false,
-                                                Map.of("type", "boolean")
-                                        ),
-                                        parameter(
-                                                "request",
-                                                "BODY",
-                                                true,
-                                                Map.of(
-                                                        "type", "object",
-                                                        "properties", Map.of(
-                                                                "note",
-                                                                Map.of(
-                                                                        "type",
-                                                                        "string"
-                                                                )
-                                                        )
-                                                )
-                                        )
-                                ),
                                 "mcpExposure", exposure(
                                         "orders",
                                         "orders.get",
                                         "LOW"
                                 )
                         ),
-                        Map.of("type", "object"),
+                        Map.of(
+                                "$schema", "https://json-schema.org/draft/2020-12/schema",
+                                "type", "object",
+                                "properties", Map.of(
+                                        "path", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "id", Map.of("type", "string")
+                                                ),
+                                                "required", List.of("id"),
+                                                "additionalProperties", false
+                                        ),
+                                        "query", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "verbose", Map.of("type", "boolean")
+                                                ),
+                                                "additionalProperties", false
+                                        ),
+                                        "body", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "note", Map.of("type", "string")
+                                                )
+                                        ),
+                                        "header", Map.of("type", "object"),
+                                        "cookie", Map.of("type", "object"),
+                                        "part", Map.of("type", "object")
+                                ),
+                                "required", List.of("path", "body"),
+                                "additionalProperties", false
+                        ),
                         Map.of("type", "object", "title", "Order")
                 )));
 
@@ -126,13 +126,6 @@ class McpReleaseContentFactoryTest {
         );
         assertThat(second.toolId()).isEqualTo(first.toolId());
         assertThat(first.operationProtocol()).isEqualTo("HTTP");
-        assertThat(first.inputLocations()).containsExactlyInAnyOrderEntriesOf(
-                Map.of(
-                        "id", "PATH",
-                        "verbose", "QUERY",
-                        "request", "BODY"
-                )
-        );
         Map<String, Object> schema = objectMapper.readValue(
                 first.inputSchema(),
                 new TypeReference<>() {
@@ -145,9 +138,9 @@ class McpReleaseContentFactoryTest {
         @SuppressWarnings("unchecked")
         List<String> required = (List<String>) schema.get("required");
         assertThat(properties)
-                .containsKeys("id", "verbose", "request");
+                .containsOnlyKeys("path", "query", "body");
         assertThat(required)
-                .containsExactly("id", "request");
+                .containsExactly("path", "body");
         assertThat(first.outputSchema()).contains("Order");
         assertThat(first.description()).isEqualTo("Get one order");
     }
@@ -178,7 +171,6 @@ class McpReleaseContentFactoryTest {
                 .getFirst().tool();
 
         assertThat(tool.operationProtocol()).isEqualTo("RPC");
-        assertThat(tool.inputLocations()).isEmpty();
         assertThat(objectMapper.readValue(
                 tool.inputSchema(),
                 new TypeReference<Map<String, Object>>() {
@@ -187,85 +179,63 @@ class McpReleaseContentFactoryTest {
     }
 
     @Test
-    void excludesOptionalHeadersCookiesAndInjectedAuthorization() {
+    void excludesOptionalHeadersCookiesAndInjectedAuthorization()
+            throws Exception {
         when(catalog.loadCurrentOperationDefinitions("group-1"))
                 .thenReturn(List.of(current(
                         "operation-1",
                         "http:orders:GET:/orders",
                         "HTTP",
                         Map.of(
-                                "parameters", List.of(
-                                        parameter(
-                                                "filter",
-                                                "QUERY",
-                                                false,
-                                                Map.of("type", "string")
-                                        ),
-                                        parameter(
-                                                "X-Trace",
-                                                "HEADER",
-                                                false,
-                                                Map.of("type", "string")
-                                        ),
-                                        parameter(
-                                                "Authorization",
-                                                "HEADER",
-                                                true,
-                                                Map.of("type", "string")
-                                        ),
-                                        parameter(
-                                                "SESSION",
-                                                "COOKIE",
-                                                false,
-                                                Map.of("type", "string")
-                                        )
-                                ),
                                 "mcpExposure", exposure(
                                         "orders",
                                         "orders.list",
                                         "LOW"
                                 )
                         ),
-                        Map.of("type", "object"),
+                        Map.of(
+                                "type", "object",
+                                "properties", Map.of(
+                                        "query", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "filter", Map.of("type", "string")
+                                                )
+                                        ),
+                                        "header", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "X-Trace", Map.of("type", "string"),
+                                                        "Authorization", Map.of("type", "string")
+                                                )
+                                        ),
+                                        "cookie", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "SESSION", Map.of("type", "string")
+                                                )
+                                        ),
+                                        "part", Map.of("type", "object")
+                                ),
+                                "required", List.of("header")
+                        ),
                         Map.of("type", "object")
                 )));
 
         McpRuntimeTool tool = factory.managedTools("group-1")
                 .getFirst().tool();
 
-        assertThat(tool.inputLocations()).containsOnlyKeys("filter");
+        Map<String, Object> schema = objectMapper.readValue(
+                tool.inputSchema(),
+                new TypeReference<>() {
+                }
+        );
+        @SuppressWarnings("unchecked")
+        Map<String, Object> properties =
+                (Map<String, Object>) schema.get("properties");
+        assertThat(properties).containsOnlyKeys("query");
         assertThat(tool.inputSchema()).contains("filter")
                 .doesNotContain("X-Trace", "Authorization", "SESSION");
-    }
-
-    @Test
-    void rejectsRequiredModelControlledHeader() {
-        when(catalog.loadCurrentOperationDefinitions("group-1"))
-                .thenReturn(List.of(current(
-                        "operation-1",
-                        "http:orders:GET:/orders",
-                        "HTTP",
-                        Map.of(
-                                "parameters", List.of(parameter(
-                                        "X-Tenant",
-                                        "HEADER",
-                                        true,
-                                        Map.of("type", "string")
-                                )),
-                                "mcpExposure", exposure(
-                                        "orders",
-                                        "orders.list",
-                                        "LOW"
-                                )
-                        ),
-                        Map.of("type", "object"),
-                        Map.of("type", "object")
-                )));
-
-        assertThatThrownBy(() -> factory.managedTools("group-1"))
-                .isInstanceOf(McpValidationException.class)
-                .hasMessageContaining("X-Tenant")
-                .hasMessageContaining("HEADER");
     }
 
     @Test
@@ -427,19 +397,6 @@ class McpReleaseContentFactoryTest {
                 "requiredPermissions", List.of(),
                 "riskLevel", risk,
                 "idempotent", true
-        );
-    }
-
-    private Map<String, Object> parameter(
-            String name,
-            String location,
-            boolean required,
-            Map<String, Object> schema) {
-        return Map.of(
-                "name", name,
-                "location", location,
-                "required", required,
-                "schema", schema
         );
     }
 

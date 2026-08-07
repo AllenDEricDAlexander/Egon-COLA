@@ -272,7 +272,6 @@ class McpFederationTest {
                         "{\"type\":\"object\"}",
                         "{\"type\":\"object\"}",
                         Map.of(),
-                        Map.of(),
                         Set.of("issue:create"),
                         "MEDIUM",
                         false,

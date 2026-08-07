@@ -35,7 +35,6 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -280,7 +279,21 @@ public class McpReleaseContentFactory {
                 ? null
                 : override.minimumRiskLevel();
         String effectiveRisk = maximumRisk(codeRisk, minimumRisk);
-        ToolInput input = input(operation, definition);
+        if (!Set.of("HTTP", "RPC").contains(operation.protocol())) {
+            throw new McpValidationException(
+                    "GATEWAY_MCP_OPERATION_PROTOCOL_UNSUPPORTED",
+                    "operations." + operation.operationKey() + ".protocol",
+                    "managed MCP Tool requires HTTP or RPC Operation"
+            );
+        }
+        if ("HTTP".equals(operation.protocol())
+                && bool(definition.attributes(), "streaming", false)) {
+            throw new McpValidationException(
+                    "GATEWAY_MCP_STREAMING_UNSUPPORTED",
+                    "operations." + operation.operationKey() + ".streaming",
+                    "streaming Operation cannot be projected as an MCP Tool"
+            );
+        }
         boolean enabled = override == null || override.enabled() == null;
         McpRuntimeTool tool = new McpRuntimeTool(
                 toolId,
@@ -291,9 +304,8 @@ public class McpReleaseContentFactory {
                 operation.id(),
                 operation.protocol(),
                 null,
-                schema(input.schema()),
+                inputSchema(operation.protocol(), definition.requestSchema()),
                 schema(definition.responseSchema()),
-                input.locations(),
                 Map.of(),
                 Set.copyOf(effectivePermissions),
                 effectiveRisk,
@@ -346,7 +358,6 @@ public class McpReleaseContentFactory {
                 draft.remoteMountId(),
                 schema(value.get("inputSchema")),
                 schema(value.get("outputSchema")),
-                Map.of(),
                 stringMap(value.get("annotations")),
                 strings(value.get("requiredPermissions")),
                 text(value, "riskLevel", "LOW"),
@@ -532,105 +543,53 @@ public class McpReleaseContentFactory {
         return server.getServerCode();
     }
 
-    private ToolInput input(
-            GatewayCatalogStore.OperationRecord operation,
-            GatewayCatalogStore.OperationDefinition definition) {
-        if ("RPC".equals(operation.protocol())) {
-            return new ToolInput(definition.requestSchema(), Map.of());
-        }
-        if (!"HTTP".equals(operation.protocol())) {
-            throw new McpValidationException(
-                    "GATEWAY_MCP_OPERATION_PROTOCOL_UNSUPPORTED",
-                    "operations." + operation.operationKey() + ".protocol",
-                    "managed MCP Tool requires HTTP or RPC Operation"
-            );
-        }
-        if (bool(definition.attributes(), "streaming", false)) {
-            throw new McpValidationException(
-                    "GATEWAY_MCP_STREAMING_UNSUPPORTED",
-                    "operations." + operation.operationKey() + ".streaming",
-                    "streaming Operation cannot be projected as an MCP Tool"
-            );
-        }
-        Object reported = definition.attributes().get("parameters");
-        Collection<?> parameters = reported instanceof Collection<?> values
-                ? values
-                : List.of();
-        Map<String, Object> properties = new LinkedHashMap<>();
-        Map<String, String> locations = new LinkedHashMap<>();
-        List<String> requiredNames = new ArrayList<>();
-        int bodyCount = 0;
-        for (Object value : parameters) {
-            Map<String, Object> parameter = objectMap(value);
-            String name = required(parameter, "name");
-            String location = required(parameter, "location")
-                    .toUpperCase(Locale.ROOT);
-            boolean required = bool(parameter, "required", false);
-            if ("PART".equals(location)) {
-                throw unsupportedParameter(operation, name, location);
-            }
-            if ("HEADER".equals(location) || "COOKIE".equals(location)) {
-                boolean injectedAuthorization = "HEADER".equals(location)
-                        && "Authorization".equalsIgnoreCase(name);
-                if (required && !injectedAuthorization) {
-                    throw unsupportedParameter(operation, name, location);
-                }
-                continue;
-            }
-            if (!Set.of("PATH", "QUERY", "BODY").contains(location)) {
-                throw unsupportedParameter(operation, name, location);
-            }
-            if ("BODY".equals(location) && ++bodyCount > 1) {
-                throw new McpValidationException(
-                        "GATEWAY_MCP_MULTIPLE_BODY_PARAMETERS",
-                        "operations." + operation.operationKey()
-                                + ".parameters",
-                        "managed MCP Tool cannot declare multiple BODY inputs"
-                );
-            }
-            if (properties.putIfAbsent(
-                    name,
-                    objectMap(parameter.get("schema"))
-            ) != null) {
-                throw new McpValidationException(
-                        "GATEWAY_MCP_PARAMETER_DUPLICATE",
-                        "operations." + operation.operationKey()
-                                + ".parameters." + name,
-                        "managed MCP Tool input names must be unique"
-                );
-            }
-            locations.put(name, location);
-            if (required) {
-                requiredNames.add(name);
-            }
-        }
-        Map<String, Object> inputSchema = new LinkedHashMap<>();
-        inputSchema.put("type", "object");
-        inputSchema.put("properties", properties);
-        if (!requiredNames.isEmpty()) {
-            inputSchema.put("required", requiredNames);
-        }
-        inputSchema.put("additionalProperties", false);
-        return new ToolInput(Map.copyOf(inputSchema), Map.copyOf(locations));
-    }
-
-    private McpValidationException unsupportedParameter(
-            GatewayCatalogStore.OperationRecord operation,
-            String name,
-            String location) {
-        return new McpValidationException(
-                "GATEWAY_MCP_PARAMETER_LOCATION_UNSUPPORTED",
-                "operations." + operation.operationKey()
-                        + ".parameters." + name,
-                location + " input " + name
-                        + " is unsupported for managed MCP Tool"
-        );
-    }
-
     private String description(
             GatewayCatalogStore.OperationDefinition definition) {
         String description = optional(definition.attributes(), "description");
         return description == null ? definition.summary() : description;
+    }
+
+    private String inputSchema(
+            String protocol,
+            Map<String, Object> requestSchema) {
+        if ("HTTP".equals(protocol)) {
+            return schema(httpInputSchema(requestSchema));
+        }
+        return schema(requestSchema);
+    }
+
+    private Map<String, Object> httpInputSchema(
+            Map<String, Object> requestSchema) {
+        if (requestSchema == null) {
+            return null;
+        }
+        Map<String, Object> projected = new LinkedHashMap<>();
+        requestSchema.forEach((key, value) -> {
+            if (!"properties".equals(key) && !"required".equals(key)) {
+                projected.put(key, value);
+            }
+        });
+        Map<String, Object> properties = objectMap(
+                requestSchema.get("properties")
+        );
+        Map<String, Object> exposedProperties = new LinkedHashMap<>();
+        for (String location : List.of("path", "query", "body")) {
+            if (properties.containsKey(location)) {
+                exposedProperties.put(location, properties.get(location));
+            }
+        }
+        projected.put("properties", exposedProperties);
+        Object requiredValue = requestSchema.get("required");
+        if (requiredValue instanceof Collection<?> required) {
+            List<String> exposedRequired = required.stream()
+                    .map(String::valueOf)
+                    .filter(List.of("path", "query", "body")::contains)
+                    .toList();
+            if (!exposedRequired.isEmpty()) {
+                projected.put("required", exposedRequired);
+            }
+        }
+        return Map.copyOf(projected);
     }
 
     static String managedToolId(String serverCode, String operationKey) {
@@ -785,9 +744,4 @@ public class McpReleaseContentFactory {
     ) {
     }
 
-    private record ToolInput(
-            Map<String, Object> schema,
-            Map<String, String> locations
-    ) {
-    }
 }

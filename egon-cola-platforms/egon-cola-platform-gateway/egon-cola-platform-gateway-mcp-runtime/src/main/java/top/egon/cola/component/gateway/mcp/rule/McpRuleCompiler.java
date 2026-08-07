@@ -138,10 +138,9 @@ public final class McpRuleCompiler {
 
     private void validateToolInvocation(McpRuntimeTool tool) {
         if (tool.operationId() == null) {
-            if (tool.operationProtocol() != null
-                    || !tool.inputLocations().isEmpty()) {
+            if (tool.operationProtocol() != null) {
                 throw invalid(
-                        "remote MCP Tool cannot declare Operation input locations"
+                        "remote MCP Tool cannot declare a local Operation"
                 );
             }
             return;
@@ -151,15 +150,6 @@ public final class McpRuleCompiler {
             throw invalid(
                     "local MCP Tool requires HTTP or RPC operation protocol"
             );
-        }
-        if ("RPC".equals(tool.operationProtocol())
-                && !tool.inputLocations().isEmpty()) {
-            throw invalid("RPC MCP Tool cannot declare input locations");
-        }
-        if ("HTTP".equals(tool.operationProtocol())
-                && !Set.of("PATH", "QUERY", "BODY")
-                .containsAll(tool.inputLocations().values())) {
-            throw invalid("HTTP MCP Tool has an unsupported input location");
         }
     }
 

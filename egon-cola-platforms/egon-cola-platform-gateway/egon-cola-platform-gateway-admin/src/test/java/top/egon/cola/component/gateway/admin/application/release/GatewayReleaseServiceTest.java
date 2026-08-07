@@ -241,7 +241,7 @@ class GatewayReleaseServiceTest {
     }
 
     @Test
-    void managedToolPublishesItsOperationWithoutAnEnabledRoute() {
+    void managedToolPublishesItsOperationWithoutARoute() {
         McpReleaseContentFactory mcp = mock(McpReleaseContentFactory.class);
         McpRuleContent mcpContent = new McpRuleContent(
                 List.of(new McpRuntimeServer(
@@ -266,7 +266,6 @@ class GatewayReleaseServiceTest {
                         null,
                         "{\"type\":\"object\"}",
                         "{\"type\":\"object\"}",
-                        Map.of("id", "PATH"),
                         Map.of(),
                         Set.of(),
                         "LOW",
@@ -348,16 +347,17 @@ class GatewayReleaseServiceTest {
                 "admin",
                 NOW
         );
-        GatewayDraftStore.RouteDraft route =
-                new GatewayDraftStore.RouteDraft(
+        List<GatewayDraftStore.RouteDraft> routes = routeEnabled
+                ? List.of(new GatewayDraftStore.RouteDraft(
                         "group-1",
                         "route-1",
                         "operation-1",
                         routeContent,
-                        routeEnabled,
+                        true,
                         NOW,
                         "admin"
-                );
+                ))
+                : List.of();
         GatewayDraftService.DraftView view =
                 new GatewayDraftService.DraftView(
                         "group-1",
@@ -365,7 +365,7 @@ class GatewayReleaseServiceTest {
                         null,
                         "EDITABLE",
                         null,
-                        List.of(route),
+                        routes,
                         List.of(),
                         NOW
                 );

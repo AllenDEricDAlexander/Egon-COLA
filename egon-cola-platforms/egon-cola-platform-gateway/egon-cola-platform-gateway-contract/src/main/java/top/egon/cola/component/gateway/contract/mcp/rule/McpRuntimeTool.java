@@ -14,7 +14,6 @@ public record McpRuntimeTool(
         String remoteMountId,
         String inputSchema,
         String outputSchema,
-        Map<String, String> inputLocations,
         Map<String, String> annotations,
         Set<String> requiredPermissions,
         String riskLevel,
@@ -33,7 +32,6 @@ public record McpRuntimeTool(
         remoteMountId = McpContractSupport.optional(remoteMountId);
         inputSchema = McpContractSupport.optional(inputSchema);
         outputSchema = McpContractSupport.optional(outputSchema);
-        inputLocations = McpContractSupport.sortedMap(inputLocations);
         annotations = McpContractSupport.sortedMap(annotations);
         requiredPermissions = McpContractSupport.sortedStrings(
                 requiredPermissions

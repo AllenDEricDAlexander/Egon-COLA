@@ -285,7 +285,6 @@ class McpSecurityIT {
                 "initialize",
                 Map.of(),
                 Map.of(),
-                Map.of(),
                 null,
                 Duration.ofSeconds(1)
         );
