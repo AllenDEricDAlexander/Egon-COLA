@@ -49,9 +49,12 @@ beforeEach(() => {
     name: 'orders.query',
     description: 'Query an order',
     operationProtocol: 'HTTP',
-    inputSchema: { type: 'object' },
+    inputSchema: {
+      type: 'object',
+      properties: { body: { $ref: '#/$defs/OrderQuery' } },
+      $defs: { OrderQuery: { type: 'object' } },
+    },
     outputSchema: { type: 'object' },
-    inputLocations: {},
     codeServerId: 'server-1',
     codeServerCode: 'commerce',
     serverId: 'server-1',
@@ -92,6 +95,7 @@ describe('McpToolsPanel', () => {
     expect(screen.getAllByText('order:read')).toHaveLength(2)
     expect(screen.queryByRole('button', { name: /新增.*Tool/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '删除' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '查看 Schema' })).toBeVisible()
     expect(screen.getByRole('button', { name: '恢复默认' })).toBeDisabled()
 
     fireEvent.click(screen.getByRole('button', { name: '严格 Override' }))
@@ -103,5 +107,9 @@ describe('McpToolsPanel', () => {
     expect(screen.queryByLabelText('Input Schema')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Output Schema')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('幂等')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '查看 Schema' }))
+    expect(screen.getByRole('heading', { name: 'Managed Tool Schema' })).toBeVisible()
+    expect(screen.getByText(/#\/\$defs\/OrderQuery/)).toBeVisible()
   })
 })

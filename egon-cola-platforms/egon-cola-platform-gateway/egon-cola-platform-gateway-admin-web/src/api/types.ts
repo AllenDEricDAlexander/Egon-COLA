@@ -450,7 +450,6 @@ export type McpManagedTool = {
   operationProtocol: string
   inputSchema: Record<string, unknown>
   outputSchema: Record<string, unknown>
-  inputLocations: Record<string, string>
   codeServerId: string
   codeServerCode: string
   serverId: string

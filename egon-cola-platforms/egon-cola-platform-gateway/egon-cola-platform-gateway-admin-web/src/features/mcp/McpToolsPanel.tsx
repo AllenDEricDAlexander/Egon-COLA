@@ -10,6 +10,7 @@ import {
   Space,
   Switch,
   Table,
+  Tabs,
   Tag,
   Typography,
   message,
@@ -51,6 +52,7 @@ export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
   const [messageApi, messageContext] = message.useMessage()
   const [form] = Form.useForm<OverrideForm>()
   const [editing, setEditing] = useState<McpManagedTool>()
+  const [schemaTool, setSchemaTool] = useState<McpManagedTool>()
   const tools = useQuery({
     queryKey: ['mcp-managed-tools', gatewayGroupId, serverId],
     queryFn: ({ signal }) => gatewayApi.mcpManagedTools(gatewayGroupId, serverId, signal),
@@ -214,10 +216,11 @@ export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
           },
           {
             title: '操作',
-            width: 200,
+            width: 300,
             fixed: 'end',
             render: (_, tool) => (
               <Space>
+                <Button onClick={() => setSchemaTool(tool)}>查看 Schema</Button>
                 <Button disabled={!canWrite} onClick={() => openOverride(tool)}>严格 Override</Button>
                 <Popconfirm
                   title="恢复注解默认？"
@@ -231,6 +234,39 @@ export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
           },
         ]}
       />
+      <Modal
+        title="Managed Tool Schema"
+        open={Boolean(schemaTool)}
+        width={860}
+        footer={null}
+        onCancel={() => setSchemaTool(undefined)}
+        destroyOnHidden
+      >
+        {schemaTool && (
+          <Tabs
+            items={[
+              {
+                key: 'input',
+                label: 'Input Schema',
+                children: (
+                  <pre style={{ maxHeight: 520, overflow: 'auto' }}>
+                    {JSON.stringify(schemaTool.inputSchema, null, 2)}
+                  </pre>
+                ),
+              },
+              {
+                key: 'output',
+                label: 'Output Schema',
+                children: (
+                  <pre style={{ maxHeight: 520, overflow: 'auto' }}>
+                    {JSON.stringify(schemaTool.outputSchema, null, 2)}
+                  </pre>
+                ),
+              },
+            ]}
+          />
+        )}
+      </Modal>
       <Modal
         title="Managed Tool 严格 Override"
         open={Boolean(editing)}

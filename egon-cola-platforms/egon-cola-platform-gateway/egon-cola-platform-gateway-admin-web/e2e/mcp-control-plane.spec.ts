@@ -60,7 +60,6 @@ const tool = {
   operationProtocol: 'HTTP',
   inputSchema: { type: 'object' },
   outputSchema: { type: 'object' },
-  inputLocations: {},
   codeServerId: server.id,
   codeServerCode: server.serverCode,
   serverId: server.id,
