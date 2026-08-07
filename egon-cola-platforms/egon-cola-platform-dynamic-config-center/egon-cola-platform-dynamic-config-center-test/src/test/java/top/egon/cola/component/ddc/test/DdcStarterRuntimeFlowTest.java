@@ -8,6 +8,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.test.context.ContextConfiguration;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
@@ -19,6 +22,7 @@ import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.DdcRuntimeState;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
@@ -49,6 +53,8 @@ import static org.mockito.Mockito.when;
         "egon.cola.component.ddc.instance.heartbeat-interval-seconds=3600"
 })
 @Import(DdcStarterRuntimeFlowTest.RuntimeTestConfiguration.class)
+@ContextConfiguration(initializers =
+        DdcStarterRuntimeFlowTest.DdcPropertySourceInitializer.class)
 class DdcStarterRuntimeFlowTest {
 
     @Autowired
@@ -63,7 +69,7 @@ class DdcStarterRuntimeFlowTest {
     @Test
     void starterRegistersPullsAppliesAndGoesOfflineWithoutAdminClasses() {
         assertThat(runtimeCoordinator.state()).isEqualTo(DdcRuntimeState.READY);
-        assertThat(adminClient.events()).containsExactly("register", "defaults", "pull");
+        assertThat(adminClient.events()).containsExactly("register", "pull");
         assertThat(sampleConfigService.getRateLimit()).isEqualTo(250);
         assertThatThrownBy(() -> Class.forName(
                 "top.egon.cola.component.ddc.admin.service.config.DdcConfigService"
@@ -72,7 +78,7 @@ class DdcStarterRuntimeFlowTest {
         runtimeCoordinator.stop();
 
         assertThat(adminClient.events())
-                .containsExactly("register", "defaults", "pull", "offline");
+                .containsExactly("register", "pull", "offline");
     }
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -91,6 +97,18 @@ class DdcStarterRuntimeFlowTest {
             when(topic.addListener(eq(DdcPublishMessage.class), any()))
                     .thenReturn(1);
             return client;
+        }
+    }
+
+    static class DdcPropertySourceInitializer implements
+            ApplicationContextInitializer<ConfigurableApplicationContext> {
+
+        @Override
+        public void initialize(ConfigurableApplicationContext context) {
+            context.getEnvironment().getPropertySources().addFirst(
+                    new DdcYamlPropertySourceLoader()
+                            .empty("application.yml")
+            );
         }
     }
 
@@ -131,9 +149,9 @@ class DdcStarterRuntimeFlowTest {
         public List<DdcConfigValue> pull() {
             events.add("pull");
             DdcConfigValue value = new DdcConfigValue();
-            value.setConfigKey("rateLimit");
-            value.setConfigValue("250");
-            value.setValueType(Integer.class.getName());
+            value.setConfigKey("application.yml");
+            value.setConfigValue("rateLimit: 250\n");
+            value.setValueType("YAML");
             value.setVersion(1L);
             return List.of(value);
         }

@@ -53,13 +53,13 @@
 
 **Steps:**
 
-- [ ] Route only `application.yml` publications through one version/checksum/ACK path.
-- [ ] Atomically switch the YAML snapshot, compute added/updated/removed leaves, and restore the old snapshot on synchronous apply failure.
-- [ ] Dispatch changed leaf values through exact/prefix/fallback Appliers so Gateway, IdP, and `@DdcValue` keep their domain behavior.
-- [ ] Rebind only setter-based `@DdcRefreshable` configuration properties whose prefix changed; classify all other changed keys as restart-required.
-- [ ] Publish a value-free change event after successful application and ACK accepted non-dynamic changes as `SUCCESS`.
-- [ ] Remove default reporting and prove refresh, rollback, idempotence, event classification, and compatibility with focused tests.
-- [ ] Run Starter and DDC consumer tests and commit as `feat(ddc): refresh YAML configuration by property leaf`.
+- [x] Route only `application.yml` publications through one version/checksum/ACK path.
+- [x] Atomically switch the YAML snapshot, compute added/updated/removed leaves, and restore the old snapshot on synchronous apply failure.
+- [x] Dispatch changed leaf values through exact/prefix/fallback Appliers so Gateway, IdP, and `@DdcValue` keep their domain behavior.
+- [x] Rebind only setter-based `@DdcRefreshable` configuration properties whose prefix changed; classify all other changed keys as restart-required.
+- [x] Publish a value-free change event after successful application and ACK accepted non-dynamic changes as `SUCCESS`.
+- [x] Remove default reporting from runtime coordination and prove refresh, rollback, idempotence, event classification, and compatibility with focused tests.
+- [x] Run Starter and DDC consumer tests and commit as `feat(ddc): refresh YAML configuration by property leaf`.
 
 ## Task 3: Admin YAML-only Contract and Validation
 

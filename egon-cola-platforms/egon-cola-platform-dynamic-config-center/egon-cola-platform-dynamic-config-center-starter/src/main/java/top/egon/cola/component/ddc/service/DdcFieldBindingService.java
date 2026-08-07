@@ -2,6 +2,8 @@ package top.egon.cola.component.ddc.service;
 
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.StandardEnvironment;
 import top.egon.cola.component.ddc.annotation.DdcValue;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.common.DdcValueConverter;
@@ -20,9 +22,18 @@ public class DdcFieldBindingService {
 
     private final DdcValueConverter converter;
 
+    private final Environment environment;
+
     public DdcFieldBindingService(DdcLocalConfigRepository repository, DdcValueConverter converter) {
+        this(repository, converter, new StandardEnvironment());
+    }
+
+    public DdcFieldBindingService(DdcLocalConfigRepository repository,
+                                  DdcValueConverter converter,
+                                  Environment environment) {
         this.repository = repository;
         this.converter = converter;
+        this.environment = environment;
     }
 
     public void bind(Object bean, Class<?> targetClass) {
@@ -35,7 +46,19 @@ public class DdcFieldBindingService {
         List<PendingWrite> pendingWrites = new ArrayList<>();
         for (DdcFieldBinding binding : bindings) {
             if (binding.isRefreshable()) {
-                Object converted = converter.convert(value, binding.getTargetType());
+                String resolvedValue = value == null
+                        ? binding.getDefaultValue()
+                        : value;
+                if ((resolvedValue == null || resolvedValue.isEmpty())
+                        && binding.isRequired()) {
+                    throw new DdcException(
+                            "required DDC property is missing: " + key
+                    );
+                }
+                Object converted = converter.convert(
+                        resolvedValue,
+                        binding.getTargetType()
+                );
                 pendingWrites.add(new PendingWrite(binding, read(binding), converted));
             }
         }
@@ -56,7 +79,11 @@ public class DdcFieldBindingService {
             }
             throw exception;
         }
-        repository.updateVersion(key, version);
+    }
+
+    public boolean hasRefreshableBinding(String key) {
+        return repository.bindings(key).stream()
+                .anyMatch(DdcFieldBinding::isRefreshable);
     }
 
     protected Object read(DdcFieldBinding binding) {
@@ -76,17 +103,26 @@ public class DdcFieldBindingService {
         DdcFieldBinding binding = new DdcFieldBinding(bean, field, definition.getKey(), definition.getDefaultValue(),
                 definition.getType(), annotation.required(), annotation.refreshable());
         repository.addBinding(definition.getKey(), binding);
-        applyDefaultValue(binding);
+        applyInitialValue(binding);
     }
 
-    private void applyDefaultValue(DdcFieldBinding binding) {
-        if (binding.getDefaultValue() == null || binding.getDefaultValue().isEmpty()) {
+    private void applyInitialValue(DdcFieldBinding binding) {
+        String value = environment.getProperty(binding.getConfigKey());
+        if (value == null || value.isEmpty()) {
+            value = binding.getDefaultValue();
+        }
+        if (value == null || value.isEmpty()) {
+            if (binding.isRequired()) {
+                throw new DdcException(
+                        "required DDC property is missing: "
+                                + binding.getConfigKey()
+                );
+            }
             return;
         }
         try {
-            Object converted = converter.convert(binding.getDefaultValue(), binding.getTargetType());
+            Object converted = converter.convert(value, binding.getTargetType());
             write(binding, converted);
-            repository.updateVersion(binding.getConfigKey(), 0L);
         } catch (Exception e) {
             if (binding.isRequired()) {
                 throw new DdcException("apply default config value failed", e);

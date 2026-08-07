@@ -25,6 +25,11 @@ public final class DdcConfigDataLoader
                 .get(DdcBootstrapClient.class);
         DdcConfigValue value = client.load(resource.resourceName());
         if (value == null) {
+            if (resource.optional()) {
+                return configData(yamlLoader.empty(
+                        resource.resourceName()
+                ));
+            }
             throw new ConfigDataResourceNotFoundException(resource);
         }
         DdcDynamicPropertySource propertySource = yamlLoader.load(
@@ -32,6 +37,11 @@ public final class DdcConfigDataLoader
                 value.getConfigValue(),
                 value.getVersion()
         );
+        return configData(propertySource);
+    }
+
+    private ConfigData configData(
+            DdcDynamicPropertySource propertySource) {
         return new ConfigData(
                 List.of(propertySource),
                 ConfigData.Option.IGNORE_IMPORTS,

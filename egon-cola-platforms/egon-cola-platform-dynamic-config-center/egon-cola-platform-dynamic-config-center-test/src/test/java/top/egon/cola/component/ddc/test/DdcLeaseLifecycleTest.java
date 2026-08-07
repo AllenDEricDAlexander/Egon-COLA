@@ -14,7 +14,6 @@ import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.service.DdcInstanceService;
 import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
@@ -60,7 +59,6 @@ class DdcLeaseLifecycleTest {
                 properties,
                 instanceService,
                 adminClient,
-                new DdcLocalConfigRepository(),
                 mock(DdcRefreshService.class),
                 subscription,
                 sessionHolder
@@ -71,7 +69,6 @@ class DdcLeaseLifecycleTest {
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.READY);
         assertThat(adminClient.events()).containsExactly(
                 "register",
-                "defaults",
                 "snapshot"
         );
         DdcLeaseSession first = coordinator.currentSession().orElseThrow();

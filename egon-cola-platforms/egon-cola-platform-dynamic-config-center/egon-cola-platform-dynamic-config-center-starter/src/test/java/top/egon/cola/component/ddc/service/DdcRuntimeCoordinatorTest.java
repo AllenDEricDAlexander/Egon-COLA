@@ -55,12 +55,12 @@ class DdcRuntimeCoordinatorTest {
         coordinator.start();
 
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.READY);
-        assertThat(events).containsExactly("register", "defaults", "pull", "snapshot");
+        assertThat(events).containsExactly("register", "pull", "snapshot");
 
         coordinator.stop();
 
         assertThat(events).containsExactly(
-                "register", "defaults", "pull", "snapshot", "offline", "unsubscribe"
+                "register", "pull", "snapshot", "offline", "unsubscribe"
         );
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.STOPPED);
     }
@@ -119,7 +119,7 @@ class DdcRuntimeCoordinatorTest {
         coordinator.heartbeatOnce();
 
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.READY);
-        assertThat(events).containsExactly("register", "register", "defaults", "pull");
+        assertThat(events).containsExactly("register", "register", "pull");
         coordinator.stop();
     }
 
@@ -311,7 +311,6 @@ class DdcRuntimeCoordinatorTest {
                 properties,
                 instanceService,
                 adminClient,
-                repository,
                 refreshService,
                 subscription,
                 holder

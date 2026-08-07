@@ -50,13 +50,33 @@ class DdcConfigDataLoaderTest {
     }
 
     @Test
-    void missingRemoteDocumentUsesBootNotFoundSemantics() {
+    void optionalMissingRemoteDocumentKeepsAnEmptyDynamicSource()
+            throws Exception {
         ConfigDataLoaderContext context = context(new DdcBootstrapClient(
                 List::<DdcConfigValue>of,
                 1024
         ));
 
-        assertThatThrownBy(() -> loader.load(context, resource(true)))
+        ConfigData configData = loader.load(context, resource(true));
+
+        assertThat(configData.getPropertySources()).singleElement()
+                .isInstanceOfSatisfying(
+                        DdcDynamicPropertySource.class,
+                        source -> {
+                            assertThat(source.getPropertyNames()).isEmpty();
+                            assertThat(source.snapshot().version()).isZero();
+                        }
+                );
+    }
+
+    @Test
+    void requiredMissingRemoteDocumentUsesBootNotFoundSemantics() {
+        ConfigDataLoaderContext context = context(new DdcBootstrapClient(
+                List::<DdcConfigValue>of,
+                1024
+        ));
+
+        assertThatThrownBy(() -> loader.load(context, resource(false)))
                 .isInstanceOf(ConfigDataResourceNotFoundException.class);
     }
 

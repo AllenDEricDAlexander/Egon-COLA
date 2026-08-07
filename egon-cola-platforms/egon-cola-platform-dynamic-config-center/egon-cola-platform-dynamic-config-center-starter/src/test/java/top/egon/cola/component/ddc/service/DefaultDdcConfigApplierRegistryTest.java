@@ -31,6 +31,16 @@ class DefaultDdcConfigApplierRegistryTest {
 
         registry.resolve("application.name").apply("application.name", "value", 1L);
         assertThat(appliedBy).hasValue("fallback");
+
+        assertThat(registry.hasExplicitRegistration(
+                "gateway.route.primary"
+        )).isTrue();
+        assertThat(registry.hasExplicitRegistration(
+                "gateway.route.secondary"
+        )).isTrue();
+        assertThat(registry.hasExplicitRegistration(
+                "application.name"
+        )).isFalse();
     }
 
     @Test

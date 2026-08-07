@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.ddc.annotation.DdcValue;
 import top.egon.cola.component.ddc.common.DdcValueConverter;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
@@ -34,8 +35,25 @@ class DdcFieldBindingServiceTest {
         service.apply("limit", "5", 2L);
 
         assertThat(bean.limit).isEqualTo(5);
-        assertThat(repository.version("limit")).isEqualTo(2L);
+        assertThat(repository.version("limit")).isNull();
         assertThat(repository.bindings("limit")).hasSize(1);
+    }
+
+    @Test
+    void initialBindingReadsTheConfigDataBackedEnvironment() {
+        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("limit", "7");
+        DdcFieldBindingService service = new DdcFieldBindingService(
+                repository,
+                new DdcValueConverter(),
+                environment
+        );
+        SampleBean bean = new SampleBean();
+
+        service.bind(bean, SampleBean.class);
+
+        assertThat(bean.limit).isEqualTo(7);
     }
 
     @Test
@@ -49,7 +67,7 @@ class DdcFieldBindingServiceTest {
                 .isInstanceOf(Exception.class);
 
         assertThat(bean.limit).isEqualTo(1);
-        assertThat(repository.version("limit")).isZero();
+        assertThat(repository.version("limit")).isNull();
     }
 
     @Test
@@ -67,7 +85,7 @@ class DdcFieldBindingServiceTest {
 
         assertThat(bean.first).isEqualTo(1);
         assertThat(bean.second).isEqualTo(1);
-        assertThat(repository.version("limit")).isZero();
+        assertThat(repository.version("limit")).isNull();
     }
 
     private static class FailingSecondWriteService extends DdcFieldBindingService {

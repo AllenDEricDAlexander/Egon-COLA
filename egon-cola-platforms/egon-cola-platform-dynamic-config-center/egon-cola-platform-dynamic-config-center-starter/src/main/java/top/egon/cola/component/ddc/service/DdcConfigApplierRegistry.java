@@ -7,4 +7,8 @@ public interface DdcConfigApplierRegistry {
     void registerPrefix(String configKeyPrefix, DdcConfigApplier applier);
 
     DdcConfigApplier resolve(String configKey);
+
+    default boolean hasExplicitRegistration(String configKey) {
+        return false;
+    }
 }

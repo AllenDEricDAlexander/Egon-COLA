@@ -3,8 +3,12 @@ package top.egon.cola.platform.rbac3.admin.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
+import top.egon.cola.component.ddc.common.DdcValueConverter;
+import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
@@ -17,9 +21,12 @@ import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
+import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.service.DdcAckDelivery;
 import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
+import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
@@ -38,8 +45,10 @@ import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeS
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 class Rbac3DdcRefreshIntegrationTest {
@@ -58,6 +68,9 @@ class Rbac3DdcRefreshIntegrationTest {
     private static final String INVALID_RAW_VALUE = "7200";
 
     private final AtomicInteger messageSequence = new AtomicInteger();
+
+    private final Map<String, String> acceptedValues =
+            new LinkedHashMap<>();
 
     @Test
     void realRefreshRegistryAndAckDeliveryPreserveLkgAndRecover() throws Exception {
@@ -75,20 +88,45 @@ class Rbac3DdcRefreshIntegrationTest {
         try (DdcAckDelivery delivery = new DdcAckDelivery(
                 adminClient, deliveryProperties)) {
             delivery.start();
+            MockEnvironment environment = new MockEnvironment();
+            DdcDynamicPropertySource propertySource =
+                    new DdcYamlPropertySourceLoader()
+                            .empty("application.yml");
+            environment.getPropertySources().addFirst(propertySource);
+            DdcFieldBindingService fieldBindingService =
+                    new DdcFieldBindingService(
+                            repository,
+                            new DdcValueConverter(),
+                            environment
+                    );
+            DdcConfigurationPropertiesRebinder rebinder =
+                    mock(DdcConfigurationPropertiesRebinder.class);
+            when(rebinder.rebind(any(), any())).thenReturn(Set.of());
+            DdcYamlConfigApplier yamlConfigApplier =
+                    new DdcYamlConfigApplier(
+                            environment,
+                            registry,
+                            fieldBindingService,
+                            rebinder,
+                            event -> {
+                            },
+                            1024 * 1024
+                    );
             DdcRefreshService refresh = new DdcRefreshService(
-                    repository, registry, delivery, holder);
+                    repository,
+                    yamlConfigApplier,
+                    delivery,
+                    holder
+            );
 
-            refresh.applySnapshots(List.of(
-                    config(AtomicRbac3RuntimePolicy.SESSION_IDLE_TIMEOUT_KEY,
-                            "28800", 4L),
-                    config(AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY,
-                            "1200", 1L),
-                    config(AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY,
-                            "8", 5L),
-                    config(AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY,
-                            "43200", 3L),
-                    config(AtomicRbac3RuntimePolicy.REFRESH_TOKEN_TTL_KEY,
-                            "172800", 2L)));
+            acceptedValues.putAll(Map.of(
+                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1200",
+                    AtomicRbac3RuntimePolicy.REFRESH_TOKEN_TTL_KEY, "172800",
+                    AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY, "43200",
+                    AtomicRbac3RuntimePolicy.SESSION_IDLE_TIMEOUT_KEY, "28800",
+                    AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, "8"
+            ));
+            refresh.applySnapshots(List.of(config(yaml(acceptedValues), 1L)));
 
             assertThat(delivery.submittedCount()).isZero();
             assertThat(adminClient.acks()).isEmpty();
@@ -100,62 +138,70 @@ class Rbac3DdcRefreshIntegrationTest {
             assertThat(policy.current().configVersions()).containsExactlyInAnyOrderEntriesOf(
                     Map.of(
                             AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, 1L,
-                            AtomicRbac3RuntimePolicy.REFRESH_TOKEN_TTL_KEY, 2L,
-                            AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY, 3L,
-                            AtomicRbac3RuntimePolicy.SESSION_IDLE_TIMEOUT_KEY, 4L,
-                            AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, 5L));
+                            AtomicRbac3RuntimePolicy.REFRESH_TOKEN_TTL_KEY, 1L,
+                            AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY, 1L,
+                            AtomicRbac3RuntimePolicy.SESSION_IDLE_TIMEOUT_KEY, 1L,
+                            AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, 1L));
 
             refresh.refresh(message(
-                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1500", 6L));
-            assertAck(adminClient.nextAck(), DdcAckStatus.SUCCESS, 6L);
+                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1500", 2L));
+            assertAck(adminClient.nextAck(), DdcAckStatus.SUCCESS, 2L);
+            acceptedValues.put(
+                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY,
+                    "1500"
+            );
             var afterValidAccess = policy.current();
 
             refresh.refresh(message(
-                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1500", 6L));
-            assertAck(adminClient.nextAck(), DdcAckStatus.SUCCESS, 6L);
+                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1500", 2L));
+            assertAck(adminClient.nextAck(), DdcAckStatus.SUCCESS, 2L);
             assertThat(policy.current()).isSameAs(afterValidAccess);
 
             refresh.refresh(message(
-                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1400", 5L));
-            assertAck(adminClient.nextAck(), DdcAckStatus.IGNORED, 6L);
+                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1400", 1L));
+            assertAck(adminClient.nextAck(), DdcAckStatus.IGNORED, 2L);
             assertThat(policy.current()).isSameAs(afterValidAccess);
 
             refresh.refresh(message(
-                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1400", 6L));
-            assertAck(adminClient.nextAck(), DdcAckStatus.FAILED, 6L);
+                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1400", 2L));
+            assertAck(adminClient.nextAck(), DdcAckStatus.FAILED, 2L);
             assertThat(policy.current()).isSameAs(afterValidAccess);
 
             Long previousVersion = repository.version(
-                    AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY);
+                    "application.yml");
             String previousChecksum = repository.checksum(
-                    AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY);
+                    "application.yml");
             refresh.refresh(message(
                     AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY,
-                    INVALID_RAW_VALUE, 7L));
+                    INVALID_RAW_VALUE, 3L));
             DdcAckRequest failed = adminClient.nextAck();
             assertAck(failed, DdcAckStatus.FAILED, previousVersion);
             assertThat(failed.getErrorMessage())
                     .contains("IDLE_EXCEEDS_ABSOLUTE")
                     .doesNotContain(INVALID_RAW_VALUE);
             assertThat(repository.version(
-                    AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY))
+                    "application.yml"))
                     .isEqualTo(previousVersion);
             assertThat(repository.checksum(
-                    AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY))
+                    "application.yml"))
                     .isEqualTo(previousChecksum);
             assertThat(policy.current().sessionAbsoluteTimeout())
                     .isEqualTo(Duration.ofHours(12));
             assertThat(policy.lastApplyFailure()).hasValueSatisfying(failure -> {
                 assertThat(failure.key()).isEqualTo(
                         AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY);
-                assertThat(failure.targetVersion()).isEqualTo(7L);
+                assertThat(failure.targetVersion()).isEqualTo(3L);
                 assertThat(failure.errorCode()).isEqualTo("IDLE_EXCEEDS_ABSOLUTE");
             });
 
             refresh.refresh(message(
                     AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY,
-                    "86400", 8L));
-            assertAck(adminClient.nextAck(), DdcAckStatus.SUCCESS, 8L);
+                    "86400", 4L));
+            assertAck(adminClient.nextAck(), DdcAckStatus.SUCCESS, 4L);
+            acceptedValues.put(
+                    AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY,
+                    "86400"
+            );
             assertThat(policy.current().sessionAbsoluteTimeout()).isEqualTo(Duration.ofDays(1));
             assertThat(policy.lastApplyFailure()).isEmpty();
             assertThat(delivery.submittedCount()).isEqualTo(6L);
@@ -250,25 +296,42 @@ class Rbac3DdcRefreshIntegrationTest {
     }
 
     private DdcPublishMessage message(String key, String value, long version) {
+        Map<String, String> candidate =
+                new LinkedHashMap<>(acceptedValues);
+        candidate.put(key, value);
+        String yaml = yaml(candidate);
         DdcPublishMessage message = new DdcPublishMessage();
         message.setChangeId("change-" + messageSequence.incrementAndGet());
         message.setBizCode("rbac3");
         message.setAppCode("rbac3-admin");
         message.setEnv("prod");
-        message.setConfigKey(key);
-        message.setConfigValue(value);
+        message.setConfigKey("application.yml");
+        message.setConfigValue(yaml);
+        message.setValueType("YAML");
         message.setTargetVersion(version);
-        message.setContentChecksum(DdcChecksum.content(value));
+        message.setContentChecksum(DdcChecksum.content(yaml));
         message.setTargets(List.of(new DdcPublishTarget("rbac3-1", CONFIG_LEASE_ID)));
         return message;
     }
 
-    private DdcConfigValue config(String key, String value, long version) {
+    private DdcConfigValue config(String value, long version) {
         DdcConfigValue config = new DdcConfigValue();
-        config.setConfigKey(key);
+        config.setConfigKey("application.yml");
         config.setConfigValue(value);
+        config.setValueType("YAML");
         config.setVersion(version);
         return config;
+    }
+
+    private String yaml(Map<String, String> values) {
+        StringBuilder yaml = new StringBuilder();
+        values.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> yaml.append(entry.getKey())
+                        .append(": ")
+                        .append(entry.getValue())
+                        .append('\n'));
+        return yaml.toString();
     }
 
     private static final class RecordingAdminClient implements DdcAdminClient {

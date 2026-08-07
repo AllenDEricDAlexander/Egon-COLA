@@ -19,6 +19,20 @@ public final class DdcYamlPropertySourceLoader {
     private final YamlPropertySourceLoader delegate =
             new YamlPropertySourceLoader();
 
+    public DdcDynamicPropertySource empty(String resourceName) {
+        DdcDynamicPropertySource.Snapshot snapshot =
+                new DdcDynamicPropertySource.Snapshot(
+                        resourceName,
+                        0L,
+                        DdcChecksum.content(""),
+                        Map.of()
+                );
+        return new DdcDynamicPropertySource(
+                PROPERTY_SOURCE_PREFIX + resourceName,
+                snapshot
+        );
+    }
+
     public DdcDynamicPropertySource load(String resourceName,
                                          String content,
                                          long version) throws IOException {

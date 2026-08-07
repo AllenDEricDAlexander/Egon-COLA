@@ -10,97 +10,101 @@ import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 public class DdcRefreshService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DdcRefreshService.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(DdcRefreshService.class);
 
     private static final int MAX_ERROR_MESSAGE_LENGTH = 256;
 
+    private static final String RESOURCE_NAME =
+            DdcYamlConfigApplier.RESOURCE_NAME;
+
+    private static final String VALUE_TYPE = "YAML";
+
     private final DdcLocalConfigRepository repository;
 
-    private final DdcConfigApplierRegistry applierRegistry;
+    private final DdcYamlConfigApplier yamlConfigApplier;
 
     private final AckSubmitter ackSubmitter;
 
     private final DdcLeaseSessionHolder sessionHolder;
 
     public DdcRefreshService(DdcLocalConfigRepository repository,
-                             DdcConfigApplier applyFunction,
+                             DdcYamlConfigApplier yamlConfigApplier,
                              DdcAdminClient adminClient,
                              DdcLeaseSessionHolder sessionHolder) {
         this(
                 repository,
-                new DefaultDdcConfigApplierRegistry(applyFunction),
+                yamlConfigApplier,
                 directAck(adminClient),
                 sessionHolder
         );
     }
 
     public DdcRefreshService(DdcLocalConfigRepository repository,
-                             DdcConfigApplierRegistry applierRegistry,
-                             DdcAdminClient adminClient,
-                             DdcLeaseSessionHolder sessionHolder) {
-        this(repository, applierRegistry, directAck(adminClient), sessionHolder);
-    }
-
-    public DdcRefreshService(DdcLocalConfigRepository repository,
-                             DdcConfigApplierRegistry applierRegistry,
+                             DdcYamlConfigApplier yamlConfigApplier,
                              DdcAckDelivery ackDelivery,
                              DdcLeaseSessionHolder sessionHolder) {
-        this(repository, applierRegistry, ackDelivery::submit, sessionHolder);
+        this(
+                repository,
+                yamlConfigApplier,
+                ackDelivery::submit,
+                sessionHolder
+        );
     }
 
     private DdcRefreshService(DdcLocalConfigRepository repository,
-                              DdcConfigApplierRegistry applierRegistry,
+                              DdcYamlConfigApplier yamlConfigApplier,
                               AckSubmitter ackSubmitter,
                               DdcLeaseSessionHolder sessionHolder) {
         this.repository = repository;
-        this.applierRegistry = applierRegistry;
+        this.yamlConfigApplier = yamlConfigApplier;
         this.ackSubmitter = ackSubmitter;
         this.sessionHolder = sessionHolder;
+        seedConfigDataMetadata();
     }
 
     public void applySnapshots(List<DdcConfigValue> configs) {
         if (configs == null || configs.isEmpty()) {
             return;
         }
-        configs.stream()
-                .filter(Objects::nonNull)
-                .sorted(Comparator
-                        .comparingInt(this::priority)
-                        .thenComparing(
-                                DdcConfigValue::getConfigKey,
-                                Comparator.nullsLast(String::compareTo)
-                        ))
-                .forEach(this::applySnapshot);
+        if (configs.size() != 1) {
+            throw new IllegalArgumentException(
+                    "DDC scope must contain exactly one application.yml"
+            );
+        }
+        applySnapshot(configs.getFirst());
     }
 
     public void applySnapshot(DdcConfigValue config) {
-        if (config == null || config.getConfigKey() == null || config.getVersion() == null) {
-            return;
-        }
-        repository.withConfigLock(config.getConfigKey(), () -> {
-            String contentChecksum = DdcChecksum.content(config.getConfigValue());
-            ConfigMetadata local = metadata(config.getConfigKey());
-            VersionRelation relation = compare(local, config.getVersion(), contentChecksum);
+        requireYamlResource(config);
+        repository.withConfigLock(RESOURCE_NAME, () -> {
+            String contentChecksum =
+                    DdcChecksum.content(config.getConfigValue());
+            ConfigMetadata local = metadata();
+            VersionRelation relation = compare(
+                    local,
+                    config.getVersion(),
+                    contentChecksum
+            );
             if (relation == VersionRelation.CHECKSUM_CONFLICT) {
                 LOGGER.warn(
-                        "DDC snapshot checksum conflict for configKey={} version={}",
-                        config.getConfigKey(),
+                        "DDC snapshot checksum conflict for resource={} version={}",
+                        RESOURCE_NAME,
                         config.getVersion()
                 );
             } else if (relation == VersionRelation.NEWER) {
                 applyAndStore(
-                        config.getConfigKey(),
                         config.getConfigValue(),
                         config.getVersion(),
                         contentChecksum,
+                        null,
                         local
                 );
             }
@@ -117,7 +121,10 @@ public class DdcRefreshService {
             return;
         }
 
-        AckOutcome outcome = repository.withConfigLock(message.getConfigKey(), () -> apply(message));
+        AckOutcome outcome = repository.withConfigLock(
+                RESOURCE_NAME,
+                () -> apply(message)
+        );
         try {
             if (!ackSubmitter.submit(ack(message, session, outcome))) {
                 LOGGER.warn(
@@ -135,13 +142,29 @@ public class DdcRefreshService {
         }
     }
 
+    private void requireYamlResource(DdcConfigValue config) {
+        if (config == null
+                || !RESOURCE_NAME.equals(config.getConfigKey())
+                || !VALUE_TYPE.equals(config.getValueType())
+                || config.getVersion() == null
+                || config.getVersion() <= 0) {
+            throw new IllegalArgumentException(
+                    "DDC scope must contain only application.yml with YAML type"
+            );
+        }
+    }
+
     private boolean isValid(DdcPublishMessage message) {
         return message != null
                 && hasText(message.getChangeId())
-                && hasText(message.getConfigKey())
+                && RESOURCE_NAME.equals(message.getConfigKey())
+                && VALUE_TYPE.equals(message.getValueType())
                 && message.getTargetVersion() != null
+                && message.getTargetVersion() > 0
                 && hasText(message.getContentChecksum())
-                && message.getContentChecksum().equals(DdcChecksum.content(message.getConfigValue()));
+                && message.getContentChecksum().equals(
+                        DdcChecksum.content(message.getConfigValue())
+                );
     }
 
     private boolean hasText(String value) {
@@ -149,17 +172,25 @@ public class DdcRefreshService {
     }
 
     private AckOutcome apply(DdcPublishMessage message) {
-        ConfigMetadata local = metadata(message.getConfigKey());
+        ConfigMetadata local = metadata();
         VersionRelation relation = compare(
                 local,
                 message.getTargetVersion(),
                 message.getContentChecksum()
         );
         if (relation == VersionRelation.STALE) {
-            return new AckOutcome(DdcAckStatus.IGNORED, local.version(), null);
+            return new AckOutcome(
+                    DdcAckStatus.IGNORED,
+                    local.version(),
+                    null
+            );
         }
         if (relation == VersionRelation.SAME_CONTENT) {
-            return new AckOutcome(DdcAckStatus.SUCCESS, local.version(), null);
+            return new AckOutcome(
+                    DdcAckStatus.SUCCESS,
+                    local.version(),
+                    null
+            );
         }
         if (relation == VersionRelation.CHECKSUM_CONFLICT) {
             return new AckOutcome(
@@ -170,32 +201,38 @@ public class DdcRefreshService {
         }
         try {
             applyAndStore(
-                    message.getConfigKey(),
                     message.getConfigValue(),
                     message.getTargetVersion(),
                     message.getContentChecksum(),
+                    message.getChangeId(),
                     local
             );
-            return new AckOutcome(DdcAckStatus.SUCCESS, message.getTargetVersion(), null);
+            return new AckOutcome(
+                    DdcAckStatus.SUCCESS,
+                    message.getTargetVersion(),
+                    null
+            );
         } catch (RuntimeException exception) {
-            return new AckOutcome(DdcAckStatus.FAILED, local.version(), safeErrorMessage(exception));
+            return new AckOutcome(
+                    DdcAckStatus.FAILED,
+                    local.version(),
+                    safeErrorMessage(exception)
+            );
         }
     }
 
-    private ConfigMetadata metadata(String configKey) {
-        return new ConfigMetadata(repository.version(configKey), repository.checksum(configKey));
+    private ConfigMetadata metadata() {
+        return new ConfigMetadata(
+                repository.version(RESOURCE_NAME),
+                repository.checksum(RESOURCE_NAME)
+        );
     }
 
-    private int priority(DdcConfigValue config) {
-        String configKey = config.getConfigKey();
-        if (configKey == null || configKey.isBlank()) {
-            return Integer.MAX_VALUE;
-        }
-        return applierRegistry.resolve(configKey).priority();
-    }
-
-    private VersionRelation compare(ConfigMetadata local, long targetVersion, String targetChecksum) {
-        if (local.version() == null || targetVersion > local.version()) {
+    private VersionRelation compare(ConfigMetadata local,
+                                    long targetVersion,
+                                    String targetChecksum) {
+        if (local.version() == null
+                || targetVersion > local.version()) {
             return VersionRelation.NEWER;
         }
         if (targetVersion < local.version()) {
@@ -206,19 +243,32 @@ public class DdcRefreshService {
                 : VersionRelation.CHECKSUM_CONFLICT;
     }
 
-    private void applyAndStore(String configKey,
-                               String configValue,
+    private void applyAndStore(String content,
                                long version,
                                String checksum,
+                               String changeId,
                                ConfigMetadata previous) {
         try {
-            applierRegistry.resolve(configKey).apply(configKey, configValue, version);
-            repository.updateVersion(configKey, version);
-            repository.updateChecksum(configKey, checksum);
+            yamlConfigApplier.apply(content, version, changeId);
+            repository.updateVersion(RESOURCE_NAME, version);
+            repository.updateChecksum(RESOURCE_NAME, checksum);
         } catch (RuntimeException exception) {
-            repository.restoreMetadata(configKey, previous.version(), previous.checksum());
+            repository.restoreMetadata(
+                    RESOURCE_NAME,
+                    previous.version(),
+                    previous.checksum()
+            );
             throw exception;
         }
+    }
+
+    private void seedConfigDataMetadata() {
+        if (repository.version(RESOURCE_NAME) != null) {
+            return;
+        }
+        var snapshot = yamlConfigApplier.currentSnapshot();
+        repository.updateVersion(RESOURCE_NAME, snapshot.version());
+        repository.updateChecksum(RESOURCE_NAME, snapshot.checksum());
     }
 
     private String safeErrorMessage(RuntimeException exception) {
@@ -232,11 +282,12 @@ public class DdcRefreshService {
                 : message.substring(0, MAX_ERROR_MESSAGE_LENGTH);
     }
 
-    private boolean isTarget(DdcPublishMessage message, DdcLeaseSession session) {
-        if (message.getTargets() == null) {
-            return false;
-        }
-        DdcPublishTarget current = new DdcPublishTarget(session.instanceId(), session.leaseId());
+    private boolean isTarget(DdcPublishMessage message,
+                             DdcLeaseSession session) {
+        DdcPublishTarget current = new DdcPublishTarget(
+                session.instanceId(),
+                session.leaseId()
+        );
         return message.getTargets().contains(current);
     }
 
@@ -250,7 +301,7 @@ public class DdcRefreshService {
         request.setBizCode(message.getBizCode());
         request.setAppCode(message.getAppCode());
         request.setEnv(message.getEnv());
-        request.setConfigKey(message.getConfigKey());
+        request.setConfigKey(RESOURCE_NAME);
         request.setTargetVersion(message.getTargetVersion());
         request.setCurrentVersion(outcome.currentVersion());
         request.setContentChecksum(message.getContentChecksum());
@@ -272,7 +323,9 @@ public class DdcRefreshService {
 
     private static AckSubmitter directAck(DdcAdminClient adminClient) {
         if (adminClient == null) {
-            throw new IllegalArgumentException("adminClient must not be null");
+            throw new IllegalArgumentException(
+                    "adminClient must not be null"
+            );
         }
         return request -> {
             adminClient.ack(request);

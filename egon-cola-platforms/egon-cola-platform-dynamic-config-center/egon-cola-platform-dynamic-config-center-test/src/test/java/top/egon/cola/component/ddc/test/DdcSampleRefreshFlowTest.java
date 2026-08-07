@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.common.DdcValueConverter;
@@ -16,7 +17,12 @@ import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
+import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
@@ -27,35 +33,74 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DdcSampleRefreshFlowTest {
 
     @Test
-    void refreshUpdatesBoundFieldAndReportsSuccessAck() {
+    void refreshUpdatesBoundFieldAndReportsSuccessAck() throws Exception {
         RecordingAdminClient adminClient = new RecordingAdminClient();
         DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
-        DdcFieldBindingService bindingService = new DdcFieldBindingService(repository, new DdcValueConverter());
+        MockEnvironment environment = new MockEnvironment();
+        DdcDynamicPropertySource source = new DdcYamlPropertySourceLoader()
+                .load(
+                        "application.yml",
+                        "rateLimit: 100\ndowngradeSwitch: false\n",
+                        1L
+                );
+        environment.getPropertySources().addFirst(source);
+        DdcFieldBindingService bindingService = new DdcFieldBindingService(
+                repository,
+                new DdcValueConverter(),
+                environment
+        );
         SampleConfigService sample = new SampleConfigService();
         bindingService.bind(sample, SampleConfigService.class);
+        DefaultDdcConfigApplierRegistry registry =
+                new DefaultDdcConfigApplierRegistry(bindingService::apply);
+        registry.freeze();
+        DdcConfigurationPropertiesRebinder rebinder =
+                mock(DdcConfigurationPropertiesRebinder.class);
+        when(rebinder.rebind(any(), any())).thenReturn(java.util.Set.of());
+        DdcYamlConfigApplier yamlConfigApplier = new DdcYamlConfigApplier(
+                environment,
+                registry,
+                bindingService,
+                rebinder,
+                event -> {
+                },
+                1024
+        );
         DdcLeaseSessionHolder sessionHolder = new DdcLeaseSessionHolder();
         sessionHolder.replace(adminClient.session());
         DdcRefreshService refreshService =
-                new DdcRefreshService(repository, bindingService::apply, adminClient, sessionHolder);
+                new DdcRefreshService(
+                        repository,
+                        yamlConfigApplier,
+                        adminClient,
+                        sessionHolder
+                );
 
-        refreshService.refresh(message("rateLimit", "200", 2L));
+        refreshService.refresh(message("""
+                rateLimit: 200
+                downgradeSwitch: false
+                """, 2L));
 
         assertThat(sample.getRateLimit()).isEqualTo(200);
         assertThat(adminClient.lastAck().getStatus()).isEqualTo(DdcAckStatus.SUCCESS);
     }
 
-    private DdcPublishMessage message(String key, String value, long version) {
+    private DdcPublishMessage message(String value, long version) {
         DdcPublishMessage message = new DdcPublishMessage();
         message.setChangeId("c1");
         message.setAppCode("demo-app");
         message.setEnv("dev");
         message.setNamespace("default");
-        message.setConfigKey(key);
+        message.setConfigKey("application.yml");
         message.setConfigValue(value);
+        message.setValueType("YAML");
         message.setTargetVersion(version);
         message.setContentChecksum(DdcChecksum.content(value));
         message.setTargets(List.of(new DdcPublishTarget("instance-1", "lease-1")));

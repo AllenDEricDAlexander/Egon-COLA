@@ -13,8 +13,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.client.HttpDdcAdminClient;
@@ -24,6 +28,8 @@ import top.egon.cola.component.ddc.listener.DdcRedisChangeListener;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.processor.DdcBeanPostProcessor;
+import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
+import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcAckDelivery;
@@ -59,8 +65,13 @@ public class DdcAutoConfig {
 
     @Bean
     public DdcFieldBindingService ddcFieldBindingService(DdcLocalConfigRepository repository,
-                                                         DdcValueConverter converter) {
-        return new DdcFieldBindingService(repository, converter);
+                                                         DdcValueConverter converter,
+                                                         ConfigurableEnvironment environment) {
+        return new DdcFieldBindingService(
+                repository,
+                converter,
+                environment
+        );
     }
 
     @Bean
@@ -79,6 +90,43 @@ public class DdcAutoConfig {
     public SmartInitializingSingleton ddcConfigApplierRegistryFreezer(
             DefaultDdcConfigApplierRegistry registry) {
         return registry::freeze;
+    }
+
+    @Bean
+    public DdcConfigurationPropertiesRebinder
+    ddcConfigurationPropertiesRebinder(
+            ApplicationContext applicationContext,
+            ConfigurationPropertiesBindingPostProcessor bindingPostProcessor,
+            ConfigurableEnvironment environment) {
+        return new DdcConfigurationPropertiesRebinder(
+                applicationContext,
+                bindingPostProcessor,
+                environment
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc.redis",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    public DdcYamlConfigApplier ddcYamlConfigApplier(
+            ConfigurableEnvironment environment,
+            DdcConfigApplierRegistry applierRegistry,
+            DdcFieldBindingService fieldBindingService,
+            DdcConfigurationPropertiesRebinder rebinder,
+            ApplicationEventPublisher eventPublisher,
+            DdcProperties properties) {
+        return new DdcYamlConfigApplier(
+                environment,
+                applierRegistry,
+                fieldBindingService,
+                rebinder,
+                eventPublisher,
+                properties.getMaxYamlBytes()
+        );
     }
 
     @Bean
@@ -104,11 +152,22 @@ public class DdcAutoConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc.redis",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public DdcRefreshService ddcRefreshService(DdcLocalConfigRepository repository,
-                                               DdcConfigApplierRegistry applierRegistry,
+                                               DdcYamlConfigApplier yamlConfigApplier,
                                                DdcAckDelivery ackDelivery,
                                                DdcLeaseSessionHolder sessionHolder) {
-        return new DdcRefreshService(repository, applierRegistry, ackDelivery, sessionHolder);
+        return new DdcRefreshService(
+                repository,
+                yamlConfigApplier,
+                ackDelivery,
+                sessionHolder
+        );
     }
 
     @Bean
@@ -133,6 +192,12 @@ public class DdcAutoConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc.redis",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public DdcRedisChangeListener ddcRedisChangeListener(DdcProperties properties,
                                                          DdcRefreshService refreshService) {
         return new DdcRedisChangeListener(properties, refreshService);
@@ -196,7 +261,6 @@ public class DdcAutoConfig {
             DdcProperties properties,
             DdcInstanceService instanceService,
             DdcAdminClient adminClient,
-            DdcLocalConfigRepository repository,
             DdcRefreshService refreshService,
             DdcRedisChangeSubscription subscription,
             DdcLeaseSessionHolder sessionHolder) {
@@ -204,7 +268,6 @@ public class DdcAutoConfig {
                 properties,
                 instanceService,
                 adminClient,
-                repository,
                 refreshService,
                 subscription,
                 sessionHolder

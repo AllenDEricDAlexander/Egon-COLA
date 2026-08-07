@@ -7,17 +7,11 @@ import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
-import top.egon.cola.component.ddc.model.dto.DdcDefaultReportRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.vo.DdcFieldBinding;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,8 +28,6 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     private final DdcInstanceService instanceService;
 
     private final DdcAdminClient adminClient;
-
-    private final DdcLocalConfigRepository repository;
 
     private final DdcRefreshService refreshService;
 
@@ -54,14 +46,12 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     public DdcRuntimeCoordinator(DdcProperties properties,
                                  DdcInstanceService instanceService,
                                  DdcAdminClient adminClient,
-                                 DdcLocalConfigRepository repository,
                                  DdcRefreshService refreshService,
                                  DdcRedisChangeSubscription subscription,
                                  DdcLeaseSessionHolder sessionHolder) {
         this.properties = properties;
         this.instanceService = instanceService;
         this.adminClient = adminClient;
-        this.repository = repository;
         this.refreshService = refreshService;
         this.subscription = subscription;
         this.sessionHolder = sessionHolder;
@@ -197,7 +187,6 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
 
     private void initialize() {
         instanceService.register();
-        adminClient.reportDefaults(defaultReport());
         refreshService.applySnapshots(adminClient.pull());
     }
 
@@ -252,29 +241,6 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    private DdcDefaultReportRequest defaultReport() {
-        DdcDefaultReportRequest request = new DdcDefaultReportRequest();
-        request.setBizCode(properties.getBizCode());
-        request.setAppCode(properties.getAppCode());
-        request.setEnv(properties.getEnv());
-        request.setInstanceId(instanceService.identity().instanceId());
-        Map<String, DdcFieldBinding> defaults = new LinkedHashMap<>();
-        repository.bindings().stream()
-                .sorted(Comparator.comparing(DdcFieldBinding::getConfigKey))
-                .forEach(binding -> defaults.putIfAbsent(binding.getConfigKey(), binding));
-        request.setConfigs(defaults.values().stream().map(this::defaultValue).toList());
-        return request;
-    }
-
-    private DdcDefaultReportRequest.DdcConfigValueRequest defaultValue(DdcFieldBinding binding) {
-        DdcDefaultReportRequest.DdcConfigValueRequest value =
-                new DdcDefaultReportRequest.DdcConfigValueRequest();
-        value.setConfigKey(binding.getConfigKey());
-        value.setDefaultValue(binding.getDefaultValue());
-        value.setValueType(binding.getTargetType().getName());
-        return value;
     }
 
     private void validateScope() {

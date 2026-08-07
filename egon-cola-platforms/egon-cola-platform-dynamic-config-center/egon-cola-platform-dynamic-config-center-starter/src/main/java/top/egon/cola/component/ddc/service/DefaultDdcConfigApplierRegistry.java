@@ -56,6 +56,20 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
         }
     }
 
+    @Override
+    public boolean hasExplicitRegistration(String configKey) {
+        String key = requireKey(configKey, "configKey");
+        Snapshot current = snapshot;
+        if (current != null) {
+            return current.resolve(key) != null;
+        }
+        synchronized (this) {
+            current = snapshot;
+            return (current == null ? mutableSnapshot() : current)
+                    .resolve(key) != null;
+        }
+    }
+
     public synchronized void freeze() {
         if (snapshot == null) {
             snapshot = immutableSnapshot();
