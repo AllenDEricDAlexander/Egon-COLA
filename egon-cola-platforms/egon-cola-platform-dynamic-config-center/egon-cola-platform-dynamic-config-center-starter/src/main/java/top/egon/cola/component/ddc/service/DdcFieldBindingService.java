@@ -1,113 +1,106 @@
 package top.egon.cola.component.ddc.service;
 
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.StandardEnvironment;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.config.DependencyDescriptor;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 import top.egon.cola.component.ddc.annotation.DdcValue;
-import top.egon.cola.component.ddc.common.DdcException;
-import top.egon.cola.component.ddc.common.DdcValueConverter;
-import top.egon.cola.component.ddc.common.DdcValueDefinition;
-import top.egon.cola.component.ddc.common.DdcValueParser;
 import top.egon.cola.component.ddc.model.vo.DdcFieldBinding;
-import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.repository.DdcValueBindingRegistry;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 /**
- * 扫描、保存并更新使用 {@link DdcValue} 声明的字段绑定。
- * Scans, stores, and updates field bindings declared with {@link DdcValue}.
+ * 登记并重新解析使用 {@link DdcValue} 声明的可刷新字段。
+ * Registers and re-resolves refreshable fields declared with {@link DdcValue}.
  *
- * <p>一次配置更新会先完成全部类型转换，再执行字段写入；写入失败时按逆序尽力恢复已经修改的字段。</p>
- * <p>A configuration update converts all values before writing fields and best-effort restores modified fields in reverse order on failure.</p>
+ * <p>初次注入完全由 Spring 的 {@code @Value} 处理链完成。本服务只保存可刷新字段，并在动态属性源
+ * 替换后通过 {@link ConfigurableListableBeanFactory#resolveDependency} 重新执行同一套占位符、SpEL 和
+ * 类型转换语义。</p>
+ *
+ * <p>Initial injection is handled entirely by Spring's {@code @Value} pipeline. This service only stores
+ * refreshable fields and invokes {@link ConfigurableListableBeanFactory#resolveDependency} after the dynamic
+ * property source changes, preserving the same placeholder, SpEL, and type-conversion semantics.</p>
  */
 public class DdcFieldBindingService {
 
     /**
-     * 保存按配置键索引的字段绑定。 Repository storing field bindings indexed by configuration key.
+     * 保存当前活动字段绑定的注册表。 Registry storing currently active field bindings.
      */
-    private final DdcLocalConfigRepository repository;
+    private final DdcValueBindingRegistry registry;
 
     /**
-     * 将字符串配置转换为字段目标类型。 Converts string configuration into field target types.
+     * 使用 Spring 原生依赖解析管线重新计算字段值的 BeanFactory。
+     * BeanFactory that re-evaluates field values through Spring's native dependency-resolution pipeline.
      */
-    private final DdcValueConverter converter;
+    private final ConfigurableListableBeanFactory beanFactory;
 
     /**
-     * 解析初始配置值的 Spring 环境。 Spring environment resolving initial configuration values.
-     */
-    private final Environment environment;
-
-    /**
-     * 使用独立标准环境创建字段绑定服务。
-     * Creates the field binding service with a standalone standard environment.
+     * 创建字段绑定服务。 Creates the field-binding service.
      *
-     * @param repository 本地配置仓库; local configuration repository
-     * @param converter  配置值转换器; configuration value converter
+     * @param registry    字段绑定注册表; field-binding registry
+     * @param beanFactory Spring BeanFactory; Spring bean factory
      */
-    public DdcFieldBindingService(DdcLocalConfigRepository repository, DdcValueConverter converter) {
-        this(repository, converter, new StandardEnvironment());
+    public DdcFieldBindingService(DdcValueBindingRegistry registry,
+                                  ConfigurableListableBeanFactory beanFactory) {
+        this.registry = registry;
+        this.beanFactory = beanFactory;
     }
 
     /**
-     * 使用指定 Spring 环境创建字段绑定服务。
-     * Creates the field binding service with the specified Spring environment.
+     * 扫描目标类型并登记其中允许动态刷新的 {@link DdcValue} 字段。
+     * Scans the target type and registers refreshable {@link DdcValue} fields.
      *
-     * @param repository  本地配置仓库; local configuration repository
-     * @param converter   配置值转换器; configuration value converter
-     * @param environment 用于初始值解析的环境; environment used for initial value resolution
-     */
-    public DdcFieldBindingService(DdcLocalConfigRepository repository,
-                                  DdcValueConverter converter,
-                                  Environment environment) {
-        this.repository = repository;
-        this.converter = converter;
-        this.environment = environment;
-    }
-
-    /**
-     * 扫描目标类型中带 {@link DdcValue} 的字段并为 Bean 建立绑定。
-     * Scans fields annotated with {@link DdcValue} on the target type and binds them to the Bean.
-     *
-     * @param bean        字段所属 Bean; Bean owning the fields
+     * @param beanName   Bean 在 Spring 容器中的名称; bean name in the Spring container
+     * @param bean       字段所属 Bean; bean owning the fields
      * @param targetClass 待扫描类型，可为代理类型; type to scan, possibly a proxy type
+     * @throws IllegalStateException 可刷新字段为静态或 final 字段时抛出; thrown for a static or final refreshable field
      */
-    public void bind(Object bean, Class<?> targetClass) {
+    public void bind(String beanName, Object bean, Class<?> targetClass) {
+        registry.unregister(bean);
         Class<?> userClass = ClassUtils.getUserClass(targetClass);
-        ReflectionUtils.doWithFields(userClass, field -> bindField(bean, field), field -> field.isAnnotationPresent(DdcValue.class));
+        ReflectionUtils.doWithFields(
+                userClass,
+                field -> register(beanName, bean, field),
+                field -> field.isAnnotationPresent(DdcValue.class)
+        );
     }
 
     /**
-     * 原子式更新指定键的所有可刷新字段绑定。
-     * Atomically updates all refreshable field bindings for the specified key.
+     * 移除属于指定 Bean 的全部字段绑定。 Removes all field bindings owned by the specified bean.
      *
-     * @param key     配置键; configuration key
-     * @param value   新配置值，删除时为 {@code null}; new configuration value, or {@code null} on removal
-     * @param version 配置版本，仅作为调用契约携带; configuration version carried by the call contract
-     * @throws DdcException     必填值缺失时抛出; thrown when a required value is missing
-     * @throws RuntimeException 转换或字段写入失败时抛出; thrown when conversion or field writing fails
+     * @param bean 待解绑 Bean; bean to unregister
      */
-    public void apply(String key, String value, long version) {
-        List<DdcFieldBinding> bindings = repository.bindings(key);
+    public void unbind(Object bean) {
+        registry.unregister(bean);
+    }
+
+    /**
+     * 先解析全部字段候选值，再批量写入发生变化的字段。
+     * Resolves all candidate values before writing fields whose values changed.
+     *
+     * @return 包含已写入字段旧值和表达式的刷新结果; refresh result containing previous values and expressions
+     * @throws RuntimeException 任一表达式解析、类型转换或字段写入失败时抛出; thrown when resolution, conversion, or writing fails
+     */
+    public RefreshResult refresh() {
         List<PendingWrite> pendingWrites = new ArrayList<>();
-        for (DdcFieldBinding binding : bindings) {
-            if (binding.isRefreshable()) {
-                String resolvedValue = value == null
-                        ? binding.getDefaultValue()
-                        : value;
-                if ((resolvedValue == null || resolvedValue.isEmpty())
-                        && binding.isRequired()) {
-                    throw new DdcException(
-                            "required DDC property is missing: " + key
-                    );
-                }
-                Object converted = converter.convert(
+        for (DdcFieldBinding binding : registry.bindings()) {
+            Object previousValue = read(binding);
+            Object resolvedValue = resolve(binding);
+            if (!Objects.equals(previousValue, resolvedValue)) {
+                pendingWrites.add(new PendingWrite(
+                        binding,
+                        previousValue,
                         resolvedValue,
-                        binding.getTargetType()
-                );
-                pendingWrites.add(new PendingWrite(binding, read(binding), converted));
+                        expression(binding)
+                ));
             }
         }
         List<PendingWrite> appliedWrites = new ArrayList<>();
@@ -117,99 +110,162 @@ public class DdcFieldBindingService {
                 appliedWrites.add(pendingWrite);
             }
         } catch (RuntimeException exception) {
-            for (int index = appliedWrites.size() - 1; index >= 0; index--) {
-                PendingWrite appliedWrite = appliedWrites.get(index);
-                try {
-                    write(appliedWrite.binding(), appliedWrite.previousValue());
-                } catch (RuntimeException ignored) {
-                    // Best-effort rollback keeps the original write failure as the primary exception.
-                }
-            }
+            rollbackWrites(appliedWrites);
             throw exception;
         }
+        return new RefreshResult(appliedWrites);
     }
 
     /**
-     * 判断配置键是否具有至少一个可刷新字段绑定。
-     * Indicates whether a key has at least one refreshable field binding.
+     * 使用刷新前保存的字段值回滚一次已完成的字段刷新。
+     * Rolls back a completed field refresh using values captured before the refresh.
      *
-     * @param key 配置键; configuration key
-     * @return 存在可刷新绑定时为 {@code true}; {@code true} when a refreshable binding exists
+     * @param result 待回滚刷新结果; refresh result to roll back
      */
-    public boolean hasRefreshableBinding(String key) {
-        return repository.bindings(key).stream()
-                .anyMatch(DdcFieldBinding::isRefreshable);
+    public void rollback(RefreshResult result) {
+        rollbackWrites(result.appliedWrites());
     }
 
     /**
-     * 反射读取绑定字段的当前值。
-     * Reads the current bound-field value through reflection.
+     * 通过 Spring BeanFactory 重新解析字段依赖。
+     * Re-resolves a field dependency through the Spring BeanFactory.
+     *
+     * @param binding 字段绑定; field binding
+     * @return 解析并转换后的字段值; resolved and converted field value
+     */
+    protected Object resolve(DdcFieldBinding binding) {
+        DependencyDescriptor descriptor = new DependencyDescriptor(
+                binding.getField(),
+                true
+        );
+        descriptor.setContainingClass(
+                ClassUtils.getUserClass(binding.getBean())
+        );
+        return beanFactory.resolveDependency(
+                descriptor,
+                binding.getBeanName()
+        );
+    }
+
+    /**
+     * 反射读取绑定字段的当前值。 Reads the current bound-field value through reflection.
      *
      * @param binding 字段绑定; field binding
      * @return 当前字段值; current field value
      */
     protected Object read(DdcFieldBinding binding) {
         ReflectionUtils.makeAccessible(binding.getField());
-        return ReflectionUtils.getField(binding.getField(), binding.getBean());
+        return ReflectionUtils.getField(
+                binding.getField(),
+                binding.getBean()
+        );
     }
 
     /**
-     * 反射写入绑定字段。
-     * Writes a bound field through reflection.
+     * 反射写入绑定字段。 Writes a bound field through reflection.
      *
      * @param binding 字段绑定; field binding
      * @param value   待写入值; value to write
      */
     protected void write(DdcFieldBinding binding, Object value) {
         ReflectionUtils.makeAccessible(binding.getField());
-        ReflectionUtils.setField(binding.getField(), binding.getBean(), value);
+        ReflectionUtils.setField(
+                binding.getField(),
+                binding.getBean(),
+                value
+        );
     }
 
     /**
-     * 解析字段注解、登记绑定并应用初始值。
-     * Parses the field annotation, registers the binding, and applies its initial value.
+     * 校验并登记一个可刷新字段。 Validates and registers a refreshable field.
      *
-     * @param bean  字段所属 Bean; Bean owning the field
-     * @param field 已注解字段; annotated field
+     * @param beanName Bean 名称; bean name
+     * @param bean     字段所属 Bean; bean owning the field
+     * @param field    已注解字段; annotated field
      */
-    private void bindField(Object bean, Field field) {
+    private void register(String beanName, Object bean, Field field) {
         DdcValue annotation = field.getAnnotation(DdcValue.class);
-        Class<?> targetType = annotation.type() == Object.class ? field.getType() : annotation.type();
-        DdcValueDefinition definition = DdcValueParser.parse(annotation.value(), annotation.key(), annotation.defaultValue(), targetType);
-        DdcFieldBinding binding = new DdcFieldBinding(bean, field, definition.getKey(), definition.getDefaultValue(),
-                definition.getType(), annotation.required(), annotation.refreshable());
-        repository.addBinding(definition.getKey(), binding);
-        applyInitialValue(binding);
-    }
-
-    /**
-     * 从环境值或注解默认值初始化一个字段绑定。
-     * Initializes a field binding from the environment value or annotation default.
-     *
-     * @param binding 待初始化的字段绑定; field binding to initialize
-     * @throws DdcException 必填值缺失或无法转换时抛出; thrown when a required value is missing or cannot be converted
-     */
-    private void applyInitialValue(DdcFieldBinding binding) {
-        String value = environment.getProperty(binding.getConfigKey());
-        if (value == null || value.isEmpty()) {
-            value = binding.getDefaultValue();
-        }
-        if (value == null || value.isEmpty()) {
-            if (binding.isRequired()) {
-                throw new DdcException(
-                        "required DDC property is missing: "
-                                + binding.getConfigKey()
-                );
-            }
+        if (!annotation.refreshable()) {
             return;
         }
-        try {
-            Object converted = converter.convert(value, binding.getTargetType());
-            write(binding, converted);
-        } catch (Exception e) {
-            if (binding.isRequired()) {
-                throw new DdcException("apply default config value failed", e);
+        int modifiers = field.getModifiers();
+        if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers)) {
+            throw new IllegalStateException(
+                    "refreshable @DdcValue field must be an instance, non-final field: "
+                            + field.toGenericString()
+            );
+        }
+        registry.register(new DdcFieldBinding(beanName, bean, field));
+    }
+
+    /**
+     * 返回字段声明的 Spring 配置表达式。 Returns the Spring configuration expression declared on a field.
+     *
+     * @param binding 字段绑定; field binding
+     * @return 配置表达式; configuration expression
+     */
+    private String expression(DdcFieldBinding binding) {
+        return binding.getField().getAnnotation(DdcValue.class).value();
+    }
+
+    /**
+     * 按逆序尽力恢复已经写入的字段。 Best-effort restores written fields in reverse order.
+     *
+     * @param appliedWrites 已完成字段写入; completed field writes
+     */
+    private void rollbackWrites(List<PendingWrite> appliedWrites) {
+        for (int index = appliedWrites.size() - 1; index >= 0; index--) {
+            PendingWrite appliedWrite = appliedWrites.get(index);
+            try {
+                write(
+                        appliedWrite.binding(),
+                        appliedWrite.previousValue()
+                );
+            } catch (RuntimeException ignored) {
+                // Preserve the primary refresh failure while making rollback best effort.
             }
+        }
+    }
+
+    /**
+     * 描述一次成功字段刷新及其回滚数据。 Describes a successful field refresh and its rollback data.
+     */
+    public static final class RefreshResult {
+
+        /**
+         * 已写入字段及其旧值。 Applied fields and their previous values.
+         */
+        private final List<PendingWrite> appliedWrites;
+
+        /**
+         * 创建不可变刷新结果。 Creates an immutable refresh result.
+         *
+         * @param appliedWrites 已完成字段写入; completed field writes
+         */
+        private RefreshResult(List<PendingWrite> appliedWrites) {
+            this.appliedWrites = List.copyOf(appliedWrites);
+        }
+
+        /**
+         * 返回本次实际变化的配置表达式。 Returns configuration expressions whose field values changed.
+         *
+         * @return 保持登记顺序的表达式集合; expressions preserving registration order
+         */
+        public Set<String> refreshedExpressions() {
+            Set<String> expressions = new LinkedHashSet<>();
+            appliedWrites.forEach(write -> expressions.add(
+                    write.expression()
+            ));
+            return Collections.unmodifiableSet(expressions);
+        }
+
+        /**
+         * 返回已写入字段及旧值。 Returns applied fields and previous values.
+         *
+         * @return 已完成字段写入; completed field writes
+         */
+        private List<PendingWrite> appliedWrites() {
+            return appliedWrites;
         }
     }
 
@@ -219,12 +275,14 @@ public class DdcFieldBindingService {
      *
      * @param binding       字段绑定; field binding
      * @param previousValue 写入前字段值; field value before writing
-     * @param value         待写入的新值; new value to write
+     * @param value         待写入的新值; value to write
+     * @param expression    Spring 配置表达式; Spring configuration expression
      */
     private record PendingWrite(
             DdcFieldBinding binding,
             Object previousValue,
-            Object value
+            Object value,
+            String expression
     ) {
     }
 }

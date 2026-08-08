@@ -180,11 +180,13 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
         Diff effectiveDiff = effectiveDiff(rawDiff, previousResolved);
         Set<String> refreshedKeys = new LinkedHashSet<>();
         List<AppliedLeaf> appliedLeaves = new ArrayList<>();
+        DdcFieldBindingService.RefreshResult fieldRefresh = null;
         try {
             refreshedKeys.addAll(rebinder.rebind(
                     effectiveDiff.changedKeys(),
                     effectiveDiff.removedKeys()
             ));
+            fieldRefresh = fieldBindingService.refresh();
             applyLeaves(
                     effectiveDiff.changedKeys(),
                     previousResolved,
@@ -193,7 +195,12 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
                     appliedLeaves
             );
         } catch (RuntimeException exception) {
-            rollback(previous, effectiveDiff, appliedLeaves);
+            rollback(
+                    previous,
+                    effectiveDiff,
+                    fieldRefresh,
+                    appliedLeaves
+            );
             throw exception;
         }
 
@@ -358,7 +365,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
                              Set<String> refreshedKeys,
                              List<AppliedLeaf> appliedLeaves) {
         changedKeys.stream()
-                .filter(this::hasDynamicLeafConsumer)
+                .filter(applierRegistry::hasExplicitRegistration)
                 .sorted(Comparator
                         .comparingInt((String key) ->
                                 applierRegistry.resolve(key).priority())
@@ -381,34 +388,19 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
     }
 
     /**
-     * 判断配置键是否由显式应用器或可刷新字段绑定消费。
-     * Determines whether a key is consumed by an explicit applier or refreshable field binding.
-     *
-     * @param key 配置键; configuration key
-     * @return 存在动态叶子消费者时为 {@code true}; {@code true} when a dynamic leaf consumer exists
-     */
-    private boolean hasDynamicLeafConsumer(String key) {
-        return applierRegistry.hasExplicitRegistration(key)
-                || fieldBindingService.hasRefreshableBinding(key);
-    }
-
-    /**
-     * 恢复旧属性源，并尽力回滚配置属性 Bean 与已应用叶子。
-     * Restores the previous source and best-effort rolls back configuration-properties Beans and applied leaves.
+     * 恢复旧属性源，并按逆序尽力回滚叶子应用器、字段和配置属性 Bean。
+     * Restores the previous source and best-effort rolls back leaf appliers, fields, and configuration-properties beans in reverse order.
      *
      * @param previous      旧动态配置快照; previous dynamic configuration snapshot
      * @param diff          需要回滚的有效差异; effective difference to roll back
+     * @param fieldRefresh  已完成字段刷新，字段刷新前失败时为 {@code null}; completed field refresh, or {@code null} when field refresh failed before completion
      * @param appliedLeaves 已成功应用的叶子记录; successfully applied leaf records
      */
     private void rollback(DdcDynamicPropertySource.Snapshot previous,
                           Diff diff,
+                          DdcFieldBindingService.RefreshResult fieldRefresh,
                           List<AppliedLeaf> appliedLeaves) {
         propertySource.replace(previous);
-        try {
-            rebinder.rebind(diff.changedKeys(), Set.of());
-        } catch (RuntimeException rollbackFailure) {
-            LOGGER.warn("DDC configuration properties rollback failed", rollbackFailure);
-        }
         for (int index = appliedLeaves.size() - 1; index >= 0; index--) {
             AppliedLeaf applied = appliedLeaves.get(index);
             try {
@@ -424,6 +416,14 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
                         rollbackFailure
                 );
             }
+        }
+        if (fieldRefresh != null) {
+            fieldBindingService.rollback(fieldRefresh);
+        }
+        try {
+            rebinder.rebind(diff.changedKeys(), Set.of());
+        } catch (RuntimeException rollbackFailure) {
+            LOGGER.warn("DDC configuration properties rollback failed", rollbackFailure);
         }
     }
 

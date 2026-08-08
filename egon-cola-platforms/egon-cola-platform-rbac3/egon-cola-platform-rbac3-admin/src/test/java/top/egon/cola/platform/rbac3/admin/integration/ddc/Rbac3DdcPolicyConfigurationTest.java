@@ -10,8 +10,9 @@ import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
 
 import java.lang.reflect.Field;
 import java.time.Duration;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,25 +21,28 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 class Rbac3DdcPolicyConfigurationTest {
 
-    private static final Map<String, Declaration> EXPECTED_DECLARATIONS = declarations();
+    private static final Set<Declaration> EXPECTED_DECLARATIONS = Set.of(
+            new Declaration("${rbac3.access-token-ttl-seconds:900}", false),
+            new Declaration("${rbac3.refresh-token-ttl-seconds:604800}", false),
+            new Declaration("${rbac3.session-idle-timeout-seconds:1800}", false),
+            new Declaration("${rbac3.session-absolute-timeout-seconds:43200}", false),
+            new Declaration("${rbac3.maximum-active-roots:16}", false)
+    );
 
     @Test
-    void declaresFiveNonReflectiveRefreshablePolicyInputs() {
-        Map<String, Declaration> actual = new LinkedHashMap<>();
+    void declaresFiveSpringExpressionsForExplicitPolicyAppliers() {
+        Set<Declaration> actual = new HashSet<>();
 
         for (Field field : Rbac3DdcValueDeclarations.class.getDeclaredFields()) {
             DdcValue annotation = field.getAnnotation(DdcValue.class);
             if (annotation != null) {
-                actual.put(annotation.key(), new Declaration(
+                actual.add(new Declaration(
                         annotation.value(),
-                        annotation.defaultValue(),
-                        annotation.type(),
-                        annotation.required(),
                         annotation.refreshable()));
             }
         }
 
-        assertThat(actual).containsExactlyInAnyOrderEntriesOf(EXPECTED_DECLARATIONS);
+        assertThat(actual).containsExactlyInAnyOrderElementsOf(EXPECTED_DECLARATIONS);
     }
 
     @Test
@@ -151,31 +155,8 @@ class Rbac3DdcPolicyConfigurationTest {
         return new AtomicRbac3RuntimePolicy(new Rbac3AdminProperties());
     }
 
-    private static Map<String, Declaration> declarations() {
-        Map<String, Declaration> expected = new LinkedHashMap<>();
-        expected.put(AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY,
-                new Declaration("rbac3.access-token-ttl-seconds:900", "900", Long.class,
-                        true, false));
-        expected.put(AtomicRbac3RuntimePolicy.REFRESH_TOKEN_TTL_KEY,
-                new Declaration("rbac3.refresh-token-ttl-seconds:604800", "604800", Long.class,
-                        true, false));
-        expected.put(AtomicRbac3RuntimePolicy.SESSION_IDLE_TIMEOUT_KEY,
-                new Declaration("rbac3.session-idle-timeout-seconds:1800", "1800", Long.class,
-                        true, false));
-        expected.put(AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY,
-                new Declaration("rbac3.session-absolute-timeout-seconds:43200", "43200", Long.class,
-                        true, false));
-        expected.put(AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY,
-                new Declaration("rbac3.maximum-active-roots:16", "16", Integer.class,
-                        true, false));
-        return expected;
-    }
-
     private record Declaration(
             String value,
-            String defaultValue,
-            Class<?> type,
-            boolean required,
             boolean refreshable) {
     }
 }

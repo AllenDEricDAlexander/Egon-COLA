@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -18,18 +20,19 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Role;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.client.HttpDdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.common.DdcValueConverter;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeListener;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
 import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.repository.DdcValueBindingRegistry;
 import top.egon.cola.component.ddc.service.DdcAckDelivery;
 import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
@@ -64,32 +67,30 @@ public class DdcAutoConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(DdcAutoConfig.class);
 
     /**
-     * 创建 DDC 文本值转换器。 Creates the DDC text-value converter.
+     * 创建可刷新 {@code @DdcValue} 字段注册表。 Creates the refreshable {@code @DdcValue} field registry.
      *
-     * @return DDC 文本值转换器。 DDC text-value converter
-     */
+     * @return 字段绑定注册表。 field-binding registry
+    */
     @Bean
-    public DdcValueConverter ddcValueConverter() {
-        return new DdcValueConverter();
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    public static DdcValueBindingRegistry ddcValueBindingRegistry() {
+        return new DdcValueBindingRegistry();
     }
 
     /**
-     * 创建负责解析并注入 {@code @DdcValue} 字段的绑定服务。 Creates the binding service that resolves and injects {@code @DdcValue} fields.
+     * 创建通过 Spring 原生依赖解析管线刷新 {@code @DdcValue} 字段的服务。
+     * Creates the service that refreshes {@code @DdcValue} fields through Spring's native dependency-resolution pipeline.
      *
-     * @param repository  本地配置仓库。 local configuration repository
-     * @param converter   值转换器。 value converter
-     * @param environment Spring 环境。 Spring environment
+     * @param registry    字段绑定注册表。 field-binding registry
+     * @param beanFactory Spring BeanFactory。 Spring bean factory
      * @return 字段绑定服务。 field-binding service
-     */
+    */
     @Bean
-    public DdcFieldBindingService ddcFieldBindingService(DdcLocalConfigRepository repository,
-                                                         DdcValueConverter converter,
-                                                         ConfigurableEnvironment environment) {
-        return new DdcFieldBindingService(
-                repository,
-                converter,
-                environment
-        );
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    public static DdcFieldBindingService ddcFieldBindingService(
+            DdcValueBindingRegistry registry,
+            ConfigurableListableBeanFactory beanFactory) {
+        return new DdcFieldBindingService(registry, beanFactory);
     }
 
     /**
@@ -105,15 +106,16 @@ public class DdcAutoConfig {
     }
 
     /**
-     * 创建默认配置应用器注册表，并注册字段绑定应用器。 Creates the default configuration-applier registry with the field-binding applier registered.
+     * 创建默认配置应用器注册表。 Creates the default configuration-applier registry.
      *
-     * @param fieldBindingService 字段绑定服务。 field-binding service
      * @return 默认应用器注册表。 default applier registry
      */
     @Bean
-    public DefaultDdcConfigApplierRegistry ddcConfigApplierRegistry(
-            DdcFieldBindingService fieldBindingService) {
-        return new DefaultDdcConfigApplierRegistry(fieldBindingService::apply);
+    public DefaultDdcConfigApplierRegistry ddcConfigApplierRegistry() {
+        return new DefaultDdcConfigApplierRegistry(
+                (key, value, version) -> {
+                }
+        );
     }
 
     /**
@@ -253,6 +255,7 @@ public class DdcAutoConfig {
      * @return DDC Bean 后处理器。 DDC bean post-processor
      */
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     public static DdcBeanPostProcessor ddcBeanPostProcessor(DdcFieldBindingService fieldBindingService) {
         return new DdcBeanPostProcessor(fieldBindingService);
     }

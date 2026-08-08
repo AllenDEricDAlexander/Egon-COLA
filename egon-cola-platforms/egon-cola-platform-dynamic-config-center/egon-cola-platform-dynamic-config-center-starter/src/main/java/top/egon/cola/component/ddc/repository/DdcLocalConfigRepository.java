@@ -1,27 +1,18 @@
 package top.egon.cola.component.ddc.repository;
 
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.ddc.model.vo.DdcFieldBinding;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
 /**
- * 在线程安全的进程内结构中保存字段绑定、配置元数据和逐资源锁。
- * Stores field bindings, configuration metadata, and per-resource locks in thread-safe in-process structures.
+ * 在线程安全的进程内结构中保存配置元数据和逐资源锁。
+ * Stores configuration metadata and per-resource locks in thread-safe in-process structures.
  */
 @Repository
 public class DdcLocalConfigRepository {
-
-    /**
-     * 按配置键索引的字段绑定列表。 Field-binding lists indexed by configuration key.
-     */
-    private final ConcurrentMap<String, CopyOnWriteArrayList<DdcFieldBinding>> bindings = new ConcurrentHashMap<>();
 
     /**
      * 按配置键索引的本地版本。 Local versions indexed by configuration key.
@@ -37,41 +28,6 @@ public class DdcLocalConfigRepository {
      * 按配置资源隔离并发应用的可重入锁。 Reentrant locks serializing concurrent application per configuration resource.
      */
     private final ConcurrentMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
-
-    /**
-     * 为配置键追加字段绑定。
-     * Adds a field binding for a configuration key.
-     *
-     * @param key     配置键; configuration key
-     * @param binding 字段绑定; field binding
-     */
-    public void addBinding(String key, DdcFieldBinding binding) {
-        bindings.computeIfAbsent(key, ignored -> new CopyOnWriteArrayList<>()).add(binding);
-    }
-
-    /**
-     * 返回指定配置键的字段绑定不可变快照。
-     * Returns an immutable snapshot of field bindings for a configuration key.
-     *
-     * @param key 配置键; configuration key
-     * @return 字段绑定列表; field-binding list
-     */
-    public List<DdcFieldBinding> bindings(String key) {
-        List<DdcFieldBinding> current = bindings.get(key);
-        return current == null ? Collections.emptyList() : List.copyOf(current);
-    }
-
-    /**
-     * 返回全部字段绑定的不可变快照。
-     * Returns an immutable snapshot of all field bindings.
-     *
-     * @return 全部字段绑定; all field bindings
-     */
-    public List<DdcFieldBinding> bindings() {
-        return bindings.values().stream()
-                .flatMap(List::stream)
-                .toList();
-    }
 
     /**
      * 读取配置键的本地版本。

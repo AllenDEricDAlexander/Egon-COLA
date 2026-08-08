@@ -6,10 +6,10 @@ import top.egon.cola.component.ddc.annotation.DdcValue;
 @Service
 public class SampleConfigService {
 
-    @DdcValue("downgradeSwitch:false")
+    @DdcValue("${downgrade-switch:false}")
     private volatile Boolean downgradeSwitch;
 
-    @DdcValue("rateLimit:100")
+    @DdcValue("${order.rate-limit.permits-per-second:100}")
     private volatile Integer rateLimit;
 
     public Boolean getDowngradeSwitch() {

@@ -1,10 +1,11 @@
 package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.env.MockEnvironment;
+import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
-import top.egon.cola.component.ddc.common.DdcValueConverter;
+import top.egon.cola.component.ddc.config.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
@@ -21,6 +22,7 @@ import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
 import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
 import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.repository.DdcValueBindingRegistry;
 import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
 import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
@@ -42,29 +44,50 @@ class DdcSampleRefreshFlowTest {
     void refreshUpdatesBoundFieldAndReportsSuccessAck() throws Exception {
         RecordingAdminClient adminClient = new RecordingAdminClient();
         DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
-        MockEnvironment environment = new MockEnvironment();
+        AnnotationConfigApplicationContext context =
+                new AnnotationConfigApplicationContext();
+        context.getBeanFactory().setConversionService(
+                ApplicationConversionService.getSharedInstance()
+        );
+        context.getBeanFactory().addEmbeddedValueResolver(
+                context.getEnvironment()::resolveRequiredPlaceholders
+        );
         DdcDynamicPropertySource source = new DdcYamlPropertySourceLoader()
                 .load(
                         "application.yml",
-                        "rateLimit: 100\ndowngradeSwitch: false\n",
+                        "order:\n  rate-limit:\n    permits-per-second: 100\n"
+                                + "downgrade-switch: false\n",
                         1L
                 );
-        environment.getPropertySources().addFirst(source);
-        DdcFieldBindingService bindingService = new DdcFieldBindingService(
-                repository,
-                new DdcValueConverter(),
-                environment
+        context.getEnvironment().getPropertySources().addFirst(source);
+        context.registerBean(DdcValueBindingRegistry.class);
+        context.registerBean(
+                DdcFieldBindingService.class,
+                () -> new DdcFieldBindingService(
+                        context.getBean(DdcValueBindingRegistry.class),
+                        context.getBeanFactory()
+                )
         );
-        SampleConfigService sample = new SampleConfigService();
-        bindingService.bind(sample, SampleConfigService.class);
+        context.registerBean(DdcBeanPostProcessor.class);
+        context.registerBean(SampleConfigService.class);
+        context.refresh();
+        DdcFieldBindingService bindingService = context.getBean(
+                DdcFieldBindingService.class
+        );
+        SampleConfigService sample = context.getBean(
+                SampleConfigService.class
+        );
         DefaultDdcConfigApplierRegistry registry =
-                new DefaultDdcConfigApplierRegistry(bindingService::apply);
+                new DefaultDdcConfigApplierRegistry(
+                        (key, value, version) -> {
+                        }
+                );
         registry.freeze();
         DdcConfigurationPropertiesRebinder rebinder =
                 mock(DdcConfigurationPropertiesRebinder.class);
         when(rebinder.rebind(any(), any())).thenReturn(java.util.Set.of());
         DdcYamlConfigApplier yamlConfigApplier = new DdcYamlConfigApplier(
-                environment,
+                context.getEnvironment(),
                 registry,
                 bindingService,
                 rebinder,
@@ -83,12 +106,15 @@ class DdcSampleRefreshFlowTest {
                 );
 
         refreshService.refresh(message("""
-                rateLimit: 200
-                downgradeSwitch: false
+                order:
+                  rate-limit:
+                    permits-per-second: 200
+                downgrade-switch: false
                 """, 2L));
 
         assertThat(sample.getRateLimit()).isEqualTo(200);
         assertThat(adminClient.lastAck().getStatus()).isEqualTo(DdcAckStatus.SUCCESS);
+        context.close();
     }
 
     private DdcPublishMessage message(String value, long version) {

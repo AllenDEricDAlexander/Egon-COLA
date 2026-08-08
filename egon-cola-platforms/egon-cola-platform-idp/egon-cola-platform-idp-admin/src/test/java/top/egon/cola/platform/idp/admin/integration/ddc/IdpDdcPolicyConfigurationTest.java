@@ -15,22 +15,31 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class IdpDdcPolicyConfigurationTest {
 
+    private static final Set<String> EXPECTED_EXPRESSIONS = Set.of(
+            "${idp.token.access-ttl:900}",
+            "${idp.token.refresh-ttl:604800}",
+            "${idp.authorization-code.ttl:60}",
+            "${idp.login.max-failures:5}",
+            "${idp.login.lock-duration:900}",
+            "${idp.password.max-concurrency:8}"
+    );
+
     @Test
     void declaresOnlySixNonSecretRuntimePolicyKeys() {
-        Set<String> keys = new HashSet<>();
+        Set<String> expressions = new HashSet<>();
 
         for (Field field : IdpDdcValueDeclarations.class.getDeclaredFields()) {
             DdcValue value = field.getAnnotation(DdcValue.class);
             if (value != null) {
-                keys.add(value.key());
+                expressions.add(value.value());
                 assertFalse(value.refreshable());
-                assertFalse(value.key().matches(
+                assertFalse(value.value().matches(
                         ".*(password-file|private-key|secret|credential).*"
                 ));
             }
         }
 
-        assertEquals(AtomicIdpRuntimePolicy.CONFIG_KEYS, keys);
+        assertEquals(EXPECTED_EXPRESSIONS, expressions);
     }
 
     @Test

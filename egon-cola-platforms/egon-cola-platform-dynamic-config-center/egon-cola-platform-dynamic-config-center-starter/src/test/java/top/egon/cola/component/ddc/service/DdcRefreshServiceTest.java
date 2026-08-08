@@ -6,7 +6,6 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
-import top.egon.cola.component.ddc.common.DdcValueConverter;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
 import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
@@ -321,14 +320,11 @@ class DdcRefreshServiceTest {
         DdcLocalConfigRepository repository =
                 new DdcLocalConfigRepository();
         DdcFieldBindingService fieldBindingService =
-                new DdcFieldBindingService(
-                        repository,
-                        new DdcValueConverter(),
-                        environment
-                );
+                mock(DdcFieldBindingService.class);
         DefaultDdcConfigApplierRegistry registry =
                 new DefaultDdcConfigApplierRegistry(
-                        fieldBindingService::apply
+                        (key, value, version) -> {
+                        }
                 );
         configurer.configure(registry);
         registry.freeze();

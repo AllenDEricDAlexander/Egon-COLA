@@ -1,102 +1,208 @@
 package top.egon.cola.component.ddc.service;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.env.MockEnvironment;
+import org.springframework.boot.convert.ApplicationConversionService;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
 import top.egon.cola.component.ddc.annotation.DdcValue;
-import top.egon.cola.component.ddc.common.DdcValueConverter;
-import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.config.DdcBeanPostProcessor;
+import top.egon.cola.component.ddc.model.vo.DdcFieldBinding;
+import top.egon.cola.component.ddc.repository.DdcValueBindingRegistry;
+
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcFieldBindingServiceTest {
 
-    static class SampleBean {
-
-        @DdcValue("limit:1")
-        private volatile Integer limit;
-    }
-
-    static class MultiFieldBean {
-
-        @DdcValue("limit:1")
-        private volatile Integer first;
-
-        @DdcValue("limit:1")
-        private volatile Integer second;
-    }
-
     @Test
-    void bindsAndAssignsAnnotatedField() {
-        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
-        DdcFieldBindingService service = new DdcFieldBindingService(repository, new DdcValueConverter());
-        SampleBean bean = new SampleBean();
-
-        service.bind(bean, SampleBean.class);
-        service.apply("limit", "5", 2L);
-
-        assertThat(bean.limit).isEqualTo(5);
-        assertThat(repository.version("limit")).isNull();
-        assertThat(repository.bindings("limit")).hasSize(1);
-    }
-
-    @Test
-    void initialBindingReadsTheConfigDataBackedEnvironment() {
-        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
-        MockEnvironment environment = new MockEnvironment()
-                .withProperty("limit", "7");
-        DdcFieldBindingService service = new DdcFieldBindingService(
-                repository,
-                new DdcValueConverter(),
-                environment
+    void usesSpringValueSemanticsForInitialInjectionAndRefresh() {
+        Map<String, Object> values = new LinkedHashMap<>(Map.of(
+                "order.rate-limit.permits-per-second", "120",
+                "defaults.retry.max-attempts", "4",
+                "order.rate-limit.timeout", "2s",
+                "startup-only", "7"
+        ));
+        AnnotationConfigApplicationContext context = context(
+                values,
+                DdcFieldBindingService.class,
+                SampleBean.class
         );
-        SampleBean bean = new SampleBean();
+        SampleBean bean = context.getBean(SampleBean.class);
+        DdcFieldBindingService service = context.getBean(
+                DdcFieldBindingService.class
+        );
 
-        service.bind(bean, SampleBean.class);
+        assertThat(bean.permitsPerSecond).isEqualTo(120);
+        assertThat(bean.maxAttempts).isEqualTo(4);
+        assertThat(bean.burstCapacity).isEqualTo(240);
+        assertThat(bean.timeout).isEqualTo(Duration.ofSeconds(2));
+        assertThat(bean.startupOnly).isEqualTo(7);
 
-        assertThat(bean.limit).isEqualTo(7);
+        values.put("order.rate-limit.permits-per-second", "150");
+        values.put("order.retry.max-attempts", "6");
+        values.put("order.rate-limit.timeout", "3s");
+        values.put("startup-only", "9");
+        DdcFieldBindingService.RefreshResult result = service.refresh();
+
+        assertThat(bean.permitsPerSecond).isEqualTo(150);
+        assertThat(bean.maxAttempts).isEqualTo(6);
+        assertThat(bean.burstCapacity).isEqualTo(300);
+        assertThat(bean.timeout).isEqualTo(Duration.ofSeconds(3));
+        assertThat(bean.startupOnly).isEqualTo(7);
+        assertThat(result.refreshedExpressions()).containsExactlyInAnyOrder(
+                "${order.rate-limit.permits-per-second:100}",
+                "${order.retry.max-attempts:${defaults.retry.max-attempts:3}}",
+                "#{${order.rate-limit.permits-per-second:100} * 2}",
+                "${order.rate-limit.timeout:1s}"
+        );
+
+        service.rollback(result);
+        assertThat(bean.permitsPerSecond).isEqualTo(120);
+        assertThat(bean.maxAttempts).isEqualTo(4);
+        assertThat(bean.burstCapacity).isEqualTo(240);
+        assertThat(bean.timeout).isEqualTo(Duration.ofSeconds(2));
+
+        DdcValueBindingRegistry registry = context.getBean(
+                DdcValueBindingRegistry.class
+        );
+        assertThat(registry.bindings()).hasSize(4);
+        context.close();
+        assertThat(registry.bindings()).isEmpty();
     }
 
     @Test
-    void conversionFailureDoesNotWriteOrAdvanceVersion() {
-        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
-        DdcFieldBindingService service = new DdcFieldBindingService(repository, new DdcValueConverter());
-        SampleBean bean = new SampleBean();
-        service.bind(bean, SampleBean.class);
+    void resolvesAllCandidatesBeforeWritingAnyField() {
+        Map<String, Object> values = new LinkedHashMap<>(Map.of(
+                "first", "1",
+                "second", "2"
+        ));
+        AnnotationConfigApplicationContext context = context(
+                values,
+                FailingSecondWriteService.class,
+                PairBean.class
+        );
+        PairBean bean = context.getBean(PairBean.class);
+        FailingSecondWriteService service = context.getBean(
+                FailingSecondWriteService.class
+        );
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.apply("limit", "bad", 2L))
-                .isInstanceOf(Exception.class);
-
-        assertThat(bean.limit).isEqualTo(1);
-        assertThat(repository.version("limit")).isNull();
-    }
-
-    @Test
-    void secondWriteFailureRestoresTheFirstFieldAndKeepsTheOldVersion() {
-        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
-        FailingSecondWriteService service =
-                new FailingSecondWriteService(repository, new DdcValueConverter());
-        MultiFieldBean bean = new MultiFieldBean();
-        service.bind(bean, MultiFieldBean.class);
+        values.put("first", "5");
+        values.put("second", "6");
         service.arm();
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.apply("limit", "5", 2L))
+        assertThatThrownBy(service::refresh)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("second write failed");
-
         assertThat(bean.first).isEqualTo(1);
-        assertThat(bean.second).isEqualTo(1);
-        assertThat(repository.version("limit")).isNull();
+        assertThat(bean.second).isEqualTo(2);
+        context.close();
     }
 
-    private static class FailingSecondWriteService extends DdcFieldBindingService {
+    @Test
+    void missingPlaceholderWithoutDefaultFailsBeanCreation() {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        configureBeanFactory(context);
+        context.registerBean(MissingBean.class);
+
+        assertThatThrownBy(context::refresh)
+                .rootCause()
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("unresolved.required.value");
+        context.close();
+    }
+
+    private AnnotationConfigApplicationContext context(
+            Map<String, Object> values,
+            Class<? extends DdcFieldBindingService> serviceType,
+            Class<?> beanType) {
+        AnnotationConfigApplicationContext context =
+                new AnnotationConfigApplicationContext();
+        configureBeanFactory(context);
+        context.getEnvironment().getPropertySources().addFirst(
+                new MapPropertySource("test", values)
+        );
+        context.registerBean(DdcValueBindingRegistry.class);
+        if (serviceType == FailingSecondWriteService.class) {
+            context.registerBean(
+                    FailingSecondWriteService.class,
+                    () -> new FailingSecondWriteService(
+                        context.getBean(DdcValueBindingRegistry.class),
+                        context.getBeanFactory()
+                )
+            );
+        } else {
+            context.registerBean(
+                    DdcFieldBindingService.class,
+                    () -> new DdcFieldBindingService(
+                        context.getBean(DdcValueBindingRegistry.class),
+                        context.getBeanFactory()
+                )
+            );
+        }
+        context.registerBean(DdcBeanPostProcessor.class);
+        context.registerBean(beanType);
+        context.refresh();
+        return context;
+    }
+
+    private void configureBeanFactory(
+            AnnotationConfigApplicationContext context) {
+        context.getBeanFactory().setConversionService(
+                ApplicationConversionService.getSharedInstance()
+        );
+        context.getBeanFactory().addEmbeddedValueResolver(
+                context.getEnvironment()::resolveRequiredPlaceholders
+        );
+    }
+
+    static class SampleBean {
+
+        @DdcValue("${order.rate-limit.permits-per-second:100}")
+        private volatile int permitsPerSecond;
+
+        @DdcValue("${order.retry.max-attempts:${defaults.retry.max-attempts:3}}")
+        private volatile int maxAttempts;
+
+        @DdcValue("#{${order.rate-limit.permits-per-second:100} * 2}")
+        private volatile int burstCapacity;
+
+        @DdcValue("${order.rate-limit.timeout:1s}")
+        private volatile Duration timeout;
+
+        @DdcValue(value = "${startup-only:5}", refreshable = false)
+        private volatile int startupOnly;
+    }
+
+    static class PairBean {
+
+        @DdcValue("${first:1}")
+        private volatile int first;
+
+        @DdcValue("${second:2}")
+        private volatile int second;
+    }
+
+    static class MissingBean {
+
+        @DdcValue("${unresolved.required.value}")
+        private String value;
+    }
+
+    private static final class FailingSecondWriteService
+            extends DdcFieldBindingService {
 
         private int writes;
 
         private boolean armed;
 
-        private FailingSecondWriteService(DdcLocalConfigRepository repository,
-                                          DdcValueConverter converter) {
-            super(repository, converter);
+        private FailingSecondWriteService(
+                DdcValueBindingRegistry registry,
+                org.springframework.beans.factory.config.ConfigurableListableBeanFactory beanFactory) {
+            super(registry, beanFactory);
         }
 
         private void arm() {
@@ -105,9 +211,8 @@ class DdcFieldBindingServiceTest {
         }
 
         @Override
-        protected void write(top.egon.cola.component.ddc.model.vo.DdcFieldBinding binding,
-                             Object value) {
-            if (armed && Integer.valueOf(5).equals(value) && writes++ == 1) {
+        protected void write(DdcFieldBinding binding, Object value) {
+            if (armed && writes++ == 1) {
                 throw new IllegalStateException("second write failed");
             }
             super.write(binding, value);
