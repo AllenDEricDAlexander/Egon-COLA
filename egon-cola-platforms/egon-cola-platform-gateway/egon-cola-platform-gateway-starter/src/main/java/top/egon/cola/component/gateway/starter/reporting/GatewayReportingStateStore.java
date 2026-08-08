@@ -1,6 +1,5 @@
 package top.egon.cola.component.gateway.starter.reporting;
 
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 
 import java.io.IOException;
@@ -15,6 +14,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.UUID;
 
 /**
  * Atomically persists the last pending or acknowledged report receipt.
@@ -143,7 +143,8 @@ public final class GatewayReportingStateStore {
     private void save(StoredState state) {
         Path parent = path.getParent();
         Path temporary = parent.resolve(
-                path.getFileName() + ".tmp-" + UuidV7.simpleString()
+                path.getFileName() + ".tmp-"
+                        + UUID.randomUUID().toString().replace("-", "")
         );
         try {
             Files.createDirectories(parent);

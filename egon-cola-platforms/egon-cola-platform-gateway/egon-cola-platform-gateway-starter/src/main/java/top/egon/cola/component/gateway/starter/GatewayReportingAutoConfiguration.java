@@ -13,6 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.discovery.MvcGatewayDefinitionContributor;
@@ -53,13 +54,19 @@ public class GatewayReportingAutoConfiguration {
      * 中文：创建负责将发现结果转换为接口定义报告的工厂。
      *
      * @param properties reporting configuration
+     * @param idGenerators optional common Snowflake ID generator
      * @return report factory
      */
     @Bean
     @ConditionalOnMissingBean
     public GatewayDefinitionReportFactory gatewayDefinitionReportFactory(
-            GatewayReportingProperties properties) {
-        return new GatewayDefinitionReportFactory(properties);
+            GatewayReportingProperties properties,
+            ObjectProvider<LongIdGenerator> idGenerators) {
+        return new GatewayDefinitionReportFactory(
+                properties,
+                idGenerators.getIfAvailable(),
+                java.time.Clock.systemUTC()
+        );
     }
 
     /**

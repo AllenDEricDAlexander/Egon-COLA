@@ -51,7 +51,31 @@ class GatewayDefinitionReportFactoryTest {
                 .externalAccessible()).isFalse();
     }
 
+    @Test
+    void usesTheConfiguredSnowflakeIdGeneratorForReportId() {
+        GatewayReportingProperties properties = properties();
+        GatewayDefinitionReportFactory.BuiltReport built =
+                new GatewayDefinitionReportFactory(
+                        properties,
+                        () -> 42L,
+                        Clock.fixed(
+                                Instant.parse("2026-07-25T00:00:00Z"),
+                                ZoneOffset.UTC
+                        )
+                ).build(List.of());
+
+        assertThat(built.report().reportId()).isEqualTo("42");
+    }
+
     private GatewayDefinitionReportFactory factory(String instant) {
+        GatewayReportingProperties properties = properties();
+        return new GatewayDefinitionReportFactory(
+                properties,
+                Clock.fixed(Instant.parse(instant), ZoneOffset.UTC)
+        );
+    }
+
+    private GatewayReportingProperties properties() {
         GatewayReportingProperties properties =
                 new GatewayReportingProperties();
         properties.setEnabled(true);
@@ -65,10 +89,7 @@ class GatewayDefinitionReportFactoryTest {
         properties.setBuildId("build-1");
         properties.setAccessKey("access");
         properties.setSecretKey("secret");
-        return new GatewayDefinitionReportFactory(
-                properties,
-                Clock.fixed(Instant.parse(instant), ZoneOffset.UTC)
-        );
+        return properties;
     }
 
     private GatewayDefinitionContributor.DiscoveredInterfaceGroup group(

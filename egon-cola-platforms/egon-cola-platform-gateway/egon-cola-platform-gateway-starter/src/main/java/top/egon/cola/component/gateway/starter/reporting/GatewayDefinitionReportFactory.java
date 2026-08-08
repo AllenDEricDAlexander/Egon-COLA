@@ -7,7 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
@@ -38,6 +39,13 @@ import java.util.Map;
  */
 public final class GatewayDefinitionReportFactory {
 
+    /** Current immutable Gateway reporting contract version. 当前网关上报契约版本。 */
+    private static final String CONTRACT_VERSION = "v2";
+
+    /** Compatibility generator for direct, non-Spring construction. 兼容手工构造时使用的 ID 生成器。 */
+    private static final LongIdGenerator FALLBACK_ID_GENERATOR =
+            new SnowflakeIdGenerator(0);
+
     /**
      * Application and build metadata included in generated reports.
      * 报告中包含的应用及构建元数据。
@@ -46,6 +54,9 @@ public final class GatewayDefinitionReportFactory {
 
     /** Time source for report creation timestamps. 生成报告时间戳的时间源。 */
     private final Clock clock;
+
+    /** Generator used for report identifiers. 报告标识使用的 ID 生成器。 */
+    private final LongIdGenerator idGenerator;
 
     /**
      * Deterministically configured mapper used for payload fingerprints.
@@ -56,7 +67,12 @@ public final class GatewayDefinitionReportFactory {
             .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .serializationInclusion(JsonInclude.Include.NON_NULL)
+            .defaultPropertyInclusion(
+                    JsonInclude.Value.construct(
+                            JsonInclude.Include.NON_NULL,
+                            JsonInclude.Include.ALWAYS
+                    )
+            )
             .build();
 
     /**
@@ -67,7 +83,7 @@ public final class GatewayDefinitionReportFactory {
      */
     public GatewayDefinitionReportFactory(
             GatewayReportingProperties properties) {
-        this(properties, Clock.systemUTC());
+        this(properties, FALLBACK_ID_GENERATOR, Clock.systemUTC());
     }
 
     /**
@@ -80,8 +96,29 @@ public final class GatewayDefinitionReportFactory {
     GatewayDefinitionReportFactory(
             GatewayReportingProperties properties,
             Clock clock) {
+        this(properties, FALLBACK_ID_GENERATOR, clock);
+    }
+
+    /**
+     * Creates a report factory with an explicit ID and time source.
+     * 中文：使用显式的 ID 生成器和时间源创建报告工厂。
+     *
+     * @param properties reporting application and build metadata
+     * @param idGenerator report identifier generator
+     * @param clock report creation clock
+     */
+    public GatewayDefinitionReportFactory(
+            GatewayReportingProperties properties,
+            LongIdGenerator idGenerator,
+            Clock clock) {
         this.properties = properties;
-        this.clock = clock;
+        this.idGenerator = idGenerator == null
+                ? FALLBACK_ID_GENERATOR
+                : idGenerator;
+        this.clock = java.util.Objects.requireNonNull(
+                clock,
+                "clock must not be null"
+        );
     }
 
     /**
@@ -126,7 +163,7 @@ public final class GatewayDefinitionReportFactory {
                 "build", build,
                 "businessDomains", domains,
                 "complete", true,
-                "definitionSchemaVersion", "v2"
+                "definitionSchemaVersion", CONTRACT_VERSION
         )));
         String definitionSetId = sha256(
                 String.join(
@@ -142,8 +179,8 @@ public final class GatewayDefinitionReportFactory {
         );
         GatewayInterfaceDefinitionReport report =
                 new GatewayInterfaceDefinitionReport(
-                        "v2",
-                        UuidV7.simpleString(),
+                        CONTRACT_VERSION,
+                        idGenerator.nextId(),
                         clock.instant(),
                         application,
                         build,

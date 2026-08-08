@@ -4,7 +4,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
@@ -14,6 +13,7 @@ import java.net.http.HttpClient;
 import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Sends signed Gateway definition reports to Gateway Admin and retrieves their
@@ -95,7 +95,7 @@ public final class GatewayReportHttpClient {
     public GatewayInterfaceDefinitionReportResult submit(
             GatewayDefinitionReportFactory.BuiltReport report) {
         long timestamp = clock.millis();
-        String nonce = UuidV7.simpleString();
+        String nonce = UUID.randomUUID().toString().replace("-", "");
         DdcCanonicalRequest canonical = new DdcCanonicalRequest(
                 "POST",
                 REPORT_PATH,
@@ -178,7 +178,7 @@ public final class GatewayReportHttpClient {
         }
         String path = REPORT_PATH + "/" + reportId;
         long timestamp = clock.millis();
-        String nonce = UuidV7.simpleString();
+        String nonce = UUID.randomUUID().toString().replace("-", "");
         DdcCanonicalRequest canonical = new DdcCanonicalRequest(
                 "GET",
                 path,
