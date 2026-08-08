@@ -18,6 +18,11 @@ public final class DdcKeys {
     private static final String PREFIX = "ddc";
 
     /**
+     * 当前 DDC Redis 键格式版本。 Current DDC Redis key format version.
+     */
+    private static final String KEY_VERSION = "v3";
+
+    /**
      * 禁止实例化键生成工具类。 Prevents instantiation of the key-generation utility.
      */
     private DdcKeys() {
@@ -204,7 +209,7 @@ public final class DdcKeys {
      * @return 固定的全局服务目录 Redis 键。 fixed global service-catalog Redis key
      */
     public static String globalRegistryCatalog() {
-        return PREFIX + ":v3:{registry-catalog}:services";
+        return PREFIX + ":" + KEY_VERSION + ":{registry-catalog}:services";
     }
 
     /**
@@ -213,7 +218,7 @@ public final class DdcKeys {
      * @return 固定的全局目录修订 Redis 键。 fixed global catalog-revision Redis key
      */
     public static String globalRegistryCatalogRevision() {
-        return PREFIX + ":v3:{registry-catalog}:revision";
+        return PREFIX + ":" + KEY_VERSION + ":{registry-catalog}:revision";
     }
 
     /**
@@ -288,6 +293,6 @@ public final class DdcKeys {
      * @return 完整 Redis 键。 complete Redis key
      */
     private static String buildKey(String scopeTag, String... parts) {
-        return PREFIX + ":v3:" + scopeTag + ":" + String.join(":", parts);
+        return PREFIX + ":" + KEY_VERSION + ":" + scopeTag + ":" + String.join(":", parts);
     }
 }
