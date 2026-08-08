@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery;
+package top.egon.cola.component.gateway.starter.discovery.http;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,9 +22,9 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaFi
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaRequired;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
-import top.egon.cola.component.gateway.starter.discovery.mapper.GatewayJavaSchemaMapper;
+import top.egon.cola.component.gateway.starter.discovery.GatewayRequestParameter;
+import top.egon.cola.component.gateway.starter.discovery.schema.GatewayJavaSchemaMapper;
 
-import java.lang.reflect.AnnotatedElement;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -87,7 +87,7 @@ public final class GatewayRequestSchemaValidator {
             HandlerMethod handler,
             GatewayOperation operation,
             String routePath) {
-        List<RequestParameter> actual = parameters(handler, routePath);
+        List<GatewayRequestParameter> actual = parameters(handler, routePath);
         long bodyCount = actual.stream()
                 .filter(parameter -> parameter.location()
                         == GatewayRequestLocation.BODY)
@@ -129,13 +129,13 @@ public final class GatewayRequestSchemaValidator {
      */
     private List<Binding> bind(
             HandlerMethod handler,
-            List<RequestParameter> actual,
+            List<GatewayRequestParameter> actual,
             GatewayRequestSchemaField[] declarations) {
         List<GatewayRequestSchemaField> unused = new ArrayList<>(
                 List.of(declarations)
         );
         List<Binding> result = new ArrayList<>();
-        for (RequestParameter parameter : actual) {
+        for (GatewayRequestParameter parameter : actual) {
             List<GatewayRequestSchemaField> matches = unused.stream()
                     .filter(declaration -> matches(parameter, declaration))
                     .toList();
@@ -181,7 +181,7 @@ public final class GatewayRequestSchemaValidator {
      *         match
      */
     private boolean matches(
-            RequestParameter parameter,
+            GatewayRequestParameter parameter,
             GatewayRequestSchemaField declaration) {
         if (parameter.location() != declaration.location()) {
             return false;
@@ -209,7 +209,7 @@ public final class GatewayRequestSchemaValidator {
      */
     private void validateDeclaration(
             HandlerMethod handler,
-            RequestParameter parameter,
+            GatewayRequestParameter parameter,
             GatewayRequestSchemaField declaration) {
         if (declaration.expanded()
                 && (declaration.location() != GatewayRequestLocation.QUERY
@@ -253,7 +253,7 @@ public final class GatewayRequestSchemaValidator {
         Set<GatewayRequestLocation> requiredLocations = new LinkedHashSet<>();
 
         for (Binding binding : bindings) {
-            RequestParameter parameter = binding.parameter();
+            GatewayRequestParameter parameter = binding.parameter();
             Map<String, Object> generated = binding.declaration() == null
                     ? schemaMapper.schema(
                             parameter.javaType(),
@@ -391,10 +391,10 @@ public final class GatewayRequestSchemaValidator {
      * @throws IllegalArgumentException if a path variable is missing from the
      *         route or required metadata conflicts
      */
-    private List<RequestParameter> parameters(
+    private List<GatewayRequestParameter> parameters(
             HandlerMethod handler,
             String routePath) {
-        List<RequestParameter> result = new ArrayList<>();
+        List<GatewayRequestParameter> result = new ArrayList<>();
         for (MethodParameter methodParameter : handler.getMethodParameters()) {
             methodParameter.initParameterNameDiscovery(PARAMETER_NAMES);
             if (frameworkType(methodParameter.getParameterType())) {
@@ -429,7 +429,7 @@ public final class GatewayRequestSchemaValidator {
                     required = true;
                 }
             }
-            result.add(new RequestParameter(
+            result.add(new GatewayRequestParameter(
                     location,
                     name,
                     required,
@@ -738,7 +738,7 @@ public final class GatewayRequestSchemaValidator {
      * @param parameter request parameter
      * @return parameter name or {@code <root>} for root bodies and expansions
      */
-    private String displayName(RequestParameter parameter) {
+    private String displayName(GatewayRequestParameter parameter) {
         return parameter.name().isBlank() ? "<root>" : parameter.name();
     }
 
@@ -799,29 +799,6 @@ public final class GatewayRequestSchemaValidator {
     }
 
     /**
-     * Describes one HTTP-bound handler parameter.
-     * 中文说明：记录请求位置、外部名称、必填性、展开状态及用于生成 Schema 的类型信息。
-     *
-     * @param location request location
-     * @param name external parameter name, or an empty string for root values
-     * @param required whether the parameter is required
-     * @param expanded whether an object is expanded into query properties
-     * @param javaType resolved Java type
-     * @param annotatedElement source element carrying schema annotations
-     * @param defaultValue textual binding default, or {@code null}
-     */
-    public record RequestParameter(
-            GatewayRequestLocation location,
-            String name,
-            boolean required,
-            boolean expanded,
-            JavaType javaType,
-            AnnotatedElement annotatedElement,
-            String defaultValue
-    ) {
-    }
-
-    /**
      * Contains request schema validation output.
      * 中文说明：结果同时携带完整请求 Schema 和发现到的参数列表。
      *
@@ -830,7 +807,7 @@ public final class GatewayRequestSchemaValidator {
      */
     public record Result(
             Map<String, Object> schema,
-            List<RequestParameter> parameters
+            List<GatewayRequestParameter> parameters
     ) {
     }
 
@@ -842,7 +819,7 @@ public final class GatewayRequestSchemaValidator {
      * @param declaration matched declaration, or {@code null} when inferred
      */
     private record Binding(
-            RequestParameter parameter,
+            GatewayRequestParameter parameter,
             GatewayRequestSchemaField declaration
     ) {
     }

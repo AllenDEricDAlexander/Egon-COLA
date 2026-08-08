@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery.mapper;
+package top.egon.cola.component.gateway.starter.discovery.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -10,7 +10,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.discovery.GatewayOperationSemantics;
-import top.egon.cola.component.gateway.starter.discovery.GatewayRequestSchemaValidator;
+import top.egon.cola.component.gateway.starter.discovery.McpExposureMapper;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

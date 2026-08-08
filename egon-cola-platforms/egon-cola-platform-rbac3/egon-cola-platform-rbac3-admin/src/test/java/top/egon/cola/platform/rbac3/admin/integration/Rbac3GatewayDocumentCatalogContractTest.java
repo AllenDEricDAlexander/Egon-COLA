@@ -18,7 +18,7 @@ import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.discovery.impl.MvcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;

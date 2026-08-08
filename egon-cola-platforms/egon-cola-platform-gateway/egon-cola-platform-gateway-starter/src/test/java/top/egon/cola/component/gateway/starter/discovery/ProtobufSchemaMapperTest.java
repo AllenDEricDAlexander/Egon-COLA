@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.contract.schema.proto.GatewayRequiredOption;
 import top.egon.cola.component.gateway.contract.schema.proto.GatewaySchemaFieldOption;
 import top.egon.cola.component.gateway.contract.schema.proto.SchemaOptions;
-import top.egon.cola.component.gateway.starter.discovery.mapper.GatewayJavaSchemaMapper;
-import top.egon.cola.component.gateway.starter.discovery.mapper.ProtobufSchemaMapper;
+import top.egon.cola.component.gateway.starter.discovery.schema.GatewayJavaSchemaMapper;
+import top.egon.cola.component.gateway.starter.discovery.schema.ProtobufSchemaMapper;
 
 import java.util.List;
 import java.util.Map;

@@ -17,9 +17,8 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation
 import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
-import top.egon.cola.component.gateway.starter.discovery.impl.RpcGatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery.mapper.GatewayHttpOperationMapper;
-import top.egon.cola.component.gateway.starter.discovery.mapper.McpExposureMapper;
+import top.egon.cola.component.gateway.starter.discovery.http.GatewayHttpOperationMapper;
+import top.egon.cola.component.gateway.starter.discovery.rpc.RpcGatewayDefinitionContributor;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
@@ -175,7 +174,7 @@ class McpExposureMapperTest {
             Class<?> groupType,
             String methodName,
             boolean streaming,
-            List<GatewayRequestSchemaValidator.RequestParameter> parameters)
+            List<GatewayRequestParameter> parameters)
             throws Exception {
         GatewayOperation operation = ExposureMethods.class
                 .getDeclaredMethod(methodName)
@@ -189,11 +188,11 @@ class McpExposureMapperTest {
         );
     }
 
-    private GatewayRequestSchemaValidator.RequestParameter parameter(
+    private GatewayRequestParameter parameter(
             String name,
             String location,
             boolean required) {
-        return new GatewayRequestSchemaValidator.RequestParameter(
+        return new GatewayRequestParameter(
                 GatewayRequestLocation.valueOf(location),
                 name,
                 required,

@@ -1,9 +1,8 @@
-package top.egon.cola.component.gateway.starter.discovery.mapper;
+package top.egon.cola.component.gateway.starter.discovery;
 
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
-import top.egon.cola.component.gateway.starter.discovery.GatewayRequestSchemaValidator;
 
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +49,7 @@ public final class McpExposureMapper {
             GatewayOperation operation,
             String operationIdentity,
             boolean streaming,
-            List<GatewayRequestSchemaValidator.RequestParameter> parameters) {
+            List<GatewayRequestParameter> parameters) {
         if (operation == null || !operation.registerMcp()) {
             return Map.of();
         }
@@ -108,7 +107,7 @@ public final class McpExposureMapper {
      */
     private static void validateParameter(
             String operationIdentity,
-            GatewayRequestSchemaValidator.RequestParameter parameter) {
+            GatewayRequestParameter parameter) {
         if (parameter.location() == GatewayRequestLocation.PART) {
             invalid(operationIdentity, "multipart operations are unsupported");
         }

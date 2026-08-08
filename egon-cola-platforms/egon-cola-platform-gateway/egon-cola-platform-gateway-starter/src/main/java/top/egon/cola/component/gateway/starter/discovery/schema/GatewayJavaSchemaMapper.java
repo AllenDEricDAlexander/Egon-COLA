@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery.mapper;
+package top.egon.cola.component.gateway.starter.discovery.schema;
 
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;

@@ -10,7 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
-import top.egon.cola.component.gateway.starter.discovery.impl.MvcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;

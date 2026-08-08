@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery.mapper;
+package top.egon.cola.component.gateway.starter.discovery.http;
 
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import org.springframework.http.HttpEntity;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
+import top.egon.cola.component.gateway.starter.discovery.schema.GatewayJavaSchemaMapper;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 
 import java.lang.reflect.Method;

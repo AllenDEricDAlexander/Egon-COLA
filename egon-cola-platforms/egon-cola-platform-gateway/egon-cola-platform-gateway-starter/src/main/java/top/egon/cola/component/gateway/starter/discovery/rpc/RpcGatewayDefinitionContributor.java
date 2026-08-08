@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery.impl;
+package top.egon.cola.component.gateway.starter.discovery.rpc;
 
 import top.egon.cola.component.gateway.contract.identity.GatewayOperationKey;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
@@ -9,8 +9,8 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.discovery.GatewayOperationSemantics;
-import top.egon.cola.component.gateway.starter.discovery.mapper.McpExposureMapper;
-import top.egon.cola.component.gateway.starter.discovery.mapper.ProtobufSchemaMapper;
+import top.egon.cola.component.gateway.starter.discovery.McpExposureMapper;
+import top.egon.cola.component.gateway.starter.discovery.schema.ProtobufSchemaMapper;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.RpcContractSnapshot;
