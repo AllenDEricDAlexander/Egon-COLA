@@ -31,8 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Discovers HTTP handler parameters, validates explicit Gateway request schema
+ * declarations, and assembles the location-oriented request JSON Schema.
+ */
 final class GatewayRequestSchemaValidator {
 
+    /** HTTP request locations emitted in deterministic schema order. */
     private static final List<GatewayRequestLocation> HTTP_LOCATIONS = List.of(
             GatewayRequestLocation.PATH,
             GatewayRequestLocation.QUERY,
@@ -42,15 +47,33 @@ final class GatewayRequestSchemaValidator {
             GatewayRequestLocation.PART
     );
 
+    /** Jackson mapper used to resolve handler parameter types. */
     private final ObjectMapper objectMapper;
 
+    /** Mapper used to generate and validate Java value schemas. */
     private final GatewayJavaSchemaMapper schemaMapper;
 
+    /**
+     * Creates a request schema validator.
+     *
+     * @param objectMapper Jackson mapper used for Java type resolution
+     */
     GatewayRequestSchemaValidator(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.schemaMapper = new GatewayJavaSchemaMapper(objectMapper);
     }
 
+    /**
+     * Discovers handler request parameters, validates explicit declarations,
+     * and generates the complete request schema.
+     *
+     * @param handler Spring handler method
+     * @param operation Gateway operation declaration, or {@code null}
+     * @param routePath resolved route template
+     * @return generated schema and immutable discovered parameter list
+     * @throws IllegalArgumentException if handler bindings or declarations are
+     *         incomplete, ambiguous, or incompatible
+     */
     Result validate(
             HandlerMethod handler,
             GatewayOperation operation,
@@ -84,6 +107,16 @@ final class GatewayRequestSchemaValidator {
         return new Result(schema(bindings), List.copyOf(actual));
     }
 
+    /**
+     * Matches discovered parameters to explicit request schema declarations.
+     *
+     * @param handler handler used in validation errors
+     * @param actual discovered request parameters
+     * @param declarations explicit schema field declarations
+     * @return validated parameter-to-declaration bindings
+     * @throws IllegalArgumentException if a declaration is missing, duplicated,
+     *         unknown, or incompatible
+     */
     private List<Binding> bind(
             HandlerMethod handler,
             List<RequestParameter> actual,
@@ -128,6 +161,14 @@ final class GatewayRequestSchemaValidator {
         return result;
     }
 
+    /**
+     * Tests whether a declaration identifies a discovered request parameter.
+     *
+     * @param parameter discovered parameter
+     * @param declaration candidate declaration
+     * @return {@code true} when location, name, expansion, and body semantics
+     *         match
+     */
     private boolean matches(
             RequestParameter parameter,
             GatewayRequestSchemaField declaration) {
@@ -146,6 +187,14 @@ final class GatewayRequestSchemaValidator {
                 && !declaration.expanded();
     }
 
+    /**
+     * Validates the expansion and Java schema type of a matched declaration.
+     *
+     * @param handler handler used in validation errors
+     * @param parameter discovered parameter
+     * @param declaration matched declaration
+     * @throws IllegalArgumentException if declaration metadata is incompatible
+     */
     private void validateDeclaration(
             HandlerMethod handler,
             RequestParameter parameter,
@@ -174,6 +223,14 @@ final class GatewayRequestSchemaValidator {
         );
     }
 
+    /**
+     * Builds the location-oriented request schema from validated bindings.
+     *
+     * @param bindings validated parameter bindings
+     * @return complete Gateway request JSON Schema
+     * @throws IllegalArgumentException if expanded properties, parameter names,
+     *         or reusable definitions collide
+     */
     private Map<String, Object> schema(List<Binding> bindings) {
         Map<GatewayRequestLocation, Map<String, Object>> propertiesByLocation =
                 new EnumMap<>(GatewayRequestLocation.class);
@@ -311,6 +368,15 @@ final class GatewayRequestSchemaValidator {
         return result;
     }
 
+    /**
+     * Discovers supported HTTP request parameters from a Spring handler.
+     *
+     * @param handler handler method to inspect
+     * @param routePath route template used to validate path variables
+     * @return discovered request parameters in method declaration order
+     * @throws IllegalArgumentException if a path variable is missing from the
+     *         route or required metadata conflicts
+     */
     private List<RequestParameter> parameters(
             HandlerMethod handler,
             String routePath) {
@@ -363,6 +429,12 @@ final class GatewayRequestSchemaValidator {
         return result;
     }
 
+    /**
+     * Resolves the Gateway request location for a Spring method parameter.
+     *
+     * @param parameter method parameter to inspect
+     * @return resolved location, defaulting to query
+     */
     private GatewayRequestLocation location(MethodParameter parameter) {
         if (parameter.hasParameterAnnotation(PathVariable.class)) {
             return GatewayRequestLocation.PATH;
@@ -385,6 +457,13 @@ final class GatewayRequestSchemaValidator {
         return GatewayRequestLocation.QUERY;
     }
 
+    /**
+     * Determines whether a query parameter is expanded from a model object.
+     *
+     * @param parameter method parameter to inspect
+     * @param location resolved request location
+     * @return {@code true} for expanded query model parameters
+     */
     private boolean expanded(
             MethodParameter parameter,
             GatewayRequestLocation location) {
@@ -396,6 +475,12 @@ final class GatewayRequestSchemaValidator {
                 || !simple(parameter.getParameterType());
     }
 
+    /**
+     * Resolves the externally visible name of a bound request parameter.
+     *
+     * @param parameter method parameter to inspect
+     * @return annotation name, annotation value, or Java parameter name
+     */
     private String name(MethodParameter parameter) {
         PathVariable path = parameter.getParameterAnnotation(
                 PathVariable.class
@@ -430,6 +515,14 @@ final class GatewayRequestSchemaValidator {
         return parameterName(parameter);
     }
 
+    /**
+     * Resolves a Spring binding annotation name with parameter-name fallback.
+     *
+     * @param name annotation {@code name} attribute
+     * @param value annotation {@code value} attribute
+     * @param parameter source method parameter
+     * @return effective external name
+     */
     private String annotationName(
             String name,
             String value,
@@ -443,12 +536,26 @@ final class GatewayRequestSchemaValidator {
         return parameterName(parameter);
     }
 
+    /**
+     * Resolves a Java parameter name with a stable index-based fallback.
+     *
+     * @param parameter method parameter
+     * @return discovered or synthetic parameter name
+     */
     private String parameterName(MethodParameter parameter) {
         return parameter.getParameterName() == null
                 ? "arg" + parameter.getParameterIndex()
                 : parameter.getParameterName();
     }
 
+    /**
+     * Resolves whether a parameter is required from Spring binding and Bean
+     * Validation annotations.
+     *
+     * @param parameter method parameter to inspect
+     * @param location resolved request location
+     * @return {@code true} when the parameter must be supplied
+     */
     private boolean required(
             MethodParameter parameter,
             GatewayRequestLocation location) {
@@ -491,6 +598,12 @@ final class GatewayRequestSchemaValidator {
         return constrained || body != null && body.required();
     }
 
+    /**
+     * Reads a supported Spring binding default value.
+     *
+     * @param parameter method parameter to inspect
+     * @return declared default value, or {@code null} when none exists
+     */
     private String defaultValue(MethodParameter parameter) {
         RequestParam query = parameter.getParameterAnnotation(
                 RequestParam.class
@@ -516,6 +629,15 @@ final class GatewayRequestSchemaValidator {
         return null;
     }
 
+    /**
+     * Converts a textual Spring default to the scalar type represented in the
+     * request schema.
+     *
+     * @param value textual default value
+     * @param type resolved parameter type
+     * @return typed scalar value, or the original string for other types
+     * @throws NumberFormatException if a numeric default is malformed
+     */
     private Object parseDefault(String value, JavaType type) {
         Class<?> raw = type.getRawClass();
         if (raw == boolean.class || raw == Boolean.class) {
@@ -536,6 +658,13 @@ final class GatewayRequestSchemaValidator {
         return value;
     }
 
+    /**
+     * Determines whether a type is treated as one query value rather than an
+     * expanded model object.
+     *
+     * @param type raw parameter type
+     * @return {@code true} for supported scalar-like types
+     */
     private boolean simple(Class<?> type) {
         return type.isPrimitive() || type.isEnum()
                 || CharSequence.class.isAssignableFrom(type)
@@ -544,6 +673,13 @@ final class GatewayRequestSchemaValidator {
                 || type.getName().startsWith("java.time.");
     }
 
+    /**
+     * Determines whether a handler parameter is framework infrastructure that
+     * must be excluded from the Gateway request contract.
+     *
+     * @param type raw parameter type
+     * @return {@code true} for supported servlet, server, or principal types
+     */
     private boolean frameworkType(Class<?> type) {
         String name = type.getName();
         return name.startsWith("jakarta.servlet.")
@@ -553,6 +689,13 @@ final class GatewayRequestSchemaValidator {
                 || java.security.Principal.class.isAssignableFrom(type);
     }
 
+    /**
+     * Creates a handler-qualified request schema validation exception.
+     *
+     * @param handler invalid handler
+     * @param message validation detail
+     * @return qualified exception
+     */
     private IllegalArgumentException invalid(
             HandlerMethod handler,
             String message) {
@@ -562,10 +705,23 @@ final class GatewayRequestSchemaValidator {
         );
     }
 
+    /**
+     * Returns a readable parameter name for validation messages.
+     *
+     * @param parameter request parameter
+     * @return parameter name or {@code <root>} for root bodies and expansions
+     */
     private String displayName(RequestParameter parameter) {
         return parameter.name().isBlank() ? "<root>" : parameter.name();
     }
 
+    /**
+     * Merges generated reusable definitions while rejecting conflicting keys.
+     *
+     * @param target accumulated definitions
+     * @param schema generated schema that may contain {@code $defs}
+     * @throws IllegalArgumentException if the same key has different schemas
+     */
     private void mergeDefinitions(
             Map<String, Object> target,
             Map<String, Object> schema) {
@@ -586,6 +742,12 @@ final class GatewayRequestSchemaValidator {
         });
     }
 
+    /**
+     * Extracts an embeddable schema body by removing document-level metadata.
+     *
+     * @param generated generated schema document
+     * @return mutable schema fragment
+     */
     private Map<String, Object> schemaBody(Map<String, Object> generated) {
         Map<String, Object> result = new LinkedHashMap<>(generated);
         result.remove("$schema");
@@ -594,12 +756,29 @@ final class GatewayRequestSchemaValidator {
         return result;
     }
 
+    /**
+     * Returns a schema value as a string-keyed map.
+     *
+     * @param value candidate map value
+     * @return cast map, or an immutable empty map when the value is not a map
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> map(Object value) {
         return value instanceof Map<?, ?>
                 ? (Map<String, Object>) value : Map.of();
     }
 
+    /**
+     * Describes one HTTP-bound handler parameter.
+     *
+     * @param location request location
+     * @param name external parameter name, or an empty string for root values
+     * @param required whether the parameter is required
+     * @param expanded whether an object is expanded into query properties
+     * @param javaType resolved Java type
+     * @param annotatedElement source element carrying schema annotations
+     * @param defaultValue textual binding default, or {@code null}
+     */
     record RequestParameter(
             GatewayRequestLocation location,
             String name,
@@ -611,12 +790,24 @@ final class GatewayRequestSchemaValidator {
     ) {
     }
 
+    /**
+     * Contains request schema validation output.
+     *
+     * @param schema complete request JSON Schema
+     * @param parameters discovered request parameters
+     */
     record Result(
             Map<String, Object> schema,
             List<RequestParameter> parameters
     ) {
     }
 
+    /**
+     * Associates a discovered parameter with its explicit declaration.
+     *
+     * @param parameter discovered request parameter
+     * @param declaration matched declaration, or {@code null} when inferred
+     */
     private record Binding(
             RequestParameter parameter,
             GatewayRequestSchemaField declaration

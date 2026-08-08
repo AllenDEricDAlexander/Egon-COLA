@@ -27,7 +27,12 @@ public enum MetadataSource {
     /** No level declared a value; the component default applies. */
     DEFAULT;
 
-    /** Whether the value was explicitly declared rather than falling through to the default. */
+    /**
+     * Tests whether the value was explicitly declared rather than falling through
+     * to the component default.
+     *
+     * @return {@code true} for every source except {@link #DEFAULT}
+     */
     public boolean explicit() {
         return this != DEFAULT;
     }

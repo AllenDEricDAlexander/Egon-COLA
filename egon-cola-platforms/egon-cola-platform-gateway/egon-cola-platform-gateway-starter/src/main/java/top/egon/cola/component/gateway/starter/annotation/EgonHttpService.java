@@ -32,8 +32,11 @@ import java.lang.annotation.Target;
 public @interface EgonHttpService {
 
     /**
-     * Catalogue-facing name for this service. Empty means "derive it", so that
-     * renaming the controller class does not silently rename a published service.
+     * Catalogue-facing name for this service. Empty means "derive it"; declare
+     * an explicit value when the published identity must survive controller
+     * renames.
+     *
+     * @return the declared service name, or an empty string to derive it
      */
     String serviceName() default "";
 
@@ -41,12 +44,16 @@ public @interface EgonHttpService {
      * Logical partition this service is published into. Matches the RPC default
      * so a service reachable over both protocols lands in one place unless
      * someone says otherwise.
+     *
+     * @return the service group
      */
     String group() default "default";
 
     /**
      * Contract version callers pin against. Matches the RPC default so the two
      * protocol surfaces of one service start out aligned.
+     *
+     * @return the service contract version
      */
     String version() default "1.0.0";
 
@@ -54,6 +61,8 @@ public @interface EgonHttpService {
      * Path prefix shared by this service's endpoints, recorded so the catalogue
      * can present absolute paths. Empty means the endpoints' own mappings are
      * already absolute.
+     *
+     * @return the shared path prefix, or an empty string when none is declared
      */
     String basePath() default "";
 
@@ -62,6 +71,8 @@ public @interface EgonHttpService {
      * weighted balancing policies. Expressed as a share rather than an absolute
      * rate so instances of differing size can be compared without knowing the
      * cluster's total capacity.
+     *
+     * @return the relative service capacity weight
      */
     int weight() default 100;
 }

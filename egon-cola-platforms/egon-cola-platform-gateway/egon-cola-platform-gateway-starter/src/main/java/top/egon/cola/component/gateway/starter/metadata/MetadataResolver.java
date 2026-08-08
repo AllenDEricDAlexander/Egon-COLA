@@ -29,10 +29,15 @@ import java.util.function.Predicate;
  *         .orDefault(3000L)
  *         .value();
  * }</pre>
+ *
+ * @param <T> metadata value type
  */
 public final class MetadataResolver<T> {
 
-    /** Treats a null, a negative number, a blank string or an empty collection as unset. */
+    /**
+     * Treats a null, negative number, blank string, empty collection or empty
+     * object array as unset.
+     */
     public static final Predicate<Object> DEFAULT_SENTINEL = value -> switch (value) {
         case null -> true;
         case Number number -> number.doubleValue() < 0;
@@ -42,12 +47,24 @@ public final class MetadataResolver<T> {
         default -> false;
     };
 
+    /** Candidate declarations accumulated for precedence-based resolution. */
     private final List<Candidate<T>> candidates = new ArrayList<>();
+
+    /** Predicate that identifies candidate values which do not declare metadata. */
     private Predicate<? super T> unset = DEFAULT_SENTINEL;
 
+    /**
+     * Creates an empty resolution chain using {@link #DEFAULT_SENTINEL}.
+     */
     private MetadataResolver() {
     }
 
+    /**
+     * Starts an empty metadata resolution chain.
+     *
+     * @param <T> metadata value type
+     * @return a new resolver using {@link #DEFAULT_SENTINEL}
+     */
     public static <T> MetadataResolver<T> chain() {
         return new MetadataResolver<>();
     }
@@ -57,19 +74,34 @@ public final class MetadataResolver<T> {
      *
      * <p>Order of addition does not matter; levels are ranked by {@link MetadataSource}
      * precedence, so a caller cannot accidentally invert the chain by reordering calls.
+     *
+     * @param source declaration level that supplied the candidate
+     * @param value candidate metadata value
+     * @return this resolver
      */
     public MetadataResolver<T> candidate(MetadataSource source, T value) {
         candidates.add(new Candidate<>(source, value));
         return this;
     }
 
-    /** Replaces the sentinel test, for a type whose "unset" marker is not the usual one. */
+    /**
+     * Replaces the sentinel test for a type whose unset marker is not the usual one.
+     *
+     * @param predicate predicate returning {@code true} for an unset value
+     * @return this resolver
+     */
     public MetadataResolver<T> unsetWhen(Predicate<? super T> predicate) {
         this.unset = predicate;
         return this;
     }
 
-    /** Resolves, falling back to {@code defaultValue} when every level is unset. */
+    /**
+     * Resolves the highest-precedence set candidate.
+     *
+     * @param defaultValue value used when every candidate is unset
+     * @return the resolved value and its winning source, or
+     *         {@link MetadataSource#DEFAULT} when the fallback is used
+     */
     public ResolvedMetadata<T> orDefault(T defaultValue) {
         return candidates.stream()
                 .filter(candidate -> !unset.test(candidate.value()))
@@ -78,6 +110,13 @@ public final class MetadataResolver<T> {
                 .orElseGet(() -> ResolvedMetadata.byDefault(defaultValue));
     }
 
+    /**
+     * Candidate value supplied by one declaration level.
+     *
+     * @param source declaration level that supplied the candidate
+     * @param value candidate metadata value
+     * @param <T> metadata value type
+     */
     private record Candidate<T>(MetadataSource source, T value) {
     }
 }

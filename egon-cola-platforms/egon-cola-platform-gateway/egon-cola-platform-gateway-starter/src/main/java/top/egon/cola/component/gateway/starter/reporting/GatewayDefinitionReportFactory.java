@@ -22,12 +22,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Builds deterministic Gateway interface definition reports and their stable
+ * identities from discovered interface groups.
+ */
 public final class GatewayDefinitionReportFactory {
 
+    /** Application and build metadata included in generated reports. */
     private final GatewayReportingProperties properties;
 
+    /** Time source for report creation timestamps. */
     private final Clock clock;
 
+    /** Deterministically configured mapper used for payload fingerprints. */
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .addModule(new JavaTimeModule())
             .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
@@ -36,11 +43,22 @@ public final class GatewayDefinitionReportFactory {
             .serializationInclusion(JsonInclude.Include.NON_NULL)
             .build();
 
+    /**
+     * Creates a report factory using the UTC system clock.
+     *
+     * @param properties reporting application and build metadata
+     */
     public GatewayDefinitionReportFactory(
             GatewayReportingProperties properties) {
         this(properties, Clock.systemUTC());
     }
 
+    /**
+     * Creates a report factory with an injectable time source.
+     *
+     * @param properties reporting application and build metadata
+     * @param clock report creation clock
+     */
     GatewayDefinitionReportFactory(
             GatewayReportingProperties properties,
             Clock clock) {
@@ -48,6 +66,15 @@ public final class GatewayDefinitionReportFactory {
         this.clock = clock;
     }
 
+    /**
+     * Validates configuration and builds a deterministic complete report.
+     *
+     * @param groups discovered interface groups to aggregate by business and
+     *               entity domain
+     * @return report, stable identity, and serialized payload
+     * @throws IllegalArgumentException if configuration, group uniqueness, or
+     *                                  serialization is invalid
+     */
     public BuiltReport build(
             List<GatewayDefinitionContributor.DiscoveredInterfaceGroup>
                     groups) {
@@ -118,6 +145,14 @@ public final class GatewayDefinitionReportFactory {
         );
     }
 
+    /**
+     * Groups discovered interfaces into sorted business and entity domains.
+     *
+     * @param groups discovered interface groups
+     * @return immutable business domain definitions
+     * @throws IllegalArgumentException if an entity contains a duplicate group
+     *                                  code
+     */
     private List<GatewayInterfaceDefinitionReport.BusinessDomain> domains(
             List<GatewayDefinitionContributor.DiscoveredInterfaceGroup>
                     groups) {
@@ -162,6 +197,13 @@ public final class GatewayDefinitionReportFactory {
                 .toList();
     }
 
+    /**
+     * Serializes a value using the deterministic report mapper.
+     *
+     * @param value value to serialize
+     * @return serialized JSON bytes
+     * @throws IllegalArgumentException if the value cannot be serialized
+     */
     public byte[] bytes(Object value) {
         try {
             return objectMapper.writeValueAsBytes(value);
@@ -173,10 +215,21 @@ public final class GatewayDefinitionReportFactory {
         }
     }
 
+    /**
+     * Returns an independent copy of the deterministic report mapper.
+     *
+     * @return copied object mapper
+     */
     public ObjectMapper objectMapper() {
         return objectMapper.copy();
     }
 
+    /**
+     * Computes a lowercase hexadecimal SHA-256 digest.
+     *
+     * @param value bytes to digest
+     * @return hexadecimal digest
+     */
     private String sha256(byte[] value) {
         try {
             return HexFormat.of().formatHex(
@@ -187,33 +240,58 @@ public final class GatewayDefinitionReportFactory {
         }
     }
 
+    /**
+     * Complete generated report together with its identity and JSON payload.
+     *
+     * @param report structured report
+     * @param identity stable definition identity
+     * @param payload serialized report payload
+     */
     public record BuiltReport(
             GatewayInterfaceDefinitionReport report,
             GatewayDefinitionIdentity identity,
             byte[] payload
     ) {
 
+        /** Defensively copies the serialized payload at construction time. */
         public BuiltReport {
             payload = payload.clone();
         }
 
+        /**
+         * Returns a defensive copy of the serialized report payload.
+         *
+         * @return copied payload bytes
+         */
         @Override
         public byte[] payload() {
             return payload.clone();
         }
     }
 
+    /** Mutable aggregation node used while assembling a business domain. */
     private static final class MutableBusiness {
 
+        /** Stable business domain code. */
         private final String code;
 
+        /** Human-readable business domain name. */
         private final String name;
 
+        /** Business domain description. */
         private final String description;
 
+        /** Entity domains indexed by stable code in encounter order. */
         private final Map<String, MutableEntity> entities =
                 new LinkedHashMap<>();
 
+        /**
+         * Creates a mutable business aggregation node.
+         *
+         * @param code stable business domain code
+         * @param name human-readable business domain name
+         * @param description business domain description
+         */
         private MutableBusiness(
                 String code,
                 String name,
@@ -223,6 +301,11 @@ public final class GatewayDefinitionReportFactory {
             this.description = description;
         }
 
+        /**
+         * Freezes the accumulated entity domains into the report contract.
+         *
+         * @return immutable business domain definition
+         */
         private GatewayInterfaceDefinitionReport.BusinessDomain freeze() {
             return new GatewayInterfaceDefinitionReport.BusinessDomain(
                     code,
@@ -235,18 +318,30 @@ public final class GatewayDefinitionReportFactory {
         }
     }
 
+    /** Mutable aggregation node used while assembling an entity domain. */
     private static final class MutableEntity {
 
+        /** Stable entity domain code. */
         private final String code;
 
+        /** Human-readable entity domain name. */
         private final String name;
 
+        /** Entity domain description. */
         private final String description;
 
+        /** Interface groups indexed by stable code in encounter order. */
         private final Map<String,
                 GatewayInterfaceDefinitionReport.InterfaceGroup> groups =
                 new LinkedHashMap<>();
 
+        /**
+         * Creates a mutable entity aggregation node.
+         *
+         * @param code stable entity domain code
+         * @param name human-readable entity domain name
+         * @param description entity domain description
+         */
         private MutableEntity(
                 String code,
                 String name,
@@ -256,6 +351,11 @@ public final class GatewayDefinitionReportFactory {
             this.description = description;
         }
 
+        /**
+         * Freezes the accumulated groups into the report contract.
+         *
+         * @return immutable entity domain definition
+         */
         private GatewayInterfaceDefinitionReport.EntityDomain freeze() {
             return new GatewayInterfaceDefinitionReport.EntityDomain(
                     code,

@@ -9,17 +9,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * Validates MCP exposure declarations and maps them to operation report
+ * attributes.
+ */
 final class McpExposureMapper {
 
+    /** Attribute key under which MCP exposure metadata is reported. */
     static final String ATTRIBUTE_NAME = "mcpExposure";
 
+    /** Pattern accepted for MCP permission identifiers. */
     private static final Pattern PERMISSION = Pattern.compile(
             "^[a-z][a-z0-9._-]*(?::[A-Za-z0-9._*-]+)+$"
     );
 
+    /** Prevents instantiation of this utility class. */
     private McpExposureMapper() {
     }
 
+    /**
+     * Maps an operation's MCP exposure declaration to report attributes.
+     *
+     * @param group             the declaring interface group annotation
+     * @param operation         the operation annotation, or {@code null}
+     * @param operationIdentity the operation identity used in error messages
+     * @param streaming         whether the operation has streaming semantics
+     * @param parameters        the request parameters to validate for MCP use
+     * @return MCP exposure attributes, or an empty map when MCP registration
+     *         is not requested
+     * @throws IllegalArgumentException if the requested exposure is invalid or
+     *                                  unsupported
+     */
     static Map<String, Object> map(
             GatewayInterfaceGroup group,
             GatewayOperation operation,
@@ -71,6 +91,14 @@ final class McpExposureMapper {
         );
     }
 
+    /**
+     * Validates whether a request parameter can be supplied through MCP.
+     *
+     * @param operationIdentity the operation identity used in error messages
+     * @param parameter         the request parameter to validate
+     * @throws IllegalArgumentException if the parameter requires unsupported
+     *                                  multipart, header, or cookie binding
+     */
     private static void validateParameter(
             String operationIdentity,
             GatewayRequestSchemaValidator.RequestParameter parameter) {
@@ -95,6 +123,15 @@ final class McpExposureMapper {
         }
     }
 
+    /**
+     * Requires and normalizes a non-blank MCP declaration value.
+     *
+     * @param value             the declared value
+     * @param field             the declaration field name
+     * @param operationIdentity the operation identity used in error messages
+     * @return the trimmed declaration value
+     * @throws IllegalArgumentException if the value is {@code null} or blank
+     */
     private static String required(
             String value,
             String field,
@@ -105,6 +142,13 @@ final class McpExposureMapper {
         return value.trim();
     }
 
+    /**
+     * Throws an exception describing an invalid MCP exposure declaration.
+     *
+     * @param operationIdentity the invalid operation identity
+     * @param message           the validation failure detail
+     * @throws IllegalArgumentException always
+     */
     private static void invalid(String operationIdentity, String message) {
         throw new IllegalArgumentException(
                 "invalid MCP exposure for " + operationIdentity + ": " + message

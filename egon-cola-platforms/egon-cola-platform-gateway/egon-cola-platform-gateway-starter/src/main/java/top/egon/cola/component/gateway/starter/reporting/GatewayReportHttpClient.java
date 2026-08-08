@@ -15,24 +15,46 @@ import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Sends signed Gateway definition reports to Gateway Admin and retrieves their
+ * acknowledgement receipts.
+ */
 public final class GatewayReportHttpClient {
 
+    /** Relative Gateway Admin path for definition report operations. */
     public static final String REPORT_PATH =
             "/api/v1/gateway/openapi/interface-definitions/reports";
 
+    /** Reporting and request-signing configuration. */
     private final GatewayReportingProperties properties;
 
+    /** HTTP client configured for the Gateway Admin base URL. */
     private final RestClient client;
 
+    /** Signer for DDC-compatible authenticated Admin requests. */
     private final DdcRequestSigner signer = new DdcRequestSigner();
 
+    /** Clock used to produce request-signing timestamps. */
     private final Clock clock;
 
+    /**
+     * Creates a reporting client using configured HTTP timeouts and the UTC
+     * system clock.
+     *
+     * @param properties reporting and request-signing configuration
+     */
     public GatewayReportHttpClient(
             GatewayReportingProperties properties) {
         this(properties, restClient(properties), Clock.systemUTC());
     }
 
+    /**
+     * Creates a reporting client with injectable transport and time source.
+     *
+     * @param properties reporting and request-signing configuration
+     * @param client HTTP transport
+     * @param clock request-signing clock
+     */
     GatewayReportHttpClient(
             GatewayReportingProperties properties,
             RestClient client,
@@ -42,6 +64,13 @@ public final class GatewayReportHttpClient {
         this.clock = clock;
     }
 
+    /**
+     * Submits a signed definition report and returns the Admin receipt.
+     *
+     * @param report serialized report and identity to submit
+     * @return acknowledgement receipt, possibly {@code null} for an empty body
+     * @throws GatewayReportTransportException if the request fails
+     */
     public GatewayInterfaceDefinitionReportResult submit(
             GatewayDefinitionReportFactory.BuiltReport report) {
         long timestamp = clock.millis();
@@ -108,6 +137,15 @@ public final class GatewayReportHttpClient {
         }
     }
 
+    /**
+     * Retrieves an existing report acknowledgement by report identifier.
+     *
+     * @param reportId report identifier accepted by Gateway Admin
+     * @return acknowledgement receipt, or empty when Admin returns HTTP 404 or
+     *         an empty body
+     * @throws IllegalArgumentException if {@code reportId} is invalid
+     * @throws GatewayReportTransportException if the request fails
+     */
     public Optional<GatewayInterfaceDefinitionReportResult> find(
             String reportId) {
         if (reportId == null
@@ -170,6 +208,12 @@ public final class GatewayReportHttpClient {
         }
     }
 
+    /**
+     * Converts an Admin HTTP failure into a retry-aware transport exception.
+     *
+     * @param failure response exception returned by the HTTP client
+     * @return reporting transport exception
+     */
     private GatewayReportTransportException transportFailure(
             RestClientResponseException failure) {
         boolean retryable = failure.getStatusCode().value() == 429
@@ -182,6 +226,12 @@ public final class GatewayReportHttpClient {
         );
     }
 
+    /**
+     * Builds the default non-redirecting HTTP client from reporting settings.
+     *
+     * @param properties reporting transport configuration
+     * @return configured REST client
+     */
     private static RestClient restClient(
             GatewayReportingProperties properties) {
         HttpClient httpClient = HttpClient.newBuilder()
@@ -197,11 +247,23 @@ public final class GatewayReportHttpClient {
                 .build();
     }
 
+    /**
+     * Reports a transport or Admin response failure together with whether the
+     * coordinator may retry it.
+     */
     public static final class GatewayReportTransportException
             extends RuntimeException {
 
+        /** Whether retrying the failed request is permitted. */
         private final boolean retryable;
 
+        /**
+         * Creates a retry-aware reporting transport exception.
+         *
+         * @param message failure description
+         * @param retryable whether the request may be retried
+         * @param cause underlying failure, or {@code null} when unavailable
+         */
         GatewayReportTransportException(
                 String message,
                 boolean retryable,
@@ -210,6 +272,11 @@ public final class GatewayReportHttpClient {
             this.retryable = retryable;
         }
 
+        /**
+         * Returns whether the coordinator may retry the failed request.
+         *
+         * @return {@code true} when retry is permitted
+         */
         public boolean retryable() {
             return retryable;
         }

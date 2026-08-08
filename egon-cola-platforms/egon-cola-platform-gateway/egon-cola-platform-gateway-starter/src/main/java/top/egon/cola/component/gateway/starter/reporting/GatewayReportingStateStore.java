@@ -21,21 +21,40 @@ import java.util.Properties;
  */
 public final class GatewayReportingStateStore {
 
+    /** Version of the on-disk properties format. */
     private static final String VERSION = "1";
 
+    /** Absolute path of the reporting state file. */
     private final Path path;
 
+    /** Time source for state timestamps and corrupted-file suffixes. */
     private final Clock clock;
 
+    /**
+     * Creates a state store using the UTC system clock.
+     *
+     * @param path reporting state file path
+     */
     public GatewayReportingStateStore(Path path) {
         this(path, Clock.systemUTC());
     }
 
+    /**
+     * Creates a state store with an injectable time source.
+     *
+     * @param path reporting state file path
+     * @param clock timestamp source
+     */
     GatewayReportingStateStore(Path path, Clock clock) {
         this.path = Objects.requireNonNull(path, "path").toAbsolutePath();
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    /**
+     * Loads the persisted state, isolating an unreadable or invalid file.
+     *
+     * @return stored state, or empty when no usable state exists
+     */
     public synchronized Optional<StoredState> load() {
         if (!Files.exists(path)) {
             return Optional.empty();
@@ -55,6 +74,12 @@ public final class GatewayReportingStateStore {
         }
     }
 
+    /**
+     * Persists that a report is awaiting acknowledgement.
+     *
+     * @param report pending report
+     * @param payloadHash fingerprint of the serialized report definition
+     */
     public synchronized void pending(
             GatewayDefinitionReportFactory.BuiltReport report,
             String payloadHash) {
@@ -69,6 +94,12 @@ public final class GatewayReportingStateStore {
         ));
     }
 
+    /**
+     * Persists the acknowledgement receipt for a submitted report.
+     *
+     * @param payloadHash fingerprint of the acknowledged report definition
+     * @param result acknowledgement receipt
+     */
     public synchronized void acknowledged(
             String payloadHash,
             GatewayInterfaceDefinitionReportResult result) {
@@ -83,6 +114,13 @@ public final class GatewayReportingStateStore {
         ));
     }
 
+    /**
+     * Writes state to a temporary file and replaces the destination atomically
+     * when the file system supports it.
+     *
+     * @param state state to persist
+     * @throws IllegalStateException if the state cannot be persisted
+     */
     private void save(StoredState state) {
         Path parent = path.getParent();
         Path temporary = parent.resolve(
@@ -119,6 +157,13 @@ public final class GatewayReportingStateStore {
         }
     }
 
+    /**
+     * Parses and validates stored properties.
+     *
+     * @param values persisted properties
+     * @return parsed reporting state
+     * @throws IllegalArgumentException if a required value is absent or invalid
+     */
     private StoredState read(Properties values) {
         return new StoredState(
                 Phase.valueOf(required(values, "phase")),
@@ -131,6 +176,7 @@ public final class GatewayReportingStateStore {
         );
     }
 
+    /** Moves an unreadable state file aside so reporting can restart cleanly. */
     private void isolateCorrupted() {
         Path corrupted = path.resolveSibling(
                 path.getFileName()
@@ -148,6 +194,13 @@ public final class GatewayReportingStateStore {
         }
     }
 
+    /**
+     * Replaces the target with the source, preferring an atomic move.
+     *
+     * @param source temporary state file
+     * @param target final state file
+     * @throws IOException if both the atomic and fallback move fail
+     */
     private void move(Path source, Path target) throws IOException {
         try {
             Files.move(
@@ -165,6 +218,13 @@ public final class GatewayReportingStateStore {
         }
     }
 
+    /**
+     * Stores a non-blank optional property.
+     *
+     * @param values destination properties
+     * @param name property name
+     * @param value optional property value
+     */
     private void optional(
             Properties values,
             String name,
@@ -174,6 +234,14 @@ public final class GatewayReportingStateStore {
         }
     }
 
+    /**
+     * Reads a required non-blank property.
+     *
+     * @param values source properties
+     * @param name property name
+     * @return non-blank property value
+     * @throws IllegalArgumentException if the property is absent or blank
+     */
     private String required(Properties values, String name) {
         String value = values.getProperty(name);
         if (value == null || value.isBlank()) {
@@ -184,11 +252,26 @@ public final class GatewayReportingStateStore {
         return value;
     }
 
+    /** Lifecycle phase persisted for a Gateway definition report. */
     public enum Phase {
+        /** The report has been persisted but is not yet acknowledged. */
         PENDING,
+
+        /** Gateway Admin has acknowledged the report. */
         ACKNOWLEDGED
     }
 
+    /**
+     * Validated persistent state for a pending or acknowledged report.
+     *
+     * @param phase persistence lifecycle phase
+     * @param payloadHash fingerprint of the report definition payload
+     * @param definitionSetId stable definition set identifier
+     * @param reportId concrete report identifier
+     * @param receiptStatus optional acknowledgement status
+     * @param applicationId optional Admin application identifier
+     * @param updatedAt time the state was persisted
+     */
     public record StoredState(
             Phase phase,
             String payloadHash,
@@ -199,6 +282,7 @@ public final class GatewayReportingStateStore {
             Instant updatedAt
     ) {
 
+        /** Validates required state fields during construction. */
         public StoredState {
             Objects.requireNonNull(phase, "phase");
             payloadHash = required(payloadHash, "payloadHash");
@@ -210,6 +294,13 @@ public final class GatewayReportingStateStore {
             Objects.requireNonNull(updatedAt, "updatedAt");
         }
 
+        /**
+         * Tests whether this state belongs to a built report and payload.
+         *
+         * @param report report to compare
+         * @param expectedPayloadHash expected report payload fingerprint
+         * @return {@code true} when the definition and payload match
+         */
         public boolean matches(
                 GatewayDefinitionReportFactory.BuiltReport report,
                 String expectedPayloadHash) {
@@ -219,6 +310,14 @@ public final class GatewayReportingStateStore {
             );
         }
 
+        /**
+         * Requires a non-blank stored string.
+         *
+         * @param value stored value
+         * @param name field name used in validation errors
+         * @return validated value
+         * @throws IllegalArgumentException if the value is absent or blank
+         */
         private static String required(String value, String name) {
             if (value == null || value.isBlank()) {
                 throw new IllegalArgumentException(name + " is required");

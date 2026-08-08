@@ -14,10 +14,23 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Converts Protobuf message descriptors to JSON Schema documents used by
+ * Gateway RPC discovery.
+ */
 final class ProtobufSchemaMapper {
 
+    /** Mapper used to parse JSON examples declared in Protobuf field options. */
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Generates a JSON Schema document for a Protobuf message descriptor.
+     *
+     * @param descriptor root message descriptor
+     * @return generated JSON Schema with reusable definitions
+     * @throws IllegalArgumentException if descriptor options or map fields are
+     *         incompatible with Gateway schema rules
+     */
     Map<String, Object> schema(Descriptors.Descriptor descriptor) {
         Context context = new Context();
         Map<String, Object> root = context.message(descriptor);
@@ -37,12 +50,22 @@ final class ProtobufSchemaMapper {
         return result;
     }
 
+    /** Maintains recursive definitions while mapping one descriptor graph. */
     private final class Context {
 
+        /** Definitions indexed by stable Protobuf message keys. */
         private final Map<String, Object> definitions = new LinkedHashMap<>();
 
+        /** Definition keys indexed by fully qualified Protobuf message name. */
         private final Map<String, String> keys = new LinkedHashMap<>();
 
+        /**
+         * Maps a message descriptor to a well-known schema or definition
+         * reference.
+         *
+         * @param descriptor message descriptor to map
+         * @return schema fragment or definition reference
+         */
         private Map<String, Object> message(
                 Descriptors.Descriptor descriptor) {
             Map<String, Object> wellKnown = wellKnown(descriptor);
@@ -77,6 +100,14 @@ final class ProtobufSchemaMapper {
             return reference(key);
         }
 
+        /**
+         * Maps a Protobuf field, including repetition, map, oneof, and custom
+         * option metadata.
+         *
+         * @param field field descriptor to map
+         * @return field schema
+         * @throws IllegalArgumentException if a map key is not a string
+         */
         private Map<String, Object> field(
                 Descriptors.FieldDescriptor field) {
             Map<String, Object> result;
@@ -116,6 +147,12 @@ final class ProtobufSchemaMapper {
             return result;
         }
 
+        /**
+         * Maps the scalar or aggregate value type of a Protobuf field.
+         *
+         * @param field field descriptor whose value type is mapped
+         * @return value schema
+         */
         private Map<String, Object> value(
                 Descriptors.FieldDescriptor field) {
             return switch (field.getJavaType()) {
@@ -137,6 +174,14 @@ final class ProtobufSchemaMapper {
             };
         }
 
+        /**
+         * Resolves whether a field is required by Protobuf or Gateway options.
+         *
+         * @param field field descriptor to inspect
+         * @return {@code true} when the field must be present
+         * @throws IllegalArgumentException if an option weakens a Protobuf
+         *         required field
+         */
         private boolean required(Descriptors.FieldDescriptor field) {
             GatewaySchemaFieldOption option = option(field);
             if (option != null
@@ -153,6 +198,13 @@ final class ProtobufSchemaMapper {
                     == GatewayRequiredOption.GATEWAY_REQUIRED;
         }
 
+        /**
+         * Applies Gateway description, format, and example options to a field
+         * schema.
+         *
+         * @param schema field schema to update
+         * @param field source field descriptor
+         */
         private void applyOption(
                 Map<String, Object> schema,
                 Descriptors.FieldDescriptor field) {
@@ -174,6 +226,12 @@ final class ProtobufSchemaMapper {
             }
         }
 
+        /**
+         * Reads the Gateway schema extension from a field descriptor.
+         *
+         * @param field field descriptor to inspect
+         * @return configured option, or {@code null} when absent
+         */
         private GatewaySchemaFieldOption option(
                 Descriptors.FieldDescriptor field) {
             return field.getOptions().hasExtension(SchemaOptions.gatewaySchema)
@@ -182,6 +240,12 @@ final class ProtobufSchemaMapper {
             ) : null;
         }
 
+        /**
+         * Adds JSON Schema alternatives for each real Protobuf oneof group.
+         *
+         * @param definition message definition to update
+         * @param descriptor message descriptor containing oneof groups
+         */
         private void addOneOf(
                 Map<String, Object> definition,
                 Descriptors.Descriptor descriptor) {
@@ -204,11 +268,23 @@ final class ProtobufSchemaMapper {
             }
         }
 
+        /**
+         * Creates the stable definition key for a Protobuf message.
+         *
+         * @param descriptor message descriptor
+         * @return definition-safe key derived from the full message name
+         */
         private String definitionKey(Descriptors.Descriptor descriptor) {
             return descriptor.getFullName().replace('.', '_');
         }
     }
 
+    /**
+     * Maps supported Google well-known message types to their JSON forms.
+     *
+     * @param descriptor descriptor to inspect
+     * @return mapped schema, or {@code null} for a regular message
+     */
     private Map<String, Object> wellKnown(
             Descriptors.Descriptor descriptor) {
         return switch (descriptor.getFullName()) {
@@ -259,6 +335,15 @@ final class ProtobufSchemaMapper {
         };
     }
 
+    /**
+     * Parses and validates a field-option example against its generated schema.
+     *
+     * @param value textual example value
+     * @param schema generated field schema
+     * @param field source field descriptor
+     * @return typed example suitable for JSON Schema output
+     * @throws IllegalArgumentException if the value does not match the schema
+     */
     private Object parseExample(
             String value,
             Map<String, Object> schema,
@@ -301,6 +386,14 @@ final class ProtobufSchemaMapper {
         }
     }
 
+    /**
+     * Ensures a parsed structured example has the expected container type.
+     *
+     * @param value parsed example value
+     * @param expected expected container class
+     * @return the validated value
+     * @throws IllegalArgumentException if the value has a different type
+     */
     private Object requireExampleType(Object value, Class<?> expected) {
         if (!expected.isInstance(value)) {
             throw new IllegalArgumentException();
@@ -308,6 +401,12 @@ final class ProtobufSchemaMapper {
         return value;
     }
 
+    /**
+     * Builds a string enumeration schema from a Protobuf enum descriptor.
+     *
+     * @param descriptor enum descriptor
+     * @return enumeration schema
+     */
     private Map<String, Object> enumSchema(
             Descriptors.EnumDescriptor descriptor) {
         Map<String, Object> result = type("string");
@@ -321,6 +420,11 @@ final class ProtobufSchemaMapper {
         return result;
     }
 
+    /**
+     * Builds a closed empty-object schema.
+     *
+     * @return empty-object schema
+     */
     private Map<String, Object> object() {
         Map<String, Object> result = type("object");
         result.put("properties", Map.of());
@@ -328,27 +432,58 @@ final class ProtobufSchemaMapper {
         return result;
     }
 
+    /**
+     * Builds a typed schema with a format keyword.
+     *
+     * @param type JSON Schema type
+     * @param format JSON Schema format
+     * @return formatted schema
+     */
     private Map<String, Object> formatted(String type, String format) {
         Map<String, Object> result = type(type);
         result.put("format", format);
         return result;
     }
 
+    /**
+     * Builds a schema containing only a JSON Schema type keyword.
+     *
+     * @param type JSON Schema type
+     * @return typed schema
+     */
     private Map<String, Object> type(String type) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("type", type);
         return result;
     }
 
+    /**
+     * Builds a local definition reference.
+     *
+     * @param key definition key
+     * @return local reference schema
+     */
     private Map<String, Object> reference(String key) {
         return new LinkedHashMap<>(Map.of("$ref", "#/$defs/" + key));
     }
 
+    /**
+     * Casts a known schema value to a string-keyed map.
+     *
+     * @param value map value to cast
+     * @return cast map
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> map(Object value) {
         return (Map<String, Object>) value;
     }
 
+    /**
+     * Creates a mutable shallow copy with stringified keys.
+     *
+     * @param source map to copy
+     * @return mutable string-keyed copy
+     */
     private Map<String, Object> copyMap(Map<?, ?> source) {
         Map<String, Object> result = new LinkedHashMap<>();
         source.forEach((key, value) -> result.put(

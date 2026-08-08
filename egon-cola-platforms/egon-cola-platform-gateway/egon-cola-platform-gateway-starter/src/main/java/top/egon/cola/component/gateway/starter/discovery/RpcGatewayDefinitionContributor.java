@@ -20,16 +20,29 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Discovers Gateway interface definitions from validated RPC contracts and
+ * their Protobuf descriptors.
+ */
 public final class RpcGatewayDefinitionContributor
         implements GatewayDefinitionContributor {
 
+    /** Mapper that derives request and response schemas from Protobuf types. */
     private final ProtobufSchemaMapper schemaMapper =
             new ProtobufSchemaMapper();
 
+    /** Catalog containing RPC contract descriptors and validated snapshots. */
     private final RpcContractCatalog catalog;
 
+    /** Reporting properties used to identify the provider application. */
     private final GatewayReportingProperties properties;
 
+    /**
+     * Creates an RPC Gateway definition contributor.
+     *
+     * @param catalog    the RPC contract catalog
+     * @param properties the Gateway reporting properties
+     */
     public RpcGatewayDefinitionContributor(
             RpcContractCatalog catalog,
             GatewayReportingProperties properties) {
@@ -37,6 +50,15 @@ public final class RpcGatewayDefinitionContributor
         this.properties = properties;
     }
 
+    /**
+     * Discovers annotated RPC contracts and maps their validated snapshots to
+     * Gateway interface groups.
+     *
+     * @return the discovered RPC interface groups
+     * @throws IllegalArgumentException if a required validated snapshot or
+     *                                  descriptor is missing, or an operation
+     *                                  declaration is inconsistent
+     */
     @Override
     public List<DiscoveredInterfaceGroup> discover() {
         List<DiscoveredInterfaceGroup> result = new ArrayList<>();
@@ -89,6 +111,19 @@ public final class RpcGatewayDefinitionContributor
         return List.copyOf(result);
     }
 
+    /**
+     * Maps one validated RPC method snapshot to a reported operation.
+     *
+     * @param group    the declaring interface group annotation
+     * @param contract the RPC contract descriptor
+     * @param snapshot the validated RPC contract snapshot
+     * @param method   the validated RPC method snapshot
+     * @return the reported RPC operation
+     * @throws IllegalArgumentException if the method is streaming, its
+     *                                  descriptor is missing, or its Gateway
+     *                                  declaration conflicts with the RPC
+     *                                  contract
+     */
     private GatewayInterfaceDefinitionReport.Operation operation(
             GatewayInterfaceGroup group,
             RpcContractDescriptor contract,
@@ -205,6 +240,15 @@ public final class RpcGatewayDefinitionContributor
         );
     }
 
+    /**
+     * Rejects Java annotation schemas for RPC operations whose schemas must be
+     * derived from the Protobuf descriptor.
+     *
+     * @param operation the Gateway operation annotation, or {@code null}
+     * @param method    the RPC method used to identify validation failures
+     * @throws IllegalArgumentException if an explicit request or response
+     *                                  schema is declared
+     */
     private void rejectSchemaDeclarations(
             GatewayOperation operation,
             RpcMethodSnapshot method) {
@@ -223,6 +267,12 @@ public final class RpcGatewayDefinitionContributor
         }
     }
 
+    /**
+     * Determines whether a response schema annotation retains all defaults.
+     *
+     * @param response the response schema annotation
+     * @return {@code true} when no explicit response schema is declared
+     */
     private boolean defaultResponse(GatewayResponseSchema response) {
         return response.wrapper() == Void.class
                 && response.payloadField().isBlank()
@@ -230,6 +280,13 @@ public final class RpcGatewayDefinitionContributor
                 && response.shape() == GatewaySchemaShape.AUTO;
     }
 
+    /**
+     * Creates a method-specific invalid RPC schema exception.
+     *
+     * @param method  the invalid RPC method
+     * @param message the validation failure detail
+     * @return the exception describing the invalid schema
+     */
     private IllegalArgumentException invalid(
             RpcMethodSnapshot method,
             String message) {
@@ -239,6 +296,13 @@ public final class RpcGatewayDefinitionContributor
         );
     }
 
+    /**
+     * Finds the validated snapshot corresponding to an RPC contract.
+     *
+     * @param contract the RPC contract descriptor
+     * @return the matching validated contract snapshot
+     * @throws IllegalArgumentException if no matching snapshot exists
+     */
     private RpcContractSnapshot snapshot(
             RpcContractDescriptor contract) {
         return catalog.snapshots().stream()

@@ -15,23 +15,46 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Maps HTTP handler return types to Gateway response JSON Schemas and validates
+ * explicit response schema declarations.
+ */
 final class GatewayResponseSchemaMapper {
 
+    /** Fully qualified name of the standard single-result response wrapper. */
     private static final String RESULT_RECORD =
             "top.egon.cola.component.common.core.pojo.ResultRecord";
 
+    /** Fully qualified name of the standard paginated response wrapper. */
     private static final String PAGE_RESULT_RECORD =
             "top.egon.cola.component.common.core.pojo.PageResultRecord";
 
+    /** Jackson mapper used to resolve generic return and wrapper property types. */
     private final ObjectMapper objectMapper;
 
+    /** Mapper that converts resolved Java types to JSON Schema documents. */
     private final GatewayJavaSchemaMapper schemaMapper;
 
+    /**
+     * Creates a response schema mapper.
+     *
+     * @param objectMapper Jackson mapper used for type resolution
+     */
     GatewayResponseSchemaMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.schemaMapper = new GatewayJavaSchemaMapper(objectMapper);
     }
 
+    /**
+     * Generates the response schema for a handler method and validates any
+     * explicit declaration supplied by the Gateway operation.
+     *
+     * @param method handler method whose return type is mapped
+     * @param operation Gateway operation declaration, or {@code null}
+     * @return generated response JSON Schema
+     * @throws IllegalArgumentException if an MCP schema is missing or a
+     *         declaration does not match the handler return type
+     */
     Map<String, Object> schema(Method method, GatewayOperation operation) {
         JavaType returnType = responseBodyType(
                 objectMapper.constructType(method.getGenericReturnType())
@@ -63,6 +86,15 @@ final class GatewayResponseSchemaMapper {
         return result;
     }
 
+    /**
+     * Validates an explicit response declaration against the resolved return
+     * type, including direct, wrapped, and void responses.
+     *
+     * @param actualType resolved handler response type
+     * @param declaration explicit response schema declaration
+     * @param identity method identity used in validation errors
+     * @throws IllegalArgumentException if the declaration is inconsistent
+     */
     private void validate(
             JavaType actualType,
             GatewayResponseSchema declaration,
@@ -128,6 +160,16 @@ final class GatewayResponseSchemaMapper {
         );
     }
 
+    /**
+     * Resolves the serializable type of a declared wrapper payload property.
+     *
+     * @param wrapperType resolved wrapper type
+     * @param payloadField payload property name
+     * @param identity method identity used in validation errors
+     * @return resolved payload property type
+     * @throws IllegalArgumentException if the property is not serializable or
+     *         does not exist
+     */
     private JavaType propertyType(
             JavaType wrapperType,
             String payloadField,
@@ -145,6 +187,14 @@ final class GatewayResponseSchemaMapper {
                 ));
     }
 
+    /**
+     * Applies the required-field and nullable-payload rules of standard COLA
+     * result wrappers to a generated schema.
+     *
+     * @param schema generated schema to update
+     * @param returnType resolved response type
+     * @param declaration response declaration, or {@code null}
+     */
     private void applyWrapperSemantics(
             Map<String, Object> schema,
             JavaType returnType,
@@ -171,6 +221,13 @@ final class GatewayResponseSchemaMapper {
         }
     }
 
+    /**
+     * Unwraps supported HTTP and reactive response containers to the logical
+     * response body type.
+     *
+     * @param type declared handler return type
+     * @return logical body type, with {@code Flux} represented as a list
+     */
     private JavaType responseBodyType(JavaType type) {
         Class<?> raw = type.getRawClass();
         if (HttpEntity.class.isAssignableFrom(raw)
@@ -190,6 +247,13 @@ final class GatewayResponseSchemaMapper {
         return type;
     }
 
+    /**
+     * Determines whether a response declaration contains only annotation
+     * defaults.
+     *
+     * @param declaration declaration to inspect
+     * @return {@code true} when no explicit schema values were supplied
+     */
     private boolean defaultDeclaration(GatewayResponseSchema declaration) {
         return declaration.wrapper() == Void.class
                 && declaration.payloadField().isBlank()
@@ -197,10 +261,23 @@ final class GatewayResponseSchemaMapper {
                 && declaration.shape() == GatewaySchemaShape.AUTO;
     }
 
+    /**
+     * Compares two classes after normalizing primitive types to wrappers.
+     *
+     * @param left first class
+     * @param right second class
+     * @return {@code true} when both classes represent the same logical type
+     */
     private boolean sameType(Class<?> left, Class<?> right) {
         return box(left).equals(box(right));
     }
 
+    /**
+     * Converts a primitive class to its wrapper class.
+     *
+     * @param type class to normalize
+     * @return wrapper class for a primitive, or the original class otherwise
+     */
     private Class<?> box(Class<?> type) {
         if (!type.isPrimitive()) {
             return type;
@@ -232,6 +309,12 @@ final class GatewayResponseSchemaMapper {
         return Void.class;
     }
 
+    /**
+     * Returns a schema value as a string-keyed map when possible.
+     *
+     * @param value candidate map value
+     * @return cast map, or an empty mutable map when the value is not a map
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> map(Object value) {
         if (!(value instanceof Map<?, ?>)) {
@@ -240,6 +323,12 @@ final class GatewayResponseSchemaMapper {
         return (Map<String, Object>) value;
     }
 
+    /**
+     * Creates a mutable shallow copy with stringified keys.
+     *
+     * @param source map to copy
+     * @return mutable string-keyed copy
+     */
     private Map<String, Object> copyMap(Map<?, ?> source) {
         Map<String, Object> result = new LinkedHashMap<>();
         source.forEach((key, value) -> result.put(

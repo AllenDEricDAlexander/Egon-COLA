@@ -15,14 +15,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Maps normalized Spring HTTP handler mappings to Gateway interface report
+ * entries.
+ */
 final class GatewayHttpOperationMapper {
 
+    /** Reporting properties used to identify the provider application. */
     private final GatewayReportingProperties properties;
 
+    /** Validator and mapper for HTTP request schemas. */
     private final GatewayRequestSchemaValidator requestSchemaValidator;
 
+    /** Mapper for HTTP response schemas. */
     private final GatewayResponseSchemaMapper responseSchemaMapper;
 
+    /**
+     * Creates an HTTP operation mapper.
+     *
+     * @param properties   the Gateway reporting properties
+     * @param objectMapper the object mapper used for request and response
+     *                     schema processing
+     */
     GatewayHttpOperationMapper(
             GatewayReportingProperties properties,
             ObjectMapper objectMapper) {
@@ -35,6 +49,17 @@ final class GatewayHttpOperationMapper {
         );
     }
 
+    /**
+     * Maps all normalized HTTP mappings for a handler type to one interface
+     * group.
+     *
+     * @param beanType the handler bean type
+     * @param mappings the normalized mappings declared by the handler type
+     * @return the discovered interface group, or {@code null} when the handler
+     *         type has no {@link GatewayInterfaceGroup} annotation
+     * @throws IllegalArgumentException if operation keys collide or an
+     *                                  operation declaration is invalid
+     */
     GatewayDefinitionContributor.DiscoveredInterfaceGroup group(
             Class<?> beanType,
             List<Mapping> mappings) {
@@ -92,6 +117,17 @@ final class GatewayHttpOperationMapper {
         );
     }
 
+    /**
+     * Maps one HTTP method and path combination to a reported operation.
+     *
+     * @param group      the declaring interface group annotation
+     * @param mapping    the normalized handler mapping
+     * @param httpMethod the HTTP method name
+     * @param path       the mapped request path
+     * @return the reported HTTP operation
+     * @throws IllegalArgumentException if the request, response, or MCP
+     *                                  declaration is invalid
+     */
     private GatewayInterfaceDefinitionReport.Operation operation(
             GatewayInterfaceGroup group,
             Mapping mapping,
@@ -171,6 +207,15 @@ final class GatewayHttpOperationMapper {
         );
     }
 
+    /**
+     * Normalized HTTP mapping data shared by MVC and WebFlux discovery.
+     *
+     * @param handler  the mapped handler method
+     * @param paths    the mapped request paths
+     * @param methods  the mapped HTTP method names
+     * @param consumes the accepted media types
+     * @param produces the produced media types
+     */
     record Mapping(
             HandlerMethod handler,
             Set<String> paths,

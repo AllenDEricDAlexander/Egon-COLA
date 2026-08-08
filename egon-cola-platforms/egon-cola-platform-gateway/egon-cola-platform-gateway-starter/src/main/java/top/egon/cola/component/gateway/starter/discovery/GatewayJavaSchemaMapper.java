@@ -48,31 +48,67 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Maps Jackson-resolved Java types and Gateway field metadata to JSON Schema
+ * documents while enforcing declaration, recursion, and size safety rules.
+ */
 final class GatewayJavaSchemaMapper {
 
+    /** JSON Schema dialect URI emitted by generated documents. */
     static final String JSON_SCHEMA_2020_12 =
             "https://json-schema.org/draft/2020-12/schema";
 
+    /** Maximum recursive type depth accepted during schema generation. */
     private static final int MAX_DEPTH = 64;
 
+    /** Maximum number of schema nodes accepted during one generation. */
     private static final int MAX_NODES = 4_000;
 
+    /** Maximum UTF-8 serialized size of a generated schema document. */
     private static final int MAX_BYTES = 2 * 1024 * 1024;
 
+    /** Jackson mapper used for type construction, introspection, and JSON parsing. */
     private final ObjectMapper objectMapper;
 
+    /**
+     * Creates a Java schema mapper.
+     *
+     * @param objectMapper Jackson mapper configured for Gateway model types
+     */
     GatewayJavaSchemaMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Generates a JSON Schema document for a reflective Java type.
+     *
+     * @param type reflective Java type
+     * @return generated JSON Schema document
+     */
     Map<String, Object> schema(Type type) {
         return schema(objectMapper.getTypeFactory().constructType(type));
     }
 
+    /**
+     * Generates a JSON Schema document for a Jackson Java type.
+     *
+     * @param type resolved Jackson type
+     * @return generated JSON Schema document
+     */
     Map<String, Object> schema(JavaType type) {
         return schema(type, null);
     }
 
+    /**
+     * Generates a JSON Schema document and applies metadata from an annotated
+     * source element when supplied.
+     *
+     * @param type resolved Java type
+     * @param annotatedElement metadata source, or {@code null}
+     * @return generated JSON Schema document
+     * @throws IllegalArgumentException if the type, metadata, constraints, or
+     *         resulting schema violates Gateway safety rules
+     */
     Map<String, Object> schema(
             JavaType type,
             AnnotatedElement annotatedElement) {
@@ -90,6 +126,18 @@ final class GatewayJavaSchemaMapper {
         return result;
     }
 
+    /**
+     * Validates an explicit schema declaration and generates the schema for the
+     * actual Java type.
+     *
+     * @param actualType resolved Java type
+     * @param declaredClass explicitly declared schema class
+     * @param declaredShape explicitly declared schema shape
+     * @param annotatedElement metadata source, or {@code null}
+     * @param identity declaration identity used in validation errors
+     * @return generated schema document
+     * @throws IllegalArgumentException if declaration and Java type differ
+     */
     Map<String, Object> declaredSchema(
             JavaType actualType,
             Class<?> declaredClass,
@@ -105,6 +153,16 @@ final class GatewayJavaSchemaMapper {
         return schema(actualType, annotatedElement);
     }
 
+    /**
+     * Validates an explicit schema class and shape against a resolved Java type.
+     *
+     * @param actualType resolved Java type
+     * @param declaredClass explicitly declared schema class
+     * @param declaredShape explicitly declared schema shape
+     * @param identity declaration identity used in validation errors
+     * @throws IllegalArgumentException if shape, element type, map key type, or
+     *         void declaration is incompatible
+     */
     void validateDeclaration(
             JavaType actualType,
             Class<?> declaredClass,
@@ -154,6 +212,12 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Classifies a resolved Java type into a Gateway schema shape.
+     *
+     * @param type resolved Java type
+     * @return matching Gateway schema shape
+     */
     GatewaySchemaShape shape(JavaType type) {
         Class<?> raw = type.getRawClass();
         if (raw == void.class || raw == Void.class) {
@@ -170,6 +234,14 @@ final class GatewayJavaSchemaMapper {
                 : GatewaySchemaShape.OBJECT;
     }
 
+    /**
+     * Replaces a root definition reference with a mutable copy of its target.
+     *
+     * @param root generated root schema or reference
+     * @param definitions generated definitions
+     * @return mutable inlined root schema
+     * @throws IllegalStateException if a root reference cannot be resolved
+     */
     private Map<String, Object> inlineRoot(
             Map<String, Object> root,
             Map<String, Object> definitions) {
@@ -185,6 +257,13 @@ final class GatewayJavaSchemaMapper {
         return copyMap(map);
     }
 
+    /**
+     * Verifies the serialized UTF-8 size of a generated schema.
+     *
+     * @param schema schema document to verify
+     * @throws IllegalArgumentException if serialization fails or the byte limit
+     *         is exceeded
+     */
     private void verifySize(Map<String, Object> schema) {
         try {
             int bytes = objectMapper.writeValueAsString(schema)
@@ -204,14 +283,28 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /** Maintains definitions, stable keys, and safety counters for one mapping. */
     private final class SchemaContext {
 
+        /** Reusable definitions indexed by stable generated keys. */
         private final Map<String, Object> definitions = new LinkedHashMap<>();
 
+        /** Generated definition keys indexed by canonical Java type. */
         private final Map<String, String> keys = new HashMap<>();
 
+        /** Number of schema nodes visited in this mapping operation. */
         private int nodes;
 
+        /**
+         * Maps one Java type node and applies its field metadata.
+         *
+         * @param sourceType source Java type
+         * @param metadata field metadata to apply
+         * @param depth current recursive depth
+         * @return generated schema node
+         * @throws IllegalArgumentException if safety limits, generic type
+         *         completeness, or metadata compatibility checks fail
+         */
         private Map<String, Object> node(
                 JavaType sourceType,
                 FieldMetadata metadata,
@@ -314,6 +407,13 @@ final class GatewayJavaSchemaMapper {
             return result;
         }
 
+        /**
+         * Introspects a serializable object type into a reusable definition.
+         *
+         * @param type object type to introspect
+         * @param depth current recursive depth
+         * @return reference to the generated or existing definition
+         */
         private Map<String, Object> object(JavaType type, int depth) {
             String canonical = type.toCanonical();
             String key = definitionKey(type);
@@ -355,6 +455,12 @@ final class GatewayJavaSchemaMapper {
             return reference(key);
         }
 
+        /**
+         * Returns a stable collision-resistant definition key for a Java type.
+         *
+         * @param type Java type to identify
+         * @return stable definition key
+         */
         private String definitionKey(JavaType type) {
             String canonical = type.toCanonical();
             String known = keys.get(canonical);
@@ -371,25 +477,49 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Aggregates Gateway and Bean Validation metadata for one schema field and
+     * applies it to generated schema nodes.
+     */
     private final class FieldMetadata {
 
+        /** Gateway-specific field declaration, or {@code null}. */
         private final GatewaySchemaField gateway;
 
+        /** Not-null constraint, or {@code null}. */
         private final NotNull notNull;
+        /** Not-blank constraint, or {@code null}. */
         private final NotBlank notBlank;
+        /** Not-empty constraint, or {@code null}. */
         private final NotEmpty notEmpty;
+        /** Size constraint, or {@code null}. */
         private final Size size;
+        /** Integral minimum constraint, or {@code null}. */
         private final Min min;
+        /** Integral maximum constraint, or {@code null}. */
         private final Max max;
+        /** Decimal minimum constraint, or {@code null}. */
         private final DecimalMin decimalMin;
+        /** Decimal maximum constraint, or {@code null}. */
         private final DecimalMax decimalMax;
+        /** Regular-expression constraint, or {@code null}. */
         private final Pattern pattern;
+        /** Strictly-positive constraint, or {@code null}. */
         private final Positive positive;
+        /** Non-negative constraint, or {@code null}. */
         private final PositiveOrZero positiveOrZero;
+        /** Email-format constraint, or {@code null}. */
         private final Email email;
 
+        /** Whether a declared concrete implementation may replace the source type. */
         private final boolean implementationEnabled;
 
+        /**
+         * Creates metadata from a Gateway declaration and annotation lookup.
+         *
+         * @param gateway Gateway field declaration, or {@code null}
+         * @param lookup lookup used to resolve Bean Validation annotations
+         */
         private FieldMetadata(
                 GatewaySchemaField gateway,
                 AnnotationLookup lookup) {
@@ -409,6 +539,11 @@ final class GatewayJavaSchemaMapper {
             this.implementationEnabled = true;
         }
 
+        /**
+         * Copies metadata while disabling another implementation substitution.
+         *
+         * @param source metadata to copy
+         */
         private FieldMetadata(FieldMetadata source) {
             this.gateway = source.gateway;
             this.notNull = source.notNull;
@@ -426,10 +561,24 @@ final class GatewayJavaSchemaMapper {
             this.implementationEnabled = false;
         }
 
+        /**
+         * Creates a copy that cannot reapply a declared implementation type.
+         *
+         * @return metadata copy with implementation substitution disabled
+         */
         private FieldMetadata withoutImplementation() {
             return new FieldMetadata(this);
         }
 
+        /**
+         * Applies a declared concrete implementation to a scalar or container
+         * content type.
+         *
+         * @param source declared source type
+         * @return effective type used for schema generation
+         * @throws IllegalArgumentException if the implementation is
+         *         incompatible or redundant
+         */
         private JavaType implementationType(JavaType source) {
             if (!implementationEnabled || gateway == null
                     || gateway.implementation() == Void.class) {
@@ -457,6 +606,15 @@ final class GatewayJavaSchemaMapper {
             return objectMapper.constructType(implementation);
         }
 
+        /**
+         * Validates that an implementation can legally specialize a source
+         * type.
+         *
+         * @param source source type being specialized
+         * @param implementation declared implementation class
+         * @throws IllegalArgumentException if assignment is invalid or the
+         *         source type is already concrete
+         */
         private void validateImplementationTarget(
                 JavaType source,
                 Class<?> implementation) {
@@ -481,6 +639,15 @@ final class GatewayJavaSchemaMapper {
             }
         }
 
+        /**
+         * Resolves requiredness from Jackson, Bean Validation, and Gateway
+         * metadata.
+         *
+         * @param property Jackson property being mapped
+         * @return {@code true} when the property is required
+         * @throws IllegalArgumentException if an optional declaration conflicts
+         *         with a required constraint
+         */
         private boolean required(BeanPropertyDefinition property) {
             boolean constrained = notNull != null || notBlank != null
                     || notEmpty != null || property.isRequired();
@@ -496,6 +663,13 @@ final class GatewayJavaSchemaMapper {
                     && gateway.required() == GatewaySchemaRequired.REQUIRED;
         }
 
+        /**
+         * Validates and applies an explicit Gateway JSON Schema type override.
+         *
+         * @param schema generated schema node to update
+         * @param actualType resolved Java type
+         * @throws IllegalArgumentException if the override is incompatible
+         */
         private void applyTypeOverride(
                 Map<String, Object> schema,
                 JavaType actualType) {
@@ -527,6 +701,15 @@ final class GatewayJavaSchemaMapper {
             schema.put("type", declared);
         }
 
+        /**
+         * Projects supported Bean Validation annotations into JSON Schema
+         * constraints.
+         *
+         * @param schema generated schema node to update
+         * @param type resolved Java type
+         * @throws IllegalArgumentException if a constraint is incompatible with
+         *         the generated schema type
+         */
         private void applyConstraints(
                 Map<String, Object> schema,
                 JavaType type) {
@@ -611,6 +794,13 @@ final class GatewayJavaSchemaMapper {
             }
         }
 
+        /**
+         * Applies Gateway description, format, and typed example metadata.
+         *
+         * @param schema generated schema node to update
+         * @param type resolved Java type
+         * @throws IllegalArgumentException if an example is invalid
+         */
         private void applyDocumentation(
                 Map<String, Object> schema,
                 JavaType type) {
@@ -632,16 +822,34 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /** Resolves a requested annotation from one metadata source. */
     @FunctionalInterface
     private interface AnnotationLookup {
 
+        /**
+         * Looks up an annotation by type.
+         *
+         * @param annotationType annotation type to resolve
+         * @return resolved annotation, or {@code null}
+         */
         Annotation get(Class<? extends Annotation> annotationType);
     }
 
+    /**
+     * Creates metadata with no Gateway or validation annotations.
+     *
+     * @return empty metadata
+     */
     private FieldMetadata emptyMetadata() {
         return new FieldMetadata(null, annotationType -> null);
     }
 
+    /**
+     * Reads field metadata directly from one annotated element.
+     *
+     * @param element metadata source
+     * @return resolved field metadata
+     */
     private FieldMetadata metadata(AnnotatedElement element) {
         return new FieldMetadata(
                 element.getAnnotation(GatewaySchemaField.class),
@@ -649,6 +857,16 @@ final class GatewayJavaSchemaMapper {
         );
     }
 
+    /**
+     * Merges metadata from all Jackson members representing one property,
+     * including its record component when applicable.
+     *
+     * @param property Jackson property definition
+     * @param rawType declaring raw class
+     * @return merged field metadata
+     * @throws IllegalArgumentException if equivalent members declare
+     *         conflicting annotation values
+     */
     private FieldMetadata metadata(
             BeanPropertyDefinition property,
             Class<?> rawType) {
@@ -678,6 +896,12 @@ final class GatewayJavaSchemaMapper {
         );
     }
 
+    /**
+     * Adds a Jackson member as an annotation lookup when it exists.
+     *
+     * @param lookups lookup collection to update
+     * @param member Jackson member, or {@code null}
+     */
     private void add(
             List<AnnotationLookup> lookups,
             AnnotatedMember member) {
@@ -686,6 +910,15 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Merges one annotation type from multiple property metadata sources.
+     *
+     * @param lookups metadata sources
+     * @param annotationType annotation type to merge
+     * @param identity property identity used in errors
+     * @return common annotation value, or {@code null} when absent
+     * @throws IllegalArgumentException if sources contain different values
+     */
     private Annotation merge(
             List<AnnotationLookup> lookups,
             Class<? extends Annotation> annotationType,
@@ -707,6 +940,14 @@ final class GatewayJavaSchemaMapper {
         return result;
     }
 
+    /**
+     * Resolves and casts an annotation from a lookup.
+     *
+     * @param lookup annotation lookup
+     * @param annotationType requested annotation type
+     * @param <A> annotation type
+     * @return resolved annotation, or {@code null}
+     */
     @SuppressWarnings("unchecked")
     private <A extends Annotation> A annotation(
             AnnotationLookup lookup,
@@ -714,6 +955,17 @@ final class GatewayJavaSchemaMapper {
         return (A) lookup.get(annotationType);
     }
 
+    /**
+     * Parses and validates a Gateway field example according to its generated
+     * schema type.
+     *
+     * @param value textual example
+     * @param schema generated schema node
+     * @param type resolved Java type used in errors
+     * @return typed example value
+     * @throws IllegalArgumentException if the example is malformed or has an
+     *         incompatible type or format
+     */
     private Object parseExample(
             String value,
             Map<String, Object> schema,
@@ -752,6 +1004,14 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Validates formatted and enumerated string examples.
+     *
+     * @param value string example
+     * @param schema generated string schema
+     * @return validated input value
+     * @throws IllegalArgumentException if format or enum validation fails
+     */
     private String validateStringExample(
             String value,
             Map<String, Object> schema) {
@@ -771,6 +1031,15 @@ final class GatewayJavaSchemaMapper {
         return value;
     }
 
+    /**
+     * Ensures a parsed structured example has the expected container type.
+     *
+     * @param value parsed example
+     * @param expected expected container class
+     * @param type resolved Java type used in errors
+     * @return validated value
+     * @throws IllegalArgumentException if the value has a different type
+     */
     private Object requireExampleType(
             Object value,
             Class<?> expected,
@@ -783,6 +1052,14 @@ final class GatewayJavaSchemaMapper {
         return value;
     }
 
+    /**
+     * Requires a generated schema type to be numeric.
+     *
+     * @param actual generated schema type
+     * @param constraint constraint name used in errors
+     * @param type resolved Java type
+     * @throws IllegalArgumentException if the schema is not numeric
+     */
     private void requireNumber(
             String actual,
             String constraint,
@@ -792,6 +1069,15 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Requires an exact generated schema type for a constraint.
+     *
+     * @param actual generated schema type
+     * @param expected required schema type
+     * @param constraint constraint name used in errors
+     * @param type resolved Java type
+     * @throws IllegalArgumentException if the types differ
+     */
     private void requireSchemaType(
             String actual,
             String expected,
@@ -802,6 +1088,13 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Creates a constraint incompatibility exception.
+     *
+     * @param constraint incompatible constraint name
+     * @param type resolved Java type
+     * @return qualified exception
+     */
     private IllegalArgumentException incompatible(
             String constraint,
             JavaType type) {
@@ -810,6 +1103,15 @@ final class GatewayJavaSchemaMapper {
         );
     }
 
+    /**
+     * Applies finite lower and upper size limits to a schema.
+     *
+     * @param schema schema node to update
+     * @param minName lower-bound keyword
+     * @param maxName upper-bound keyword
+     * @param min configured lower bound
+     * @param max configured upper bound
+     */
     private void limits(
             Map<String, Object> schema,
             String minName,
@@ -824,6 +1126,14 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Resolves a complete generic content type for a container.
+     *
+     * @param type container type
+     * @param kind container description used in errors
+     * @return resolved non-Object content type
+     * @throws IllegalArgumentException if generic content is absent or erased
+     */
     private JavaType requireContent(JavaType type, String kind) {
         JavaType content = type.getContentType();
         if (content == null && type.containedTypeCount() > 0) {
@@ -838,22 +1148,47 @@ final class GatewayJavaSchemaMapper {
         return content;
     }
 
+    /**
+     * Wraps a schema in an alternative that also accepts JSON null.
+     *
+     * @param source non-null schema
+     * @return nullable schema
+     */
     private static Map<String, Object> nullable(Map<String, Object> source) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("anyOf", List.of(source, Map.of("type", "null")));
         return result;
     }
 
+    /**
+     * Builds a local definition reference.
+     *
+     * @param key definition key
+     * @return local reference schema
+     */
     private static Map<String, Object> reference(String key) {
         return new LinkedHashMap<>(Map.of("$ref", "#/$defs/" + key));
     }
 
+    /**
+     * Builds an array schema for an item schema.
+     *
+     * @param items item schema
+     * @return array schema
+     */
     private static Map<String, Object> array(Map<String, Object> items) {
         Map<String, Object> result = type("array");
         result.put("items", items);
         return result;
     }
 
+    /**
+     * Builds a typed schema with a format keyword.
+     *
+     * @param type JSON Schema type
+     * @param format JSON Schema format
+     * @return formatted schema
+     */
     private static Map<String, Object> formatted(
             String type,
             String format) {
@@ -862,16 +1197,35 @@ final class GatewayJavaSchemaMapper {
         return result;
     }
 
+    /**
+     * Builds a schema containing only a type keyword.
+     *
+     * @param type JSON Schema type
+     * @return typed schema
+     */
     private static Map<String, Object> type(String type) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("type", type);
         return result;
     }
 
+    /**
+     * Compares classes after normalizing primitive types to wrappers.
+     *
+     * @param left first class
+     * @param right second class
+     * @return {@code true} when both represent the same logical type
+     */
     private static boolean sameType(Class<?> left, Class<?> right) {
         return boxed(left).equals(boxed(right));
     }
 
+    /**
+     * Converts a primitive class to its wrapper class.
+     *
+     * @param type class to normalize
+     * @return wrapper class for a primitive, or the original class otherwise
+     */
     private static Class<?> boxed(Class<?> type) {
         if (!type.isPrimitive()) {
             return type;
@@ -879,6 +1233,12 @@ final class GatewayJavaSchemaMapper {
         return Array.get(Array.newInstance(type, 1), 0).getClass();
     }
 
+    /**
+     * Determines whether a raw Java class maps to a scalar schema.
+     *
+     * @param raw raw Java class
+     * @return {@code true} for supported scalar classes
+     */
     private static boolean scalar(Class<?> raw) {
         return raw == String.class || raw == Character.class
                 || raw == char.class || raw == UUID.class
@@ -888,6 +1248,12 @@ final class GatewayJavaSchemaMapper {
                 || raw == Boolean.class || integer(raw) || number(raw);
     }
 
+    /**
+     * Determines whether a raw Java class maps to an integer schema.
+     *
+     * @param raw raw Java class
+     * @return {@code true} for supported integral classes
+     */
     private static boolean integer(Class<?> raw) {
         return raw == byte.class || raw == Byte.class
                 || raw == short.class || raw == Short.class
@@ -896,12 +1262,24 @@ final class GatewayJavaSchemaMapper {
                 || raw == BigInteger.class;
     }
 
+    /**
+     * Determines whether a raw Java class maps to a non-integral number schema.
+     *
+     * @param raw raw Java class
+     * @return {@code true} for supported decimal classes
+     */
     private static boolean number(Class<?> raw) {
         return raw == float.class || raw == Float.class
                 || raw == double.class || raw == Double.class
                 || raw == BigDecimal.class;
     }
 
+    /**
+     * Resolves the JSON Schema integer format for a Java integral class.
+     *
+     * @param raw integral Java class
+     * @return {@code int32}, {@code int64}, or {@code null}
+     */
     private static String integerFormat(Class<?> raw) {
         if (raw == byte.class || raw == Byte.class
                 || raw == short.class || raw == Short.class
@@ -914,6 +1292,13 @@ final class GatewayJavaSchemaMapper {
         return null;
     }
 
+    /**
+     * Creates a deterministic twelve-character SHA-256 prefix.
+     *
+     * @param value value to hash
+     * @return lowercase hexadecimal hash prefix
+     * @throws IllegalStateException if SHA-256 is unavailable
+     */
     private static String shortHash(String value) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
@@ -928,6 +1313,12 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
+    /**
+     * Creates a mutable deep copy of a schema map.
+     *
+     * @param source source map
+     * @return recursively copied string-keyed map
+     */
     @SuppressWarnings("unchecked")
     private static Map<String, Object> copyMap(Map<?, ?> source) {
         Map<String, Object> result = new LinkedHashMap<>();
@@ -938,6 +1329,12 @@ final class GatewayJavaSchemaMapper {
         return result;
     }
 
+    /**
+     * Recursively copies nested schema maps and lists.
+     *
+     * @param value schema value to copy
+     * @return copied container or original scalar value
+     */
     private static Object copyValue(Object value) {
         if (value instanceof Map<?, ?> map) {
             return copyMap(map);
