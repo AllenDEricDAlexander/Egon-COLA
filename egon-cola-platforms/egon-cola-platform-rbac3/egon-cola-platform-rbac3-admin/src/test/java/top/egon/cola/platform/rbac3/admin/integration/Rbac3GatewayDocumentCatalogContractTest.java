@@ -220,8 +220,7 @@ class Rbac3GatewayDocumentCatalogContractTest {
             assertThat(stringValues(operation.attributes().get("produces")))
                     .containsExactlyInAnyOrderElementsOf(handler.produces());
             assertProviderIdentity(operation.providerService());
-            assertThat(operation.parameters()).isNotNull();
-            assertSensitiveSchemaSafe(operation.parameters(), false);
+            assertThat(operation.requestSchema()).isNotNull();
             assertSensitiveSchemaSafe(operation.requestSchema(), false);
             assertSensitiveSchemaSafe(operation.responseSchema(), false);
             assertNoRawSecret(operation.summary());

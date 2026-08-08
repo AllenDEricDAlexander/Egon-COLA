@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -48,6 +49,10 @@ public final class GatewayRequestSchemaValidator {
             GatewayRequestLocation.BODY,
             GatewayRequestLocation.PART
     );
+
+    /** Spring parameter name resolver used for binding annotations without explicit names. 用于解析未显式命名绑定注解的 Spring 参数名解析器。 */
+    private static final DefaultParameterNameDiscoverer PARAMETER_NAMES =
+            new DefaultParameterNameDiscoverer();
 
     /** Jackson mapper used to resolve handler parameter types. 用于解析处理器参数及泛型类型。 */
     private final ObjectMapper objectMapper;
@@ -391,6 +396,7 @@ public final class GatewayRequestSchemaValidator {
             String routePath) {
         List<RequestParameter> result = new ArrayList<>();
         for (MethodParameter methodParameter : handler.getMethodParameters()) {
+            methodParameter.initParameterNameDiscovery(PARAMETER_NAMES);
             if (frameworkType(methodParameter.getParameterType())) {
                 continue;
             }

@@ -262,7 +262,7 @@ class GatewayHttpOperationMapperTest {
                 )
         )
         View update(
-                @PathVariable("orderId")
+                @PathVariable
                 @GatewaySchemaField(description = "订单 ID") String orderId,
                 @RequestParam(name = "notify", defaultValue = "false")
                 boolean notify,
