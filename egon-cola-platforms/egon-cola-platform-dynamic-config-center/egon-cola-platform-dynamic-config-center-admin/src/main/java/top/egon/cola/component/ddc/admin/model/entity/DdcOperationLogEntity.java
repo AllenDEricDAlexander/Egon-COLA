@@ -31,7 +31,7 @@ public class DdcOperationLogEntity {
     private String namespace;
 
     @Column(name = "config_key", length = 256)
-    private String configKey;
+    private String resourceName;
 
     @Column(name = "operation_type", length = 64)
     private String operationType;

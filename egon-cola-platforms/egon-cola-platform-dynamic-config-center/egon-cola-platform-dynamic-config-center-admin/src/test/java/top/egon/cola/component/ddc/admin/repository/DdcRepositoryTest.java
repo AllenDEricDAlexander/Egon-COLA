@@ -34,9 +34,9 @@ class DdcRepositoryTest {
         entity.setBizCode("default");
         entity.setAppCode("demo");
         entity.setEnv("dev");
-        entity.setConfigKey("application.yml");
-        entity.setConfigValue("feature:\n  enabled: true\n");
-        entity.setValueType("YAML");
+        entity.setResourceName("application.yml");
+        entity.setContent("feature:\n  enabled: true\n");
+        entity.setFormat("YAML");
         entity.setCurrentVersion(1L);
         entity.setEnabled(true);
         entity.setDeleted(false);
@@ -45,7 +45,7 @@ class DdcRepositoryTest {
 
         configItemRepository.save(entity);
 
-        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndResourceName(
                 "default", "dev", "demo", "application.yml"
         ))
                 .isPresent();

@@ -203,9 +203,9 @@ class DdcRedisClusterIT {
         message.setAppCode("demo");
         message.setEnv("test");
         message.setNamespace("default");
-        message.setConfigKey("application.yml");
-        message.setConfigValue("feature:\n  enabled: true\n");
-        message.setValueType("YAML");
+        message.setResourceName("application.yml");
+        message.setContent("feature:\n  enabled: true\n");
+        message.setFormat("YAML");
         message.setTargetVersion(1L);
         return message;
     }

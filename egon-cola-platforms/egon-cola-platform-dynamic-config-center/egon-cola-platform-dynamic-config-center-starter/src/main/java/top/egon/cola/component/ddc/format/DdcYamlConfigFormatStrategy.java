@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 使用 Spring Boot 原生加载器将远程 YAML 解析为保留来源信息的 DDC 动态属性源。
@@ -26,6 +27,19 @@ public final class DdcYamlConfigFormatStrategy
      * Starter 支持的远程资源名。 Remote resource name supported by the starter.
      */
     public static final String DEFAULT_RESOURCE_NAME = "application.yml";
+
+    /**
+     * Spring Boot 支持的长后缀 YAML 资源名。 Spring Boot YAML resource name using the long suffix.
+     */
+    public static final String ALTERNATE_RESOURCE_NAME = "application.yaml";
+
+    /**
+     * 当前单资源模型允许的 YAML 资源名。 YAML resource names allowed by the current single-resource model.
+     */
+    private static final Set<String> SUPPORTED_RESOURCE_NAMES = Set.of(
+            DEFAULT_RESOURCE_NAME,
+            ALTERNATE_RESOURCE_NAME
+    );
 
     /**
      * 动态属性源名称前缀。 Dynamic property-source name prefix.
@@ -49,6 +63,20 @@ public final class DdcYamlConfigFormatStrategy
     }
 
     /**
+     * 仅接受当前单资源模型约定的 Spring Boot 应用 YAML 文件名。
+     * Accepts only the Spring Boot application YAML names defined by the current single-resource model.
+     *
+     * @param resourceName 配置资源名; configuration resource name
+     * @return 资源名为 {@code application.yml} 或 {@code application.yaml} 时返回 {@code true};
+     * {@code true} when the resource is named {@code application.yml} or {@code application.yaml}
+     */
+    @Override
+    public boolean supports(String resourceName) {
+        return resourceName != null
+                && SUPPORTED_RESOURCE_NAMES.contains(resourceName.trim());
+    }
+
+    /**
      * 创建版本为零且无属性的动态属性源。 Creates a version-zero dynamic property source with no properties.
      *
      * @param resourceName 远程资源名。 remote resource name
@@ -59,8 +87,13 @@ public final class DdcYamlConfigFormatStrategy
         DdcDynamicPropertySource.Snapshot snapshot =
                 new DdcDynamicPropertySource.Snapshot(
                         resourceName,
+                        format(),
                         0L,
-                        DdcChecksum.content(""),
+                        DdcChecksum.resource(
+                                resourceName,
+                                format().name(),
+                                ""
+                        ),
                         Map.of()
                 );
         return new DdcDynamicPropertySource(
@@ -75,7 +108,7 @@ public final class DdcYamlConfigFormatStrategy
      * @param resourceName 远程资源名。 remote resource name
      * @param content      YAML 文本。 YAML content
      * @param version      远程配置版本。 remote configuration version
-     * @return 包含内容摘要和来源信息的动态属性源。 dynamic property source containing content checksum and origin data
+     * @return 包含资源摘要和来源信息的动态属性源。 dynamic property source containing resource checksum and origin data
      * @throws IOException              Spring YAML 加载器读取资源失败时抛出。 thrown when Spring's YAML loader cannot read the resource
      * @throws IllegalArgumentException YAML 为空、多文档、非映射根或包含保留键时抛出。 thrown when YAML is empty, multi-document, non-mapping-root, or contains reserved keys
      * @throws IllegalStateException    加载器返回不可枚举属性源时抛出。 thrown when the delegate returns a non-enumerable property source
@@ -121,8 +154,13 @@ public final class DdcYamlConfigFormatStrategy
         DdcDynamicPropertySource.Snapshot snapshot =
                 new DdcDynamicPropertySource.Snapshot(
                         resourceName,
+                        format(),
                         version,
-                        DdcChecksum.content(content),
+                        DdcChecksum.resource(
+                                resourceName,
+                                format().name(),
+                                content
+                        ),
                         rawValues
                 );
         return new DdcDynamicPropertySource(propertySourceName, snapshot);

@@ -85,7 +85,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 .satisfies(request -> {
                     assertThat(request.expectedVersion()).isZero();
                     assertThat(yaml().leafValue(
-                            request.configValue(),
+                            request.content(),
                             "gateway.rules.chunk.release-1.0"
                     )).contains("chunk-0");
                 });
@@ -103,11 +103,11 @@ class GatewayReleasePublicationCoordinatorTest {
                 .extracting(DdcManagementPublishRequest::expectedVersion)
                 .containsExactly(1L, 2L);
         assertThat(yaml().leafValue(
-                client.publishRequests.get(1).configValue(),
+                client.publishRequests.get(1).content(),
                 "gateway.rules.chunk.release-1.0"
         )).contains("chunk-0");
         assertThat(yaml().leafValue(
-                client.publishRequests.get(1).configValue(),
+                client.publishRequests.get(1).content(),
                 "gateway.rules.chunk.release-1.1"
         )).contains("chunk-1");
         assertThat(journal.findAttempt("release-1", 1))
@@ -246,9 +246,9 @@ class GatewayReleasePublicationCoordinatorTest {
         DdcManagementPublishRequest recovered =
                 client.publishRequests.getLast();
         assertThat(recovered.expectedVersion()).isEqualTo(2L);
-        assertThat(recovered.configValue()).contains("external: true");
+        assertThat(recovered.content()).contains("external: true");
         assertThat(yaml().leafValue(
-                recovered.configValue(),
+                recovered.content(),
                 GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY
         )).contains(compiled.activationJson());
     }
@@ -332,7 +332,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 .filter(request -> request.changeId().equals(
                         identities.get(crashPhase)
                 ))
-                .map(DdcManagementPublishRequest::configValue)
+                .map(DdcManagementPublishRequest::content)
                 .toList();
         assertThat(retriedDocuments)
                 .allMatch(retriedDocuments.getFirst()::equals);
@@ -658,7 +658,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     request.env(),
                     request.appCode(),
                     "application.yml",
-                    request.configValue(),
+                    request.content(),
                     "YAML",
                     1L,
                     true,
@@ -700,7 +700,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     request.env(),
                     request.appCode(),
                     "application.yml",
-                    request.configValue(),
+                    request.content(),
                     "YAML",
                     request.expectedVersion() + 1,
                     true,
@@ -745,7 +745,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     changeId,
                     status,
                     current.targetVersion(),
-                    current.contentChecksum(),
+                    current.resourceChecksum(),
                     current.targetCount(),
                     current.targets(),
                     null,
@@ -817,7 +817,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     result.changeId(),
                     result.status(),
                     result.targetVersion(),
-                    result.contentChecksum(),
+                    result.resourceChecksum(),
                     result.targetCount(),
                     1,
                     0,

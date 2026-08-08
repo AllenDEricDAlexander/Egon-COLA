@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.application.release;
 
 import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.client.DdcManagementClientException;
 import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;
@@ -288,7 +289,7 @@ public final class GatewayReleasePublicationCoordinator {
         }
         validateConfig(config, operation.configKey());
         String documentContent = yamlDocument.putLeaf(
-                config.configValue(),
+                config.content(),
                 operation.configKey(),
                 leafValue
         );
@@ -316,7 +317,9 @@ public final class GatewayReleasePublicationCoordinator {
                     scope.bizCode(),
                     scope.env(),
                     scope.appCode(),
+                    GatewayDdcYamlDocument.RESOURCE_NAME,
                     documentContent,
+                    GatewayDdcYamlDocument.FORMAT,
                     "Gateway release " + operation.releaseId(),
                     0L,
                     operator
@@ -347,8 +350,9 @@ public final class GatewayReleasePublicationCoordinator {
                     "DDC config is disabled: " + configKey
             );
         }
-        if (!"application.yml".equals(config.configKey())
-                || !"YAML".equals(config.valueType())) {
+        if (!GatewayDdcYamlDocument.RESOURCE_NAME.equals(
+                config.resourceName())
+                || !GatewayDdcYamlDocument.FORMAT.equals(config.format())) {
             throw new IllegalStateException(
                     "DDC config is not application.yml/YAML: " + configKey
             );
@@ -506,7 +510,7 @@ public final class GatewayReleasePublicationCoordinator {
                 operation.changeId(),
                 DdcManagementPublishStatus.SUCCESS,
                 operation.ddcTargetVersion(),
-                checksum(operation.contentValue()),
+                resourceChecksum(operation.contentValue()),
                 0,
                 List.of(),
                 null,
@@ -530,7 +534,7 @@ public final class GatewayReleasePublicationCoordinator {
                 task.changeId(),
                 task.status(),
                 task.targetVersion(),
-                task.contentChecksum(),
+                task.resourceChecksum(),
                 task.targetCount(),
                 task.targets(),
                 task.errorMessage(),
@@ -547,7 +551,7 @@ public final class GatewayReleasePublicationCoordinator {
                 operation.changeId(),
                 DdcManagementPublishStatus.UNKNOWN,
                 operation.ddcTargetVersion(),
-                checksum(operation.contentValue()),
+                resourceChecksum(operation.contentValue()),
                 0,
                 List.of(),
                 failure.getMessage(),
@@ -579,6 +583,14 @@ public final class GatewayReleasePublicationCoordinator {
     private String checksum(String value) {
         return GatewayRuleCanonicalizer.sha256(
                 value.getBytes(StandardCharsets.UTF_8)
+        );
+    }
+
+    private String resourceChecksum(String content) {
+        return DdcChecksum.resource(
+                GatewayDdcYamlDocument.RESOURCE_NAME,
+                GatewayDdcYamlDocument.FORMAT,
+                content
         );
     }
 

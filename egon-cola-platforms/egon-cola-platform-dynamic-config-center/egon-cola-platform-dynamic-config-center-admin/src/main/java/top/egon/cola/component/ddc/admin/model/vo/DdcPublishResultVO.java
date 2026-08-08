@@ -26,7 +26,7 @@ public class DdcPublishResultVO {
 
     private Long targetVersion;
 
-    private String contentChecksum;
+    private String resourceChecksum;
 
     private String errorMessage;
 
@@ -41,7 +41,7 @@ public class DdcPublishResultVO {
         vo.setTimeoutCount(task.getTimeoutCount());
         vo.setAttemptCount(task.getAttemptCount());
         vo.setTargetVersion(task.getTargetVersion());
-        vo.setContentChecksum(task.getContentChecksum());
+        vo.setResourceChecksum(task.getResourceChecksum());
         vo.setErrorMessage(task.getErrorMessage());
         return vo;
     }

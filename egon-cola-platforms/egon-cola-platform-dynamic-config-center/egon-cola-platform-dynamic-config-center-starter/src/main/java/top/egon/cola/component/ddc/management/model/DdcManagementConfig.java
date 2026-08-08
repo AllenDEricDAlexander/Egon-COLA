@@ -8,9 +8,9 @@ import java.time.Instant;
  * @param bizCode     业务编码 / business code
  * @param env         环境编码 / environment code
  * @param appCode     应用编码 / application code
- * @param configKey   配置键 / configuration key
- * @param configValue 配置值 / configuration value
- * @param valueType   配置值类型 / configuration value type
+ * @param resourceName 配置资源名 / configuration resource name
+ * @param content      配置内容 / configuration content
+ * @param format       配置格式 / configuration format
  * @param version     配置版本 / configuration version
  * @param enabled     是否启用 / whether the configuration is enabled
  * @param deleted     是否已逻辑删除 / whether the configuration is logically deleted
@@ -20,9 +20,9 @@ public record DdcManagementConfig(
         String bizCode,
         String env,
         String appCode,
-        String configKey,
-        String configValue,
-        String valueType,
+        String resourceName,
+        String content,
+        String format,
         Long version,
         boolean enabled,
         boolean deleted,

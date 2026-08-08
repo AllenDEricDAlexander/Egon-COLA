@@ -25,8 +25,8 @@ class DdcChecksumTest {
         message.setBizCode("retail");
         message.setAppCode("demo");
         message.setEnv("dev");
-        message.setConfigKey("switch");
-        message.setConfigValue(configValue);
+        message.setResourceName("switch");
+        message.setContent(configValue);
         message.setTargetVersion(2L);
         return message;
     }

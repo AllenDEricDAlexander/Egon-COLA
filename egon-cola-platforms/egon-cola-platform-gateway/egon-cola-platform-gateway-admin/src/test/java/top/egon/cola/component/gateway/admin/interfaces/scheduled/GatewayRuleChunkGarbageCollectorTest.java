@@ -74,11 +74,11 @@ class GatewayRuleChunkGarbageCollectorTest {
         verify(client).publish(captor.capture());
         assertThat(captor.getValue().expectedVersion()).isEqualTo(7L);
         assertThat(yaml().leafValue(
-                captor.getValue().configValue(),
+                captor.getValue().content(),
                 candidate.configKey()
         )).isEmpty();
         assertThat(yaml().leafValue(
-                captor.getValue().configValue(),
+                captor.getValue().content(),
                 GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY
         )).contains("activation");
         verify(journal).markChunkCleaned("change-1", NOW);

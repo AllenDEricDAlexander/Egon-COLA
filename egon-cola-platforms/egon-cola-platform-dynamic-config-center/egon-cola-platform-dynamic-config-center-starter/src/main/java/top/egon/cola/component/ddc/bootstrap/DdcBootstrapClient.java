@@ -23,7 +23,7 @@ public class DdcBootstrapClient {
     /**
      * 允许的 YAML UTF-8 最大字节数。 Maximum allowed YAML size in UTF-8 bytes.
      */
-    private final long maxYamlBytes;
+    private final long maxConfigBytes;
 
     /**
      * 校验配置格式与资源名匹配关系的策略注册表。
@@ -44,7 +44,7 @@ public class DdcBootstrapClient {
     public DdcBootstrapClient(DdcProperties properties) {
         this(
                 () -> new HttpDdcAdminClient(properties).pull(),
-                properties.getMaxYamlBytes(),
+                properties.getMaxConfigBytes(),
                 DdcConfigFormatStrategyRegistry.defaults()
         );
     }
@@ -53,15 +53,15 @@ public class DdcBootstrapClient {
      * 使用指定拉取函数和大小限制创建客户端，供包内测试或定制引导使用。 Creates a client with a supplied pull function and size limit for package-level testing or bootstrap customization.
      *
      * @param pullSupplier 远程配置拉取函数。 remote configuration pull function
-     * @param maxYamlBytes 允许的 YAML UTF-8 最大字节数。 maximum allowed YAML size in UTF-8 bytes
+     * @param maxConfigBytes 允许的 YAML UTF-8 最大字节数。 maximum allowed YAML size in UTF-8 bytes
      * @throws NullPointerException     拉取函数为 {@code null} 时抛出。 thrown when the pull function is {@code null}
      * @throws IllegalArgumentException 大小限制不为正数时抛出。 thrown when the size limit is not positive
      */
     DdcBootstrapClient(Supplier<List<DdcConfigValue>> pullSupplier,
-                       long maxYamlBytes) {
+                       long maxConfigBytes) {
         this(
                 pullSupplier,
-                maxYamlBytes,
+                maxConfigBytes,
                 DdcConfigFormatStrategyRegistry.defaults()
         );
     }
@@ -71,21 +71,21 @@ public class DdcBootstrapClient {
      * Creates a client with the supplied pull function, size limit, and format-strategy registry.
      *
      * @param pullSupplier    远程配置拉取函数; remote configuration pull function
-     * @param maxYamlBytes    允许的 YAML UTF-8 最大字节数; maximum allowed YAML size in UTF-8 bytes
+     * @param maxConfigBytes    允许的 YAML UTF-8 最大字节数; maximum allowed YAML size in UTF-8 bytes
      * @param formatStrategies 配置格式策略注册表; configuration-format strategy registry
      */
     DdcBootstrapClient(
             Supplier<List<DdcConfigValue>> pullSupplier,
-            long maxYamlBytes,
+            long maxConfigBytes,
             DdcConfigFormatStrategyRegistry formatStrategies) {
         this.pullSupplier = Objects.requireNonNull(
                 pullSupplier,
                 "pullSupplier"
         );
-        if (maxYamlBytes <= 0) {
-            throw new IllegalArgumentException("maxYamlBytes must be positive");
+        if (maxConfigBytes <= 0) {
+            throw new IllegalArgumentException("maxConfigBytes must be positive");
         }
-        this.maxYamlBytes = maxYamlBytes;
+        this.maxConfigBytes = maxConfigBytes;
         this.formatStrategies = Objects.requireNonNull(
                 formatStrategies,
                 "formatStrategies"
@@ -110,13 +110,13 @@ public class DdcBootstrapClient {
             );
         }
         DdcConfigValue value = values.getFirst();
-        if (value == null || !resourceName.equals(value.getConfigKey())) {
+        if (value == null || !resourceName.equals(value.getResourceName())) {
             throw new IllegalStateException(
                     "DDC scope must contain only application.yml with YAML type"
             );
         }
         try {
-            formatStrategies.get(value.getValueType(), resourceName);
+            formatStrategies.get(value.getFormat(), resourceName);
         } catch (IllegalArgumentException exception) {
             throw new IllegalStateException(
                     "DDC scope must contain only application.yml with YAML type",
@@ -128,14 +128,14 @@ public class DdcBootstrapClient {
                     "DDC application.yml must have a positive version"
             );
         }
-        String content = value.getConfigValue();
+        String content = value.getContent();
         long contentBytes = content == null
                 ? 0
                 : content.getBytes(StandardCharsets.UTF_8).length;
-        if (contentBytes > maxYamlBytes) {
+        if (contentBytes > maxConfigBytes) {
             throw new IllegalStateException(
                     "DDC application.yml exceeds the UTF-8 limit of "
-                            + maxYamlBytes + " bytes"
+                            + maxConfigBytes + " bytes"
             );
         }
         return value;

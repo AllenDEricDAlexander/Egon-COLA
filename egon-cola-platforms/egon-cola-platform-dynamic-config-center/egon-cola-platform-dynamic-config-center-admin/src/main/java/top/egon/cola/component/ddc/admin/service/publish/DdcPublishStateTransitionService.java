@@ -275,7 +275,7 @@ public class DdcPublishStateTransitionService {
                 task.getBizCode(),
                 task.getEnv(),
                 task.getAppCode(),
-                task.getConfigKey()
+                task.getResourceName()
         );
     }
 

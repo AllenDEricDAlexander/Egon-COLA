@@ -4,6 +4,7 @@ import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginLookup;
 import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.core.env.EnumerablePropertySource;
+import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -124,12 +125,14 @@ public final class DdcDynamicPropertySource
      * 表示一次远程 YAML 加载得到的不可变版本快照。 Represents an immutable versioned snapshot produced by one remote YAML load.
      *
      * @param resourceName 远程资源名。 remote resource name
+     * @param format       配置格式。 configuration format
      * @param version      远程配置版本。 remote configuration version
-     * @param checksum     YAML 内容摘要。 YAML content checksum
+     * @param checksum     配置资源摘要。 configuration resource checksum
      * @param rawValues    可能包含来源跟踪包装的原始属性映射。 raw property map that may contain origin-tracking wrappers
      */
     public record Snapshot(
             String resourceName,
+            DdcConfigFormat format,
             long version,
             String checksum,
             Map<String, Object> rawValues
@@ -139,13 +142,15 @@ public final class DdcDynamicPropertySource
          * 校验必需字段并复制为保持顺序的不可修改映射。 Validates required fields and copies values into an insertion-ordered unmodifiable map.
          *
          * @param resourceName 远程资源名。 remote resource name
+         * @param format       配置格式。 configuration format
          * @param version      远程配置版本。 remote configuration version
-         * @param checksum     YAML 内容摘要。 YAML content checksum
+         * @param checksum     配置资源摘要。 configuration resource checksum
          * @param rawValues    可能包含来源跟踪包装的原始属性映射。 raw property map that may contain origin-tracking wrappers
          * @throws NullPointerException 资源名、摘要或属性映射为空时抛出。 thrown when resource name, checksum, or property map is null
          */
         public Snapshot {
             Objects.requireNonNull(resourceName, "resourceName");
+            Objects.requireNonNull(format, "format");
             Objects.requireNonNull(checksum, "checksum");
             Objects.requireNonNull(rawValues, "rawValues");
             rawValues = Collections.unmodifiableMap(

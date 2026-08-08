@@ -146,7 +146,9 @@ public class DdcManagementFacade {
                         request.env(),
                         request.appCode(),
                         null,
-                        request.configValue(),
+                        request.resourceName(),
+                        request.content(),
+                        request.format(),
                         request.description()
                 ),
                 request.expectedVersion(),
@@ -186,7 +188,9 @@ public class DdcManagementFacade {
         command.setBizCode(request.bizCode());
         command.setEnv(request.env());
         command.setAppCode(request.appCode());
-        command.setConfigValue(request.configValue());
+        command.setResourceName(request.resourceName());
+        command.setContent(request.content());
+        command.setFormat(request.format());
         command.setExpectedVersion(request.expectedVersion());
         command.setTimeoutMs(request.timeoutMs());
         publishService.publish(command, request.operator());
@@ -213,7 +217,7 @@ public class DdcManagementFacade {
                 task.getChangeId(),
                 status(task.getStatus()),
                 task.getTargetVersion(),
-                task.getContentChecksum(),
+                task.getResourceChecksum(),
                 count(task.getTargetCount()),
                 count(task.getAckCount()),
                 count(task.getFailedCount()),
@@ -297,7 +301,7 @@ public class DdcManagementFacade {
                 task.changeId(),
                 task.status(),
                 task.targetVersion(),
-                task.contentChecksum(),
+                task.resourceChecksum(),
                 task.targetCount(),
                 task.targets(),
                 task.errorMessage(),
@@ -312,9 +316,9 @@ public class DdcManagementFacade {
                 value.getBizCode(),
                 value.getEnv(),
                 value.getAppCode(),
-                value.getConfigKey(),
-                value.getConfigValue(),
-                value.getValueType(),
+                value.getResourceName(),
+                value.getContent(),
+                value.getFormat(),
                 value.getCurrentVersion(),
                 Boolean.TRUE.equals(value.getEnabled()),
                 Boolean.TRUE.equals(value.getDeleted()),

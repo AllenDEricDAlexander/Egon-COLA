@@ -68,7 +68,7 @@ egon:
               hmac-secret-base64: ${DDC_ADMIN_JWT_HMAC_SECRET_BASE64:}
           transport-security:
             mode: DEVELOPMENT_PLAINTEXT
-          max-value-bytes: 1048576
+          max-config-bytes: 1048576
           redis:
             mode: SINGLE
             nodes: []

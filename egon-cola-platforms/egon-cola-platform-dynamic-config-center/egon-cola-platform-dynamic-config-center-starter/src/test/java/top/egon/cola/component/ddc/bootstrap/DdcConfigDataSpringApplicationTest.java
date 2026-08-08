@@ -72,9 +72,9 @@ class DdcConfigDataSpringApplicationTest {
                                                String remoteValue,
                                                String... extraArguments) {
         DdcConfigValue value = new DdcConfigValue();
-        value.setConfigKey("application.yml");
-        value.setValueType("YAML");
-        value.setConfigValue("sample:\n  value: " + remoteValue + "\n");
+        value.setResourceName("application.yml");
+        value.setFormat("YAML");
+        value.setContent("sample:\n  value: " + remoteValue + "\n");
         value.setVersion(1L);
         DdcBootstrapClient client = new DdcBootstrapClient(
                 () -> List.of(value),

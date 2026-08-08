@@ -21,6 +21,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
@@ -29,15 +30,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class DdcConfigService {
 
-    public static final String CONFIG_KEY =
+    public static final String DEFAULT_RESOURCE_NAME =
             DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME;
 
-    public static final String VALUE_TYPE =
+    public static final String YAML_FORMAT =
             DdcConfigFormat.YAML.name();
+
+    private static final Set<String> SUPPORTED_RESOURCE_NAMES = Set.of(
+            DEFAULT_RESOURCE_NAME,
+            DdcYamlConfigFormatStrategy.ALTERNATE_RESOURCE_NAME
+    );
 
     private final DdcConfigItemRepository configItemRepository;
 
@@ -63,7 +70,7 @@ public class DdcConfigService {
         DdcAdminProperties properties =
                 propertiesProvider.getIfAvailable(DdcAdminProperties::new);
         this.yamlValidator = new DdcYamlConfigValidator(
-                properties.getMaxValueBytes()
+                properties.getMaxConfigBytes()
         );
     }
 
@@ -84,9 +91,9 @@ public class DdcConfigService {
     @Transactional
     public DdcConfigVO create(DdcConfigCreateRequest request, String operator) {
         validateDraft(request);
-        configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+        findScopeConfig(
                         request.getBizCode(), request.getEnv(),
-                        request.getAppCode(), CONFIG_KEY)
+                        request.getAppCode())
                 .ifPresent(item -> {
                     throw new DdcAdminException("config item already exists");
                 });
@@ -101,11 +108,10 @@ public class DdcConfigService {
     ) {
         validateDraft(request);
         DdcConfigItemEntity existing =
-                configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                findScopeConfig(
                         request.getBizCode(),
                         request.getEnv(),
-                        request.getAppCode(),
-                        CONFIG_KEY
+                        request.getAppCode()
                 ).orElse(null);
         if (existing == null) {
             if (expectedVersion != null && expectedVersion != 0L) {
@@ -114,24 +120,29 @@ public class DdcConfigService {
             return createDraft(request, operator);
         }
         if (Boolean.TRUE.equals(existing.getDeleted())) {
-            throw new DdcAdminException("deleted config key cannot be reused");
+            throw new DdcAdminException("deleted config resource cannot be reused");
+        }
+        if (!Objects.equals(request.getResourceName(), existing.getResourceName())
+                || !Objects.equals(request.getFormat(), existing.getFormat())) {
+            throw new DdcAdminException(
+                    "config resource name and format cannot be changed"
+            );
         }
         if (expectedVersion == null
                 || !Objects.equals(expectedVersion, existing.getCurrentVersion())) {
             throw new DdcAdminException("config version changed");
         }
-        String oldValue = existing.getConfigValue();
-        existing.setConfigValue(request.getConfigValue());
+        String oldContent = existing.getContent();
+        existing.setContent(request.getContent());
         existing.setDefaultValue(null);
-        existing.setValueType(VALUE_TYPE);
         existing.setDescription(request.getDescription());
         existing.setCurrentVersion(existing.getCurrentVersion() + 1);
         existing.setUpdatedAt(LocalDateTime.now());
         DdcConfigItemEntity saved = configItemRepository.save(existing);
         saveVersion(
                 saved,
-                oldValue,
-                saved.getConfigValue(),
+                oldContent,
+                saved.getContent(),
                 ChangeType.UPDATE,
                 "upsert config draft",
                 operator
@@ -155,10 +166,10 @@ public class DdcConfigService {
         entity.setBizCode(request.getBizCode());
         entity.setAppCode(request.getAppCode());
         entity.setEnv(request.getEnv());
-        entity.setConfigKey(CONFIG_KEY);
-        entity.setConfigValue(request.getConfigValue());
+        entity.setResourceName(request.getResourceName());
+        entity.setContent(request.getContent());
         entity.setDefaultValue(null);
-        entity.setValueType(VALUE_TYPE);
+        entity.setFormat(request.getFormat());
         entity.setDescription(request.getDescription());
         entity.setCurrentVersion(1L);
         entity.setPublishedVersion(null);
@@ -167,7 +178,7 @@ public class DdcConfigService {
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         DdcConfigItemEntity saved = configItemRepository.save(entity);
-        saveVersion(saved, null, saved.getConfigValue(), ChangeType.CREATE, "create config", operator);
+        saveVersion(saved, null, saved.getContent(), ChangeType.CREATE, "create config", operator);
         saveOperation(saved, ChangeType.CREATE, operator, "create config");
         return DdcConfigVO.from(saved);
     }
@@ -177,17 +188,21 @@ public class DdcConfigService {
         if (request == null) {
             throw new DdcAdminException("config update request is required");
         }
-        yamlValidator.validate(request.getConfigValue());
         DdcConfigItemEntity entity = getConfig(request.getId());
+        yamlValidator.validate(
+                entity.getResourceName(),
+                entity.getFormat(),
+                request.getContent()
+        );
         if (request.getCurrentVersion() != null && !Objects.equals(request.getCurrentVersion(), entity.getCurrentVersion())) {
             throw new DdcAdminException("config version changed");
         }
-        String oldValue = entity.getConfigValue();
-        entity.setConfigValue(request.getConfigValue());
+        String oldContent = entity.getContent();
+        entity.setContent(request.getContent());
         entity.setCurrentVersion(entity.getCurrentVersion() + 1);
         entity.setUpdatedAt(LocalDateTime.now());
         DdcConfigItemEntity saved = configItemRepository.save(entity);
-        saveVersion(saved, oldValue, saved.getConfigValue(), ChangeType.UPDATE, request.getChangeReason(), operator);
+        saveVersion(saved, oldContent, saved.getContent(), ChangeType.UPDATE, request.getChangeReason(), operator);
         saveOperation(saved, ChangeType.UPDATE, operator, request.getChangeReason());
         return DdcConfigVO.from(saved);
     }
@@ -211,11 +226,10 @@ public class DdcConfigService {
             String reason
     ) {
         DdcConfigItemEntity entity =
-                configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                findScopeConfig(
                         bizCode,
                         env,
-                        appCode,
-                        CONFIG_KEY
+                        appCode
                 ).orElse(null);
         if (entity == null) {
             return null;
@@ -235,13 +249,13 @@ public class DdcConfigService {
             String operator,
             String reason
     ) {
-        String oldValue = entity.getConfigValue();
+        String oldContent = entity.getContent();
         entity.setDeleted(true);
         entity.setEnabled(false);
         entity.setCurrentVersion(entity.getCurrentVersion() + 1);
         entity.setUpdatedAt(LocalDateTime.now());
         DdcConfigItemEntity saved = configItemRepository.save(entity);
-        saveVersion(saved, oldValue, null, ChangeType.DELETE, reason, operator);
+        saveVersion(saved, oldContent, null, ChangeType.DELETE, reason, operator);
         saveOperation(saved, ChangeType.DELETE, operator, reason);
         return DdcConfigVO.from(saved);
     }
@@ -251,15 +265,19 @@ public class DdcConfigService {
         DdcConfigItemEntity entity = getConfig(request.getConfigId());
         DdcConfigVersionEntity target = versionRepository.findByConfigIdAndVersion(request.getConfigId(), request.getVersion())
                 .orElseThrow(() -> new DdcAdminException("config version not found"));
-        yamlValidator.validate(target.getNewValue());
-        String oldValue = entity.getConfigValue();
-        entity.setConfigValue(target.getNewValue());
+        yamlValidator.validate(
+                target.getResourceName(),
+                target.getFormat(),
+                target.getNewContent()
+        );
+        String oldContent = entity.getContent();
+        entity.setContent(target.getNewContent());
         entity.setDeleted(false);
         entity.setEnabled(true);
         entity.setCurrentVersion(entity.getCurrentVersion() + 1);
         entity.setUpdatedAt(LocalDateTime.now());
         DdcConfigItemEntity saved = configItemRepository.save(entity);
-        saveVersion(saved, oldValue, saved.getConfigValue(), ChangeType.ROLLBACK, request.getReason(), operator);
+        saveVersion(saved, oldContent, saved.getContent(), ChangeType.ROLLBACK, request.getReason(), operator);
         saveOperation(saved, ChangeType.ROLLBACK, operator, request.getReason());
         return DdcConfigVO.from(saved);
     }
@@ -273,7 +291,7 @@ public class DdcConfigService {
                         optional(query.getNamespaceCode()),
                         optional(query.getEnv()),
                         optional(query.getAppCode()),
-                        CONFIG_KEY,
+                        null,
                         query.isIncludeDeleted()
                 ).stream()
                 .map(this::config)
@@ -289,22 +307,15 @@ public class DdcConfigService {
             String env,
             String appCode
     ) {
-        return configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+        return findScopeConfig(
                 bizCode,
                 env,
-                appCode,
-                CONFIG_KEY
+                appCode
         ).map(this::config);
     }
 
     public List<DdcConfigValue> pull(String bizCode, String env, String appCode) {
-        return configItemRepository
-                .findByBizCodeAndEnvAndAppCodeAndConfigKey(
-                        bizCode,
-                        env,
-                        appCode,
-                        CONFIG_KEY
-                )
+        return findScopeConfig(bizCode, env, appCode)
                 .flatMap(this::publishedVersion)
                 .filter(this::isRuntimeValue)
                 .map(this::toConfigValue)
@@ -323,7 +334,7 @@ public class DdcConfigService {
                 .orElseThrow(() -> new DdcAdminException("config item not found"));
     }
 
-    private void saveVersion(DdcConfigItemEntity entity, String oldValue, String newValue, ChangeType changeType,
+    private void saveVersion(DdcConfigItemEntity entity, String oldContent, String newContent, ChangeType changeType,
                              String reason, String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
         version.setId(UuidV7.simpleString());
@@ -332,11 +343,11 @@ public class DdcConfigService {
         version.setAppCode(entity.getAppCode());
         version.setEnv(entity.getEnv());
         version.setNamespace(null);
-        version.setConfigKey(entity.getConfigKey());
+        version.setResourceName(entity.getResourceName());
         version.setVersion(entity.getCurrentVersion());
-        version.setOldValue(oldValue);
-        version.setNewValue(newValue);
-        version.setValueType(entity.getValueType());
+        version.setOldContent(oldContent);
+        version.setNewContent(newContent);
+        version.setFormat(entity.getFormat());
         version.setChangeType(changeType.name());
         version.setChangeReason(reason);
         version.setOperator(operator);
@@ -351,7 +362,7 @@ public class DdcConfigService {
         log.setAppCode(entity.getAppCode());
         log.setEnv(entity.getEnv());
         log.setNamespace(null);
-        log.setConfigKey(entity.getConfigKey());
+        log.setResourceName(entity.getResourceName());
         log.setOperationType(changeType.name());
         log.setOperator(operator);
         log.setOperationContent(content);
@@ -375,9 +386,9 @@ public class DdcConfigService {
 
     private DdcConfigValue toConfigValue(DdcConfigVersionEntity version) {
         DdcConfigValue value = new DdcConfigValue();
-        value.setConfigKey(CONFIG_KEY);
-        value.setConfigValue(version.getNewValue());
-        value.setValueType(VALUE_TYPE);
+        value.setResourceName(version.getResourceName());
+        value.setContent(version.getNewContent());
+        value.setFormat(version.getFormat());
         value.setVersion(version.getVersion());
         return value;
     }
@@ -399,7 +410,44 @@ public class DdcConfigService {
         requireText(request.getBizCode(), "bizCode");
         requireText(request.getAppCode(), "appCode");
         requireText(request.getEnv(), "env");
-        yamlValidator.validate(request.getConfigValue());
+        requireText(request.getResourceName(), "resourceName");
+        requireText(request.getFormat(), "format");
+        if (!SUPPORTED_RESOURCE_NAMES.contains(request.getResourceName())) {
+            throw new DdcAdminException(
+                    "resourceName must be application.yml or application.yaml"
+            );
+        }
+        try {
+            DdcConfigFormatStrategyRegistry.defaults().get(
+                    request.getFormat(),
+                    request.getResourceName()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new DdcAdminException("unsupported config resource format");
+        }
+        yamlValidator.validate(
+                request.getResourceName(),
+                request.getFormat(),
+                request.getContent()
+        );
+    }
+
+    private Optional<DdcConfigItemEntity> findScopeConfig(
+            String bizCode,
+            String env,
+            String appCode) {
+        List<DdcConfigItemEntity> configs =
+                configItemRepository.findByBizCodeAndEnvAndAppCode(
+                        bizCode,
+                        env,
+                        appCode
+                );
+        if (configs.size() > 1) {
+            throw new DdcAdminException(
+                    "DDC scope contains multiple configuration resources"
+            );
+        }
+        return configs.stream().findFirst();
     }
 
     private DdcConfigVO config(DdcConfigItemEntity entity) {

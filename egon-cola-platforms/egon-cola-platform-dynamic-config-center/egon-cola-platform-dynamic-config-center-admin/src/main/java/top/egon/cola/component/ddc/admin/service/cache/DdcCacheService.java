@@ -45,8 +45,8 @@ public class DdcCacheService {
                 bizCode,
                 env,
                 appCode,
-                version.getConfigKey(),
-                version.getNewValue(),
+                version.getResourceName(),
+                version.getNewContent(),
                 version.getVersion()
         ));
         return published.size();
@@ -71,16 +71,16 @@ public class DdcCacheService {
             DdcConfigVersionEntity version
     ) {
         String redisValue = redisRepository.readConfigValue(
-                bizCode, env, appCode, version.getConfigKey()
+                bizCode, env, appCode, version.getResourceName()
         );
         Long redisVersion = redisRepository.readConfigVersion(
-                bizCode, env, appCode, version.getConfigKey()
+                bizCode, env, appCode, version.getResourceName()
         );
-        boolean matched = Objects.equals(version.getNewValue(), redisValue)
+        boolean matched = Objects.equals(version.getNewContent(), redisValue)
                 && Objects.equals(version.getVersion(), redisVersion);
         return new DdcCacheCheckRow(
-                version.getConfigKey(),
-                version.getNewValue(),
+                version.getResourceName(),
+                version.getNewContent(),
                 redisValue,
                 version.getVersion(),
                 redisVersion,

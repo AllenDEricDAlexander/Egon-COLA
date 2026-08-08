@@ -45,9 +45,9 @@ public class DdcAckRequest {
     private String namespace;
 
     /**
-     * 配置键。 / Configuration key.
+     * 配置资源名。 / Configuration resource name.
      */
-    private String configKey;
+    private String resourceName;
 
     /**
      * 本次发布的目标版本。 / Target version of this publication.
@@ -62,7 +62,7 @@ public class DdcAckRequest {
     /**
      * 已应用配置内容的校验和。 / Checksum of the applied configuration content.
      */
-    private String contentChecksum;
+    private String resourceChecksum;
 
     /**
      * 确认状态。 / Acknowledgement status.
@@ -212,21 +212,21 @@ public class DdcAckRequest {
     }
 
     /**
-     * 返回配置键。 / Returns the configuration key.
+     * 返回配置资源名。 / Returns the configuration resource name.
      *
-     * @return 配置键 / configuration key
+     * @return 配置资源名 / configuration resource name
      */
-    public String getConfigKey() {
-        return configKey;
+    public String getResourceName() {
+        return resourceName;
     }
 
     /**
-     * 设置配置键。 / Sets the configuration key.
+     * 设置配置资源名。 / Sets the configuration resource name.
      *
-     * @param configKey 配置键 / configuration key
+     * @param resourceName 配置资源名 / configuration resource name
      */
-    public void setConfigKey(String configKey) {
-        this.configKey = configKey;
+    public void setResourceName(String resourceName) {
+        this.resourceName = resourceName;
     }
 
     /**
@@ -266,21 +266,21 @@ public class DdcAckRequest {
     }
 
     /**
-     * 返回内容校验和。 / Returns the content checksum.
+     * 返回资源校验和。 / Returns the resource checksum.
      *
-     * @return 内容校验和 / content checksum
+     * @return 资源校验和 / resource checksum
      */
-    public String getContentChecksum() {
-        return contentChecksum;
+    public String getResourceChecksum() {
+        return resourceChecksum;
     }
 
     /**
-     * 设置内容校验和。 / Sets the content checksum.
+     * 设置资源校验和。 / Sets the resource checksum.
      *
-     * @param contentChecksum 内容校验和 / content checksum
+     * @param resourceChecksum 资源校验和 / resource checksum
      */
-    public void setContentChecksum(String contentChecksum) {
-        this.contentChecksum = contentChecksum;
+    public void setResourceChecksum(String resourceChecksum) {
+        this.resourceChecksum = resourceChecksum;
     }
 
     /**

@@ -16,9 +16,13 @@ public class DdcConfigVersionVO {
 
     private Long version;
 
-    private String oldValue;
+    private String resourceName;
 
-    private String newValue;
+    private String oldContent;
+
+    private String newContent;
+
+    private String format;
 
     private String changeType;
 
@@ -33,8 +37,10 @@ public class DdcConfigVersionVO {
         vo.setId(entity.getId());
         vo.setConfigId(entity.getConfigId());
         vo.setVersion(entity.getVersion());
-        vo.setOldValue(entity.getOldValue());
-        vo.setNewValue(entity.getNewValue());
+        vo.setResourceName(entity.getResourceName());
+        vo.setOldContent(entity.getOldContent());
+        vo.setNewContent(entity.getNewContent());
+        vo.setFormat(entity.getFormat());
         vo.setChangeType(entity.getChangeType());
         vo.setChangeReason(entity.getChangeReason());
         vo.setOperator(entity.getOperator());

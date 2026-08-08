@@ -81,7 +81,11 @@ class DdcPublishRetryTest {
     private static final String CONFIG_VALUE =
             "feature:\n  enabled: true\n";
 
-    private static final String CHECKSUM = DdcChecksum.content(CONFIG_VALUE);
+    private static final String CHECKSUM = DdcChecksum.resource(
+            "application.yml",
+            "YAML",
+            CONFIG_VALUE
+    );
 
     @Autowired
     private DdcPublishService publishService;
@@ -202,10 +206,10 @@ class DdcPublishRetryTest {
         config.setBizCode("default");
         config.setAppCode(label);
         config.setEnv("dev");
-        config.setConfigKey("application.yml");
-        config.setConfigValue(CONFIG_VALUE);
+        config.setResourceName("application.yml");
+        config.setContent(CONFIG_VALUE);
         config.setDefaultValue(null);
-        config.setValueType("YAML");
+        config.setFormat("YAML");
         config.setCurrentVersion(2L);
         config.setPublishedVersion(1L);
         config.setEnabled(true);
@@ -222,9 +226,9 @@ class DdcPublishRetryTest {
         task.setAppCode(label);
         task.setEnv("dev");
         task.setNamespace("default");
-        task.setConfigKey("application.yml");
+        task.setResourceName("application.yml");
         task.setTargetVersion(2L);
-        task.setContentChecksum(CHECKSUM);
+        task.setResourceChecksum(CHECKSUM);
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
         task.setStatus(status.name());
         task.setTargetCount(1);
@@ -250,9 +254,9 @@ class DdcPublishRetryTest {
         target.setAppCode(task.getAppCode());
         target.setEnv(task.getEnv());
         target.setNamespace(task.getNamespace());
-        target.setConfigKey(task.getConfigKey());
+        target.setResourceName(task.getResourceName());
         target.setTargetVersion(task.getTargetVersion());
-        target.setContentChecksum(task.getContentChecksum());
+        target.setResourceChecksum(task.getResourceChecksum());
         if (status == PublishStatus.SUCCESS) {
             target.setAckStatus(DdcAckStatus.SUCCESS.name());
             target.setAckAt(now);
@@ -269,11 +273,11 @@ class DdcPublishRetryTest {
         version.setAppCode(task.getAppCode());
         version.setEnv(task.getEnv());
         version.setNamespace(task.getNamespace());
-        version.setConfigKey(task.getConfigKey());
+        version.setResourceName(task.getResourceName());
         version.setVersion(task.getTargetVersion());
-        version.setOldValue("feature:\n  enabled: false\n");
-        version.setNewValue(CONFIG_VALUE);
-        version.setValueType("YAML");
+        version.setOldContent("feature:\n  enabled: false\n");
+        version.setNewContent(CONFIG_VALUE);
+        version.setFormat("YAML");
         version.setCreatedAt(now);
         versionRepository.saveAndFlush(version);
         return task;
@@ -286,7 +290,7 @@ class DdcPublishRetryTest {
         request.setLeaseId("lease-1");
         request.setTargetVersion(task.getTargetVersion());
         request.setCurrentVersion(task.getTargetVersion());
-        request.setContentChecksum(task.getContentChecksum());
+        request.setResourceChecksum(task.getResourceChecksum());
         request.setStatus(DdcAckStatus.SUCCESS);
         return request;
     }

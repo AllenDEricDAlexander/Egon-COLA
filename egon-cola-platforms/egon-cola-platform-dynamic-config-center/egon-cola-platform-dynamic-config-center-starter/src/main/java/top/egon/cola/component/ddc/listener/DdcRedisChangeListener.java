@@ -46,7 +46,7 @@ public class DdcRedisChangeListener implements MessageListener<DdcPublishMessage
             if (message == null
                     || !matchesScope(message)
                     || !matchesChecksum(message)
-                    || !matchesContentChecksum(message)) {
+                    || !matchesResourceChecksum(message)) {
                 return;
             }
             refreshService.refresh(message);
@@ -78,13 +78,17 @@ public class DdcRedisChangeListener implements MessageListener<DdcPublishMessage
     }
 
     /**
-     * 校验配置内容摘要与消息内容一致。 Validates that the content checksum matches the message content.
+     * 校验配置内容摘要与消息内容一致。 Validates that the resource checksum matches the message content.
      *
      * @param message 发布消息。 publication message
-     * @return 内容摘要有效时为 {@code true}。 {@code true} when the content checksum is valid
+     * @return 内容摘要有效时为 {@code true}。 {@code true} when the resource checksum is valid
      */
-    private boolean matchesContentChecksum(DdcPublishMessage message) {
-        return message.getContentChecksum() != null
-                && message.getContentChecksum().equals(DdcChecksum.content(message.getConfigValue()));
+    private boolean matchesResourceChecksum(DdcPublishMessage message) {
+        return message.getResourceChecksum() != null
+                && message.getResourceChecksum().equals(DdcChecksum.resource(
+                message.getResourceName(),
+                message.getFormat(),
+                message.getContent()
+        ));
     }
 }

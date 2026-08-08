@@ -15,7 +15,11 @@ public class DdcPublishRequest {
 
     private String appCode;
 
-    private String configValue;
+    private String resourceName;
+
+    private String content;
+
+    private String format;
 
     private Long expectedVersion;
 

@@ -20,16 +20,16 @@ public class PublishFailureRecorder {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void recordFailure(String changeId, String bizCode, String env, String appCode, String configKey, String errorMessage) {
+    public void recordFailure(String changeId, String bizCode, String env, String appCode, String resourceName, String errorMessage) {
         DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(changeId)
-                .orElseGet(() -> newFailedTask(changeId, bizCode, env, appCode, configKey));
+                .orElseGet(() -> newFailedTask(changeId, bizCode, env, appCode, resourceName));
         task.setStatus(PublishStatus.FAILED.name());
         task.setErrorMessage(errorMessage);
         task.setUpdatedAt(LocalDateTime.now());
         publishTaskRepository.save(task);
     }
 
-    private DdcPublishTaskEntity newFailedTask(String changeId, String bizCode, String env, String appCode, String configKey) {
+    private DdcPublishTaskEntity newFailedTask(String changeId, String bizCode, String env, String appCode, String resourceName) {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(UuidV7.simpleString());
@@ -38,7 +38,7 @@ public class PublishFailureRecorder {
         task.setAppCode(appCode);
         task.setEnv(env);
         task.setNamespace(null);
-        task.setConfigKey(configKey);
+        task.setResourceName(resourceName);
         task.setStatus(PublishStatus.FAILED.name());
         task.setTargetCount(0);
         task.setAckCount(0);

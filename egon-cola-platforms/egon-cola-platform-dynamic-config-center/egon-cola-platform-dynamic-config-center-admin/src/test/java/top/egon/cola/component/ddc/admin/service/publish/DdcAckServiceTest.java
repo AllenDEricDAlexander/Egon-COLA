@@ -57,7 +57,11 @@ class DdcAckServiceTest {
     private static final String CONFIG_VALUE =
             "feature:\n  enabled: true\n";
 
-    private static final String CHECKSUM = DdcChecksum.content(CONFIG_VALUE);
+    private static final String CHECKSUM = DdcChecksum.resource(
+            "application.yml",
+            "YAML",
+            CONFIG_VALUE
+    );
 
     @Autowired
     private DdcPublishService publishService;
@@ -210,10 +214,10 @@ class DdcAckServiceTest {
         config.setBizCode("default");
         config.setAppCode(label);
         config.setEnv("dev");
-        config.setConfigKey("application.yml");
-        config.setConfigValue(CONFIG_VALUE);
+        config.setResourceName("application.yml");
+        config.setContent(CONFIG_VALUE);
         config.setDefaultValue(null);
-        config.setValueType("YAML");
+        config.setFormat("YAML");
         config.setCurrentVersion(2L);
         config.setPublishedVersion(2L);
         config.setEnabled(true);
@@ -229,9 +233,9 @@ class DdcAckServiceTest {
         task.setAppCode(label);
         task.setEnv("dev");
         task.setNamespace("default");
-        task.setConfigKey("application.yml");
+        task.setResourceName("application.yml");
         task.setTargetVersion(2L);
-        task.setContentChecksum(CHECKSUM);
+        task.setResourceChecksum(CHECKSUM);
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
         task.setStatus(PublishStatus.PUBLISHING.name());
         task.setTargetCount(1);
@@ -258,9 +262,9 @@ class DdcAckServiceTest {
         target.setAppCode(task.getAppCode());
         target.setEnv(task.getEnv());
         target.setNamespace(task.getNamespace());
-        target.setConfigKey(task.getConfigKey());
+        target.setResourceName(task.getResourceName());
         target.setTargetVersion(task.getTargetVersion());
-        target.setContentChecksum(task.getContentChecksum());
+        target.setResourceChecksum(task.getResourceChecksum());
         ackRepository.saveAndFlush(target);
     }
 
@@ -274,7 +278,7 @@ class DdcAckServiceTest {
         request.setLeaseId(leaseId);
         request.setTargetVersion(2L);
         request.setCurrentVersion(2L);
-        request.setContentChecksum(checksum);
+        request.setResourceChecksum(checksum);
         request.setStatus(DdcAckStatus.SUCCESS);
         return request;
     }

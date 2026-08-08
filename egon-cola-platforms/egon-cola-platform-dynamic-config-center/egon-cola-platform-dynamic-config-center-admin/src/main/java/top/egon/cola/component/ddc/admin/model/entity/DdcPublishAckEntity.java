@@ -28,7 +28,7 @@ public class DdcPublishAckEntity {
     private String leaseId;
 
     @Column(name = "content_checksum", length = 64)
-    private String contentChecksum;
+    private String resourceChecksum;
 
     @Column(name = "biz_code", length = 128)
     private String bizCode;
@@ -43,7 +43,7 @@ public class DdcPublishAckEntity {
     private String namespace;
 
     @Column(name = "config_key", length = 256)
-    private String configKey;
+    private String resourceName;
 
     @Column(name = "target_version")
     private Long targetVersion;

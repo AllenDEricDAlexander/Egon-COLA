@@ -63,7 +63,9 @@ class DdcManagementOpenApiControllerTest {
                                   "bizCode":"forged-biz",
                                   "appCode":"forged",
                                   "env":"prod",
-                                  "configValue":"gateway:\\n  enabled: true\\n",
+                                  "resourceName":"application.yml",
+                                  "content":"gateway:\\n  enabled: true\\n",
+                                  "format":"YAML",
                                   "description":"routes",
                                   "operator":"gateway-admin"
                                 }
@@ -71,7 +73,7 @@ class DdcManagementOpenApiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.appCode").value("gateway"))
-                .andExpect(jsonPath("$.data.configKey").value("application.yml"));
+                .andExpect(jsonPath("$.data.resourceName").value("application.yml"));
     }
 
     @Test
@@ -95,7 +97,7 @@ class DdcManagementOpenApiControllerTest {
                 ))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.configKey").value("application.yml"))
+                .andExpect(jsonPath("$.data.resourceName").value("application.yml"))
                 .andExpect(jsonPath("$.data.version").value(2))
                 .andExpect(jsonPath("$.data.enabled").value(false))
                 .andExpect(jsonPath("$.data.deleted").value(true));

@@ -77,13 +77,15 @@ class DdcManagementFacadeTest {
                 "gateway",
                 "dev",
                 "runtime",
+                "application.yml",
                 "gateway:\n  routes: []\n",
+                "YAML",
                 "route draft",
                 1L,
                 "gateway-admin"
         ));
 
-        assertThat(response.configKey()).isEqualTo("application.yml");
+        assertThat(response.resourceName()).isEqualTo("application.yml");
         assertThat(response.version()).isEqualTo(2L);
         verify(configService).upsert(any(), eq(1L), eq("gateway-admin"));
     }
@@ -172,7 +174,7 @@ class DdcManagementFacadeTest {
         task.setChangeId("change-1");
         task.setStatus("SUCCESS");
         task.setTargetVersion(8L);
-        task.setContentChecksum("checksum");
+        task.setResourceChecksum("checksum");
         task.setTargetCount(1);
         task.setAckCount(1);
         task.setFailedCount(0);
@@ -215,9 +217,9 @@ class DdcManagementFacadeTest {
         value.setBizCode(namespace);
         value.setAppCode(appCode);
         value.setEnv(env);
-        value.setConfigKey(key);
-        value.setConfigValue("gateway:\n  enabled: true\n");
-        value.setValueType("YAML");
+        value.setResourceName(key);
+        value.setContent("gateway:\n  enabled: true\n");
+        value.setFormat("YAML");
         value.setCurrentVersion(version);
         value.setEnabled(!deleted);
         value.setDeleted(deleted);

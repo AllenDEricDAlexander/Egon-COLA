@@ -193,7 +193,7 @@ class DdcAckDeliveryTest {
         request.setInstanceId("instance-1");
         request.setLeaseId("lease-1");
         request.setTargetVersion(2L);
-        request.setContentChecksum("checksum");
+        request.setResourceChecksum("checksum");
         return request;
     }
 

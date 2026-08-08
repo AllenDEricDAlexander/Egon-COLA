@@ -89,15 +89,28 @@ class DdcConfigDataLocationResolverTest {
     }
 
     @Test
-    void rejectsEveryResourceNameExceptApplicationYml() {
-        ConfigDataLocationResolverContext context =
-                mock(ConfigDataLocationResolverContext.class);
+    void acceptsApplicationYamlNamesAndRejectsOtherResources() {
+        ConfigDataLocationResolverContext context = context(
+                new DefaultBootstrapContext(),
+                Map.of("egon.cola.component.ddc.enabled", false)
+        );
+
+        assertThat(resolver.resolve(
+                context,
+                ConfigDataLocation.of("ddc:application.yml")
+        )).isEmpty();
+        assertThat(resolver.resolve(
+                context,
+                ConfigDataLocation.of("ddc:application.yaml")
+        )).isEmpty();
 
         assertThatThrownBy(() -> resolver.resolve(
                 context,
                 ConfigDataLocation.of("ddc:feature.yaml")
         )).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("DDC ConfigData only supports ddc:application.yml");
+                .hasMessage(
+                        "DDC ConfigData only supports YAML resources: feature.yaml"
+                );
     }
 
     private ConfigDataLocationResolverContext context(

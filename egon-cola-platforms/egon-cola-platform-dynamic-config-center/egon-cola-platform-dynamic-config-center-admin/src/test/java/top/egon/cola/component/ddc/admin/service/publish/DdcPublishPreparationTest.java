@@ -72,7 +72,7 @@ import static org.mockito.Mockito.when;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=1",
         "spring.flyway.enabled=false",
-        "egon.cola.component.ddc.admin.max-value-bytes=64",
+        "egon.cola.component.ddc.admin.max-config-bytes=64",
         "egon.cola.component.ddc.admin.publish.default-timeout-ms=2000",
         "egon.cola.component.ddc.admin.publish.max-timeout-ms=5000"
 })
@@ -141,8 +141,12 @@ class DdcPublishPreparationTest {
                             new DdcPublishTarget("instance-1", "lease-1"),
                             new DdcPublishTarget("instance-2", "lease-2")
                     );
-            assertThat(message.getContentChecksum())
-                    .isEqualTo(DdcChecksum.content(request.getConfigValue()));
+            assertThat(message.getResourceChecksum())
+                    .isEqualTo(DdcChecksum.resource(
+                            request.getResourceName(),
+                            request.getFormat(),
+                            request.getContent()
+                    ));
             assertThat(ackRepository.findByChangeId(request.getChangeId()))
                     .extracting(target -> target.getInstanceId() + ":" + target.getLeaseId())
                     .containsExactlyInAnyOrder(
@@ -156,7 +160,7 @@ class DdcPublishPreparationTest {
 
             assertThat(result.get(2, TimeUnit.SECONDS).getStatus()).isEqualTo("SUCCESS");
         }
-        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndResourceName(
                 "default", "dev", "switch-all", "application.yml"
         )).get().extracting(DdcConfigItemEntity::getCurrentVersion).isEqualTo(2L);
     }
@@ -172,11 +176,11 @@ class DdcPublishPreparationTest {
                 .isInstanceOf(DdcAdminException.class)
                 .hasMessageContaining("no live config instance");
 
-        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndResourceName(
                 "default", "dev", "switch-no-live", "application.yml"
         )).get().satisfies(config -> {
             assertThat(config.getCurrentVersion()).isEqualTo(1L);
-            assertThat(config.getConfigValue())
+            assertThat(config.getContent())
                     .isEqualTo("feature:\n  value: false\n");
         });
     }
@@ -220,7 +224,7 @@ class DdcPublishPreparationTest {
         active.setAppCode("shared-admin-lock");
         active.setEnv("dev");
         active.setNamespace("default");
-        active.setConfigKey("application.yml");
+        active.setResourceName("application.yml");
         active.setStatus("PUBLISHING");
         active.setTargetCount(1);
         active.setAckCount(0);
@@ -342,14 +346,14 @@ class DdcPublishPreparationTest {
 
         assertThat(taskRepository.findByChangeId(request.getChangeId())).isEmpty();
         assertThat(configItemRepository
-                .findByBizCodeAndEnvAndAppCodeAndConfigKey(
+                .findByBizCodeAndEnvAndAppCodeAndResourceName(
                         "default",
                         "dev",
                         "oversized",
                         "application.yml"
                 ))
                 .get()
-                .extracting(DdcConfigItemEntity::getConfigValue)
+                .extracting(DdcConfigItemEntity::getContent)
                 .isEqualTo("feature:\n  value: false\n");
         verify(redisRepository, never()).dispatch(any());
     }
@@ -358,9 +362,9 @@ class DdcPublishPreparationTest {
     void malformedAndReservedYamlAreRejectedBeforePublishPreparation() {
         saveConfig("invalid-yaml");
         DdcPublishRequest malformed = request("invalid-yaml", "true");
-        malformed.setConfigValue("feature: [");
+        malformed.setContent("feature: [");
         DdcPublishRequest reserved = request("invalid-yaml", "true");
-        reserved.setConfigValue(
+        reserved.setContent(
                 "spring:\n  config:\n    import: optional:file:local.yml\n"
         );
 
@@ -384,10 +388,10 @@ class DdcPublishPreparationTest {
         config.setBizCode("default");
         config.setAppCode(label);
         config.setEnv("dev");
-        config.setConfigKey("application.yml");
-        config.setConfigValue("feature:\n  value: false\n");
+        config.setResourceName("application.yml");
+        config.setContent("feature:\n  value: false\n");
         config.setDefaultValue(null);
-        config.setValueType("YAML");
+        config.setFormat("YAML");
         config.setCurrentVersion(1L);
         config.setEnabled(true);
         config.setDeleted(false);
@@ -402,7 +406,9 @@ class DdcPublishPreparationTest {
         request.setBizCode("default");
         request.setAppCode(label);
         request.setEnv("dev");
-        request.setConfigValue("feature:\n  value: " + value + "\n");
+        request.setResourceName("application.yml");
+        request.setContent("feature:\n  value: " + value + "\n");
+        request.setFormat("YAML");
         request.setExpectedVersion(1L);
         request.setTimeoutMs(2000L);
         return request;
@@ -417,7 +423,11 @@ class DdcPublishPreparationTest {
         ack.setLeaseId(leaseId);
         ack.setTargetVersion(2L);
         ack.setCurrentVersion(2L);
-        ack.setContentChecksum(DdcChecksum.content(request.getConfigValue()));
+        ack.setResourceChecksum(DdcChecksum.resource(
+                request.getResourceName(),
+                request.getFormat(),
+                request.getContent()
+        ));
         ack.setStatus(DdcAckStatus.SUCCESS);
         return ack;
     }

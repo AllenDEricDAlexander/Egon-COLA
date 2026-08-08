@@ -9,7 +9,7 @@ import java.util.Set;
  *
  * @param resourceName        配置资源名称; configuration resource name
  * @param version             配置版本; configuration version
- * @param checksum            配置内容校验和; configuration content checksum
+ * @param checksum            配置资源校验和; configuration resource checksum
  * @param changedKeys         所有发生有效变化的配置键; all effectively changed configuration keys
  * @param addedKeys           新增的配置键; added configuration keys
  * @param updatedKeys         已更新的配置键; updated configuration keys

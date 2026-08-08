@@ -65,7 +65,7 @@ class DdcRefreshServiceTest {
         assertThat(harness.client.lastAck()).satisfies(ack -> {
             assertThat(ack.getStatus()).isEqualTo(DdcAckStatus.SUCCESS);
             assertThat(ack.getCurrentVersion()).isEqualTo(2L);
-            assertThat(ack.getConfigKey()).isEqualTo("application.yml");
+            assertThat(ack.getResourceName()).isEqualTo("application.yml");
         });
         assertThat(harness.events).singleElement().satisfies(event -> {
             assertThat(event.changedKeys()).containsExactlyInAnyOrder(
@@ -100,7 +100,11 @@ class DdcRefreshServiceTest {
         assertThat(harness.repository.version("application.yml"))
                 .isEqualTo(1L);
         assertThat(harness.repository.checksum("application.yml"))
-                .isEqualTo(DdcChecksum.content(INITIAL_YAML));
+                .isEqualTo(DdcChecksum.resource(
+                        "application.yml",
+                        "YAML",
+                        INITIAL_YAML
+                ));
     }
 
     @Test
@@ -269,7 +273,7 @@ class DdcRefreshServiceTest {
                 "feature:\n  enabled: true\n",
                 2L
         );
-        wrongType.setValueType("TXT");
+        wrongType.setFormat("TXT");
         harness.service.refresh(wrongType);
 
         assertThat(harness.client.ackCount).isZero();
@@ -396,11 +400,15 @@ class DdcRefreshServiceTest {
             message.setBizCode("retail");
             message.setAppCode("demo");
             message.setEnv("dev");
-            message.setConfigKey("application.yml");
-            message.setConfigValue(yaml);
-            message.setValueType("YAML");
+            message.setResourceName("application.yml");
+            message.setContent(yaml);
+            message.setFormat("YAML");
             message.setTargetVersion(version);
-            message.setContentChecksum(DdcChecksum.content(yaml));
+            message.setResourceChecksum(DdcChecksum.resource(
+                    "application.yml",
+                    "YAML",
+                    yaml
+            ));
             message.setTargets(List.of(
                     new DdcPublishTarget("instance-1", "lease-1")
             ));
@@ -409,9 +417,9 @@ class DdcRefreshServiceTest {
 
         private DdcConfigValue config(String yaml, long version) {
             DdcConfigValue config = new DdcConfigValue();
-            config.setConfigKey("application.yml");
-            config.setConfigValue(yaml);
-            config.setValueType("YAML");
+            config.setResourceName("application.yml");
+            config.setContent(yaml);
+            config.setFormat("YAML");
             config.setVersion(version);
             return config;
         }

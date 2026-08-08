@@ -12,6 +12,6 @@ public interface DdcConfigVersionRepository extends JpaRepository<DdcConfigVersi
 
     Optional<DdcConfigVersionEntity> findByConfigIdAndVersion(String configId, Long version);
 
-    List<DdcConfigVersionEntity> findByBizCodeAndEnvAndAppCodeAndConfigKey(
-            String bizCode, String env, String appCode, String configKey);
+    List<DdcConfigVersionEntity> findByBizCodeAndEnvAndAppCodeAndResourceName(
+            String bizCode, String env, String appCode, String resourceName);
 }

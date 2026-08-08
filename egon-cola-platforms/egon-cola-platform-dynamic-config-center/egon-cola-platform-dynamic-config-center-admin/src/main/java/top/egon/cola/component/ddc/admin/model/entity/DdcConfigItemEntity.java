@@ -29,16 +29,16 @@ public class DdcConfigItemEntity {
     private String env;
 
     @Column(name = "config_key", nullable = false, length = 256)
-    private String configKey;
+    private String resourceName;
 
     @Column(name = "config_value", columnDefinition = "text")
-    private String configValue;
+    private String content;
 
     @Column(name = "default_value", columnDefinition = "text")
     private String defaultValue;
 
     @Column(name = "value_type", nullable = false, length = 32)
-    private String valueType;
+    private String format;
 
     @Column(name = "current_version", nullable = false)
     private Long currentVersion;

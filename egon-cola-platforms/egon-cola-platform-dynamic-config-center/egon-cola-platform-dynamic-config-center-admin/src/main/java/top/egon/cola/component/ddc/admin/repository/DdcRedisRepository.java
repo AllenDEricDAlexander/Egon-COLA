@@ -42,9 +42,9 @@ public class DdcRedisRepository {
         lock.lock();
         try {
             String configKey = DdcKeys.config(
-                    command.bizCode(), command.env(), command.appCode(), command.configKey());
+                    command.bizCode(), command.env(), command.appCode(), command.resourceName());
             String versionKey = DdcKeys.version(
-                    command.bizCode(), command.env(), command.appCode(), command.configKey());
+                    command.bizCode(), command.env(), command.appCode(), command.resourceName());
             String idempotencyKey = DdcKeys.publishIdempotency(
                     command.bizCode(), command.env(), command.appCode(), command.changeId());
             String fingerprint = command.changeId() + ":" + command.eventChecksum();

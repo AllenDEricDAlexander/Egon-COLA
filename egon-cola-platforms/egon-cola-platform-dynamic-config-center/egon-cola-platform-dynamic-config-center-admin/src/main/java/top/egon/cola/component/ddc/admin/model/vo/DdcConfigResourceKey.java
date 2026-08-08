@@ -4,14 +4,14 @@ public record DdcConfigResourceKey(
         String bizCode,
         String env,
         String appCode,
-        String configKey
+        String resourceName
 ) {
 
     public DdcConfigResourceKey {
         bizCode = require(bizCode, "bizCode");
         env = require(env, "env");
         appCode = require(appCode, "appCode");
-        configKey = require(configKey, "configKey");
+        resourceName = require(resourceName, "resourceName");
     }
 
     private static String require(String value, String fieldName) {

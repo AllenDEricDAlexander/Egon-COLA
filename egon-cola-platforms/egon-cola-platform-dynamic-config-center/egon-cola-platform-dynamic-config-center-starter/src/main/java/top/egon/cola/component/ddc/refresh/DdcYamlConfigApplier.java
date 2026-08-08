@@ -9,7 +9,6 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 import top.egon.cola.component.ddc.service.DdcConfigApplier;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
@@ -38,17 +37,6 @@ import java.util.Set;
  * failures are logged without rolling back successfully applied configuration.</p>
  */
 public class DdcYamlConfigApplier implements SmartInitializingSingleton {
-
-    /**
-     * DDC YAML 资源的规范名称。 Canonical name of the DDC YAML resource.
-     */
-    public static final String RESOURCE_NAME =
-            DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME;
-
-    /**
-     * Spring 环境中动态属性源的名称。 Name of the dynamic property source in the Spring environment.
-     */
-    public static final String PROPERTY_SOURCE_NAME = "ddc:" + RESOURCE_NAME;
 
     /**
      * 当前类的日志记录器。 Logger for this class.
@@ -84,7 +72,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
     /**
      * 允许的 YAML UTF-8 字节数上限。 Maximum allowed YAML size in UTF-8 bytes.
      */
-    private final long maxYamlBytes;
+    private final long maxConfigBytes;
 
     /**
      * 选择 YAML 解析实现的配置格式策略注册表。
@@ -106,7 +94,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * @param fieldBindingService 字段绑定服务; field binding service
      * @param rebinder            配置属性重新绑定器; configuration-properties rebinder
      * @param eventPublisher      应用事件发布器; application event publisher
-     * @param maxYamlBytes        YAML UTF-8 字节数上限; maximum YAML size in UTF-8 bytes
+     * @param maxConfigBytes        YAML UTF-8 字节数上限; maximum YAML size in UTF-8 bytes
      * @param formatStrategies    配置格式策略注册表; configuration-format strategy registry
      * @throws IllegalStateException 环境中缺少 DDC ConfigData 属性源时抛出; thrown when the DDC ConfigData source is absent
      */
@@ -116,14 +104,14 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
             DdcFieldBindingService fieldBindingService,
             DdcConfigurationPropertiesRebinder rebinder,
             ApplicationEventPublisher eventPublisher,
-            long maxYamlBytes,
+            long maxConfigBytes,
             DdcConfigFormatStrategyRegistry formatStrategies) {
         this.environment = environment;
         this.applierRegistry = applierRegistry;
         this.fieldBindingService = fieldBindingService;
         this.rebinder = rebinder;
         this.eventPublisher = eventPublisher;
-        this.maxYamlBytes = maxYamlBytes;
+        this.maxConfigBytes = maxConfigBytes;
         this.formatStrategies = Objects.requireNonNull(
                 formatStrategies,
                 "formatStrategies"
@@ -217,7 +205,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
         restartRequiredKeys.removeAll(refreshedKeys);
         DdcConfigurationChangedEvent event =
                 new DdcConfigurationChangedEvent(
-                        RESOURCE_NAME,
+                        propertySource.snapshot().resourceName(),
                         version,
                         candidate.snapshot().checksum(),
                         effectiveDiff.changedKeys(),
@@ -243,14 +231,16 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      */
     private DdcDynamicPropertySource load(String content, long version) {
         try {
-            return formatStrategies.get(DdcConfigFormat.YAML).load(
-                    RESOURCE_NAME,
+            DdcDynamicPropertySource.Snapshot snapshot =
+                    propertySource.snapshot();
+            return formatStrategies.get(snapshot.format()).load(
+                    snapshot.resourceName(),
                     content,
                     version
             );
         } catch (IOException exception) {
             throw new IllegalArgumentException(
-                    "DDC application.yml cannot be parsed",
+                    "DDC YAML resource cannot be parsed",
                     exception
             );
         }
@@ -267,10 +257,10 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
         int size = content == null
                 ? 0
                 : content.getBytes(StandardCharsets.UTF_8).length;
-        if (size > maxYamlBytes) {
+        if (size > maxConfigBytes) {
             throw new IllegalArgumentException(
-                    "DDC application.yml exceeds the UTF-8 limit of "
-                            + maxYamlBytes + " bytes"
+                    "DDC YAML resource exceeds the UTF-8 limit of "
+                            + maxConfigBytes + " bytes"
             );
         }
     }
@@ -488,8 +478,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      */
     private DdcDynamicPropertySource findPropertySource(
             PropertySource<?> source) {
-        if (source instanceof DdcDynamicPropertySource dynamic
-                && PROPERTY_SOURCE_NAME.equals(dynamic.getName())) {
+        if (source instanceof DdcDynamicPropertySource dynamic) {
             return dynamic;
         }
         if (source instanceof CompositePropertySource composite) {

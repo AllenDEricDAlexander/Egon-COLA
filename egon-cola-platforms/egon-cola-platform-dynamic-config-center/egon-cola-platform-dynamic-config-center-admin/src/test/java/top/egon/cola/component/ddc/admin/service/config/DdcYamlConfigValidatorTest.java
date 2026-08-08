@@ -14,6 +14,8 @@ class DdcYamlConfigValidatorTest {
     @Test
     void acceptsSingleMapRootDocumentWithinUtf8Limit() {
         assertThatCode(() -> validator.validate(
+                "application.yml",
+                "YAML",
                 "feature:\n  enabled: true\n"
         )).doesNotThrowAnyException();
     }
@@ -48,7 +50,11 @@ class DdcYamlConfigValidatorTest {
         DdcYamlConfigValidator smallValidator =
                 new DdcYamlConfigValidator(8);
 
-        assertThatThrownBy(() -> smallValidator.validate("name: 你好\n"))
+        assertThatThrownBy(() -> smallValidator.validate(
+                "application.yml",
+                "YAML",
+                "name: 你好\n"
+        ))
                 .isInstanceOf(DdcAdminException.class)
                 .hasMessageContaining("8")
                 .hasMessageNotContaining("你好");
@@ -62,7 +68,11 @@ class DdcYamlConfigValidatorTest {
     }
 
     private void assertInvalid(String content, String message) {
-        assertThatThrownBy(() -> validator.validate(content))
+        assertThatThrownBy(() -> validator.validate(
+                "application.yml",
+                "YAML",
+                content
+        ))
                 .isInstanceOf(DdcAdminException.class)
                 .hasMessageContaining(message);
     }

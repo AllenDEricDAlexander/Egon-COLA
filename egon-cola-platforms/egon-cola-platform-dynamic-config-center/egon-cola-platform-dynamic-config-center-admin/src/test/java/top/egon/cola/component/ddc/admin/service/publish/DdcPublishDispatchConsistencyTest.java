@@ -119,7 +119,7 @@ class DdcPublishDispatchConsistencyTest {
                 .singleElement()
                 .extracting(
                         DdcConfigValue::getVersion,
-                        DdcConfigValue::getConfigValue
+                        DdcConfigValue::getContent
                 )
                 .containsExactly(1L, OLD_YAML);
     }
@@ -230,10 +230,10 @@ class DdcPublishDispatchConsistencyTest {
         config.setBizCode("default");
         config.setAppCode(label);
         config.setEnv("dev");
-        config.setConfigKey(DdcConfigService.CONFIG_KEY);
-        config.setConfigValue(NEW_YAML);
+        config.setResourceName(DdcConfigService.DEFAULT_RESOURCE_NAME);
+        config.setContent(NEW_YAML);
         config.setDefaultValue(null);
-        config.setValueType(DdcConfigService.VALUE_TYPE);
+        config.setFormat(DdcConfigService.YAML_FORMAT);
         config.setCurrentVersion(2L);
         config.setPublishedVersion(1L);
         config.setEnabled(true);
@@ -253,10 +253,14 @@ class DdcPublishDispatchConsistencyTest {
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
         task.setNamespace(null);
-        task.setConfigKey(DdcConfigService.CONFIG_KEY);
+        task.setResourceName(DdcConfigService.DEFAULT_RESOURCE_NAME);
         task.setTargetVersion(2L);
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
-        task.setContentChecksum(DdcChecksum.content(NEW_YAML));
+        task.setResourceChecksum(DdcChecksum.resource(
+                DdcConfigService.DEFAULT_RESOURCE_NAME,
+                DdcConfigService.YAML_FORMAT,
+                NEW_YAML
+        ));
         task.setAttemptCount(0);
         task.setStatus(PublishStatus.PENDING.name());
         task.setTargetCount(1);
@@ -275,12 +279,12 @@ class DdcPublishDispatchConsistencyTest {
         target.setChangeId(task.getChangeId());
         target.setInstanceId("instance-1");
         target.setLeaseId("lease-1");
-        target.setContentChecksum(task.getContentChecksum());
+        target.setResourceChecksum(task.getResourceChecksum());
         target.setBizCode(task.getBizCode());
         target.setAppCode(task.getAppCode());
         target.setEnv(task.getEnv());
         target.setNamespace(task.getNamespace());
-        target.setConfigKey(task.getConfigKey());
+        target.setResourceName(task.getResourceName());
         target.setTargetVersion(task.getTargetVersion());
         ackRepository.saveAndFlush(target);
         return task;
@@ -298,11 +302,11 @@ class DdcPublishDispatchConsistencyTest {
         version.setAppCode(config.getAppCode());
         version.setEnv(config.getEnv());
         version.setNamespace(null);
-        version.setConfigKey(config.getConfigKey());
+        version.setResourceName(config.getResourceName());
         version.setVersion(versionNumber);
-        version.setOldValue(oldValue);
-        version.setNewValue(newValue);
-        version.setValueType(config.getValueType());
+        version.setOldContent(oldValue);
+        version.setNewContent(newValue);
+        version.setFormat(config.getFormat());
         version.setChangeType("UPDATE");
         version.setCreatedAt(createdAt);
         versionRepository.saveAndFlush(version);

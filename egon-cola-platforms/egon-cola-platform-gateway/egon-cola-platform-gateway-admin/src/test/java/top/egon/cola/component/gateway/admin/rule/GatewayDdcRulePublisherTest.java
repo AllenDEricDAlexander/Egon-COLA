@@ -55,7 +55,7 @@ class GatewayDdcRulePublisherTest {
             assertThat(request.bizCode()).isEqualTo("infra");
             assertThat(request.appCode())
                     .isEqualTo("ge");
-            assertThat(request.configValue())
+            assertThat(request.content())
                     .contains("release-1");
             assertThat(request.expectedVersion()).isEqualTo(1L);
             assertThat(request.timeoutMs()).isEqualTo(30_000L);

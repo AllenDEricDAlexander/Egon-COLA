@@ -21,11 +21,11 @@ public class DdcConfigVO {
 
     private List<String> visibleNamespaces = List.of();
 
-    private String configKey;
+    private String resourceName;
 
-    private String configValue;
+    private String content;
 
-    private String valueType;
+    private String format;
 
     private Long currentVersion;
 
@@ -43,9 +43,9 @@ public class DdcConfigVO {
         vo.setBizCode(entity.getBizCode());
         vo.setAppCode(entity.getAppCode());
         vo.setEnv(entity.getEnv());
-        vo.setConfigKey(entity.getConfigKey());
-        vo.setConfigValue(entity.getConfigValue());
-        vo.setValueType(entity.getValueType());
+        vo.setResourceName(entity.getResourceName());
+        vo.setContent(entity.getContent());
+        vo.setFormat(entity.getFormat());
         vo.setCurrentVersion(entity.getCurrentVersion());
         vo.setDescription(entity.getDescription());
         vo.setEnabled(entity.getEnabled());

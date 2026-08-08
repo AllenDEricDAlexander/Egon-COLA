@@ -8,7 +8,7 @@ public record DdcAtomicPublishCommand(
         String bizCode,
         String env,
         String appCode,
-        String configKey,
+        String resourceName,
         Long expectedPublishedVersion,
         Long targetVersion,
         String content,

@@ -60,7 +60,9 @@ class DdcPublishServiceFailureTest {
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setConfigValue("feature:\n  enabled: true\n");
+        request.setResourceName("application.yml");
+        request.setContent("feature:\n  enabled: true\n");
+        request.setFormat("YAML");
         request.setExpectedVersion(1L);
 
         assertThatThrownBy(() -> publishService.publish(request, "tester"))

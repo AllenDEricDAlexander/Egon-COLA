@@ -90,7 +90,8 @@ class DdcConfigServiceTest {
     void updateCreatesNewVersion() {
         DdcConfigCreateRequest create = new DdcConfigCreateRequest(
                 "default", "dev", "demo", null,
-                "feature:\n  enabled: false\n", "switch");
+                "application.yml", "feature:\n  enabled: false\n",
+                "YAML", "switch");
         DdcConfigVO created = configService.create(create, "tester");
 
         DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(
@@ -106,11 +107,14 @@ class DdcConfigServiceTest {
     void createAndUpsertRejectInvalidYaml() {
         DdcConfigCreateRequest malformed = new DdcConfigCreateRequest(
                 "default", "dev", "create-invalid", null,
-                "feature: [", "invalid"
+                "application.yml", "feature: [", "YAML", "invalid"
         );
         DdcConfigCreateRequest reserved = new DdcConfigCreateRequest(
                 "default", "dev", "upsert-invalid", null,
-                "spring:\n  profiles:\n    active: prod\n", "invalid"
+                "application.yml",
+                "spring:\n  profiles:\n    active: prod\n",
+                "YAML",
+                "invalid"
         );
 
         assertThatThrownBy(() -> configService.create(malformed, "tester"))
@@ -126,7 +130,8 @@ class DdcConfigServiceTest {
     void updateAndRollbackRejectInvalidYaml() {
         DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
                 "default", "dev", "mutation-invalid", null,
-                "feature:\n  enabled: false\n", "valid"
+                "application.yml", "feature:\n  enabled: false\n",
+                "YAML", "valid"
         ), "tester");
         DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(
                 created.getId(),
@@ -144,10 +149,10 @@ class DdcConfigServiceTest {
         invalidVersion.setBizCode("default");
         invalidVersion.setAppCode("mutation-invalid");
         invalidVersion.setEnv("dev");
-        invalidVersion.setConfigKey("application.yml");
+        invalidVersion.setResourceName("application.yml");
         invalidVersion.setVersion(99L);
-        invalidVersion.setNewValue("feature: [");
-        invalidVersion.setValueType("YAML");
+        invalidVersion.setNewContent("feature: [");
+        invalidVersion.setFormat("YAML");
         invalidVersion.setChangeType("UPDATE");
         invalidVersion.setCreatedAt(LocalDateTime.now());
         versionRepository.saveAndFlush(invalidVersion);
@@ -169,7 +174,9 @@ class DdcConfigServiceTest {
                 "dev",
                 "gateway",
                 null,
+                "application.yml",
                 "gateway:\n  enabled: false\n",
+                "YAML",
                 "routes"
         );
         DdcConfigVO created = configService.upsert(request, null, "gateway-admin");
@@ -179,7 +186,9 @@ class DdcConfigServiceTest {
                         "dev",
                         "gateway",
                         null,
+                        "application.yml",
                         "gateway:\n  enabled: true\n",
+                        "YAML",
                         "routes"
                 ),
                 created.getCurrentVersion(),
@@ -229,7 +238,9 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
+                "application.yml",
                 "feature:\n  version: 1\n",
+                "YAML",
                 "rules"
         ), "tester");
         configService.upsert(new DdcConfigCreateRequest(
@@ -237,7 +248,9 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
+                "application.yml",
                 "feature:\n  version: 2\n",
+                "YAML",
                 "rules"
         ), created.getCurrentVersion(), "tester");
         DdcConfigItemEntity item = configItemRepository.findById(created.getId())
@@ -248,10 +261,10 @@ class DdcConfigServiceTest {
         assertThat(configService.pull("commerce", "test", "orders"))
                 .singleElement()
                 .satisfies(value -> {
-                    assertThat(value.getConfigValue())
+                    assertThat(value.getContent())
                             .isEqualTo("feature:\n  version: 1\n");
-                    assertThat(value.getConfigKey()).isEqualTo("application.yml");
-                    assertThat(value.getValueType()).isEqualTo("YAML");
+                    assertThat(value.getResourceName()).isEqualTo("application.yml");
+                    assertThat(value.getFormat()).isEqualTo("YAML");
                     assertThat(value.getVersion()).isEqualTo(1L);
                 });
     }
@@ -263,7 +276,9 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
+                "application.yml",
                 "feature:\n  state: draft\n",
+                "YAML",
                 "new draft"
         ), "tester");
 
@@ -277,7 +292,9 @@ class DdcConfigServiceTest {
                 "test",
                 "orders",
                 null,
+                "application.yml",
                 "feature:\n  state: published\n",
+                "YAML",
                 "stable value"
         ), "tester");
         DdcConfigItemEntity item = configItemRepository.findById(created.getId())
@@ -292,7 +309,7 @@ class DdcConfigServiceTest {
         assertThat(deleted.getDeleted()).isTrue();
         assertThat(configService.pull("commerce", "test", "orders"))
                 .singleElement()
-                .satisfies(value -> assertThat(value.getConfigKey())
+                .satisfies(value -> assertThat(value.getResourceName())
                         .isEqualTo("application.yml"));
 
         item = configItemRepository.findById(created.getId()).orElseThrow();
@@ -308,7 +325,9 @@ class DdcConfigServiceTest {
                 env,
                 appCode,
                 null,
+                "application.yml",
                 "test:\n  value: 1\n",
+                "YAML",
                 configKey
         );
     }

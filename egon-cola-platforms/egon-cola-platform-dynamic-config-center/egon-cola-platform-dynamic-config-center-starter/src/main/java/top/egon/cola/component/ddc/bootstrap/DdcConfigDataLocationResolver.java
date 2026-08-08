@@ -7,6 +7,7 @@ import org.springframework.boot.context.config.ConfigDataLocationResolverContext
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.boot.context.properties.bind.Bindable;
 import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import java.util.List;
@@ -63,9 +64,14 @@ public final class DdcConfigDataLocationResolver
             throws ConfigDataLocationNotFoundException,
             ConfigDataResourceNotFoundException {
         String resourceName = location.getNonPrefixedValue(PREFIX).trim();
-        if (!RESOURCE_NAME.equals(resourceName)) {
+        try {
+            DdcConfigFormatStrategyRegistry.defaults()
+                    .getByResourceName(resourceName);
+        } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException(
-                    "DDC ConfigData only supports ddc:" + RESOURCE_NAME
+                    "DDC ConfigData only supports YAML resources: "
+                            + resourceName,
+                    exception
             );
         }
         DdcProperties properties = context.getBinder()
@@ -100,9 +106,9 @@ public final class DdcConfigDataLocationResolver
         requireText(properties.getEnv(), "env");
         requireText(properties.getNamespace(), "namespace");
         requireText(properties.getAppCode(), "app-code");
-        if (properties.getMaxYamlBytes() <= 0) {
+        if (properties.getMaxConfigBytes() <= 0) {
             throw new IllegalArgumentException(
-                    PROPERTIES_PREFIX + ".max-yaml-bytes must be positive"
+                    PROPERTIES_PREFIX + ".max-config-bytes must be positive"
             );
         }
         properties.getAdmin().requireEndpoint();

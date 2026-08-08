@@ -29,21 +29,31 @@ public final class DdcChecksum {
                 safe(message.getBizCode()),
                 safe(message.getAppCode()),
                 safe(message.getEnv()),
-                safe(message.getConfigKey()),
-                safe(message.getConfigValue()),
+                safe(message.getResourceName()),
+                safe(message.getFormat()),
+                safe(message.getContent()),
                 String.valueOf(message.getTargetVersion()),
-                safe(message.getContentChecksum()),
+                safe(message.getResourceChecksum()),
                 targets(message)));
     }
 
     /**
-     * 计算配置文本摘要，并将 {@code null} 视为空字符串。 Computes a configuration-text digest, treating {@code null} as an empty string.
+     * 计算覆盖资源名、格式和内容的配置资源摘要。
+     * Computes a configuration-resource digest covering its name, format, and content.
      *
-     * @param value 配置文本。 configuration text
+     * @param resourceName 配置资源名。 configuration resource name
+     * @param format       配置格式。 configuration format
+     * @param content      配置内容。 configuration content
      * @return 小写十六进制 SHA-256 摘要。 lowercase hexadecimal SHA-256 digest
      */
-    public static String content(String value) {
-        return Digests.sha256Hex(safe(value));
+    public static String resource(
+            String resourceName,
+            String format,
+            String content) {
+        return Digests.sha256Hex(String.join("|",
+                safe(resourceName),
+                safe(format),
+                safe(content)));
     }
 
     /**

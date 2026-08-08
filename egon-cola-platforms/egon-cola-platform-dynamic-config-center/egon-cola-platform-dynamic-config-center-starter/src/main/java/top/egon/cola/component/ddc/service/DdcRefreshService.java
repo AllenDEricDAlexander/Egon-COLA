@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
-import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
+import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
@@ -34,18 +34,6 @@ public class DdcRefreshService {
     private static final int MAX_ERROR_MESSAGE_LENGTH = 256;
 
     /**
-     * 当前作用域唯一支持的 YAML 资源名。 YAML resource name exclusively supported by the current scope.
-     */
-    private static final String RESOURCE_NAME =
-            DdcYamlConfigApplier.RESOURCE_NAME;
-
-    /**
-     * 当前资源要求的值类型。 Value type required for the current resource.
-     */
-    private static final String VALUE_TYPE =
-            DdcConfigFormat.YAML.name();
-
-    /**
      * 保存本地版本、校验和及配置锁的仓库。 Repository storing local version, checksum, and configuration locks.
      */
     private final DdcLocalConfigRepository repository;
@@ -64,6 +52,16 @@ public class DdcRefreshService {
      * 提供当前实例与租约目标信息的会话持有器。 Session holder providing current instance and lease targeting information.
      */
     private final DdcLeaseSessionHolder sessionHolder;
+
+    /**
+     * ConfigData 导入的唯一配置资源名。 Sole configuration resource name imported through ConfigData.
+     */
+    private final String resourceName;
+
+    /**
+     * ConfigData 导入资源的配置格式。 Configuration format of the resource imported through ConfigData.
+     */
+    private final String format;
 
     /**
      * 创建使用管理客户端同步发送 ACK 的刷新服务。
@@ -124,6 +122,10 @@ public class DdcRefreshService {
         this.yamlConfigApplier = yamlConfigApplier;
         this.ackSubmitter = ackSubmitter;
         this.sessionHolder = sessionHolder;
+        DdcDynamicPropertySource.Snapshot snapshot =
+                yamlConfigApplier.currentSnapshot();
+        this.resourceName = snapshot.resourceName();
+        this.format = snapshot.format().name();
         seedConfigDataMetadata();
     }
 
@@ -140,7 +142,7 @@ public class DdcRefreshService {
         }
         if (configs.size() != 1) {
             throw new IllegalArgumentException(
-                    "DDC scope must contain exactly one application.yml"
+                    "DDC scope must contain exactly one YAML resource"
             );
         }
         applySnapshot(configs.getFirst());
@@ -155,26 +157,30 @@ public class DdcRefreshService {
      */
     public void applySnapshot(DdcConfigValue config) {
         requireYamlResource(config);
-        repository.withConfigLock(RESOURCE_NAME, () -> {
-            String contentChecksum =
-                    DdcChecksum.content(config.getConfigValue());
+        repository.withConfigLock(resourceName, () -> {
+            String resourceChecksum =
+                    DdcChecksum.resource(
+                            resourceName,
+                            format,
+                            config.getContent()
+                    );
             ConfigMetadata local = metadata();
             VersionRelation relation = compare(
                     local,
                     config.getVersion(),
-                    contentChecksum
+                    resourceChecksum
             );
             if (relation == VersionRelation.CHECKSUM_CONFLICT) {
                 LOGGER.warn(
                         "DDC snapshot checksum conflict for resource={} version={}",
-                        RESOURCE_NAME,
+                        resourceName,
                         config.getVersion()
                 );
             } else if (relation == VersionRelation.NEWER) {
                 applyAndStore(
-                        config.getConfigValue(),
+                        config.getContent(),
                         config.getVersion(),
-                        contentChecksum,
+                        resourceChecksum,
                         null,
                         local
                 );
@@ -199,7 +205,7 @@ public class DdcRefreshService {
         }
 
         AckOutcome outcome = repository.withConfigLock(
-                RESOURCE_NAME,
+                resourceName,
                 () -> apply(message)
         );
         try {
@@ -228,19 +234,19 @@ public class DdcRefreshService {
      */
     private void requireYamlResource(DdcConfigValue config) {
         if (config == null
-                || !RESOURCE_NAME.equals(config.getConfigKey())
-                || !VALUE_TYPE.equals(config.getValueType())
+                || !resourceName.equals(config.getResourceName())
+                || !format.equals(config.getFormat())
                 || config.getVersion() == null
                 || config.getVersion() <= 0) {
             throw new IllegalArgumentException(
-                    "DDC scope must contain only application.yml with YAML type"
+                    "DDC scope resource must match the imported YAML resource"
             );
         }
     }
 
     /**
-     * 校验发布消息的标识、资源、版本和内容校验和。
-     * Validates publication identifiers, resource, version, and content checksum.
+     * 校验发布消息的标识、资源、版本和资源校验和。
+     * Validates publication identifiers, resource, version, and resource checksum.
      *
      * @param message 发布消息; publication message
      * @return 消息有效时为 {@code true}; {@code true} when the message is valid
@@ -248,13 +254,17 @@ public class DdcRefreshService {
     private boolean isValid(DdcPublishMessage message) {
         return message != null
                 && hasText(message.getChangeId())
-                && RESOURCE_NAME.equals(message.getConfigKey())
-                && VALUE_TYPE.equals(message.getValueType())
+                && resourceName.equals(message.getResourceName())
+                && format.equals(message.getFormat())
                 && message.getTargetVersion() != null
                 && message.getTargetVersion() > 0
-                && hasText(message.getContentChecksum())
-                && message.getContentChecksum().equals(
-                DdcChecksum.content(message.getConfigValue())
+                && hasText(message.getResourceChecksum())
+                && message.getResourceChecksum().equals(
+                DdcChecksum.resource(
+                        message.getResourceName(),
+                        message.getFormat(),
+                        message.getContent()
+                )
         );
     }
 
@@ -281,7 +291,7 @@ public class DdcRefreshService {
         VersionRelation relation = compare(
                 local,
                 message.getTargetVersion(),
-                message.getContentChecksum()
+                message.getResourceChecksum()
         );
         if (relation == VersionRelation.STALE) {
             return new AckOutcome(
@@ -306,9 +316,9 @@ public class DdcRefreshService {
         }
         try {
             applyAndStore(
-                    message.getConfigValue(),
+                    message.getContent(),
                     message.getTargetVersion(),
-                    message.getContentChecksum(),
+                    message.getResourceChecksum(),
                     message.getChangeId(),
                     local
             );
@@ -334,8 +344,8 @@ public class DdcRefreshService {
      */
     private ConfigMetadata metadata() {
         return new ConfigMetadata(
-                repository.version(RESOURCE_NAME),
-                repository.checksum(RESOURCE_NAME)
+                repository.version(resourceName),
+                repository.checksum(resourceName)
         );
     }
 
@@ -345,7 +355,7 @@ public class DdcRefreshService {
      *
      * @param local          本地配置元数据; local configuration metadata
      * @param targetVersion  目标版本; target version
-     * @param targetChecksum 目标内容校验和; target content checksum
+     * @param targetChecksum 目标资源校验和; target resource checksum
      * @return 目标与本地版本关系; relation between target and local versions
      */
     private VersionRelation compare(ConfigMetadata local,
@@ -369,7 +379,7 @@ public class DdcRefreshService {
      *
      * @param content  YAML 内容; YAML content
      * @param version  目标版本; target version
-     * @param checksum 内容校验和; content checksum
+     * @param checksum 资源校验和; resource checksum
      * @param changeId 发布变化标识，可为空; publication change identifier, possibly null
      * @param previous 失败回滚使用的旧元数据; previous metadata used for rollback
      */
@@ -380,11 +390,11 @@ public class DdcRefreshService {
                                ConfigMetadata previous) {
         try {
             yamlConfigApplier.apply(content, version, changeId);
-            repository.updateVersion(RESOURCE_NAME, version);
-            repository.updateChecksum(RESOURCE_NAME, checksum);
+            repository.updateVersion(resourceName, version);
+            repository.updateChecksum(resourceName, checksum);
         } catch (RuntimeException exception) {
             repository.restoreMetadata(
-                    RESOURCE_NAME,
+                    resourceName,
                     previous.version(),
                     previous.checksum()
             );
@@ -397,12 +407,12 @@ public class DdcRefreshService {
      * Seeds version and checksum from the current ConfigData snapshot when local metadata is absent.
      */
     private void seedConfigDataMetadata() {
-        if (repository.version(RESOURCE_NAME) != null) {
+        if (repository.version(resourceName) != null) {
             return;
         }
         var snapshot = yamlConfigApplier.currentSnapshot();
-        repository.updateVersion(RESOURCE_NAME, snapshot.version());
-        repository.updateChecksum(RESOURCE_NAME, snapshot.checksum());
+        repository.updateVersion(resourceName, snapshot.version());
+        repository.updateChecksum(resourceName, snapshot.checksum());
     }
 
     /**
@@ -459,10 +469,10 @@ public class DdcRefreshService {
         request.setBizCode(message.getBizCode());
         request.setAppCode(message.getAppCode());
         request.setEnv(message.getEnv());
-        request.setConfigKey(RESOURCE_NAME);
+        request.setResourceName(resourceName);
         request.setTargetVersion(message.getTargetVersion());
         request.setCurrentVersion(outcome.currentVersion());
-        request.setContentChecksum(message.getContentChecksum());
+        request.setResourceChecksum(message.getResourceChecksum());
         request.setStatus(outcome.status());
         request.setErrorMessage(outcome.errorMessage());
         request.setAckTime(System.currentTimeMillis());
@@ -489,7 +499,7 @@ public class DdcRefreshService {
      * Holds the local configuration version and checksum.
      *
      * @param version  本地版本，可为空; local version, possibly null
-     * @param checksum 本地内容校验和，可为空; local content checksum, possibly null
+     * @param checksum 本地资源校验和，可为空; local resource checksum, possibly null
      */
     private record ConfigMetadata(Long version, String checksum) {
     }

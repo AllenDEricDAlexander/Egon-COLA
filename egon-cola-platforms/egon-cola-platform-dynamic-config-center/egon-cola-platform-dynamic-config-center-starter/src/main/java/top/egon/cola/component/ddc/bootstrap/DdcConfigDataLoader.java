@@ -51,12 +51,12 @@ public final class DdcConfigDataLoader
             throw new ConfigDataResourceNotFoundException(resource);
         }
         DdcConfigFormatStrategy strategy = formatStrategies.get(
-                value.getValueType(),
+                value.getFormat(),
                 resource.resourceName()
         );
         DdcDynamicPropertySource propertySource = strategy.load(
                 resource.resourceName(),
-                value.getConfigValue(),
+                value.getContent(),
                 value.getVersion()
         );
         return configData(propertySource);

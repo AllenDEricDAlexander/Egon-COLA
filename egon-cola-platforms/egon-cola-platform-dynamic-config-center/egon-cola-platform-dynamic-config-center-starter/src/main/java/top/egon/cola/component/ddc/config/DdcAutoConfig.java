@@ -197,7 +197,7 @@ public class DdcAutoConfig {
                 fieldBindingService,
                 rebinder,
                 eventPublisher,
-                properties.getMaxYamlBytes(),
+                properties.getMaxConfigBytes(),
                 formatStrategies
         );
     }

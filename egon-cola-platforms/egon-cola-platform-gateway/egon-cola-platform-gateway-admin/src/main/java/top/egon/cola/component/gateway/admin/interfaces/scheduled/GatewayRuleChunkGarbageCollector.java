@@ -119,7 +119,7 @@ public class GatewayRuleChunkGarbageCollector {
             validate(config);
             GatewayDdcYamlDocument.Removal removal =
                     yamlDocument.removeLeaf(
-                            config.configValue(),
+                            config.content(),
                             candidate.configKey()
                     );
             if (!removal.removed()) {
@@ -131,7 +131,9 @@ public class GatewayRuleChunkGarbageCollector {
                             properties.getDdc().getTargetBizCode(),
                             candidate.env(),
                             properties.getDdc().getTargetAppCode(),
+                            config.resourceName(),
                             removal.content(),
+                            config.format(),
                             config.version(),
                             changeId,
                             publishTimeout.toMillis(),
@@ -180,7 +182,7 @@ public class GatewayRuleChunkGarbageCollector {
             return current(candidate)
                     .map(config -> config.deleted()
                             || yamlDocument.leafValue(
-                                    config.configValue(),
+                                    config.content(),
                                     candidate.configKey()
                             ).isEmpty())
                     .orElse(true);
@@ -213,8 +215,9 @@ public class GatewayRuleChunkGarbageCollector {
     private void validate(DdcManagementConfig config) {
         if (config.version() == null || config.version() < 0
                 || !config.enabled()
-                || !"application.yml".equals(config.configKey())
-                || !"YAML".equals(config.valueType())) {
+                || !GatewayDdcYamlDocument.RESOURCE_NAME.equals(
+                config.resourceName())
+                || !GatewayDdcYamlDocument.FORMAT.equals(config.format())) {
             throw new IllegalStateException(
                     "Gateway rule cleanup requires an enabled "
                             + "application.yml/YAML document"

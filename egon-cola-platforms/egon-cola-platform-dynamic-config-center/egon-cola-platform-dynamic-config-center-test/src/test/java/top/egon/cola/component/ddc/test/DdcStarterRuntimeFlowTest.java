@@ -148,9 +148,9 @@ class DdcStarterRuntimeFlowTest {
         public List<DdcConfigValue> pull() {
             events.add("pull");
             DdcConfigValue value = new DdcConfigValue();
-            value.setConfigKey("application.yml");
-            value.setConfigValue("order:\n  rate-limit:\n    permits-per-second: 250\n");
-            value.setValueType("YAML");
+            value.setResourceName("application.yml");
+            value.setContent("order:\n  rate-limit:\n    permits-per-second: 250\n");
+            value.setFormat("YAML");
             value.setVersion(1L);
             return List.of(value);
         }

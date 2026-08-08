@@ -8,7 +8,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "egon.cola.component.ddc.admin")
 public class DdcAdminProperties {
 
-    private long maxValueBytes = 1024L * 1024L;
+    private long maxConfigBytes = 1024L * 1024L;
 
     private Redis redis = new Redis();
 
@@ -20,12 +20,12 @@ public class DdcAdminProperties {
 
     private Publish publish = new Publish();
 
-    public long getMaxValueBytes() {
-        return maxValueBytes;
+    public long getMaxConfigBytes() {
+        return maxConfigBytes;
     }
 
-    public void setMaxValueBytes(long maxValueBytes) {
-        this.maxValueBytes = maxValueBytes;
+    public void setMaxConfigBytes(long maxConfigBytes) {
+        this.maxConfigBytes = maxConfigBytes;
     }
 
     public Redis getRedis() {

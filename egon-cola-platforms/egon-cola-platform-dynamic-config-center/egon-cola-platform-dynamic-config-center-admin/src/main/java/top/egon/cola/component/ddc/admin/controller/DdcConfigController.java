@@ -85,6 +85,8 @@ public class DdcConfigController {
         request.setBizCode(config.getBizCode());
         request.setAppCode(config.getAppCode());
         request.setEnv(config.getEnv());
+        request.setResourceName(config.getResourceName());
+        request.setFormat(config.getFormat());
         return ResultRecord.success(publishService.publish(
                 request,
                 trustedOperator(authentication, operator)

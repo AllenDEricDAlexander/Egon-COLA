@@ -41,7 +41,7 @@ public class DdcProperties {
     /**
      * 引导阶段允许加载的远程 YAML 最大字节数。 Maximum remote YAML bytes allowed during bootstrap.
      */
-    private long maxYamlBytes = 1024L * 1024L;
+    private long maxConfigBytes = 1024L * 1024L;
 
     /**
      * 管理端连接与签名配置。 Management connection and signing settings.
@@ -163,17 +163,17 @@ public class DdcProperties {
      *
      * @return 最大字节数。 maximum byte count
      */
-    public long getMaxYamlBytes() {
-        return maxYamlBytes;
+    public long getMaxConfigBytes() {
+        return maxConfigBytes;
     }
 
     /**
      * 设置远程 YAML 最大字节数。 Sets the maximum remote YAML size in bytes.
      *
-     * @param maxYamlBytes 最大字节数。 maximum byte count
+     * @param maxConfigBytes 最大字节数。 maximum byte count
      */
-    public void setMaxYamlBytes(long maxYamlBytes) {
-        this.maxYamlBytes = maxYamlBytes;
+    public void setMaxConfigBytes(long maxConfigBytes) {
+        this.maxConfigBytes = maxConfigBytes;
     }
 
     /**

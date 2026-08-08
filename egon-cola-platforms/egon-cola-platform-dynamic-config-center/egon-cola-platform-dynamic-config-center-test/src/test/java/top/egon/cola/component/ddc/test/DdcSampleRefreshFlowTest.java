@@ -125,11 +125,15 @@ class DdcSampleRefreshFlowTest {
         message.setAppCode("demo-app");
         message.setEnv("dev");
         message.setNamespace("default");
-        message.setConfigKey("application.yml");
-        message.setConfigValue(value);
-        message.setValueType("YAML");
+        message.setResourceName("application.yml");
+        message.setContent(value);
+        message.setFormat("YAML");
         message.setTargetVersion(version);
-        message.setContentChecksum(DdcChecksum.content(value));
+        message.setResourceChecksum(DdcChecksum.resource(
+                "application.yml",
+                "YAML",
+                value
+        ));
         message.setTargets(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         return message;
     }

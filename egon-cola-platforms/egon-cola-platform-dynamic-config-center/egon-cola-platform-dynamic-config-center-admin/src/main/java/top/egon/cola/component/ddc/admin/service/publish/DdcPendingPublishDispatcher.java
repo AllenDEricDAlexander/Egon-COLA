@@ -186,10 +186,14 @@ public class DdcPendingPublishDispatcher {
             throw new DdcAdminException("publish targets not found");
         }
         if (!Objects.equals(
-                task.getContentChecksum(),
-                DdcChecksum.content(version.getNewValue())
+                task.getResourceChecksum(),
+                DdcChecksum.resource(
+                        task.getResourceName(),
+                        version.getFormat(),
+                        version.getNewContent()
+                )
         )) {
-            throw new DdcAdminException("publish content checksum changed");
+            throw new DdcAdminException("publish resource checksum changed");
         }
         DdcPublishMessage message = message(task, version, targets);
         return new DdcAtomicPublishCommand(
@@ -198,10 +202,10 @@ public class DdcPendingPublishDispatcher {
                 task.getBizCode(),
                 task.getEnv(),
                 task.getAppCode(),
-                task.getConfigKey(),
+                task.getResourceName(),
                 config.getPublishedVersion(),
                 task.getTargetVersion(),
-                version.getNewValue(),
+                version.getNewContent(),
                 message.getChecksum(),
                 message
         );
@@ -216,14 +220,14 @@ public class DdcPendingPublishDispatcher {
         message.setBizCode(task.getBizCode());
         message.setAppCode(task.getAppCode());
         message.setEnv(task.getEnv());
-        message.setConfigKey(task.getConfigKey());
-        message.setConfigValue(version.getNewValue());
-        message.setValueType(version.getValueType());
+        message.setResourceName(task.getResourceName());
+        message.setContent(version.getNewContent());
+        message.setFormat(version.getFormat());
         message.setTargetVersion(task.getTargetVersion());
         message.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
         message.setOperator(task.getOperator());
         message.setTimestamp(timestamp(task));
-        message.setContentChecksum(task.getContentChecksum());
+        message.setResourceChecksum(task.getResourceChecksum());
         message.setTargets(targets.stream()
                 .map(target -> new DdcPublishTarget(
                         target.getInstanceId(),

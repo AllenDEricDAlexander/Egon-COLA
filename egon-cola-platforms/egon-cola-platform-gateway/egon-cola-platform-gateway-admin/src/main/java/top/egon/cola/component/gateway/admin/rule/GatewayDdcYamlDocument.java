@@ -5,6 +5,7 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -14,6 +15,11 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class GatewayDdcYamlDocument {
+
+    public static final String RESOURCE_NAME =
+            DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME;
+
+    public static final String FORMAT = DdcConfigFormat.YAML.name();
 
     public static final String ACTIVE_CONFIG_KEY = "gateway.rules.active";
 

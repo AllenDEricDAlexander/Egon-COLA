@@ -34,19 +34,19 @@ public class DdcConfigVersionEntity {
     private String namespace;
 
     @Column(name = "config_key", nullable = false, length = 256)
-    private String configKey;
+    private String resourceName;
 
     @Column(nullable = false)
     private Long version;
 
     @Column(name = "old_value", columnDefinition = "text")
-    private String oldValue;
+    private String oldContent;
 
     @Column(name = "new_value", columnDefinition = "text")
-    private String newValue;
+    private String newContent;
 
     @Column(name = "value_type", length = 32)
-    private String valueType;
+    private String format;
 
     @Column(name = "change_type", length = 32)
     private String changeType;

@@ -18,7 +18,7 @@ public final class DdcYamlConfigValidator {
     /**
      * 允许的配置内容 UTF-8 最大字节数。 Maximum allowed configuration-content size in UTF-8 bytes.
      */
-    private final long maxValueBytes;
+    private final long maxConfigBytes;
 
     /**
      * 选择 YAML 解析实现的配置格式策略注册表。
@@ -30,26 +30,26 @@ public final class DdcYamlConfigValidator {
      * 使用共享 YAML-only 策略注册表创建校验器。
      * Creates a validator with the shared YAML-only strategy registry.
      *
-     * @param maxValueBytes 允许的配置内容 UTF-8 最大字节数; maximum allowed configuration-content size in UTF-8 bytes
+     * @param maxConfigBytes 允许的配置内容 UTF-8 最大字节数; maximum allowed configuration-content size in UTF-8 bytes
      */
-    public DdcYamlConfigValidator(long maxValueBytes) {
-        this(maxValueBytes, DdcConfigFormatStrategyRegistry.defaults());
+    public DdcYamlConfigValidator(long maxConfigBytes) {
+        this(maxConfigBytes, DdcConfigFormatStrategyRegistry.defaults());
     }
 
     /**
      * 使用指定大小限制和格式策略注册表创建校验器。
      * Creates a validator with the specified size limit and format-strategy registry.
      *
-     * @param maxValueBytes   允许的配置内容 UTF-8 最大字节数; maximum allowed configuration-content size in UTF-8 bytes
+     * @param maxConfigBytes   允许的配置内容 UTF-8 最大字节数; maximum allowed configuration-content size in UTF-8 bytes
      * @param formatStrategies 配置格式策略注册表; configuration-format strategy registry
      */
     public DdcYamlConfigValidator(
-            long maxValueBytes,
+            long maxConfigBytes,
             DdcConfigFormatStrategyRegistry formatStrategies) {
-        if (maxValueBytes <= 0) {
-            throw new IllegalArgumentException("maxValueBytes must be positive");
+        if (maxConfigBytes <= 0) {
+            throw new IllegalArgumentException("maxConfigBytes must be positive");
         }
-        this.maxValueBytes = maxValueBytes;
+        this.maxConfigBytes = maxConfigBytes;
         this.formatStrategies = Objects.requireNonNull(
                 formatStrategies,
                 "formatStrategies"
@@ -63,19 +63,22 @@ public final class DdcYamlConfigValidator {
      * @param content YAML 配置内容; YAML configuration content
      * @throws DdcAdminException 内容超限或 YAML 无效时抛出; thrown when content exceeds the limit or YAML is invalid
      */
-    public void validate(String content) {
+    public void validate(
+            String resourceName,
+            String format,
+            String content) {
         long bytes = content == null
                 ? 0
                 : content.getBytes(StandardCharsets.UTF_8).length;
-        if (bytes > maxValueBytes) {
+        if (bytes > maxConfigBytes) {
             throw new DdcAdminException(
                     "application.yml exceeds the UTF-8 limit of "
-                            + maxValueBytes + " bytes"
+                            + maxConfigBytes + " bytes"
             );
         }
         try {
-            formatStrategies.get(DdcConfigFormat.YAML).load(
-                    DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME,
+            formatStrategies.get(format, resourceName).load(
+                    resourceName,
                     content,
                     1L
             );

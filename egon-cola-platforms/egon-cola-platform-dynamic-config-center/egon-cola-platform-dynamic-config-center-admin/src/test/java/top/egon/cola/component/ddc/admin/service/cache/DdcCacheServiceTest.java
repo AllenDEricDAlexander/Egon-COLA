@@ -86,8 +86,8 @@ class DdcCacheServiceTest {
     ) {
         DdcConfigItemEntity item = new DdcConfigItemEntity();
         item.setId("config-" + key);
-        item.setConfigKey(key);
-        item.setConfigValue(value);
+        item.setResourceName(key);
+        item.setContent(value);
         item.setCurrentVersion(currentVersion);
         item.setPublishedVersion(publishedVersion);
         item.setEnabled(true);
@@ -97,8 +97,8 @@ class DdcCacheServiceTest {
 
     private DdcConfigVersionEntity version(String key, String value, Long version) {
         DdcConfigVersionEntity item = new DdcConfigVersionEntity();
-        item.setConfigKey(key);
-        item.setNewValue(value);
+        item.setResourceName(key);
+        item.setNewContent(value);
         item.setVersion(version);
         return item;
     }

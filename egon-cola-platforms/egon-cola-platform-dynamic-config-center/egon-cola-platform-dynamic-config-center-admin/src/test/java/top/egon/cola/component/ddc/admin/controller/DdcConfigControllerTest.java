@@ -42,7 +42,8 @@ class DdcConfigControllerTest {
         vo.setBizCode("default");
         vo.setAppCode("demo");
         vo.setEnv("dev");
-        vo.setConfigKey("application.yml");
+        vo.setResourceName("application.yml");
+        vo.setFormat("YAML");
         when(configService.create(
                 any(DdcConfigCreateRequest.class),
                 eq("user:controller-test [requested=tester]")
@@ -52,7 +53,7 @@ class DdcConfigControllerTest {
                         .principal(authentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"bizCode":"default","appCode":"demo","env":"dev","configValue":"feature:\\n  enabled: true\\n"}
+                                {"bizCode":"default","appCode":"demo","env":"dev","resourceName":"application.yml","content":"feature:\\n  enabled: true\\n","format":"YAML"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -66,7 +67,8 @@ class DdcConfigControllerTest {
         config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setConfigKey("application.yml");
+        config.setResourceName("application.yml");
+        config.setFormat("YAML");
         when(configService.get("cfg1")).thenReturn(config);
         DdcPublishResultVO result = new DdcPublishResultVO();
         result.setChangeId("01919f66-7e0e-7a1a-8000-000000000001");
@@ -83,7 +85,7 @@ class DdcConfigControllerTest {
                         .content("""
                                 {
                                   "changeId":"01919f66-7e0e-7a1a-8000-000000000001",
-                                  "configValue":"feature:\\n  enabled: true\\n",
+                                  "content":"feature:\\n  enabled: true\\n",
                                   "expectedVersion":1,
                                   "timeoutMs":30000
                                 }

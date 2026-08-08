@@ -149,7 +149,7 @@ public class DdcPublishService {
         this.failureRecorder = failureRecorder;
         this.properties = properties;
         this.yamlValidator = new DdcYamlConfigValidator(
-                properties.getMaxValueBytes()
+                properties.getMaxConfigBytes()
         );
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.clock = clock;
@@ -258,10 +258,10 @@ public class DdcPublishService {
                         .orElseThrow(() ->
                                 new DdcAdminException(DdcErrorStatus.LEASE_MISMATCH));
         if (!Objects.equals(task.getTargetVersion(), request.getTargetVersion())
-                || !Objects.equals(task.getContentChecksum(), request.getContentChecksum())
+                || !Objects.equals(task.getResourceChecksum(), request.getResourceChecksum())
                 || !Objects.equals(target.getTargetVersion(), request.getTargetVersion())
-                || !Objects.equals(target.getContentChecksum(), request.getContentChecksum())) {
-            throw new DdcAdminException("ACK version or content checksum does not match target");
+                || !Objects.equals(target.getResourceChecksum(), request.getResourceChecksum())) {
+            throw new DdcAdminException("ACK version or resource checksum does not match target");
         }
         if (target.getAckStatus() != null) {
             return DdcPublishResultVO.from(
@@ -361,20 +361,20 @@ public class DdcPublishService {
 
         DdcConfigItemEntity config =
                 configItemRepository
-                        .findForPublishByBizCodeAndEnvAndAppCodeAndConfigKey(
+                        .findForPublishByBizCodeAndEnvAndAppCodeAndResourceName(
                                 request.getBizCode(),
                                 request.getEnv(),
                                 request.getAppCode(),
-                                DdcConfigService.CONFIG_KEY
+                                request.getResourceName()
                         )
                         .filter(item -> !Boolean.TRUE.equals(item.getDeleted()))
                         .orElseThrow(() -> new DdcAdminException("config item not found"));
         if (publishTaskRepository
-                .findFirstByBizCodeAndEnvAndAppCodeAndConfigKeyAndStatusIn(
+                .findFirstByBizCodeAndEnvAndAppCodeAndResourceNameAndStatusIn(
                         request.getBizCode(),
                         request.getEnv(),
                         request.getAppCode(),
-                        DdcConfigService.CONFIG_KEY,
+                        request.getResourceName(),
                         ACTIVE_STATUSES
                 )
                 .isPresent()) {
@@ -384,12 +384,12 @@ public class DdcPublishService {
             throw new DdcAdminException("config version changed");
         }
 
-        String oldValue = config.getConfigValue();
-        config.setConfigValue(request.getConfigValue());
+        String oldContent = config.getContent();
+        config.setContent(request.getContent());
         config.setCurrentVersion(config.getCurrentVersion() + 1);
         config.setUpdatedAt(now());
         configItemRepository.save(config);
-        saveVersion(config, oldValue, request.getConfigValue(), operator);
+        saveVersion(config, oldContent, request.getContent(), operator);
 
         List<DdcPublishTarget> targets = leaseService.activeTargets(
                 request.getBizCode(),
@@ -404,11 +404,15 @@ public class DdcPublishService {
             throw new DdcAdminException(DdcErrorStatus.NO_LIVE_INSTANCE);
         }
 
-        String contentChecksum = DdcChecksum.content(request.getConfigValue());
+        String resourceChecksum = DdcChecksum.resource(
+                request.getResourceName(),
+                request.getFormat(),
+                request.getContent()
+        );
         DdcPublishTaskEntity task = newTask(
                 request,
                 config,
-                contentChecksum,
+                resourceChecksum,
                 targets.size(),
                 timeoutMs,
                 operator
@@ -464,7 +468,7 @@ public class DdcPublishService {
 
     private DdcPublishTaskEntity newTask(DdcPublishRequest request,
                                          DdcConfigItemEntity config,
-                                         String contentChecksum,
+                                         String resourceChecksum,
                                          int targetCount,
                                          long timeoutMs,
                                          String operator) {
@@ -477,10 +481,10 @@ public class DdcPublishService {
         task.setAppCode(config.getAppCode());
         task.setEnv(config.getEnv());
         task.setNamespace(null);
-        task.setConfigKey(config.getConfigKey());
+        task.setResourceName(config.getResourceName());
         task.setTargetVersion(config.getCurrentVersion());
         task.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
-        task.setContentChecksum(contentChecksum);
+        task.setResourceChecksum(resourceChecksum);
         task.setAttemptCount(0);
         task.setStatus(PublishStatus.PENDING.name());
         task.setTargetCount(targetCount);
@@ -502,19 +506,19 @@ public class DdcPublishService {
         ack.setChangeId(task.getChangeId());
         ack.setInstanceId(target.instanceId());
         ack.setLeaseId(target.leaseId());
-        ack.setContentChecksum(task.getContentChecksum());
+        ack.setResourceChecksum(task.getResourceChecksum());
         ack.setBizCode(task.getBizCode());
         ack.setAppCode(task.getAppCode());
         ack.setEnv(task.getEnv());
         ack.setNamespace(null);
-        ack.setConfigKey(task.getConfigKey());
+        ack.setResourceName(task.getResourceName());
         ack.setTargetVersion(task.getTargetVersion());
         return ack;
     }
 
     private void saveVersion(DdcConfigItemEntity config,
-                             String oldValue,
-                             String newValue,
+                             String oldContent,
+                             String newContent,
                              String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
         version.setId(UuidV7.simpleString());
@@ -523,11 +527,11 @@ public class DdcPublishService {
         version.setAppCode(config.getAppCode());
         version.setEnv(config.getEnv());
         version.setNamespace(null);
-        version.setConfigKey(config.getConfigKey());
+        version.setResourceName(config.getResourceName());
         version.setVersion(config.getCurrentVersion());
-        version.setOldValue(oldValue);
-        version.setNewValue(newValue);
-        version.setValueType(config.getValueType());
+        version.setOldContent(oldContent);
+        version.setNewContent(newContent);
+        version.setFormat(config.getFormat());
         version.setChangeType(ChangeType.UPDATE.name());
         version.setChangeReason("publish config");
         version.setOperator(operator);
@@ -544,7 +548,7 @@ public class DdcPublishService {
         log.setAppCode(config.getAppCode());
         log.setEnv(config.getEnv());
         log.setNamespace(null);
-        log.setConfigKey(config.getConfigKey());
+        log.setResourceName(config.getResourceName());
         log.setOperationType("PUBLISH");
         log.setOperator(operator);
         log.setOperationContent(changeId);
@@ -560,7 +564,13 @@ public class DdcPublishService {
         requireText(request.getBizCode(), "bizCode");
         requireText(request.getEnv(), "env");
         requireText(request.getAppCode(), "appCode");
-        yamlValidator.validate(request.getConfigValue());
+        requireText(request.getResourceName(), "resourceName");
+        requireText(request.getFormat(), "format");
+        yamlValidator.validate(
+                request.getResourceName(),
+                request.getFormat(),
+                request.getContent()
+        );
         if (request.getExpectedVersion() == null || request.getExpectedVersion() < 0) {
             throw new DdcAdminException("expectedVersion is required");
         }
@@ -575,7 +585,7 @@ public class DdcPublishService {
         requireText(request.getChangeId(), "changeId");
         requireText(request.getInstanceId(), "instanceId");
         requireText(request.getLeaseId(), "leaseId");
-        requireText(request.getContentChecksum(), "contentChecksum");
+        requireText(request.getResourceChecksum(), "resourceChecksum");
         if (request.getTargetVersion() == null) {
             throw new DdcAdminException("targetVersion is required");
         }
@@ -588,11 +598,15 @@ public class DdcPublishService {
                 && Objects.equals(task.getAppCode(), request.getAppCode())
                 && Objects.equals(task.getEnv(), request.getEnv())
                 && Objects.equals(
-                        task.getConfigKey(),
-                        DdcConfigService.CONFIG_KEY
+                        task.getResourceName(),
+                        request.getResourceName()
                 )
-                && Objects.equals(task.getContentChecksum(),
-                DdcChecksum.content(request.getConfigValue()))
+                && Objects.equals(task.getResourceChecksum(),
+                DdcChecksum.resource(
+                        request.getResourceName(),
+                        request.getFormat(),
+                        request.getContent()
+                ))
                 && Objects.equals(task.getTimeoutMs(), timeoutMs)
                 && task.getTargetVersion() != null
                 && task.getTargetVersion() == request.getExpectedVersion() + 1;
@@ -647,7 +661,7 @@ public class DdcPublishService {
                     request.getBizCode(),
                     request.getEnv(),
                     request.getAppCode(),
-                    DdcConfigService.CONFIG_KEY,
+                    request.getResourceName(),
                     exception.getMessage()
             );
         } catch (RuntimeException ignored) {
@@ -665,7 +679,7 @@ public class DdcPublishService {
                 request.getBizCode(),
                 request.getEnv(),
                 request.getAppCode(),
-                DdcConfigService.CONFIG_KEY
+                request.getResourceName()
         );
     }
 
@@ -674,7 +688,7 @@ public class DdcPublishService {
                 task.getBizCode(),
                 task.getEnv(),
                 task.getAppCode(),
-                task.getConfigKey()
+                task.getResourceName()
         );
     }
 

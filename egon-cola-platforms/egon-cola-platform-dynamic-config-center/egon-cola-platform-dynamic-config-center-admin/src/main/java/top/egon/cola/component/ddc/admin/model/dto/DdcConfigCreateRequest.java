@@ -19,7 +19,11 @@ public class DdcConfigCreateRequest {
 
     private String namespaceCode;
 
-    private String configValue;
+    private String resourceName;
+
+    private String content;
+
+    private String format;
 
     private String description;
 }

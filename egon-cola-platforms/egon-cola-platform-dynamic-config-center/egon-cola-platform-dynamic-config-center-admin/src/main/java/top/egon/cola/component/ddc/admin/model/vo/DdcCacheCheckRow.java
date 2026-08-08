@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class DdcCacheCheckRow {
 
-    private String configKey;
+    private String resourceName;
 
     private String databaseValue;
 

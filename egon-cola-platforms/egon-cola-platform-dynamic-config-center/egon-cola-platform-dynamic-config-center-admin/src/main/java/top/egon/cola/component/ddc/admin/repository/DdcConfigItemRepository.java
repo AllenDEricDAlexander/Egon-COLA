@@ -13,16 +13,16 @@ import java.util.Optional;
 
 public interface DdcConfigItemRepository extends JpaRepository<DdcConfigItemEntity, String> {
 
-    Optional<DdcConfigItemEntity> findByBizCodeAndEnvAndAppCodeAndConfigKey(
-            String bizCode, String env, String appCode, String configKey);
+    Optional<DdcConfigItemEntity> findByBizCodeAndEnvAndAppCodeAndResourceName(
+            String bizCode, String env, String appCode, String resourceName);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<DdcConfigItemEntity>
-    findForPublishByBizCodeAndEnvAndAppCodeAndConfigKey(
+    findForPublishByBizCodeAndEnvAndAppCodeAndResourceName(
             String bizCode,
             String env,
             String appCode,
-            String configKey);
+            String resourceName);
 
     boolean existsByEnv(String env);
 
@@ -40,7 +40,7 @@ public interface DdcConfigItemRepository extends JpaRepository<DdcConfigItemEnti
              where (:bizCode is null or c.biz_code = :bizCode)
                and (:env is null or c.env = :env)
                and (:appCode is null or c.app_code = :appCode)
-               and (:configKey is null or c.config_key like ('%' || :configKey || '%'))
+               and (:resourceName is null or c.config_key like ('%' || :resourceName || '%'))
                and (:includeDeleted = true or c.deleted = false)
                and (:namespaceCode is null or exists (
                    select 1
@@ -61,7 +61,7 @@ public interface DdcConfigItemRepository extends JpaRepository<DdcConfigItemEnti
             @Param("namespaceCode") String namespaceCode,
             @Param("env") String env,
             @Param("appCode") String appCode,
-            @Param("configKey") String configKey,
+            @Param("resourceName") String resourceName,
             @Param("includeDeleted") boolean includeDeleted);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

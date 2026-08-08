@@ -27,11 +27,11 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
             LocalDateTime updatedAt);
 
     Optional<DdcPublishTaskEntity>
-    findFirstByBizCodeAndEnvAndAppCodeAndConfigKeyAndStatusIn(
+    findFirstByBizCodeAndEnvAndAppCodeAndResourceNameAndStatusIn(
             String bizCode,
             String env,
             String appCode,
-            String configKey,
+            String resourceName,
             Collection<String> statuses);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)

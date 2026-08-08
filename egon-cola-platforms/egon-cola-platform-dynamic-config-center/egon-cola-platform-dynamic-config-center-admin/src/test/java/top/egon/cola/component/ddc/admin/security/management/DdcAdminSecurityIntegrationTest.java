@@ -332,7 +332,9 @@ class DdcAdminSecurityIntegrationTest {
                   "bizCode":"biz-a",
                   "appCode":"app-a",
                   "env":"dev",
-                  "configValue":"feature:\\n  enabled: true\\n"
+                  "resourceName":"application.yml",
+                  "content":"feature:\\n  enabled: true\\n",
+                  "format":"YAML"
                 }
                 """;
     }

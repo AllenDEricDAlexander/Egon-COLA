@@ -191,7 +191,7 @@ class DdcSyncPublishFlowTest {
                     assertThat(task.getStatus()).isEqualTo("UNKNOWN");
                     assertThat(task.getFailureStage()).isEqualTo("REDIS_DISPATCH");
                 });
-        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndConfigKey(
+        assertThat(configItemRepository.findByBizCodeAndEnvAndAppCodeAndResourceName(
                 "default", "dev", "demo", "application.yml"
         )).get()
                 .extracting(DdcConfigItemEntity::getPublishedVersion)
@@ -296,10 +296,10 @@ class DdcSyncPublishFlowTest {
         config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
-        config.setConfigKey("application.yml");
-        config.setConfigValue("feature:\n  value: false\n");
+        config.setResourceName("application.yml");
+        config.setContent("feature:\n  value: false\n");
         config.setDefaultValue(null);
-        config.setValueType("YAML");
+        config.setFormat("YAML");
         config.setCurrentVersion(1L);
         config.setEnabled(true);
         config.setDeleted(false);
@@ -316,7 +316,9 @@ class DdcSyncPublishFlowTest {
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setConfigValue("feature:\n  value: " + value + "\n");
+        request.setResourceName("application.yml");
+        request.setContent("feature:\n  value: " + value + "\n");
+        request.setFormat("YAML");
         request.setExpectedVersion(1L);
         request.setTimeoutMs(timeoutMs);
         return request;
@@ -331,7 +333,11 @@ class DdcSyncPublishFlowTest {
         ack.setLeaseId(leaseId);
         ack.setTargetVersion(2L);
         ack.setCurrentVersion(2L);
-        ack.setContentChecksum(DdcChecksum.content(request.getConfigValue()));
+        ack.setResourceChecksum(DdcChecksum.resource(
+                request.getResourceName(),
+                request.getFormat(),
+                request.getContent()
+        ));
         ack.setStatus(DdcAckStatus.SUCCESS);
         return ack;
     }

@@ -105,9 +105,9 @@ class DdcConfigDataLoaderTest {
 
     private DdcConfigValue value(String content, long version) {
         DdcConfigValue value = new DdcConfigValue();
-        value.setConfigKey("application.yml");
-        value.setValueType("YAML");
-        value.setConfigValue(content);
+        value.setResourceName("application.yml");
+        value.setFormat("YAML");
+        value.setContent(content);
         value.setVersion(version);
         return value;
     }

@@ -37,7 +37,7 @@ public class DdcPublishTaskEntity {
     private String namespace;
 
     @Column(name = "config_key", length = 256)
-    private String configKey;
+    private String resourceName;
 
     @Column(name = "target_version")
     private Long targetVersion;
@@ -46,7 +46,7 @@ public class DdcPublishTaskEntity {
     private String publishMode;
 
     @Column(name = "content_checksum", length = 64)
-    private String contentChecksum;
+    private String resourceChecksum;
 
     @Column(name = "attempt_count", nullable = false)
     private Integer attemptCount = 0;

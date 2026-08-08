@@ -103,9 +103,9 @@ class DdcBootstrapClientTest {
                                  String content,
                                  Long version) {
         DdcConfigValue value = new DdcConfigValue();
-        value.setConfigKey(key);
-        value.setValueType(type);
-        value.setConfigValue(content);
+        value.setResourceName(key);
+        value.setFormat(type);
+        value.setContent(content);
         value.setVersion(version);
         return value;
     }

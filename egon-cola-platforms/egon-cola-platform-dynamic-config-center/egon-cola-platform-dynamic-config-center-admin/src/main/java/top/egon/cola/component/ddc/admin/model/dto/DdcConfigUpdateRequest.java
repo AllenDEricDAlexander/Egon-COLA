@@ -13,7 +13,7 @@ public class DdcConfigUpdateRequest {
 
     private String id;
 
-    private String configValue;
+    private String content;
 
     private String changeReason;
 

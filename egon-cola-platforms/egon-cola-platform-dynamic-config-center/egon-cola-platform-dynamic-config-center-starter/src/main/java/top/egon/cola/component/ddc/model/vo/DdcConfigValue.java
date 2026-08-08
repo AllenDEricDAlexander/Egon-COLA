@@ -7,19 +7,19 @@ package top.egon.cola.component.ddc.model.vo;
 public class DdcConfigValue {
 
     /**
-     * 配置键。 / Configuration key.
+     * 配置资源名。 / Configuration resource name.
      */
-    private String configKey;
+    private String resourceName;
 
     /**
-     * 配置值的文本表示。 / Text representation of the configuration value.
+     * 配置内容。 / Configuration content.
      */
-    private String configValue;
+    private String content;
 
     /**
-     * 配置值类型的线协议名称。 / Wire name of the configuration value type.
+     * 配置格式的线协议名称。 / Wire name of the configuration format.
      */
-    private String valueType;
+    private String format;
 
     /**
      * 配置版本。 / Configuration version.
@@ -27,63 +27,63 @@ public class DdcConfigValue {
     private Long version;
 
     /**
-     * 返回配置键。
-     * / Returns the configuration key.
+     * 返回配置资源名。
+     * / Returns the configuration resource name.
      *
-     * @return 配置键 / configuration key
+     * @return 配置资源名 / configuration resource name
      */
-    public String getConfigKey() {
-        return configKey;
+    public String getResourceName() {
+        return resourceName;
     }
 
     /**
-     * 设置配置键。
-     * / Sets the configuration key.
+     * 设置配置资源名。
+     * / Sets the configuration resource name.
      *
-     * @param configKey 配置键 / configuration key
+     * @param resourceName 配置资源名 / configuration resource name
      */
-    public void setConfigKey(String configKey) {
-        this.configKey = configKey;
+    public void setResourceName(String resourceName) {
+        this.resourceName = resourceName;
     }
 
     /**
-     * 返回配置值文本。
-     * / Returns the configuration value text.
+     * 返回配置内容。
+     * / Returns the configuration content.
      *
-     * @return 配置值文本 / configuration value text
+     * @return 配置内容 / configuration content
      */
-    public String getConfigValue() {
-        return configValue;
+    public String getContent() {
+        return content;
     }
 
     /**
-     * 设置配置值文本。
-     * / Sets the configuration value text.
+     * 设置配置内容。
+     * / Sets the configuration content.
      *
-     * @param configValue 配置值文本 / configuration value text
+     * @param content 配置内容 / configuration content
      */
-    public void setConfigValue(String configValue) {
-        this.configValue = configValue;
+    public void setContent(String content) {
+        this.content = content;
     }
 
     /**
-     * 返回配置值类型名称。
-     * / Returns the configuration value type name.
+     * 返回配置格式名称。
+     * / Returns the configuration format name.
      *
-     * @return 值类型名称 / value type name
+     * @return 配置格式名称 / configuration format name
      */
-    public String getValueType() {
-        return valueType;
+    public String getFormat() {
+        return format;
     }
 
     /**
-     * 设置配置值类型名称。
-     * / Sets the configuration value type name.
+     * 设置配置格式名称。
+     * / Sets the configuration format name.
      *
-     * @param valueType 值类型名称 / value type name
+     * @param format 配置格式名称 / configuration format name
      */
-    public void setValueType(String valueType) {
-        this.valueType = valueType;
+    public void setFormat(String format) {
+        this.format = format;
     }
 
     /**

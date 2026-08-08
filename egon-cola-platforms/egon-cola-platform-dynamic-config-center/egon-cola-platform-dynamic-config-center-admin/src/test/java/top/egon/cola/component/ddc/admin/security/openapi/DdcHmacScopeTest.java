@@ -283,7 +283,9 @@ class DdcHmacScopeTest {
                         null,
                         null,
                         null,
+                        "application.yml",
                         "feature:\n  enabled: true\n",
+                        "YAML",
                         "routes",
                         1L,
                         "claimed-user"

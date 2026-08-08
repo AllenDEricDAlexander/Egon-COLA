@@ -74,9 +74,9 @@ class HttpDdcManagementClientTest {
                             "bizCode": "infra",
                             "appCode": "gateway",
                             "env": "dev",
-                            "configKey": "application.yml",
-                            "configValue": "feature:\\n  enabled: true\\n",
-                            "valueType": "YAML",
+                            "resourceName": "application.yml",
+                            "content": "feature:\\n  enabled: true\\n",
+                            "format": "YAML",
                             "version": 2,
                             "enabled": true,
                             "deleted": false,
@@ -90,7 +90,9 @@ class HttpDdcManagementClientTest {
                         "infra",
                         "dev",
                         "gateway",
+                        "application.yml",
                         "feature:\n  enabled: true\n",
+                        "YAML",
                         "route",
                         1L,
                         "gateway-admin"
@@ -98,7 +100,7 @@ class HttpDdcManagementClientTest {
         );
 
         assertThat(response.version()).isEqualTo(2L);
-        assertThat(response.configKey()).isEqualTo("application.yml");
+        assertThat(response.resourceName()).isEqualTo("application.yml");
         fixture.server().verify();
     }
 
@@ -233,9 +235,9 @@ class HttpDdcManagementClientTest {
                             "bizCode": "infra",
                             "appCode": "gateway-engine-default",
                             "env": "test",
-                            "configKey": "application.yml",
-                            "configValue": "gateway:\\n  enabled: true\\n",
-                            "valueType": "YAML",
+                            "resourceName": "application.yml",
+                            "content": "gateway:\\n  enabled: true\\n",
+                            "format": "YAML",
                             "version": 3,
                             "enabled": true,
                             "deleted": false,

@@ -345,8 +345,8 @@ class DdcRuntimeCoordinatorTest {
         private RecordingAdminClient(List<String> events) {
             this.events = events;
             this.snapshot = new DdcConfigValue();
-            snapshot.setConfigKey("switch");
-            snapshot.setConfigValue("true");
+            snapshot.setResourceName("switch");
+            snapshot.setContent("true");
             snapshot.setVersion(1L);
         }
 
