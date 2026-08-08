@@ -19,7 +19,14 @@ import java.util.Properties;
 /**
  * Atomically persists the last pending or acknowledged report receipt.
  *
- * <p>中文：以原子方式持久化最近一次待处理或已确认的报告回执。
+ * <p>The store uses versioned Java properties, writes through a temporary file,
+ * and prefers an atomic move when replacing the destination. Invalid or
+ * unreadable files are isolated so a corrupt local state cannot prevent a fresh
+ * report from being submitted.
+ *
+ * <p>中文：存储使用带版本的 Java Properties 格式，先写入临时文件，并在替换目标
+ * 文件时优先使用原子移动。无效或不可读的文件会被隔离，避免损坏的本地状态阻止
+ * 重新提交报告。
  */
 public final class GatewayReportingStateStore {
 

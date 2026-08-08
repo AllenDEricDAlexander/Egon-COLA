@@ -8,7 +8,12 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Maintains a thread-safe snapshot of the current Gateway reporting status.
  *
- * <p>中文：维护当前网关接口定义上报状态的线程安全快照。
+ * <p>This object is an in-memory observability view only. It preserves the last
+ * successful receipt across a transient failure, while the durable restart
+ * state is handled by {@link GatewayReportingStateStore}.
+ *
+ * <p>中文：该对象仅提供内存中的可观测状态视图。发生瞬时失败时会保留最近一次
+ * 成功回执；需要跨重启持久化的状态由 {@link GatewayReportingStateStore} 负责。
  */
 public final class GatewayReportingState {
 

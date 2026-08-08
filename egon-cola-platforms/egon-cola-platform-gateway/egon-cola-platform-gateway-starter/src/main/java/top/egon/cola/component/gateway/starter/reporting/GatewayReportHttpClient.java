@@ -19,8 +19,14 @@ import java.util.Optional;
  * Sends signed Gateway definition reports to Gateway Admin and retrieves their
  * acknowledgement receipts.
  *
- * <p>中文：向 Gateway Admin 发送带签名的接口定义报告，并查询对应的
- * 确认回执。
+ * <p>Each request uses the DDC-compatible canonical request and HMAC signature
+ * configured by {@link GatewayReportingProperties}. HTTP status and transport
+ * failures are translated into retry-aware exceptions; retry scheduling itself
+ * is owned by {@link GatewayReportingCoordinator}.
+ *
+ * <p>中文：每个请求都使用 {@link GatewayReportingProperties} 配置的兼容 DDC
+ * 的规范化请求和 HMAC 签名。HTTP 状态或传输失败会转换为携带重试标记的异常，
+ * 具体重试调度由 {@link GatewayReportingCoordinator} 负责。
  */
 public final class GatewayReportHttpClient {
 

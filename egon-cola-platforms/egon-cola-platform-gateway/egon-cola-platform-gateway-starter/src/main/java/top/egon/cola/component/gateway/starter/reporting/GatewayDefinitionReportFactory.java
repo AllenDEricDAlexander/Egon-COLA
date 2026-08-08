@@ -26,8 +26,15 @@ import java.util.Map;
  * Builds deterministic Gateway interface definition reports and their stable
  * identities from discovered interface groups.
  *
- * <p>中文：根据发现的接口分组构建确定性的网关接口定义报告及其稳定
- * 身份。
+ * <p>The factory validates reporting properties, groups definitions by business
+ * and entity domains, sorts the result, and derives SHA-256 identities from the
+ * complete v2 payload. It only builds the report; transport and retry behavior
+ * belong to {@link GatewayReportHttpClient} and
+ * {@link GatewayReportingCoordinator}.
+ *
+ * <p>中文：工厂负责校验上报配置、按业务域和实体域聚合接口定义、排序，并基于
+ * 完整的 v2 载荷生成 SHA-256 身份。它只负责构建报告，网络传输和重试分别由
+ * {@link GatewayReportHttpClient} 与 {@link GatewayReportingCoordinator} 负责。
  */
 public final class GatewayDefinitionReportFactory {
 

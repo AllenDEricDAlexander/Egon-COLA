@@ -17,8 +17,17 @@ import java.util.concurrent.atomic.AtomicReference;
  * Coordinates startup reporting, receipt reconciliation, and retry scheduling
  * for the currently desired Gateway definition report.
  *
- * <p>中文：协调启动上报、回执对账以及当前目标接口定义报告的重试
- * 调度。
+ * <p>After the application is ready, the coordinator reuses a matching
+ * persisted receipt when possible, otherwise submits the desired report and
+ * verifies the returned receipt. A single daemon worker serializes retries and
+ * switches from short backoff to the configured reconciliation interval.
+ * {@code failFast} controls whether the first reconciliation is performed
+ * directly during the ready event.
+ *
+ * <p>中文：应用就绪后，协调器会优先复用与当前报告匹配的持久化回执；无法复用时
+ * 提交目标报告并校验返回回执。所有重试由单个守护工作线程串行执行，短退避重试
+ * 耗尽后切换到配置的长期协调间隔；{@code failFast} 决定首次协调是否在就绪事件
+ * 中直接执行。
  */
 public final class GatewayReportingCoordinator
         implements ApplicationListener<ApplicationReadyEvent>,
