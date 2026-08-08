@@ -18,20 +18,26 @@ import java.util.Properties;
 
 /**
  * Atomically persists the last pending or acknowledged report receipt.
+ *
+ * <p>中文：以原子方式持久化最近一次待处理或已确认的报告回执。
  */
 public final class GatewayReportingStateStore {
 
-    /** Version of the on-disk properties format. */
+    /** Version of the on-disk properties format. 磁盘属性文件格式的版本。 */
     private static final String VERSION = "1";
 
-    /** Absolute path of the reporting state file. */
+    /** Absolute path of the reporting state file. 上报状态文件的绝对路径。 */
     private final Path path;
 
-    /** Time source for state timestamps and corrupted-file suffixes. */
+    /**
+     * Time source for state timestamps and corrupted-file suffixes.
+     * 生成状态时间戳及损坏文件后缀的时间源。
+     */
     private final Clock clock;
 
     /**
      * Creates a state store using the UTC system clock.
+     * 中文：使用 UTC 系统时钟创建状态存储。
      *
      * @param path reporting state file path
      */
@@ -41,6 +47,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Creates a state store with an injectable time source.
+     * 中文：使用可注入的时间源创建状态存储，便于测试。
      *
      * @param path reporting state file path
      * @param clock timestamp source
@@ -52,6 +59,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Loads the persisted state, isolating an unreadable or invalid file.
+     * 中文：加载持久化状态，并将不可读或无效文件隔离保存。
      *
      * @return stored state, or empty when no usable state exists
      */
@@ -76,6 +84,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Persists that a report is awaiting acknowledgement.
+     * 中文：持久化报告正在等待确认这一状态。
      *
      * @param report pending report
      * @param payloadHash fingerprint of the serialized report definition
@@ -96,6 +105,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Persists the acknowledgement receipt for a submitted report.
+     * 中文：持久化已提交报告的确认回执。
      *
      * @param payloadHash fingerprint of the acknowledged report definition
      * @param result acknowledgement receipt
@@ -117,6 +127,8 @@ public final class GatewayReportingStateStore {
     /**
      * Writes state to a temporary file and replaces the destination atomically
      * when the file system supports it.
+     * 中文：先写入临时文件，并在文件系统支持时以原子移动替换目标
+     * 文件。
      *
      * @param state state to persist
      * @throws IllegalStateException if the state cannot be persisted
@@ -159,6 +171,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Parses and validates stored properties.
+     * 中文：解析并校验持久化的属性内容。
      *
      * @param values persisted properties
      * @return parsed reporting state
@@ -176,7 +189,10 @@ public final class GatewayReportingStateStore {
         );
     }
 
-    /** Moves an unreadable state file aside so reporting can restart cleanly. */
+    /**
+     * Moves an unreadable state file aside so reporting can restart cleanly.
+     * 将不可读状态文件移开，使上报可以干净地重新开始。
+     */
     private void isolateCorrupted() {
         Path corrupted = path.resolveSibling(
                 path.getFileName()
@@ -196,6 +212,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Replaces the target with the source, preferring an atomic move.
+     * 中文：优先使用原子移动，用源文件替换目标文件。
      *
      * @param source temporary state file
      * @param target final state file
@@ -220,6 +237,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Stores a non-blank optional property.
+     * 中文：保存非空白的可选属性。
      *
      * @param values destination properties
      * @param name property name
@@ -236,6 +254,7 @@ public final class GatewayReportingStateStore {
 
     /**
      * Reads a required non-blank property.
+     * 中文：读取必需且非空白的属性。
      *
      * @param values source properties
      * @param name property name
@@ -252,17 +271,27 @@ public final class GatewayReportingStateStore {
         return value;
     }
 
-    /** Lifecycle phase persisted for a Gateway definition report. */
+    /**
+     * Lifecycle phase persisted for a Gateway definition report.
+     * 网关接口定义报告持久化的生命周期阶段。
+     */
     public enum Phase {
-        /** The report has been persisted but is not yet acknowledged. */
+        /**
+         * The report has been persisted but is not yet acknowledged.
+         * 报告已持久化但尚未确认。
+         */
         PENDING,
 
-        /** Gateway Admin has acknowledged the report. */
+        /**
+         * Gateway Admin has acknowledged the report.
+         * Gateway Admin 已确认该报告。
+         */
         ACKNOWLEDGED
     }
 
     /**
      * Validated persistent state for a pending or acknowledged report.
+     * 中文：经过校验的待处理或已确认报告持久化状态。
      *
      * @param phase persistence lifecycle phase
      * @param payloadHash fingerprint of the report definition payload
@@ -282,7 +311,10 @@ public final class GatewayReportingStateStore {
             Instant updatedAt
     ) {
 
-        /** Validates required state fields during construction. */
+        /**
+         * Validates required state fields during construction.
+         * 在构造时校验状态必需字段。
+         */
         public StoredState {
             Objects.requireNonNull(phase, "phase");
             payloadHash = required(payloadHash, "payloadHash");
@@ -296,6 +328,7 @@ public final class GatewayReportingStateStore {
 
         /**
          * Tests whether this state belongs to a built report and payload.
+         * 中文：判断该状态是否属于指定的已构建报告及其载荷。
          *
          * @param report report to compare
          * @param expectedPayloadHash expected report payload fingerprint
@@ -312,6 +345,7 @@ public final class GatewayReportingStateStore {
 
         /**
          * Requires a non-blank stored string.
+         * 中文：要求存储字符串非空且不全为空白。
          *
          * @param value stored value
          * @param name field name used in validation errors

@@ -7,10 +7,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Maintains a thread-safe snapshot of the current Gateway reporting status.
+ *
+ * <p>中文：维护当前网关接口定义上报状态的线程安全快照。
  */
 public final class GatewayReportingState {
 
-    /** Latest reporting lifecycle snapshot. */
+    /** Latest reporting lifecycle snapshot. 最新的上报生命周期快照。 */
     private final AtomicReference<Snapshot> current =
             new AtomicReference<>(new Snapshot(
                     "PENDING",
@@ -22,6 +24,7 @@ public final class GatewayReportingState {
 
     /**
      * Returns the latest immutable reporting snapshot.
+     * 中文：返回最新的不可变上报状态快照。
      *
      * @return current reporting snapshot
      */
@@ -31,6 +34,7 @@ public final class GatewayReportingState {
 
     /**
      * Marks a reporting attempt as in progress while retaining prior success.
+     * 中文：将上报标记为进行中，同时保留此前成功记录。
      *
      * @param attempt current attempt number
      */
@@ -47,6 +51,7 @@ public final class GatewayReportingState {
 
     /**
      * Records a successful acknowledgement and its receipt.
+     * 中文：记录成功确认及其回执。
      *
      * @param result acknowledged report result
      */
@@ -62,6 +67,7 @@ public final class GatewayReportingState {
 
     /**
      * Records a failed attempt while retaining the last successful receipt.
+     * 中文：记录失败尝试，同时保留最近一次成功回执。
      *
      * @param error failure message to expose in bounded form
      */
@@ -78,6 +84,7 @@ public final class GatewayReportingState {
 
     /**
      * Normalizes and limits an exposed error message to 512 characters.
+     * 中文：规范化错误信息，并将对外暴露的长度限制为 512 个字符。
      *
      * @param value original failure message
      * @return non-null bounded failure message
@@ -91,6 +98,7 @@ public final class GatewayReportingState {
 
     /**
      * Immutable view of one reporting lifecycle state.
+     * 中文：一次上报生命周期状态的不可变视图。
      *
      * @param status lifecycle status such as {@code PENDING} or {@code SUCCESS}
      * @param lastSuccessAt time of the latest successful acknowledgement

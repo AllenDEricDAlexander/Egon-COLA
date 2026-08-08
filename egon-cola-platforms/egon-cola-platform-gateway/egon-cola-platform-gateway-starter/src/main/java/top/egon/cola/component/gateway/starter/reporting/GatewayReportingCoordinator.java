@@ -16,28 +16,43 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Coordinates startup reporting, receipt reconciliation, and retry scheduling
  * for the currently desired Gateway definition report.
+ *
+ * <p>中文：协调启动上报、回执对账以及当前目标接口定义报告的重试
+ * 调度。
  */
 public final class GatewayReportingCoordinator
         implements ApplicationListener<ApplicationReadyEvent>,
         SmartLifecycle {
 
-    /** Reporting and retry configuration. */
+    /** Reporting and retry configuration. 上报及重试配置。 */
     private final GatewayReportingProperties properties;
 
-    /** Client used to submit reports and query acknowledgement receipts. */
+    /**
+     * Client used to submit reports and query acknowledgement receipts.
+     * 提交报告并查询确认回执的客户端。
+     */
     private final GatewayReportHttpClient client;
 
-    /** In-memory reporting lifecycle state. */
+    /** In-memory reporting lifecycle state. 内存中的上报生命周期状态。 */
     private final GatewayReportingState state;
 
-    /** Persistent pending and acknowledged report state. */
+    /**
+     * Persistent pending and acknowledged report state.
+     * 待处理及已确认报告的持久化状态。
+     */
     private final GatewayReportingStateStore stateStore;
 
-    /** Most recent definition report that must be acknowledged. */
+    /**
+     * Most recent definition report that must be acknowledged.
+     * 最近需要确认的接口定义报告。
+     */
     private final AtomicReference<GatewayDefinitionReportFactory.BuiltReport>
             desiredReport;
 
-    /** Single-threaded worker that serializes reporting and retry work. */
+    /**
+     * Single-threaded worker that serializes reporting and retry work.
+     * 串行执行上报与重试任务的单线程工作器。
+     */
     private final ScheduledExecutorService worker =
             Executors.newSingleThreadScheduledExecutor(
                     Thread.ofPlatform()
@@ -46,14 +61,21 @@ public final class GatewayReportingCoordinator
                             .factory()
             );
 
-    /** Whether the Spring lifecycle component is currently running. */
+    /**
+     * Whether the Spring lifecycle component is currently running.
+     * Spring 生命周期组件是否正在运行。
+     */
     private final AtomicBoolean running = new AtomicBoolean();
 
-    /** Whether reporting work is queued or executing on the worker. */
+    /**
+     * Whether reporting work is queued or executing on the worker.
+     * 上报任务是否已排队或正在工作器中执行。
+     */
     private final AtomicBoolean workScheduled = new AtomicBoolean();
 
     /**
      * Creates a reporting coordinator for an initially discovered report.
+     * 中文：为首次发现的接口定义报告创建上报协调器。
      *
      * @param properties reporting and retry configuration
      * @param report initially desired report
@@ -76,6 +98,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Starts initial reconciliation when the Spring application is ready.
+     * 中文：Spring 应用就绪后开始首次报告协调。
      *
      * @param event application-ready event
      */
@@ -90,6 +113,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Signals that a newly discovered definition set must be acknowledged.
+     * 中文：通知协调器需要确认新发现的接口定义集合。
      *
      * @param report newly desired definition report
      */
@@ -104,6 +128,7 @@ public final class GatewayReportingCoordinator
     /**
      * Attempts reconciliation for the latest desired report and schedules the
      * appropriate short or long retry after a failure.
+     * 中文：尝试协调最新目标报告，并在失败后安排短重试或长期重试。
      *
      * @param scheduledReport report associated with the queued work
      * @param attempt queued attempt number
@@ -157,6 +182,8 @@ public final class GatewayReportingCoordinator
     /**
      * Reconciles one report by reusing a valid stored receipt or submitting a
      * new report and persisting its acknowledgement.
+     * 中文：优先复用有效的持久化回执，否则重新提交报告并保存确认
+     * 结果。
      *
      * @param report report to reconcile
      * @param attempt current attempt number
@@ -202,6 +229,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Verifies that a receipt accepts the expected report and definition set.
+     * 中文：校验回执是否确认了预期的报告及接口定义集合。
      *
      * @param result receipt returned by Gateway Admin
      * @param expectedReportId expected report identifier
@@ -230,6 +258,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Schedules a future reconciliation attempt while the component is active.
+     * 中文：组件运行期间安排一次未来的报告协调尝试。
      *
      * @param report report associated with the retry
      * @param attempt next attempt number
@@ -252,6 +281,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Computes capped exponential retry delay with stable report-based jitter.
+     * 中文：计算带上限的指数退避时延，并使用报告标识生成稳定抖动。
      *
      * @param report report being retried
      * @param attempt failed attempt number
@@ -270,6 +300,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Tests whether two built reports describe the same definition revision.
+     * 中文：判断两个已构建报告是否描述同一个接口定义版本。
      *
      * @param left first report
      * @param right second report
@@ -285,13 +316,16 @@ public final class GatewayReportingCoordinator
         );
     }
 
-    /** Starts accepting and scheduling reporting work. */
+    /** Starts accepting and scheduling reporting work. 开始接受并调度上报任务。 */
     @Override
     public void start() {
         running.set(true);
     }
 
-    /** Stops reporting and cancels queued worker tasks. */
+    /**
+     * Stops reporting and cancels queued worker tasks.
+     * 停止上报并取消工作器中的排队任务。
+     */
     @Override
     public void stop() {
         running.set(false);
@@ -300,6 +334,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Returns whether the reporting lifecycle component is active.
+     * 中文：返回上报生命周期组件是否处于活动状态。
      *
      * @return {@code true} while reporting is active
      */
@@ -310,6 +345,7 @@ public final class GatewayReportingCoordinator
 
     /**
      * Runs reporting late in startup and stops it early during shutdown.
+     * 中文：使上报在启动后段运行，并在关闭早期停止。
      *
      * @return lifecycle phase
      */

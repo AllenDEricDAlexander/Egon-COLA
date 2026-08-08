@@ -34,6 +34,9 @@ import java.util.Map;
 /**
  * Auto-configures discovery, report construction, transport, persistence, and
  * lifecycle coordination for Gateway interface definition reporting.
+ *
+ * <p>中文：自动装配网关接口定义的发现、报告构建、传输、持久化以及
+ * 生命周期协调组件。
  */
 @AutoConfiguration
 @AutoConfigureAfter(EgonRpcAutoConfig.class)
@@ -47,6 +50,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Creates the factory that converts discovered definitions into reports.
+     * 中文：创建负责将发现结果转换为接口定义报告的工厂。
      *
      * @param properties reporting configuration
      * @return report factory
@@ -60,6 +64,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Discovers all contributed interface groups and builds the startup report.
+     * 中文：收集所有贡献者提供的接口分组并构建启动阶段报告。
      *
      * @param factory report factory
      * @param contributors available definition contributors in Spring order
@@ -80,6 +85,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Exposes the reporting identity derived from the built report.
+     * 中文：暴露由已构建报告派生出的上报身份标识。
      *
      * @param report built report
      * @return reporting definition identity
@@ -93,6 +99,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Adapts the reporting identity to the provider registration contract.
+     * 中文：将上报身份适配为 Provider 注册契约所需的身份对象。
      *
      * @param identity reporting definition identity
      * @return provider-facing definition identity
@@ -112,6 +119,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Creates the in-memory observable state of the reporting lifecycle.
+     * 中文：创建用于观察上报生命周期的内存状态对象。
      *
      * @return reporting state
      */
@@ -123,6 +131,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Creates the signed HTTP client used to communicate with Gateway Admin.
+     * 中文：创建与 Gateway Admin 通信并执行请求签名的 HTTP 客户端。
      *
      * @param properties reporting configuration
      * @return report HTTP client
@@ -136,6 +145,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Creates the persistent report state store at the configured path.
+     * 中文：按照配置路径创建报告状态持久化存储。
      *
      * @param properties reporting configuration
      * @return reporting state store
@@ -151,6 +161,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Creates the lifecycle coordinator that reconciles reports with Admin.
+     * 中文：创建负责将本地报告与 Admin 回执进行协调的生命周期组件。
      *
      * @param properties reporting configuration
      * @param report initial built report
@@ -178,6 +189,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Contributes Spring MVC handler mappings when the MVC stack is active.
+     * 中文：MVC 技术栈启用时，注册 Spring MVC 处理器映射发现贡献者。
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(
@@ -189,6 +201,7 @@ public class GatewayReportingAutoConfiguration {
         /**
          * Creates the MVC definition contributor for the application mapping
          * registry.
+         * 中文：基于应用的 MVC 映射注册表创建接口定义发现贡献者。
          *
          * @param mappings MVC handler mappings
          * @param properties reporting configuration
@@ -216,6 +229,7 @@ public class GatewayReportingAutoConfiguration {
 
     /**
      * Contributes Spring WebFlux handler mappings when WebFlux is active.
+     * 中文：WebFlux 启用时，注册 Spring WebFlux 处理器映射发现贡献者。
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(RequestMappingHandlerMapping.class)
@@ -224,6 +238,7 @@ public class GatewayReportingAutoConfiguration {
         /**
          * Creates the WebFlux definition contributor for the application
          * mapping registry.
+         * 中文：基于应用的 WebFlux 映射注册表创建接口定义发现贡献者。
          *
          * @param mappings WebFlux handler mappings
          * @param properties reporting configuration
@@ -248,6 +263,8 @@ public class GatewayReportingAutoConfiguration {
     /**
      * Contributes RPC definitions and Gateway identity metadata when the RPC
      * contract catalog is available.
+     * 中文：RPC 契约目录可用时，注册 RPC 接口定义和网关身份元数据
+     * 贡献者。
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(RpcContractCatalog.class)
@@ -256,6 +273,7 @@ public class GatewayReportingAutoConfiguration {
         /**
          * Exposes the Gateway definition identity through RPC provider
          * registration metadata.
+         * 中文：通过 RPC Provider 注册元数据暴露网关接口定义身份。
          *
          * @param identity reporting definition identity
          * @return RPC provider metadata contributor
@@ -280,6 +298,7 @@ public class GatewayReportingAutoConfiguration {
         /**
          * Creates the RPC definition contributor backed by the contract
          * catalog.
+         * 中文：基于 RPC 契约目录创建接口定义发现贡献者。
          *
          * @param catalog RPC contract catalog
          * @param properties reporting configuration

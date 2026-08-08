@@ -11,6 +11,8 @@ import java.lang.annotation.Target;
  * Declares an HTTP controller as a catalogued service, giving it the same
  * identity an RPC contract gets from {@code @EgonRpcService}.
  *
+ * <p>将 HTTP 控制器声明为目录化服务，使其拥有与 RPC 契约一致的服务身份。
+ *
  * <p>Without this, an HTTP service is only a bag of loose endpoints: there is no
  * type-level place to say which service they belong to, which group and version
  * they carry, or how much traffic an instance should take. Mirroring the RPC
@@ -36,6 +38,9 @@ public @interface EgonHttpService {
      * an explicit value when the published identity must survive controller
      * renames.
      *
+     * <p>目录中使用的服务名称；为空时根据控制器信息推导。若控制器可能改名，
+     * 请显式指定该值以保持已发布身份稳定。
+     *
      * @return the declared service name, or an empty string to derive it
      */
     String serviceName() default "";
@@ -45,6 +50,8 @@ public @interface EgonHttpService {
      * so a service reachable over both protocols lands in one place unless
      * someone says otherwise.
      *
+     * <p>服务发布所属的逻辑分组。HTTP 与 RPC 共用同一默认分组，除非显式覆盖。
+     *
      * @return the service group
      */
     String group() default "default";
@@ -52,6 +59,8 @@ public @interface EgonHttpService {
     /**
      * Contract version callers pin against. Matches the RPC default so the two
      * protocol surfaces of one service start out aligned.
+     *
+     * <p>调用方依赖的契约版本；同一服务的两种协议默认从相同版本开始。
      *
      * @return the service contract version
      */
@@ -62,6 +71,8 @@ public @interface EgonHttpService {
      * can present absolute paths. Empty means the endpoints' own mappings are
      * already absolute.
      *
+     * <p>服务端点共享的路径前缀；为空表示端点自身的映射已经是绝对路径。
+     *
      * @return the shared path prefix, or an empty string when none is declared
      */
     String basePath() default "";
@@ -71,6 +82,8 @@ public @interface EgonHttpService {
      * weighted balancing policies. Expressed as a share rather than an absolute
      * rate so instances of differing size can be compared without knowing the
      * cluster's total capacity.
+     *
+     * <p>服务实例的相对承载权重，供加权负载均衡策略使用，而不是绝对流量值。
      *
      * @return the relative service capacity weight
      */

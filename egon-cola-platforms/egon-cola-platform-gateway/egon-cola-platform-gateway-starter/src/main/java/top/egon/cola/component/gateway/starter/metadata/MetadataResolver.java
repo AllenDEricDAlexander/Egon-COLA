@@ -30,6 +30,8 @@ import java.util.function.Predicate;
  *         .value();
  * }</pre>
  *
+ * <p>按声明层级从最具体到最不具体解析元数据，并记录最终生效的来源。
+ *
  * @param <T> metadata value type
  */
 public final class MetadataResolver<T> {
@@ -37,6 +39,8 @@ public final class MetadataResolver<T> {
     /**
      * Treats a null, negative number, blank string, empty collection or empty
      * object array as unset.
+     *
+     * <p>默认将 null、负数、空白文本、空集合或空对象数组视为未设置。
      */
     public static final Predicate<Object> DEFAULT_SENTINEL = value -> switch (value) {
         case null -> true;
@@ -47,20 +51,24 @@ public final class MetadataResolver<T> {
         default -> false;
     };
 
-    /** Candidate declarations accumulated for precedence-based resolution. */
+    /** Candidate declarations accumulated for precedence-based resolution. 按优先级解析时累积的候选声明。 */
     private final List<Candidate<T>> candidates = new ArrayList<>();
 
-    /** Predicate that identifies candidate values which do not declare metadata. */
+    /** Predicate that identifies candidate values which do not declare metadata. 用于识别未声明元数据候选值的谓词。 */
     private Predicate<? super T> unset = DEFAULT_SENTINEL;
 
     /**
      * Creates an empty resolution chain using {@link #DEFAULT_SENTINEL}.
+     *
+     * <p>创建使用 {@link #DEFAULT_SENTINEL} 的空解析链。
      */
     private MetadataResolver() {
     }
 
     /**
      * Starts an empty metadata resolution chain.
+     *
+     * <p>启动一个空的元数据解析链，并使用默认的未设置值判断规则。
      *
      * @param <T> metadata value type
      * @return a new resolver using {@link #DEFAULT_SENTINEL}
@@ -75,8 +83,13 @@ public final class MetadataResolver<T> {
      * <p>Order of addition does not matter; levels are ranked by {@link MetadataSource}
      * precedence, so a caller cannot accidentally invert the chain by reordering calls.
      *
+     * <p>添加顺序不影响结果；候选值按 {@link MetadataSource} 的优先级排序，调用方调整调用顺序也不会反转继承关系。
+     *
+     * <p>将指定层级提供的候选元数据加入解析链。
+     *
      * @param source declaration level that supplied the candidate
      * @param value candidate metadata value
+     *
      * @return this resolver
      */
     public MetadataResolver<T> candidate(MetadataSource source, T value) {
@@ -86,6 +99,8 @@ public final class MetadataResolver<T> {
 
     /**
      * Replaces the sentinel test for a type whose unset marker is not the usual one.
+     *
+     * <p>替换未设置值判断规则，适用于未设置标记不同于默认规则的类型。
      *
      * @param predicate predicate returning {@code true} for an unset value
      * @return this resolver
@@ -97,6 +112,8 @@ public final class MetadataResolver<T> {
 
     /**
      * Resolves the highest-precedence set candidate.
+     *
+     * <p>返回优先级最高且已设置的候选值及其来源；所有候选都未设置时使用默认值。
      *
      * @param defaultValue value used when every candidate is unset
      * @return the resolved value and its winning source, or
@@ -112,6 +129,8 @@ public final class MetadataResolver<T> {
 
     /**
      * Candidate value supplied by one declaration level.
+     *
+     * <p>表示由一个声明层级提供的候选元数据值。
      *
      * @param source declaration level that supplied the candidate
      * @param value candidate metadata value

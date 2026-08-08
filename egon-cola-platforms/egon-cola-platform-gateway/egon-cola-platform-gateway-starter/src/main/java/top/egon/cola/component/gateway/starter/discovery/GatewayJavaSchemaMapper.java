@@ -51,27 +51,29 @@ import java.util.UUID;
 /**
  * Maps Jackson-resolved Java types and Gateway field metadata to JSON Schema
  * documents while enforcing declaration, recursion, and size safety rules.
+ * 中文说明：将 Java 类型、网关字段注解和 Bean Validation 约束统一投影为受安全限制的 JSON Schema。
  */
 final class GatewayJavaSchemaMapper {
 
-    /** JSON Schema dialect URI emitted by generated documents. */
+    /** JSON Schema dialect URI emitted by generated documents. 生成文档使用的 JSON Schema 方言 URI。 */
     static final String JSON_SCHEMA_2020_12 =
             "https://json-schema.org/draft/2020-12/schema";
 
-    /** Maximum recursive type depth accepted during schema generation. */
+    /** Maximum recursive type depth accepted during schema generation. Schema 生成允许的最大递归深度。 */
     private static final int MAX_DEPTH = 64;
 
-    /** Maximum number of schema nodes accepted during one generation. */
+    /** Maximum number of schema nodes accepted during one generation. 单次生成允许访问的最大节点数。 */
     private static final int MAX_NODES = 4_000;
 
-    /** Maximum UTF-8 serialized size of a generated schema document. */
+    /** Maximum UTF-8 serialized size of a generated schema document. 生成文档序列化后的最大 UTF-8 字节数。 */
     private static final int MAX_BYTES = 2 * 1024 * 1024;
 
-    /** Jackson mapper used for type construction, introspection, and JSON parsing. */
+    /** Jackson mapper used for type construction, introspection, and JSON parsing. 用于类型构造、反射和 JSON 解析。 */
     private final ObjectMapper objectMapper;
 
     /**
      * Creates a Java schema mapper.
+     * 中文说明：保存用于解析 Gateway 模型和示例的 Jackson 配置。
      *
      * @param objectMapper Jackson mapper configured for Gateway model types
      */
@@ -81,6 +83,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Generates a JSON Schema document for a reflective Java type.
+     * 中文说明：将反射 Type 转为 Jackson JavaType 后生成完整 Schema 文档。
      *
      * @param type reflective Java type
      * @return generated JSON Schema document
@@ -91,6 +94,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Generates a JSON Schema document for a Jackson Java type.
+     * 中文说明：从已解析的 JavaType 自动推导对象、数组、映射和标量形状。
      *
      * @param type resolved Jackson type
      * @return generated JSON Schema document
@@ -102,6 +106,7 @@ final class GatewayJavaSchemaMapper {
     /**
      * Generates a JSON Schema document and applies metadata from an annotated
      * source element when supplied.
+     * 中文说明：根节点会附加字段注解、校验约束及可复用定义，并检查文档大小。
      *
      * @param type resolved Java type
      * @param annotatedElement metadata source, or {@code null}
@@ -129,6 +134,7 @@ final class GatewayJavaSchemaMapper {
     /**
      * Validates an explicit schema declaration and generates the schema for the
      * actual Java type.
+     * 中文说明：先验证显式类和形状与实际 Java 类型一致，再按实际类型生成文档。
      *
      * @param actualType resolved Java type
      * @param declaredClass explicitly declared schema class
@@ -155,6 +161,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Validates an explicit schema class and shape against a resolved Java type.
+     * 中文说明：列表比较元素类型、映射检查字符串键，void 仅允许声明 Void.class。
      *
      * @param actualType resolved Java type
      * @param declaredClass explicitly declared schema class
@@ -214,6 +221,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Classifies a resolved Java type into a Gateway schema shape.
+     * 中文说明：void、列表、映射、标量和对象分别归类为对应 GatewaySchemaShape。
      *
      * @param type resolved Java type
      * @return matching Gateway schema shape
@@ -236,6 +244,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Replaces a root definition reference with a mutable copy of its target.
+     * 中文说明：根节点若只是 $ref，则展开其定义副本，确保调用方可以安全修改结果。
      *
      * @param root generated root schema or reference
      * @param definitions generated definitions
@@ -259,6 +268,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Verifies the serialized UTF-8 size of a generated schema.
+     * 中文说明：Schema 序列化失败或超过 2 MiB 限制时立即拒绝生成结果。
      *
      * @param schema schema document to verify
      * @throws IllegalArgumentException if serialization fails or the byte limit
@@ -283,20 +293,21 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
-    /** Maintains definitions, stable keys, and safety counters for one mapping. */
+    /** Maintains definitions, stable keys, and safety counters for one mapping. 维护一次映射的定义、稳定键和安全计数器。 */
     private final class SchemaContext {
 
-        /** Reusable definitions indexed by stable generated keys. */
+        /** Reusable definitions indexed by stable generated keys. 按稳定生成键索引的可复用定义。 */
         private final Map<String, Object> definitions = new LinkedHashMap<>();
 
-        /** Generated definition keys indexed by canonical Java type. */
+        /** Generated definition keys indexed by canonical Java type. 按 Java 规范类型名索引定义键。 */
         private final Map<String, String> keys = new HashMap<>();
 
-        /** Number of schema nodes visited in this mapping operation. */
+        /** Number of schema nodes visited in this mapping operation. 当前映射已访问的 Schema 节点数。 */
         private int nodes;
 
         /**
          * Maps one Java type node and applies its field metadata.
+         * 中文说明：递归处理 Optional、集合、映射和对象节点，并在每层应用字段元数据。
          *
          * @param sourceType source Java type
          * @param metadata field metadata to apply
@@ -409,6 +420,7 @@ final class GatewayJavaSchemaMapper {
 
         /**
          * Introspects a serializable object type into a reusable definition.
+         * 中文说明：通过 Jackson 序列化属性生成对象定义，递归类型使用稳定引用避免重复展开。
          *
          * @param type object type to introspect
          * @param depth current recursive depth
@@ -457,6 +469,7 @@ final class GatewayJavaSchemaMapper {
 
         /**
          * Returns a stable collision-resistant definition key for a Java type.
+         * 中文说明：键由简单类名和规范类型名摘要组成，兼顾可读性与碰撞规避。
          *
          * @param type Java type to identify
          * @return stable definition key
@@ -480,42 +493,44 @@ final class GatewayJavaSchemaMapper {
     /**
      * Aggregates Gateway and Bean Validation metadata for one schema field and
      * applies it to generated schema nodes.
+     * 中文说明：集中保存字段注解和校验约束，避免在各类节点分支中重复处理。
      */
     private final class FieldMetadata {
 
-        /** Gateway-specific field declaration, or {@code null}. */
+        /** Gateway-specific field declaration, or {@code null}. 网关字段声明，不存在时为 {@code null}。 */
         private final GatewaySchemaField gateway;
 
-        /** Not-null constraint, or {@code null}. */
+        /** Not-null constraint, or {@code null}. 非空约束，不存在时为 {@code null}。 */
         private final NotNull notNull;
-        /** Not-blank constraint, or {@code null}. */
+        /** Not-blank constraint, or {@code null}. 非空白约束，不存在时为 {@code null}。 */
         private final NotBlank notBlank;
-        /** Not-empty constraint, or {@code null}. */
+        /** Not-empty constraint, or {@code null}. 非空集合或字符串约束，不存在时为 {@code null}。 */
         private final NotEmpty notEmpty;
-        /** Size constraint, or {@code null}. */
+        /** Size constraint, or {@code null}. 长度或数量约束，不存在时为 {@code null}。 */
         private final Size size;
-        /** Integral minimum constraint, or {@code null}. */
+        /** Integral minimum constraint, or {@code null}. 整数最小值约束，不存在时为 {@code null}。 */
         private final Min min;
-        /** Integral maximum constraint, or {@code null}. */
+        /** Integral maximum constraint, or {@code null}. 整数最大值约束，不存在时为 {@code null}。 */
         private final Max max;
-        /** Decimal minimum constraint, or {@code null}. */
+        /** Decimal minimum constraint, or {@code null}. 小数最小值约束，不存在时为 {@code null}。 */
         private final DecimalMin decimalMin;
-        /** Decimal maximum constraint, or {@code null}. */
+        /** Decimal maximum constraint, or {@code null}. 小数最大值约束，不存在时为 {@code null}。 */
         private final DecimalMax decimalMax;
-        /** Regular-expression constraint, or {@code null}. */
+        /** Regular-expression constraint, or {@code null}. 正则表达式约束，不存在时为 {@code null}。 */
         private final Pattern pattern;
-        /** Strictly-positive constraint, or {@code null}. */
+        /** Strictly-positive constraint, or {@code null}. 严格正数约束，不存在时为 {@code null}。 */
         private final Positive positive;
-        /** Non-negative constraint, or {@code null}. */
+        /** Non-negative constraint, or {@code null}. 非负数约束，不存在时为 {@code null}。 */
         private final PositiveOrZero positiveOrZero;
-        /** Email-format constraint, or {@code null}. */
+        /** Email-format constraint, or {@code null}. 邮箱格式约束，不存在时为 {@code null}。 */
         private final Email email;
 
-        /** Whether a declared concrete implementation may replace the source type. */
+        /** Whether a declared concrete implementation may replace the source type. 是否允许具体实现替换源类型。 */
         private final boolean implementationEnabled;
 
         /**
          * Creates metadata from a Gateway declaration and annotation lookup.
+         * 中文说明：从字段声明及成员注解查找器收集所有可用约束。
          *
          * @param gateway Gateway field declaration, or {@code null}
          * @param lookup lookup used to resolve Bean Validation annotations
@@ -541,6 +556,7 @@ final class GatewayJavaSchemaMapper {
 
         /**
          * Copies metadata while disabling another implementation substitution.
+         * 中文说明：复制约束信息，同时关闭下一层实现类型替换，防止 Optional 递归重复替换。
          *
          * @param source metadata to copy
          */
@@ -563,6 +579,7 @@ final class GatewayJavaSchemaMapper {
 
         /**
          * Creates a copy that cannot reapply a declared implementation type.
+         * 中文说明：返回禁止再次应用 implementation 的元数据副本。
          *
          * @return metadata copy with implementation substitution disabled
          */
@@ -573,6 +590,7 @@ final class GatewayJavaSchemaMapper {
         /**
          * Applies a declared concrete implementation to a scalar or container
          * content type.
+         * 中文说明：对接口、抽象类、集合元素或映射值应用兼容的具体实现类型。
          *
          * @param source declared source type
          * @return effective type used for schema generation
@@ -609,6 +627,7 @@ final class GatewayJavaSchemaMapper {
         /**
          * Validates that an implementation can legally specialize a source
          * type.
+         * 中文说明：实现类必须可赋值给源类型，且不能为已经具体化的源类重复声明。
          *
          * @param source source type being specialized
          * @param implementation declared implementation class
@@ -642,6 +661,7 @@ final class GatewayJavaSchemaMapper {
         /**
          * Resolves requiredness from Jackson, Bean Validation, and Gateway
          * metadata.
+         * 中文说明：必填性由 Jackson 属性状态、非空约束和 GatewaySchemaField 共同决定。
          *
          * @param property Jackson property being mapped
          * @return {@code true} when the property is required
@@ -665,6 +685,7 @@ final class GatewayJavaSchemaMapper {
 
         /**
          * Validates and applies an explicit Gateway JSON Schema type override.
+         * 中文说明：允许整数向 number 宽化，其余类型覆盖必须与实际 Schema 类型相容。
          *
          * @param schema generated schema node to update
          * @param actualType resolved Java type
@@ -704,6 +725,7 @@ final class GatewayJavaSchemaMapper {
         /**
          * Projects supported Bean Validation annotations into JSON Schema
          * constraints.
+         * 中文说明：把长度、范围、正数、正则和邮箱等 Jakarta 校验约束转换为 Schema 关键字。
          *
          * @param schema generated schema node to update
          * @param type resolved Java type
@@ -796,6 +818,7 @@ final class GatewayJavaSchemaMapper {
 
         /**
          * Applies Gateway description, format, and typed example metadata.
+         * 中文说明：写入网关描述、格式和经过类型校验的示例值。
          *
          * @param schema generated schema node to update
          * @param type resolved Java type
@@ -822,12 +845,13 @@ final class GatewayJavaSchemaMapper {
         }
     }
 
-    /** Resolves a requested annotation from one metadata source. */
+    /** Resolves a requested annotation from one metadata source. 从单个元数据来源解析指定注解。 */
     @FunctionalInterface
     private interface AnnotationLookup {
 
         /**
          * Looks up an annotation by type.
+         * 中文说明：按注解类型读取成员上的声明，不存在时返回 null。
          *
          * @param annotationType annotation type to resolve
          * @return resolved annotation, or {@code null}
@@ -837,6 +861,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Creates metadata with no Gateway or validation annotations.
+     * 中文说明：用于数组、集合和映射内容等没有独立注解来源的节点。
      *
      * @return empty metadata
      */
@@ -846,6 +871,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Reads field metadata directly from one annotated element.
+     * 中文说明：从方法参数、字段或 record component 直接读取 Gateway 与校验注解。
      *
      * @param element metadata source
      * @return resolved field metadata
@@ -860,6 +886,7 @@ final class GatewayJavaSchemaMapper {
     /**
      * Merges metadata from all Jackson members representing one property,
      * including its record component when applicable.
+     * 中文说明：合并字段、访问器、构造参数和 record component，并拒绝冲突声明。
      *
      * @param property Jackson property definition
      * @param rawType declaring raw class
@@ -898,6 +925,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Adds a Jackson member as an annotation lookup when it exists.
+     * 中文说明：仅将实际存在的 Jackson 成员加入查找列表。
      *
      * @param lookups lookup collection to update
      * @param member Jackson member, or {@code null}
@@ -912,6 +940,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Merges one annotation type from multiple property metadata sources.
+     * 中文说明：多个成员声明相同注解时必须完全相等，否则报告属性级冲突。
      *
      * @param lookups metadata sources
      * @param annotationType annotation type to merge
@@ -942,6 +971,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Resolves and casts an annotation from a lookup.
+     * 中文说明：以泛型方式返回查找到的注解实例，缺失时保持 null。
      *
      * @param lookup annotation lookup
      * @param annotationType requested annotation type
@@ -958,6 +988,7 @@ final class GatewayJavaSchemaMapper {
     /**
      * Parses and validates a Gateway field example according to its generated
      * schema type.
+     * 中文说明：示例会按 Schema 类型解析，并额外校验格式、枚举和容器类型。
      *
      * @param value textual example
      * @param schema generated schema node
@@ -1006,6 +1037,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Validates formatted and enumerated string examples.
+     * 中文说明：检查字符串是否属于枚举，并支持 uuid、date 和 date-time 格式校验。
      *
      * @param value string example
      * @param schema generated string schema
@@ -1033,6 +1065,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Ensures a parsed structured example has the expected container type.
+     * 中文说明：数组或对象示例必须解析为声明的容器类型。
      *
      * @param value parsed example
      * @param expected expected container class
@@ -1054,6 +1087,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Requires a generated schema type to be numeric.
+     * 中文说明：只有 integer 或 number 节点可以应用数值范围约束。
      *
      * @param actual generated schema type
      * @param constraint constraint name used in errors
@@ -1071,6 +1105,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Requires an exact generated schema type for a constraint.
+     * 中文说明：字符串、数组等约束只能作用于其对应的 Schema 节点类型。
      *
      * @param actual generated schema type
      * @param expected required schema type
@@ -1090,6 +1125,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Creates a constraint incompatibility exception.
+     * 中文说明：统一报告约束名称与实际 Java 类型，便于定位注解误用。
      *
      * @param constraint incompatible constraint name
      * @param type resolved Java type
@@ -1105,6 +1141,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Applies finite lower and upper size limits to a schema.
+     * 中文说明：仅写入有效的最小值和非默认最大值，避免产生冗余关键字。
      *
      * @param schema schema node to update
      * @param minName lower-bound keyword
@@ -1128,6 +1165,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Resolves a complete generic content type for a container.
+     * 中文说明：集合、映射或 Optional 缺少泛型内容时拒绝生成不完整 Schema。
      *
      * @param type container type
      * @param kind container description used in errors
@@ -1150,6 +1188,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Wraps a schema in an alternative that also accepts JSON null.
+     * 中文说明：将原 Schema 与 null 分支组合，表达 Optional 或可空载荷。
      *
      * @param source non-null schema
      * @return nullable schema
@@ -1162,6 +1201,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Builds a local definition reference.
+     * 中文说明：生成指向当前文档 $defs 的本地引用节点。
      *
      * @param key definition key
      * @return local reference schema
@@ -1172,6 +1212,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Builds an array schema for an item schema.
+     * 中文说明：创建数组节点并把给定 Schema 作为 items。
      *
      * @param items item schema
      * @return array schema
@@ -1184,6 +1225,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Builds a typed schema with a format keyword.
+     * 中文说明：在基础类型上附加 JSON Schema format 信息。
      *
      * @param type JSON Schema type
      * @param format JSON Schema format
@@ -1199,6 +1241,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Builds a schema containing only a type keyword.
+     * 中文说明：创建后续约束处理可继续扩展的最小类型节点。
      *
      * @param type JSON Schema type
      * @return typed schema
@@ -1211,6 +1254,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Compares classes after normalizing primitive types to wrappers.
+     * 中文说明：基本类型和包装类型按同一逻辑值类型比较。
      *
      * @param left first class
      * @param right second class
@@ -1222,6 +1266,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Converts a primitive class to its wrapper class.
+     * 中文说明：将基本类型标准化为包装类，其他类型原样返回。
      *
      * @param type class to normalize
      * @return wrapper class for a primitive, or the original class otherwise
@@ -1235,6 +1280,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Determines whether a raw Java class maps to a scalar schema.
+     * 中文说明：识别字符串、数字、布尔、字符、UUID 和时间类型等标量类。
      *
      * @param raw raw Java class
      * @return {@code true} for supported scalar classes
@@ -1250,6 +1296,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Determines whether a raw Java class maps to an integer schema.
+     * 中文说明：识别 byte、short、int、long 及大整数类型。
      *
      * @param raw raw Java class
      * @return {@code true} for supported integral classes
@@ -1264,6 +1311,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Determines whether a raw Java class maps to a non-integral number schema.
+     * 中文说明：识别浮点和 BigDecimal 等非整数数值类型。
      *
      * @param raw raw Java class
      * @return {@code true} for supported decimal classes
@@ -1276,6 +1324,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Resolves the JSON Schema integer format for a Java integral class.
+     * 中文说明：为 int、long 等整数类型补充对应的位宽格式。
      *
      * @param raw integral Java class
      * @return {@code int32}, {@code int64}, or {@code null}
@@ -1294,6 +1343,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Creates a deterministic twelve-character SHA-256 prefix.
+     * 中文说明：对规范类型名取稳定摘要，作为定义键的短后缀。
      *
      * @param value value to hash
      * @return lowercase hexadecimal hash prefix
@@ -1315,6 +1365,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Creates a mutable deep copy of a schema map.
+     * 中文说明：递归复制 Schema 容器，避免修改时影响原始定义。
      *
      * @param source source map
      * @return recursively copied string-keyed map
@@ -1331,6 +1382,7 @@ final class GatewayJavaSchemaMapper {
 
     /**
      * Recursively copies nested schema maps and lists.
+     * 中文说明：Map 和 List 会继续深拷贝，其他标量值直接返回。
      *
      * @param value schema value to copy
      * @return copied container or original scalar value

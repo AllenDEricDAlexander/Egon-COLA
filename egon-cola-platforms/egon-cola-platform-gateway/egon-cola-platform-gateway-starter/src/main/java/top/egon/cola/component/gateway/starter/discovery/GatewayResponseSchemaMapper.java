@@ -18,25 +18,27 @@ import java.util.Map;
 /**
  * Maps HTTP handler return types to Gateway response JSON Schemas and validates
  * explicit response schema declarations.
+ * 中文说明：根据处理器的真实返回类型生成响应 Schema，并校验注解中的显式声明。
  */
 final class GatewayResponseSchemaMapper {
 
-    /** Fully qualified name of the standard single-result response wrapper. */
+    /** Fully qualified name of the standard single-result response wrapper. 单结果包装器的全限定类名。 */
     private static final String RESULT_RECORD =
             "top.egon.cola.component.common.core.pojo.ResultRecord";
 
-    /** Fully qualified name of the standard paginated response wrapper. */
+    /** Fully qualified name of the standard paginated response wrapper. 分页结果包装器的全限定类名。 */
     private static final String PAGE_RESULT_RECORD =
             "top.egon.cola.component.common.core.pojo.PageResultRecord";
 
-    /** Jackson mapper used to resolve generic return and wrapper property types. */
+    /** Jackson mapper used to resolve generic return and wrapper property types. 用于解析泛型返回值及包装器属性类型。 */
     private final ObjectMapper objectMapper;
 
-    /** Mapper that converts resolved Java types to JSON Schema documents. */
+    /** Mapper that converts resolved Java types to JSON Schema documents. 将解析后的 Java 类型转换为 JSON Schema 文档。 */
     private final GatewayJavaSchemaMapper schemaMapper;
 
     /**
      * Creates a response schema mapper.
+     * 中文说明：初始化类型解析器，并创建 Java 类型到 Schema 的映射器。
      *
      * @param objectMapper Jackson mapper used for type resolution
      */
@@ -48,6 +50,7 @@ final class GatewayResponseSchemaMapper {
     /**
      * Generates the response schema for a handler method and validates any
      * explicit declaration supplied by the Gateway operation.
+     * 中文说明：先剥离 HTTP/响应式容器，再按操作声明校验并生成响应 Schema。
      *
      * @param method handler method whose return type is mapped
      * @param operation Gateway operation declaration, or {@code null}
@@ -89,6 +92,7 @@ final class GatewayResponseSchemaMapper {
     /**
      * Validates an explicit response declaration against the resolved return
      * type, including direct, wrapped, and void responses.
+     * 中文说明：覆盖直接返回、标准包装返回和 void 返回三种声明形态。
      *
      * @param actualType resolved handler response type
      * @param declaration explicit response schema declaration
@@ -162,6 +166,7 @@ final class GatewayResponseSchemaMapper {
 
     /**
      * Resolves the serializable type of a declared wrapper payload property.
+     * 中文说明：通过 Jackson 序列化属性查找包装器中真正可输出的载荷类型。
      *
      * @param wrapperType resolved wrapper type
      * @param payloadField payload property name
@@ -190,6 +195,7 @@ final class GatewayResponseSchemaMapper {
     /**
      * Applies the required-field and nullable-payload rules of standard COLA
      * result wrappers to a generated schema.
+     * 中文说明：标准 ResultRecord 的载荷允许为 null，包装器字段整体按属性名标记为必填。
      *
      * @param schema generated schema to update
      * @param returnType resolved response type
@@ -224,6 +230,7 @@ final class GatewayResponseSchemaMapper {
     /**
      * Unwraps supported HTTP and reactive response containers to the logical
      * response body type.
+     * 中文说明：HttpEntity、Mono 取内容类型，Flux 则转换为列表类型。
      *
      * @param type declared handler return type
      * @return logical body type, with {@code Flux} represented as a list
@@ -250,6 +257,7 @@ final class GatewayResponseSchemaMapper {
     /**
      * Determines whether a response declaration contains only annotation
      * defaults.
+     * 中文说明：仅当包装器、载荷字段、Schema 类和形状均为默认值时才视为未显式声明。
      *
      * @param declaration declaration to inspect
      * @return {@code true} when no explicit schema values were supplied
@@ -263,6 +271,7 @@ final class GatewayResponseSchemaMapper {
 
     /**
      * Compares two classes after normalizing primitive types to wrappers.
+     * 中文说明：比较声明类型时先把基本类型统一为对应包装类型。
      *
      * @param left first class
      * @param right second class
@@ -274,6 +283,7 @@ final class GatewayResponseSchemaMapper {
 
     /**
      * Converts a primitive class to its wrapper class.
+     * 中文说明：将 boolean、数值和 char 等基本类型映射为包装类，非基本类型保持不变。
      *
      * @param type class to normalize
      * @return wrapper class for a primitive, or the original class otherwise
@@ -311,6 +321,7 @@ final class GatewayResponseSchemaMapper {
 
     /**
      * Returns a schema value as a string-keyed map when possible.
+     * 中文说明：仅接受 Map 作为可变 Schema 节点，否则返回新的空映射。
      *
      * @param value candidate map value
      * @return cast map, or an empty mutable map when the value is not a map
@@ -325,6 +336,7 @@ final class GatewayResponseSchemaMapper {
 
     /**
      * Creates a mutable shallow copy with stringified keys.
+     * 中文说明：复制顶层键值并把键转换为字符串，嵌套值不做深拷贝。
      *
      * @param source map to copy
      * @return mutable string-keyed copy

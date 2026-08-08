@@ -34,10 +34,11 @@ import java.util.Set;
 /**
  * Discovers HTTP handler parameters, validates explicit Gateway request schema
  * declarations, and assembles the location-oriented request JSON Schema.
+ * 中文说明：按 Spring 参数绑定位置发现请求字段，校验显式声明并组装分位置的请求 Schema。
  */
 final class GatewayRequestSchemaValidator {
 
-    /** HTTP request locations emitted in deterministic schema order. */
+    /** HTTP request locations emitted in deterministic schema order. 按固定顺序输出 HTTP 请求位置。 */
     private static final List<GatewayRequestLocation> HTTP_LOCATIONS = List.of(
             GatewayRequestLocation.PATH,
             GatewayRequestLocation.QUERY,
@@ -47,14 +48,15 @@ final class GatewayRequestSchemaValidator {
             GatewayRequestLocation.PART
     );
 
-    /** Jackson mapper used to resolve handler parameter types. */
+    /** Jackson mapper used to resolve handler parameter types. 用于解析处理器参数及泛型类型。 */
     private final ObjectMapper objectMapper;
 
-    /** Mapper used to generate and validate Java value schemas. */
+    /** Mapper used to generate and validate Java value schemas. 用于生成并校验 Java 值 Schema。 */
     private final GatewayJavaSchemaMapper schemaMapper;
 
     /**
      * Creates a request schema validator.
+     * 中文说明：创建参数类型解析器和 Java Schema 校验器。
      *
      * @param objectMapper Jackson mapper used for Java type resolution
      */
@@ -66,6 +68,7 @@ final class GatewayRequestSchemaValidator {
     /**
      * Discovers handler request parameters, validates explicit declarations,
      * and generates the complete request schema.
+     * 中文说明：拒绝多请求体、缺少 MCP 字段声明以及不完整或冲突的绑定信息。
      *
      * @param handler Spring handler method
      * @param operation Gateway operation declaration, or {@code null}
@@ -109,6 +112,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Matches discovered parameters to explicit request schema declarations.
+     * 中文说明：每个实际参数必须恰好匹配一个声明，多余声明也会被视为错误。
      *
      * @param handler handler used in validation errors
      * @param actual discovered request parameters
@@ -163,6 +167,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Tests whether a declaration identifies a discovered request parameter.
+     * 中文说明：匹配时同时考虑位置、名称、ModelAttribute 展开标志和请求体根节点语义。
      *
      * @param parameter discovered parameter
      * @param declaration candidate declaration
@@ -189,6 +194,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Validates the expansion and Java schema type of a matched declaration.
+     * 中文说明：展开参数只能是 QUERY/OBJECT，并且声明类型必须与 Java 参数一致。
      *
      * @param handler handler used in validation errors
      * @param parameter discovered parameter
@@ -225,6 +231,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Builds the location-oriented request schema from validated bindings.
+     * 中文说明：将 PATH、QUERY、HEADER、COOKIE、BODY、PART 汇总到根对象，并合并可复用定义。
      *
      * @param bindings validated parameter bindings
      * @return complete Gateway request JSON Schema
@@ -370,6 +377,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Discovers supported HTTP request parameters from a Spring handler.
+     * 中文说明：跳过 Servlet、服务器请求和 Principal 等框架参数，保留方法声明顺序。
      *
      * @param handler handler method to inspect
      * @param routePath route template used to validate path variables
@@ -431,6 +439,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Resolves the Gateway request location for a Spring method parameter.
+     * 中文说明：优先读取 Spring 绑定注解，未标注参数默认归入查询参数。
      *
      * @param parameter method parameter to inspect
      * @return resolved location, defaulting to query
@@ -459,6 +468,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Determines whether a query parameter is expanded from a model object.
+     * 中文说明：ModelAttribute 或非简单类型的未标注查询参数会展开为多个查询属性。
      *
      * @param parameter method parameter to inspect
      * @param location resolved request location
@@ -477,6 +487,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Resolves the externally visible name of a bound request parameter.
+     * 中文说明：依次读取各绑定注解的 name/value，缺省时回退到 Java 参数名。
      *
      * @param parameter method parameter to inspect
      * @return annotation name, annotation value, or Java parameter name
@@ -517,6 +528,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Resolves a Spring binding annotation name with parameter-name fallback.
+     * 中文说明：注解的 name 优先于 value，两个属性都为空时使用参数名。
      *
      * @param name annotation {@code name} attribute
      * @param value annotation {@code value} attribute
@@ -538,6 +550,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Resolves a Java parameter name with a stable index-based fallback.
+     * 中文说明：编译产物没有参数名时使用 arg 加参数索引，保证 Schema 名称稳定。
      *
      * @param parameter method parameter
      * @return discovered or synthetic parameter name
@@ -551,6 +564,7 @@ final class GatewayRequestSchemaValidator {
     /**
      * Resolves whether a parameter is required from Spring binding and Bean
      * Validation annotations.
+     * 中文说明：路径参数始终必填，其余位置综合 Spring required/defaultValue 与校验约束判断。
      *
      * @param parameter method parameter to inspect
      * @param location resolved request location
@@ -600,6 +614,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Reads a supported Spring binding default value.
+     * 中文说明：仅提取查询、请求头和 Cookie 注解中的有效默认值。
      *
      * @param parameter method parameter to inspect
      * @return declared default value, or {@code null} when none exists
@@ -632,6 +647,7 @@ final class GatewayRequestSchemaValidator {
     /**
      * Converts a textual Spring default to the scalar type represented in the
      * request schema.
+     * 中文说明：布尔值、整数和浮点数会转换为对应 JSON 标量，其余默认值保留字符串。
      *
      * @param value textual default value
      * @param type resolved parameter type
@@ -661,6 +677,7 @@ final class GatewayRequestSchemaValidator {
     /**
      * Determines whether a type is treated as one query value rather than an
      * expanded model object.
+     * 中文说明：基本类型、枚举、字符串、数字、UUID 和 java.time 类型按单值处理。
      *
      * @param type raw parameter type
      * @return {@code true} for supported scalar-like types
@@ -676,6 +693,7 @@ final class GatewayRequestSchemaValidator {
     /**
      * Determines whether a handler parameter is framework infrastructure that
      * must be excluded from the Gateway request contract.
+     * 中文说明：基础设施参数不会暴露为网关请求字段。
      *
      * @param type raw parameter type
      * @return {@code true} for supported servlet, server, or principal types
@@ -691,6 +709,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Creates a handler-qualified request schema validation exception.
+     * 中文说明：异常消息包含处理器完整签名，便于定位请求 Schema 配置错误。
      *
      * @param handler invalid handler
      * @param message validation detail
@@ -707,6 +726,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Returns a readable parameter name for validation messages.
+     * 中文说明：根请求体或展开模型没有单一名称时显示为 {@code <root>}。
      *
      * @param parameter request parameter
      * @return parameter name or {@code <root>} for root bodies and expansions
@@ -717,6 +737,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Merges generated reusable definitions while rejecting conflicting keys.
+     * 中文说明：相同定义键只有在 Schema 完全相等时才允许合并。
      *
      * @param target accumulated definitions
      * @param schema generated schema that may contain {@code $defs}
@@ -744,6 +765,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Extracts an embeddable schema body by removing document-level metadata.
+     * 中文说明：嵌入位置对象前移除文档级方言、定义和模型标识字段。
      *
      * @param generated generated schema document
      * @return mutable schema fragment
@@ -758,6 +780,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Returns a schema value as a string-keyed map.
+     * 中文说明：非 Map 值不会被强制转换，而是以不可变空映射表示。
      *
      * @param value candidate map value
      * @return cast map, or an immutable empty map when the value is not a map
@@ -770,6 +793,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Describes one HTTP-bound handler parameter.
+     * 中文说明：记录请求位置、外部名称、必填性、展开状态及用于生成 Schema 的类型信息。
      *
      * @param location request location
      * @param name external parameter name, or an empty string for root values
@@ -792,6 +816,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Contains request schema validation output.
+     * 中文说明：结果同时携带完整请求 Schema 和发现到的参数列表。
      *
      * @param schema complete request JSON Schema
      * @param parameters discovered request parameters
@@ -804,6 +829,7 @@ final class GatewayRequestSchemaValidator {
 
     /**
      * Associates a discovered parameter with its explicit declaration.
+     * 中文说明：声明为空表示该参数使用自动推导的 Schema。
      *
      * @param parameter discovered request parameter
      * @param declaration matched declaration, or {@code null} when inferred

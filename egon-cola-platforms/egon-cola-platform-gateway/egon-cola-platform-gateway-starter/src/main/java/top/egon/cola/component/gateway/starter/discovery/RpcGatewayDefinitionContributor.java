@@ -23,25 +23,29 @@ import java.util.Map;
 /**
  * Discovers Gateway interface definitions from validated RPC contracts and
  * their Protobuf descriptors.
+ *
+ * 基于已校验的 RPC 契约及其 Protobuf 描述符发现网关接口定义。
  */
 public final class RpcGatewayDefinitionContributor
         implements GatewayDefinitionContributor {
 
-    /** Mapper that derives request and response schemas from Protobuf types. */
+    /** Mapper that derives request and response schemas from Protobuf types. 根据 Protobuf 类型推导请求和响应模式的映射器。 */
     private final ProtobufSchemaMapper schemaMapper =
             new ProtobufSchemaMapper();
 
-    /** Catalog containing RPC contract descriptors and validated snapshots. */
+    /** Catalog containing RPC contract descriptors and validated snapshots. 保存 RPC 契约描述符及已校验快照的目录。 */
     private final RpcContractCatalog catalog;
 
-    /** Reporting properties used to identify the provider application. */
+    /** Reporting properties used to identify the provider application. 用于标识提供方应用的报告配置。 */
     private final GatewayReportingProperties properties;
 
     /**
      * Creates an RPC Gateway definition contributor.
      *
-     * @param catalog    the RPC contract catalog
-     * @param properties the Gateway reporting properties
+     * 创建 RPC 网关定义贡献者。
+     *
+     * @param catalog    the RPC contract catalog，RPC 契约目录
+     * @param properties the Gateway reporting properties，网关报告配置
      */
     public RpcGatewayDefinitionContributor(
             RpcContractCatalog catalog,
@@ -54,7 +58,9 @@ public final class RpcGatewayDefinitionContributor
      * Discovers annotated RPC contracts and maps their validated snapshots to
      * Gateway interface groups.
      *
-     * @return the discovered RPC interface groups
+     * 发现带注解的 RPC 契约，并将其已校验快照转换为网关接口分组。
+     *
+     * @return the discovered RPC interface groups，已发现的 RPC 接口分组
      * @throws IllegalArgumentException if a required validated snapshot or
      *                                  descriptor is missing, or an operation
      *                                  declaration is inconsistent
@@ -114,11 +120,13 @@ public final class RpcGatewayDefinitionContributor
     /**
      * Maps one validated RPC method snapshot to a reported operation.
      *
-     * @param group    the declaring interface group annotation
-     * @param contract the RPC contract descriptor
-     * @param snapshot the validated RPC contract snapshot
-     * @param method   the validated RPC method snapshot
-     * @return the reported RPC operation
+     * 将一个已校验的 RPC 方法快照映射为报告中的操作。
+     *
+     * @param group    the declaring interface group annotation，声明接口分组的注解
+     * @param contract the RPC contract descriptor，RPC 契约描述符
+     * @param snapshot the validated RPC contract snapshot，已校验的 RPC 契约快照
+     * @param method   the validated RPC method snapshot，已校验的 RPC 方法快照
+     * @return the reported RPC operation，报告中的 RPC 操作
      * @throws IllegalArgumentException if the method is streaming, its
      *                                  descriptor is missing, or its Gateway
      *                                  declaration conflicts with the RPC
@@ -244,8 +252,10 @@ public final class RpcGatewayDefinitionContributor
      * Rejects Java annotation schemas for RPC operations whose schemas must be
      * derived from the Protobuf descriptor.
      *
-     * @param operation the Gateway operation annotation, or {@code null}
-     * @param method    the RPC method used to identify validation failures
+     * 对于必须从 Protobuf 描述符推导模式的 RPC 操作，拒绝 Java 注解中显式声明的模式。
+     *
+     * @param operation the Gateway operation annotation, or {@code null}，网关操作注解，可为 {@code null}
+     * @param method    the RPC method used to identify validation failures，用于标识校验失败的 RPC 方法
      * @throws IllegalArgumentException if an explicit request or response
      *                                  schema is declared
      */
@@ -270,8 +280,10 @@ public final class RpcGatewayDefinitionContributor
     /**
      * Determines whether a response schema annotation retains all defaults.
      *
-     * @param response the response schema annotation
-     * @return {@code true} when no explicit response schema is declared
+     * 判断响应模式注解是否仍保留全部默认值。
+     *
+     * @param response the response schema annotation，响应模式注解
+     * @return {@code true} when no explicit response schema is declared，未声明显式响应模式时返回 {@code true}
      */
     private boolean defaultResponse(GatewayResponseSchema response) {
         return response.wrapper() == Void.class
@@ -283,9 +295,11 @@ public final class RpcGatewayDefinitionContributor
     /**
      * Creates a method-specific invalid RPC schema exception.
      *
-     * @param method  the invalid RPC method
-     * @param message the validation failure detail
-     * @return the exception describing the invalid schema
+     * 创建包含具体方法信息的无效 RPC 模式异常。
+     *
+     * @param method  the invalid RPC method，无效的 RPC 方法
+     * @param message the validation failure detail，校验失败详情
+     * @return the exception describing the invalid schema，描述无效模式的异常
      */
     private IllegalArgumentException invalid(
             RpcMethodSnapshot method,
@@ -299,8 +313,10 @@ public final class RpcGatewayDefinitionContributor
     /**
      * Finds the validated snapshot corresponding to an RPC contract.
      *
-     * @param contract the RPC contract descriptor
-     * @return the matching validated contract snapshot
+     * 查找与 RPC 契约对应的已校验快照。
+     *
+     * @param contract the RPC contract descriptor，RPC 契约描述符
+     * @return the matching validated contract snapshot，匹配的已校验契约快照
      * @throws IllegalArgumentException if no matching snapshot exists
      */
     private RpcContractSnapshot snapshot(

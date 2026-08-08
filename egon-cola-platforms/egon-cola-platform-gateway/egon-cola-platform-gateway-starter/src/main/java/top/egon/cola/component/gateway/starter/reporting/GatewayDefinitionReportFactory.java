@@ -25,16 +25,25 @@ import java.util.Map;
 /**
  * Builds deterministic Gateway interface definition reports and their stable
  * identities from discovered interface groups.
+ *
+ * <p>中文：根据发现的接口分组构建确定性的网关接口定义报告及其稳定
+ * 身份。
  */
 public final class GatewayDefinitionReportFactory {
 
-    /** Application and build metadata included in generated reports. */
+    /**
+     * Application and build metadata included in generated reports.
+     * 报告中包含的应用及构建元数据。
+     */
     private final GatewayReportingProperties properties;
 
-    /** Time source for report creation timestamps. */
+    /** Time source for report creation timestamps. 生成报告时间戳的时间源。 */
     private final Clock clock;
 
-    /** Deterministically configured mapper used for payload fingerprints. */
+    /**
+     * Deterministically configured mapper used for payload fingerprints.
+     * 用于计算载荷指纹的确定性 JSON 映射器。
+     */
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .addModule(new JavaTimeModule())
             .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
@@ -45,6 +54,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Creates a report factory using the UTC system clock.
+     * 中文：使用 UTC 系统时钟创建报告工厂。
      *
      * @param properties reporting application and build metadata
      */
@@ -55,6 +65,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Creates a report factory with an injectable time source.
+     * 中文：使用可注入的时间源创建报告工厂，便于测试。
      *
      * @param properties reporting application and build metadata
      * @param clock report creation clock
@@ -68,6 +79,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Validates configuration and builds a deterministic complete report.
+     * 中文：校验配置并构建完整且确定性的接口定义报告。
      *
      * @param groups discovered interface groups to aggregate by business and
      *               entity domain
@@ -147,6 +159,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Groups discovered interfaces into sorted business and entity domains.
+     * 中文：将发现的接口按业务域和实体域分组并排序。
      *
      * @param groups discovered interface groups
      * @return immutable business domain definitions
@@ -199,6 +212,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Serializes a value using the deterministic report mapper.
+     * 中文：使用确定性映射器将对象序列化为报告载荷。
      *
      * @param value value to serialize
      * @return serialized JSON bytes
@@ -217,6 +231,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Returns an independent copy of the deterministic report mapper.
+     * 中文：返回确定性报告映射器的独立副本。
      *
      * @return copied object mapper
      */
@@ -226,6 +241,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Computes a lowercase hexadecimal SHA-256 digest.
+     * 中文：计算小写十六进制形式的 SHA-256 摘要。
      *
      * @param value bytes to digest
      * @return hexadecimal digest
@@ -242,6 +258,7 @@ public final class GatewayDefinitionReportFactory {
 
     /**
      * Complete generated report together with its identity and JSON payload.
+     * 中文：封装生成的完整报告、稳定身份以及 JSON 载荷。
      *
      * @param report structured report
      * @param identity stable definition identity
@@ -253,13 +270,17 @@ public final class GatewayDefinitionReportFactory {
             byte[] payload
     ) {
 
-        /** Defensively copies the serialized payload at construction time. */
+        /**
+         * Defensively copies the serialized payload at construction time.
+         * 在构造时对序列化载荷执行防御性复制。
+         */
         public BuiltReport {
             payload = payload.clone();
         }
 
         /**
          * Returns a defensive copy of the serialized report payload.
+         * 中文：返回序列化报告载荷的防御性副本。
          *
          * @return copied payload bytes
          */
@@ -269,24 +290,31 @@ public final class GatewayDefinitionReportFactory {
         }
     }
 
-    /** Mutable aggregation node used while assembling a business domain. */
+    /**
+     * Mutable aggregation node used while assembling a business domain.
+     * 构建业务域时使用的可变聚合节点。
+     */
     private static final class MutableBusiness {
 
-        /** Stable business domain code. */
+        /** Stable business domain code. 稳定的业务域编码。 */
         private final String code;
 
-        /** Human-readable business domain name. */
+        /** Human-readable business domain name. 可读的业务域名称。 */
         private final String name;
 
-        /** Business domain description. */
+        /** Business domain description. 业务域描述。 */
         private final String description;
 
-        /** Entity domains indexed by stable code in encounter order. */
+        /**
+         * Entity domains indexed by stable code in encounter order.
+         * 按稳定编码索引且保持发现顺序的实体域。
+         */
         private final Map<String, MutableEntity> entities =
                 new LinkedHashMap<>();
 
         /**
          * Creates a mutable business aggregation node.
+         * 中文：创建业务域的可变聚合节点。
          *
          * @param code stable business domain code
          * @param name human-readable business domain name
@@ -303,6 +331,7 @@ public final class GatewayDefinitionReportFactory {
 
         /**
          * Freezes the accumulated entity domains into the report contract.
+         * 中文：将已聚合的实体域冻结为报告契约对象。
          *
          * @return immutable business domain definition
          */
@@ -318,25 +347,32 @@ public final class GatewayDefinitionReportFactory {
         }
     }
 
-    /** Mutable aggregation node used while assembling an entity domain. */
+    /**
+     * Mutable aggregation node used while assembling an entity domain.
+     * 构建实体域时使用的可变聚合节点。
+     */
     private static final class MutableEntity {
 
-        /** Stable entity domain code. */
+        /** Stable entity domain code. 稳定的实体域编码。 */
         private final String code;
 
-        /** Human-readable entity domain name. */
+        /** Human-readable entity domain name. 可读的实体域名称。 */
         private final String name;
 
-        /** Entity domain description. */
+        /** Entity domain description. 实体域描述。 */
         private final String description;
 
-        /** Interface groups indexed by stable code in encounter order. */
+        /**
+         * Interface groups indexed by stable code in encounter order.
+         * 按稳定编码索引且保持发现顺序的接口分组。
+         */
         private final Map<String,
                 GatewayInterfaceDefinitionReport.InterfaceGroup> groups =
                 new LinkedHashMap<>();
 
         /**
          * Creates a mutable entity aggregation node.
+         * 中文：创建实体域的可变聚合节点。
          *
          * @param code stable entity domain code
          * @param name human-readable entity domain name
@@ -353,6 +389,7 @@ public final class GatewayDefinitionReportFactory {
 
         /**
          * Freezes the accumulated groups into the report contract.
+         * 中文：将已聚合的接口分组冻结为报告契约对象。
          *
          * @return immutable entity domain definition
          */

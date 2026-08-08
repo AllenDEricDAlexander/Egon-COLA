@@ -18,24 +18,28 @@ import java.util.Set;
 /**
  * Maps normalized Spring HTTP handler mappings to Gateway interface report
  * entries.
+ *
+ * 将标准化的 Spring HTTP 处理器映射转换为网关接口报告条目。
  */
 final class GatewayHttpOperationMapper {
 
-    /** Reporting properties used to identify the provider application. */
+    /** Reporting properties used to identify the provider application. 用于标识提供方应用的报告配置。 */
     private final GatewayReportingProperties properties;
 
-    /** Validator and mapper for HTTP request schemas. */
+    /** Validator and mapper for HTTP request schemas. HTTP 请求模式的校验器与映射器。 */
     private final GatewayRequestSchemaValidator requestSchemaValidator;
 
-    /** Mapper for HTTP response schemas. */
+    /** Mapper for HTTP response schemas. HTTP 响应模式映射器。 */
     private final GatewayResponseSchemaMapper responseSchemaMapper;
 
     /**
      * Creates an HTTP operation mapper.
      *
-     * @param properties   the Gateway reporting properties
+     * 创建 HTTP 操作映射器。
+     *
+     * @param properties   the Gateway reporting properties，网关报告配置
      * @param objectMapper the object mapper used for request and response
-     *                     schema processing
+     *                     schema processing；用于处理请求和响应模式的对象映射器
      */
     GatewayHttpOperationMapper(
             GatewayReportingProperties properties,
@@ -53,10 +57,12 @@ final class GatewayHttpOperationMapper {
      * Maps all normalized HTTP mappings for a handler type to one interface
      * group.
      *
-     * @param beanType the handler bean type
-     * @param mappings the normalized mappings declared by the handler type
+     * 将处理器类型的全部标准化 HTTP 映射汇总为一个接口分组。
+     *
+     * @param beanType the handler bean type，处理器 Bean 类型
+     * @param mappings the normalized mappings declared by the handler type，处理器类型声明的标准化映射
      * @return the discovered interface group, or {@code null} when the handler
-     *         type has no {@link GatewayInterfaceGroup} annotation
+     *         type has no {@link GatewayInterfaceGroup} annotation；未标注 {@link GatewayInterfaceGroup} 时返回 {@code null}
      * @throws IllegalArgumentException if operation keys collide or an
      *                                  operation declaration is invalid
      */
@@ -120,11 +126,13 @@ final class GatewayHttpOperationMapper {
     /**
      * Maps one HTTP method and path combination to a reported operation.
      *
-     * @param group      the declaring interface group annotation
-     * @param mapping    the normalized handler mapping
-     * @param httpMethod the HTTP method name
-     * @param path       the mapped request path
-     * @return the reported HTTP operation
+     * 将一个 HTTP 方法与路径组合映射为报告中的操作。
+     *
+     * @param group      the declaring interface group annotation，声明接口分组的注解
+     * @param mapping    the normalized handler mapping，标准化处理器映射
+     * @param httpMethod the HTTP method name，HTTP 方法名称
+     * @param path       the mapped request path，映射的请求路径
+     * @return the reported HTTP operation，报告中的 HTTP 操作
      * @throws IllegalArgumentException if the request, response, or MCP
      *                                  declaration is invalid
      */
@@ -210,11 +218,13 @@ final class GatewayHttpOperationMapper {
     /**
      * Normalized HTTP mapping data shared by MVC and WebFlux discovery.
      *
-     * @param handler  the mapped handler method
-     * @param paths    the mapped request paths
-     * @param methods  the mapped HTTP method names
-     * @param consumes the accepted media types
-     * @param produces the produced media types
+     * MVC 与 WebFlux 发现流程共用的标准化 HTTP 映射数据。
+     *
+     * @param handler  the mapped handler method，映射的处理器方法
+     * @param paths    the mapped request paths，映射的请求路径集合
+     * @param methods  the mapped HTTP method names，映射的 HTTP 方法名称集合
+     * @param consumes the accepted media types，接受的媒体类型集合
+     * @param produces the produced media types，生成的媒体类型集合
      */
     record Mapping(
             HandlerMethod handler,

@@ -9,67 +9,109 @@ import java.util.List;
 /**
  * Configuration properties for reporting discovered Gateway interface
  * definitions to Gateway Admin.
+ *
+ * <p>中文：配置向 Gateway Admin 上报已发现接口定义所需的全部属性。
  */
 @ConfigurationProperties("egon.cola.component.gateway.reporting")
 public class GatewayReportingProperties {
 
-    /** Whether interface definition reporting is enabled. */
+    /** Whether interface definition reporting is enabled. 是否启用接口定义上报。 */
     private boolean enabled;
 
-    /** Base URL of the Gateway Admin reporting endpoint. */
+    /**
+     * Base URL of the Gateway Admin reporting endpoint.
+     * Gateway Admin 上报端点的基础 URL。
+     */
     private String adminBaseUrl;
 
-    /** Stable code identifying the reporting application. */
+    /** Stable code identifying the reporting application. 标识上报应用的稳定编码。 */
     private String applicationCode;
 
-    /** Business code that owns the reporting application. */
+    /** Business code that owns the reporting application. 上报应用所属的业务编码。 */
     private String bizCode;
 
-    /** Human-readable name of the reporting application. */
+    /** Human-readable name of the reporting application. 上报应用的可读名称。 */
     private String applicationName;
 
-    /** Environment in which the reporting application is running. */
+    /**
+     * Environment in which the reporting application is running.
+     * 上报应用运行所在的环境。
+     */
     private String env;
 
-    /** Namespace used to scope the reported definitions. */
+    /**
+     * Namespace used to scope the reported definitions.
+     * 用于限定接口定义范围的命名空间。
+     */
     private String namespace = "default";
 
-    /** Version of the artifact that contributes the definitions. */
+    /**
+     * Version of the artifact that contributes the definitions.
+     * 提供接口定义的构件版本。
+     */
     private String artifactVersion;
 
-    /** Identifier of the concrete application build. */
+    /** Identifier of the concrete application build. 具体应用构建的标识。 */
     private String buildId;
 
-    /** Hosts explicitly declared by the application for HTTP exposure. */
+    /**
+     * Hosts explicitly declared by the application for HTTP exposure.
+     * 应用显式声明的 HTTP 暴露主机。
+     */
     private List<String> declaredHosts = new ArrayList<>();
 
-    /** Whether initial reporting failures should fail application startup. */
+    /**
+     * Whether initial reporting failures should fail application startup.
+     * 初次上报失败时是否阻止应用启动。
+     */
     private boolean failFast;
 
-    /** Access key used to sign requests sent to Gateway Admin. */
+    /**
+     * Access key used to sign requests sent to Gateway Admin.
+     * 向 Gateway Admin 发送签名请求使用的访问密钥。
+     */
     private String accessKey;
 
-    /** Secret key used to sign requests sent to Gateway Admin. */
+    /**
+     * Secret key used to sign requests sent to Gateway Admin.
+     * 向 Gateway Admin 发送签名请求使用的秘密密钥。
+     */
     private String secretKey;
 
-    /** Maximum time allowed to establish the Admin HTTP connection. */
+    /**
+     * Maximum time allowed to establish the Admin HTTP connection.
+     * 建立 Admin HTTP 连接允许的最长时间。
+     */
     private Duration connectTimeout = Duration.ofSeconds(3);
 
-    /** Maximum time allowed to read an Admin HTTP response. */
+    /**
+     * Maximum time allowed to read an Admin HTTP response.
+     * 读取 Admin HTTP 响应允许的最长时间。
+     */
     private Duration readTimeout = Duration.ofSeconds(10);
 
-    /** Maximum number of consecutive short-backoff reporting attempts. */
+    /**
+     * Maximum number of consecutive short-backoff reporting attempts.
+     * 连续短退避上报的最大尝试次数。
+     */
     private int maxAttempts = 5;
 
-    /** Delay before reconciliation resumes after short retries are exhausted. */
+    /**
+     * Delay before reconciliation resumes after short retries are exhausted.
+     * 短重试耗尽后恢复协调前的等待时间。
+     */
     private Duration reconcileInterval = Duration.ofMinutes(5);
 
-    /** Local file used to persist pending and acknowledged report state. */
+    /**
+     * Local file used to persist pending and acknowledged report state.
+     * 持久化待处理和已确认报告状态的本地文件。
+     */
     private String stateFile =
             "data/gateway-definition-report.state";
 
     /**
      * Validates all properties required when reporting is enabled.
+     * 中文：上报启用时校验所有必需配置，并检查重试参数范围。
      *
      * @throws IllegalArgumentException if a required property is missing or a
      *                                  retry setting is outside its supported
@@ -108,6 +150,7 @@ public class GatewayReportingProperties {
 
     /**
      * Requires a non-blank configuration value.
+     * 中文：要求配置值非空且不全为空白。
      *
      * @param value configured value
      * @param field property name used in validation errors
@@ -123,6 +166,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns whether interface definition reporting is enabled.
+     * 中文：返回是否启用接口定义上报。
      *
      * @return {@code true} when reporting is enabled
      */
@@ -132,6 +176,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets whether interface definition reporting is enabled.
+     * 中文：设置是否启用接口定义上报。
      *
      * @param enabled whether reporting is enabled
      */
@@ -141,6 +186,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the Gateway Admin base URL.
+     * 中文：返回 Gateway Admin 基础 URL。
      *
      * @return Gateway Admin base URL
      */
@@ -150,6 +196,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the Gateway Admin base URL.
+     * 中文：设置 Gateway Admin 基础 URL。
      *
      * @param adminBaseUrl Gateway Admin base URL
      */
@@ -159,6 +206,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the reporting application code.
+     * 中文：返回上报应用编码。
      *
      * @return application code
      */
@@ -168,6 +216,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the reporting application code.
+     * 中文：设置上报应用编码。
      *
      * @param applicationCode application code
      */
@@ -177,6 +226,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the owning business code.
+     * 中文：返回所属业务编码。
      *
      * @return business code
      */
@@ -186,6 +236,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the owning business code.
+     * 中文：设置所属业务编码。
      *
      * @param bizCode business code
      */
@@ -195,6 +246,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the reporting application name.
+     * 中文：返回上报应用名称。
      *
      * @return application name
      */
@@ -204,6 +256,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the reporting application name.
+     * 中文：设置上报应用名称。
      *
      * @param applicationName application name
      */
@@ -213,6 +266,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the application environment.
+     * 中文：返回应用运行环境。
      *
      * @return environment name
      */
@@ -222,6 +276,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the application environment.
+     * 中文：设置应用运行环境。
      *
      * @param env environment name
      */
@@ -231,6 +286,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the definition namespace.
+     * 中文：返回接口定义命名空间。
      *
      * @return namespace
      */
@@ -240,6 +296,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the definition namespace.
+     * 中文：设置接口定义命名空间。
      *
      * @param namespace namespace
      */
@@ -249,6 +306,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the reporting artifact version.
+     * 中文：返回上报构件版本。
      *
      * @return artifact version
      */
@@ -258,6 +316,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the reporting artifact version.
+     * 中文：设置上报构件版本。
      *
      * @param artifactVersion artifact version
      */
@@ -267,6 +326,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the application build identifier.
+     * 中文：返回应用构建标识。
      *
      * @return build identifier
      */
@@ -276,6 +336,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the application build identifier.
+     * 中文：设置应用构建标识。
      *
      * @param buildId build identifier
      */
@@ -285,6 +346,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns an immutable snapshot of explicitly declared hosts.
+     * 中文：返回显式声明主机列表的不可变快照。
      *
      * @return declared hosts
      */
@@ -294,6 +356,7 @@ public class GatewayReportingProperties {
 
     /**
      * Replaces the explicitly declared hosts with a defensive copy.
+     * 中文：使用防御性副本替换显式声明的主机列表。
      *
      * @param declaredHosts declared hosts, or {@code null} to clear them
      */
@@ -305,6 +368,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns whether an initial reporting failure fails startup.
+     * 中文：返回初次上报失败是否会阻止启动。
      *
      * @return {@code true} when fail-fast reporting is enabled
      */
@@ -314,6 +378,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets whether an initial reporting failure fails startup.
+     * 中文：设置初次上报失败是否阻止启动。
      *
      * @param failFast whether fail-fast reporting is enabled
      */
@@ -323,6 +388,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the reporting access key.
+     * 中文：返回上报请求使用的访问密钥。
      *
      * @return access key
      */
@@ -332,6 +398,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the reporting access key.
+     * 中文：设置上报请求使用的访问密钥。
      *
      * @param accessKey access key
      */
@@ -341,6 +408,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the reporting secret key.
+     * 中文：返回上报请求使用的秘密密钥。
      *
      * @return secret key
      */
@@ -350,6 +418,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the reporting secret key.
+     * 中文：设置上报请求使用的秘密密钥。
      *
      * @param secretKey secret key
      */
@@ -359,6 +428,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the Admin connection timeout.
+     * 中文：返回 Admin 连接超时时间。
      *
      * @return connection timeout
      */
@@ -368,6 +438,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the Admin connection timeout.
+     * 中文：设置 Admin 连接超时时间。
      *
      * @param connectTimeout connection timeout
      */
@@ -377,6 +448,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the Admin response read timeout.
+     * 中文：返回 Admin 响应读取超时时间。
      *
      * @return read timeout
      */
@@ -386,6 +458,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the Admin response read timeout.
+     * 中文：设置 Admin 响应读取超时时间。
      *
      * @param readTimeout read timeout
      */
@@ -395,6 +468,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the maximum consecutive short-backoff attempts.
+     * 中文：返回连续短退避尝试的最大次数。
      *
      * @return maximum attempt count
      */
@@ -404,6 +478,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the maximum consecutive short-backoff attempts.
+     * 中文：设置连续短退避尝试的最大次数。
      *
      * @param maxAttempts maximum attempt count
      */
@@ -413,6 +488,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the long reconciliation interval.
+     * 中文：返回长期协调间隔。
      *
      * @return reconciliation interval
      */
@@ -422,6 +498,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the long reconciliation interval.
+     * 中文：设置长期协调间隔。
      *
      * @param reconcileInterval reconciliation interval
      */
@@ -431,6 +508,7 @@ public class GatewayReportingProperties {
 
     /**
      * Returns the local reporting state file path.
+     * 中文：返回本地上报状态文件路径。
      *
      * @return state file path
      */
@@ -440,6 +518,7 @@ public class GatewayReportingProperties {
 
     /**
      * Sets the local reporting state file path.
+     * 中文：设置本地上报状态文件路径。
      *
      * @param stateFile state file path
      */

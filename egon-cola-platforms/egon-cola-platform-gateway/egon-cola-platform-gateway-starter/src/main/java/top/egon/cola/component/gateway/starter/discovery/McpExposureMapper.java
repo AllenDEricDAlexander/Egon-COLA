@@ -12,31 +12,35 @@ import java.util.regex.Pattern;
 /**
  * Validates MCP exposure declarations and maps them to operation report
  * attributes.
+ *
+ * 校验 MCP 暴露声明，并将其转换为操作报告属性。
  */
 final class McpExposureMapper {
 
-    /** Attribute key under which MCP exposure metadata is reported. */
+    /** Attribute key under which MCP exposure metadata is reported. 报告 MCP 暴露元数据所使用的属性键。 */
     static final String ATTRIBUTE_NAME = "mcpExposure";
 
-    /** Pattern accepted for MCP permission identifiers. */
+    /** Pattern accepted for MCP permission identifiers. MCP 权限标识符必须匹配的格式。 */
     private static final Pattern PERMISSION = Pattern.compile(
             "^[a-z][a-z0-9._-]*(?::[A-Za-z0-9._*-]+)+$"
     );
 
-    /** Prevents instantiation of this utility class. */
+    /** Prevents instantiation of this utility class. 防止实例化此工具类。 */
     private McpExposureMapper() {
     }
 
     /**
      * Maps an operation's MCP exposure declaration to report attributes.
      *
-     * @param group             the declaring interface group annotation
-     * @param operation         the operation annotation, or {@code null}
-     * @param operationIdentity the operation identity used in error messages
-     * @param streaming         whether the operation has streaming semantics
-     * @param parameters        the request parameters to validate for MCP use
+     * 将操作的 MCP 暴露声明映射为报告属性。
+     *
+     * @param group             the declaring interface group annotation，声明接口分组的注解
+     * @param operation         the operation annotation, or {@code null}，操作注解，可为 {@code null}
+     * @param operationIdentity the operation identity used in error messages，错误消息中使用的操作标识
+     * @param streaming         whether the operation has streaming semantics，操作是否具有流式语义
+     * @param parameters        the request parameters to validate for MCP use，待校验 MCP 使用条件的请求参数
      * @return MCP exposure attributes, or an empty map when MCP registration
-     *         is not requested
+     *         is not requested，MCP 暴露属性；未请求注册时返回空映射
      * @throws IllegalArgumentException if the requested exposure is invalid or
      *                                  unsupported
      */
@@ -94,8 +98,10 @@ final class McpExposureMapper {
     /**
      * Validates whether a request parameter can be supplied through MCP.
      *
-     * @param operationIdentity the operation identity used in error messages
-     * @param parameter         the request parameter to validate
+     * 校验请求参数是否可以通过 MCP 提供。
+     *
+     * @param operationIdentity the operation identity used in error messages，错误消息中使用的操作标识
+     * @param parameter         the request parameter to validate，待校验的请求参数
      * @throws IllegalArgumentException if the parameter requires unsupported
      *                                  multipart, header, or cookie binding
      */
@@ -126,10 +132,12 @@ final class McpExposureMapper {
     /**
      * Requires and normalizes a non-blank MCP declaration value.
      *
-     * @param value             the declared value
-     * @param field             the declaration field name
-     * @param operationIdentity the operation identity used in error messages
-     * @return the trimmed declaration value
+     * 要求 MCP 声明值非空白，并对其进行规范化处理。
+     *
+     * @param value             the declared value，声明的值
+     * @param field             the declaration field name，声明字段名称
+     * @param operationIdentity the operation identity used in error messages，错误消息中使用的操作标识
+     * @return the trimmed declaration value，去除首尾空白后的声明值
      * @throws IllegalArgumentException if the value is {@code null} or blank
      */
     private static String required(
@@ -145,8 +153,10 @@ final class McpExposureMapper {
     /**
      * Throws an exception describing an invalid MCP exposure declaration.
      *
-     * @param operationIdentity the invalid operation identity
-     * @param message           the validation failure detail
+     * 抛出描述无效 MCP 暴露声明的异常。
+     *
+     * @param operationIdentity the invalid operation identity，无效的操作标识
+     * @param message           the validation failure detail，校验失败详情
      * @throws IllegalArgumentException always
      */
     private static void invalid(String operationIdentity, String message) {

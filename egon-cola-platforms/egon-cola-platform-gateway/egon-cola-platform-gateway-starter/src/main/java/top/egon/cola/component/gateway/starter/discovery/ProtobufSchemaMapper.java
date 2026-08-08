@@ -17,14 +17,16 @@ import java.util.Map;
 /**
  * Converts Protobuf message descriptors to JSON Schema documents used by
  * Gateway RPC discovery.
+ * 中文说明：以 Protobuf 描述符为唯一输入，生成 RPC 发现使用的 JSON Schema 及递归定义。
  */
 final class ProtobufSchemaMapper {
 
-    /** Mapper used to parse JSON examples declared in Protobuf field options. */
+    /** Mapper used to parse JSON examples declared in Protobuf field options. 用于解析字段选项中的 JSON 示例。 */
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Generates a JSON Schema document for a Protobuf message descriptor.
+     * 中文说明：根消息引用会被展开，递归消息则保留在 $defs 中并通过引用复用。
      *
      * @param descriptor root message descriptor
      * @return generated JSON Schema with reusable definitions
@@ -50,18 +52,19 @@ final class ProtobufSchemaMapper {
         return result;
     }
 
-    /** Maintains recursive definitions while mapping one descriptor graph. */
+    /** Maintains recursive definitions while mapping one descriptor graph. 维护一次描述符图遍历中的递归定义。 */
     private final class Context {
 
-        /** Definitions indexed by stable Protobuf message keys. */
+        /** Definitions indexed by stable Protobuf message keys. 按稳定键索引 Protobuf 消息定义。 */
         private final Map<String, Object> definitions = new LinkedHashMap<>();
 
-        /** Definition keys indexed by fully qualified Protobuf message name. */
+        /** Definition keys indexed by fully qualified Protobuf message name. 按消息全限定名索引定义键。 */
         private final Map<String, String> keys = new LinkedHashMap<>();
 
         /**
          * Maps a message descriptor to a well-known schema or definition
          * reference.
+         * 中文说明：先识别 Google well-known 类型，普通消息则创建可递归引用的对象定义。
          *
          * @param descriptor message descriptor to map
          * @return schema fragment or definition reference
@@ -103,6 +106,7 @@ final class ProtobufSchemaMapper {
         /**
          * Maps a Protobuf field, including repetition, map, oneof, and custom
          * option metadata.
+         * 中文说明：重复字段生成数组，map 字段生成 additionalProperties，并保留 Protobuf 元数据。
          *
          * @param field field descriptor to map
          * @return field schema
@@ -149,6 +153,7 @@ final class ProtobufSchemaMapper {
 
         /**
          * Maps the scalar or aggregate value type of a Protobuf field.
+         * 中文说明：标量、枚举和嵌套消息分别映射为 JSON 基础类型、枚举或定义引用。
          *
          * @param field field descriptor whose value type is mapped
          * @return value schema
@@ -176,6 +181,7 @@ final class ProtobufSchemaMapper {
 
         /**
          * Resolves whether a field is required by Protobuf or Gateway options.
+         * 中文说明：Gateway_OPTIONAL 不能削弱 Protobuf 原生 required 字段的约束。
          *
          * @param field field descriptor to inspect
          * @return {@code true} when the field must be present
@@ -201,6 +207,7 @@ final class ProtobufSchemaMapper {
         /**
          * Applies Gateway description, format, and example options to a field
          * schema.
+         * 中文说明：字段选项中的描述、格式和示例会写入生成的 Schema 节点。
          *
          * @param schema field schema to update
          * @param field source field descriptor
@@ -228,6 +235,7 @@ final class ProtobufSchemaMapper {
 
         /**
          * Reads the Gateway schema extension from a field descriptor.
+         * 中文说明：未声明扩展选项时返回 null，避免为普通字段添加额外元数据。
          *
          * @param field field descriptor to inspect
          * @return configured option, or {@code null} when absent
@@ -242,6 +250,7 @@ final class ProtobufSchemaMapper {
 
         /**
          * Adds JSON Schema alternatives for each real Protobuf oneof group.
+         * 中文说明：每个 oneof 分支通过 required 条件表达互斥选择关系。
          *
          * @param definition message definition to update
          * @param descriptor message descriptor containing oneof groups
@@ -270,6 +279,7 @@ final class ProtobufSchemaMapper {
 
         /**
          * Creates the stable definition key for a Protobuf message.
+         * 中文说明：将全限定消息名中的点替换为下划线，得到可用于 $defs 的稳定键。
          *
          * @param descriptor message descriptor
          * @return definition-safe key derived from the full message name
@@ -281,6 +291,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Maps supported Google well-known message types to their JSON forms.
+     * 中文说明：时间、持续时间、包装类型、Struct、ListValue 等按约定 JSON 形态直接映射。
      *
      * @param descriptor descriptor to inspect
      * @return mapped schema, or {@code null} for a regular message
@@ -337,6 +348,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Parses and validates a field-option example against its generated schema.
+     * 中文说明：示例按生成节点的 type 解析为正确的数字、布尔、数组或对象，并校验枚举值。
      *
      * @param value textual example value
      * @param schema generated field schema
@@ -388,6 +400,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Ensures a parsed structured example has the expected container type.
+     * 中文说明：数组示例必须解析为 List，对象示例必须解析为 Map。
      *
      * @param value parsed example value
      * @param expected expected container class
@@ -403,6 +416,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Builds a string enumeration schema from a Protobuf enum descriptor.
+     * 中文说明：枚举值使用 Protobuf 符号名称输出，并记录枚举的全限定类型名。
      *
      * @param descriptor enum descriptor
      * @return enumeration schema
@@ -422,6 +436,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Builds a closed empty-object schema.
+     * 中文说明：空消息禁止附加属性，明确表示没有可传输字段。
      *
      * @return empty-object schema
      */
@@ -434,6 +449,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Builds a typed schema with a format keyword.
+     * 中文说明：在基础 JSON 类型上附加 date-time、整数宽度等格式信息。
      *
      * @param type JSON Schema type
      * @param format JSON Schema format
@@ -447,6 +463,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Builds a schema containing only a JSON Schema type keyword.
+     * 中文说明：创建仅包含 type 的最小 Schema 节点，供其他映射方法继续补充。
      *
      * @param type JSON Schema type
      * @return typed schema
@@ -459,6 +476,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Builds a local definition reference.
+     * 中文说明：生成指向当前文档 $defs 的本地引用。
      *
      * @param key definition key
      * @return local reference schema
@@ -469,6 +487,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Casts a known schema value to a string-keyed map.
+     * 中文说明：调用方已确认值是 Schema 映射，因此这里只做受控类型转换。
      *
      * @param value map value to cast
      * @return cast map
@@ -480,6 +499,7 @@ final class ProtobufSchemaMapper {
 
     /**
      * Creates a mutable shallow copy with stringified keys.
+     * 中文说明：复制顶层内容并统一键类型，便于后续加入 Protobuf 元数据。
      *
      * @param source map to copy
      * @return mutable string-keyed copy
