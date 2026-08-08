@@ -21,6 +21,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaFi
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaRequired;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
+import top.egon.cola.component.gateway.starter.discovery.mapper.GatewayJavaSchemaMapper;
 
 import java.lang.reflect.AnnotatedElement;
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ import java.util.Set;
  * declarations, and assembles the location-oriented request JSON Schema.
  * 中文说明：按 Spring 参数绑定位置发现请求字段，校验显式声明并组装分位置的请求 Schema。
  */
-final class GatewayRequestSchemaValidator {
+public final class GatewayRequestSchemaValidator {
 
     /** HTTP request locations emitted in deterministic schema order. 按固定顺序输出 HTTP 请求位置。 */
     private static final List<GatewayRequestLocation> HTTP_LOCATIONS = List.of(
@@ -60,7 +61,7 @@ final class GatewayRequestSchemaValidator {
      *
      * @param objectMapper Jackson mapper used for Java type resolution
      */
-    GatewayRequestSchemaValidator(ObjectMapper objectMapper) {
+    public GatewayRequestSchemaValidator(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.schemaMapper = new GatewayJavaSchemaMapper(objectMapper);
     }
@@ -77,7 +78,7 @@ final class GatewayRequestSchemaValidator {
      * @throws IllegalArgumentException if handler bindings or declarations are
      *         incomplete, ambiguous, or incompatible
      */
-    Result validate(
+    public Result validate(
             HandlerMethod handler,
             GatewayOperation operation,
             String routePath) {
@@ -803,7 +804,7 @@ final class GatewayRequestSchemaValidator {
      * @param annotatedElement source element carrying schema annotations
      * @param defaultValue textual binding default, or {@code null}
      */
-    record RequestParameter(
+    public record RequestParameter(
             GatewayRequestLocation location,
             String name,
             boolean required,
@@ -821,7 +822,7 @@ final class GatewayRequestSchemaValidator {
      * @param schema complete request JSON Schema
      * @param parameters discovered request parameters
      */
-    record Result(
+    public record Result(
             Map<String, Object> schema,
             List<RequestParameter> parameters
     ) {

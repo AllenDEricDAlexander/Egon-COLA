@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery;
+package top.egon.cola.component.gateway.starter.discovery.mapper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -8,6 +8,9 @@ import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefini
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.GatewayOperationSemantics;
+import top.egon.cola.component.gateway.starter.discovery.GatewayRequestSchemaValidator;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,7 +24,7 @@ import java.util.Set;
  *
  * 将标准化的 Spring HTTP 处理器映射转换为网关接口报告条目。
  */
-final class GatewayHttpOperationMapper {
+public final class GatewayHttpOperationMapper {
 
     /** Reporting properties used to identify the provider application. 用于标识提供方应用的报告配置。 */
     private final GatewayReportingProperties properties;
@@ -41,7 +44,7 @@ final class GatewayHttpOperationMapper {
      * @param objectMapper the object mapper used for request and response
      *                     schema processing；用于处理请求和响应模式的对象映射器
      */
-    GatewayHttpOperationMapper(
+    public GatewayHttpOperationMapper(
             GatewayReportingProperties properties,
             ObjectMapper objectMapper) {
         this.properties = properties;
@@ -66,7 +69,7 @@ final class GatewayHttpOperationMapper {
      * @throws IllegalArgumentException if operation keys collide or an
      *                                  operation declaration is invalid
      */
-    GatewayDefinitionContributor.DiscoveredInterfaceGroup group(
+    public GatewayDefinitionContributor.DiscoveredInterfaceGroup group(
             Class<?> beanType,
             List<Mapping> mappings) {
         GatewayInterfaceGroup annotation =
@@ -226,7 +229,7 @@ final class GatewayHttpOperationMapper {
      * @param consumes the accepted media types，接受的媒体类型集合
      * @param produces the produced media types，生成的媒体类型集合
      */
-    record Mapping(
+    public record Mapping(
             HandlerMethod handler,
             Set<String> paths,
             Set<String> methods,

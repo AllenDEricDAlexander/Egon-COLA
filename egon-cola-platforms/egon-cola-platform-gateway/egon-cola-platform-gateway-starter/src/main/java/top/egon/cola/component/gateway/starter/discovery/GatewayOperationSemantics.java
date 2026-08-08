@@ -9,7 +9,7 @@ import java.util.List;
  *
  * 为可选的 {@link GatewayOperation} 语义提供空值安全的访问方法。
  */
-final class GatewayOperationSemantics {
+public final class GatewayOperationSemantics {
 
     /** Prevents instantiation of this utility class. 防止实例化此工具类。 */
     private GatewayOperationSemantics() {
@@ -23,7 +23,7 @@ final class GatewayOperationSemantics {
      * @param operation the operation annotation, or {@code null}，操作注解，可为 {@code null}
      * @return the declared tags, or an empty list when no annotation is present，声明的标签；没有注解时返回空列表
      */
-    static List<String> tags(GatewayOperation operation) {
+    public static List<String> tags(GatewayOperation operation) {
         return operation == null
                 ? List.of()
                 : List.of(operation.tags());
@@ -37,7 +37,7 @@ final class GatewayOperationSemantics {
      * @param operation the operation annotation, or {@code null}，操作注解，可为 {@code null}
      * @return {@code true} when the annotation declares idempotency，注解声明幂等时返回 {@code true}
      */
-    static boolean idempotent(GatewayOperation operation) {
+    public static boolean idempotent(GatewayOperation operation) {
         return operation != null && operation.idempotent();
     }
 }

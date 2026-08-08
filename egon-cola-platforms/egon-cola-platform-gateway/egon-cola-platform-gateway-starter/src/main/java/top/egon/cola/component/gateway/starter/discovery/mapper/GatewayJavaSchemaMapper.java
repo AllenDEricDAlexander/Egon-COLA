@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery;
+package top.egon.cola.component.gateway.starter.discovery.mapper;
 
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
@@ -25,7 +25,6 @@ import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaType;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Array;
-import java.lang.reflect.RecordComponent;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -41,7 +40,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,10 +51,10 @@ import java.util.UUID;
  * documents while enforcing declaration, recursion, and size safety rules.
  * 中文说明：将 Java 类型、网关字段注解和 Bean Validation 约束统一投影为受安全限制的 JSON Schema。
  */
-final class GatewayJavaSchemaMapper {
+public final class GatewayJavaSchemaMapper {
 
     /** JSON Schema dialect URI emitted by generated documents. 生成文档使用的 JSON Schema 方言 URI。 */
-    static final String JSON_SCHEMA_2020_12 =
+    public static final String JSON_SCHEMA_2020_12 =
             "https://json-schema.org/draft/2020-12/schema";
 
     /** Maximum recursive type depth accepted during schema generation. Schema 生成允许的最大递归深度。 */
@@ -77,7 +75,7 @@ final class GatewayJavaSchemaMapper {
      *
      * @param objectMapper Jackson mapper configured for Gateway model types
      */
-    GatewayJavaSchemaMapper(ObjectMapper objectMapper) {
+    public GatewayJavaSchemaMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -88,7 +86,7 @@ final class GatewayJavaSchemaMapper {
      * @param type reflective Java type
      * @return generated JSON Schema document
      */
-    Map<String, Object> schema(Type type) {
+    public Map<String, Object> schema(Type type) {
         return schema(objectMapper.getTypeFactory().constructType(type));
     }
 
@@ -99,7 +97,7 @@ final class GatewayJavaSchemaMapper {
      * @param type resolved Jackson type
      * @return generated JSON Schema document
      */
-    Map<String, Object> schema(JavaType type) {
+    public Map<String, Object> schema(JavaType type) {
         return schema(type, null);
     }
 
@@ -114,7 +112,7 @@ final class GatewayJavaSchemaMapper {
      * @throws IllegalArgumentException if the type, metadata, constraints, or
      *         resulting schema violates Gateway safety rules
      */
-    Map<String, Object> schema(
+    public Map<String, Object> schema(
             JavaType type,
             AnnotatedElement annotatedElement) {
         SchemaContext context = new SchemaContext();
@@ -144,7 +142,7 @@ final class GatewayJavaSchemaMapper {
      * @return generated schema document
      * @throws IllegalArgumentException if declaration and Java type differ
      */
-    Map<String, Object> declaredSchema(
+    public Map<String, Object> declaredSchema(
             JavaType actualType,
             Class<?> declaredClass,
             GatewaySchemaShape declaredShape,
@@ -170,7 +168,7 @@ final class GatewayJavaSchemaMapper {
      * @throws IllegalArgumentException if shape, element type, map key type, or
      *         void declaration is incompatible
      */
-    void validateDeclaration(
+    public void validateDeclaration(
             JavaType actualType,
             Class<?> declaredClass,
             GatewaySchemaShape declaredShape,
@@ -226,7 +224,7 @@ final class GatewayJavaSchemaMapper {
      * @param type resolved Java type
      * @return matching Gateway schema shape
      */
-    GatewaySchemaShape shape(JavaType type) {
+    public GatewaySchemaShape shape(JavaType type) {
         Class<?> raw = type.getRawClass();
         if (raw == void.class || raw == Void.class) {
             return GatewaySchemaShape.VOID;

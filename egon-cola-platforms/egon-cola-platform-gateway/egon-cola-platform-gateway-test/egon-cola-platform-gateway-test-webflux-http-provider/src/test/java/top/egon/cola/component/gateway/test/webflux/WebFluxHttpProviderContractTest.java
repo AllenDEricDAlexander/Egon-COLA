@@ -36,8 +36,7 @@ import top.egon.cola.component.gateway.contract.reporting
         .GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
-import top.egon.cola.component.gateway.starter.discovery
-        .WebFluxGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.WebFluxGatewayDefinitionContributor;
 
 import java.net.URI;
 import java.net.http.HttpClient;

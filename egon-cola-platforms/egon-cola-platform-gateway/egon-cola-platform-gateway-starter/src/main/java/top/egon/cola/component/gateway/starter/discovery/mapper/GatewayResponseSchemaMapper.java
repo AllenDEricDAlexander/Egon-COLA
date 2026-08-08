@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery;
+package top.egon.cola.component.gateway.starter.discovery.mapper;
 
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
@@ -20,7 +20,7 @@ import java.util.Map;
  * explicit response schema declarations.
  * 中文说明：根据处理器的真实返回类型生成响应 Schema，并校验注解中的显式声明。
  */
-final class GatewayResponseSchemaMapper {
+public final class GatewayResponseSchemaMapper {
 
     /** Fully qualified name of the standard single-result response wrapper. 单结果包装器的全限定类名。 */
     private static final String RESULT_RECORD =
@@ -42,7 +42,7 @@ final class GatewayResponseSchemaMapper {
      *
      * @param objectMapper Jackson mapper used for type resolution
      */
-    GatewayResponseSchemaMapper(ObjectMapper objectMapper) {
+    public GatewayResponseSchemaMapper(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.schemaMapper = new GatewayJavaSchemaMapper(objectMapper);
     }
@@ -58,7 +58,9 @@ final class GatewayResponseSchemaMapper {
      * @throws IllegalArgumentException if an MCP schema is missing or a
      *         declaration does not match the handler return type
      */
-    Map<String, Object> schema(Method method, GatewayOperation operation) {
+    public Map<String, Object> schema(
+            Method method,
+            GatewayOperation operation) {
         JavaType returnType = responseBodyType(
                 objectMapper.constructType(method.getGenericReturnType())
         );

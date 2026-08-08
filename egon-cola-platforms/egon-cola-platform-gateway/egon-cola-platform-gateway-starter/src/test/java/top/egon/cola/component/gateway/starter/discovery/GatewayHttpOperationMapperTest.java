@@ -21,6 +21,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaFi
 import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
+import top.egon.cola.component.gateway.starter.discovery.mapper.GatewayHttpOperationMapper;
 
 import java.lang.reflect.Method;
 import java.util.List;

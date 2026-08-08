@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Size;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaRequired;
+import top.egon.cola.component.gateway.starter.discovery.mapper.GatewayJavaSchemaMapper;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;

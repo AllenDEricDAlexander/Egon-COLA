@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.starter.discovery;
+package top.egon.cola.component.gateway.starter.discovery.mapper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
@@ -19,7 +19,7 @@ import java.util.Map;
  * Gateway RPC discovery.
  * 中文说明：以 Protobuf 描述符为唯一输入，生成 RPC 发现使用的 JSON Schema 及递归定义。
  */
-final class ProtobufSchemaMapper {
+public final class ProtobufSchemaMapper {
 
     /** Mapper used to parse JSON examples declared in Protobuf field options. 用于解析字段选项中的 JSON 示例。 */
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -33,7 +33,7 @@ final class ProtobufSchemaMapper {
      * @throws IllegalArgumentException if descriptor options or map fields are
      *         incompatible with Gateway schema rules
      */
-    Map<String, Object> schema(Descriptors.Descriptor descriptor) {
+    public Map<String, Object> schema(Descriptors.Descriptor descriptor) {
         Context context = new Context();
         Map<String, Object> root = context.message(descriptor);
         Object reference = root.get("$ref");

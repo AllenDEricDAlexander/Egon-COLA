@@ -12,6 +12,8 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation
 import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
+import top.egon.cola.component.gateway.starter.discovery.impl.RpcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.mapper.McpExposureMapper;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractDescriptor;

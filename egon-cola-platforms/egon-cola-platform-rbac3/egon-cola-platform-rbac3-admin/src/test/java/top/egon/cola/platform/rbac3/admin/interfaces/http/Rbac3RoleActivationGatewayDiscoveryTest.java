@@ -9,7 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
-import top.egon.cola.component.gateway.starter.discovery.MvcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;

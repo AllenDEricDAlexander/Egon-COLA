@@ -16,9 +16,9 @@ import org.springframework.web.reactive.result.method.annotation.RequestMappingH
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery.MvcGatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery.RpcGatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery.WebFluxGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.MvcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.RpcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.WebFluxGatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.reporting.GatewayDefinitionReportFactory;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;

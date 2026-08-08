@@ -1,8 +1,9 @@
-package top.egon.cola.component.gateway.starter.discovery;
+package top.egon.cola.component.gateway.starter.discovery.mapper;
 
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
+import top.egon.cola.component.gateway.starter.discovery.GatewayRequestSchemaValidator;
 
 import java.util.Arrays;
 import java.util.List;
@@ -15,10 +16,10 @@ import java.util.regex.Pattern;
  *
  * 校验 MCP 暴露声明，并将其转换为操作报告属性。
  */
-final class McpExposureMapper {
+public final class McpExposureMapper {
 
     /** Attribute key under which MCP exposure metadata is reported. 报告 MCP 暴露元数据所使用的属性键。 */
-    static final String ATTRIBUTE_NAME = "mcpExposure";
+    public static final String ATTRIBUTE_NAME = "mcpExposure";
 
     /** Pattern accepted for MCP permission identifiers. MCP 权限标识符必须匹配的格式。 */
     private static final Pattern PERMISSION = Pattern.compile(
@@ -44,7 +45,7 @@ final class McpExposureMapper {
      * @throws IllegalArgumentException if the requested exposure is invalid or
      *                                  unsupported
      */
-    static Map<String, Object> map(
+    public static Map<String, Object> map(
             GatewayInterfaceGroup group,
             GatewayOperation operation,
             String operationIdentity,

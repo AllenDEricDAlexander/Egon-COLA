@@ -35,8 +35,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.discovery
         .GatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery
-        .MvcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.MvcGatewayDefinitionContributor;
 
 import java.time.Instant;
 import java.util.List;

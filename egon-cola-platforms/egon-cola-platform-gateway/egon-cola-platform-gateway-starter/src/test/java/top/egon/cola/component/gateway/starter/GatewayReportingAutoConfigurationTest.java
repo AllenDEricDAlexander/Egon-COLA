@@ -8,10 +8,8 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.web.reactive.result.method.annotation
         .RequestMappingHandlerMapping;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
-import top.egon.cola.component.gateway.starter.discovery
-        .MvcGatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery
-        .WebFluxGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.MvcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.starter.discovery.impl.WebFluxGatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;

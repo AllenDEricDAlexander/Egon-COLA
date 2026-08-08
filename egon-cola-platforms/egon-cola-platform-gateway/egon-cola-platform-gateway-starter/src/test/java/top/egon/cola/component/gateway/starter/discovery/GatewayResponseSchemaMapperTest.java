@@ -7,6 +7,7 @@ import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
+import top.egon.cola.component.gateway.starter.discovery.mapper.GatewayResponseSchemaMapper;
 
 import java.lang.reflect.Method;
 import java.util.List;
