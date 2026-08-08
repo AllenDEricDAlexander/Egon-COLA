@@ -8,6 +8,20 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
+/**
+ * 服务实例注册请求，包含物理服务身份、端点和租约参数。
+ * / Service instance registration request containing physical service identity,
+ * endpoint, and lease settings.
+ *
+ * @param instanceId 实例标识 / instance identifier
+ * @param serviceKey 服务键 / service key
+ * @param host 实例主机地址 / instance host address
+ * @param port 服务端口 / service port
+ * @param secure 是否使用安全传输 / whether secure transport is used
+ * @param metadata 不可变的实例元数据 / immutable instance metadata
+ * @param leaseSeconds 租约有效期秒数 / lease duration in seconds
+ * @param heartbeatIntervalSeconds 心跳间隔秒数 / heartbeat interval in seconds
+ */
 public record DdcServiceRegistration(
         String instanceId,
         DdcServiceKey serviceKey,
@@ -19,6 +33,13 @@ public record DdcServiceRegistration(
         int heartbeatIntervalSeconds
 ) {
 
+    /**
+     * 校验并规范化注册信息。
+     * / Validates and normalizes the registration.
+     *
+     * @throws IllegalArgumentException 必填值、端口、协议、元数据或租约参数无效时抛出
+     * / if required values, port, protocol, metadata, or lease settings are invalid
+     */
     public DdcServiceRegistration {
         instanceId = require(instanceId, "instanceId");
         if (serviceKey == null) {
@@ -45,9 +66,21 @@ public record DdcServiceRegistration(
         }
     }
 
-    /** Entries an instance may use for its own metadata, excluding the reserved namespace. */
+    /**
+     * 单个实例可使用的业务元数据条目上限，不包含保留命名空间。
+     * / Maximum business metadata entries an instance may use, excluding the reserved namespace.
+     */
     public static final int MAX_BUSINESS_METADATA_ENTRIES = 32;
 
+    /**
+     * 校验、排序并冻结实例元数据。
+     * / Validates, sorts, and freezes instance metadata.
+     *
+     * @param metadata 待校验元数据，可为空 / metadata to validate, nullable
+     * @return 不可变且按键排序的元数据 / immutable metadata sorted by key
+     * @throws IllegalArgumentException 条目数量、键、值或敏感信息规则不满足时抛出
+     * / if entry counts, keys, values, or sensitive-information rules are violated
+     */
     static Map<String, String> validatedMetadata(Map<String, String> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return Map.of();
@@ -100,6 +133,14 @@ public record DdcServiceRegistration(
         return Collections.unmodifiableMap(copy);
     }
 
+    /**
+     * 判断保留的 RPC 框架元数据键值是否有效。
+     * / Determines whether a reserved RPC framework metadata entry is valid.
+     *
+     * @param key 已规范化为小写的元数据键 / metadata key normalized to lower case
+     * @param value 元数据值 / metadata value
+     * @return 键值组合受支持时为 {@code true} / {@code true} when the key-value pair is supported
+     */
     private static boolean validRpcFrameworkMetadata(String key, String value) {
         return switch (key) {
             case "egon.rpc.transport" -> "grpc".equals(value);
@@ -109,6 +150,15 @@ public record DdcServiceRegistration(
         };
     }
 
+    /**
+     * 校验必填字符串。
+     * / Validates a required string.
+     *
+     * @param value 待校验值 / value to validate
+     * @param fieldName 用于错误消息的字段名 / field name used in the error message
+     * @return 原始非空值 / original non-blank value
+     * @throws IllegalArgumentException 值为空或空白时抛出 / if the value is {@code null} or blank
+     */
     private static String require(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");

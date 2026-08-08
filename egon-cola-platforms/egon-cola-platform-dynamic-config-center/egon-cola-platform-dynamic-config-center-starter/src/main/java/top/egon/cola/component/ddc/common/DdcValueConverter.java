@@ -6,10 +6,23 @@ import com.fasterxml.jackson.databind.type.CollectionType;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * 将 DDC 文本值转换为支持的标量、枚举、字符串列表或 JSON 对象。 Converts DDC text values into supported scalars, enums, string lists, or JSON objects.
+ */
 public class DdcValueConverter {
 
+    /** 用于集合和对象 JSON 转换的共享映射器。 Shared mapper used for collection and object JSON conversion. */
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    /**
+     * 将配置文本转换为目标 Java 类型。 Converts configuration text to the target Java type.
+     *
+     * @param value 配置文本。 configuration text
+     * @param targetType 目标 Java 类型。 target Java type
+     * @param <T> 目标值类型。 target value type
+     * @return 已转换的值。 converted value
+     * @throws DdcException 数字、枚举或 JSON 转换失败时抛出。 thrown when numeric, enum, or JSON conversion fails
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public <T> T convert(String value, Class<T> targetType) {
         try {

@@ -13,6 +13,9 @@ import top.egon.cola.component.ddc.registry.DdcOpenApiServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 
+/**
+ * 在显式启用服务注册时装配服务键工厂、独立 Redis 客户端和注册客户端。 Configures the service-key factory, dedicated Redis client, and registry client when service registry is explicitly enabled.
+ */
 @AutoConfiguration(after = DdcAutoConfig.class)
 @EnableConfigurationProperties(DdcProperties.class)
 @ConditionalOnProperty(
@@ -23,6 +26,11 @@ import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 )
 public class DdcRegistryAutoConfig {
 
+    /**
+     * 创建从 DDC 作用域属性生成服务键的工厂。 Creates the factory that derives service keys from DDC scope properties.
+     * @param properties DDC 属性。 DDC properties
+     * @return 服务键工厂。 service-key factory
+     */
     @Bean
     @ConditionalOnMissingBean(DdcServiceKeyFactory.class)
     public DdcServiceKeyFactory ddcServiceKeyFactory(
@@ -30,6 +38,11 @@ public class DdcRegistryAutoConfig {
         return new DdcServiceKeyFactory(properties);
     }
 
+    /**
+     * 创建供服务注册使用并随容器关闭的独立 Redisson 客户端。 Creates the dedicated Redisson client for service registry and shuts it down with the container.
+     * @param properties DDC 属性。 DDC properties
+     * @return 服务注册 Redisson 客户端。 service-registry Redisson client
+     */
     @Bean(name = "ddcRegistryRedissonClient", destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = "ddcRegistryRedissonClient")
     public RedissonClient ddcRegistryRedissonClient(DdcProperties properties) {
@@ -45,6 +58,12 @@ public class DdcRegistryAutoConfig {
         ));
     }
 
+    /**
+     * 创建基于 DDC OpenAPI 语义和 Redis 存储的服务注册客户端。 Creates the service-registry client backed by DDC OpenAPI semantics and Redis storage.
+     * @param properties DDC 属性。 DDC properties
+     * @param redissonClient 专用服务注册 Redisson 客户端。 dedicated service-registry Redisson client
+     * @return 可关闭的服务注册客户端。 closeable service-registry client
+     */
     @Bean(destroyMethod = "close")
     @ConditionalOnBean(name = "ddcRegistryRedissonClient")
     @ConditionalOnMissingBean(DdcServiceRegistryClient.class)
