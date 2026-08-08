@@ -29,7 +29,7 @@ const jsonResponse = (body: unknown) =>
 
 const config: DdcConfig = {
   id: 'cfg-1', bizCode: 'pay', appCode: 'orders', env: 'dev', visibleNamespaces: ['default'],
-  configKey: 'application.yml', configValue: 'feature:\n  enabled: true\n', valueType: 'YAML',
+  resourceName: 'application.yml', content: 'feature:\n  enabled: true\n', format: 'YAML',
   currentVersion: 3, description: '业务配置', updatedAt: '2026-08-08T00:00:00Z',
 }
 
@@ -76,7 +76,8 @@ describe('ConfigEditorDialog', () => {
     expect(create).toBeDefined()
     expect(JSON.parse(String(create?.[1]?.body))).toEqual({
       bizCode: 'pay', namespaceCode: 'default', env: 'dev', appCode: 'orders',
-      configValue: 'feature:\n  enabled: false\n', description: '支付业务配置',
+      resourceName: 'application.yml', content: 'feature:\n  enabled: false\n', format: 'YAML',
+      description: '支付业务配置',
     })
   })
 
@@ -97,7 +98,7 @@ describe('ConfigEditorDialog', () => {
     )
 
     const editor = await screen.findByLabelText('YAML 内容')
-    await waitFor(() => expect(editor).toHaveValue(config.configValue))
+    await waitFor(() => expect(editor).toHaveValue(config.content))
     fireEvent.change(editor, { target: { value: 'feature:\n  enabled: false\n' } })
     fireEvent.change(screen.getByLabelText('变更原因'), { target: { value: '关闭功能' } })
     fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
@@ -106,7 +107,7 @@ describe('ConfigEditorDialog', () => {
     const update = vi.mocked(fetch).mock.calls.find(([input, init]) =>
       String(input) === '/api/v1/ddc/configs/cfg-1' && init?.method === 'PUT')
     expect(JSON.parse(String(update?.[1]?.body))).toEqual({
-      configValue: 'feature:\n  enabled: false\n',
+      content: 'feature:\n  enabled: false\n',
       changeReason: '关闭功能',
       currentVersion: 3,
     })

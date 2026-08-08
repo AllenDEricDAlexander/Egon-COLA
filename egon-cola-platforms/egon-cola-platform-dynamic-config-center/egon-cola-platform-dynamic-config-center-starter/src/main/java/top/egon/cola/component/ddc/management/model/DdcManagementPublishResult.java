@@ -9,7 +9,7 @@ import java.util.List;
  * @param changeId        发布变更标识 / publication change identifier
  * @param status          聚合发布状态 / aggregate publication status
  * @param targetVersion   目标配置版本 / target configuration version
- * @param resourceChecksum 发布资源校验和 / checksum of the published content
+ * @param resourceChecksum 发布资源校验和 / checksum of the published resource
  * @param targetCount     发布目标总数 / total number of publication targets
  * @param targets         各实例的发布目标结果 / per-instance publication-target results
  * @param errorMessage    聚合错误消息，无错误时为空 / aggregate error message, null when no error occurred

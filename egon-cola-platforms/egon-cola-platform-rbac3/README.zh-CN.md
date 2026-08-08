@@ -60,8 +60,9 @@ Definition、Lease、Release 是三项独立状态，任何一项未知或不一
 
 配置 scope 与服务 scope 是两个不同的身份空间：
 
-- 配置 scope 为 `bizCode + appCode + env + namespace + configKey`。RBAC3 以
-  `CONFIG_CLIENT` Lease 拉取五个运行策略值，只接受通过校验且版本单调递增的快照。
+- 配置资源身份为 `bizCode + appCode + env + resourceName`；命名空间绑定只控制可见性，
+  不属于资源身份。RBAC3 以 `CONFIG_CLIENT` Lease 拉取 YAML 策略文档，只接受通过校验
+  且版本单调递增的快照。
 - 服务 scope 为 `bizCode + appCode + env + namespace + serviceKind + protocol +
   serviceName + group + version`。RBAC3 以独立的 `HTTP_PROVIDER` Lease 注册服务，
   Gateway 从该 scope 获取未过期实例并路由到 advertised host/port。

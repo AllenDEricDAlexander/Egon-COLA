@@ -64,8 +64,9 @@ See [architecture.md](docs/architecture.md) for algorithms and design patterns,
 
 Configuration scope and service scope are different identities:
 
-- Configuration scope is `bizCode + appCode + env + namespace + configKey`.
-  RBAC3 owns a `CONFIG_CLIENT` lease, pulls the five runtime-policy values, and
+- Configuration resource identity is `bizCode + appCode + env + resourceName`;
+  namespace bindings control visibility but are not part of that identity.
+  RBAC3 owns a `CONFIG_CLIENT` lease, pulls the YAML policy document, and
   accepts only validated monotonically versioned snapshots.
 - Service scope is `bizCode + appCode + env + namespace + serviceKind + protocol
   + serviceName + group + version`. RBAC3 owns a separate `HTTP_PROVIDER` lease;

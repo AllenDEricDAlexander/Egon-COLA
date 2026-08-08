@@ -7,7 +7,7 @@ import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
 import java.util.Comparator;
 
 /**
- * 为发布消息和配置内容生成稳定的 SHA-256 摘要。 Generates stable SHA-256 digests for publication messages and configuration content.
+ * 为发布消息和配置资源生成稳定的 SHA-256 摘要。 Generates stable SHA-256 digests for publication messages and configuration resources.
  */
 public final class DdcChecksum {
 

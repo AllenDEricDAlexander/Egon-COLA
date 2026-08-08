@@ -292,8 +292,8 @@ class DdcPublishDispatchConsistencyTest {
 
     private void saveVersion(DdcConfigItemEntity config,
                              long versionNumber,
-                             String oldValue,
-                             String newValue,
+                             String oldContent,
+                             String newContent,
                              LocalDateTime createdAt) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
         version.setId(UuidV7.simpleString());
@@ -304,8 +304,8 @@ class DdcPublishDispatchConsistencyTest {
         version.setNamespace(null);
         version.setResourceName(config.getResourceName());
         version.setVersion(versionNumber);
-        version.setOldContent(oldValue);
-        version.setNewContent(newValue);
+        version.setOldContent(oldContent);
+        version.setNewContent(newContent);
         version.setFormat(config.getFormat());
         version.setChangeType("UPDATE");
         version.setCreatedAt(createdAt);

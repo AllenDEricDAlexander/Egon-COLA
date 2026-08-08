@@ -74,6 +74,18 @@ environment list comes from the managed `/envs` entity. Every select also
 accepts typed values for new entries. Registry queries always use a complete
 four-part scope; the build-time defaults above initialize the first query.
 
+## Configuration resource contract
+
+The configuration page manages complete YAML resources instead of independent
+key-value items. Create requests submit `resourceName=application.yml`,
+`format=YAML`, and the complete `content`. The backend also accepts
+`application.yaml`, and the list renders the actual resource name and format from
+the response. Each `bizCode + env + appCode` owns at most one YAML resource;
+namespace bindings control visibility only.
+
+This is a breaking contract. The console no longer sends or reads legacy fields
+such as `configKey`, `configValue`, `valueType`, or `contentChecksum`.
+
 ## Deployment
 
 ```bash

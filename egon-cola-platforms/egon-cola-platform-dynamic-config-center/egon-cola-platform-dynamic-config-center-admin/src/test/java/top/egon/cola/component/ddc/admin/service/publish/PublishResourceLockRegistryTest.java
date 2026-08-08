@@ -62,7 +62,7 @@ class PublishResourceLockRegistryTest {
         }
     }
 
-    private DdcConfigResourceKey key(String configKey) {
-        return new DdcConfigResourceKey("demo", "dev", "default", configKey);
+    private DdcConfigResourceKey key(String resourceName) {
+        return new DdcConfigResourceKey("demo", "dev", "default", resourceName);
     }
 }

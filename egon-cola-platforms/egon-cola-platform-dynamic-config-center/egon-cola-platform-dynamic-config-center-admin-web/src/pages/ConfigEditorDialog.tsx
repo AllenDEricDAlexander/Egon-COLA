@@ -15,7 +15,7 @@ type Props = {
 }
 
 type FormValues = {
-  configValue: string
+  content: string
   description?: string
   changeReason?: string
 }
@@ -57,7 +57,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
       if (cancelled) return
       setScope(scope)
       form.setFieldsValue({
-        configValue: config?.configValue ?? '',
+        content: config?.content ?? '',
         description: config?.description ?? '',
         changeReason: '',
       })
@@ -84,7 +84,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
         await ddcApi(`/api/v1/ddc/configs/${encodeURIComponent(config.id)}`, {
           method: 'PUT',
           body: {
-            configValue: values.configValue,
+            content: values.content,
             changeReason: values.changeReason || 'DDC Admin Web update',
             currentVersion: config.currentVersion,
           },
@@ -95,7 +95,9 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
           method: 'POST',
           body: {
             ...scope,
-            configValue: values.configValue,
+            resourceName: 'application.yml',
+            content: values.content,
+            format: 'YAML',
             description: values.description,
           },
         })
@@ -135,7 +137,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
           <Tag color="blue">YAML</Tag>
         </Space>
         <Form.Item
-          name="configValue"
+          name="content"
           label="YAML 内容"
           rules={[{ required: true, whitespace: true }]}
         >

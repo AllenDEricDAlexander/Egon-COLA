@@ -9,7 +9,7 @@ import java.util.List;
  * @param changeId        发布变更标识 / publication change identifier
  * @param status          聚合发布状态 / aggregate publication status
  * @param targetVersion   目标配置版本 / target configuration version
- * @param resourceChecksum 发布资源校验和 / checksum of the published content
+ * @param resourceChecksum 发布资源校验和 / checksum of the published resource
  * @param targetCount     发布目标总数 / total number of publication targets
  * @param ackCount        已确认目标数 / number of acknowledged targets
  * @param failedCount     失败目标数 / number of failed targets

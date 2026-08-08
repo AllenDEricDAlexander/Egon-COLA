@@ -106,7 +106,8 @@ the provider port is actually reachable.
 
 ### 2.6 DDC configuration client and runtime policy
 
-Configuration scope is `bizCode + appCode + env + namespace + configKey`. It is
+Configuration resource identity is `bizCode + appCode + env + resourceName`;
+namespace bindings control visibility but are not part of that identity. It is
 consumed through a `CONFIG_CLIENT` lease. The provider registration above uses a
 different service scope: `bizCode + appCode + env + namespace + serviceKind +
 protocol + serviceName + group + version` and an `HTTP_PROVIDER` lease. The two
@@ -121,23 +122,19 @@ Never infer one from the other.
 | `rbac3.session-absolute-timeout-seconds` | 43200 | 3600..86400 | Between Idle and Refresh; new/refreshed Sessions only |
 | `rbac3.maximum-active-roots` | 16 | 1..32 | New role-activation replacement commands only |
 
-Each DDC message updates one key. There is no cross-key transaction. Use the
-following safe publication order:
-
-- widening: publish Refresh, wait for successful ACK/version observation, then
-  Absolute, then Idle;
-- shrinking: publish Idle, wait for success, then Absolute, then adjust Refresh
-  only when `Absolute <= Refresh` remains true;
-- Access TTL and Maximum Active Roots are independent, but still change and
-  observe one key at a time.
+Each DDC message carries the complete YAML resource. Update all related policy
+leaves in one valid document and publish it once. DDC replaces the dynamic
+PropertySource transactionally; if any typed applier rejects the candidate, it
+rolls back the property source and all already-applied leaves before returning a
+failed ACK.
 
 The declarations use `refreshable = false` to prevent reflective mutation;
 exact typed appliers validate the whole immutable policy snapshot instead. An
 invalid update produces a bounded FAILED ACK and records key/version/error code,
-while the previous policy and repository version/checksum remain last-known-good.
-Do not retry the same version with different content: DDC treats that as a
-checksum conflict. Correct the value and publish a higher version. A successful
-higher version clears the failure for that key.
+while the previous policy and repository version/resource checksum remain
+last-known-good. Do not retry the same version with different content: DDC treats
+that as a checksum conflict. Correct the YAML document and publish a higher
+version. A successful higher version clears the failure for that resource.
 
 Dynamic configuration never rewrites already issued token expiry, already
 persisted Session expiry or already committed active-role sets. Reauthentication,

@@ -101,7 +101,7 @@ The initial remote YAML is loaded by Spring Boot ConfigData before beans are bou
 executes this order:
 
 1. register the configuration client and receive a new `leaseId`;
-2. pull `application.yml` and reconcile it with the startup snapshot;
+2. pull the YAML resource imported through ConfigData and reconcile it with the startup snapshot;
 3. enter `READY`;
 4. heartbeat on the configured interval;
 5. actively take the current lease offline during shutdown.
@@ -111,13 +111,26 @@ atomically match `instanceId + leaseId`; a stale lease cannot renew or delete
 the replacement lease. When a current lease is missing or mismatched, the SDK
 registers again and repeats initial synchronization.
 
-```java
-@DdcValue(value = "order.rate-limit", defaultValue = "100")
-private volatile Integer rateLimit;
+The remote `application.yml` may use arbitrary nesting, for example:
 
-@DdcValue(value = "order.downgrade-switch",
-        defaultValue = "false", type = Boolean.class)
-private volatile Boolean downgradeSwitch;
+```yaml
+order:
+  rate-limit:
+    permits-per-second: 200
+  downgrade:
+    enabled: false
+```
+
+`@DdcValue` uses the same expression semantics as Spring `@Value`. Dot paths address
+nested properties, the value after `:` is used only when the property is absent, and
+Spring's conversion service infers the target type from the field:
+
+```java
+@DdcValue("${order.rate-limit.permits-per-second:100}")
+private volatile Integer permitsPerSecond;
+
+@DdcValue("${order.downgrade.enabled:false}")
+private volatile Boolean downgradeEnabled;
 ```
 
 Runtime publication atomically replaces the DDC PropertySource and computes YAML
@@ -179,7 +192,7 @@ pessimistic lock on the configuration row, rejects another active task for the
 same resource, updates the configuration version, and freezes the current Redis
 lease targets as exact `instanceId + leaseId` pairs. The database task and row
 conditions coordinate concurrent Admin processes for
-`bizCode + env + appCode + application.yml`; the in-memory waiter is only a wake-up
+`bizCode + env + appCode + resourceName`; the in-memory waiter is only a wake-up
 optimization. Completion polling reads the shared task state, and startup recovery
 marks stale `PENDING` or `PUBLISHING` tasks as `UNKNOWN` before another request retries.
 
@@ -188,7 +201,7 @@ An ACK is accepted only when all of these match:
 - `changeId`;
 - target `instanceId + leaseId`;
 - target configuration version;
-- content SHA-256 checksum.
+- resource SHA-256 checksum covering `resourceName + format + content`.
 
 The publish call returns only after every target reports `SUCCESS`, or after a
 terminal failure:
@@ -213,7 +226,7 @@ curl -X POST \
   -H 'Content-Type: application/json' \
   -d '{
     "changeId": "019c9f0d-7b9b-7e00-8000-000000000001",
-    "configValue": "order:\n  rate-limit: 200\n",
+    "content": "order:\n  rate-limit:\n    permits-per-second: 200\n",
     "expectedVersion": 1,
     "timeoutMs": 30000
   }'
@@ -295,9 +308,16 @@ Use `optional:ddc:application.yml` when absence of the remote document is allowe
 DDC contributes one PropertySource above local ConfigData and below Spring Boot's
 higher-priority command-line and system sources; it does not merge local and remote
 documents. The Admin accepts only one Map-root, single-document YAML resource named
-`application.yml` per `bizCode + env + appCode`. Remote YAML containing
+`application.yml` or `application.yaml` per `bizCode + env + appCode`; the resource
+name in `spring.config.import` must match the `resourceName` stored by Admin. Remote YAML containing
 `egon.cola.component.ddc.*`, `spring.config.*`, or Spring profile-control keys is
 rejected as a whole, so DDC connection and bootstrap controls remain local.
+
+Configuration parsing is an extension point implemented by
+`DdcConfigFormatStrategy` and `DdcConfigFormatStrategyRegistry`. YAML is the only
+built-in strategy and delegates parsing to Spring Boot's `YamlPropertySourceLoader`;
+JSON, Properties, TOML, and other formats have no compatibility implementation and
+are rejected by the registry.
 
 Production Admin:
 

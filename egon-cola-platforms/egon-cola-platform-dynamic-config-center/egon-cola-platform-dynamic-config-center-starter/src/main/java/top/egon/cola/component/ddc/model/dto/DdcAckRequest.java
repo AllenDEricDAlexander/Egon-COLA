@@ -60,7 +60,7 @@ public class DdcAckRequest {
     private Long currentVersion;
 
     /**
-     * 已应用配置内容的校验和。 / Checksum of the applied configuration content.
+     * 已应用配置资源的校验和。 / Checksum of the applied configuration resource.
      */
     private String resourceChecksum;
 

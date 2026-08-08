@@ -87,7 +87,7 @@ DDC 私有 Trace Filter。
 `DdcRuntimeCoordinator` 只在 Redis 订阅已经可用后启动，并严格按以下顺序执行：
 
 1. 注册配置客户端并取得新的 `leaseId`；
-2. 拉取 `application.yml` 并与启动快照校准；
+2. 拉取通过 ConfigData 导入的 YAML 资源并与启动快照校准；
 3. 进入 `READY`；
 4. 按配置周期发送心跳；
 5. 停止时主动下线当前租约。
@@ -96,13 +96,25 @@ DDC 私有 Trace Filter。
 `instanceId + leaseId`，旧租约不能续期或删除替换后的新租约。当前租约丢失或
 不匹配时，SDK 会重新注册并重复首次同步。
 
-```java
-@DdcValue(value = "order.rate-limit", defaultValue = "100")
-private volatile Integer rateLimit;
+远端 `application.yml` 可以使用任意层级，例如：
 
-@DdcValue(value = "order.downgrade-switch",
-        defaultValue = "false", type = Boolean.class)
-private volatile Boolean downgradeSwitch;
+```yaml
+order:
+  rate-limit:
+    permits-per-second: 200
+  downgrade:
+    enabled: false
+```
+
+`@DdcValue` 与 Spring `@Value` 使用相同表达式语义，层级由点路径访问，冒号后的
+值只在属性不存在时作为默认值；字段类型由 Spring 转换服务推断：
+
+```java
+@DdcValue("${order.rate-limit.permits-per-second:100}")
+private volatile Integer permitsPerSecond;
+
+@DdcValue("${order.downgrade.enabled:false}")
+private volatile Boolean downgradeEnabled;
 ```
 
 运行期发布会原子替换 DDC PropertySource，并按 YAML 叶子计算差异。显式注册的
@@ -156,7 +168,7 @@ V1 只有一种发布模式：`SYNC_ALL_ACK`。
 调用方传入 UUIDv7 `changeId`。准备事务会对配置行加悲观锁，拒绝同一资源已有的
 活跃任务，更新配置版本，并将 Redis 当前配置客户端租约固化为精确的
 `instanceId + leaseId` 目标集合。数据库任务和行条件更新负责协调
-`bizCode + env + appCode + application.yml` 的并发 Admin；进程内 Waiter 只负责唤醒优化。
+`bizCode + env + appCode + resourceName` 的并发 Admin；进程内 Waiter 只负责唤醒优化。
 完成轮询读取共享任务状态；Admin 启动恢复会把过期的 `PENDING` 或 `PUBLISHING`
 任务置为 `UNKNOWN`，之后由其他请求重试。
 
@@ -165,7 +177,7 @@ ACK 只有同时匹配以下内容才会被接受：
 - `changeId`；
 - 目标 `instanceId + leaseId`；
 - 目标配置版本；
-- 内容 SHA-256 摘要。
+- 覆盖 `resourceName + format + content` 的资源 SHA-256 摘要。
 
 发布调用只在所有目标都返回 `SUCCESS`，或进入终态后返回：
 
@@ -188,7 +200,7 @@ curl -X POST \
   -H 'Content-Type: application/json' \
   -d '{
     "changeId": "019c9f0d-7b9b-7e00-8000-000000000001",
-    "configValue": "order:\n  rate-limit: 200\n",
+    "content": "order:\n  rate-limit:\n    permits-per-second: 200\n",
     "expectedVersion": 1,
     "timeoutMs": 30000
   }'
@@ -269,9 +281,14 @@ egon:
 允许远端文档不存在时可使用 `optional:ddc:application.yml`。DDC 只贡献一个
 PropertySource，其优先级高于本地 ConfigData、低于 Spring Boot 的命令行参数和系统
 属性；本地与远端文档不做自定义合并。Admin 在每个 `bizCode + env + appCode` 下只接受
-一份名为 `application.yml` 的单文档、Map 根节点 YAML。远端 YAML 一旦包含
+一份名为 `application.yml` 或 `application.yaml` 的单文档、Map 根节点 YAML；
+`spring.config.import` 中的资源名必须与 Admin 保存的 `resourceName` 一致。远端 YAML 一旦包含
 `egon.cola.component.ddc.*`、`spring.config.*` 或 Spring Profile 控制键，整份文档都会
 被拒绝，因此 DDC 连接和引导参数只能来自本地配置。
+
+配置格式以 `DdcConfigFormatStrategy` 和 `DdcConfigFormatStrategyRegistry` 作为扩展点。
+当前内置策略只有 YAML，并由 Spring Boot `YamlPropertySourceLoader` 负责解析；JSON、
+Properties、TOML 等格式没有兼容实现，也不会被注册表接受。
 
 生产 Admin：
 

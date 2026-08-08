@@ -14,8 +14,8 @@ const jsonResponse = (body: unknown, status = 200) =>
 const configRow = {
   id: 'cfg-1', bizCode: 'pay-biz', appCode: 'orders', env: 'dev',
   visibleNamespaces: ['default', 'ops'],
-  configKey: 'application.yml' as const, configValue: 'feature:\n  enabled: true\n',
-  valueType: 'YAML' as const, currentVersion: 3, description: '业务配置',
+  resourceName: 'application.yml' as const, content: 'feature:\n  enabled: true\n',
+  format: 'YAML' as const, currentVersion: 3, description: '业务配置',
   createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-02T00:00:00Z',
 }
 
@@ -50,7 +50,7 @@ describe('ConfigsPage', () => {
     expect(listRequest).toContain('includeDeleted=false')
     expect(listRequest).not.toContain('bizCode=')
     expect(listRequest).not.toContain('namespaceCode=')
-    expect(listRequest).not.toContain('configKey=')
+    expect(listRequest).not.toContain('resourceName=')
   })
 
   it('publishes with uuid changeId and refreshes', async () => {
@@ -68,7 +68,7 @@ describe('ConfigsPage', () => {
         return Promise.resolve(jsonResponse(record({
           changeId: 'change-1', status: 'SUCCESS', targetCount: 2, ackCount: 2, failedCount: 0,
           ignoredCount: 0, timeoutCount: 0, attemptCount: 1, targetVersion: 3,
-          contentChecksum: 'abc', errorMessage: null,
+          resourceChecksum: 'abc', errorMessage: null,
         })))
       }
       if (url.includes('/configs')) return Promise.resolve(jsonResponse(record([configRow])))

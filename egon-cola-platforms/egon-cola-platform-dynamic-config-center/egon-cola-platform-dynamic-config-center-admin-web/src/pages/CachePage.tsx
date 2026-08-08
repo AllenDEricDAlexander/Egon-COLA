@@ -57,7 +57,7 @@ export default function CachePage() {
   }
 
   const columns = [
-    { title: '配置 Key', dataIndex: 'configKey', key: 'configKey', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
+    { title: '配置资源', dataIndex: 'resourceName', key: 'resourceName', render: (value: string) => <Typography.Text code>{value}</Typography.Text> },
     {
       title: '一致性',
       dataIndex: 'matched',
@@ -95,7 +95,7 @@ export default function CachePage() {
       </Card>
       <Card size="small" title={`检查结果（${rows.length}）`}>
         <Table<DdcCacheCheckRow>
-          rowKey={(row) => row.configKey}
+          rowKey={(row) => row.resourceName}
           columns={columns}
           dataSource={rows}
           size="small"

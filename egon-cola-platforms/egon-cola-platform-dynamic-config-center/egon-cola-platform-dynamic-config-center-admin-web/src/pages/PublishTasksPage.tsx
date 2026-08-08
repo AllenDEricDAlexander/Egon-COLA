@@ -93,7 +93,7 @@ export default function PublishTasksPage() {
       render: (_: unknown, row: DdcPublishTask) =>
         [row.bizCode, row.env, row.appCode].filter(Boolean).join(' / ') || '—',
     },
-    { title: '配置 Key', dataIndex: 'configKey', key: 'configKey' },
+    { title: '配置资源', dataIndex: 'resourceName', key: 'resourceName' },
     { title: '目标版本', dataIndex: 'targetVersion', key: 'targetVersion' },
     {
       title: '状态',
@@ -124,7 +124,7 @@ export default function PublishTasksPage() {
     ? [
         ['Change ID', detail.changeId],
         ['作用域', [detail.bizCode, detail.env, detail.appCode].filter(Boolean).join(' / ')],
-        ['配置 Key', detail.configKey ?? '—'],
+        ['配置资源', detail.resourceName ?? '—'],
         ['目标版本', String(detail.targetVersion ?? '—')],
         ['发布模式', detail.publishMode ?? '—'],
         ['状态', detail.status],
@@ -137,7 +137,7 @@ export default function PublishTasksPage() {
         ['超时时间(ms)', String(detail.timeoutMs ?? '—')],
         ['失败阶段', detail.failureStage ?? '—'],
         ['错误信息', detail.errorMessage ?? '—'],
-        ['内容校验和', detail.contentChecksum ?? '—'],
+        ['资源校验和', detail.resourceChecksum ?? '—'],
         ['调度时间', formatTime(detail.dispatchedAt)],
         ['完成时间', formatTime(detail.completedAt)],
         ['创建时间', formatTime(detail.createdAt)],

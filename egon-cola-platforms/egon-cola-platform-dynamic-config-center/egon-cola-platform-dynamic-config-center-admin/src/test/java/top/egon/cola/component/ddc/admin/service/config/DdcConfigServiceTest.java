@@ -319,7 +319,7 @@ class DdcConfigServiceTest {
     }
 
     private DdcConfigCreateRequest config(
-            String bizCode, String env, String appCode, String configKey) {
+            String bizCode, String env, String appCode, String description) {
         return new DdcConfigCreateRequest(
                 bizCode,
                 env,
@@ -328,7 +328,7 @@ class DdcConfigServiceTest {
                 "application.yml",
                 "test:\n  value: 1\n",
                 "YAML",
-                configKey
+                description
         );
     }
 

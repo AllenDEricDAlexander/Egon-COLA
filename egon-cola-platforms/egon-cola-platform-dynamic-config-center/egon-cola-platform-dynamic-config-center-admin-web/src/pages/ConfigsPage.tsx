@@ -70,13 +70,13 @@ export default function ConfigsPage() {
   }), [draft.appCode, draft.bizCode, draft.env, draft.namespaceCode])
 
   const publish = async (config: DdcConfig) => {
-    if (!window.confirm(`确认发布 ${config.configKey} 当前版本？`)) return
+    if (!window.confirm(`确认发布 ${config.resourceName} 当前版本？`)) return
     try {
       const result = await ddcApi<DdcPublishResult>(`/api/v1/ddc/configs/${encodeURIComponent(config.id)}/publish`, {
         method: 'POST',
         body: {
           changeId: uuidV7(),
-          configValue: config.configValue,
+          content: config.content,
           expectedVersion: config.currentVersion,
           timeoutMs: 30000,
         },
@@ -89,7 +89,7 @@ export default function ConfigsPage() {
   }
 
   const remove = async (config: DdcConfig) => {
-    if (!window.confirm(`确认删除 ${config.configKey}？`)) return
+    if (!window.confirm(`确认删除 ${config.resourceName}？`)) return
     try {
       await ddcApi(`/api/v1/ddc/configs/${encodeURIComponent(config.id)}`, {
         method: 'DELETE',
@@ -133,12 +133,12 @@ export default function ConfigsPage() {
   const columns = [
     {
       title: '配置文件',
-      dataIndex: 'configKey',
-      key: 'configKey',
-      render: (value: string) => (
+      dataIndex: 'resourceName',
+      key: 'resourceName',
+      render: (value: string, row: DdcConfig) => (
         <Space>
           <Typography.Text code>{value}</Typography.Text>
-          <Tag color="blue">YAML</Tag>
+          <Tag color="blue">{row.format}</Tag>
         </Space>
       ),
     },
@@ -156,7 +156,7 @@ export default function ConfigsPage() {
       title: 'YAML 内容',
       key: 'value',
       render: (_: unknown, row: DdcConfig) => {
-        const content = row.configValue.replace(/\s+/g, ' ').trim()
+        const content = row.content.replace(/\s+/g, ' ').trim()
         const preview = content.length > 96 ? `${content.slice(0, 96)}…` : content
         return (
           <span>
@@ -240,8 +240,8 @@ export default function ConfigsPage() {
             { title: '时间', dataIndex: 'createdAt', key: 'createdAt', render: formatTime },
             {
               title: '新值',
-              dataIndex: 'newValue',
-              key: 'newValue',
+              dataIndex: 'newContent',
+              key: 'newContent',
               render: (value: string) => (
                 <Typography.Text code ellipsis style={{ maxWidth: 220 }}>
                   {value?.replace(/\s+/g, ' ').slice(0, 60) ?? '—'}

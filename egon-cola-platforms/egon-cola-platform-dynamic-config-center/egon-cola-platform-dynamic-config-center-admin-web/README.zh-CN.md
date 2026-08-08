@@ -65,6 +65,16 @@ Maven 测试套件。
 业务域过滤，命名空间列表按所选应用过滤，环境列表来自受管实体 `/envs`；
 所有下拉均支持直接输入新值。注册查询始终携带完整四级作用域，首次查询使用上述构建时默认值。
 
+## 配置资源契约
+
+配置页面按 YAML 资源而不是独立键值项管理配置。创建请求固定提交
+`resourceName=application.yml`、`format=YAML` 和完整的 `content`；后端也接受
+`application.yaml`，列表会按响应中的实际资源名和格式展示。每个
+`bizCode + env + appCode` 只能存在一份 YAML 资源，命名空间绑定只控制可见性。
+
+该接口是破坏性新契约，不再发送或读取 `configKey`、`configValue`、`valueType`
+及 `contentChecksum` 等旧字段。
+
 ## 部署
 
 ```bash

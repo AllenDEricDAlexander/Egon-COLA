@@ -27,10 +27,10 @@ describe('ddcApi', () => {
 
   it('stringifies JSON bodies with content type', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(record(null)))
-    await ddcApi('/api/v1/ddc/configs', { method: 'POST', body: { configKey: 'a' } })
+    await ddcApi('/api/v1/ddc/configs', { method: 'POST', body: { resourceName: 'application.yml' } })
     const [, init] = vi.mocked(fetch).mock.calls[0]
     expect((init!.headers as Headers).get('Content-Type')).toBe('application/json')
-    expect(init!.body).toBe(JSON.stringify({ configKey: 'a' }))
+    expect(init!.body).toBe(JSON.stringify({ resourceName: 'application.yml' }))
   })
 
   it('throws DdcApiError with backend message on success=false', async () => {

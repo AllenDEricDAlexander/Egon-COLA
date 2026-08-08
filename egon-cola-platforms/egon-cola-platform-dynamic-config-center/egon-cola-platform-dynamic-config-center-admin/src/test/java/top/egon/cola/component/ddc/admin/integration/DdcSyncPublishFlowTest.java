@@ -125,7 +125,7 @@ class DdcSyncPublishFlowTest {
                 .thenReturn(targets);
         LinkedBlockingQueue<DdcPublishMessage> published =
                 capturePublishedMessages();
-        DdcPublishRequest request = request("sync-all", "true", 2000);
+        DdcPublishRequest request = request("true", 2000);
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
@@ -152,14 +152,14 @@ class DdcSyncPublishFlowTest {
                 .thenReturn(List.of(new DdcPublishTarget("instance-1", "lease-1")));
         LinkedBlockingQueue<DdcPublishMessage> published =
                 capturePublishedMessages();
-        DdcPublishRequest first = request("resource-lock", "true", 2000);
+        DdcPublishRequest first = request("true", 2000);
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
                     executor.submit(() -> publishService.publish(first, "tester"));
             assertThat(published.poll(2, TimeUnit.SECONDS)).isNotNull();
 
-            DdcPublishRequest second = request("resource-lock", "other", 2000);
+            DdcPublishRequest second = request("other", 2000);
             second.setExpectedVersion(2L);
             assertThatThrownBy(() -> publishService.publish(second, "tester"))
                     .isInstanceOf(DdcAdminException.class)
@@ -180,7 +180,7 @@ class DdcSyncPublishFlowTest {
                 .when(redisRepository)
                 .dispatch(any());
         DdcPublishRequest request =
-                request("dispatch-failure", "true", 2000);
+                request("true", 2000);
 
         assertThat(publishService.publish(request, "tester").getStatus())
                 .isEqualTo(PublishStatus.UNKNOWN.name());
@@ -206,7 +206,7 @@ class DdcSyncPublishFlowTest {
         LinkedBlockingQueue<DdcPublishMessage> published =
                 capturePublishedMessages();
         DdcPublishRequest request =
-                request("restart-unknown", "true", 2000);
+                request("true", 2000);
 
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<DdcPublishResultVO> result =
@@ -251,7 +251,7 @@ class DdcSyncPublishFlowTest {
         LinkedBlockingQueue<DdcPublishMessage> published =
                 capturePublishedMessages();
         DdcPublishRequest request =
-                request("timeout-retry", "true", 100);
+                request("true", 100);
 
         DdcPublishResultVO timedOut =
                 publishService.publish(request, "tester");
@@ -308,8 +308,7 @@ class DdcSyncPublishFlowTest {
         configItemRepository.saveAndFlush(config);
     }
 
-    private DdcPublishRequest request(String configKey,
-                                      String value,
+    private DdcPublishRequest request(String value,
                                       long timeoutMs) {
         DdcPublishRequest request = new DdcPublishRequest();
         request.setChangeId(UuidV7.simpleString());

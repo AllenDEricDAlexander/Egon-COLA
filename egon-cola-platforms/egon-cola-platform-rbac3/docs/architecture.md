@@ -35,10 +35,12 @@ DDC configuration and service discovery use separate identities and separate
 leases. Configuration scope is:
 
 ```text
-bizCode + appCode + env + namespace + configKey
+bizCode + appCode + env + resourceName
 ```
 
-The DDC runtime owns one `CONFIG_CLIENT` lease for this scope. Service scope is:
+Namespace bindings control configuration visibility but are not part of the
+resource identity. The DDC runtime owns one `CONFIG_CLIENT` lease for this scope.
+Service scope is:
 
 ```text
 bizCode + appCode + env + namespace + serviceKind + protocol
@@ -68,12 +70,13 @@ runtime.
 
 ### 1.2 Atomic runtime policy and document catalog
 
-Five exact DDC appliers adapt scalar configuration into one immutable policy
+Five exact DDC appliers adapt changed YAML leaves into one immutable policy
 snapshot. Each apply is serialized, builds and validates a complete candidate,
 then atomically swaps the reference. Readers take one snapshot per command, so
 they cannot observe mixed fields. Startup snapshot priority is Refresh, Absolute,
-then Idle for the related timeouts; DDC runtime publication remains per-key and
-is not a cross-key transaction.
+then Idle for the related timeouts. A runtime publication replaces the complete
+YAML resource; if any consumer rejects it, DDC rolls back the property source and
+already-applied leaves.
 
 The constraints are `Idle <= Absolute <= Refresh` plus each key's fixed range.
 An invalid candidate records only key, target version and bounded error code.

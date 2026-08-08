@@ -40,9 +40,9 @@ export type DdcConfig = {
   appCode: string
   env: string
   visibleNamespaces: string[]
-  configKey: 'application.yml'
-  configValue: string
-  valueType: 'YAML'
+  resourceName: 'application.yml' | 'application.yaml'
+  content: string
+  format: 'YAML'
   currentVersion: number
   description?: string
   createdAt?: string
@@ -59,7 +59,7 @@ export type DdcPublishResult = {
   timeoutCount?: number
   attemptCount?: number
   targetVersion?: number
-  contentChecksum?: string
+  resourceChecksum?: string
   errorMessage?: string
 }
 
@@ -67,8 +67,10 @@ export type DdcConfigVersion = {
   id: string
   configId: string
   version: number
-  oldValue?: string
-  newValue?: string
+  resourceName: 'application.yml' | 'application.yaml'
+  oldContent?: string
+  newContent?: string
+  format: 'YAML'
   changeType?: string
   changeReason?: string
   operator?: string
@@ -125,10 +127,10 @@ export type DdcPublishTask = {
   bizCode?: string
   appCode?: string
   env?: string
-  configKey?: string
+  resourceName?: string
   targetVersion?: number
   publishMode?: string
-  contentChecksum?: string
+  resourceChecksum?: string
   attemptCount?: number
   dispatchedAt?: string
   completedAt?: string
@@ -166,7 +168,7 @@ export type DdcInstance = {
 }
 
 export type DdcCacheCheckRow = {
-  configKey: string
+  resourceName: string
   databaseValue?: string
   redisValue?: string
   databaseVersion?: number

@@ -12,8 +12,8 @@ const jsonResponse = (body: unknown) =>
 
 const task = {
   id: 't-1', changeId: 'change-9', configId: 'cfg-1', appCode: 'orders', env: 'dev',
-  namespace: 'default', configKey: 'application.yml', targetVersion: 4, publishMode: 'SYNC',
-  contentChecksum: 'abc', attemptCount: 1, dispatchedAt: '2026-07-31T10:00:00Z',
+  namespace: 'default', resourceName: 'application.yml', targetVersion: 4, publishMode: 'SYNC',
+  resourceChecksum: 'abc', attemptCount: 1, dispatchedAt: '2026-07-31T10:00:00Z',
   completedAt: '2026-07-31T10:00:05Z', failureStage: null, status: 'SUCCESS',
   targetCount: 3, ackCount: 3, failedCount: 0, ignoredCount: 0, timeoutCount: 0,
   timeoutMs: 30000, operator: 'local-admin', errorMessage: null,
@@ -35,7 +35,7 @@ describe('PublishTasksPage', () => {
         return Promise.resolve(jsonResponse(record({
           changeId: 'change-9', status: 'SUCCESS', targetCount: 3, ackCount: 3, failedCount: 0,
           ignoredCount: 0, timeoutCount: 0, attemptCount: 2, targetVersion: 4,
-          contentChecksum: 'abc', errorMessage: null,
+          resourceChecksum: 'abc', errorMessage: null,
         })))
       }
       return Promise.resolve(jsonResponse(record([task])))
