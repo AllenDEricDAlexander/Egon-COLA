@@ -21,7 +21,6 @@
         <module>egon-cola-platform-idp-starter</module>
         <module>egon-cola-platform-idp-gateway-adapter</module>
         <module>egon-cola-platform-idp-admin</module>
-        <module>egon-cola-platform-idp-admin-web</module>
     </modules>
 
     <dependencyManagement>

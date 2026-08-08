@@ -7,7 +7,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import top.egon.cola.component.ddc.admin.infrastructure.persistence.DdcStringMapConverter;
+import top.egon.cola.component.ddc.admin.converter.DdcStringMapConverter;
 
 import java.time.LocalDateTime;
 import java.util.Map;

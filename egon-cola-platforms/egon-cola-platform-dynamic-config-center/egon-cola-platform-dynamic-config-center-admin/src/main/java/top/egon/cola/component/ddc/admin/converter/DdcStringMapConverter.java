@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.infrastructure.persistence;
+package top.egon.cola.component.ddc.admin.converter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

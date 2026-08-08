@@ -15,11 +15,11 @@ import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -29,8 +29,8 @@ import top.egon.cola.component.ddc.admin.security.openapi.DdcOpenApiHmacFilter;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 
-import java.util.Base64;
 import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
 
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
@@ -227,12 +227,12 @@ public class DdcAdminSecurityConfiguration {
                 jwt.getAudience().contains(expectedAudience)
                         ? OAuth2TokenValidatorResult.success()
                         : OAuth2TokenValidatorResult.failure(
-                                new OAuth2Error(
-                                        "invalid_token",
-                                        "DDC Admin JWT audience is invalid",
-                                        null
-                                )
-                        );
+                        new OAuth2Error(
+                                "invalid_token",
+                                "DDC Admin JWT audience is invalid",
+                                null
+                        )
+                );
         return new DelegatingOAuth2TokenValidator<>(
                 standard,
                 audienceValidator
