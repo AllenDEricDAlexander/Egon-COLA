@@ -12,29 +12,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DdcKeysTest {
 
     @Test
-    void exposesOnlyV3PublicMethods() {
+    void exposesVersionNeutralPublicMethods() {
         assertThat(Arrays.stream(DdcKeys.class.getDeclaredMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()))
                 .map(method -> method.getName()))
-                .allMatch(name -> name.startsWith("v3"));
+                .noneMatch(name -> name.matches("v\\d+.*"));
     }
 
     @Test
-    void buildsV3ConfigKeysWithoutNamespace() {
-        String value = DdcKeys.v3Config(
+    void buildsConfigKeysWithoutNamespace() {
+        String value = DdcKeys.config(
                 "retail", "local", "order", "feature.enabled"
         );
-        String version = DdcKeys.v3Version(
+        String version = DdcKeys.version(
                 "retail", "local", "order", "feature.enabled"
         );
-        String topic = DdcKeys.v3Topic("retail", "local", "order");
-        String lease = DdcKeys.v3ConfigLeaseInstance(
+        String topic = DdcKeys.topic("retail", "local", "order");
+        String lease = DdcKeys.configLeaseInstance(
                 "retail", "local", "order", "instance-1"
         );
-        String leases = DdcKeys.v3ConfigLeaseInstances(
+        String leases = DdcKeys.configLeaseInstances(
                 "retail", "local", "order"
         );
-        String idempotency = DdcKeys.v3PublishIdempotency(
+        String idempotency = DdcKeys.publishIdempotency(
                 "retail", "local", "order", "change-1"
         );
 
@@ -56,7 +56,7 @@ class DdcKeysTest {
     }
 
     @Test
-    void buildsV3RegistryKeysAndIndependentGlobalCatalog() {
+    void buildsRegistryKeysAndIndependentGlobalCatalog() {
         DdcServiceKey key = new DdcServiceKey(
                 "retail",
                 "local",
@@ -68,18 +68,18 @@ class DdcKeysTest {
                 "http"
         );
 
-        String instance = DdcKeys.v3RegistryInstance(key, "instance-1");
-        String service = DdcKeys.v3RegistryService(key);
-        String revision = DdcKeys.v3RegistryRevision(key);
-        String catalog = DdcKeys.v3RegistryCatalog(
+        String instance = DdcKeys.registryInstance(key, "instance-1");
+        String service = DdcKeys.registryService(key);
+        String revision = DdcKeys.registryRevision(key);
+        String catalog = DdcKeys.registryCatalog(
                 "retail", "local", "order",
                 DdcServiceKind.HTTP_PROVIDER, "http"
         );
-        String catalogRevision = DdcKeys.v3RegistryCatalogRevision(
+        String catalogRevision = DdcKeys.registryCatalogRevision(
                 "retail", "local", "order",
                 DdcServiceKind.HTTP_PROVIDER, "http"
         );
-        String topic = DdcKeys.v3RegistryTopic(
+        String topic = DdcKeys.registryTopic(
                 "retail", "local", "order",
                 DdcServiceKind.HTTP_PROVIDER, "http"
         );
@@ -95,9 +95,9 @@ class DdcKeysTest {
         assertThat(catalog).endsWith(":registry:catalog:http");
         assertThat(catalogRevision).endsWith(":registry:catalog-revision:http");
         assertThat(topic).endsWith(":registry:topic:http");
-        assertThat(DdcKeys.v3GlobalRegistryCatalog())
+        assertThat(DdcKeys.globalRegistryCatalog())
                 .isEqualTo("ddc:v3:{registry-catalog}:services");
-        assertThat(DdcKeys.v3GlobalRegistryCatalogRevision())
+        assertThat(DdcKeys.globalRegistryCatalogRevision())
                 .isEqualTo("ddc:v3:{registry-catalog}:revision");
     }
 

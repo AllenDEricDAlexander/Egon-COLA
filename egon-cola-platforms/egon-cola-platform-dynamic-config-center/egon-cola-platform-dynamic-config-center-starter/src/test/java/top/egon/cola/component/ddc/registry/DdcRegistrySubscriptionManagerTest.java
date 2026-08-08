@@ -66,7 +66,7 @@ class DdcRegistrySubscriptionManagerTest {
         assertThat(refreshed.await(2, TimeUnit.SECONDS)).isTrue();
         assertThat(order.subList(0, 2)).containsExactly("subscribe", "pull");
         verify(topic.redisson()).getTopic(
-                DdcKeys.v3RegistryTopic(
+                DdcKeys.registryTopic(
                         "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE

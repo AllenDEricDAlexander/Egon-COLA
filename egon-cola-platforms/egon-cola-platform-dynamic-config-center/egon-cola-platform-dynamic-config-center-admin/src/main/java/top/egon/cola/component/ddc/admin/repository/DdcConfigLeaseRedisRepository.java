@@ -175,21 +175,21 @@ public class DdcConfigLeaseRedisRepository {
 
     private RBucket<String> lease(String bizCode, String env, String appCode, String instanceId) {
         return redissonClient.getBucket(
-                DdcKeys.v3ConfigLeaseInstance(bizCode, env, appCode, instanceId),
+                DdcKeys.configLeaseInstance(bizCode, env, appCode, instanceId),
                 StringCodec.INSTANCE
         );
     }
 
     private RSet<String> instances(String bizCode, String env, String appCode) {
         return redissonClient.getSet(
-                DdcKeys.v3ConfigLeaseInstances(bizCode, env, appCode),
+                DdcKeys.configLeaseInstances(bizCode, env, appCode),
                 StringCodec.INSTANCE
         );
     }
 
     private RLock scopeLock(String bizCode, String env, String appCode) {
         return redissonClient.getLock(
-                DdcKeys.v3ConfigLeaseInstances(bizCode, env, appCode) + ":lock");
+                DdcKeys.configLeaseInstances(bizCode, env, appCode) + ":lock");
     }
 
     private String toJson(DdcInstanceIdentity identity,

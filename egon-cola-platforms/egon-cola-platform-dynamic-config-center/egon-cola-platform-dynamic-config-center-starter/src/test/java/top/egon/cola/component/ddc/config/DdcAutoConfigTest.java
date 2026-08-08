@@ -187,13 +187,13 @@ class DdcAutoConfigTest {
         properties.setEnv("dev");
         properties.setAppCode("order");
         properties.setNamespace("namespace-a");
-        when(client.getTopic(DdcKeys.v3Topic("retail", "dev", "order")))
+        when(client.getTopic(DdcKeys.topic("retail", "dev", "order")))
                 .thenReturn(topic);
 
         RTopic result = new DdcAutoConfig().ddcRedisTopic(client, properties);
 
         assertThat(result).isSameAs(topic);
-        verify(client).getTopic(DdcKeys.v3Topic("retail", "dev", "order"));
+        verify(client).getTopic(DdcKeys.topic("retail", "dev", "order"));
     }
 
     private RedissonClient dedicatedClient() {

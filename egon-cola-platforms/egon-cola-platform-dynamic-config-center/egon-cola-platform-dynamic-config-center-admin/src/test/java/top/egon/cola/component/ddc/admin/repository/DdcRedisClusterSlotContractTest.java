@@ -16,16 +16,16 @@ class DdcRedisClusterSlotContractTest {
     @Test
     void configProjectionLeaseAndLockKeysShareTheScopeSlot() {
         List<String> keys = List.of(
-                DdcKeys.v3Config("retail", "dev", "demo", "switch"),
-                DdcKeys.v3Version("retail", "dev", "demo", "switch"),
-                DdcKeys.v3PublishIdempotency(
+                DdcKeys.config("retail", "dev", "demo", "switch"),
+                DdcKeys.version("retail", "dev", "demo", "switch"),
+                DdcKeys.publishIdempotency(
                         "retail", "dev", "demo", "change-1"),
-                DdcKeys.v3Topic("retail", "dev", "demo"),
-                DdcKeys.v3Topic("retail", "dev", "demo") + ":lock",
-                DdcKeys.v3ConfigLeaseInstance(
+                DdcKeys.topic("retail", "dev", "demo"),
+                DdcKeys.topic("retail", "dev", "demo") + ":lock",
+                DdcKeys.configLeaseInstance(
                         "retail", "dev", "demo", "instance-1"),
-                DdcKeys.v3ConfigLeaseInstances("retail", "dev", "demo"),
-                DdcKeys.v3ConfigLeaseInstances("retail", "dev", "demo") + ":lock"
+                DdcKeys.configLeaseInstances("retail", "dev", "demo"),
+                DdcKeys.configLeaseInstances("retail", "dev", "demo") + ":lock"
         );
 
         assertOneSlot(keys);
@@ -38,19 +38,19 @@ class DdcRedisClusterSlotContractTest {
                 "order.v1.OrderQueryService", "default", "1.0.0", "grpc"
         );
         List<String> keys = List.of(
-                DdcKeys.v3RegistryInstance(serviceKey, "provider-1"),
-                DdcKeys.v3RegistryService(serviceKey),
-                DdcKeys.v3RegistryRevision(serviceKey),
-                DdcKeys.v3RegistryCatalog(
+                DdcKeys.registryInstance(serviceKey, "provider-1"),
+                DdcKeys.registryService(serviceKey),
+                DdcKeys.registryRevision(serviceKey),
+                DdcKeys.registryCatalog(
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcKeys.v3RegistryCatalogRevision(
+                DdcKeys.registryCatalogRevision(
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcKeys.v3RegistryTopic(
+                DdcKeys.registryTopic(
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcKeys.v3RegistryInstance(serviceKey, "scope") + ":lock"
+                DdcKeys.registryInstance(serviceKey, "scope") + ":lock"
         );
 
         assertThat(keys).allMatch(key -> key.startsWith("ddc:v3:{"));

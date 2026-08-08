@@ -409,7 +409,7 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
          */
         private void start() {
             start(List.of(
-                    DdcKeys.v3RegistryTopic(
+                    DdcKeys.registryTopic(
                             serviceKey.bizCode(),
                             serviceKey.env(),
                             serviceKey.appCode(),
@@ -529,7 +529,7 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
                 );
             }
             start(List.of(
-                    DdcKeys.v3RegistryTopic(
+                    DdcKeys.registryTopic(
                             query.bizCode(),
                             query.env(),
                             query.appCode(),

@@ -53,17 +53,17 @@ class DdcServiceRegistryRedisRepositoryTest {
         RTopic topic = mock(RTopic.class);
         RSet<String> globalCatalog = set();
         RAtomicLong globalRevision = mock(RAtomicLong.class);
-        when(redisson.getLock(DdcKeys.v3RegistryInstance(SERVICE_KEY, "scope") + ":lock"))
+        when(redisson.getLock(DdcKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
                 .thenReturn(scopeLock);
-        when(redisson.getLock(DdcKeys.v3GlobalRegistryCatalog() + ":lock"))
+        when(redisson.getLock(DdcKeys.globalRegistryCatalog() + ":lock"))
                 .thenReturn(globalLock);
         when(redisson.<String>getBucket(
-                DdcKeys.v3RegistryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+                DdcKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(redisson.<String>getScoredSortedSet(
-                DdcKeys.v3RegistryService(SERVICE_KEY), StringCodec.INSTANCE
+                DdcKeys.registryService(SERVICE_KEY), StringCodec.INSTANCE
         )).thenReturn(instances);
-        when(redisson.getAtomicLong(DdcKeys.v3RegistryRevision(SERVICE_KEY)))
+        when(redisson.getAtomicLong(DdcKeys.registryRevision(SERVICE_KEY)))
                 .thenReturn(serviceRevision);
         when(serviceRevision.incrementAndGet()).thenReturn(7L);
         when(redisson.<String>getSet(catalogKey(), StringCodec.INSTANCE)).thenReturn(catalog);
@@ -72,10 +72,10 @@ class DdcServiceRegistryRedisRepositoryTest {
         when(catalogRevision.incrementAndGet()).thenReturn(3L);
         when(redisson.getTopic(topicKey(), StringCodec.INSTANCE)).thenReturn(topic);
         when(redisson.<String>getSet(
-                DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
+                DdcKeys.globalRegistryCatalog(), StringCodec.INSTANCE
         )).thenReturn(globalCatalog);
         when(globalCatalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
-        when(redisson.getAtomicLong(DdcKeys.v3GlobalRegistryCatalogRevision()))
+        when(redisson.getAtomicLong(DdcKeys.globalRegistryCatalogRevision()))
                 .thenReturn(globalRevision);
         DdcServiceRegistryRedisRepository repository =
                 new DdcServiceRegistryRedisRepository(redisson, objectMapper);
@@ -108,10 +108,10 @@ class DdcServiceRegistryRedisRepositoryTest {
                 "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER,
                 "order.v1.OtherService", "default", "1.0.0", "grpc"
         );
-        when(redisson.getLock(DdcKeys.v3RegistryInstance(SERVICE_KEY, "scope") + ":lock"))
+        when(redisson.getLock(DdcKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
                 .thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.v3RegistryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+                DdcKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(objectMapper.writeValueAsString(
                 instance(otherService, "lease-1")));
@@ -128,10 +128,10 @@ class DdcServiceRegistryRedisRepositoryTest {
         RedissonClient redisson = mock(RedissonClient.class);
         RLock lock = mock(RLock.class);
         RBucket<String> bucket = bucket();
-        when(redisson.getLock(DdcKeys.v3RegistryInstance(SERVICE_KEY, "scope") + ":lock"))
+        when(redisson.getLock(DdcKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
                 .thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.v3RegistryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+                DdcKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(objectMapper.writeValueAsString(instance()));
         DdcServiceRegistryRedisRepository repository =
@@ -166,19 +166,19 @@ class DdcServiceRegistryRedisRepositoryTest {
     }
 
     private String catalogKey() {
-        return DdcKeys.v3RegistryCatalog(
+        return DdcKeys.registryCatalog(
                 SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
                 SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
     }
 
     private String catalogRevisionKey() {
-        return DdcKeys.v3RegistryCatalogRevision(
+        return DdcKeys.registryCatalogRevision(
                 SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
                 SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
     }
 
     private String topicKey() {
-        return DdcKeys.v3RegistryTopic(
+        return DdcKeys.registryTopic(
                 SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
                 SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
     }

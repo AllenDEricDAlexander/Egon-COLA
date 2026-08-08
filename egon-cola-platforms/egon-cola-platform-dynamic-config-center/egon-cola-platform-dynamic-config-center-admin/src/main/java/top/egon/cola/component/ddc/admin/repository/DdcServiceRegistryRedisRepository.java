@@ -169,10 +169,10 @@ public class DdcServiceRegistryRedisRepository {
     public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query,
                                                     Instant now) {
         String catalogKey = query.hasExactCatalogScope()
-                ? DdcKeys.v3RegistryCatalog(
+                ? DdcKeys.registryCatalog(
                         query.bizCode(), query.env(), query.appCode(),
                         query.serviceKind(), query.protocol())
-                : DdcKeys.v3GlobalRegistryCatalog();
+                : DdcKeys.globalRegistryCatalog();
         Set<String> members = redissonClient.<String>getSet(
                 catalogKey, StringCodec.INSTANCE).readAll();
         List<DdcServiceKey> serviceKeys = new ArrayList<>();
@@ -185,10 +185,10 @@ public class DdcServiceRegistryRedisRepository {
         }
         serviceKeys.sort(DdcServiceKey::compareTo);
         String revisionKey = query.hasExactCatalogScope()
-                ? DdcKeys.v3RegistryCatalogRevision(
+                ? DdcKeys.registryCatalogRevision(
                         query.bizCode(), query.env(), query.appCode(),
                         query.serviceKind(), query.protocol())
-                : DdcKeys.v3GlobalRegistryCatalogRevision();
+                : DdcKeys.globalRegistryCatalogRevision();
         return new DdcServiceCatalogSnapshot(
                 query, redissonClient.getAtomicLong(revisionKey).get(), serviceKeys, now);
     }
@@ -281,11 +281,11 @@ public class DdcServiceRegistryRedisRepository {
         lock.lock();
         try {
             boolean added = redissonClient.<String>getSet(
-                    DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
+                    DdcKeys.globalRegistryCatalog(), StringCodec.INSTANCE
             ).add(serviceKey.canonicalValue());
             if (added) {
                 redissonClient.getAtomicLong(
-                        DdcKeys.v3GlobalRegistryCatalogRevision()).incrementAndGet();
+                        DdcKeys.globalRegistryCatalogRevision()).incrementAndGet();
             }
         } finally {
             lock.unlock();
@@ -300,11 +300,11 @@ public class DdcServiceRegistryRedisRepository {
                 return;
             }
             boolean removed = redissonClient.<String>getSet(
-                    DdcKeys.v3GlobalRegistryCatalog(), StringCodec.INSTANCE
+                    DdcKeys.globalRegistryCatalog(), StringCodec.INSTANCE
             ).remove(serviceKey.canonicalValue());
             if (removed) {
                 redissonClient.getAtomicLong(
-                        DdcKeys.v3GlobalRegistryCatalogRevision()).incrementAndGet();
+                        DdcKeys.globalRegistryCatalogRevision()).incrementAndGet();
             }
         } finally {
             lock.unlock();
@@ -313,17 +313,17 @@ public class DdcServiceRegistryRedisRepository {
 
     private RBucket<String> instanceBucket(DdcServiceKey serviceKey, String instanceId) {
         return redissonClient.getBucket(
-                DdcKeys.v3RegistryInstance(serviceKey, instanceId), StringCodec.INSTANCE);
+                DdcKeys.registryInstance(serviceKey, instanceId), StringCodec.INSTANCE);
     }
 
     private RScoredSortedSet<String> serviceInstances(DdcServiceKey serviceKey) {
         return redissonClient.getScoredSortedSet(
-                DdcKeys.v3RegistryService(serviceKey), StringCodec.INSTANCE);
+                DdcKeys.registryService(serviceKey), StringCodec.INSTANCE);
     }
 
     private RSet<String> serviceCatalog(DdcServiceKey serviceKey) {
         return redissonClient.getSet(
-                DdcKeys.v3RegistryCatalog(
+                DdcKeys.registryCatalog(
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
                 StringCodec.INSTANCE
@@ -331,28 +331,28 @@ public class DdcServiceRegistryRedisRepository {
     }
 
     private RAtomicLong serviceRevision(DdcServiceKey serviceKey) {
-        return redissonClient.getAtomicLong(DdcKeys.v3RegistryRevision(serviceKey));
+        return redissonClient.getAtomicLong(DdcKeys.registryRevision(serviceKey));
     }
 
     private RAtomicLong catalogRevision(DdcServiceKey serviceKey) {
-        return redissonClient.getAtomicLong(DdcKeys.v3RegistryCatalogRevision(
+        return redissonClient.getAtomicLong(DdcKeys.registryCatalogRevision(
                 serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                 serviceKey.serviceKind(), serviceKey.protocol()));
     }
 
     private RLock serviceLock(DdcServiceKey serviceKey) {
         return redissonClient.getLock(
-                DdcKeys.v3RegistryInstance(serviceKey, "scope") + ":lock");
+                DdcKeys.registryInstance(serviceKey, "scope") + ":lock");
     }
 
     private RLock globalCatalogLock() {
-        return redissonClient.getLock(DdcKeys.v3GlobalRegistryCatalog() + ":lock");
+        return redissonClient.getLock(DdcKeys.globalRegistryCatalog() + ":lock");
     }
 
     private void publishEvent(DdcServiceKey serviceKey,
                               long serviceRevision,
                               long catalogRevision) {
-        redissonClient.getTopic(DdcKeys.v3RegistryTopic(
+        redissonClient.getTopic(DdcKeys.registryTopic(
                 serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                 serviceKey.serviceKind(), serviceKey.protocol()), StringCodec.INSTANCE
         ).publish(json(new DdcRegistryEvent(

@@ -52,7 +52,7 @@ public class DdcRedisConfigRepository {
      * @return 配置值，不存在时为 {@code null}; configuration value, or {@code null} when absent
      */
     public String readValue(String key) {
-        return redissonClient.<String>getBucket(DdcKeys.v3Config(
+        return redissonClient.<String>getBucket(DdcKeys.config(
                 properties.getBizCode(),
                 properties.getEnv(),
                 properties.getAppCode(),
@@ -68,7 +68,7 @@ public class DdcRedisConfigRepository {
      * @return 配置版本，不存在时为 {@code null}; configuration version, or {@code null} when absent
      */
     public Long readVersion(String key) {
-        return redissonClient.<Long>getBucket(DdcKeys.v3Version(
+        return redissonClient.<Long>getBucket(DdcKeys.version(
                 properties.getBizCode(),
                 properties.getEnv(),
                 properties.getAppCode(),

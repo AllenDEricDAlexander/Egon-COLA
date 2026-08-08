@@ -42,11 +42,11 @@ class DdcConfigLeaseRedisRepositoryTest {
         Set<String> members = new HashSet<>();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.v3ConfigLeaseInstance("retail", "dev", "demo", "instance-1"),
+                DdcKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(redisson.<String>getSet(
-                DdcKeys.v3ConfigLeaseInstances("retail", "dev", "demo"),
+                DdcKeys.configLeaseInstances("retail", "dev", "demo"),
                 StringCodec.INSTANCE
         )).thenReturn(instances);
         when(bucket.get()).thenAnswer(invocation -> stored.get());
@@ -88,7 +88,7 @@ class DdcConfigLeaseRedisRepositoryTest {
         RBucket<String> bucket = bucket();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.v3ConfigLeaseInstance("retail", "dev", "demo", "instance-1"),
+                DdcKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(new ObjectMapper().writeValueAsString(

@@ -29,9 +29,9 @@ public class DdcRedisRepository {
         lock.lock();
         try {
             redissonClient.<String>getBucket(
-                    DdcKeys.v3Config(bizCode, env, appCode, key)).set(value);
+                    DdcKeys.config(bizCode, env, appCode, key)).set(value);
             redissonClient.<Long>getBucket(
-                    DdcKeys.v3Version(bizCode, env, appCode, key)).set(version);
+                    DdcKeys.version(bizCode, env, appCode, key)).set(version);
         } finally {
             lock.unlock();
         }
@@ -41,11 +41,11 @@ public class DdcRedisRepository {
         RLock lock = configLock(command.bizCode(), command.env(), command.appCode());
         lock.lock();
         try {
-            String configKey = DdcKeys.v3Config(
+            String configKey = DdcKeys.config(
                     command.bizCode(), command.env(), command.appCode(), command.configKey());
-            String versionKey = DdcKeys.v3Version(
+            String versionKey = DdcKeys.version(
                     command.bizCode(), command.env(), command.appCode(), command.configKey());
-            String idempotencyKey = DdcKeys.v3PublishIdempotency(
+            String idempotencyKey = DdcKeys.publishIdempotency(
                     command.bizCode(), command.env(), command.appCode(), command.changeId());
             String fingerprint = command.changeId() + ":" + command.eventChecksum();
             String existing = redissonClient.<String>getBucket(idempotencyKey).get();
@@ -75,7 +75,7 @@ public class DdcRedisRepository {
             redissonClient.<String>getBucket(configKey).set(command.content());
             redissonClient.<Long>getBucket(versionKey).set(command.targetVersion());
             redissonClient.<String>getBucket(idempotencyKey).set(fingerprint);
-            redissonClient.getTopic(DdcKeys.v3Topic(
+            redissonClient.getTopic(DdcKeys.topic(
                     command.bizCode(), command.env(), command.appCode()
             )).publish(command.message());
         } finally {
@@ -86,19 +86,19 @@ public class DdcRedisRepository {
     public String readConfigValue(
             String bizCode, String env, String appCode, String key) {
         return redissonClient.<String>getBucket(
-                DdcKeys.v3Config(bizCode, env, appCode, key)
+                DdcKeys.config(bizCode, env, appCode, key)
         ).get();
     }
 
     public Long readConfigVersion(
             String bizCode, String env, String appCode, String key) {
         return redissonClient.<Long>getBucket(
-                DdcKeys.v3Version(bizCode, env, appCode, key)
+                DdcKeys.version(bizCode, env, appCode, key)
         ).get();
     }
 
     public void publish(DdcPublishMessage message) {
-        redissonClient.getTopic(DdcKeys.v3Topic(
+        redissonClient.getTopic(DdcKeys.topic(
                 message.getBizCode(),
                 message.getEnv(),
                 message.getAppCode()
@@ -109,7 +109,7 @@ public class DdcRedisRepository {
         RLock lock = configLock(request.getBizCode(), request.getEnv(), request.getAppCode());
         lock.lock();
         try {
-            redissonClient.<String>getBucket(DdcKeys.v3ConfigLeaseInstance(
+            redissonClient.<String>getBucket(DdcKeys.configLeaseInstance(
                             request.getBizCode(), request.getEnv(),
                             request.getAppCode(), request.getInstanceId()))
                     .set(toJson(request));
@@ -125,7 +125,7 @@ public class DdcRedisRepository {
         RLock lock = configLock(bizCode, env, appCode);
         lock.lock();
         try {
-            redissonClient.getBucket(DdcKeys.v3ConfigLeaseInstance(
+            redissonClient.getBucket(DdcKeys.configLeaseInstance(
                     bizCode, env, appCode, instanceId)).delete();
             instances(bizCode, env, appCode).remove(instanceId);
         } finally {
@@ -143,11 +143,11 @@ public class DdcRedisRepository {
 
     private RSet<String> instances(String bizCode, String env, String appCode) {
         return redissonClient.getSet(
-                DdcKeys.v3ConfigLeaseInstances(bizCode, env, appCode));
+                DdcKeys.configLeaseInstances(bizCode, env, appCode));
     }
 
     private RLock configLock(String bizCode, String env, String appCode) {
         return redissonClient.getLock(
-                DdcKeys.v3Topic(bizCode, env, appCode) + ":lock");
+                DdcKeys.topic(bizCode, env, appCode) + ":lock");
     }
 }

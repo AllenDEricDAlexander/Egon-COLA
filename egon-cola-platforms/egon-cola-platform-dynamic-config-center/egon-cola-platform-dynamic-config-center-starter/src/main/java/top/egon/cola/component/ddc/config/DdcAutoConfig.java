@@ -310,7 +310,7 @@ public class DdcAutoConfig {
     public RTopic ddcRedisTopic(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
                                 DdcProperties properties) {
         return redissonClient.getTopic(
-                DdcKeys.v3Topic(
+                DdcKeys.topic(
                         properties.getBizCode(),
                         properties.getEnv(),
                         properties.getAppCode()

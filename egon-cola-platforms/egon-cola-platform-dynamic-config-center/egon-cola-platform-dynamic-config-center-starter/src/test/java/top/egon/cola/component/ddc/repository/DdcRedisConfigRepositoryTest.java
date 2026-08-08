@@ -55,10 +55,10 @@ class DdcRedisConfigRepositoryTest {
     private void stubBuckets(RedissonClient redisson,
                              RBucket<String> value,
                              RBucket<Long> version) {
-        when(redisson.<String>getBucket(DdcKeys.v3Config(
+        when(redisson.<String>getBucket(DdcKeys.config(
                 "retail", "dev", "demo", "switch"
         ))).thenReturn(value);
-        when(redisson.<Long>getBucket(DdcKeys.v3Version(
+        when(redisson.<Long>getBucket(DdcKeys.version(
                 "retail", "dev", "demo", "switch"
         ))).thenReturn(version);
     }

@@ -24,7 +24,7 @@ class DdcRedisRepositoryTest {
         RedissonClient redisson = mock(RedissonClient.class);
         RLock lock = lock(redisson);
         RBucket<String> idempotency = bucket();
-        when(redisson.<String>getBucket(DdcKeys.v3PublishIdempotency(
+        when(redisson.<String>getBucket(DdcKeys.publishIdempotency(
                 "default", "dev", "demo", "change-1"
         ))).thenReturn(idempotency);
         when(idempotency.get()).thenReturn("change-1:old-checksum");
@@ -45,14 +45,14 @@ class DdcRedisRepositoryTest {
         RBucket<Long> version = bucket();
         RBucket<String> idempotency = bucket();
         RTopic topic = mock(RTopic.class);
-        String configKey = DdcKeys.v3Config("default", "dev", "demo", "switch");
-        String versionKey = DdcKeys.v3Version("default", "dev", "demo", "switch");
-        String idempotencyKey = DdcKeys.v3PublishIdempotency(
+        String configKey = DdcKeys.config("default", "dev", "demo", "switch");
+        String versionKey = DdcKeys.version("default", "dev", "demo", "switch");
+        String idempotencyKey = DdcKeys.publishIdempotency(
                 "default", "dev", "demo", "change-1");
         when(redisson.<String>getBucket(configKey)).thenReturn(value);
         when(redisson.<Long>getBucket(versionKey)).thenReturn(version);
         when(redisson.<String>getBucket(idempotencyKey)).thenReturn(idempotency);
-        when(redisson.getTopic(DdcKeys.v3Topic("default", "dev", "demo")))
+        when(redisson.getTopic(DdcKeys.topic("default", "dev", "demo")))
                 .thenReturn(topic);
         when(version.get()).thenReturn(1L);
         when(idempotency.get()).thenReturn(null, "change-1:checksum");
@@ -75,10 +75,10 @@ class DdcRedisRepositoryTest {
         RLock lock = lock(redisson);
         RBucket<String> value = bucket();
         RBucket<Long> version = bucket();
-        when(redisson.<String>getBucket(DdcKeys.v3Config(
+        when(redisson.<String>getBucket(DdcKeys.config(
                 "default", "dev", "demo", "switch"
         ))).thenReturn(value);
-        when(redisson.<Long>getBucket(DdcKeys.v3Version(
+        when(redisson.<Long>getBucket(DdcKeys.version(
                 "default", "dev", "demo", "switch"
         ))).thenReturn(version);
 
@@ -98,7 +98,7 @@ class DdcRedisRepositoryTest {
         when(message.getBizCode()).thenReturn("default");
         when(message.getAppCode()).thenReturn("demo");
         when(message.getEnv()).thenReturn("dev");
-        when(redisson.getTopic(DdcKeys.v3Topic("default", "dev", "demo")))
+        when(redisson.getTopic(DdcKeys.topic("default", "dev", "demo")))
                 .thenReturn(topic);
 
         new DdcRedisRepository(redisson).publish(message);
