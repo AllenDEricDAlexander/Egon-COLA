@@ -9,32 +9,44 @@ import java.util.Objects;
  */
 public final class DdcConfigDataResource extends ConfigDataResource {
 
-    /** 资源不存在时是否允许继续启动。 Whether startup may continue when the resource is absent. */
+    /**
+     * 资源不存在时是否允许继续启动。 Whether startup may continue when the resource is absent.
+     */
     private final boolean optional;
 
-    /** 资源所属业务编码。 Business code owning the resource. */
+    /**
+     * 资源所属业务编码。 Business code owning the resource.
+     */
     private final String bizCode;
 
-    /** 资源所属环境。 Environment owning the resource. */
+    /**
+     * 资源所属环境。 Environment owning the resource.
+     */
     private final String env;
 
-    /** 资源所属命名空间。 Namespace owning the resource. */
+    /**
+     * 资源所属命名空间。 Namespace owning the resource.
+     */
     private final String namespace;
 
-    /** 资源所属应用编码。 Application code owning the resource. */
+    /**
+     * 资源所属应用编码。 Application code owning the resource.
+     */
     private final String appCode;
 
-    /** 远程配置资源名。 Remote configuration resource name. */
+    /**
+     * 远程配置资源名。 Remote configuration resource name.
+     */
     private final String resourceName;
 
     /**
      * 创建 DDC ConfigData 资源描述。 Creates a DDC ConfigData resource descriptor.
      *
-     * @param optional 资源缺失时是否允许继续。 whether absence is allowed
-     * @param bizCode 业务编码。 business code
-     * @param env 环境编码。 environment code
-     * @param namespace 命名空间编码。 namespace code
-     * @param appCode 应用编码。 application code
+     * @param optional     资源缺失时是否允许继续。 whether absence is allowed
+     * @param bizCode      业务编码。 business code
+     * @param env          环境编码。 environment code
+     * @param namespace    命名空间编码。 namespace code
+     * @param appCode      应用编码。 application code
      * @param resourceName 资源名。 resource name
      */
     public DdcConfigDataResource(boolean optional,
@@ -54,6 +66,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 返回资源是否允许缺失。 Returns whether the resource may be absent.
+     *
      * @return 资源是否为可选。 whether the resource is optional
      */
     public boolean optional() {
@@ -62,6 +75,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 返回资源所属业务编码。 Returns the business code owning the resource.
+     *
      * @return 业务编码。 business code
      */
     public String bizCode() {
@@ -70,6 +84,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 返回资源所属环境编码。 Returns the environment code owning the resource.
+     *
      * @return 环境编码。 environment code
      */
     public String env() {
@@ -78,6 +93,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 返回资源所属命名空间编码。 Returns the namespace code owning the resource.
+     *
      * @return 命名空间编码。 namespace code
      */
     public String namespace() {
@@ -86,6 +102,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 返回资源所属应用编码。 Returns the application code owning the resource.
+     *
      * @return 应用编码。 application code
      */
     public String appCode() {
@@ -94,6 +111,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 返回远程配置资源名。 Returns the remote configuration resource name.
+     *
      * @return 远程资源名。 remote resource name
      */
     public String resourceName() {
@@ -124,6 +142,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 计算与完整资源作用域相等性一致的哈希值。 Computes a hash code consistent with full resource-scope equality.
+     *
      * @return 与相等性字段一致的哈希值。 hash code consistent with the equality fields
      */
     @Override
@@ -140,6 +159,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
 
     /**
      * 返回便于诊断的 DDC 位置和作用域文本。 Returns diagnostic DDC location and scope text.
+     *
      * @return DDC 位置和作用域文本。 DDC location and scope text
      */
     @Override

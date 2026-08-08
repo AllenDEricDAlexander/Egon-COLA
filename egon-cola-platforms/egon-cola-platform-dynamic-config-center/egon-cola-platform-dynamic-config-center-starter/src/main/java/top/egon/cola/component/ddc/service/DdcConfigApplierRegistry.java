@@ -11,7 +11,7 @@ public interface DdcConfigApplierRegistry {
      * Registers an applier for an exact configuration key.
      *
      * @param configKey 精确配置键; exact configuration key
-     * @param applier 配置应用器; configuration applier
+     * @param applier   配置应用器; configuration applier
      */
     void registerExact(String configKey, DdcConfigApplier applier);
 
@@ -20,7 +20,7 @@ public interface DdcConfigApplierRegistry {
      * Registers an applier for a configuration key prefix.
      *
      * @param configKeyPrefix 配置键前缀; configuration key prefix
-     * @param applier 配置应用器; configuration applier
+     * @param applier         配置应用器; configuration applier
      */
     void registerPrefix(String configKeyPrefix, DdcConfigApplier applier);
 

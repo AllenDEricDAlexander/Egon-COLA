@@ -37,52 +37,74 @@ import java.util.Set;
  */
 public class DdcYamlConfigApplier implements SmartInitializingSingleton {
 
-    /** DDC YAML 资源的规范名称。 Canonical name of the DDC YAML resource. */
+    /**
+     * DDC YAML 资源的规范名称。 Canonical name of the DDC YAML resource.
+     */
     public static final String RESOURCE_NAME =
             DdcYamlPropertySourceLoader.RESOURCE_NAME;
 
-    /** Spring 环境中动态属性源的名称。 Name of the dynamic property source in the Spring environment. */
+    /**
+     * Spring 环境中动态属性源的名称。 Name of the dynamic property source in the Spring environment.
+     */
     public static final String PROPERTY_SOURCE_NAME = "ddc:" + RESOURCE_NAME;
 
-    /** 当前类的日志记录器。 Logger for this class. */
+    /**
+     * 当前类的日志记录器。 Logger for this class.
+     */
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DdcYamlConfigApplier.class);
 
-    /** 承载动态属性源并解析最终属性值的 Spring 环境。 Spring environment hosting the dynamic source and resolving final values. */
+    /**
+     * 承载动态属性源并解析最终属性值的 Spring 环境。 Spring environment hosting the dynamic source and resolving final values.
+     */
     private final ConfigurableEnvironment environment;
 
-    /** 解析显式配置键消费者的应用器注册表。 Registry resolving explicit configuration-key consumers. */
+    /**
+     * 解析显式配置键消费者的应用器注册表。 Registry resolving explicit configuration-key consumers.
+     */
     private final DdcConfigApplierRegistry applierRegistry;
 
-    /** 管理字段级动态绑定的服务。 Service managing field-level dynamic bindings. */
+    /**
+     * 管理字段级动态绑定的服务。 Service managing field-level dynamic bindings.
+     */
     private final DdcFieldBindingService fieldBindingService;
 
-    /** 刷新配置属性 Bean 的重新绑定器。 Rebinder that refreshes configuration-properties Beans. */
+    /**
+     * 刷新配置属性 Bean 的重新绑定器。 Rebinder that refreshes configuration-properties Beans.
+     */
     private final DdcConfigurationPropertiesRebinder rebinder;
 
-    /** 发布配置变化事件的 Spring 发布器。 Spring publisher for configuration-change events. */
+    /**
+     * 发布配置变化事件的 Spring 发布器。 Spring publisher for configuration-change events.
+     */
     private final ApplicationEventPublisher eventPublisher;
 
-    /** 允许的 YAML UTF-8 字节数上限。 Maximum allowed YAML size in UTF-8 bytes. */
+    /**
+     * 允许的 YAML UTF-8 字节数上限。 Maximum allowed YAML size in UTF-8 bytes.
+     */
     private final long maxYamlBytes;
 
-    /** 将 YAML 展平为动态属性源的加载器。 Loader that flattens YAML into a dynamic property source. */
+    /**
+     * 将 YAML 展平为动态属性源的加载器。 Loader that flattens YAML into a dynamic property source.
+     */
     private final DdcYamlPropertySourceLoader yamlLoader =
             new DdcYamlPropertySourceLoader();
 
-    /** 当前环境中的可替换 DDC 动态属性源。 Replaceable DDC dynamic property source in the current environment. */
+    /**
+     * 当前环境中的可替换 DDC 动态属性源。 Replaceable DDC dynamic property source in the current environment.
+     */
     private final DdcDynamicPropertySource propertySource;
 
     /**
      * 创建 YAML 配置应用器并定位已由 ConfigData 安装的动态属性源。
      * Creates the YAML configuration applier and locates the dynamic source installed by ConfigData.
      *
-     * @param environment 可配置 Spring 环境; configurable Spring environment
-     * @param applierRegistry 配置应用器注册表; configuration applier registry
+     * @param environment         可配置 Spring 环境; configurable Spring environment
+     * @param applierRegistry     配置应用器注册表; configuration applier registry
      * @param fieldBindingService 字段绑定服务; field binding service
-     * @param rebinder 配置属性重新绑定器; configuration-properties rebinder
-     * @param eventPublisher 应用事件发布器; application event publisher
-     * @param maxYamlBytes YAML UTF-8 字节数上限; maximum YAML size in UTF-8 bytes
+     * @param rebinder            配置属性重新绑定器; configuration-properties rebinder
+     * @param eventPublisher      应用事件发布器; application event publisher
+     * @param maxYamlBytes        YAML UTF-8 字节数上限; maximum YAML size in UTF-8 bytes
      * @throws IllegalStateException 环境中缺少 DDC ConfigData 属性源时抛出; thrown when the DDC ConfigData source is absent
      */
     public DdcYamlConfigApplier(
@@ -136,12 +158,12 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * 解析并应用一个新 YAML 版本，失败时恢复此前的动态状态。
      * Parses and applies a new YAML version, restoring the previous dynamic state on failure.
      *
-     * @param content YAML 文本内容; YAML text content
-     * @param version 配置版本; configuration version
+     * @param content  YAML 文本内容; YAML text content
+     * @param version  配置版本; configuration version
      * @param changeId 发布变化标识; publication change identifier
      * @return 描述有效变化与刷新结果的事件; event describing effective changes and refresh results
      * @throws IllegalArgumentException 内容超限或无法解析时抛出; thrown when content exceeds the limit or cannot be parsed
-     * @throws RuntimeException 运行时消费者应用失败时抛出; thrown when a runtime consumer fails to apply the change
+     * @throws RuntimeException         运行时消费者应用失败时抛出; thrown when a runtime consumer fails to apply the change
      */
     public DdcConfigurationChangedEvent apply(
             String content,
@@ -238,7 +260,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * 按属性源原始值计算新增、更新和删除差异。
      * Computes added, updated, and removed differences using raw property-source values.
      *
-     * @param previous 旧快照; previous snapshot
+     * @param previous  旧快照; previous snapshot
      * @param candidate 候选快照; candidate snapshot
      * @return 原始差异; raw difference
      */
@@ -275,7 +297,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * 移除因更高优先级属性源覆盖而未改变最终解析值的原始差异。
      * Removes raw differences whose final resolved values remain unchanged because of higher-priority property sources.
      *
-     * @param rawDiff 原始属性源差异; raw property-source difference
+     * @param rawDiff          原始属性源差异; raw property-source difference
      * @param previousResolved 变化前的最终解析值; final resolved values before replacement
      * @return 对运行时实际可见的有效差异; effective difference visible to runtime consumers
      */
@@ -324,11 +346,11 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * 按应用器优先级和配置键顺序应用具有动态消费者的叶子配置。
      * Applies leaf configuration having dynamic consumers in applier-priority and key order.
      *
-     * @param changedKeys 有效变化键; effectively changed keys
+     * @param changedKeys      有效变化键; effectively changed keys
      * @param previousResolved 变化前解析值; resolved values before the change
-     * @param version 配置版本; configuration version
-     * @param refreshedKeys 已完成运行时刷新的键集合; keys already refreshed at runtime
-     * @param appliedLeaves 成功应用并用于失败回滚的记录; successful applications recorded for rollback
+     * @param version          配置版本; configuration version
+     * @param refreshedKeys    已完成运行时刷新的键集合; keys already refreshed at runtime
+     * @param appliedLeaves    成功应用并用于失败回滚的记录; successful applications recorded for rollback
      */
     private void applyLeaves(Set<String> changedKeys,
                              Map<String, String> previousResolved,
@@ -374,8 +396,8 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * 恢复旧属性源，并尽力回滚配置属性 Bean 与已应用叶子。
      * Restores the previous source and best-effort rolls back configuration-properties Beans and applied leaves.
      *
-     * @param previous 旧动态配置快照; previous dynamic configuration snapshot
-     * @param diff 需要回滚的有效差异; effective difference to roll back
+     * @param previous      旧动态配置快照; previous dynamic configuration snapshot
+     * @param diff          需要回滚的有效差异; effective difference to roll back
      * @param appliedLeaves 已成功应用的叶子记录; successfully applied leaf records
      */
     private void rollback(DdcDynamicPropertySource.Snapshot previous,
@@ -475,7 +497,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * Categorized difference between configuration snapshots.
      *
      * @param changedKeys 所有变化键; all changed keys
-     * @param addedKeys 新增键; added keys
+     * @param addedKeys   新增键; added keys
      * @param updatedKeys 更新键; updated keys
      * @param removedKeys 删除键; removed keys
      */
@@ -491,9 +513,9 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * 保存已应用叶子的回滚信息。
      * Stores rollback information for an applied leaf.
      *
-     * @param key 配置键; configuration key
+     * @param key           配置键; configuration key
      * @param previousValue 变化前最终解析值; final resolved value before the change
-     * @param applier 执行应用和回滚的应用器; applier used for application and rollback
+     * @param applier       执行应用和回滚的应用器; applier used for application and rollback
      */
     private record AppliedLeaf(
             String key,

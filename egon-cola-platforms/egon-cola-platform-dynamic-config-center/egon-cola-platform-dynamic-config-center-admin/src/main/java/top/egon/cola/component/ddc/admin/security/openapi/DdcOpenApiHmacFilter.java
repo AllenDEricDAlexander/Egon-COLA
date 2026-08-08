@@ -19,8 +19,8 @@ import org.springframework.web.util.UriUtils;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
-import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

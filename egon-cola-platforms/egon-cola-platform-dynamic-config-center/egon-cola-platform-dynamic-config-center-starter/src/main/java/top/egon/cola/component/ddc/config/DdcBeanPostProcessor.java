@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.processor;
+package top.egon.cola.component.ddc.config;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -23,7 +23,9 @@ import top.egon.cola.component.ddc.service.DdcFieldBindingService;
  */
 public class DdcBeanPostProcessor implements BeanPostProcessor {
 
-    /** 负责扫描、登记并初始化 DDC 配置字段的服务。 Service that scans, registers, and initializes DDC configuration fields. */
+    /**
+     * 负责扫描、登记并初始化 DDC 配置字段的服务。 Service that scans, registers, and initializes DDC configuration fields.
+     */
     private final DdcFieldBindingService fieldBindingService;
 
     /**

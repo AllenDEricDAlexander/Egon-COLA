@@ -17,11 +17,11 @@ import top.egon.cola.component.ddc.management.client.DdcRestClientFactory;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
 import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.net.URI;
@@ -36,16 +36,24 @@ import java.util.UUID;
  */
 public class HttpDdcAdminClient implements DdcAdminClient {
 
-    /** 当前客户端的作用域、管理端和安全属性。 Scope, management endpoint, and security properties for this client. */
+    /**
+     * 当前客户端的作用域、管理端和安全属性。 Scope, management endpoint, and security properties for this client.
+     */
     private final DdcProperties properties;
 
-    /** 用于调用 DDC OpenAPI 的 Spring REST 客户端。 Spring REST client used for DDC OpenAPI calls. */
+    /**
+     * 用于调用 DDC OpenAPI 的 Spring REST 客户端。 Spring REST client used for DDC OpenAPI calls.
+     */
     private final RestClient restClient;
 
-    /** 用于请求序列化和响应反序列化的 JSON 映射器。 JSON mapper used for request serialization and response deserialization. */
+    /**
+     * 用于请求序列化和响应反序列化的 JSON 映射器。 JSON mapper used for request serialization and response deserialization.
+     */
     private final ObjectMapper objectMapper;
 
-    /** 根据规范请求生成 HMAC 签名的签名器。 Signer that produces HMAC signatures from canonical requests. */
+    /**
+     * 根据规范请求生成 HMAC 签名的签名器。 Signer that produces HMAC signatures from canonical requests.
+     */
     private final DdcRequestSigner signer = new DdcRequestSigner();
 
     /**
@@ -101,7 +109,7 @@ public class HttpDdcAdminClient implements DdcAdminClient {
     /**
      * 使用指定 REST 构建器创建客户端，供包内测试替换传输层。 Creates a client with the supplied REST builder so package-level tests can replace transport.
      *
-     * @param properties DDC 客户端属性。 DDC client properties
+     * @param properties        DDC 客户端属性。 DDC client properties
      * @param restClientBuilder REST 客户端构建器。 REST client builder
      */
     HttpDdcAdminClient(DdcProperties properties, RestClient.Builder restClientBuilder) {
@@ -213,11 +221,11 @@ public class HttpDdcAdminClient implements DdcAdminClient {
     /**
      * 序列化请求、创建规范签名上下文并执行 POST 调用。 Serializes a request, creates its canonical signing context, and executes a POST call.
      *
-     * @param path OpenAPI 相对路径。 OpenAPI relative path
-     * @param request 请求对象。 request object
+     * @param path         OpenAPI 相对路径。 OpenAPI relative path
+     * @param request      请求对象。 request object
      * @param responseType ResultRecord 响应类型。 ResultRecord response type
-     * @param required 成功响应是否必须包含数据。 whether a successful response must contain data
-     * @param <T> 响应数据类型。 response data type
+     * @param required     成功响应是否必须包含数据。 whether a successful response must contain data
+     * @param <T>          响应数据类型。 response data type
      * @return 成功响应中的数据。 data from the successful response
      * @throws DdcException 序列化失败、远端失败或必需数据缺失时抛出。 thrown on serialization failure, remote failure, or missing required data
      */
@@ -240,9 +248,9 @@ public class HttpDdcAdminClient implements DdcAdminClient {
     /**
      * 校验统一响应并提取数据，将失败状态映射为 DDC 异常。 Validates a common response and extracts data, mapping failure status to a DDC exception.
      *
-     * @param result 远端统一响应。 remote common response
+     * @param result   远端统一响应。 remote common response
      * @param required 是否要求非空数据。 whether non-null data is required
-     * @param <T> 响应数据类型。 response data type
+     * @param <T>      响应数据类型。 response data type
      * @return 响应数据。 response data
      * @throws DdcException 响应缺失、失败或必需数据缺失时抛出。 thrown when the response is absent, failed, or lacks required data
      */
@@ -278,9 +286,9 @@ public class HttpDdcAdminClient implements DdcAdminClient {
      * 使用当前时间和随机 nonce 创建规范请求。 Creates a canonical request with the current time and a random nonce.
      *
      * @param method HTTP 方法。 HTTP method
-     * @param path 请求路径。 request path
-     * @param query 多值查询参数。 multi-valued query parameters
-     * @param body 请求体字节。 request body bytes
+     * @param path   请求路径。 request path
+     * @param query  多值查询参数。 multi-valued query parameters
+     * @param body   请求体字节。 request body bytes
      * @return 可用于签名的规范请求。 canonical request ready for signing
      */
     private DdcCanonicalRequest canonicalRequest(String method,

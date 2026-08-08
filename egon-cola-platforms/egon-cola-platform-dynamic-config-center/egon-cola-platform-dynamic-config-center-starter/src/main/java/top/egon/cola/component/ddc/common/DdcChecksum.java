@@ -11,7 +11,9 @@ import java.util.Comparator;
  */
 public final class DdcChecksum {
 
-    /** 禁止实例化摘要工具类。 Prevents instantiation of the digest utility. */
+    /**
+     * 禁止实例化摘要工具类。 Prevents instantiation of the digest utility.
+     */
     private DdcChecksum() {
     }
 

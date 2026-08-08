@@ -14,7 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class DdcActiveRegistrationIndex {
 
-    /** 当前活跃注册，键为租约标识。 / Active registrations keyed by lease identifier. */
+    /**
+     * 当前活跃注册，键为租约标识。 / Active registrations keyed by lease identifier.
+     */
     private final Map<String, ActiveRegistration> registrations = new ConcurrentHashMap<>();
 
     /**
@@ -22,7 +24,7 @@ final class DdcActiveRegistrationIndex {
      * / Records a successfully registered service lease.
      *
      * @param serviceKey 注册使用的服务键 / service key used for registration
-     * @param session Admin 签发的租约会话 / lease session issued by Admin
+     * @param session    Admin 签发的租约会话 / lease session issued by Admin
      */
     void put(DdcServiceKey serviceKey, DdcLeaseSession session) {
         registrations.put(session.leaseId(), new ActiveRegistration(serviceKey, session.instanceId()));
@@ -33,7 +35,7 @@ final class DdcActiveRegistrationIndex {
      * / Validates that the instance and lease identify an active registration and returns its service key.
      *
      * @param instanceId 实例标识 / instance identifier
-     * @param leaseId 租约标识 / lease identifier
+     * @param leaseId    租约标识 / lease identifier
      * @return 注册时使用的服务键 / service key used for registration
      * @throws DdcException 租约不存在或实例不匹配时抛出 / if the lease is absent or the instance does not match
      */
@@ -55,7 +57,9 @@ final class DdcActiveRegistrationIndex {
         registrations.remove(leaseId);
     }
 
-    /** 清空全部本地注册记录。 / Clears all local registration records. */
+    /**
+     * 清空全部本地注册记录。 / Clears all local registration records.
+     */
     void clear() {
         registrations.clear();
     }

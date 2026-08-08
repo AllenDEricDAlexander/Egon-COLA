@@ -7,11 +7,11 @@ import java.time.Duration;
  * DDC 管理 HTTP 客户端的连接、认证与传输安全配置。 /
  * Connection, authentication, and transport-security settings for the DDC management HTTP client.
  *
- * @param endpoint 不含上下文路径的 DDC 管理服务 HTTP(S) 基础地址 / DDC management HTTP(S) base URL without a context path
- * @param accessKey HMAC 访问密钥标识 / HMAC access-key identifier
- * @param secretKey HMAC 签名密钥 / HMAC signing secret
- * @param connectTimeout 建立连接的正超时时间 / positive connection timeout
- * @param readTimeout 读取响应的正超时时间 / positive response-read timeout
+ * @param endpoint          不含上下文路径的 DDC 管理服务 HTTP(S) 基础地址 / DDC management HTTP(S) base URL without a context path
+ * @param accessKey         HMAC 访问密钥标识 / HMAC access-key identifier
+ * @param secretKey         HMAC 签名密钥 / HMAC signing secret
+ * @param connectTimeout    建立连接的正超时时间 / positive connection timeout
+ * @param readTimeout       读取响应的正超时时间 / positive response-read timeout
  * @param transportSecurity 明文开发模式或 mTLS 传输配置 / plaintext-development or mTLS transport configuration
  */
 public record DdcManagementClientProperties(
@@ -27,11 +27,11 @@ public record DdcManagementClientProperties(
      * 使用显式开发明文模式构造客户端配置。 /
      * Constructs client settings using explicit development plaintext mode.
      *
-     * @param endpoint DDC 管理服务 HTTP 基础地址 / DDC management HTTP base URL
-     * @param accessKey HMAC 访问密钥标识 / HMAC access-key identifier
-     * @param secretKey HMAC 签名密钥 / HMAC signing secret
+     * @param endpoint       DDC 管理服务 HTTP 基础地址 / DDC management HTTP base URL
+     * @param accessKey      HMAC 访问密钥标识 / HMAC access-key identifier
+     * @param secretKey      HMAC 签名密钥 / HMAC signing secret
      * @param connectTimeout 建立连接的正超时时间 / positive connection timeout
-     * @param readTimeout 读取响应的正超时时间 / positive response-read timeout
+     * @param readTimeout    读取响应的正超时时间 / positive response-read timeout
      * @throws IllegalArgumentException 当地址、凭据或超时配置无效时 / when the endpoint, credentials, or timeouts are invalid
      */
     public DdcManagementClientProperties(
@@ -139,7 +139,7 @@ public record DdcManagementClientProperties(
     /**
      * 要求持续时间为正值。 / Requires a positive duration.
      *
-     * @param value 待校验持续时间 / duration to validate
+     * @param value     待校验持续时间 / duration to validate
      * @param fieldName 用于错误消息的字段名 / field name used in error messages
      * @return 原始正持续时间 / original positive duration
      * @throws IllegalArgumentException 当持续时间为空、为零或为负时 / when the duration is null, zero, or negative
@@ -154,7 +154,7 @@ public record DdcManagementClientProperties(
     /**
      * 要求文本非空并去除首尾空白。 / Requires nonblank text and trims it.
      *
-     * @param value 待校验文本 / text to validate
+     * @param value     待校验文本 / text to validate
      * @param fieldName 用于错误消息的字段名 / field name used in error messages
      * @return 已去除首尾空白的文本 / trimmed text
      * @throws IllegalArgumentException 当文本为空时 / when the text is blank

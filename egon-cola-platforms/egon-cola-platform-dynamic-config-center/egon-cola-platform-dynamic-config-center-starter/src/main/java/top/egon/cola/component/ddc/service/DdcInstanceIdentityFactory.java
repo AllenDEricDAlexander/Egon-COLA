@@ -18,12 +18,18 @@ import java.util.Properties;
  */
 public class DdcInstanceIdentityFactory {
 
-    /** 包含构建期 SDK 版本的类路径资源。 Classpath resource containing the build-time SDK version. */
+    /**
+     * 包含构建期 SDK 版本的类路径资源。 Classpath resource containing the build-time SDK version.
+     */
     private static final String VERSION_RESOURCE = "META-INF/egon-cola-ddc.properties";
 
-    /** DDC 客户端配置。 DDC client configuration. */
+    /**
+     * DDC 客户端配置。 DDC client configuration.
+     */
     private final DdcProperties properties;
-    /** 可覆盖实例标识生成方式的提供器。 Optional provider overriding instance identifier generation. */
+    /**
+     * 可覆盖实例标识生成方式的提供器。 Optional provider overriding instance identifier generation.
+     */
     private final DdcInstanceIdProvider instanceIdProvider;
 
     /**
@@ -40,7 +46,7 @@ public class DdcInstanceIdentityFactory {
      * 创建支持自定义实例标识提供器的工厂。
      * Creates a factory supporting a custom instance identifier provider.
      *
-     * @param properties DDC 客户端配置; DDC client configuration
+     * @param properties         DDC 客户端配置; DDC client configuration
      * @param instanceIdProvider 可选实例标识提供器; optional instance identifier provider
      */
     public DdcInstanceIdentityFactory(

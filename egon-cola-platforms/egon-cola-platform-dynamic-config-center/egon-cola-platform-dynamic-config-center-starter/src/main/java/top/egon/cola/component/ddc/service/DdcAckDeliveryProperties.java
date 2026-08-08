@@ -14,22 +14,34 @@ import java.time.Duration;
 )
 public class DdcAckDeliveryProperties {
 
-    /** 待投递确认的最大队列容量。 Maximum queue capacity for pending acknowledgments. */
+    /**
+     * 待投递确认的最大队列容量。 Maximum queue capacity for pending acknowledgments.
+     */
     private int queueCapacity = 1024;
 
-    /** 单个确认允许的最大投递尝试次数。 Maximum delivery attempts allowed for one acknowledgment. */
+    /**
+     * 单个确认允许的最大投递尝试次数。 Maximum delivery attempts allowed for one acknowledgment.
+     */
     private int maxAttempts = 4;
 
-    /** 首次重试的退避时长。 Backoff duration before the first retry. */
+    /**
+     * 首次重试的退避时长。 Backoff duration before the first retry.
+     */
     private Duration initialBackoff = Duration.ofMillis(100);
 
-    /** 重试退避时长上限。 Maximum retry backoff duration. */
+    /**
+     * 重试退避时长上限。 Maximum retry backoff duration.
+     */
     private Duration maxBackoff = Duration.ofSeconds(5);
 
-    /** 退避时长的随机抖动比例。 Random jitter ratio applied to backoff durations. */
+    /**
+     * 退避时长的随机抖动比例。 Random jitter ratio applied to backoff durations.
+     */
     private double jitter = 0.2;
 
-    /** 停止时等待投递线程结束的最长时长。 Maximum wait for the delivery thread during shutdown. */
+    /**
+     * 停止时等待投递线程结束的最长时长。 Maximum wait for the delivery thread during shutdown.
+     */
     private Duration shutdownWait = Duration.ofSeconds(2);
 
     /**

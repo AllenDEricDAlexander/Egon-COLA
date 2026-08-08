@@ -12,7 +12,9 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class DdcLeaseSessionHolder {
 
-    /** 当前租约会话的原子引用。 Atomic reference to the current lease session. */
+    /**
+     * 当前租约会话的原子引用。 Atomic reference to the current lease session.
+     */
     private final AtomicReference<DdcLeaseSession> current = new AtomicReference<>();
 
     /**

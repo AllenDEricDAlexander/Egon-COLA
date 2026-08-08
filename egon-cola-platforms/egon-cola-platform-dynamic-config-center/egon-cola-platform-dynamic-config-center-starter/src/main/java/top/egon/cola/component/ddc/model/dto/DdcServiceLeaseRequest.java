@@ -8,13 +8,19 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
  */
 public class DdcServiceLeaseRequest {
 
-    /** 租约所属服务键。 / Service key that owns the lease. */
+    /**
+     * 租约所属服务键。 / Service key that owns the lease.
+     */
     private DdcServiceKey serviceKey;
 
-    /** 实例标识。 / Instance identifier. */
+    /**
+     * 实例标识。 / Instance identifier.
+     */
     private String instanceId;
 
-    /** 租约标识。 / Lease identifier. */
+    /**
+     * 租约标识。 / Lease identifier.
+     */
     private String leaseId;
 
     /**

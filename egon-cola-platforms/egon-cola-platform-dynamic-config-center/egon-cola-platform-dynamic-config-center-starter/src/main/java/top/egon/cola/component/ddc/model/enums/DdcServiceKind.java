@@ -6,13 +6,19 @@ package top.egon.cola.component.ddc.model.enums;
  */
 public enum DdcServiceKind {
 
-    /** RPC 服务提供方。 / RPC service provider. */
+    /**
+     * RPC 服务提供方。 / RPC service provider.
+     */
     RPC_PROVIDER,
 
-    /** HTTP 服务提供方。 / HTTP service provider. */
+    /**
+     * HTTP 服务提供方。 / HTTP service provider.
+     */
     HTTP_PROVIDER,
 
-    /** 内部网关服务。 / Internal gateway service. */
+    /**
+     * 内部网关服务。 / Internal gateway service.
+     */
     INTERNAL_GATEWAY;
 
     /**

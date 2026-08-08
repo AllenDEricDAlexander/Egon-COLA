@@ -21,16 +21,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class DdcRedisChangeSubscription implements AutoCloseable {
 
-    /** 已成功注册的 Topic 与监听器编号，用于关闭时精确解除订阅。 Successfully registered topics and listener identifiers used for precise removal on close. */
+    /**
+     * 已成功注册的 Topic 与监听器编号，用于关闭时精确解除订阅。 Successfully registered topics and listener identifiers used for precise removal on close.
+     */
     private final List<Registration> registrations;
 
-    /** 订阅是否尚未关闭；用于保证并发或重复关闭时只清理一次。 Whether the subscription remains open, ensuring concurrent or repeated close cleans up only once. */
+    /**
+     * 订阅是否尚未关闭；用于保证并发或重复关闭时只清理一次。 Whether the subscription remains open, ensuring concurrent or repeated close cleans up only once.
+     */
     private final AtomicBoolean active = new AtomicBoolean(true);
 
     /**
      * 为单个 Topic 创建配置变更订阅。 Creates a configuration-change subscription for one topic.
      *
-     * @param topic 需要订阅的 Redis Topic。 Redis topic to subscribe to
+     * @param topic    需要订阅的 Redis Topic。 Redis topic to subscribe to
      * @param listener 配置变更消息监听器。 configuration-change message listener
      */
     public DdcRedisChangeSubscription(RTopic topic, DdcRedisChangeListener listener) {
@@ -44,7 +48,7 @@ public class DdcRedisChangeSubscription implements AutoCloseable {
      * 然后继续抛出原异常。 Construction completes only after all listeners are registered; on failure, prior registrations
      * are removed before the original exception is rethrown.</p>
      *
-     * @param topics 需要订阅的 Redis Topic 列表。 Redis topics to subscribe to
+     * @param topics   需要订阅的 Redis Topic 列表。 Redis topics to subscribe to
      * @param listener 配置变更消息监听器。 configuration-change message listener
      * @throws RuntimeException 任一 Topic 注册监听器失败时抛出。 thrown when listener registration fails for any topic
      */
@@ -92,12 +96,14 @@ public class DdcRedisChangeSubscription implements AutoCloseable {
     /**
      * 单次 Redis Topic 监听器注册信息。 Describes one Redis topic listener registration.
      *
-     * @param topic 已注册监听器的 Redis Topic。 Redis topic holding the listener
+     * @param topic      已注册监听器的 Redis Topic。 Redis topic holding the listener
      * @param listenerId Redisson 返回的监听器编号。 listener identifier returned by Redisson
      */
     private record Registration(RTopic topic, int listenerId) {
 
-        /** 移除当前注册信息对应的监听器。 Removes the listener represented by this registration. */
+        /**
+         * 移除当前注册信息对应的监听器。 Removes the listener represented by this registration.
+         */
         private void remove() {
             topic.removeListener(listenerId);
         }

@@ -7,16 +7,16 @@ import java.util.Set;
  * 描述一次 DDC YAML 配置应用结果的不可变事件。
  * Immutable event describing the result of applying a DDC YAML configuration.
  *
- * @param resourceName 配置资源名称; configuration resource name
- * @param version 配置版本; configuration version
- * @param checksum 配置内容校验和; configuration content checksum
- * @param changedKeys 所有发生有效变化的配置键; all effectively changed configuration keys
- * @param addedKeys 新增的配置键; added configuration keys
- * @param updatedKeys 已更新的配置键; updated configuration keys
- * @param removedKeys 已移除的配置键; removed configuration keys
- * @param refreshedKeys 已在运行时完成刷新的配置键; configuration keys refreshed at runtime
+ * @param resourceName        配置资源名称; configuration resource name
+ * @param version             配置版本; configuration version
+ * @param checksum            配置内容校验和; configuration content checksum
+ * @param changedKeys         所有发生有效变化的配置键; all effectively changed configuration keys
+ * @param addedKeys           新增的配置键; added configuration keys
+ * @param updatedKeys         已更新的配置键; updated configuration keys
+ * @param removedKeys         已移除的配置键; removed configuration keys
+ * @param refreshedKeys       已在运行时完成刷新的配置键; configuration keys refreshed at runtime
  * @param restartRequiredKeys 需要重启才能生效的配置键; configuration keys requiring restart to take effect
- * @param changeId 触发本次变化的发布标识; publication identifier that triggered this change
+ * @param changeId            触发本次变化的发布标识; publication identifier that triggered this change
  */
 public record DdcConfigurationChangedEvent(
         String resourceName,

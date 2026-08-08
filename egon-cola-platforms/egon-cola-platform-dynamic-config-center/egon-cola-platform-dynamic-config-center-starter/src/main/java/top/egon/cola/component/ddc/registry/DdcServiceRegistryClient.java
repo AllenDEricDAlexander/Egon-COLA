@@ -30,7 +30,7 @@ public interface DdcServiceRegistryClient {
      * / Renews the lease for the specified instance.
      *
      * @param instanceId 实例标识 / instance identifier
-     * @param leaseId 租约标识 / lease identifier
+     * @param leaseId    租约标识 / lease identifier
      * @return 租约操作结果 / lease operation result
      */
     DdcLeaseOperationResult heartbeat(String instanceId, String leaseId);
@@ -40,7 +40,7 @@ public interface DdcServiceRegistryClient {
      * / Deregisters the specified instance lease.
      *
      * @param instanceId 实例标识 / instance identifier
-     * @param leaseId 租约标识 / lease identifier
+     * @param leaseId    租约标识 / lease identifier
      * @return 租约操作结果 / lease operation result
      */
     DdcLeaseOperationResult deregister(String instanceId, String leaseId);
@@ -59,7 +59,7 @@ public interface DdcServiceRegistryClient {
      * / Subscribes to instance snapshot changes for a service key.
      *
      * @param serviceKey 服务键 / service key
-     * @param listener 接收初始及后续快照的监听器 / listener receiving the initial and subsequent snapshots
+     * @param listener   接收初始及后续快照的监听器 / listener receiving the initial and subsequent snapshots
      * @return 用于取消订阅的句柄 / handle used to cancel the subscription
      */
     DdcRegistrySubscription subscribe(
@@ -80,7 +80,7 @@ public interface DdcServiceRegistryClient {
      * 订阅匹配查询条件的服务目录变化。
      * / Subscribes to service catalog changes matching a query.
      *
-     * @param query 包含精确主题范围的服务查询 / service query containing an exact topic scope
+     * @param query    包含精确主题范围的服务查询 / service query containing an exact topic scope
      * @param listener 接收初始及后续目录快照的监听器 / listener receiving the initial and subsequent catalog snapshots
      * @return 用于取消订阅的句柄 / handle used to cancel the subscription
      */

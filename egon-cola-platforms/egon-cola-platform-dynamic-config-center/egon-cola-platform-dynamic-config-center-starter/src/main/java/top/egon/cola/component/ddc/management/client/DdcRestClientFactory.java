@@ -12,7 +12,9 @@ import java.time.Duration;
  */
 public final class DdcRestClientFactory {
 
-    /** 禁止实例化纯静态工厂。 / Prevents instantiation of this static factory. */
+    /**
+     * 禁止实例化纯静态工厂。 / Prevents instantiation of this static factory.
+     */
     private DdcRestClientFactory() {
     }
 
@@ -20,8 +22,8 @@ public final class DdcRestClientFactory {
      * 创建禁用重定向且应用超时与可选 mTLS 的 REST 客户端构建器。 /
      * Creates a REST client builder with redirects disabled, timeouts applied, and optional mTLS.
      *
-     * @param connectTimeout 建立连接的超时时间 / connection timeout
-     * @param readTimeout 读取响应的超时时间 / response-read timeout
+     * @param connectTimeout    建立连接的超时时间 / connection timeout
+     * @param readTimeout       读取响应的超时时间 / response-read timeout
      * @param transportSecurity 明文开发模式或 mTLS 传输配置 / plaintext-development or mTLS transport configuration
      * @return 已配置但尚未构建的 REST 客户端构建器 / configured but unbuilt REST client builder
      */

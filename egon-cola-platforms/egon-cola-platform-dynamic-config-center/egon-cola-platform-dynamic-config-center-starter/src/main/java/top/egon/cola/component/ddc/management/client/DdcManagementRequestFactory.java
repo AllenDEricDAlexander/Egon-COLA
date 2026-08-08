@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 
 import java.net.URI;
 import java.time.Clock;
@@ -20,26 +20,36 @@ import java.util.function.Supplier;
  */
 public final class DdcManagementRequestFactory {
 
-    /** 客户端地址与 HMAC 凭据配置。 / Client endpoint and HMAC credential settings. */
+    /**
+     * 客户端地址与 HMAC 凭据配置。 / Client endpoint and HMAC credential settings.
+     */
     private final DdcManagementClientProperties properties;
 
-    /** 请求体 JSON 序列化器。 / JSON serializer for request bodies. */
+    /**
+     * 请求体 JSON 序列化器。 / JSON serializer for request bodies.
+     */
     private final ObjectMapper objectMapper;
 
-    /** 生成签名时间戳的时钟。 / Clock used to generate signature timestamps. */
+    /**
+     * 生成签名时间戳的时钟。 / Clock used to generate signature timestamps.
+     */
     private final Clock clock;
 
-    /** 生成防重放随机数的供应器。 / Supplier used to generate anti-replay nonces. */
+    /**
+     * 生成防重放随机数的供应器。 / Supplier used to generate anti-replay nonces.
+     */
     private final Supplier<String> nonceSupplier;
 
-    /** HMAC 规范请求签名器。 / HMAC canonical-request signer. */
+    /**
+     * HMAC 规范请求签名器。 / HMAC canonical-request signer.
+     */
     private final DdcRequestSigner signer = new DdcRequestSigner();
 
     /**
      * 使用 UTC 系统时钟与随机 UUID 防重放值构造请求工厂。 /
      * Constructs a request factory using the UTC system clock and random UUID nonces.
      *
-     * @param properties 客户端地址与凭据配置 / client endpoint and credential settings
+     * @param properties   客户端地址与凭据配置 / client endpoint and credential settings
      * @param objectMapper 请求体 JSON 序列化器 / request-body JSON serializer
      * @throws IllegalArgumentException 当任一依赖为空时 / when any dependency is null
      */
@@ -59,9 +69,9 @@ public final class DdcManagementRequestFactory {
      * 使用可控时钟与防重放值供应器构造请求工厂，供包内测试与定制使用。 /
      * Constructs a request factory with controllable clock and nonce supplier for package-level testing and customization.
      *
-     * @param properties 客户端地址与凭据配置 / client endpoint and credential settings
-     * @param objectMapper 请求体 JSON 序列化器 / request-body JSON serializer
-     * @param clock 生成签名时间戳的时钟 / clock used for signature timestamps
+     * @param properties    客户端地址与凭据配置 / client endpoint and credential settings
+     * @param objectMapper  请求体 JSON 序列化器 / request-body JSON serializer
+     * @param clock         生成签名时间戳的时钟 / clock used for signature timestamps
      * @param nonceSupplier 生成防重放值的供应器 / supplier used for anti-replay nonces
      * @throws IllegalArgumentException 当任一依赖为空时 / when any dependency is null
      */
@@ -81,12 +91,12 @@ public final class DdcManagementRequestFactory {
      * 创建已编码查询参数、可选 JSON 请求体与 HMAC 认证头的签名请求。 /
      * Creates a signed request with encoded query parameters, optional JSON body, and HMAC authentication headers.
      *
-     * @param method HTTP 方法 / HTTP method
-     * @param path 未编码的管理接口路径 / unencoded management API path
-     * @param query 查询参数，多值会参与规范排序与签名 / query parameters whose values participate in canonical sorting and signing
+     * @param method  HTTP 方法 / HTTP method
+     * @param path    未编码的管理接口路径 / unencoded management API path
+     * @param query   查询参数，多值会参与规范排序与签名 / query parameters whose values participate in canonical sorting and signing
      * @param request 请求对象；空值表示无请求体 / request object; null means no request body
      * @return 可直接交给 REST 客户端发送的签名请求 / signed request ready for REST-client dispatch
-     * @throws IllegalArgumentException 当方法、路径或防重放值无效时 / when the method, path, or nonce is invalid
+     * @throws IllegalArgumentException     当方法、路径或防重放值无效时 / when the method, path, or nonce is invalid
      * @throws DdcManagementClientException 当请求体无法序列化时 / when the request body cannot be serialized
      */
     public SignedRequest create(
@@ -148,7 +158,7 @@ public final class DdcManagementRequestFactory {
     /**
      * 要求文本非空。 / Requires nonblank text.
      *
-     * @param value 待校验文本 / text to validate
+     * @param value     待校验文本 / text to validate
      * @param fieldName 用于错误消息的字段名 / field name used in error messages
      * @return 原始非空文本 / original nonblank text
      * @throws IllegalArgumentException 当文本为空时 / when the text is blank
@@ -163,8 +173,8 @@ public final class DdcManagementRequestFactory {
     /**
      * 要求引用非空。 / Requires a nonnull reference.
      *
-     * @param <T> 引用类型 / reference type
-     * @param value 待校验引用 / reference to validate
+     * @param <T>       引用类型 / reference type
+     * @param value     待校验引用 / reference to validate
      * @param fieldName 用于错误消息的字段名 / field name used in error messages
      * @return 原始非空引用 / original nonnull reference
      * @throws IllegalArgumentException 当引用为空时 / when the reference is null
@@ -180,9 +190,9 @@ public final class DdcManagementRequestFactory {
      * 包含目标 URI、只读认证头、防御性复制请求体及请求体存在标记的签名请求。 /
      * Signed request containing target URI, read-only authentication headers, defensively copied body, and body-presence flag.
      *
-     * @param target 含规范查询字符串的相对目标 URI / relative target URI including the canonical query string
+     * @param target  含规范查询字符串的相对目标 URI / relative target URI including the canonical query string
      * @param headers 只读 HTTP 认证头 / read-only HTTP authentication headers
-     * @param body 请求体字节 / request-body bytes
+     * @param body    请求体字节 / request-body bytes
      * @param hasBody 是否应发送请求体，即使序列化结果为空 / whether a request body should be sent even if its serialized bytes are empty
      */
     public record SignedRequest(

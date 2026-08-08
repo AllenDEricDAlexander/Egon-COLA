@@ -11,49 +11,79 @@ import java.util.List;
  */
 public class DdcPublishMessage {
 
-    /** 配置变更标识。 / Configuration change identifier. */
+    /**
+     * 配置变更标识。 / Configuration change identifier.
+     */
     private String changeId;
 
-    /** 业务编码。 / Business code. */
+    /**
+     * 业务编码。 / Business code.
+     */
     private String bizCode;
 
-    /** 应用编码。 / Application code. */
+    /**
+     * 应用编码。 / Application code.
+     */
     private String appCode;
 
-    /** 运行环境。 / Runtime environment. */
+    /**
+     * 运行环境。 / Runtime environment.
+     */
     private String env;
 
-    /** 已废弃的 namespace 兼容字段。 / Deprecated namespace compatibility field. */
+    /**
+     * 已废弃的 namespace 兼容字段。 / Deprecated namespace compatibility field.
+     */
     private String namespace;
 
-    /** 配置键。 / Configuration key. */
+    /**
+     * 配置键。 / Configuration key.
+     */
     private String configKey;
 
-    /** 配置值的文本表示。 / Text representation of the configuration value. */
+    /**
+     * 配置值的文本表示。 / Text representation of the configuration value.
+     */
     private String configValue;
 
-    /** 配置值类型的线协议名称。 / Wire name of the configuration value type. */
+    /**
+     * 配置值类型的线协议名称。 / Wire name of the configuration value type.
+     */
     private String valueType;
 
-    /** 本次发布的目标版本。 / Target version of this publication. */
+    /**
+     * 本次发布的目标版本。 / Target version of this publication.
+     */
     private Long targetVersion;
 
-    /** 发布模式的线协议名称。 / Wire name of the publication mode. */
+    /**
+     * 发布模式的线协议名称。 / Wire name of the publication mode.
+     */
     private String publishMode;
 
-    /** 发布操作人。 / Publication operator. */
+    /**
+     * 发布操作人。 / Publication operator.
+     */
     private String operator;
 
-    /** 发布时间的毫秒时间戳。 / Publication time as an epoch-millisecond timestamp. */
+    /**
+     * 发布时间的毫秒时间戳。 / Publication time as an epoch-millisecond timestamp.
+     */
     private Long timestamp;
 
-    /** 配置内容校验和。 / Configuration content checksum. */
+    /**
+     * 配置内容校验和。 / Configuration content checksum.
+     */
     private String contentChecksum;
 
-    /** 本次发布的目标实例列表。 / Target instances of this publication. */
+    /**
+     * 本次发布的目标实例列表。 / Target instances of this publication.
+     */
     private List<DdcPublishTarget> targets = new ArrayList<>();
 
-    /** 整条发布消息的校验和。 / Checksum of the complete publication message. */
+    /**
+     * 整条发布消息的校验和。 / Checksum of the complete publication message.
+     */
     private String checksum;
 
 
@@ -138,6 +168,7 @@ public class DdcPublishMessage {
 
     /**
      * 返回已废弃的 namespace 兼容值。 / Returns the deprecated namespace compatibility value.
+     *
      * @return namespace 兼容值 / namespace compatibility value
      * @deprecated namespace 不再参与物理配置范围。 / namespace no longer participates in the physical configuration scope.
      */
@@ -149,6 +180,7 @@ public class DdcPublishMessage {
 
     /**
      * 设置已废弃的 namespace 兼容值。 / Sets the deprecated namespace compatibility value.
+     *
      * @param namespace namespace 兼容值 / namespace compatibility value
      * @deprecated namespace 不再参与物理配置范围。 / namespace no longer participates in the physical configuration scope.
      */
@@ -320,6 +352,7 @@ public class DdcPublishMessage {
 
     /**
      * 返回目标实例的不可变副本。 / Returns an immutable copy of the target instances.
+     *
      * @return 不可变目标列表 / immutable target list
      */
     public List<DdcPublishTarget> getTargets() {
@@ -328,6 +361,7 @@ public class DdcPublishMessage {
 
     /**
      * 设置目标实例并保存可变防御副本。 / Sets target instances and stores a mutable defensive copy.
+     *
      * @param targets 目标列表，空值按空列表处理 / target list, with null treated as an empty list
      */
     public void setTargets(List<DdcPublishTarget> targets) {

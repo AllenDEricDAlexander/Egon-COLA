@@ -15,16 +15,24 @@ import java.util.Map;
  */
 public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry {
 
-    /** 未命中显式注册时使用的回退应用器。 Fallback applier used when no explicit registration matches. */
+    /**
+     * 未命中显式注册时使用的回退应用器。 Fallback applier used when no explicit registration matches.
+     */
     private final DdcConfigApplier fallback;
 
-    /** 按精确配置键保存的应用器。 Appliers stored by exact configuration key. */
+    /**
+     * 按精确配置键保存的应用器。 Appliers stored by exact configuration key.
+     */
     private final Map<String, DdcConfigApplier> exactAppliers = new LinkedHashMap<>();
 
-    /** 按配置键前缀保存的应用器。 Appliers stored by configuration-key prefix. */
+    /**
+     * 按配置键前缀保存的应用器。 Appliers stored by configuration-key prefix.
+     */
     private final Map<String, DdcConfigApplier> prefixAppliers = new LinkedHashMap<>();
 
-    /** 冻结后发布的不可变查找快照。 Immutable lookup snapshot published after freezing. */
+    /**
+     * 冻结后发布的不可变查找快照。 Immutable lookup snapshot published after freezing.
+     */
     private volatile Snapshot snapshot;
 
     /**
@@ -37,7 +45,9 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
         this.fallback = requireApplier(fallback);
     }
 
-    /** {@inheritDoc} 中文：注册精确键应用器并拒绝重复键。 English: Registers an exact-key applier and rejects duplicates. */
+    /**
+     * {@inheritDoc} 中文：注册精确键应用器并拒绝重复键。 English: Registers an exact-key applier and rejects duplicates.
+     */
     @Override
     public synchronized void registerExact(String configKey, DdcConfigApplier applier) {
         requireMutable();
@@ -66,7 +76,9 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
         }
     }
 
-    /** {@inheritDoc} 中文：按精确键、最长前缀、回退应用器的顺序解析。 English: Resolves by exact key, longest prefix, then fallback. */
+    /**
+     * {@inheritDoc} 中文：按精确键、最长前缀、回退应用器的顺序解析。 English: Resolves by exact key, longest prefix, then fallback.
+     */
     @Override
     public DdcConfigApplier resolve(String configKey) {
         String key = requireKey(configKey, "configKey");
@@ -143,7 +155,7 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
      * 从快照解析显式应用器，未命中时返回回退应用器。
      * Resolves an explicit applier from a snapshot and returns the fallback on a miss.
      *
-     * @param current 查找快照; lookup snapshot
+     * @param current   查找快照; lookup snapshot
      * @param configKey 配置键; configuration key
      * @return 匹配或回退应用器; matching or fallback applier
      */
@@ -181,7 +193,7 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
      * 校验并规范化非空配置键或前缀。
      * Validates and normalizes a nonblank configuration key or prefix.
      *
-     * @param value 待校验值; value to validate
+     * @param value     待校验值; value to validate
      * @param fieldName 错误信息中的字段名; field name used in error messages
      * @return 去除首尾空白的值; trimmed value
      */
@@ -210,7 +222,7 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
      * 保存精确键映射和最长前缀优先列表的查找快照。
      * Lookup snapshot holding exact-key mappings and a longest-prefix-first list.
      *
-     * @param exactAppliers 精确键应用器映射; exact-key applier map
+     * @param exactAppliers  精确键应用器映射; exact-key applier map
      * @param prefixAppliers 前缀应用器列表; prefix applier list
      */
     private record Snapshot(
@@ -243,7 +255,7 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
      * 配置键前缀及其应用器。
      * Configuration-key prefix and its applier.
      *
-     * @param prefix 配置键前缀; configuration-key prefix
+     * @param prefix  配置键前缀; configuration-key prefix
      * @param applier 前缀应用器; prefix applier
      */
     private record PrefixApplier(String prefix, DdcConfigApplier applier) {

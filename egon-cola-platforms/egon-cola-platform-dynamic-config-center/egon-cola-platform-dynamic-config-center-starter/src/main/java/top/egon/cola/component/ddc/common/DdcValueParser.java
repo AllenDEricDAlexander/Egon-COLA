@@ -5,17 +5,19 @@ package top.egon.cola.component.ddc.common;
  */
 public final class DdcValueParser {
 
-    /** 禁止实例化表达式解析工具类。 Prevents instantiation of the expression parser utility. */
+    /**
+     * 禁止实例化表达式解析工具类。 Prevents instantiation of the expression parser utility.
+     */
     private DdcValueParser() {
     }
 
     /**
      * 解析表达式并让显式选项优先于表达式内容。 Parses an expression with explicit options taking precedence over expression content.
      *
-     * @param expression 可包含冒号默认值的表达式。 expression that may contain a colon-delimited default
-     * @param explicitKey 显式配置键。 explicit configuration key
+     * @param expression           可包含冒号默认值的表达式。 expression that may contain a colon-delimited default
+     * @param explicitKey          显式配置键。 explicit configuration key
      * @param explicitDefaultValue 显式默认值。 explicit default value
-     * @param explicitType 显式目标类型。 explicit target type
+     * @param explicitType         显式目标类型。 explicit target type
      * @return 规范化配置值定义。 normalized configuration-value definition
      * @throws DdcException 最终配置键为空时抛出。 thrown when the resulting configuration key is blank
      */

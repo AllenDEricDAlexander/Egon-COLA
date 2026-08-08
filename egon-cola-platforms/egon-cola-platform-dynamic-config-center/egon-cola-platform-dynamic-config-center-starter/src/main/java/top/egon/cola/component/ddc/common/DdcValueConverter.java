@@ -11,15 +11,17 @@ import java.util.List;
  */
 public class DdcValueConverter {
 
-    /** 用于集合和对象 JSON 转换的共享映射器。 Shared mapper used for collection and object JSON conversion. */
+    /**
+     * 用于集合和对象 JSON 转换的共享映射器。 Shared mapper used for collection and object JSON conversion.
+     */
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
      * 将配置文本转换为目标 Java 类型。 Converts configuration text to the target Java type.
      *
-     * @param value 配置文本。 configuration text
+     * @param value      配置文本。 configuration text
      * @param targetType 目标 Java 类型。 target Java type
-     * @param <T> 目标值类型。 target value type
+     * @param <T>        目标值类型。 target value type
      * @return 已转换的值。 converted value
      * @throws DdcException 数字、枚举或 JSON 转换失败时抛出。 thrown when numeric, enum, or JSON conversion fails
      */

@@ -22,10 +22,10 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
 import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
 import java.net.URI;
@@ -42,54 +42,76 @@ import java.util.function.Consumer;
 public final class DdcOpenApiServiceRegistryClient
         implements DdcServiceRegistryClient, AutoCloseable {
 
-    /** 服务实例注册端点路径。 / Service instance registration endpoint path. */
+    /**
+     * 服务实例注册端点路径。 / Service instance registration endpoint path.
+     */
     private static final String REGISTER_PATH =
             "/api/v1/ddc/openapi/registry/instances/register";
 
-    /** 服务实例心跳端点路径。 / Service instance heartbeat endpoint path. */
+    /**
+     * 服务实例心跳端点路径。 / Service instance heartbeat endpoint path.
+     */
     private static final String HEARTBEAT_PATH =
             "/api/v1/ddc/openapi/registry/instances/heartbeat";
 
-    /** 服务实例注销端点路径。 / Service instance deregistration endpoint path. */
+    /**
+     * 服务实例注销端点路径。 / Service instance deregistration endpoint path.
+     */
     private static final String DEREGISTER_PATH =
             "/api/v1/ddc/openapi/registry/instances/deregister";
 
-    /** 服务实例查询端点路径。 / Service instance query endpoint path. */
+    /**
+     * 服务实例查询端点路径。 / Service instance query endpoint path.
+     */
     private static final String INSTANCES_PATH =
             "/api/v1/ddc/openapi/registry/instances";
 
-    /** 服务目录查询端点路径。 / Service catalog query endpoint path. */
+    /**
+     * 服务目录查询端点路径。 / Service catalog query endpoint path.
+     */
     private static final String SERVICES_PATH =
             "/api/v1/ddc/openapi/registry/services";
 
-    /** DDC 客户端、安全和注册中心配置。 / DDC client, security, and registry properties. */
+    /**
+     * DDC 客户端、安全和注册中心配置。 / DDC client, security, and registry properties.
+     */
     private final DdcProperties properties;
 
-    /** 调用 DDC Admin OpenAPI 的 HTTP 客户端。 / HTTP client used to call the DDC Admin OpenAPI. */
+    /**
+     * 调用 DDC Admin OpenAPI 的 HTTP 客户端。 / HTTP client used to call the DDC Admin OpenAPI.
+     */
     private final RestClient restClient;
 
-    /** 请求序列化及响应反序列化使用的映射器。 / Mapper used for request serialization and response deserialization. */
+    /**
+     * 请求序列化及响应反序列化使用的映射器。 / Mapper used for request serialization and response deserialization.
+     */
     private final ObjectMapper objectMapper;
 
-    /** HMAC 请求签名器。 / HMAC request signer. */
+    /**
+     * HMAC 请求签名器。 / HMAC request signer.
+     */
     private final DdcRequestSigner signer = new DdcRequestSigner();
 
-    /** 管理 Redis 事件和定时协调订阅的组件。 / Component managing Redis events and scheduled subscription reconciliation. */
+    /**
+     * 管理 Redis 事件和定时协调订阅的组件。 / Component managing Redis events and scheduled subscription reconciliation.
+     */
     private final DdcRegistrySubscriptionManager subscriptionManager;
 
-    /** 当前客户端创建的活跃注册索引。 / Index of active registrations created by this client. */
+    /**
+     * 当前客户端创建的活跃注册索引。 / Index of active registrations created by this client.
+     */
     private final DdcActiveRegistrationIndex registrations = new DdcActiveRegistrationIndex();
 
     /**
      * 创建 OpenAPI 注册中心客户端并校验 Admin 端点与传输安全配置。
      * / Creates an OpenAPI registry client and validates the Admin endpoint and transport security settings.
      *
-     * @param properties DDC 客户端配置 / DDC client properties
+     * @param properties     DDC 客户端配置 / DDC client properties
      * @param redissonClient 用于接收注册中心事件的 Redisson 客户端 / Redisson client used to receive registry events
      * @throws IllegalArgumentException 端点协议与 mTLS 配置不一致时抛出
-     * / if the endpoint scheme conflicts with the mTLS configuration
-     * @throws IllegalStateException 必填端点或签名凭据缺失时抛出
-     * / if the required endpoint or signing credentials are missing
+     *                                  / if the endpoint scheme conflicts with the mTLS configuration
+     * @throws IllegalStateException    必填端点或签名凭据缺失时抛出
+     *                                  / if the required endpoint or signing credentials are missing
      */
     public DdcOpenApiServiceRegistryClient(DdcProperties properties,
                                            RedissonClient redissonClient) {
@@ -144,7 +166,7 @@ public final class DdcOpenApiServiceRegistryClient
      * @param registration 服务注册信息 / service registration
      * @return 已校验的租约会话 / validated lease session
      * @throws DdcException 响应会话为空、角色或实例不匹配，或远端返回失败时抛出
-     * / if the response session is absent, has a mismatched role or instance, or the remote call fails
+     *                      / if the response session is absent, has a mismatched role or instance, or the remote call fails
      */
     @Override
     public DdcLeaseSession register(DdcServiceRegistration registration) {
@@ -168,10 +190,10 @@ public final class DdcOpenApiServiceRegistryClient
      * / Renews an instance lease recorded by this client.
      *
      * @param instanceId 实例标识 / instance identifier
-     * @param leaseId 租约标识 / lease identifier
+     * @param leaseId    租约标识 / lease identifier
      * @return 租约续期结果 / lease renewal result
      * @throws DdcException 本地租约不匹配或远端返回失败时抛出
-     * / if the local lease does not match or the remote call fails
+     *                      / if the local lease does not match or the remote call fails
      */
     @Override
     public DdcLeaseOperationResult heartbeat(String instanceId, String leaseId) {
@@ -194,10 +216,10 @@ public final class DdcOpenApiServiceRegistryClient
      * / Deregisters an instance lease recorded by this client.
      *
      * @param instanceId 实例标识 / instance identifier
-     * @param leaseId 租约标识 / lease identifier
+     * @param leaseId    租约标识 / lease identifier
      * @return 租约注销结果 / lease deregistration result
      * @throws DdcException 本地租约不匹配或远端返回失败时抛出
-     * / if the local lease does not match or the remote call fails
+     *                      / if the local lease does not match or the remote call fails
      */
     @Override
     public DdcLeaseOperationResult deregister(String instanceId, String leaseId) {
@@ -238,7 +260,7 @@ public final class DdcOpenApiServiceRegistryClient
      * / Subscribes to instance snapshot changes for a service key.
      *
      * @param serviceKey 服务键 / service key
-     * @param listener 快照监听器 / snapshot listener
+     * @param listener   快照监听器 / snapshot listener
      * @return 可关闭订阅句柄 / closeable subscription handle
      */
     @Override
@@ -292,7 +314,7 @@ public final class DdcOpenApiServiceRegistryClient
      * 订阅匹配查询条件的服务目录变化。
      * / Subscribes to service catalog changes matching a query.
      *
-     * @param query 包含精确主题范围的服务查询 / service query containing an exact topic scope
+     * @param query    包含精确主题范围的服务查询 / service query containing an exact topic scope
      * @param listener 服务目录监听器 / service catalog listener
      * @return 可关闭订阅句柄 / closeable subscription handle
      * @throws IllegalArgumentException 查询缺少精确主题范围时抛出 / if the query lacks an exact topic scope
@@ -319,7 +341,7 @@ public final class DdcOpenApiServiceRegistryClient
      * / Builds a lease operation request carrying its service key.
      *
      * @param instanceId 实例标识 / instance identifier
-     * @param leaseId 租约标识 / lease identifier
+     * @param leaseId    租约标识 / lease identifier
      * @param serviceKey 租约所属服务键 / service key that owns the lease
      * @return 租约操作请求 / lease operation request
      */
@@ -358,8 +380,8 @@ public final class DdcOpenApiServiceRegistryClient
      * / Adds a single-valued query parameter when its value is non-blank.
      *
      * @param target 目标参数映射 / target parameter map
-     * @param name 参数名 / parameter name
-     * @param value 参数值 / parameter value
+     * @param name   参数名 / parameter name
+     * @param value  参数值 / parameter value
      */
     private static void putIfPresent(Map<String, List<String>> target,
                                      String name,
@@ -373,10 +395,10 @@ public final class DdcOpenApiServiceRegistryClient
      * 发送带规范查询和安全请求头的 GET 请求。
      * / Sends a GET request with a canonical query and security headers.
      *
-     * @param path OpenAPI 路径 / OpenAPI path
-     * @param query 查询参数 / query parameters
+     * @param path         OpenAPI 路径 / OpenAPI path
+     * @param query        查询参数 / query parameters
      * @param responseType 结果包装的泛型类型 / generic type of the result wrapper
-     * @param <T> 响应数据类型 / response data type
+     * @param <T>          响应数据类型 / response data type
      * @return 已解包且非空的响应数据 / unwrapped non-null response data
      * @throws DdcException 响应失败、为空或缺少数据时抛出 / if the response fails, is null, or has no data
      */
@@ -397,10 +419,10 @@ public final class DdcOpenApiServiceRegistryClient
      * 序列化请求并发送带安全请求头的 POST 请求。
      * / Serializes a request and sends a POST request with security headers.
      *
-     * @param path OpenAPI 路径 / OpenAPI path
-     * @param request 请求对象 / request object
+     * @param path         OpenAPI 路径 / OpenAPI path
+     * @param request      请求对象 / request object
      * @param responseType 结果包装的泛型类型 / generic type of the result wrapper
-     * @param <T> 响应数据类型 / response data type
+     * @param <T>          响应数据类型 / response data type
      * @return 已解包且非空的响应数据 / unwrapped non-null response data
      * @throws DdcException 序列化或远端响应处理失败时抛出 / if serialization or remote response handling fails
      */
@@ -441,9 +463,9 @@ public final class DdcOpenApiServiceRegistryClient
      * / Builds a canonical signing request with the current time, a random nonce, and the body.
      *
      * @param method HTTP 方法 / HTTP method
-     * @param path 请求路径 / request path
-     * @param query 查询参数 / query parameters
-     * @param body 请求体字节 / request body bytes
+     * @param path   请求路径 / request path
+     * @param query  查询参数 / query parameters
+     * @param body   请求体字节 / request body bytes
      * @return 规范请求 / canonical request
      */
     private DdcCanonicalRequest canonicalRequest(String method,
@@ -498,7 +520,7 @@ public final class DdcOpenApiServiceRegistryClient
      * / Validates the common result wrapper and extracts non-null data.
      *
      * @param result 统一结果包装 / common result wrapper
-     * @param <T> 响应数据类型 / response data type
+     * @param <T>    响应数据类型 / response data type
      * @return 非空响应数据 / non-null response data
      * @throws DdcException 结果为空、失败或数据为空时抛出 / if the result is null, unsuccessful, or has null data
      */

@@ -9,20 +9,20 @@ import java.util.Map;
  * 注册中心中的服务实例及其当前租约状态。
  * / Service instance and its current lease state in the registry.
  *
- * @param instanceId 实例标识 / instance identifier
- * @param leaseId 租约标识 / lease identifier
- * @param serviceKey 服务键 / service key
- * @param host 实例主机地址 / instance host address
- * @param port 服务端口 / service port
- * @param secure 是否使用安全传输 / whether secure transport is used
- * @param metadata 不可变的实例元数据 / immutable instance metadata
- * @param leaseSeconds 租约有效期秒数 / lease duration in seconds
+ * @param instanceId               实例标识 / instance identifier
+ * @param leaseId                  租约标识 / lease identifier
+ * @param serviceKey               服务键 / service key
+ * @param host                     实例主机地址 / instance host address
+ * @param port                     服务端口 / service port
+ * @param secure                   是否使用安全传输 / whether secure transport is used
+ * @param metadata                 不可变的实例元数据 / immutable instance metadata
+ * @param leaseSeconds             租约有效期秒数 / lease duration in seconds
  * @param heartbeatIntervalSeconds 心跳间隔秒数 / heartbeat interval in seconds
- * @param registeredAt 注册时间 / registration time
- * @param lastHeartbeatAt 最近一次心跳时间 / most recent heartbeat time
- * @param leaseExpireAt 租约到期时间 / lease expiration time
- * @param status 实例状态的线协议值 / wire value of the instance status
- * @param revision 实例记录修订号 / instance record revision
+ * @param registeredAt             注册时间 / registration time
+ * @param lastHeartbeatAt          最近一次心跳时间 / most recent heartbeat time
+ * @param leaseExpireAt            租约到期时间 / lease expiration time
+ * @param status                   实例状态的线协议值 / wire value of the instance status
+ * @param revision                 实例记录修订号 / instance record revision
  */
 public record DdcServiceInstance(
         String instanceId,
@@ -46,7 +46,7 @@ public record DdcServiceInstance(
      * / Validates instance, lease, and service identity and normalizes metadata.
      *
      * @throws IllegalArgumentException 必填身份缺失或元数据无效时抛出
-     * / if a required identity is missing or metadata is invalid
+     *                                  / if a required identity is missing or metadata is invalid
      */
     public DdcServiceInstance {
         if (instanceId == null || instanceId.isBlank()) {

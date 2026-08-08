@@ -20,10 +20,14 @@ import top.egon.cola.component.ddc.config.DdcProperties;
 )
 public class DdcRedisConfigRepository {
 
-    /** DDC 专用 Redisson 客户端。 Redisson client dedicated to DDC. */
+    /**
+     * DDC 专用 Redisson 客户端。 Redisson client dedicated to DDC.
+     */
     private final RedissonClient redissonClient;
 
-    /** 用于构造作用域 Redis 键的 DDC 配置。 DDC settings used to build scoped Redis keys. */
+    /**
+     * 用于构造作用域 Redis 键的 DDC 配置。 DDC settings used to build scoped Redis keys.
+     */
     private final DdcProperties properties;
 
     /**
@@ -31,7 +35,7 @@ public class DdcRedisConfigRepository {
      * Creates the Redis configuration repository.
      *
      * @param redissonClient DDC 专用 Redisson 客户端; Redisson client dedicated to DDC
-     * @param properties DDC 客户端配置; DDC client configuration
+     * @param properties     DDC 客户端配置; DDC client configuration
      */
     public DdcRedisConfigRepository(
             @Qualifier("ddcRedissonClient") RedissonClient redissonClient,

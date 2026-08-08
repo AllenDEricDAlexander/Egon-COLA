@@ -25,10 +25,10 @@ import java.util.List;
  * DDC 客户端的明文开发模式或双向 TLS 配置。 /
  * Plaintext-development or mutual-TLS configuration for a DDC client.
  *
- * @param enabled 是否启用 mTLS / whether mTLS is enabled
- * @param developmentPlaintext 是否明确允许仅用于开发的明文传输 / whether development-only plaintext transport is explicitly allowed
- * @param certificateChainPath PEM 格式客户端 X.509 证书链路径 / path to the PEM client X.509 certificate chain
- * @param privateKeyPath PEM 格式客户端 PKCS#8 私钥路径 / path to the PEM client PKCS#8 private key
+ * @param enabled                        是否启用 mTLS / whether mTLS is enabled
+ * @param developmentPlaintext           是否明确允许仅用于开发的明文传输 / whether development-only plaintext transport is explicitly allowed
+ * @param certificateChainPath           PEM 格式客户端 X.509 证书链路径 / path to the PEM client X.509 certificate chain
+ * @param privateKeyPath                 PEM 格式客户端 PKCS#8 私钥路径 / path to the PEM client PKCS#8 private key
  * @param trustCertificateCollectionPath PEM 格式受信任 X.509 CA 证书集合路径 / path to the PEM trusted X.509 CA certificate collection
  */
 public record DdcClientTransportSecurity(
@@ -39,7 +39,9 @@ public record DdcClientTransportSecurity(
         String trustCertificateCollectionPath
 ) {
 
-    /** 内存密钥库中客户端私钥条目使用的空密码。 / Empty password used for the client key entry in the in-memory key store. */
+    /**
+     * 内存密钥库中客户端私钥条目使用的空密码。 / Empty password used for the client key entry in the in-memory key store.
+     */
     private static final char[] EMPTY_PASSWORD = new char[0];
 
     /**
@@ -147,7 +149,7 @@ public record DdcClientTransportSecurity(
      *
      * @param path 证书集合文件路径 / certificate-collection file path
      * @return 非空的不可变证书列表 / nonempty immutable certificate list
-     * @throws IOException 当证书文件无法读取时 / when the certificate file cannot be read
+     * @throws IOException              当证书文件无法读取时 / when the certificate file cannot be read
      * @throws GeneralSecurityException 当证书无法解析或集合为空时 / when certificates cannot be parsed or the collection is empty
      */
     private static List<X509Certificate> certificates(Path path)
@@ -175,7 +177,7 @@ public record DdcClientTransportSecurity(
      *
      * @param path 私钥文件路径 / private-key file path
      * @return 已解析的私钥 / parsed private key
-     * @throws IOException 当私钥文件无法读取时 / when the private-key file cannot be read
+     * @throws IOException              当私钥文件无法读取时 / when the private-key file cannot be read
      * @throws GeneralSecurityException 当 PKCS#8 数据无效或算法不受支持时 / when the PKCS#8 data is invalid or its algorithm is unsupported
      */
     private static PrivateKey privateKey(Path path)
@@ -205,7 +207,7 @@ public record DdcClientTransportSecurity(
     /**
      * 要求安全材料路径指向可读的普通文件。 / Requires a security-material path to name a readable regular file.
      *
-     * @param path 待校验路径文本 / path text to validate
+     * @param path        待校验路径文本 / path text to validate
      * @param description 用于错误消息的材料说明 / material description used in error messages
      * @throws IllegalArgumentException 当路径为空或文件不可读时 / when the path is blank or the file is unreadable
      */

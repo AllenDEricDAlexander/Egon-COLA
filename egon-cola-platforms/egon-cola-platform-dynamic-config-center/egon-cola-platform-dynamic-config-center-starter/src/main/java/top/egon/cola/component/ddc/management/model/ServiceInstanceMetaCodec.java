@@ -38,54 +38,98 @@ import java.util.stream.Collectors;
  */
 public final class ServiceInstanceMetaCodec {
 
-    /** 结构化实例元数据的保留键前缀。 / Reserved key prefix for structured instance metadata. */
+    /**
+     * 结构化实例元数据的保留键前缀。 / Reserved key prefix for structured instance metadata.
+     */
     public static final String PREFIX = "gateway.";
 
-    /** 相对权重元数据键。 / Metadata key for relative weight. */
+    /**
+     * 相对权重元数据键。 / Metadata key for relative weight.
+     */
     public static final String KEY_WEIGHT = PREFIX + "weight";
-    /** 地理区域元数据键。 / Metadata key for geographic region. */
+    /**
+     * 地理区域元数据键。 / Metadata key for geographic region.
+     */
     public static final String KEY_REGION = PREFIX + "region";
-    /** 可用区元数据键。 / Metadata key for availability zone. */
+    /**
+     * 可用区元数据键。 / Metadata key for availability zone.
+     */
     public static final String KEY_ZONE = PREFIX + "zone";
-    /** 规范标签集合元数据键。 / Metadata key for the canonical tag set. */
+    /**
+     * 规范标签集合元数据键。 / Metadata key for the canonical tag set.
+     */
     public static final String KEY_TAGS = PREFIX + "tags";
-    /** 线协议版本元数据键。 / Metadata key for wire-protocol version. */
+    /**
+     * 线协议版本元数据键。 / Metadata key for wire-protocol version.
+     */
     public static final String KEY_PROTOCOL_VERSION = PREFIX + "protocol-version";
-    /** 接口定义集合指纹元数据键。 / Metadata key for the interface-definition-set fingerprint. */
+    /**
+     * 接口定义集合指纹元数据键。 / Metadata key for the interface-definition-set fingerprint.
+     */
     public static final String KEY_DEFINITION_SET_ID = PREFIX + "definition-set-id";
-    /** 构建制品版本元数据键。 / Metadata key for build artifact version. */
+    /**
+     * 构建制品版本元数据键。 / Metadata key for build artifact version.
+     */
     public static final String KEY_ARTIFACT_VERSION = PREFIX + "artifact-version";
-    /** 构建标识元数据键。 / Metadata key for the build identifier. */
+    /**
+     * 构建标识元数据键。 / Metadata key for the build identifier.
+     */
     public static final String KEY_BUILD_ID = PREFIX + "build-id";
-    /** 健康探测管理路径元数据键。 / Metadata key for the health-probe management path. */
+    /**
+     * 健康探测管理路径元数据键。 / Metadata key for the health-probe management path.
+     */
     public static final String KEY_MANAGEMENT_PATH = PREFIX + "management-path";
 
-    /** 预热渐增窗口秒数元数据键。 / Metadata key for the warm-up ramp window in seconds. */
+    /**
+     * 预热渐增窗口秒数元数据键。 / Metadata key for the warm-up ramp window in seconds.
+     */
     public static final String KEY_WARMUP_SECONDS = PREFIX + "warmup-seconds";
-    /** 最近观测健康状态元数据键。 / Metadata key for the last observed health state. */
+    /**
+     * 最近观测健康状态元数据键。 / Metadata key for the last observed health state.
+     */
     public static final String KEY_HEALTH_STATE = PREFIX + "health-state";
-    /** 最近一次健康探测时间元数据键。 / Metadata key for the timestamp of the last health probe. */
+    /**
+     * 最近一次健康探测时间元数据键。 / Metadata key for the timestamp of the last health probe.
+     */
     public static final String KEY_HEALTH_CHECKED_AT = PREFIX + "health-checked-at";
 
-    /** 单个实例可携带的已知保留键数量。 / Number of known reserved keys a single instance can carry. */
+    /**
+     * 单个实例可携带的已知保留键数量。 / Number of known reserved keys a single instance can carry.
+     */
     public static final int RESERVED_KEY_COUNT = 12;
 
-    /** 区域和可用区短位置标识的校验模式。 / Validation pattern for short region and zone identifiers. */
+    /**
+     * 区域和可用区短位置标识的校验模式。 / Validation pattern for short region and zone identifiers.
+     */
     public static final Pattern LOCATION = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,63}");
-    /** 版本及标识类元数据值的校验模式。 / Validation pattern for version and identifier metadata values. */
+    /**
+     * 版本及标识类元数据值的校验模式。 / Validation pattern for version and identifier metadata values.
+     */
     public static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}");
-    /** 标签键的校验模式。 / Validation pattern for tag keys. */
+    /**
+     * 标签键的校验模式。 / Validation pattern for tag keys.
+     */
     public static final Pattern TAG_KEY = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,31}");
-    /** 标签值的校验模式。 / Validation pattern for tag values. */
+    /**
+     * 标签值的校验模式。 / Validation pattern for tag values.
+     */
     public static final Pattern TAG_VALUE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:/+-]{0,63}");
-    /** 管理基础路径的校验模式。 / Validation pattern for management base paths. */
+    /**
+     * 管理基础路径的校验模式。 / Validation pattern for management base paths.
+     */
     public static final Pattern MANAGEMENT_PATH = Pattern.compile("/[A-Za-z0-9/_.{}-]{0,255}");
 
-    /** 编码后标签字符串的最大长度。 / Maximum length of an encoded tag string. */
+    /**
+     * 编码后标签字符串的最大长度。 / Maximum length of an encoded tag string.
+     */
     private static final int MAX_TAGS_LENGTH = 256;
-    /** 线格式中的标签条目分隔符。 / Tag-entry separator in the wire format. */
+    /**
+     * 线格式中的标签条目分隔符。 / Tag-entry separator in the wire format.
+     */
     private static final String TAG_SEPARATOR = ",";
-    /** 线格式中的标签键值分隔符。 / Tag key/value separator in the wire format. */
+    /**
+     * 线格式中的标签键值分隔符。 / Tag key/value separator in the wire format.
+     */
     private static final String TAG_ASSIGNMENT = "=";
 
     /**
@@ -187,7 +231,7 @@ public final class ServiceInstanceMetaCodec {
      * reverts to its default.
      *
      * @param businessMetadata 调用方业务元数据 / caller-owned business metadata
-     * @param meta 待编码并合并的结构化元数据 / structured metadata to encode and merge
+     * @param meta             待编码并合并的结构化元数据 / structured metadata to encode and merge
      * @return 新映射，两个入参均不会被修改 / new map; neither argument is modified
      */
     public static Map<String, String> merge(Map<String, String> businessMetadata, ServiceInstanceMeta meta) {
@@ -228,7 +272,7 @@ public final class ServiceInstanceMetaCodec {
      * Unknown {@code gateway.*} keys are accepted: this convention must tolerate a newer
      * provider reporting a key this version does not know about.
      *
-     * @param key 待校验的元数据键 / metadata key to validate
+     * @param key   待校验的元数据键 / metadata key to validate
      * @param value 待校验的元数据值 / metadata value to validate
      * @throws IllegalArgumentException 当已知保留键的值无效时 / when the value is invalid for a known reserved key
      */
@@ -319,8 +363,8 @@ public final class ServiceInstanceMetaCodec {
      * 值非空时将条目写入目标映射。 / Adds an entry to the target map when its value is nonempty.
      *
      * @param target 目标映射 / target map
-     * @param key 元数据键 / metadata key
-     * @param value 元数据值 / metadata value
+     * @param key    元数据键 / metadata key
+     * @param value  元数据值 / metadata value
      */
     private static void putIfPresent(Map<String, String> target, String key, String value) {
         if (value != null && !value.isEmpty()) {
@@ -333,7 +377,7 @@ public final class ServiceInstanceMetaCodec {
      * Reads and trims a metadata value, returning an empty string when absent.
      *
      * @param metadata 元数据映射 / metadata map
-     * @param key 待读取的键 / key to read
+     * @param key      待读取的键 / key to read
      * @return 已去除首尾空白的值或空字符串 / trimmed value or an empty string
      */
     private static String rawString(Map<String, String> metadata, String key) {
@@ -346,8 +390,8 @@ public final class ServiceInstanceMetaCodec {
      * Reads a string key and discards values that do not match the convention's pattern.
      *
      * @param metadata 元数据映射 / metadata map
-     * @param key 待读取的键 / key to read
-     * @param pattern 允许值的模式 / allowed-value pattern
+     * @param key      待读取的键 / key to read
+     * @param pattern  允许值的模式 / allowed-value pattern
      * @return 匹配的已去除首尾空白值，否则为空字符串 / matching trimmed value, or an empty string
      */
     private static String readMatching(Map<String, String> metadata, String key, Pattern pattern) {
@@ -363,7 +407,7 @@ public final class ServiceInstanceMetaCodec {
      * Tolerantly reads a decimal integer, using a fallback when absent or malformed.
      *
      * @param metadata 元数据映射 / metadata map
-     * @param key 待读取的键 / key to read
+     * @param key      待读取的键 / key to read
      * @param fallback 回退值 / fallback value
      * @return 解析后的整数或回退值 / parsed integer or fallback value
      */
@@ -383,9 +427,9 @@ public final class ServiceInstanceMetaCodec {
      * 仅保留闭区间内的值，越界时返回回退值。 /
      * Retains a value only within an inclusive range, otherwise returning a fallback.
      *
-     * @param value 待检查值 / value to inspect
-     * @param min 最小允许值 / minimum permitted value
-     * @param max 最大允许值 / maximum permitted value
+     * @param value    待检查值 / value to inspect
+     * @param min      最小允许值 / minimum permitted value
+     * @param max      最大允许值 / maximum permitted value
      * @param fallback 越界时的回退值 / fallback for an out-of-range value
      * @return 区间内的原值或回退值 / original in-range value or fallback
      */
@@ -398,7 +442,7 @@ public final class ServiceInstanceMetaCodec {
      * Tolerantly reads an ISO-8601 instant, returning null when absent or malformed.
      *
      * @param metadata 元数据映射 / metadata map
-     * @param key 待读取的键 / key to read
+     * @param key      待读取的键 / key to read
      * @return 解析后的时间，无法解析时为空 / parsed instant, or null when unavailable
      */
     private static Instant readInstant(Map<String, String> metadata, String key) {
@@ -417,10 +461,10 @@ public final class ServiceInstanceMetaCodec {
      * 要求值为指定闭区间内的非负十进制整数。 /
      * Requires a value to be a nonnegative decimal integer in an inclusive range.
      *
-     * @param key 用于错误消息的元数据键 / metadata key used in error messages
+     * @param key   用于错误消息的元数据键 / metadata key used in error messages
      * @param value 待校验值 / value to validate
-     * @param min 最小允许值 / minimum permitted value
-     * @param max 最大允许值 / maximum permitted value
+     * @param min   最小允许值 / minimum permitted value
+     * @param max   最大允许值 / maximum permitted value
      * @throws IllegalArgumentException 当值不是有效整数或超出范围时 / when the value is not a valid integer or is out of range
      */
     private static void requireIntInRange(String key, String value, int min, int max) {
@@ -500,8 +544,8 @@ public final class ServiceInstanceMetaCodec {
     /**
      * 要求值匹配指定模式。 / Requires a value to match a specified pattern.
      *
-     * @param key 用于错误消息的元数据键 / metadata key used in error messages
-     * @param value 待校验值 / value to validate
+     * @param key     用于错误消息的元数据键 / metadata key used in error messages
+     * @param value   待校验值 / value to validate
      * @param pattern 允许值的模式 / allowed-value pattern
      * @throws IllegalArgumentException 当值为空或不匹配时 / when the value is null or does not match
      */

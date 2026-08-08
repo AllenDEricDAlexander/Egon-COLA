@@ -10,40 +10,64 @@ import java.util.Map;
  */
 public class DdcInstanceRegisterRequest {
 
-    /** 实例标识。 / Instance identifier. */
+    /**
+     * 实例标识。 / Instance identifier.
+     */
     private String instanceId;
 
-    /** 业务编码。 / Business code. */
+    /**
+     * 业务编码。 / Business code.
+     */
     private String bizCode;
 
-    /** 应用编码。 / Application code. */
+    /**
+     * 应用编码。 / Application code.
+     */
     private String appCode;
 
-    /** 运行环境。 / Runtime environment. */
+    /**
+     * 运行环境。 / Runtime environment.
+     */
     private String env;
 
-    /** 已废弃的 namespace 兼容字段。 / Deprecated namespace compatibility field. */
+    /**
+     * 已废弃的 namespace 兼容字段。 / Deprecated namespace compatibility field.
+     */
     private String namespace;
 
-    /** 实例主机地址。 / Instance host address. */
+    /**
+     * 实例主机地址。 / Instance host address.
+     */
     private String host;
 
-    /** 实例端口。 / Instance port. */
+    /**
+     * 实例端口。 / Instance port.
+     */
     private Integer port;
 
-    /** 进程标识。 / Process identifier. */
+    /**
+     * 进程标识。 / Process identifier.
+     */
     private String pid;
 
-    /** 客户端 SDK 版本。 / Client SDK version. */
+    /**
+     * 客户端 SDK 版本。 / Client SDK version.
+     */
     private String sdkVersion;
 
-    /** 请求的租约有效期秒数。 / Requested lease duration in seconds. */
+    /**
+     * 请求的租约有效期秒数。 / Requested lease duration in seconds.
+     */
     private int leaseSeconds;
 
-    /** 请求的心跳间隔秒数。 / Requested heartbeat interval in seconds. */
+    /**
+     * 请求的心跳间隔秒数。 / Requested heartbeat interval in seconds.
+     */
     private int heartbeatIntervalSeconds;
 
-    /** 注册时上报的不可变实例元数据。 / Immutable instance metadata reported at registration. */
+    /**
+     * 注册时上报的不可变实例元数据。 / Immutable instance metadata reported at registration.
+     */
     private Map<String, String> metadata = Map.of();
 
 
@@ -128,6 +152,7 @@ public class DdcInstanceRegisterRequest {
 
     /**
      * 返回已废弃的 namespace 兼容值。 / Returns the deprecated namespace compatibility value.
+     *
      * @return namespace 兼容值 / namespace compatibility value
      * @deprecated namespace 不再参与物理实例范围。 / namespace no longer participates in the physical instance scope.
      */
@@ -139,6 +164,7 @@ public class DdcInstanceRegisterRequest {
 
     /**
      * 设置已废弃的 namespace 兼容值。 / Sets the deprecated namespace compatibility value.
+     *
      * @param namespace namespace 兼容值 / namespace compatibility value
      * @deprecated namespace 不再参与物理实例范围。 / namespace no longer participates in the physical instance scope.
      */
@@ -260,6 +286,7 @@ public class DdcInstanceRegisterRequest {
 
     /**
      * 设置心跳间隔秒数。 / Sets the heartbeat interval in seconds.
+     *
      * @param heartbeatIntervalSeconds 心跳间隔秒数 / heartbeat interval in seconds
      */
     public void setHeartbeatIntervalSeconds(int heartbeatIntervalSeconds) {
@@ -278,6 +305,7 @@ public class DdcInstanceRegisterRequest {
 
     /**
      * 设置实例元数据并保存不可变副本。 / Sets instance metadata and stores an immutable copy.
+     *
      * @param metadata 实例元数据，空值按空映射处理 / instance metadata, with null treated as an empty map
      * @throws NullPointerException 元数据包含空键或空值时抛出 / if metadata contains a null key or value
      */

@@ -5,30 +5,48 @@ package top.egon.cola.component.ddc.model.enums;
  * / Configuration value types supported by DDC.
  */
 public enum DdcValueType {
-    /** 字符串值。 / String value. */
+    /**
+     * 字符串值。 / String value.
+     */
     STRING,
 
-    /** 整数值。 / Integer value. */
+    /**
+     * 整数值。 / Integer value.
+     */
     INTEGER,
 
-    /** 长整数值。 / Long integer value. */
+    /**
+     * 长整数值。 / Long integer value.
+     */
     LONG,
 
-    /** 布尔值。 / Boolean value. */
+    /**
+     * 布尔值。 / Boolean value.
+     */
     BOOLEAN,
 
-    /** 双精度浮点值。 / Double-precision floating-point value. */
+    /**
+     * 双精度浮点值。 / Double-precision floating-point value.
+     */
     DOUBLE,
 
-    /** 任意精度十进制值。 / Arbitrary-precision decimal value. */
+    /**
+     * 任意精度十进制值。 / Arbitrary-precision decimal value.
+     */
     DECIMAL,
 
-    /** 枚举值。 / Enum value. */
+    /**
+     * 枚举值。 / Enum value.
+     */
     ENUM,
 
-    /** 列表值。 / List value. */
+    /**
+     * 列表值。 / List value.
+     */
     LIST,
 
-    /** JSON 值。 / JSON value. */
+    /**
+     * JSON 值。 / JSON value.
+     */
     JSON
 }

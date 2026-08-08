@@ -21,28 +21,38 @@ import java.util.Map;
  */
 public class DdcInstanceService {
 
-    /** DDC 客户端配置。 DDC client configuration. */
+    /**
+     * DDC 客户端配置。 DDC client configuration.
+     */
     private final DdcProperties properties;
 
-    /** 与 DDC 管理端通信的客户端。 Client communicating with the DDC administration endpoint. */
+    /**
+     * 与 DDC 管理端通信的客户端。 Client communicating with the DDC administration endpoint.
+     */
     private final DdcAdminClient adminClient;
 
-    /** 当前进程的稳定实例身份。 Stable identity of the current process. */
+    /**
+     * 当前进程的稳定实例身份。 Stable identity of the current process.
+     */
     private final DdcInstanceIdentity identity;
 
-    /** 当前租约会话持有器。 Holder of the current lease session. */
+    /**
+     * 当前租约会话持有器。 Holder of the current lease session.
+     */
     private final DdcLeaseSessionHolder sessionHolder;
 
-    /** 自定义实例元数据贡献器的不可变列表。 Immutable list of custom instance metadata contributors. */
+    /**
+     * 自定义实例元数据贡献器的不可变列表。 Immutable list of custom instance metadata contributors.
+     */
     private final List<DdcInstanceMetadataContributor> metadataContributors;
 
     /**
      * 创建不包含自定义元数据贡献器的实例服务。
      * Creates an instance service without custom metadata contributors.
      *
-     * @param properties DDC 客户端配置; DDC client configuration
-     * @param adminClient DDC 管理端客户端; DDC administration client
-     * @param identity 实例身份; instance identity
+     * @param properties    DDC 客户端配置; DDC client configuration
+     * @param adminClient   DDC 管理端客户端; DDC administration client
+     * @param identity      实例身份; instance identity
      * @param sessionHolder 租约会话持有器; lease session holder
      */
     public DdcInstanceService(DdcProperties properties,
@@ -56,10 +66,10 @@ public class DdcInstanceService {
      * 创建支持自定义实例元数据的实例服务。
      * Creates an instance service supporting custom instance metadata.
      *
-     * @param properties DDC 客户端配置; DDC client configuration
-     * @param adminClient DDC 管理端客户端; DDC administration client
-     * @param identity 实例身份; instance identity
-     * @param sessionHolder 租约会话持有器; lease session holder
+     * @param properties           DDC 客户端配置; DDC client configuration
+     * @param adminClient          DDC 管理端客户端; DDC administration client
+     * @param identity             实例身份; instance identity
+     * @param sessionHolder        租约会话持有器; lease session holder
      * @param metadataContributors 元数据贡献器; metadata contributors
      */
     public DdcInstanceService(
@@ -231,7 +241,7 @@ public class DdcInstanceService {
      * 将空值归一化为空字符串并校验元数据值长度。
      * Normalizes null to an empty string and validates metadata value length.
      *
-     * @param key 对应元数据键，用于错误信息; associated metadata key used in errors
+     * @param key   对应元数据键，用于错误信息; associated metadata key used in errors
      * @param value 元数据值; metadata value
      * @return 归一化后的值; normalized value
      * @throws DdcException 值超过长度限制时抛出; thrown when the value exceeds the length limit

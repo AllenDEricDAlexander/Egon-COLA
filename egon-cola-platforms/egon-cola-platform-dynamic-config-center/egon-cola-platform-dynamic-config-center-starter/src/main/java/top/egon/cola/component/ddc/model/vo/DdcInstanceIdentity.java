@@ -5,12 +5,12 @@ package top.egon.cola.component.ddc.model.vo;
  * / Physical identity and runtime endpoint of a configuration client instance.
  *
  * @param instanceId 实例标识 / instance identifier
- * @param bizCode 业务编码 / business code
- * @param appCode 应用编码 / application code
- * @param env 运行环境 / runtime environment
- * @param host 实例主机地址 / instance host address
- * @param port 实例端口 / instance port
- * @param pid 进程标识 / process identifier
+ * @param bizCode    业务编码 / business code
+ * @param appCode    应用编码 / application code
+ * @param env        运行环境 / runtime environment
+ * @param host       实例主机地址 / instance host address
+ * @param port       实例端口 / instance port
+ * @param pid        进程标识 / process identifier
  * @param sdkVersion SDK 版本 / SDK version
  */
 public record DdcInstanceIdentity(

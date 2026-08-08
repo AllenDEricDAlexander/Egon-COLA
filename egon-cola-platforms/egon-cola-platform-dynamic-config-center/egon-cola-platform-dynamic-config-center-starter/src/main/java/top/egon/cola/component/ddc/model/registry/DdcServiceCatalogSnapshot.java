@@ -7,10 +7,10 @@ import java.util.List;
  * 服务目录查询结果快照。
  * / Snapshot returned by a service catalog query.
  *
- * @param query 生成该快照的查询条件 / query that produced this snapshot
- * @param revision 服务目录修订号 / service catalog revision
+ * @param query       生成该快照的查询条件 / query that produced this snapshot
+ * @param revision    服务目录修订号 / service catalog revision
  * @param serviceKeys 按规范顺序排列的服务键 / service keys in canonical order
- * @param observedAt 快照观测时间 / snapshot observation time
+ * @param observedAt  快照观测时间 / snapshot observation time
  */
 public record DdcServiceCatalogSnapshot(
         DdcServiceQuery query,

@@ -5,7 +5,7 @@ package top.egon.cola.component.ddc.model.dto;
  * / Target instance and lease for a configuration publication.
  *
  * @param instanceId 目标实例标识 / target instance identifier
- * @param leaseId 目标实例的租约标识 / lease identifier of the target instance
+ * @param leaseId    目标实例的租约标识 / lease identifier of the target instance
  */
 public record DdcPublishTarget(
         String instanceId,

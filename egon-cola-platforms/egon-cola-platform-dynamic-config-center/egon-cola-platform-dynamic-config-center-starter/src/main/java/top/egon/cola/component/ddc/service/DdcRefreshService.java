@@ -22,41 +22,57 @@ import java.util.List;
  */
 public class DdcRefreshService {
 
-    /** 当前类的日志记录器。 Logger for this class. */
+    /**
+     * 当前类的日志记录器。 Logger for this class.
+     */
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DdcRefreshService.class);
 
-    /** ACK 错误消息允许的最大字符数。 Maximum character count allowed for ACK error messages. */
+    /**
+     * ACK 错误消息允许的最大字符数。 Maximum character count allowed for ACK error messages.
+     */
     private static final int MAX_ERROR_MESSAGE_LENGTH = 256;
 
-    /** 当前作用域唯一支持的 YAML 资源名。 YAML resource name exclusively supported by the current scope. */
+    /**
+     * 当前作用域唯一支持的 YAML 资源名。 YAML resource name exclusively supported by the current scope.
+     */
     private static final String RESOURCE_NAME =
             DdcYamlConfigApplier.RESOURCE_NAME;
 
-    /** 当前资源要求的值类型。 Value type required for the current resource. */
+    /**
+     * 当前资源要求的值类型。 Value type required for the current resource.
+     */
     private static final String VALUE_TYPE =
             DdcYamlPropertySourceLoader.VALUE_TYPE;
 
-    /** 保存本地版本、校验和及配置锁的仓库。 Repository storing local version, checksum, and configuration locks. */
+    /**
+     * 保存本地版本、校验和及配置锁的仓库。 Repository storing local version, checksum, and configuration locks.
+     */
     private final DdcLocalConfigRepository repository;
 
-    /** 执行 YAML 环境更新和运行时刷新的应用器。 Applier performing YAML environment updates and runtime refresh. */
+    /**
+     * 执行 YAML 环境更新和运行时刷新的应用器。 Applier performing YAML environment updates and runtime refresh.
+     */
     private final DdcYamlConfigApplier yamlConfigApplier;
 
-    /** 提交发布确认的抽象。 Abstraction that submits publication acknowledgments. */
+    /**
+     * 提交发布确认的抽象。 Abstraction that submits publication acknowledgments.
+     */
     private final AckSubmitter ackSubmitter;
 
-    /** 提供当前实例与租约目标信息的会话持有器。 Session holder providing current instance and lease targeting information. */
+    /**
+     * 提供当前实例与租约目标信息的会话持有器。 Session holder providing current instance and lease targeting information.
+     */
     private final DdcLeaseSessionHolder sessionHolder;
 
     /**
      * 创建使用管理客户端同步发送 ACK 的刷新服务。
      * Creates a refresh service that sends ACKs synchronously through the administration client.
      *
-     * @param repository 本地配置仓库; local configuration repository
+     * @param repository        本地配置仓库; local configuration repository
      * @param yamlConfigApplier YAML 配置应用器; YAML configuration applier
-     * @param adminClient DDC 管理端客户端; DDC administration client
-     * @param sessionHolder 租约会话持有器; lease session holder
+     * @param adminClient       DDC 管理端客户端; DDC administration client
+     * @param sessionHolder     租约会话持有器; lease session holder
      */
     public DdcRefreshService(DdcLocalConfigRepository repository,
                              DdcYamlConfigApplier yamlConfigApplier,
@@ -74,10 +90,10 @@ public class DdcRefreshService {
      * 创建使用异步 ACK 投递组件的刷新服务。
      * Creates a refresh service using the asynchronous ACK delivery component.
      *
-     * @param repository 本地配置仓库; local configuration repository
+     * @param repository        本地配置仓库; local configuration repository
      * @param yamlConfigApplier YAML 配置应用器; YAML configuration applier
-     * @param ackDelivery 异步 ACK 投递组件; asynchronous ACK delivery component
-     * @param sessionHolder 租约会话持有器; lease session holder
+     * @param ackDelivery       异步 ACK 投递组件; asynchronous ACK delivery component
+     * @param sessionHolder     租约会话持有器; lease session holder
      */
     public DdcRefreshService(DdcLocalConfigRepository repository,
                              DdcYamlConfigApplier yamlConfigApplier,
@@ -95,10 +111,10 @@ public class DdcRefreshService {
      * 创建刷新服务并用 ConfigData 快照初始化缺失的本地元数据。
      * Creates the refresh service and seeds missing local metadata from the ConfigData snapshot.
      *
-     * @param repository 本地配置仓库; local configuration repository
+     * @param repository        本地配置仓库; local configuration repository
      * @param yamlConfigApplier YAML 配置应用器; YAML configuration applier
-     * @param ackSubmitter ACK 提交器; ACK submitter
-     * @param sessionHolder 租约会话持有器; lease session holder
+     * @param ackSubmitter      ACK 提交器; ACK submitter
+     * @param sessionHolder     租约会话持有器; lease session holder
      */
     private DdcRefreshService(DdcLocalConfigRepository repository,
                               DdcYamlConfigApplier yamlConfigApplier,
@@ -238,8 +254,8 @@ public class DdcRefreshService {
                 && message.getTargetVersion() > 0
                 && hasText(message.getContentChecksum())
                 && message.getContentChecksum().equals(
-                        DdcChecksum.content(message.getConfigValue())
-                );
+                DdcChecksum.content(message.getConfigValue())
+        );
     }
 
     /**
@@ -327,8 +343,8 @@ public class DdcRefreshService {
      * 比较目标版本和校验和与本地元数据的关系。
      * Compares the target version and checksum with local metadata.
      *
-     * @param local 本地配置元数据; local configuration metadata
-     * @param targetVersion 目标版本; target version
+     * @param local          本地配置元数据; local configuration metadata
+     * @param targetVersion  目标版本; target version
      * @param targetChecksum 目标内容校验和; target content checksum
      * @return 目标与本地版本关系; relation between target and local versions
      */
@@ -351,8 +367,8 @@ public class DdcRefreshService {
      * 应用 YAML 并保存对应版本和校验和，失败时恢复旧元数据。
      * Applies YAML and stores its version and checksum, restoring previous metadata on failure.
      *
-     * @param content YAML 内容; YAML content
-     * @param version 目标版本; target version
+     * @param content  YAML 内容; YAML content
+     * @param version  目标版本; target version
      * @param checksum 内容校验和; content checksum
      * @param changeId 发布变化标识，可为空; publication change identifier, possibly null
      * @param previous 失败回滚使用的旧元数据; previous metadata used for rollback
@@ -457,9 +473,9 @@ public class DdcRefreshService {
      * 保存发布消息处理后的 ACK 状态。
      * Holds the ACK state produced by publication-message processing.
      *
-     * @param status ACK 状态; ACK status
+     * @param status         ACK 状态; ACK status
      * @param currentVersion 处理完成后的本地版本; local version after processing
-     * @param errorMessage 失败说明，可为空; failure description, possibly null
+     * @param errorMessage   失败说明，可为空; failure description, possibly null
      */
     private record AckOutcome(
             DdcAckStatus status,
@@ -472,7 +488,7 @@ public class DdcRefreshService {
      * 保存本地配置版本和校验和。
      * Holds the local configuration version and checksum.
      *
-     * @param version 本地版本，可为空; local version, possibly null
+     * @param version  本地版本，可为空; local version, possibly null
      * @param checksum 本地内容校验和，可为空; local content checksum, possibly null
      */
     private record ConfigMetadata(Long version, String checksum) {
@@ -519,13 +535,21 @@ public class DdcRefreshService {
      * Version and content relationship between target and local configuration.
      */
     private enum VersionRelation {
-        /** 目标版本更新。 Target version is newer. */
+        /**
+         * 目标版本更新。 Target version is newer.
+         */
         NEWER,
-        /** 版本和内容均相同。 Version and content are identical. */
+        /**
+         * 版本和内容均相同。 Version and content are identical.
+         */
         SAME_CONTENT,
-        /** 版本相同但校验和不同。 Version matches but checksum differs. */
+        /**
+         * 版本相同但校验和不同。 Version matches but checksum differs.
+         */
         CHECKSUM_CONFLICT,
-        /** 目标版本早于本地版本。 Target version is older than local. */
+        /**
+         * 目标版本早于本地版本。 Target version is older than local.
+         */
         STALE
     }
 }

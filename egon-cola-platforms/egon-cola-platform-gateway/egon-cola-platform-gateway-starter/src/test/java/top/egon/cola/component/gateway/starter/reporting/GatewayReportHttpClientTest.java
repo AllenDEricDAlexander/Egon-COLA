@@ -5,7 +5,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 

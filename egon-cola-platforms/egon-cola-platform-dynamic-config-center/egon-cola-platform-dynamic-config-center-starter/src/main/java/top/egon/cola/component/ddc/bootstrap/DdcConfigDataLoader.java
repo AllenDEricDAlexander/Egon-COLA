@@ -17,17 +17,19 @@ import java.util.List;
 public final class DdcConfigDataLoader
         implements ConfigDataLoader<DdcConfigDataResource> {
 
-    /** 负责解析和校验远程 YAML 的加载器。 Loader that parses and validates remote YAML. */
+    /**
+     * 负责解析和校验远程 YAML 的加载器。 Loader that parses and validates remote YAML.
+     */
     private final DdcYamlPropertySourceLoader yamlLoader =
             new DdcYamlPropertySourceLoader();
 
     /**
      * 从引导上下文取得 DDC 客户端并加载配置数据。 Obtains the DDC client from the bootstrap context and loads configuration data.
      *
-     * @param context ConfigData 加载上下文。 ConfigData loading context
+     * @param context  ConfigData 加载上下文。 ConfigData loading context
      * @param resource 待加载的 DDC 资源。 DDC resource to load
      * @return 包含动态属性源且忽略远程导入和 Profile 的配置数据。 configuration data containing the dynamic source while ignoring remote imports and profiles
-     * @throws IOException YAML 资源读取失败时抛出。 thrown when the YAML resource cannot be read
+     * @throws IOException                         YAML 资源读取失败时抛出。 thrown when the YAML resource cannot be read
      * @throws ConfigDataResourceNotFoundException 必选资源在 DDC 中不存在时抛出。 thrown when a required resource is absent from DDC
      */
     @Override

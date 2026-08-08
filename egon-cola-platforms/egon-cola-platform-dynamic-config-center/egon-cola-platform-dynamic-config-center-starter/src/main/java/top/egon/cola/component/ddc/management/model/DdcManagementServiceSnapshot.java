@@ -9,7 +9,7 @@ import java.util.List;
  * @param serviceKey 快照对应的服务键 / service key represented by the snapshot
  * @param generation 服务注册表代次 / service-registry generation
  * @param observedAt 快照观测时间 / snapshot observation time
- * @param instances 快照中的服务实例 / service instances in the snapshot
+ * @param instances  快照中的服务实例 / service instances in the snapshot
  */
 public record DdcManagementServiceSnapshot(
         DdcManagementServiceKey serviceKey,

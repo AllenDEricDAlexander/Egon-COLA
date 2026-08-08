@@ -8,38 +8,52 @@ import java.lang.reflect.Field;
  */
 public class DdcFieldBinding {
 
-    /** 持有目标字段的 Bean 实例。 / Bean instance that owns the target field. */
+    /**
+     * 持有目标字段的 Bean 实例。 / Bean instance that owns the target field.
+     */
     private final Object bean;
 
-    /** 接收配置值的反射字段。 / Reflective field that receives the configuration value. */
+    /**
+     * 接收配置值的反射字段。 / Reflective field that receives the configuration value.
+     */
     private final Field field;
 
-    /** DDC 配置键。 / DDC configuration key. */
+    /**
+     * DDC 配置键。 / DDC configuration key.
+     */
     private final String configKey;
 
-    /** 未获取远端值时使用的默认文本。 / Default text used when no remote value is available. */
+    /**
+     * 未获取远端值时使用的默认文本。 / Default text used when no remote value is available.
+     */
     private final String defaultValue;
 
-    /** 配置值转换后的目标类型。 / Target type after configuration value conversion. */
+    /**
+     * 配置值转换后的目标类型。 / Target type after configuration value conversion.
+     */
     private final Class<?> targetType;
 
-    /** 是否要求配置值必须存在。 / Whether a configuration value is required. */
+    /**
+     * 是否要求配置值必须存在。 / Whether a configuration value is required.
+     */
     private final boolean required;
 
-    /** 是否允许运行时刷新该字段。 / Whether the field may be refreshed at runtime. */
+    /**
+     * 是否允许运行时刷新该字段。 / Whether the field may be refreshed at runtime.
+     */
     private final boolean refreshable;
 
     /**
      * 创建字段绑定描述。
      * / Creates a field binding descriptor.
      *
-     * @param bean 持有字段的 Bean 实例 / bean instance that owns the field
-     * @param field 接收配置值的字段 / field that receives the configuration value
-     * @param configKey DDC 配置键 / DDC configuration key
+     * @param bean         持有字段的 Bean 实例 / bean instance that owns the field
+     * @param field        接收配置值的字段 / field that receives the configuration value
+     * @param configKey    DDC 配置键 / DDC configuration key
      * @param defaultValue 默认配置文本 / default configuration text
-     * @param targetType 转换目标类型 / conversion target type
-     * @param required 是否为必填配置 / whether the configuration is required
-     * @param refreshable 是否允许运行时刷新 / whether runtime refresh is allowed
+     * @param targetType   转换目标类型 / conversion target type
+     * @param required     是否为必填配置 / whether the configuration is required
+     * @param refreshable  是否允许运行时刷新 / whether runtime refresh is allowed
      */
     public DdcFieldBinding(Object bean, Field field, String configKey, String defaultValue,
                            Class<?> targetType, boolean required, boolean refreshable) {

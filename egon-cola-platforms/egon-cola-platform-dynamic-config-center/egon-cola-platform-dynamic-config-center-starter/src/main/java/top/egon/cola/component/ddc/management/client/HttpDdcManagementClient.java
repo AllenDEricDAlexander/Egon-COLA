@@ -41,13 +41,19 @@ import java.util.function.Supplier;
  */
 public final class HttpDdcManagementClient implements DdcManagementClient {
 
-    /** DDC 管理开放接口的固定基础路径。 / Fixed base path of the DDC management OpenAPI. */
+    /**
+     * DDC 管理开放接口的固定基础路径。 / Fixed base path of the DDC management OpenAPI.
+     */
     private static final String MANAGEMENT_PATH = "/api/v1/ddc/openapi/management";
 
-    /** 执行管理 HTTP 请求的 Spring REST 客户端。 / Spring REST client that executes management HTTP requests. */
+    /**
+     * 执行管理 HTTP 请求的 Spring REST 客户端。 / Spring REST client that executes management HTTP requests.
+     */
     private final RestClient restClient;
 
-    /** 创建规范 URI、请求体和 HMAC 认证头的请求工厂。 / Factory that creates canonical URIs, bodies, and HMAC authentication headers. */
+    /**
+     * 创建规范 URI、请求体和 HMAC 认证头的请求工厂。 / Factory that creates canonical URIs, bodies, and HMAC authentication headers.
+     */
     private final DdcManagementRequestFactory requestFactory;
 
     /**
@@ -70,10 +76,10 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      * 使用可注入的 REST 构建器、时钟与防重放值供应器构造客户端，供包内测试使用。 /
      * Constructs a client with injectable REST builder, clock, and nonce supplier for package-level testing.
      *
-     * @param properties 客户端地址与认证配置 / client endpoint and authentication settings
+     * @param properties        客户端地址与认证配置 / client endpoint and authentication settings
      * @param restClientBuilder REST 客户端构建器 / REST client builder
-     * @param clock 生成签名时间戳的时钟 / clock used for signature timestamps
-     * @param nonceSupplier 生成防重放值的供应器 / supplier used for anti-replay nonces
+     * @param clock             生成签名时间戳的时钟 / clock used for signature timestamps
+     * @param nonceSupplier     生成防重放值的供应器 / supplier used for anti-replay nonces
      * @throws IllegalArgumentException 当任一依赖为空时 / when any dependency is null
      */
     HttpDdcManagementClient(
@@ -211,7 +217,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      *
      * @param changeId 发布变更标识 / publication change identifier
      * @return 发布任务详情 / publication task details
-     * @throws IllegalArgumentException 当变更标识为空时 / when the change identifier is blank
+     * @throws IllegalArgumentException     当变更标识为空时 / when the change identifier is blank
      * @throws DdcManagementClientException 当服务端拒绝或请求失败时 / when the server rejects the operation or the request fails
      */
     @Override
@@ -232,7 +238,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      *
      * @param changeId 发布变更标识 / publication change identifier
      * @return 重试后的发布结果 / publication result after retrying
-     * @throws IllegalArgumentException 当变更标识为空时 / when the change identifier is blank
+     * @throws IllegalArgumentException     当变更标识为空时 / when the change identifier is blank
      * @throws DdcManagementClientException 当服务端拒绝或请求失败时 / when the server rejects the operation or the request fails
      */
     @Override
@@ -340,13 +346,13 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      * 签名并执行管理请求，然后解包统一结果信封。 /
      * Signs and executes a management request, then unwraps the common result envelope.
      *
-     * @param <T> 响应数据类型 / response-data type
-     * @param method HTTP 方法 / HTTP method
-     * @param path 管理接口路径 / management API path
-     * @param query 查询参数 / query parameters
-     * @param request 可选请求对象 / optional request object
+     * @param <T>          响应数据类型 / response-data type
+     * @param method       HTTP 方法 / HTTP method
+     * @param path         管理接口路径 / management API path
+     * @param query        查询参数 / query parameters
+     * @param request      可选请求对象 / optional request object
      * @param responseType 统一结果信封的参数化类型 / parameterized type of the common result envelope
-     * @param required 成功响应是否必须包含数据 / whether a successful response must contain data
+     * @param required     成功响应是否必须包含数据 / whether a successful response must contain data
      * @return 已解包的响应数据 / unwrapped response data
      * @throws DdcManagementClientException 当签名、传输或业务响应失败时 / when signing, transport, or the business response fails
      */
@@ -383,8 +389,8 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     /**
      * 校验统一结果信封并返回其数据。 / Validates a common result envelope and returns its data.
      *
-     * @param <T> 响应数据类型 / response-data type
-     * @param result 服务端结果信封 / server result envelope
+     * @param <T>      响应数据类型 / response-data type
+     * @param result   服务端结果信封 / server result envelope
      * @param required 成功结果是否必须包含数据 / whether successful results must contain data
      * @return 结果数据；允许空数据时可能为空 / result data, possibly null when empty data is permitted
      * @throws DdcManagementClientException 当响应为空、业务失败或缺少必需数据时 / when the response is empty, reports failure, or lacks required data
@@ -418,7 +424,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      * 构建并编码完整配置作用域的资源路径。 / Builds and encodes the resource path for a complete configuration scope.
      *
      * @param bizCode 业务编码 / business code
-     * @param env 环境编码 / environment code
+     * @param env     环境编码 / environment code
      * @param appCode 应用编码 / application code
      * @return 配置资源路径 / configuration resource path
      * @throws IllegalArgumentException 当任一路径段为空时 / when any path segment is blank
@@ -490,7 +496,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      * 仅在值非空时添加单值查询参数。 / Adds a single-valued query parameter only when its value is nonblank.
      *
      * @param query 目标查询参数映射 / target query-parameter map
-     * @param name 参数名 / parameter name
+     * @param name  参数名 / parameter name
      * @param value 参数值 / parameter value
      */
     private void putQuery(Map<String, List<String>> query, String name, String value) {
@@ -502,7 +508,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     /**
      * 校验并按 UTF-8 编码单个 URI 路径段。 / Validates and UTF-8-encodes one URI path segment.
      *
-     * @param value 路径段原值 / raw path-segment value
+     * @param value     路径段原值 / raw path-segment value
      * @param fieldName 用于错误消息的字段名 / field name used in error messages
      * @return 编码后的路径段 / encoded path segment
      * @throws IllegalArgumentException 当路径段为空时 / when the path segment is blank
@@ -536,7 +542,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     /**
      * 要求文本非空。 / Requires nonblank text.
      *
-     * @param value 待校验文本 / text to validate
+     * @param value     待校验文本 / text to validate
      * @param fieldName 用于错误消息的字段名 / field name used in error messages
      * @return 原始非空文本 / original nonblank text
      * @throws IllegalArgumentException 当文本为空时 / when the text is blank
@@ -551,8 +557,8 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     /**
      * 要求引用非空。 / Requires a nonnull reference.
      *
-     * @param <T> 引用类型 / reference type
-     * @param value 待校验引用 / reference to validate
+     * @param <T>       引用类型 / reference type
+     * @param value     待校验引用 / reference to validate
      * @param fieldName 用于错误消息的字段名 / field name used in error messages
      * @return 原始非空引用 / original nonnull reference
      * @throws IllegalArgumentException 当引用为空时 / when the reference is null

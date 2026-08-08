@@ -18,13 +18,19 @@ import top.egon.cola.component.common.trace.TraceContext;
  */
 public final class DdcTraceSupport {
 
-    /** MDC 中标识当前组件的键。 MDC key identifying the current component. */
+    /**
+     * MDC 中标识当前组件的键。 MDC key identifying the current component.
+     */
     private static final String COMPONENT_KEY = "component";
 
-    /** MDC 中标识当前 DDC 操作的键。 MDC key identifying the current DDC operation. */
+    /**
+     * MDC 中标识当前 DDC 操作的键。 MDC key identifying the current DDC operation.
+     */
     private static final String OPERATION_KEY = "operation";
 
-    /** 工具类不允许实例化。 Prevents utility-class instantiation. */
+    /**
+     * 工具类不允许实例化。 Prevents utility-class instantiation.
+     */
     private DdcTraceSupport() {
     }
 
@@ -165,10 +171,14 @@ public final class DdcTraceSupport {
          */
         private final TraceContext.Scope traceScope;
 
-        /** 安装 Trace 上下文后、覆盖 DDC 标识前的组件值。 Component value after trace installation and before the DDC override. */
+        /**
+         * 安装 Trace 上下文后、覆盖 DDC 标识前的组件值。 Component value after trace installation and before the DDC override.
+         */
         private final String previousComponent;
 
-        /** 安装 Trace 上下文后、覆盖 DDC 标识前的操作值。 Operation value after trace installation and before the DDC override. */
+        /**
+         * 安装 Trace 上下文后、覆盖 DDC 标识前的操作值。 Operation value after trace installation and before the DDC override.
+         */
         private final String previousOperation;
 
         /**

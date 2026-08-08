@@ -22,22 +22,34 @@ import java.util.Locale;
  */
 public enum InstanceHealthState {
 
-    /** 探测通过，使用完整权重。 / Probes pass; full weight. */
+    /**
+     * 探测通过，使用完整权重。 / Probes pass; full weight.
+     */
     UP,
 
-    /** 可达但性能受损（慢调用或部分失败），使用降低后的权重。 / Reachable but impaired; serves at reduced weight. */
+    /**
+     * 可达但性能受损（慢调用或部分失败），使用降低后的权重。 / Reachable but impaired; serves at reduced weight.
+     */
     DEGRADED,
 
-    /** 探测失败，在恢复前排除出选择范围。 / Probes fail; excluded from selection until recovery. */
+    /**
+     * 探测失败，在恢复前排除出选择范围。 / Probes fail; excluded from selection until recovery.
+     */
     DOWN,
 
-    /** 已被管理操作排空，排除出选择范围且不会自动恢复。 / Administratively drained; excluded and never auto-recovered. */
+    /**
+     * 已被管理操作排空，排除出选择范围且不会自动恢复。 / Administratively drained; excluded and never auto-recovered.
+     */
     OUT_OF_SERVICE,
 
-    /** 从未探测，或由不支持健康上报的旧版提供者报告。 / Never probed, or reported by a provider predating health reporting. */
+    /**
+     * 从未探测，或由不支持健康上报的旧版提供者报告。 / Never probed, or reported by a provider predating health reporting.
+     */
     UNKNOWN;
 
-    /** 应用于 {@link ServiceInstanceMeta#weight()} 的降级权重百分比。 / Percentage multiplier applied to the configured weight. */
+    /**
+     * 应用于 {@link ServiceInstanceMeta#weight()} 的降级权重百分比。 / Percentage multiplier applied to the configured weight.
+     */
     private static final int DEGRADED_WEIGHT_PERCENT = 50;
 
     /**

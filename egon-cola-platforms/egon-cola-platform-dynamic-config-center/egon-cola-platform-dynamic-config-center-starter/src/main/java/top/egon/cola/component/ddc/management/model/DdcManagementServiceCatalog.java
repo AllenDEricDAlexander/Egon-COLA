@@ -8,7 +8,7 @@ import java.util.List;
  *
  * @param generation 服务注册表代次 / service-registry generation
  * @param observedAt 目录观测时间 / catalog observation time
- * @param services 目录中的服务键 / service keys in the catalog
+ * @param services   目录中的服务键 / service keys in the catalog
  */
 public record DdcManagementServiceCatalog(
         long generation,

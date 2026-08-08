@@ -8,8 +8,8 @@ import java.util.List;
  * / Snapshot of instances registered under a service key.
  *
  * @param serviceKey 服务键 / service key
- * @param revision 服务实例集合修订号 / service instance set revision
- * @param instances 按实例标识和租约标识排序的实例列表 / instances sorted by instance and lease identifiers
+ * @param revision   服务实例集合修订号 / service instance set revision
+ * @param instances  按实例标识和租约标识排序的实例列表 / instances sorted by instance and lease identifiers
  * @param observedAt 快照观测时间 / snapshot observation time
  */
 public record DdcServiceSnapshot(

@@ -13,13 +13,13 @@ import java.util.TreeMap;
  * / Service instance registration request containing physical service identity,
  * endpoint, and lease settings.
  *
- * @param instanceId 实例标识 / instance identifier
- * @param serviceKey 服务键 / service key
- * @param host 实例主机地址 / instance host address
- * @param port 服务端口 / service port
- * @param secure 是否使用安全传输 / whether secure transport is used
- * @param metadata 不可变的实例元数据 / immutable instance metadata
- * @param leaseSeconds 租约有效期秒数 / lease duration in seconds
+ * @param instanceId               实例标识 / instance identifier
+ * @param serviceKey               服务键 / service key
+ * @param host                     实例主机地址 / instance host address
+ * @param port                     服务端口 / service port
+ * @param secure                   是否使用安全传输 / whether secure transport is used
+ * @param metadata                 不可变的实例元数据 / immutable instance metadata
+ * @param leaseSeconds             租约有效期秒数 / lease duration in seconds
  * @param heartbeatIntervalSeconds 心跳间隔秒数 / heartbeat interval in seconds
  */
 public record DdcServiceRegistration(
@@ -38,7 +38,7 @@ public record DdcServiceRegistration(
      * / Validates and normalizes the registration.
      *
      * @throws IllegalArgumentException 必填值、端口、协议、元数据或租约参数无效时抛出
-     * / if required values, port, protocol, metadata, or lease settings are invalid
+     *                                  / if required values, port, protocol, metadata, or lease settings are invalid
      */
     public DdcServiceRegistration {
         instanceId = require(instanceId, "instanceId");
@@ -79,7 +79,7 @@ public record DdcServiceRegistration(
      * @param metadata 待校验元数据，可为空 / metadata to validate, nullable
      * @return 不可变且按键排序的元数据 / immutable metadata sorted by key
      * @throws IllegalArgumentException 条目数量、键、值或敏感信息规则不满足时抛出
-     * / if entry counts, keys, values, or sensitive-information rules are violated
+     *                                  / if entry counts, keys, values, or sensitive-information rules are violated
      */
     static Map<String, String> validatedMetadata(Map<String, String> metadata) {
         if (metadata == null || metadata.isEmpty()) {
@@ -137,7 +137,7 @@ public record DdcServiceRegistration(
      * 判断保留的 RPC 框架元数据键值是否有效。
      * / Determines whether a reserved RPC framework metadata entry is valid.
      *
-     * @param key 已规范化为小写的元数据键 / metadata key normalized to lower case
+     * @param key   已规范化为小写的元数据键 / metadata key normalized to lower case
      * @param value 元数据值 / metadata value
      * @return 键值组合受支持时为 {@code true} / {@code true} when the key-value pair is supported
      */
@@ -154,7 +154,7 @@ public record DdcServiceRegistration(
      * 校验必填字符串。
      * / Validates a required string.
      *
-     * @param value 待校验值 / value to validate
+     * @param value     待校验值 / value to validate
      * @param fieldName 用于错误消息的字段名 / field name used in the error message
      * @return 原始非空值 / original non-blank value
      * @throws IllegalArgumentException 值为空或空白时抛出 / if the value is {@code null} or blank

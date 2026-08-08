@@ -13,7 +13,9 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
  */
 public final class DdcServiceKeyFactory {
 
-    /** 提供当前客户端默认范围的 DDC 配置。 / DDC properties providing the current client's default scope. */
+    /**
+     * 提供当前客户端默认范围的 DDC 配置。 / DDC properties providing the current client's default scope.
+     */
     private final DdcProperties properties;
 
     /**
@@ -32,11 +34,11 @@ public final class DdcServiceKeyFactory {
      *
      * @param serviceKind 服务类型 / service kind
      * @param serviceName 服务名称 / service name
-     * @param group 服务分组 / service group
-     * @param version 服务版本 / service version
-     * @param protocol 传输协议 / transport protocol
+     * @param group       服务分组 / service group
+     * @param version     服务版本 / service version
+     * @param protocol    传输协议 / transport protocol
      * @return 已规范化服务键 / normalized service key
-     * @throws IllegalStateException 配置缺少业务编码时抛出 / if the configured business code is missing
+     * @throws IllegalStateException    配置缺少业务编码时抛出 / if the configured business code is missing
      * @throws IllegalArgumentException 服务键字段无效时抛出 / if a service-key field is invalid
      */
     public DdcServiceKey fromScope(
@@ -61,14 +63,14 @@ public final class DdcServiceKeyFactory {
      * 使用配置中的业务与应用范围及指定环境创建服务键。
      * / Creates a service key with configured business and application scope and the specified environment.
      *
-     * @param env 目标环境 / target environment
+     * @param env         目标环境 / target environment
      * @param serviceKind 服务类型 / service kind
      * @param serviceName 服务名称 / service name
-     * @param group 服务分组 / service group
-     * @param version 服务版本 / service version
-     * @param protocol 传输协议 / transport protocol
+     * @param group       服务分组 / service group
+     * @param version     服务版本 / service version
+     * @param protocol    传输协议 / transport protocol
      * @return 已规范化服务键 / normalized service key
-     * @throws IllegalStateException 配置缺少业务编码时抛出 / if the configured business code is missing
+     * @throws IllegalStateException    配置缺少业务编码时抛出 / if the configured business code is missing
      * @throws IllegalArgumentException 服务键字段无效时抛出 / if a service-key field is invalid
      */
     public DdcServiceKey fromScope(
@@ -94,14 +96,14 @@ public final class DdcServiceKeyFactory {
      * 使用显式目标范围创建服务键。
      * / Creates a service key with an explicit target scope.
      *
-     * @param bizCode 目标业务编码 / target business code
-     * @param appCode 目标应用编码 / target application code
-     * @param env 目标环境 / target environment
+     * @param bizCode     目标业务编码 / target business code
+     * @param appCode     目标应用编码 / target application code
+     * @param env         目标环境 / target environment
      * @param serviceKind 服务类型 / service kind
      * @param serviceName 服务名称 / service name
-     * @param group 服务分组 / service group
-     * @param version 服务版本 / service version
-     * @param protocol 传输协议 / transport protocol
+     * @param group       服务分组 / service group
+     * @param version     服务版本 / service version
+     * @param protocol    传输协议 / transport protocol
      * @return 已规范化服务键 / normalized service key
      * @throws IllegalArgumentException 服务键字段无效时抛出 / if a service-key field is invalid
      */
@@ -131,15 +133,15 @@ public final class DdcServiceKeyFactory {
      * / Creates a service key with the legacy namespace parameter and a specified environment;
      * the namespace is ignored.
      *
-     * @param env 目标环境 / target environment
-     * @param namespace 已忽略的授权视图 / ignored authorization view
+     * @param env         目标环境 / target environment
+     * @param namespace   已忽略的授权视图 / ignored authorization view
      * @param serviceKind 服务类型 / service kind
      * @param serviceName 服务名称 / service name
-     * @param group 服务分组 / service group
-     * @param version 服务版本 / service version
-     * @param protocol 传输协议 / transport protocol
+     * @param group       服务分组 / service group
+     * @param version     服务版本 / service version
+     * @param protocol    传输协议 / transport protocol
      * @return 已规范化服务键 / normalized service key
-     * @throws IllegalStateException 配置缺少业务编码时抛出 / if the configured business code is missing
+     * @throws IllegalStateException    配置缺少业务编码时抛出 / if the configured business code is missing
      * @throws IllegalArgumentException 服务键字段无效时抛出 / if a service-key field is invalid
      * @deprecated namespace 不再属于物理服务键。 / namespace is no longer part of the physical service key.
      */
@@ -160,15 +162,15 @@ public final class DdcServiceKeyFactory {
      * / Creates a service key with the legacy namespace parameter and an explicit target scope;
      * the namespace is ignored.
      *
-     * @param bizCode 目标业务编码 / target business code
-     * @param appCode 目标应用编码 / target application code
-     * @param env 目标环境 / target environment
-     * @param namespace 已忽略的授权视图 / ignored authorization view
+     * @param bizCode     目标业务编码 / target business code
+     * @param appCode     目标应用编码 / target application code
+     * @param env         目标环境 / target environment
+     * @param namespace   已忽略的授权视图 / ignored authorization view
      * @param serviceKind 服务类型 / service kind
      * @param serviceName 服务名称 / service name
-     * @param group 服务分组 / service group
-     * @param version 服务版本 / service version
-     * @param protocol 传输协议 / transport protocol
+     * @param group       服务分组 / service group
+     * @param version     服务版本 / service version
+     * @param protocol    传输协议 / transport protocol
      * @return 已规范化服务键 / normalized service key
      * @throws IllegalArgumentException 服务键字段无效时抛出 / if a service-key field is invalid
      * @deprecated namespace 不再属于物理服务键。 / namespace is no longer part of the physical service key.

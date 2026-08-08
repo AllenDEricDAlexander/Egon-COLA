@@ -6,16 +6,24 @@ package top.egon.cola.component.ddc.model.vo;
  */
 public class DdcConfigValue {
 
-    /** 配置键。 / Configuration key. */
+    /**
+     * 配置键。 / Configuration key.
+     */
     private String configKey;
 
-    /** 配置值的文本表示。 / Text representation of the configuration value. */
+    /**
+     * 配置值的文本表示。 / Text representation of the configuration value.
+     */
     private String configValue;
 
-    /** 配置值类型的线协议名称。 / Wire name of the configuration value type. */
+    /**
+     * 配置值类型的线协议名称。 / Wire name of the configuration value type.
+     */
     private String valueType;
 
-    /** 配置版本。 / Configuration version. */
+    /**
+     * 配置版本。 / Configuration version.
+     */
     private Long version;
 
     /**

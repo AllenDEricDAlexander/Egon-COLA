@@ -6,17 +6,21 @@ package top.egon.cola.component.ddc.management.client;
  */
 public final class DdcManagementClientException extends RuntimeException {
 
-    /** 服务端业务错误码；本地失败时为 {@code -1}。 / Server business error code, or {@code -1} for local failures. */
+    /**
+     * 服务端业务错误码；本地失败时为 {@code -1}。 / Server business error code, or {@code -1} for local failures.
+     */
     private final int code;
 
-    /** 稳定错误状态标识。 / Stable error-status identifier. */
+    /**
+     * 稳定错误状态标识。 / Stable error-status identifier.
+     */
     private final String status;
 
     /**
      * 使用服务端业务错误信息构造异常。 / Constructs an exception from server business-error information.
      *
-     * @param code 服务端业务错误码 / server business error code
-     * @param status 稳定错误状态标识 / stable error-status identifier
+     * @param code    服务端业务错误码 / server business error code
+     * @param status  稳定错误状态标识 / stable error-status identifier
      * @param message 可读错误消息 / human-readable error message
      */
     public DdcManagementClientException(int code, String status, String message) {
@@ -29,9 +33,9 @@ public final class DdcManagementClientException extends RuntimeException {
      * 使用本地失败原因构造异常，并将业务错误码设为 {@code -1}。 /
      * Constructs an exception for a local failure and assigns business error code {@code -1}.
      *
-     * @param status 稳定错误状态标识 / stable error-status identifier
+     * @param status  稳定错误状态标识 / stable error-status identifier
      * @param message 可读错误消息 / human-readable error message
-     * @param cause 原始失败原因 / original failure cause
+     * @param cause   原始失败原因 / original failure cause
      */
     public DdcManagementClientException(String status, String message, Throwable cause) {
         super(message, cause);

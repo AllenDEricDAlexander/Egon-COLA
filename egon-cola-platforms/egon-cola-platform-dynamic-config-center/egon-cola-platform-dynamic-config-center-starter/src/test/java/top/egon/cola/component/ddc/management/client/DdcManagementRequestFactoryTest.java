@@ -3,8 +3,8 @@ package top.egon.cola.component.ddc.management.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
-import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 
 import java.time.Clock;
 import java.time.Duration;

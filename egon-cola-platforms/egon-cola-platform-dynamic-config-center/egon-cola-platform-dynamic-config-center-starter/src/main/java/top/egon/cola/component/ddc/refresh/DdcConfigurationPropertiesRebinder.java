@@ -33,25 +33,33 @@ import java.util.Set;
 public class DdcConfigurationPropertiesRebinder
         implements SmartInitializingSingleton {
 
-    /** 用于发现配置属性 Bean 的应用上下文。 Application context used to discover configuration-properties Beans. */
+    /**
+     * 用于发现配置属性 Bean 的应用上下文。 Application context used to discover configuration-properties Beans.
+     */
     private final ApplicationContext applicationContext;
 
-    /** 执行配置属性重新绑定的后处理器。 Post-processor that performs configuration-properties rebinding. */
+    /**
+     * 执行配置属性重新绑定的后处理器。 Post-processor that performs configuration-properties rebinding.
+     */
     private final ConfigurationPropertiesBindingPostProcessor bindingPostProcessor;
 
-    /** 用于检查删除键是否存在回退值的环境。 Environment used to check fallback values for removed keys. */
+    /**
+     * 用于检查删除键是否存在回退值的环境。 Environment used to check fallback values for removed keys.
+     */
     private final Environment environment;
 
-    /** 初始化完成后缓存的可刷新 Bean 不可变列表。 Immutable list of refreshable Beans cached after initialization. */
+    /**
+     * 初始化完成后缓存的可刷新 Bean 不可变列表。 Immutable list of refreshable Beans cached after initialization.
+     */
     private volatile List<RefreshableBean> refreshableBeans = List.of();
 
     /**
      * 创建配置属性重新绑定器。
      * Creates a configuration-properties rebinder.
      *
-     * @param applicationContext Spring 应用上下文; Spring application context
+     * @param applicationContext   Spring 应用上下文; Spring application context
      * @param bindingPostProcessor 配置属性绑定后处理器; configuration-properties binding post-processor
-     * @param environment Spring 环境; Spring environment
+     * @param environment          Spring 环境; Spring environment
      */
     public DdcConfigurationPropertiesRebinder(
             ApplicationContext applicationContext,
@@ -67,7 +75,7 @@ public class DdcConfigurationPropertiesRebinder
      * Discovers, validates, and caches refreshable configuration-properties Beans after singleton initialization.
      *
      * @throws IllegalStateException 可刷新 Bean 使用不可变绑定或没有可写属性时抛出;
-     * thrown when a refreshable Bean uses immutable binding or exposes no writable property
+     *                               thrown when a refreshable Bean uses immutable binding or exposes no writable property
      */
     @Override
     public void afterSingletonsInstantiated() {
@@ -112,9 +120,9 @@ public class DdcConfigurationPropertiesRebinder
             );
             if (matchingKeys.isEmpty()
                     || hasRemovalWithoutFallback(
-                            bean.prefix(),
-                            removedKeys
-                    )) {
+                    bean.prefix(),
+                    removedKeys
+            )) {
                 continue;
             }
             bindingPostProcessor.postProcessBeforeInitialization(
@@ -131,7 +139,7 @@ public class DdcConfigurationPropertiesRebinder
      * Validates that a candidate uses mutable JavaBean binding and exposes at least one write method.
      *
      * @param beanName Spring Bean 名称; Spring Bean name
-     * @param bean 配置属性 Bean 描述; configuration-properties Bean descriptor
+     * @param bean     配置属性 Bean 描述; configuration-properties Bean descriptor
      * @param beanType 用户定义的 Bean 类型; user-defined Bean type
      * @throws IllegalStateException 候选 Bean 无法安全重绑定时抛出; thrown when the candidate cannot be rebound safely
      */
@@ -166,7 +174,7 @@ public class DdcConfigurationPropertiesRebinder
      * 判断指定前缀下是否存在删除后也无法从其他属性源解析的键。
      * Determines whether the prefix contains a removed key that cannot be resolved from another property source.
      *
-     * @param prefix 配置属性前缀; configuration-properties prefix
+     * @param prefix      配置属性前缀; configuration-properties prefix
      * @param removedKeys 已删除的配置键; removed configuration keys
      * @return 存在无回退删除键时为 {@code true}; {@code true} when a removed key has no fallback
      */
@@ -186,7 +194,7 @@ public class DdcConfigurationPropertiesRebinder
      * Filters keys equal to or nested beneath the configuration-properties prefix.
      *
      * @param prefix 配置属性前缀; configuration-properties prefix
-     * @param keys 待筛选的配置键; configuration keys to filter
+     * @param keys   待筛选的配置键; configuration keys to filter
      * @return 保持输入迭代顺序的匹配键集合; matching keys preserving input iteration order
      */
     private Set<String> matchingKeys(
@@ -209,9 +217,9 @@ public class DdcConfigurationPropertiesRebinder
      * 缓存一个可刷新配置属性 Bean 的绑定信息。
      * Cached binding information for a refreshable configuration-properties Bean.
      *
-     * @param name Spring Bean 名称; Spring Bean name
+     * @param name     Spring Bean 名称; Spring Bean name
      * @param instance Bean 实例; Bean instance
-     * @param prefix 规范化后的配置属性前缀; normalized configuration-properties prefix
+     * @param prefix   规范化后的配置属性前缀; normalized configuration-properties prefix
      */
     private record RefreshableBean(
             String name,

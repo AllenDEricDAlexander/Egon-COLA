@@ -8,7 +8,7 @@ import java.time.Instant;
  * 租约续期或注销操作的结果。
  * / Result of a lease renewal or deregistration operation.
  *
- * @param status 操作状态 / operation status
+ * @param status        操作状态 / operation status
  * @param leaseExpireAt 操作后的租约到期时间，可为空 / lease expiration time after the operation, nullable
  */
 public record DdcLeaseOperationResult(

@@ -8,25 +8,35 @@ import top.egon.cola.component.common.core.enums.ErrorStatus;
  */
 public enum DdcManagementErrorCode implements ErrorStatus {
 
-    /** 查询的配置不存在。 / The requested configuration does not exist. */
+    /**
+     * 查询的配置不存在。 / The requested configuration does not exist.
+     */
     CONFIG_NOT_FOUND(56004, "DDC_CONFIG_NOT_FOUND", "config not found"),
-    /** 查询的发布任务不存在。 / The requested publication task does not exist. */
+    /**
+     * 查询的发布任务不存在。 / The requested publication task does not exist.
+     */
     PUBLISH_TASK_NOT_FOUND(56014, "DDC_PUBLISH_TASK_NOT_FOUND", "publish task not found");
 
-    /** 数值业务错误码。 / Numeric business error code. */
+    /**
+     * 数值业务错误码。 / Numeric business error code.
+     */
     private final int code;
 
-    /** 稳定错误状态标识。 / Stable error-status identifier. */
+    /**
+     * 稳定错误状态标识。 / Stable error-status identifier.
+     */
     private final String status;
 
-    /** 默认可读错误消息。 / Default human-readable error message. */
+    /**
+     * 默认可读错误消息。 / Default human-readable error message.
+     */
     private final String message;
 
     /**
      * 构造客户端可识别的服务端错误。 / Constructs a server error recognized by the client.
      *
-     * @param code 数值业务错误码 / numeric business error code
-     * @param status 稳定错误状态标识 / stable error-status identifier
+     * @param code    数值业务错误码 / numeric business error code
+     * @param status  稳定错误状态标识 / stable error-status identifier
      * @param message 默认可读错误消息 / default human-readable error message
      */
     DdcManagementErrorCode(int code, String status, String message) {

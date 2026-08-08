@@ -6,16 +6,16 @@ import java.util.Map;
 /**
  * 管理接口返回的服务注册实例。 / Service-registry instance returned by the management API.
  *
- * @param instanceId 实例标识 / instance identifier
- * @param leaseId 租约标识 / lease identifier
- * @param host 实例主机 / instance host
- * @param port 实例端口 / instance port
- * @param secure 是否使用安全传输 / whether secure transport is used
- * @param metadata 实例元数据 / instance metadata
- * @param status 服务端租约状态文本 / server-side lease-status text
- * @param registeredAt 注册时间 / registration time
+ * @param instanceId      实例标识 / instance identifier
+ * @param leaseId         租约标识 / lease identifier
+ * @param host            实例主机 / instance host
+ * @param port            实例端口 / instance port
+ * @param secure          是否使用安全传输 / whether secure transport is used
+ * @param metadata        实例元数据 / instance metadata
+ * @param status          服务端租约状态文本 / server-side lease-status text
+ * @param registeredAt    注册时间 / registration time
  * @param lastHeartbeatAt 最近心跳时间 / most recent heartbeat time
- * @param expireAt 租约过期时间 / lease expiration time
+ * @param expireAt        租约过期时间 / lease expiration time
  */
 public record DdcManagementServiceInstance(
         String instanceId,

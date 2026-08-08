@@ -8,11 +8,17 @@ import java.util.Locale;
  */
 public enum DdcInstanceStatus {
 
-    /** 租约实例在线。 / The leased instance is online. */
+    /**
+     * 租约实例在线。 / The leased instance is online.
+     */
     ONLINE,
-    /** 租约实例离线。 / The leased instance is offline. */
+    /**
+     * 租约实例离线。 / The leased instance is offline.
+     */
     OFFLINE,
-    /** 线格式状态为空或无法识别。 / The wire status is absent or unrecognized. */
+    /**
+     * 线格式状态为空或无法识别。 / The wire status is absent or unrecognized.
+     */
     UNKNOWN;
 
     /**
@@ -36,7 +42,7 @@ public enum DdcInstanceStatus {
      * 判断实例在指定时刻是否在线且租约尚未过期。 /
      * Determines whether the instance is online and its lease remains unexpired at the specified time.
      *
-     * @param now 用于判断租约有效性的当前时刻 / current instant used to evaluate lease validity
+     * @param now           用于判断租约有效性的当前时刻 / current instant used to evaluate lease validity
      * @param leaseExpireAt 租约过期时间 / lease expiration time
      * @return 在线且租约过期时间晚于当前时刻时为 {@code true} / {@code true} when online and the lease expires after the current instant
      */

@@ -25,49 +25,71 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class DdcRuntimeCoordinator implements SmartLifecycle {
 
-    /** 当前类的日志记录器。 Logger for this class. */
+    /**
+     * 当前类的日志记录器。 Logger for this class.
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(DdcRuntimeCoordinator.class);
 
-    /** DDC 客户端配置。 DDC client configuration. */
+    /**
+     * DDC 客户端配置。 DDC client configuration.
+     */
     private final DdcProperties properties;
 
-    /** 执行实例租约操作的服务。 Service performing instance lease operations. */
+    /**
+     * 执行实例租约操作的服务。 Service performing instance lease operations.
+     */
     private final DdcInstanceService instanceService;
 
-    /** 拉取配置的管理端客户端。 Administration client used to pull configuration. */
+    /**
+     * 拉取配置的管理端客户端。 Administration client used to pull configuration.
+     */
     private final DdcAdminClient adminClient;
 
-    /** 应用初始和对账快照的刷新服务。 Refresh service applying initial and reconciled snapshots. */
+    /**
+     * 应用初始和对账快照的刷新服务。 Refresh service applying initial and reconciled snapshots.
+     */
     private final DdcRefreshService refreshService;
 
-    /** Redis 配置变化订阅。 Redis configuration-change subscription. */
+    /**
+     * Redis 配置变化订阅。 Redis configuration-change subscription.
+     */
     private final DdcRedisChangeSubscription subscription;
 
-    /** 当前配置客户端租约会话持有器。 Holder of the current configuration-client lease session. */
+    /**
+     * 当前配置客户端租约会话持有器。 Holder of the current configuration-client lease session.
+     */
     private final DdcLeaseSessionHolder sessionHolder;
 
-    /** 当前运行时状态的原子引用。 Atomic reference to the current runtime state. */
+    /**
+     * 当前运行时状态的原子引用。 Atomic reference to the current runtime state.
+     */
     private final AtomicReference<DdcRuntimeState> state = new AtomicReference<>(DdcRuntimeState.NEW);
 
-    /** 生命周期是否处于运行状态。 Whether the lifecycle is running. */
+    /**
+     * 生命周期是否处于运行状态。 Whether the lifecycle is running.
+     */
     private final AtomicBoolean running = new AtomicBoolean();
 
-    /** 周期心跳调度器。 Periodic heartbeat scheduler. */
+    /**
+     * 周期心跳调度器。 Periodic heartbeat scheduler.
+     */
     private volatile ScheduledExecutorService heartbeatScheduler;
 
-    /** 周期配置对账调度器。 Periodic configuration reconciliation scheduler. */
+    /**
+     * 周期配置对账调度器。 Periodic configuration reconciliation scheduler.
+     */
     private volatile ScheduledExecutorService reconcileScheduler;
 
     /**
      * 创建 DDC 运行时协调器。
      * Creates the DDC runtime coordinator.
      *
-     * @param properties DDC 客户端配置; DDC client configuration
+     * @param properties      DDC 客户端配置; DDC client configuration
      * @param instanceService 实例租约服务; instance lease service
-     * @param adminClient DDC 管理端客户端; DDC administration client
-     * @param refreshService 配置刷新服务; configuration refresh service
-     * @param subscription Redis 配置变化订阅; Redis configuration-change subscription
-     * @param sessionHolder 租约会话持有器; lease session holder
+     * @param adminClient     DDC 管理端客户端; DDC administration client
+     * @param refreshService  配置刷新服务; configuration refresh service
+     * @param subscription    Redis 配置变化订阅; Redis configuration-change subscription
+     * @param sessionHolder   租约会话持有器; lease session holder
      */
     public DdcRuntimeCoordinator(DdcProperties properties,
                                  DdcInstanceService instanceService,
@@ -144,26 +166,34 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         state.set(DdcRuntimeState.STOPPED);
     }
 
-    /** {@inheritDoc} 中文：同步完成运行时停止后调用回调。 English: Invokes the callback after synchronous runtime shutdown. */
+    /**
+     * {@inheritDoc} 中文：同步完成运行时停止后调用回调。 English: Invokes the callback after synchronous runtime shutdown.
+     */
     @Override
     public void stop(Runnable callback) {
         stop();
         callback.run();
     }
 
-    /** {@inheritDoc} 中文：返回协调器是否处于运行状态。 English: Returns whether the coordinator is running. */
+    /**
+     * {@inheritDoc} 中文：返回协调器是否处于运行状态。 English: Returns whether the coordinator is running.
+     */
     @Override
     public boolean isRunning() {
         return running.get();
     }
 
-    /** {@inheritDoc} 中文：声明由 Spring 生命周期自动启动。 English: Declares automatic startup by the Spring lifecycle. */
+    /**
+     * {@inheritDoc} 中文：声明由 Spring 生命周期自动启动。 English: Declares automatic startup by the Spring lifecycle.
+     */
     @Override
     public boolean isAutoStartup() {
         return true;
     }
 
-    /** {@inheritDoc} 中文：使用最高阶段以便最后启动并最先停止。 English: Uses the highest phase to start last and stop first. */
+    /**
+     * {@inheritDoc} 中文：使用最高阶段以便最后启动并最先停止。 English: Uses the highest phase to start last and stop first.
+     */
     @Override
     public int getPhase() {
         return Integer.MAX_VALUE;
@@ -357,7 +387,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
      * 要求指定作用域文本不为空白。
      * Requires a scope text value to be nonblank.
      *
-     * @param value 待校验值; value to validate
+     * @param value     待校验值; value to validate
      * @param fieldName 配置字段名; configuration field name
      * @throws DdcException 值为空白时抛出; thrown when the value is blank
      */

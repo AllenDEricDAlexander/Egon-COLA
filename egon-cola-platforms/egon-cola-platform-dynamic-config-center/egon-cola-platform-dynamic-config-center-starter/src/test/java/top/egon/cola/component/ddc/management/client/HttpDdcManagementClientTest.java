@@ -13,8 +13,8 @@ import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
 import top.egon.cola.component.ddc.management.model.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
-import top.egon.cola.component.ddc.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 
 import java.time.Clock;
 import java.time.Duration;

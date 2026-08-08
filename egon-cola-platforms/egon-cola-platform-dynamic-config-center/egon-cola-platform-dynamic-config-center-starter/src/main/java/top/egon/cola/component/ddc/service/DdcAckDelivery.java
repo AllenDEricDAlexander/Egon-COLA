@@ -5,8 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
-import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
@@ -31,58 +31,94 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
 
-    /** 当前类的日志记录器。 Logger for this class. */
+    /**
+     * 当前类的日志记录器。 Logger for this class.
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(DdcAckDelivery.class);
 
-    /** ACK 投递工作线程名称。 Name of the ACK delivery worker thread. */
+    /**
+     * ACK 投递工作线程名称。 Name of the ACK delivery worker thread.
+     */
     private static final String WORKER_NAME = "egon-cola-ddc-ack-delivery";
 
-    /** 执行 ACK HTTP 调用的管理端客户端。 Administration client performing ACK HTTP calls. */
+    /**
+     * 执行 ACK HTTP 调用的管理端客户端。 Administration client performing ACK HTTP calls.
+     */
     private final DdcAdminClient adminClient;
 
-    /** 队列、重试和停止参数。 Queue, retry, and shutdown settings. */
+    /**
+     * 队列、重试和停止参数。 Queue, retry, and shutdown settings.
+     */
     private final DdcAckDeliveryProperties properties;
 
-    /** 保护待投递映射和执行器状态检查的监视器。 Monitor protecting pending deliveries and executor-state checks. */
+    /**
+     * 保护待投递映射和执行器状态检查的监视器。 Monitor protecting pending deliveries and executor-state checks.
+     */
     private final Object pendingMonitor = new Object();
 
-    /** 按 ACK 幂等键索引的待投递任务。 Pending deliveries indexed by ACK idempotency key. */
+    /**
+     * 按 ACK 幂等键索引的待投递任务。 Pending deliveries indexed by ACK idempotency key.
+     */
     private final Map<AckKey, PendingDelivery> pending = new HashMap<>();
 
-    /** 投递组件是否接受新任务。 Whether the delivery component accepts new tasks. */
+    /**
+     * 投递组件是否接受新任务。 Whether the delivery component accepts new tasks.
+     */
     private final AtomicBoolean running = new AtomicBoolean();
 
-    /** 成功入队的任务数。 Number of tasks successfully submitted. */
+    /**
+     * 成功入队的任务数。 Number of tasks successfully submitted.
+     */
     private final AtomicLong submitted = new AtomicLong();
 
-    /** 成功送达的任务数。 Number of tasks delivered successfully. */
+    /**
+     * 成功送达的任务数。 Number of tasks delivered successfully.
+     */
     private final AtomicLong delivered = new AtomicLong();
 
-    /** 已安排的重试次数。 Number of retries scheduled. */
+    /**
+     * 已安排的重试次数。 Number of retries scheduled.
+     */
     private final AtomicLong retried = new AtomicLong();
 
-    /** 被待处理任务去重的提交数。 Number of submissions deduplicated against pending tasks. */
+    /**
+     * 被待处理任务去重的提交数。 Number of submissions deduplicated against pending tasks.
+     */
     private final AtomicLong deduplicated = new AtomicLong();
 
-    /** 因队列达到容量而拒绝的提交数。 Number of submissions rejected because the queue reached capacity. */
+    /**
+     * 因队列达到容量而拒绝的提交数。 Number of submissions rejected because the queue reached capacity.
+     */
     private final AtomicLong saturated = new AtomicLong();
 
-    /** 达到最大尝试次数的任务数。 Number of tasks exhausting their maximum attempts. */
+    /**
+     * 达到最大尝试次数的任务数。 Number of tasks exhausting their maximum attempts.
+     */
     private final AtomicLong exhausted = new AtomicLong();
 
-    /** 遭遇不可重试失败的任务数。 Number of tasks encountering non-retryable failures. */
+    /**
+     * 遭遇不可重试失败的任务数。 Number of tasks encountering non-retryable failures.
+     */
     private final AtomicLong nonRetryableFailures = new AtomicLong();
 
-    /** 在组件停止时被拒绝的提交数。 Number of submissions rejected while the component was stopped. */
+    /**
+     * 在组件停止时被拒绝的提交数。 Number of submissions rejected while the component was stopped.
+     */
     private final AtomicLong rejectedWhileStopped = new AtomicLong();
 
-    /** 停止时仍待处理并被丢弃的任务数。 Number of pending tasks dropped during shutdown. */
+    /**
+     * 停止时仍待处理并被丢弃的任务数。 Number of pending tasks dropped during shutdown.
+     */
     private final AtomicLong droppedOnShutdown = new AtomicLong();
 
-    /** 当前单线程延迟执行器。 Current single-thread scheduled executor. */
+    /**
+     * 当前单线程延迟执行器。 Current single-thread scheduled executor.
+     */
     private volatile ScheduledThreadPoolExecutor executor;
 
-    /** 最近一个工作执行器是否已终止。 Whether the most recent worker executor has terminated. */
+    /**
+     * 最近一个工作执行器是否已终止。 Whether the most recent worker executor has terminated.
+     */
     private volatile boolean workerTerminated = true;
 
     /**
@@ -90,7 +126,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
      * Creates the ACK delivery component and validates its settings.
      *
      * @param adminClient DDC 管理端客户端; DDC administration client
-     * @param properties ACK 投递配置; ACK delivery settings
+     * @param properties  ACK 投递配置; ACK delivery settings
      * @throws IllegalArgumentException 依赖为空或配置无效时抛出; thrown when a dependency is null or settings are invalid
      */
     public DdcAckDelivery(DdcAdminClient adminClient,
@@ -212,26 +248,34 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
         }
     }
 
-    /** {@inheritDoc} 中文：同步停止后执行生命周期回调。 English: Runs the lifecycle callback after synchronous shutdown. */
+    /**
+     * {@inheritDoc} 中文：同步停止后执行生命周期回调。 English: Runs the lifecycle callback after synchronous shutdown.
+     */
     @Override
     public void stop(Runnable callback) {
         stop();
         callback.run();
     }
 
-    /** {@inheritDoc} 中文：返回组件当前是否接受新任务。 English: Returns whether the component currently accepts new tasks. */
+    /**
+     * {@inheritDoc} 中文：返回组件当前是否接受新任务。 English: Returns whether the component currently accepts new tasks.
+     */
     @Override
     public boolean isRunning() {
         return running.get();
     }
 
-    /** {@inheritDoc} 中文：声明由 Spring 生命周期自动启动。 English: Declares automatic startup by the Spring lifecycle. */
+    /**
+     * {@inheritDoc} 中文：声明由 Spring 生命周期自动启动。 English: Declares automatic startup by the Spring lifecycle.
+     */
     @Override
     public boolean isAutoStartup() {
         return true;
     }
 
-    /** {@inheritDoc} 中文：返回较晚启动、较早停止的生命周期阶段。 English: Returns a lifecycle phase that starts late and stops early. */
+    /**
+     * {@inheritDoc} 中文：返回较晚启动、较早停止的生命周期阶段。 English: Returns a lifecycle phase that starts late and stops early.
+     */
     @Override
     public int getPhase() {
         return Integer.MAX_VALUE - 100;
@@ -380,8 +424,8 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
      * 根据异常类型、尝试次数和运行状态安排重试或终结任务。
      * Schedules a retry or terminates a task according to exception type, attempt count, and runtime state.
      *
-     * @param delivery 投递任务; delivery task
-     * @param attempt 已完成的尝试次数; completed attempt count
+     * @param delivery  投递任务; delivery task
+     * @param attempt   已完成的尝试次数; completed attempt count
      * @param exception 投递异常; delivery exception
      */
     private void handleFailure(PendingDelivery delivery,
@@ -436,9 +480,9 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
      * 在指定执行器上按延迟安排一次携带原追踪上下文的投递。
      * Schedules a delivery with its captured trace context on the specified executor after a delay.
      *
-     * @param current 目标执行器; target executor
+     * @param current  目标执行器; target executor
      * @param delivery 投递任务; delivery task
-     * @param delayMs 延迟毫秒数; delay in milliseconds
+     * @param delayMs  延迟毫秒数; delay in milliseconds
      * @return 成功安排时为 {@code true}; {@code true} when scheduling succeeds
      */
     private boolean schedule(ScheduledThreadPoolExecutor current,
@@ -564,7 +608,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
      * 校验时长非空且为正值。
      * Validates that a duration is non-null and positive.
      *
-     * @param value 待校验时长; duration to validate
+     * @param value     待校验时长; duration to validate
      * @param fieldName 配置字段名; configuration field name
      * @throws IllegalArgumentException 时长无效时抛出; thrown when the duration is invalid
      */
@@ -578,9 +622,9 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
      * 唯一标识一条待投递 ACK 的复合键。
      * Composite key uniquely identifying a pending ACK delivery.
      *
-     * @param changeId 发布变化标识; publication change identifier
+     * @param changeId   发布变化标识; publication change identifier
      * @param instanceId 实例标识; instance identifier
-     * @param leaseId 租约标识; lease identifier
+     * @param leaseId    租约标识; lease identifier
      */
     private record AckKey(String changeId, String instanceId, String leaseId) {
 
@@ -606,7 +650,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
          * 校验幂等键字段不为空白。
          * Validates that an idempotency-key field is nonblank.
          *
-         * @param value 字段值; field value
+         * @param value     字段值; field value
          * @param fieldName 字段名; field name
          * @return 原字段值; original field value
          */
@@ -622,10 +666,10 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
      * 保存 ACK 请求、追踪上下文和累计尝试次数的待投递任务。
      * Pending delivery holding an ACK request, trace context, and accumulated attempt count.
      *
-     * @param key ACK 复合键; ACK composite key
-     * @param request ACK 请求; ACK request
+     * @param key          ACK 复合键; ACK composite key
+     * @param request      ACK 请求; ACK request
      * @param traceContext 提交时捕获的追踪上下文; trace context captured at submission
-     * @param attempts 已执行尝试次数; executed attempt count
+     * @param attempts     已执行尝试次数; executed attempt count
      */
     private record PendingDelivery(
             AckKey key,
@@ -638,8 +682,8 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
          * 创建尝试次数从零开始的待投递任务。
          * Creates a pending delivery whose attempt count starts at zero.
          *
-         * @param key ACK 复合键; ACK composite key
-         * @param request ACK 请求; ACK request
+         * @param key          ACK 复合键; ACK composite key
+         * @param request      ACK 请求; ACK request
          * @param traceContext 提交时捕获的追踪上下文; trace context captured at submission
          */
         private PendingDelivery(AckKey key,

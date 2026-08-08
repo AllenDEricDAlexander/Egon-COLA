@@ -6,14 +6,14 @@ import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
  * 服务目录查询条件；空字段表示该维度不筛选。
  * / Service catalog query; a null field means no filtering on that dimension.
  *
- * @param bizCode 业务编码 / business code
- * @param env 运行环境 / runtime environment
- * @param appCode 应用编码 / application code
+ * @param bizCode     业务编码 / business code
+ * @param env         运行环境 / runtime environment
+ * @param appCode     应用编码 / application code
  * @param serviceKind 服务类型 / service kind
- * @param protocol 传输协议 / transport protocol
+ * @param protocol    传输协议 / transport protocol
  * @param serviceName 服务名称 / service name
- * @param group 服务分组 / service group
- * @param version 服务版本 / service version
+ * @param group       服务分组 / service group
+ * @param version     服务版本 / service version
  */
 public record DdcServiceQuery(
         String bizCode,
@@ -79,15 +79,15 @@ public record DdcServiceQuery(
      * 使用旧版 namespace 参数构造查询；namespace 会被忽略。
      * / Constructs a query with the legacy namespace parameter, which is ignored.
      *
-     * @param bizCode 业务编码 / business code
-     * @param appCode 应用编码 / application code
-     * @param env 运行环境 / runtime environment
-     * @param namespace 已忽略的授权视图 / ignored authorization view
+     * @param bizCode     业务编码 / business code
+     * @param appCode     应用编码 / application code
+     * @param env         运行环境 / runtime environment
+     * @param namespace   已忽略的授权视图 / ignored authorization view
      * @param serviceKind 服务类型 / service kind
-     * @param protocol 传输协议 / transport protocol
+     * @param protocol    传输协议 / transport protocol
      * @param serviceName 服务名称 / service name
-     * @param group 服务分组 / service group
-     * @param version 服务版本 / service version
+     * @param group       服务分组 / service group
+     * @param version     服务版本 / service version
      * @deprecated namespace 是授权视图，不是注册中心筛选条件。
      * / namespace is an authorization view and not a registry filter.
      */
@@ -123,7 +123,7 @@ public record DdcServiceQuery(
      * / Applies exact matching for one optional text criterion.
      *
      * @param expected 查询期望值，为空表示通配 / expected query value, null as a wildcard
-     * @param actual 服务键实际值 / actual service-key value
+     * @param actual   服务键实际值 / actual service-key value
      * @return 条件为空或值相等时为 {@code true} / {@code true} when the criterion is null or values are equal
      */
     private boolean matches(String expected, String actual) {

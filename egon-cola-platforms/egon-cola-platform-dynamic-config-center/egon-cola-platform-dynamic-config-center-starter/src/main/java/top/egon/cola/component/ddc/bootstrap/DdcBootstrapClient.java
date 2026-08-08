@@ -14,13 +14,19 @@ import java.util.function.Supplier;
  */
 public class DdcBootstrapClient {
 
-    /** 远程配置拉取函数。 Remote configuration pull function. */
+    /**
+     * 远程配置拉取函数。 Remote configuration pull function.
+     */
     private final Supplier<List<DdcConfigValue>> pullSupplier;
 
-    /** 允许的 YAML UTF-8 最大字节数。 Maximum allowed YAML size in UTF-8 bytes. */
+    /**
+     * 允许的 YAML UTF-8 最大字节数。 Maximum allowed YAML size in UTF-8 bytes.
+     */
     private final long maxYamlBytes;
 
-    /** 首次拉取后保存的不可变配置快照。 Immutable configuration snapshot retained after the first pull. */
+    /**
+     * 首次拉取后保存的不可变配置快照。 Immutable configuration snapshot retained after the first pull.
+     */
     private volatile List<DdcConfigValue> cachedValues;
 
     /**
@@ -40,7 +46,7 @@ public class DdcBootstrapClient {
      *
      * @param pullSupplier 远程配置拉取函数。 remote configuration pull function
      * @param maxYamlBytes 允许的 YAML UTF-8 最大字节数。 maximum allowed YAML size in UTF-8 bytes
-     * @throws NullPointerException 拉取函数为 {@code null} 时抛出。 thrown when the pull function is {@code null}
+     * @throws NullPointerException     拉取函数为 {@code null} 时抛出。 thrown when the pull function is {@code null}
      * @throws IllegalArgumentException 大小限制不为正数时抛出。 thrown when the size limit is not positive
      */
     DdcBootstrapClient(Supplier<List<DdcConfigValue>> pullSupplier,

@@ -36,41 +36,57 @@ import java.util.function.Consumer;
  */
 public final class DdcRegistrySubscriptionManager implements AutoCloseable {
 
-    /** 订阅与协调故障日志记录器。 / Logger for subscription and reconciliation failures. */
+    /**
+     * 订阅与协调故障日志记录器。 / Logger for subscription and reconciliation failures.
+     */
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DdcRegistrySubscriptionManager.class);
 
-    /** 反序列化 Redis 注册事件的共享映射器。 / Shared mapper for deserializing Redis registry events. */
+    /**
+     * 反序列化 Redis 注册事件的共享映射器。 / Shared mapper for deserializing Redis registry events.
+     */
     private static final ObjectMapper EVENT_MAPPER =
             new ObjectMapper().registerModule(new JavaTimeModule());
 
-    /** 执行全量快照查询的注册中心客户端。 / Registry client used to load full snapshots. */
+    /**
+     * 执行全量快照查询的注册中心客户端。 / Registry client used to load full snapshots.
+     */
     private final DdcServiceRegistryClient loader;
 
-    /** 提供注册事件主题的 Redisson 客户端。 / Redisson client providing registry event topics. */
+    /**
+     * 提供注册事件主题的 Redisson 客户端。 / Redisson client providing registry event topics.
+     */
     private final RedissonClient redissonClient;
 
-    /** 判断本地租约到期使用的时钟。 / Clock used to determine local lease expiration. */
+    /**
+     * 判断本地租约到期使用的时钟。 / Clock used to determine local lease expiration.
+     */
     private final Clock clock;
 
-    /** 串行执行事件刷新与定时协调的调度器。 / Scheduler serializing event refreshes and periodic reconciliation. */
+    /**
+     * 串行执行事件刷新与定时协调的调度器。 / Scheduler serializing event refreshes and periodic reconciliation.
+     */
     private final ScheduledExecutorService scheduler;
 
-    /** 定时协调间隔毫秒数。 / Periodic reconciliation interval in milliseconds. */
+    /**
+     * 定时协调间隔毫秒数。 / Periodic reconciliation interval in milliseconds.
+     */
     private final long reconcileIntervalMillis;
 
-    /** 当前由管理器持有的订阅集合。 / Subscriptions currently owned by the manager. */
+    /**
+     * 当前由管理器持有的订阅集合。 / Subscriptions currently owned by the manager.
+     */
     private final Set<ManagedSubscription> subscriptions = ConcurrentHashMap.newKeySet();
 
     /**
      * 使用 UTC 时钟和单线程守护调度器创建订阅管理器。
      * / Creates a subscription manager with a UTC clock and single-thread daemon scheduler.
      *
-     * @param loader 加载全量快照的注册中心客户端 / registry client used to load full snapshots
-     * @param redissonClient Redisson 客户端 / Redisson client
+     * @param loader                   加载全量快照的注册中心客户端 / registry client used to load full snapshots
+     * @param redissonClient           Redisson 客户端 / Redisson client
      * @param reconcileIntervalSeconds 定时协调间隔秒数 / reconciliation interval in seconds
      * @throws IllegalArgumentException 协调间隔不为正数时抛出 / if the reconciliation interval is not positive
-     * @throws NullPointerException 必填依赖为空时抛出 / if a required dependency is {@code null}
+     * @throws NullPointerException     必填依赖为空时抛出 / if a required dependency is {@code null}
      */
     public DdcRegistrySubscriptionManager(DdcServiceRegistryClient loader,
                                           RedissonClient redissonClient,
@@ -92,13 +108,13 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
      * 使用显式时钟和调度器创建订阅管理器，供内部测试与定制使用。
      * / Creates a subscription manager with an explicit clock and scheduler for internal testing and customization.
      *
-     * @param loader 加载全量快照的注册中心客户端 / registry client used to load full snapshots
-     * @param redissonClient Redisson 客户端 / Redisson client
-     * @param clock 租约到期判断时钟 / clock used for lease expiration
-     * @param scheduler 刷新与协调调度器 / refresh and reconciliation scheduler
+     * @param loader                  加载全量快照的注册中心客户端 / registry client used to load full snapshots
+     * @param redissonClient          Redisson 客户端 / Redisson client
+     * @param clock                   租约到期判断时钟 / clock used for lease expiration
+     * @param scheduler               刷新与协调调度器 / refresh and reconciliation scheduler
      * @param reconcileIntervalMillis 定时协调间隔毫秒数 / reconciliation interval in milliseconds
      * @throws IllegalArgumentException 协调间隔不为正数时抛出 / if the reconciliation interval is not positive
-     * @throws NullPointerException 必填依赖为空时抛出 / if a required dependency is {@code null}
+     * @throws NullPointerException     必填依赖为空时抛出 / if a required dependency is {@code null}
      */
     DdcRegistrySubscriptionManager(DdcServiceRegistryClient loader,
                                    RedissonClient redissonClient,
@@ -120,7 +136,7 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
      * / Creates and starts an instance subscription for one service key.
      *
      * @param serviceKey 服务键 / service key
-     * @param listener 快照监听器 / snapshot listener
+     * @param listener   快照监听器 / snapshot listener
      * @return 已启动的可关闭订阅 / started closeable subscription
      * @throws RuntimeException 主题注册或首次刷新失败时抛出 / if topic registration or the initial refresh fails
      */
@@ -143,11 +159,11 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
      * 创建并启动服务目录订阅。
      * / Creates and starts a service catalog subscription.
      *
-     * @param query 包含精确主题范围的服务查询 / service query containing an exact topic scope
+     * @param query    包含精确主题范围的服务查询 / service query containing an exact topic scope
      * @param listener 服务目录监听器 / service catalog listener
      * @return 已启动的可关闭订阅 / started closeable subscription
      * @throws IllegalArgumentException 查询缺少精确主题范围时抛出 / if the query lacks an exact topic scope
-     * @throws RuntimeException 主题注册或首次刷新失败时抛出 / if topic registration or the initial refresh fails
+     * @throws RuntimeException         主题注册或首次刷新失败时抛出 / if topic registration or the initial refresh fails
      */
     public DdcRegistrySubscription subscribeServices(
             DdcServiceQuery query,
@@ -181,16 +197,24 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
      */
     private abstract class ManagedSubscription implements DdcRegistrySubscription {
 
-        /** 订阅是否已关闭。 / Whether the subscription has been closed. */
+        /**
+         * 订阅是否已关闭。 / Whether the subscription has been closed.
+         */
         private final AtomicBoolean closed = new AtomicBoolean();
 
-        /** 是否已有事件刷新任务排队。 / Whether an event-driven refresh is already queued. */
+        /**
+         * 是否已有事件刷新任务排队。 / Whether an event-driven refresh is already queued.
+         */
         private final AtomicBoolean refreshQueued = new AtomicBoolean();
 
-        /** 当前订阅注册的 Redis 主题监听器。 / Redis topic listeners registered by this subscription. */
+        /**
+         * 当前订阅注册的 Redis 主题监听器。 / Redis topic listeners registered by this subscription.
+         */
         private List<TopicRegistration> topicRegistrations = List.of();
 
-        /** 定时协调任务句柄。 / Periodic reconciliation task handle. */
+        /**
+         * 定时协调任务句柄。 / Periodic reconciliation task handle.
+         */
         private ScheduledFuture<?> reconciliation;
 
         /**
@@ -236,7 +260,9 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
          */
         protected abstract boolean relevant(DdcRegistryEvent event);
 
-        /** 执行远端全量刷新。 / Performs a full remote refresh. */
+        /**
+         * 执行远端全量刷新。 / Performs a full remote refresh.
+         */
         protected abstract void refresh();
 
         /**
@@ -315,8 +341,8 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
          * / Invokes a listener while isolating its runtime exceptions.
          *
          * @param listener 目标监听器 / target listener
-         * @param value 通知值 / notification value
-         * @param <T> 通知值类型 / notification value type
+         * @param value    通知值 / notification value
+         * @param <T>      通知值类型 / notification value type
          */
         protected <T> void notifySafely(Consumer<T> listener, T value) {
             try {
@@ -350,13 +376,19 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
      */
     private final class InstanceSubscription extends ManagedSubscription {
 
-        /** 被跟踪的完整服务键。 / Complete service key being tracked. */
+        /**
+         * 被跟踪的完整服务键。 / Complete service key being tracked.
+         */
         private final DdcServiceKey serviceKey;
 
-        /** 接收实例快照变化的监听器。 / Listener receiving instance snapshot changes. */
+        /**
+         * 接收实例快照变化的监听器。 / Listener receiving instance snapshot changes.
+         */
         private final Consumer<DdcServiceSnapshot> listener;
 
-        /** 最近一次已发布的实例快照。 / Most recently published instance snapshot. */
+        /**
+         * 最近一次已发布的实例快照。 / Most recently published instance snapshot.
+         */
         private volatile DdcServiceSnapshot current;
 
         /**
@@ -364,7 +396,7 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
          * / Creates an instance snapshot subscription.
          *
          * @param serviceKey 被跟踪的服务键 / service key to track
-         * @param listener 快照监听器 / snapshot listener
+         * @param listener   快照监听器 / snapshot listener
          */
         private InstanceSubscription(DdcServiceKey serviceKey,
                                      Consumer<DdcServiceSnapshot> listener) {
@@ -372,7 +404,9 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
             this.listener = listener;
         }
 
-        /** 使用服务键的精确注册主题启动订阅。 / Starts the subscription on the service key's exact registry topic. */
+        /**
+         * 使用服务键的精确注册主题启动订阅。 / Starts the subscription on the service key's exact registry topic.
+         */
         private void start() {
             start(List.of(
                     DdcKeys.v3RegistryTopic(
@@ -397,7 +431,9 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
             return event != null && serviceKey.equals(event.serviceKey());
         }
 
-        /** 从远端加载实例快照并在发生变化时发布。 / Loads the remote instance snapshot and publishes it when changed. */
+        /**
+         * 从远端加载实例快照并在发生变化时发布。 / Loads the remote instance snapshot and publishes it when changed.
+         */
         @Override
         protected synchronized void refresh() {
             publishIfChanged(loader.getInstances(serviceKey));
@@ -451,20 +487,26 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
      */
     private final class CatalogSubscription extends ManagedSubscription {
 
-        /** 服务目录筛选条件。 / Service catalog filter. */
+        /**
+         * 服务目录筛选条件。 / Service catalog filter.
+         */
         private final DdcServiceQuery query;
 
-        /** 接收服务目录快照变化的监听器。 / Listener receiving service catalog snapshot changes. */
+        /**
+         * 接收服务目录快照变化的监听器。 / Listener receiving service catalog snapshot changes.
+         */
         private final Consumer<DdcServiceCatalogSnapshot> listener;
 
-        /** 最近一次已发布的服务目录快照。 / Most recently published service catalog snapshot. */
+        /**
+         * 最近一次已发布的服务目录快照。 / Most recently published service catalog snapshot.
+         */
         private volatile DdcServiceCatalogSnapshot current;
 
         /**
          * 创建服务目录订阅。
          * / Creates a service catalog subscription.
          *
-         * @param query 服务目录查询 / service catalog query
+         * @param query    服务目录查询 / service catalog query
          * @param listener 服务目录监听器 / service catalog listener
          */
         private CatalogSubscription(DdcServiceQuery query,
@@ -478,7 +520,7 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
          * / Validates the exact topic scope and starts the catalog subscription.
          *
          * @throws IllegalArgumentException 查询缺少业务、环境、应用、服务类型或协议时抛出
-         * / if the query lacks business, environment, application, service kind, or protocol
+         *                                  / if the query lacks business, environment, application, service kind, or protocol
          */
         private void start() {
             if (!query.hasExactCatalogScope()) {
@@ -542,12 +584,14 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
      * Redis 主题及其监听器标识的注册句柄。
      * / Registration handle for a Redis topic and listener identifier.
      *
-     * @param topic 已注册监听器的 Redis 主题 / Redis topic with the registered listener
+     * @param topic      已注册监听器的 Redis 主题 / Redis topic with the registered listener
      * @param listenerId Redisson 监听器标识 / Redisson listener identifier
      */
     private record TopicRegistration(RTopic topic, int listenerId) {
 
-        /** 从 Redis 主题移除监听器。 / Removes the listener from the Redis topic. */
+        /**
+         * 从 Redis 主题移除监听器。 / Removes the listener from the Redis topic.
+         */
         private void remove() {
             topic.removeListener(listenerId);
         }
