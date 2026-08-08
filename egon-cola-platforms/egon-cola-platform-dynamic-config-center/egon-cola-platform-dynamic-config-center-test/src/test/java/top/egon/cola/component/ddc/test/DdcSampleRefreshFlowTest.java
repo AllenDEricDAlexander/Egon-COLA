@@ -18,7 +18,8 @@ import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
 import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
@@ -52,7 +53,7 @@ class DdcSampleRefreshFlowTest {
         context.getBeanFactory().addEmbeddedValueResolver(
                 context.getEnvironment()::resolveRequiredPlaceholders
         );
-        DdcDynamicPropertySource source = new DdcYamlPropertySourceLoader()
+        DdcDynamicPropertySource source = new DdcYamlConfigFormatStrategy()
                 .load(
                         "application.yml",
                         "order:\n  rate-limit:\n    permits-per-second: 100\n"
@@ -93,7 +94,8 @@ class DdcSampleRefreshFlowTest {
                 rebinder,
                 event -> {
                 },
-                1024
+                1024,
+                DdcConfigFormatStrategyRegistry.defaults()
         );
         DdcLeaseSessionHolder sessionHolder = new DdcLeaseSessionHolder();
         sessionHolder.replace(adminClient.session());

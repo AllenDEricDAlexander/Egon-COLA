@@ -5,7 +5,8 @@ import org.springframework.boot.context.config.ConfigDataLoader;
 import org.springframework.boot.context.config.ConfigDataLoaderContext;
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategy;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 
 import java.io.IOException;
@@ -18,10 +19,10 @@ public final class DdcConfigDataLoader
         implements ConfigDataLoader<DdcConfigDataResource> {
 
     /**
-     * 负责解析和校验远程 YAML 的加载器。 Loader that parses and validates remote YAML.
+     * 负责按内容格式选择解析策略的注册表。 Registry that selects a parsing strategy by content format.
      */
-    private final DdcYamlPropertySourceLoader yamlLoader =
-            new DdcYamlPropertySourceLoader();
+    private final DdcConfigFormatStrategyRegistry formatStrategies =
+            DdcConfigFormatStrategyRegistry.defaults();
 
     /**
      * 从引导上下文取得 DDC 客户端并加载配置数据。 Obtains the DDC client from the bootstrap context and loads configuration data.
@@ -41,13 +42,19 @@ public final class DdcConfigDataLoader
         DdcConfigValue value = client.load(resource.resourceName());
         if (value == null) {
             if (resource.optional()) {
-                return configData(yamlLoader.empty(
-                        resource.resourceName()
-                ));
+                DdcConfigFormatStrategy strategy =
+                        formatStrategies.getByResourceName(
+                                resource.resourceName()
+                        );
+                return configData(strategy.empty(resource.resourceName()));
             }
             throw new ConfigDataResourceNotFoundException(resource);
         }
-        DdcDynamicPropertySource propertySource = yamlLoader.load(
+        DdcConfigFormatStrategy strategy = formatStrategies.get(
+                value.getValueType(),
+                resource.resourceName()
+        );
+        DdcDynamicPropertySource propertySource = strategy.load(
                 resource.resourceName(),
                 value.getConfigValue(),
                 value.getVersion()

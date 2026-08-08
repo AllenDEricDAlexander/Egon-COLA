@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.bootstrap;
 
 import top.egon.cola.component.ddc.client.HttpDdcAdminClient;
 import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,12 @@ public class DdcBootstrapClient {
     private final long maxYamlBytes;
 
     /**
+     * 校验配置格式与资源名匹配关系的策略注册表。
+     * Strategy registry validating configuration format and resource-name compatibility.
+     */
+    private final DdcConfigFormatStrategyRegistry formatStrategies;
+
+    /**
      * 首次拉取后保存的不可变配置快照。 Immutable configuration snapshot retained after the first pull.
      */
     private volatile List<DdcConfigValue> cachedValues;
@@ -37,7 +44,8 @@ public class DdcBootstrapClient {
     public DdcBootstrapClient(DdcProperties properties) {
         this(
                 () -> new HttpDdcAdminClient(properties).pull(),
-                properties.getMaxYamlBytes()
+                properties.getMaxYamlBytes(),
+                DdcConfigFormatStrategyRegistry.defaults()
         );
     }
 
@@ -51,6 +59,25 @@ public class DdcBootstrapClient {
      */
     DdcBootstrapClient(Supplier<List<DdcConfigValue>> pullSupplier,
                        long maxYamlBytes) {
+        this(
+                pullSupplier,
+                maxYamlBytes,
+                DdcConfigFormatStrategyRegistry.defaults()
+        );
+    }
+
+    /**
+     * 使用指定拉取函数、大小限制和格式策略注册表创建客户端。
+     * Creates a client with the supplied pull function, size limit, and format-strategy registry.
+     *
+     * @param pullSupplier    远程配置拉取函数; remote configuration pull function
+     * @param maxYamlBytes    允许的 YAML UTF-8 最大字节数; maximum allowed YAML size in UTF-8 bytes
+     * @param formatStrategies 配置格式策略注册表; configuration-format strategy registry
+     */
+    DdcBootstrapClient(
+            Supplier<List<DdcConfigValue>> pullSupplier,
+            long maxYamlBytes,
+            DdcConfigFormatStrategyRegistry formatStrategies) {
         this.pullSupplier = Objects.requireNonNull(
                 pullSupplier,
                 "pullSupplier"
@@ -59,6 +86,10 @@ public class DdcBootstrapClient {
             throw new IllegalArgumentException("maxYamlBytes must be positive");
         }
         this.maxYamlBytes = maxYamlBytes;
+        this.formatStrategies = Objects.requireNonNull(
+                formatStrategies,
+                "formatStrategies"
+        );
     }
 
     /**
@@ -79,11 +110,17 @@ public class DdcBootstrapClient {
             );
         }
         DdcConfigValue value = values.getFirst();
-        if (value == null
-                || !resourceName.equals(value.getConfigKey())
-                || !"YAML".equals(value.getValueType())) {
+        if (value == null || !resourceName.equals(value.getConfigKey())) {
             throw new IllegalStateException(
                     "DDC scope must contain only application.yml with YAML type"
+            );
+        }
+        try {
+            formatStrategies.get(value.getValueType(), resourceName);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalStateException(
+                    "DDC scope must contain only application.yml with YAML type",
+                    exception
             );
         }
         if (value.getVersion() == null || value.getVersion() <= 0) {

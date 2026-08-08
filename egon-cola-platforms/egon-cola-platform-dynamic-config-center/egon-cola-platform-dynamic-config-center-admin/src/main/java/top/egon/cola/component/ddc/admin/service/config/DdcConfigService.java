@@ -21,7 +21,8 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 
 import java.time.LocalDateTime;
@@ -33,10 +34,10 @@ import java.util.Optional;
 public class DdcConfigService {
 
     public static final String CONFIG_KEY =
-            DdcYamlPropertySourceLoader.RESOURCE_NAME;
+            DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME;
 
     public static final String VALUE_TYPE =
-            DdcYamlPropertySourceLoader.VALUE_TYPE;
+            DdcConfigFormat.YAML.name();
 
     private final DdcConfigItemRepository configItemRepository;
 

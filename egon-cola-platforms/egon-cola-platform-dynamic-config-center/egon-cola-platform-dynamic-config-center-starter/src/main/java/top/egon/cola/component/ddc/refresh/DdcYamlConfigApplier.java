@@ -8,7 +8,9 @@ import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 import top.egon.cola.component.ddc.service.DdcConfigApplier;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcFieldBindingService;
@@ -41,7 +43,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * DDC YAML 资源的规范名称。 Canonical name of the DDC YAML resource.
      */
     public static final String RESOURCE_NAME =
-            DdcYamlPropertySourceLoader.RESOURCE_NAME;
+            DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME;
 
     /**
      * Spring 环境中动态属性源的名称。 Name of the dynamic property source in the Spring environment.
@@ -85,10 +87,10 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
     private final long maxYamlBytes;
 
     /**
-     * 将 YAML 展平为动态属性源的加载器。 Loader that flattens YAML into a dynamic property source.
+     * 选择 YAML 解析实现的配置格式策略注册表。
+     * Configuration-format strategy registry that selects the YAML parser implementation.
      */
-    private final DdcYamlPropertySourceLoader yamlLoader =
-            new DdcYamlPropertySourceLoader();
+    private final DdcConfigFormatStrategyRegistry formatStrategies;
 
     /**
      * 当前环境中的可替换 DDC 动态属性源。 Replaceable DDC dynamic property source in the current environment.
@@ -105,6 +107,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * @param rebinder            配置属性重新绑定器; configuration-properties rebinder
      * @param eventPublisher      应用事件发布器; application event publisher
      * @param maxYamlBytes        YAML UTF-8 字节数上限; maximum YAML size in UTF-8 bytes
+     * @param formatStrategies    配置格式策略注册表; configuration-format strategy registry
      * @throws IllegalStateException 环境中缺少 DDC ConfigData 属性源时抛出; thrown when the DDC ConfigData source is absent
      */
     public DdcYamlConfigApplier(
@@ -113,13 +116,18 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
             DdcFieldBindingService fieldBindingService,
             DdcConfigurationPropertiesRebinder rebinder,
             ApplicationEventPublisher eventPublisher,
-            long maxYamlBytes) {
+            long maxYamlBytes,
+            DdcConfigFormatStrategyRegistry formatStrategies) {
         this.environment = environment;
         this.applierRegistry = applierRegistry;
         this.fieldBindingService = fieldBindingService;
         this.rebinder = rebinder;
         this.eventPublisher = eventPublisher;
         this.maxYamlBytes = maxYamlBytes;
+        this.formatStrategies = Objects.requireNonNull(
+                formatStrategies,
+                "formatStrategies"
+        );
         this.propertySource = findPropertySource(environment);
     }
 
@@ -235,7 +243,11 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      */
     private DdcDynamicPropertySource load(String content, long version) {
         try {
-            return yamlLoader.load(RESOURCE_NAME, content, version);
+            return formatStrategies.get(DdcConfigFormat.YAML).load(
+                    RESOURCE_NAME,
+                    content,
+                    version
+            );
         } catch (IOException exception) {
             throw new IllegalArgumentException(
                     "DDC application.yml cannot be parsed",

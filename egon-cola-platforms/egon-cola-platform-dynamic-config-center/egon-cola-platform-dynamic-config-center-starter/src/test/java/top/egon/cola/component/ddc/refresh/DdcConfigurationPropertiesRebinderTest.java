@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.MapPropertySource;
 import top.egon.cola.component.ddc.annotation.DdcRefreshable;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import java.util.Map;
 import java.util.Set;
@@ -132,7 +132,7 @@ class DdcConfigurationPropertiesRebinderTest {
 
     private DdcDynamicPropertySource source(String yaml, long version)
             throws Exception {
-        return new DdcYamlPropertySourceLoader().load(
+        return new DdcYamlConfigFormatStrategy().load(
                 "application.yml",
                 yaml,
                 version

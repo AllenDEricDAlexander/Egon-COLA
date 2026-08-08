@@ -7,7 +7,8 @@ import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
@@ -88,7 +89,7 @@ class Rbac3DdcRefreshIntegrationTest {
             delivery.start();
             MockEnvironment environment = new MockEnvironment();
             DdcDynamicPropertySource propertySource =
-                    new DdcYamlPropertySourceLoader()
+                    new DdcYamlConfigFormatStrategy()
                             .empty("application.yml");
             environment.getPropertySources().addFirst(propertySource);
             DdcFieldBindingService fieldBindingService =
@@ -104,7 +105,8 @@ class Rbac3DdcRefreshIntegrationTest {
                             rebinder,
                             event -> {
                             },
-                            1024 * 1024
+                            1024 * 1024,
+                            DdcConfigFormatStrategyRegistry.defaults()
                     );
             DdcRefreshService refresh = new DdcRefreshService(
                     repository,

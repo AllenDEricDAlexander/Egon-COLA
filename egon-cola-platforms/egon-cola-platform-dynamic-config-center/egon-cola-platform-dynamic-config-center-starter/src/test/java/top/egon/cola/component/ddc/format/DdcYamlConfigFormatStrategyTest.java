@@ -1,18 +1,29 @@
-package top.egon.cola.component.ddc.environment;
+package top.egon.cola.component.ddc.format;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.environment.DdcReservedConfigurationKeys;
+import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class DdcYamlPropertySourceLoaderTest {
+class DdcYamlConfigFormatStrategyTest {
 
-    private final DdcYamlPropertySourceLoader loader =
-            new DdcYamlPropertySourceLoader();
+    private final DdcYamlConfigFormatStrategy strategy =
+            new DdcYamlConfigFormatStrategy();
+
+    @Test
+    void declaresYamlFormatAndSupportedResourceNames() {
+        assertThat(strategy.format()).isEqualTo(DdcConfigFormat.YAML);
+        assertThat(strategy.supports("application.yml")).isTrue();
+        assertThat(strategy.supports("application.yaml")).isTrue();
+        assertThat(strategy.supports("application.json")).isFalse();
+    }
 
     @Test
     void delegatesFlatteningAndOriginTrackingToBootLoader() throws Exception {
-        DdcDynamicPropertySource source = loader.load(
+        DdcDynamicPropertySource source = strategy.load(
                 "application.yml",
                 "feature:\n  enabled: true\n  names:\n    - first\n",
                 7L
@@ -33,12 +44,12 @@ class DdcYamlPropertySourceLoaderTest {
     @Test
     void replacesTheCompleteSnapshotWithoutChangingSourcePosition()
             throws Exception {
-        DdcDynamicPropertySource source = loader.load(
+        DdcDynamicPropertySource source = strategy.load(
                 "application.yml",
                 "feature:\n  enabled: true\n  old-value: local\n",
                 1L
         );
-        DdcDynamicPropertySource replacement = loader.load(
+        DdcDynamicPropertySource replacement = strategy.load(
                 "application.yml",
                 "feature:\n  enabled: false\n  new-value: remote\n",
                 2L
@@ -55,22 +66,22 @@ class DdcYamlPropertySourceLoaderTest {
 
     @Test
     void rejectsEmptyMultipleAndNonMappingDocuments() {
-        assertThatThrownBy(() -> loader.load(
+        assertThatThrownBy(() -> strategy.load(
                 "application.yml",
                 "  \n",
                 1L
         )).hasMessage("DDC remote YAML must not be empty");
-        assertThatThrownBy(() -> loader.load(
+        assertThatThrownBy(() -> strategy.load(
                 "application.yml",
                 "one: 1\n---\ntwo: 2\n",
                 1L
         )).hasMessage("DDC remote YAML must contain exactly one document");
-        assertThatThrownBy(() -> loader.load(
+        assertThatThrownBy(() -> strategy.load(
                 "application.yml",
                 "- one\n- two\n",
                 1L
         )).hasMessageContaining("mapping");
-        assertThatThrownBy(() -> loader.load(
+        assertThatThrownBy(() -> strategy.load(
                 "application.yml",
                 "plain text\n",
                 1L
@@ -85,7 +96,7 @@ class DdcYamlPropertySourceLoaderTest {
                 "spring:\n  profiles:\n    active: prod\n",
                 "SPRING_CONFIG_IMPORT: classpath:other.yml\n"
         }) {
-            assertThatThrownBy(() -> loader.load(
+            assertThatThrownBy(() -> strategy.load(
                     "application.yml",
                     content,
                     1L

@@ -7,7 +7,8 @@ import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
@@ -311,7 +312,7 @@ class DdcRefreshServiceTest {
             throws Exception {
         ConfigurableEnvironment environment = new MockEnvironment();
         DdcDynamicPropertySource source =
-                new DdcYamlPropertySourceLoader().load(
+                new DdcYamlConfigFormatStrategy().load(
                         "application.yml",
                         INITIAL_YAML,
                         1L
@@ -339,7 +340,8 @@ class DdcRefreshServiceTest {
                     events.add((DdcConfigurationChangedEvent) event);
                     additionalPublisher.publishEvent(event);
                 },
-                1024 * 1024
+                1024 * 1024,
+                DdcConfigFormatStrategyRegistry.defaults()
         );
         RecordingAdminClient client = new RecordingAdminClient();
         DdcRefreshService service = new DdcRefreshService(

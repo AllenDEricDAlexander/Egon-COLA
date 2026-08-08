@@ -7,6 +7,7 @@ import org.springframework.boot.context.config.ConfigDataLocationResolverContext
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.boot.context.properties.bind.Bindable;
 import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import java.util.List;
 
@@ -24,7 +25,8 @@ public final class DdcConfigDataLocationResolver
     /**
      * Starter 唯一支持的远程资源名。 The only remote resource name supported by the starter.
      */
-    public static final String RESOURCE_NAME = "application.yml";
+    public static final String RESOURCE_NAME =
+            DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME;
 
     /**
      * 用于引导阶段绑定配置的属性前缀。 Property prefix used for bootstrap binding.

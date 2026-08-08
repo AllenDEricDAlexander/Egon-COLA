@@ -26,6 +26,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.client.HttpDdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcKeys;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeListener;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
@@ -91,6 +92,18 @@ public class DdcAutoConfig {
             DdcValueBindingRegistry registry,
             ConfigurableListableBeanFactory beanFactory) {
         return new DdcFieldBindingService(registry, beanFactory);
+    }
+
+    /**
+     * 创建当前版本共享的 YAML-only 配置格式策略注册表。
+     * Creates the shared YAML-only configuration-format strategy registry for the current version.
+     *
+     * @return 配置格式策略注册表; configuration-format strategy registry
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public DdcConfigFormatStrategyRegistry ddcConfigFormatStrategyRegistry() {
+        return DdcConfigFormatStrategyRegistry.defaults();
     }
 
     /**
@@ -160,6 +173,7 @@ public class DdcAutoConfig {
      * @param rebinder            配置属性重新绑定器。 configuration-properties rebinder
      * @param eventPublisher      应用事件发布器。 application event publisher
      * @param properties          DDC 属性。 DDC properties
+     * @param formatStrategies    配置格式策略注册表。 configuration-format strategy registry
      * @return YAML 配置应用器。 YAML configuration applier
      */
     @Bean
@@ -175,14 +189,16 @@ public class DdcAutoConfig {
             DdcFieldBindingService fieldBindingService,
             DdcConfigurationPropertiesRebinder rebinder,
             ApplicationEventPublisher eventPublisher,
-            DdcProperties properties) {
+            DdcProperties properties,
+            DdcConfigFormatStrategyRegistry formatStrategies) {
         return new DdcYamlConfigApplier(
                 environment,
                 applierRegistry,
                 fieldBindingService,
                 rebinder,
                 eventPublisher,
-                properties.getMaxYamlBytes()
+                properties.getMaxYamlBytes(),
+                formatStrategies
         );
     }
 

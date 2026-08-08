@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.admin.rule;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,7 +24,7 @@ class GatewayDdcYamlDocumentTest {
                 """, GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY, "new");
 
         DdcDynamicPropertySource source = loader().load(
-                DdcYamlPropertySourceLoader.RESOURCE_NAME,
+                DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME,
                 updated,
                 1L
         );
@@ -49,7 +49,7 @@ class GatewayDdcYamlDocumentTest {
         assertThat(removal.removed()).isTrue();
         assertThat(removal.content()).doesNotContain("release-1");
         DdcDynamicPropertySource source = loader().load(
-                DdcYamlPropertySourceLoader.RESOURCE_NAME,
+                DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME,
                 removal.content(),
                 2L
         );
@@ -81,7 +81,7 @@ class GatewayDdcYamlDocumentTest {
                 .hasMessageContaining("unsupported");
     }
 
-    private DdcYamlPropertySourceLoader loader() {
-        return new DdcYamlPropertySourceLoader();
+    private DdcYamlConfigFormatStrategy loader() {
+        return new DdcYamlConfigFormatStrategy();
     }
 }

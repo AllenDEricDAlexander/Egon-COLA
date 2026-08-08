@@ -4,7 +4,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,8 +23,8 @@ public final class GatewayDdcYamlDocument {
 
     private final Yaml writer;
 
-    private final DdcYamlPropertySourceLoader validator =
-            new DdcYamlPropertySourceLoader();
+    private final DdcYamlConfigFormatStrategy validator =
+            new DdcYamlConfigFormatStrategy();
 
     public GatewayDdcYamlDocument() {
         LoaderOptions loaderOptions = new LoaderOptions();
@@ -283,7 +283,7 @@ public final class GatewayDdcYamlDocument {
         String content = writer.dump(root);
         try {
             validator.load(
-                    DdcYamlPropertySourceLoader.RESOURCE_NAME,
+                    DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME,
                     content,
                     1L
             );

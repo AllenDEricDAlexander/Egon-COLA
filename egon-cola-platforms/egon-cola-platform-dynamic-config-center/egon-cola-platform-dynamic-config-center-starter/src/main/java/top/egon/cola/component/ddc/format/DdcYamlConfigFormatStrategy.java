@@ -1,10 +1,13 @@
-package top.egon.cola.component.ddc.environment;
+package top.egon.cola.component.ddc.format;
 
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.ByteArrayResource;
 import top.egon.cola.component.ddc.common.DdcChecksum;
+import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.environment.DdcReservedConfigurationKeys;
+import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,19 +16,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 将受约束的单文档远程 YAML 解析为保留来源信息的 DDC 动态属性源。 Parses constrained single-document remote YAML into a DDC dynamic property source that preserves origin information.
+ * 使用 Spring Boot 原生加载器将远程 YAML 解析为保留来源信息的 DDC 动态属性源。
+ * Parses remote YAML into an origin-aware DDC dynamic property source with Spring Boot's native loader.
  */
-public final class DdcYamlPropertySourceLoader {
+public final class DdcYamlConfigFormatStrategy
+        implements DdcConfigFormatStrategy {
 
     /**
      * Starter 支持的远程资源名。 Remote resource name supported by the starter.
      */
-    public static final String RESOURCE_NAME = "application.yml";
-
-    /**
-     * 管理端配置值要求使用的类型标识。 Value-type identifier required from the management service.
-     */
-    public static final String VALUE_TYPE = "YAML";
+    public static final String DEFAULT_RESOURCE_NAME = "application.yml";
 
     /**
      * 动态属性源名称前缀。 Dynamic property-source name prefix.
@@ -39,11 +39,22 @@ public final class DdcYamlPropertySourceLoader {
             new YamlPropertySourceLoader();
 
     /**
+     * 返回当前策略处理的 YAML 格式。 Returns the YAML format handled by this strategy.
+     *
+     * @return YAML 配置格式; YAML configuration format
+     */
+    @Override
+    public DdcConfigFormat format() {
+        return DdcConfigFormat.YAML;
+    }
+
+    /**
      * 创建版本为零且无属性的动态属性源。 Creates a version-zero dynamic property source with no properties.
      *
      * @param resourceName 远程资源名。 remote resource name
      * @return 空动态属性源。 empty dynamic property source
      */
+    @Override
     public DdcDynamicPropertySource empty(String resourceName) {
         DdcDynamicPropertySource.Snapshot snapshot =
                 new DdcDynamicPropertySource.Snapshot(
@@ -69,6 +80,7 @@ public final class DdcYamlPropertySourceLoader {
      * @throws IllegalArgumentException YAML 为空、多文档、非映射根或包含保留键时抛出。 thrown when YAML is empty, multi-document, non-mapping-root, or contains reserved keys
      * @throws IllegalStateException    加载器返回不可枚举属性源时抛出。 thrown when the delegate returns a non-enumerable property source
      */
+    @Override
     public DdcDynamicPropertySource load(String resourceName,
                                          String content,
                                          long version) throws IOException {

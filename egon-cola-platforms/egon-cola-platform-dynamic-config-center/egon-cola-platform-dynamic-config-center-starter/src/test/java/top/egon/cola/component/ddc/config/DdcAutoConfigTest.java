@@ -14,7 +14,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
 import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
@@ -43,7 +43,7 @@ class DdcAutoConfigTest {
                     .withConfiguration(AutoConfigurations.of(DdcAutoConfig.class))
                     .withInitializer(context -> context.getEnvironment()
                             .getPropertySources().addFirst(
-                                    new DdcYamlPropertySourceLoader()
+                                    new DdcYamlConfigFormatStrategy()
                                             .empty("application.yml")
                             ));
 

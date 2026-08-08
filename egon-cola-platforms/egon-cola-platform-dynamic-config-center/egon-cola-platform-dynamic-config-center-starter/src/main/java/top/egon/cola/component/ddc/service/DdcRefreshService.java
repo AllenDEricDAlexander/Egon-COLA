@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcChecksum;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
@@ -43,7 +43,7 @@ public class DdcRefreshService {
      * 当前资源要求的值类型。 Value type required for the current resource.
      */
     private static final String VALUE_TYPE =
-            DdcYamlPropertySourceLoader.VALUE_TYPE;
+            DdcConfigFormat.YAML.name();
 
     /**
      * 保存本地版本、校验和及配置锁的仓库。 Repository storing local version, checksum, and configuration locks.

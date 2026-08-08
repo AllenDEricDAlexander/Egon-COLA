@@ -21,7 +21,7 @@ import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.environment.DdcYamlPropertySourceLoader;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.DdcRuntimeState;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
@@ -105,7 +105,7 @@ class DdcStarterRuntimeFlowTest {
         @Override
         public void initialize(ConfigurableApplicationContext context) {
             context.getEnvironment().getPropertySources().addFirst(
-                    new DdcYamlPropertySourceLoader()
+                    new DdcYamlConfigFormatStrategy()
                             .empty("application.yml")
             );
         }
