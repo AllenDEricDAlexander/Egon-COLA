@@ -29,8 +29,8 @@ import java.util.Map;
  *
  * <p>The factory validates reporting properties, groups definitions by business
  * and entity domains, sorts the result, and derives SHA-256 identities from the
- * complete v2 payload. It only builds the report; transport and retry behavior
- * belong to {@link GatewayReportHttpClient} and
+ * complete v2 payload. It only builds the report; transport and startup attempt
+ * behavior belong to {@link GatewayReportHttpClient} and
  * {@link GatewayReportingCoordinator}.
  *
  * <p>中文：工厂负责校验上报配置、按业务域和实体域聚合接口定义、排序，并基于

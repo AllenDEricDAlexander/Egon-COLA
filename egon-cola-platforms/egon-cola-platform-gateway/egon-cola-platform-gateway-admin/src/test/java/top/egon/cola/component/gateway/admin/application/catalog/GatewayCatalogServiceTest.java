@@ -41,6 +41,7 @@ class GatewayCatalogServiceTest {
 
         assertThat(created.operation().operationKey())
                 .isEqualTo("orders:http:GET:/orders/{id}");
+        assertThat(created.operation().id()).isEqualTo("42");
         assertThat(created.operation().externalAccessible()).isFalse();
         assertThat(created.operation().sourceType()).isEqualTo("MANUAL");
         assertThat(created.definitions()).singleElement()
@@ -113,7 +114,8 @@ class GatewayCatalogServiceTest {
                 store,
                 mock(GatewayAuditLogRepository.class),
                 JsonMapper.builder().build(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                () -> 42L
         );
     }
 

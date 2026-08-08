@@ -2,31 +2,23 @@ package top.egon.cola.component.gateway.starter.reporting;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
+import top.egon.cola.component.gateway.contract.reporting
+        .GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 
-import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayReportingCoordinatorTest {
-
-    @TempDir
-    private Path directory;
 
     private GatewayReportingCoordinator coordinator;
 
@@ -38,114 +30,55 @@ class GatewayReportingCoordinatorTest {
     }
 
     @Test
-    void reconcilesAnUncertainPostThroughTheReceiptEndpoint()
-            throws Exception {
+    void submitsEveryStartupReportSynchronously() {
         GatewayReportingProperties properties = properties();
-        GatewayDefinitionReportFactory.BuiltReport report =
-                report(properties);
-        GatewayInterfaceDefinitionReportResult receipt = receipt(
-                report.report().reportId(),
-                report.report().definitionSetId()
-        );
-        GatewayReportHttpClient client =
-                mock(GatewayReportHttpClient.class);
-        when(client.submit(report))
-                .thenThrow(new GatewayReportHttpClient
-                        .GatewayReportTransportException(
-                        "connection reset",
-                        true,
-                        null
-                ));
-        CountDownLatch reconciled = new CountDownLatch(1);
-        when(client.find(report.report().reportId()))
-                .thenAnswer(invocation -> {
-                    reconciled.countDown();
-                    return Optional.of(receipt);
-                });
-        GatewayReportingState reportingState =
-                new GatewayReportingState();
+        GatewayDefinitionReportFactory.BuiltReport report = report(properties);
+        GatewayInterfaceDefinitionReportResult receipt = receipt(report);
+        GatewayReportHttpClient client = mock(GatewayReportHttpClient.class);
+        when(client.submit(report)).thenReturn(receipt);
+        GatewayReportingState state = new GatewayReportingState();
         coordinator = new GatewayReportingCoordinator(
-                properties,
                 report,
                 client,
-                reportingState,
-                new GatewayReportingStateStore(
-                        directory.resolve("report.state")
-                )
+                state
         );
 
         coordinator.start();
-        coordinator.reconcile(report);
 
-        assertThat(reconciled.await(2, TimeUnit.SECONDS)).isTrue();
-        awaitSuccess(reportingState);
         verify(client).submit(report);
-        assertThat(reportingState.snapshot().result()).isEqualTo(receipt);
+        assertThat(coordinator.isRunning()).isTrue();
+        assertThat(state.snapshot().status()).isEqualTo("SUCCESS");
+        assertThat(state.snapshot().result()).isEqualTo(receipt);
     }
 
     @Test
-    void restoresAPendingReportBeforeSubmittingANewProcessReport()
-            throws Exception {
+    void retriesExactlyThreeTimesThenFailsStartup() {
         GatewayReportingProperties properties = properties();
-        GatewayDefinitionReportFactory.BuiltReport oldReport =
-                report(properties);
-        GatewayDefinitionReportFactory.BuiltReport currentReport =
-                report(properties);
-        GatewayReportingStateStore store = new GatewayReportingStateStore(
-                directory.resolve("report.state")
-        );
-        store.pending(
-                oldReport,
-                oldReport.identity().definitionFingerprint()
-        );
-        GatewayInterfaceDefinitionReportResult receipt = receipt(
-                oldReport.report().reportId(),
-                oldReport.report().definitionSetId()
-        );
-        GatewayReportHttpClient client =
-                mock(GatewayReportHttpClient.class);
-        CountDownLatch reconciled = new CountDownLatch(1);
-        when(client.find(oldReport.report().reportId()))
-                .thenAnswer(invocation -> {
-                    reconciled.countDown();
-                    return Optional.of(receipt);
-                });
-        GatewayReportingState reportingState =
-                new GatewayReportingState();
+        GatewayDefinitionReportFactory.BuiltReport report = report(properties);
+        GatewayReportHttpClient client = mock(GatewayReportHttpClient.class);
+        when(client.submit(report)).thenThrow(new RuntimeException("offline"));
+        GatewayReportingState state = new GatewayReportingState();
         coordinator = new GatewayReportingCoordinator(
-                properties,
-                currentReport,
+                report,
                 client,
-                reportingState,
-                store
+                state
         );
 
-        coordinator.start();
-        coordinator.reconcile(currentReport);
+        assertThatThrownBy(coordinator::start)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("3 attempts");
 
-        assertThat(reconciled.await(1, TimeUnit.SECONDS)).isTrue();
-        awaitSuccess(reportingState);
-        verify(client, never()).submit(any());
-        assertThat(reportingState.snapshot().result()).isEqualTo(receipt);
-    }
-
-    private void awaitSuccess(GatewayReportingState state)
-            throws InterruptedException {
-        long deadline = System.nanoTime()
-                + TimeUnit.SECONDS.toNanos(1);
-        while (!"SUCCESS".equals(state.snapshot().status())
-                && System.nanoTime() < deadline) {
-            Thread.sleep(10);
-        }
-        assertThat(state.snapshot().status()).isEqualTo("SUCCESS");
+        verify(client, times(3)).submit(report);
+        assertThat(coordinator.isRunning()).isFalse();
+        assertThat(state.snapshot().status()).isEqualTo("FAILED");
+        assertThat(state.snapshot().attempt()).isEqualTo(3);
     }
 
     private GatewayInterfaceDefinitionReportResult receipt(
-            String reportId,
-            String definitionSetId) {
+            GatewayDefinitionReportFactory.BuiltReport report) {
         return new GatewayInterfaceDefinitionReportResult(
-                reportId,
-                definitionSetId,
+                report.report().reportId(),
+                report.report().definitionSetId(),
                 GatewayInterfaceDefinitionReportResult.Status.ACCEPTED,
                 "app-1",
                 new GatewayInterfaceDefinitionReportResult.Counts(
@@ -188,8 +121,6 @@ class GatewayReportingCoordinatorTest {
         properties.setBuildId("build-1");
         properties.setAccessKey("access-key");
         properties.setSecretKey("secret-key");
-        properties.setMaxAttempts(1);
-        properties.setReconcileInterval(Duration.ofMillis(10));
         return properties;
     }
 }

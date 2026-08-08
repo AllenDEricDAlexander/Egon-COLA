@@ -1474,10 +1474,6 @@ class GatewayLiveTopologyIT {
                         "gateway-live-build"
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.fail-fast",
-                        true
-                )
-                .argument(
                         "egon.cola.component.gateway.reporting.access-key",
                         accessKey
                 )
@@ -1600,10 +1596,6 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.gateway.reporting.build-id",
                         "gateway-live-rpc-build"
-                )
-                .argument(
-                        "egon.cola.component.gateway.reporting.fail-fast",
-                        true
                 )
                 .argument(
                         "egon.cola.component.gateway.reporting.access-key",

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
 import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
@@ -31,23 +32,34 @@ public class GatewayCatalogService {
 
     private final Clock clock;
 
+    private final LongIdGenerator idGenerator;
+
     @Autowired
     public GatewayCatalogService(
             GatewayCatalogStore store,
             GatewayAuditLogRepository audits,
-            ObjectMapper objectMapper) {
-        this(store, audits, objectMapper, Clock.systemUTC());
+            ObjectMapper objectMapper,
+            LongIdGenerator idGenerator) {
+        this(
+                store,
+                audits,
+                objectMapper,
+                Clock.systemUTC(),
+                idGenerator
+        );
     }
 
     GatewayCatalogService(
             GatewayCatalogStore store,
             GatewayAuditLogRepository audits,
             ObjectMapper objectMapper,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
         this.store = store;
         this.audits = audits;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.idGenerator = idGenerator;
     }
 
     @Transactional(readOnly = true)
@@ -98,7 +110,7 @@ public class GatewayCatalogService {
                     );
                 });
         Instant now = clock.instant();
-        String operationId = UuidV7.simpleString();
+        String operationId = idGenerator.nextId();
         GatewayCatalogStore.OperationRecord operation =
                 new GatewayCatalogStore.OperationRecord(
                         operationId,

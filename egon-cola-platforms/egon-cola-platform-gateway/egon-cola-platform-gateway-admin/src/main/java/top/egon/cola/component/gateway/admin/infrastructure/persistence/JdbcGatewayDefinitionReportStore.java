@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.admin.application.reporting.GatewayDefinitionReportStore;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
@@ -33,6 +34,8 @@ public class JdbcGatewayDefinitionReportStore
 
     private final ObjectMapper objectMapper;
 
+    private final LongIdGenerator idGenerator;
+
     private final ObjectMapper canonicalMapper = JsonMapper.builder()
             .enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
@@ -40,9 +43,11 @@ public class JdbcGatewayDefinitionReportStore
 
     public JdbcGatewayDefinitionReportStore(
             JdbcTemplate jdbc,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            LongIdGenerator idGenerator) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.idGenerator = idGenerator;
     }
 
     @Override
@@ -285,7 +290,7 @@ public class JdbcGatewayDefinitionReportStore
         ), applicationId, operation.operationKey());
         String definitionSha = sha256(canonical(operation));
         if (existing.isEmpty()) {
-            String operationId = UuidV7.simpleString();
+            String operationId = idGenerator.nextId();
             jdbc.update("""
                     INSERT INTO gateway_operation(
                         id, application_id, interface_group_id, operation_key,

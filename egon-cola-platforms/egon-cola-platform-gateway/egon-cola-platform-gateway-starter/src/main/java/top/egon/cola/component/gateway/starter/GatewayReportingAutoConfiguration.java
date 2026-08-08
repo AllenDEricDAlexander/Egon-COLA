@@ -23,21 +23,19 @@ import top.egon.cola.component.gateway.starter.reporting.GatewayDefinitionReport
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.component.gateway.starter.reporting.GatewayReportingStateStore;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
 import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Auto-configures discovery, report construction, transport, persistence, and
+ * Auto-configures discovery, report construction, transport, and startup
  * lifecycle coordination for Gateway interface definition reporting.
  *
- * <p>中文：自动装配网关接口定义的发现、报告构建、传输、持久化以及
- * 生命周期协调组件。
+ * <p>中文：自动装配网关接口定义的发现、报告构建、传输以及启动生命周期协调
+ * 组件。
  */
 @AutoConfiguration
 @AutoConfigureAfter(EgonRpcAutoConfig.class)
@@ -151,46 +149,24 @@ public class GatewayReportingAutoConfiguration {
     }
 
     /**
-     * Creates the persistent report state store at the configured path.
-     * 中文：按照配置路径创建报告状态持久化存储。
+     * Creates the lifecycle coordinator that submits reports during startup.
+     * 中文：创建负责在启动阶段提交报告的生命周期组件。
      *
-     * @param properties reporting configuration
-     * @return reporting state store
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public GatewayReportingStateStore gatewayReportingStateStore(
-            GatewayReportingProperties properties) {
-        return new GatewayReportingStateStore(
-                Path.of(properties.getStateFile())
-        );
-    }
-
-    /**
-     * Creates the lifecycle coordinator that reconciles reports with Admin.
-     * 中文：创建负责将本地报告与 Admin 回执进行协调的生命周期组件。
-     *
-     * @param properties reporting configuration
      * @param report initial built report
      * @param client report HTTP client
      * @param state in-memory reporting state
-     * @param stateStore persistent reporting state store
      * @return reporting lifecycle coordinator
      */
     @Bean
     @ConditionalOnMissingBean
     public GatewayReportingCoordinator gatewayReportingCoordinator(
-            GatewayReportingProperties properties,
             GatewayDefinitionReportFactory.BuiltReport report,
             GatewayReportHttpClient client,
-            GatewayReportingState state,
-            GatewayReportingStateStore stateStore) {
+            GatewayReportingState state) {
         return new GatewayReportingCoordinator(
-                properties,
                 report,
                 client,
-                state,
-                stateStore
+                state
         );
     }
 

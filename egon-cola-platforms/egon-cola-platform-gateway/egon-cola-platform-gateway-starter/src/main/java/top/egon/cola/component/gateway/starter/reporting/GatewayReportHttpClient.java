@@ -12,21 +12,20 @@ import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import java.net.http.HttpClient;
 import java.time.Clock;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Sends signed Gateway definition reports to Gateway Admin and retrieves their
+ * Sends signed Gateway definition reports to Gateway Admin and receives their
  * acknowledgement receipts.
  *
  * <p>Each request uses the DDC-compatible canonical request and HMAC signature
  * configured by {@link GatewayReportingProperties}. HTTP status and transport
- * failures are translated into retry-aware exceptions; retry scheduling itself
- * is owned by {@link GatewayReportingCoordinator}.
+ * failures are translated into reporting exceptions; the coordinator performs
+ * the fixed startup attempt limit.
  *
  * <p>中文：每个请求都使用 {@link GatewayReportingProperties} 配置的兼容 DDC
- * 的规范化请求和 HMAC 签名。HTTP 状态或传输失败会转换为携带重试标记的异常，
- * 具体重试调度由 {@link GatewayReportingCoordinator} 负责。
+ * 的规范化请求和 HMAC 签名。HTTP 状态或传输失败会转换为上报异常，固定的启动
+ * 尝试次数由 {@link GatewayReportingCoordinator} 负责。
  */
 public final class GatewayReportHttpClient {
 
@@ -141,112 +140,17 @@ public final class GatewayReportHttpClient {
                     .retrieve()
                     .body(GatewayInterfaceDefinitionReportResult.class);
         } catch (RestClientResponseException failure) {
-            boolean retryable = failure.getStatusCode().value() == 429
-                    || failure.getStatusCode().is5xxServerError();
             throw new GatewayReportTransportException(
                     "gateway report failed with HTTP "
                             + failure.getStatusCode().value(),
-                    retryable,
                     failure
             );
         } catch (RuntimeException failure) {
             throw new GatewayReportTransportException(
                     "gateway report transport failed",
-                    true,
                     failure
             );
         }
-    }
-
-    /**
-     * Retrieves an existing report acknowledgement by report identifier.
-     * 中文：按报告标识查询已有的上报确认回执。
-     *
-     * @param reportId report identifier accepted by Gateway Admin
-     * @return acknowledgement receipt, or empty when Admin returns HTTP 404 or
-     *         an empty body
-     * @throws IllegalArgumentException if {@code reportId} is invalid
-     * @throws GatewayReportTransportException if the request fails
-     */
-    public Optional<GatewayInterfaceDefinitionReportResult> find(
-            String reportId) {
-        if (reportId == null
-                || !reportId.matches("[A-Za-z0-9_-]{1,128}")) {
-            throw new IllegalArgumentException(
-                    "gateway reportId is invalid"
-            );
-        }
-        String path = REPORT_PATH + "/" + reportId;
-        long timestamp = clock.millis();
-        String nonce = UUID.randomUUID().toString().replace("-", "");
-        DdcCanonicalRequest canonical = new DdcCanonicalRequest(
-                "GET",
-                path,
-                Map.of(),
-                timestamp,
-                nonce,
-                new byte[0]
-        );
-        try {
-            return Optional.ofNullable(client.get()
-                    .uri(path)
-                    .header(
-                            DdcRequestSigner.ACCESS_KEY_HEADER,
-                            properties.getAccessKey()
-                    )
-                    .header(
-                            DdcRequestSigner.TIMESTAMP_HEADER,
-                            Long.toString(timestamp)
-                    )
-                    .header(DdcRequestSigner.NONCE_HEADER, nonce)
-                    .header(
-                            DdcRequestSigner.CONTENT_SHA256_HEADER,
-                            canonical.contentSha256()
-                    )
-                    .header(
-                            DdcRequestSigner.SIGNATURE_HEADER,
-                            signer.sign(
-                                    canonical,
-                                    properties.getSecretKey()
-                            )
-                    )
-                    .header(
-                            "X-Gateway-Application-Code",
-                            properties.getApplicationCode()
-                    )
-                    .retrieve()
-                    .body(GatewayInterfaceDefinitionReportResult.class));
-        } catch (RestClientResponseException failure) {
-            if (failure.getStatusCode().value() == 404) {
-                return Optional.empty();
-            }
-            throw transportFailure(failure);
-        } catch (RuntimeException failure) {
-            throw new GatewayReportTransportException(
-                    "gateway report receipt transport failed",
-                    true,
-                    failure
-            );
-        }
-    }
-
-    /**
-     * Converts an Admin HTTP failure into a retry-aware transport exception.
-     * 中文：将 Admin HTTP 失败转换为携带可重试信息的传输异常。
-     *
-     * @param failure response exception returned by the HTTP client
-     * @return reporting transport exception
-     */
-    private GatewayReportTransportException transportFailure(
-            RestClientResponseException failure) {
-        boolean retryable = failure.getStatusCode().value() == 429
-                || failure.getStatusCode().is5xxServerError();
-        return new GatewayReportTransportException(
-                "gateway report failed with HTTP "
-                        + failure.getStatusCode().value(),
-                retryable,
-                failure
-        );
     }
 
     /**
@@ -272,40 +176,23 @@ public final class GatewayReportHttpClient {
     }
 
     /**
-     * Reports a transport or Admin response failure together with whether the
-     * coordinator may retry it.
-     * 中文：封装传输或 Admin 响应失败，并标记协调器是否可以重试。
+     * Reports a transport or Admin response failure.
+     * 中文：封装传输或 Admin 响应失败。
      */
     public static final class GatewayReportTransportException
             extends RuntimeException {
 
-        /** Whether retrying the failed request is permitted. 是否允许重试失败请求。 */
-        private final boolean retryable;
-
         /**
-         * Creates a retry-aware reporting transport exception.
-         * 中文：创建携带重试标记的上报传输异常。
+         * Creates a reporting transport exception.
+         * 中文：创建上报传输异常。
          *
          * @param message failure description
-         * @param retryable whether the request may be retried
          * @param cause underlying failure, or {@code null} when unavailable
          */
         GatewayReportTransportException(
                 String message,
-                boolean retryable,
                 Throwable cause) {
             super(message, cause);
-            this.retryable = retryable;
-        }
-
-        /**
-         * Returns whether the coordinator may retry the failed request.
-         * 中文：返回协调器是否可以重试失败请求。
-         *
-         * @return {@code true} when retry is permitted
-         */
-        public boolean retryable() {
-            return retryable;
         }
     }
 }

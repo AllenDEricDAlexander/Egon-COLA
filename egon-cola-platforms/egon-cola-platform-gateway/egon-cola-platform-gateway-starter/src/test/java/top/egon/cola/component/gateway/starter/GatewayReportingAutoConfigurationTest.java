@@ -13,6 +13,7 @@ import top.egon.cola.component.gateway.starter.discovery
 import top.egon.cola.component.gateway.starter.discovery
         .WebFluxGatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
+import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
 import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
 import top.egon.cola.component.rpc.provider.RpcProviderMetadataMerger;
@@ -21,6 +22,7 @@ import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class GatewayReportingAutoConfigurationTest {
 
@@ -28,7 +30,11 @@ class GatewayReportingAutoConfigurationTest {
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
                             GatewayReportingAutoConfiguration.class
-                    ));
+                    ))
+                    .withBean(
+                            GatewayReportingCoordinator.class,
+                            () -> mock(GatewayReportingCoordinator.class)
+                    );
 
     @Test
     void remainsDisabledByDefault() {

@@ -50,8 +50,6 @@ class McpTestProviderConfigurationTest {
                             .isEqualTo("gateway-access");
                     assertThat(reporting.getSecretKey())
                             .isEqualTo("gateway-secret");
-                    assertThat(reporting.getStateFile())
-                            .isEqualTo("target/mcp-provider-state.json");
                 });
     }
 

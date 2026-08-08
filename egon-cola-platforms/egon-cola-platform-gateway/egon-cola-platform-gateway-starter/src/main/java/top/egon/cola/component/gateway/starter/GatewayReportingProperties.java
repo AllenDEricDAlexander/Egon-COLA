@@ -61,12 +61,6 @@ public class GatewayReportingProperties {
     private List<String> declaredHosts = new ArrayList<>();
 
     /**
-     * Whether initial reporting failures should fail application startup.
-     * 初次上报失败时是否阻止应用启动。
-     */
-    private boolean failFast;
-
-    /**
      * Access key used to sign requests sent to Gateway Admin.
      * 向 Gateway Admin 发送签名请求使用的访问密钥。
      */
@@ -91,31 +85,10 @@ public class GatewayReportingProperties {
     private Duration readTimeout = Duration.ofSeconds(10);
 
     /**
-     * Maximum number of consecutive short-backoff reporting attempts.
-     * 连续短退避上报的最大尝试次数。
-     */
-    private int maxAttempts = 5;
-
-    /**
-     * Delay before reconciliation resumes after short retries are exhausted.
-     * 短重试耗尽后恢复协调前的等待时间。
-     */
-    private Duration reconcileInterval = Duration.ofMinutes(5);
-
-    /**
-     * Local file used to persist pending and acknowledged report state.
-     * 持久化待处理和已确认报告状态的本地文件。
-     */
-    private String stateFile =
-            "data/gateway-definition-report.state";
-
-    /**
      * Validates all properties required when reporting is enabled.
-     * 中文：上报启用时校验所有必需配置，并检查重试参数范围。
+     * 中文：上报启用时校验所有必需配置。
      *
-     * @throws IllegalArgumentException if a required property is missing or a
-     *                                  retry setting is outside its supported
-     *                                  range
+     * @throws IllegalArgumentException if a required property is missing
      */
     public void validate() {
         if (!enabled) {
@@ -131,21 +104,6 @@ public class GatewayReportingProperties {
         required(buildId, "buildId");
         required(accessKey, "accessKey");
         required(secretKey, "secretKey");
-        if (maxAttempts < 1 || maxAttempts > 20) {
-            throw new IllegalArgumentException(
-                    "maxAttempts must be between 1 and 20"
-            );
-        }
-        if (reconcileInterval == null
-                || reconcileInterval.compareTo(
-                Duration.ofMillis(10)
-        ) < 0
-                || reconcileInterval.compareTo(Duration.ofDays(1)) > 0) {
-            throw new IllegalArgumentException(
-                    "reconcileInterval must be between PT0.01S and P1D"
-            );
-        }
-        required(stateFile, "stateFile");
     }
 
     /**
@@ -367,26 +325,6 @@ public class GatewayReportingProperties {
     }
 
     /**
-     * Returns whether an initial reporting failure fails startup.
-     * 中文：返回初次上报失败是否会阻止启动。
-     *
-     * @return {@code true} when fail-fast reporting is enabled
-     */
-    public boolean isFailFast() {
-        return failFast;
-    }
-
-    /**
-     * Sets whether an initial reporting failure fails startup.
-     * 中文：设置初次上报失败是否阻止启动。
-     *
-     * @param failFast whether fail-fast reporting is enabled
-     */
-    public void setFailFast(boolean failFast) {
-        this.failFast = failFast;
-    }
-
-    /**
      * Returns the reporting access key.
      * 中文：返回上报请求使用的访问密钥。
      *
@@ -466,63 +404,4 @@ public class GatewayReportingProperties {
         this.readTimeout = readTimeout;
     }
 
-    /**
-     * Returns the maximum consecutive short-backoff attempts.
-     * 中文：返回连续短退避尝试的最大次数。
-     *
-     * @return maximum attempt count
-     */
-    public int getMaxAttempts() {
-        return maxAttempts;
-    }
-
-    /**
-     * Sets the maximum consecutive short-backoff attempts.
-     * 中文：设置连续短退避尝试的最大次数。
-     *
-     * @param maxAttempts maximum attempt count
-     */
-    public void setMaxAttempts(int maxAttempts) {
-        this.maxAttempts = maxAttempts;
-    }
-
-    /**
-     * Returns the long reconciliation interval.
-     * 中文：返回长期协调间隔。
-     *
-     * @return reconciliation interval
-     */
-    public Duration getReconcileInterval() {
-        return reconcileInterval;
-    }
-
-    /**
-     * Sets the long reconciliation interval.
-     * 中文：设置长期协调间隔。
-     *
-     * @param reconcileInterval reconciliation interval
-     */
-    public void setReconcileInterval(Duration reconcileInterval) {
-        this.reconcileInterval = reconcileInterval;
-    }
-
-    /**
-     * Returns the local reporting state file path.
-     * 中文：返回本地上报状态文件路径。
-     *
-     * @return state file path
-     */
-    public String getStateFile() {
-        return stateFile;
-    }
-
-    /**
-     * Sets the local reporting state file path.
-     * 中文：设置本地上报状态文件路径。
-     *
-     * @param stateFile state file path
-     */
-    public void setStateFile(String stateFile) {
-        this.stateFile = stateFile;
-    }
 }

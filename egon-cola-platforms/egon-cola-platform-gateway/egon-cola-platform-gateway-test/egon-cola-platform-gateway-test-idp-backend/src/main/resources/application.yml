@@ -75,10 +75,8 @@ egon:
           artifact-version: ${MOCK_BACKEND_ARTIFACT_VERSION:5.3.2}
           build-id: ${MOCK_BACKEND_BUILD_ID:local}
           declared-hosts: ${MOCK_BACKEND_DECLARED_HOSTS:127.0.0.1}
-          fail-fast: true
           access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
           secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
-          state-file: ${GATEWAY_REPORT_STATE_FILE:.runtime/unified-identity/mock-backend-gateway-report.json}
         provider:
           http:
             enabled: ${MOCK_BACKEND_DDC_ENABLED:false}

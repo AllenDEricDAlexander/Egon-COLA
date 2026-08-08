@@ -56,10 +56,8 @@ egon:
           artifact-version: 1.0.0
           build-id: ${MCP_TEST_PROVIDER_BUILD_ID:local}
           declared-hosts: ${MCP_TEST_PROVIDER_HOST:127.0.0.1}
-          fail-fast: true
           access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
           secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
-          state-file: ${GATEWAY_REPORT_STATE_FILE:target/mcp-provider-gateway-report.json}
         provider:
           http:
             enabled: true

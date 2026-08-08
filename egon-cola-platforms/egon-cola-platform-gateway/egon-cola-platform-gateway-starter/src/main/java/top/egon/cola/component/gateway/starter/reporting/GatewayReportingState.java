@@ -8,12 +8,12 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Maintains a thread-safe snapshot of the current Gateway reporting status.
  *
- * <p>This object is an in-memory observability view only. It preserves the last
- * successful receipt across a transient failure, while the durable restart
- * state is handled by {@link GatewayReportingStateStore}.
+ * <p>This object is an in-memory observability view only. It is reset on every
+ * application restart, which intentionally causes the current report to be
+ * submitted again.
  *
- * <p>中文：该对象仅提供内存中的可观测状态视图。发生瞬时失败时会保留最近一次
- * 成功回执；需要跨重启持久化的状态由 {@link GatewayReportingStateStore} 负责。
+ * <p>中文：该对象仅提供内存中的可观测状态视图。应用重启后状态会重置，因此每次
+ * 启动都会重新提交当前报告。
  */
 public final class GatewayReportingState {
 
@@ -71,8 +71,8 @@ public final class GatewayReportingState {
     }
 
     /**
-     * Records a failed attempt while retaining the last successful receipt.
-     * 中文：记录失败尝试，同时保留最近一次成功回执。
+     * Records a failed startup attempt.
+     * 中文：记录启动阶段的一次失败尝试。
      *
      * @param error failure message to expose in bounded form
      */
