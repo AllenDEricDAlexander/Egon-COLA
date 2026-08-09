@@ -11,10 +11,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>egon-cola-platform-gateway-mcp-runtime</artifactId>
+    <artifactId>egon-cola-platform-gateway-mcp-core</artifactId>
     <packaging>jar</packaging>
-    <name>egon-cola-platform-gateway-mcp-runtime</name>
-    <description>Protocol and primitive runtime for Egon Gateway MCP.</description>
+    <name>egon-cola-platform-gateway-mcp-core</name>
+    <description>Shared protocol and runtime core for Egon Gateway MCP.</description>
 
     <dependencies>
         <dependency>

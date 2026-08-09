@@ -27,7 +27,7 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-gateway-mcp-runtime</artifactId>
+            <artifactId>egon-cola-platform-gateway-mcp-core</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>

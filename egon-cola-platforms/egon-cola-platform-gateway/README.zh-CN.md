@@ -35,6 +35,7 @@ Pub/Sub 仍承载变更通知。其他普通 RPC 服务仍由 DDC 支撑，业�
 |---|---|---|
 | `egon-cola-platform-gateway-contract` | 规则、Provider、发布和事件的跨进程稳定契约 | 否 |
 | `egon-cola-platform-gateway-core` | 无框架数据面模型、过滤器、路由、安全和 SPI | 否 |
+| `egon-cola-platform-gateway-mcp-core` | Admin 与 Engine 共享的 MCP 协议、任务、会话、制品和订阅运行时原语 | 否 |
 | `egon-cola-platform-gateway-engine` | 可执行 HTTP/RPC 数据面、监听器、上游客户端、健康检查和遥测 | 否 |
 | `egon-cola-platform-gateway-admin` | 可执行管理控制面、持久化、规则编译、鉴权和 OpenAPI | 否 |
 | `egon-cola-platform-gateway-starter` | Provider 接口定义上报，并向 DDC HTTP 注册贡献 Gateway 元数据 | 是 |

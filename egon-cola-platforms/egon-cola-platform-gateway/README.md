@@ -38,6 +38,7 @@ discovered Gateway set rather than connecting directly to Providers.
 |---|---|---|
 | `egon-cola-platform-gateway-contract` | Stable cross-process contracts for rules, providers, releases, and events | No |
 | `egon-cola-platform-gateway-core` | Framework-free data-plane models, filters, routing, security, and SPI | No |
+| `egon-cola-platform-gateway-mcp-core` | Shared MCP protocol, task, session, artifact, and subscription runtime primitives | No |
 | `egon-cola-platform-gateway-engine` | Executable HTTP/RPC data plane, listeners, upstream clients, health, and telemetry | No |
 | `egon-cola-platform-gateway-admin` | Executable management control plane, persistence, release compilation, authentication, and OpenAPI | No |
 | `egon-cola-platform-gateway-starter` | Provider interface-definition reporting plus Gateway metadata contribution to DDC HTTP registration | Yes |
