@@ -3,12 +3,11 @@ package top.egon.cola.component.ddc.service.lifecycle;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcAckDeliveryProperties;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.ddc.error.DdcClientTransportException;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.model.config.DdcAckRequest;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
@@ -38,8 +37,8 @@ class DdcAckDeliveryTest {
     void retriesTransportAndServerFailuresUntilDeliverySucceeds() {
         DdcConfigClient client = mock(DdcConfigClient.class);
         DdcAckRequest request = request("change-1");
-        doThrow(new ResourceAccessException("connection reset"))
-                .doThrow(new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE))
+        doThrow(new DdcClientTransportException("DDC unavailable", true))
+                .doThrow(new DdcClientTransportException("DDC unavailable", true))
                 .doNothing()
                 .when(client).ack(request);
 
@@ -60,7 +59,7 @@ class DdcAckDeliveryTest {
     void doesNotRetryClientFailure() {
         DdcConfigClient client = mock(DdcConfigClient.class);
         DdcAckRequest request = request("change-2");
-        doThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST))
+        doThrow(new DdcException(DdcErrorStatus.INVALID_REQUEST))
                 .when(client).ack(request);
 
         try (DdcAckDelivery delivery = delivery(client, 8, 4)) {
@@ -128,7 +127,7 @@ class DdcAckDeliveryTest {
     @Test
     void recordsFinalExhaustionAndStopsItsWorker() {
         DdcConfigClient client = mock(DdcConfigClient.class);
-        doThrow(new ResourceAccessException("timeout"))
+        doThrow(new DdcClientTransportException("DDC timeout", true))
                 .when(client).ack(any());
         DdcAckDelivery delivery = delivery(client, 8, 2);
         delivery.start();

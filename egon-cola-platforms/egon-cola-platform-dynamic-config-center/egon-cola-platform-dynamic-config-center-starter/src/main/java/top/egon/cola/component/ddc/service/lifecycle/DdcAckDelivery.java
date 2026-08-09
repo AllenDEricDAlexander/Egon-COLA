@@ -3,11 +3,11 @@ package top.egon.cola.component.ddc.service.lifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClientResponseException;
 import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcAckDeliveryProperties;
+import top.egon.cola.component.ddc.error.DdcClientTransportException;
+import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.model.config.DdcAckRequest;
 import top.egon.cola.component.ddc.observability.DdcTraceSupport;
 
@@ -27,8 +27,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * Asynchronously delivers DDC publication acknowledgments through a bounded single-thread queue with
  * exponential-backoff retries for transient failures.
  *
- * <p>同一变化、实例和租约组合在待处理期间会被去重。网络异常和服务端 5xx 响应可重试，其他失败不会重试。</p>
- * <p>The same change, instance, and lease tuple is deduplicated while pending. Network failures and server-side 5xx responses are retryable; other failures are not.</p>
+ * <p>同一变化、实例和租约组合在待处理期间会被去重。仅由 DDC 客户端明确标记的瞬时故障可重试。</p>
+ * <p>The same change, instance, and lease tuple is deduplicated while pending. Only transient failures explicitly marked by the DDC client are retryable.</p>
  */
 public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
 
@@ -43,7 +43,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
     private static final String WORKER_NAME = "egon-cola-ddc-ack-delivery";
 
     /**
-     * 执行 ACK HTTP 调用的管理端客户端。 Administration client performing ACK HTTP calls.
+     * 执行 ACK 端口调用的 DDC 客户端。 DDC client performing ACK Port calls.
      */
     private final DdcConfigClient adminClient;
 
@@ -518,8 +518,8 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
     }
 
     /**
-     * 判断异常链是否包含网络访问异常或服务端 5xx 响应。
-     * Determines whether the exception chain contains a network-access failure or server-side 5xx response.
+     * 根据传输中立异常或 DDC 业务异常的明确重试标志判断是否重试。
+     * Determines retryability from an explicit neutral transport or DDC business failure marker.
      *
      * @param exception 投递异常; delivery exception
      * @return 异常可重试时为 {@code true}; {@code true} when the failure is retryable
@@ -527,11 +527,11 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
     private boolean isRetryable(RuntimeException exception) {
         Throwable current = exception;
         while (current != null) {
-            if (current instanceof ResourceAccessException) {
-                return true;
+            if (current instanceof DdcClientTransportException transport) {
+                return transport.retryable();
             }
-            if (current instanceof RestClientResponseException responseException) {
-                return responseException.getStatusCode().is5xxServerError();
+            if (current instanceof DdcException ddcException) {
+                return ddcException.isRetryable();
             }
             current = current.getCause();
         }

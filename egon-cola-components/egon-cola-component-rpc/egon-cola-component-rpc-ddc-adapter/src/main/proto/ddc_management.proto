@@ -23,8 +23,9 @@ service DdcManagementService {
 }
 
 message FindConfigRequest {
+  reserved 2;
+  reserved "resource_name";
   DdcScope scope = 1;
-  string resource_name = 2;
 }
 
 message FindConfigResponse {
@@ -64,7 +65,7 @@ message PublishConfigRequest {
   DdcConfigFormat format = 4;
   optional int64 expected_version = 5;
   optional string change_id = 6;
-  int64 timeout_ms = 7;
+  optional int64 timeout_ms = 7;
   string requested_operator = 8;
 }
 
