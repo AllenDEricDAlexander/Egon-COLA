@@ -13,7 +13,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
@@ -21,7 +21,7 @@ import top.egon.cola.component.gateway.contract.definition
         .GatewayDefinitionIdentity;
 
 @AutoConfiguration(afterName = {
-        "top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfig",
+        "top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration",
         "top.egon.cola.component.gateway.starter."
                 + "GatewayReportingAutoConfiguration"
 })

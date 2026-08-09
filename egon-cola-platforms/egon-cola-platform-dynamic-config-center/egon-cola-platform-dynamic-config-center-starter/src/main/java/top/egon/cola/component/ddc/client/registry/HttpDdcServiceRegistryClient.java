@@ -11,7 +11,7 @@ import org.springframework.web.client.RestClient;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.error.DdcException;
-import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.client.DdcClientTransportSecurity;
 import top.egon.cola.component.ddc.error.http.DdcOpenApiRequestException;
 import top.egon.cola.component.ddc.client.http.DdcOpenApiRequestFactory;

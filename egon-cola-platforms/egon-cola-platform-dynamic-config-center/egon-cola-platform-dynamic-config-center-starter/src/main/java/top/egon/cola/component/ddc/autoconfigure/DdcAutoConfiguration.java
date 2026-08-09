@@ -18,7 +18,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Role;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -36,6 +35,7 @@ import top.egon.cola.component.ddc.state.DdcLocalConfigState;
 import top.egon.cola.component.ddc.service.binding.DdcValueBindingRegistry;
 import top.egon.cola.component.ddc.service.lifecycle.DdcAckDelivery;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcAckDeliveryProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.binding.DdcFieldBindingService;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceIdProvider;
@@ -55,18 +55,17 @@ import java.util.List;
  */
 @AutoConfiguration
 @EnableScheduling
-@ComponentScan(basePackageClasses = DdcLocalConfigState.class)
 @EnableConfigurationProperties({
         DdcProperties.class,
         DdcAckDeliveryProperties.class
 })
 @ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true", matchIfMissing = false)
-public class DdcAutoConfig {
+public class DdcAutoConfiguration {
 
     /**
      * 用于报告显式离线模式的日志记录器。 Logger used to report explicit offline mode.
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(DdcAutoConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DdcAutoConfiguration.class);
 
     /**
      * 创建可刷新 {@code @DdcValue} 字段注册表。 Creates the refreshable {@code @DdcValue} field registry.
@@ -93,6 +92,18 @@ public class DdcAutoConfig {
             DdcValueBindingRegistry registry,
             ConfigurableListableBeanFactory beanFactory) {
         return new DdcFieldBindingService(registry, beanFactory);
+    }
+
+    /**
+     * 创建可由应用替换的进程内配置状态存储。
+     * Creates the replaceable in-process configuration state store.
+     *
+     * @return 本地配置状态。 local configuration state
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public DdcLocalConfigState ddcLocalConfigState() {
+        return new DdcLocalConfigState();
     }
 
     /**

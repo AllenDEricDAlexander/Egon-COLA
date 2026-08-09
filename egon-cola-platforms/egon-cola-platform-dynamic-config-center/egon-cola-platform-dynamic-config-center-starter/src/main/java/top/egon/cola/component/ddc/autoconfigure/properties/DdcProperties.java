@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.autoconfigure;
+package top.egon.cola.component.ddc.autoconfigure.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

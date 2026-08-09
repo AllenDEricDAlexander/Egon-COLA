@@ -1,7 +1,7 @@
 package top.egon.cola.component.ddc.service.lifecycle;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 
 import java.util.UUID;
 

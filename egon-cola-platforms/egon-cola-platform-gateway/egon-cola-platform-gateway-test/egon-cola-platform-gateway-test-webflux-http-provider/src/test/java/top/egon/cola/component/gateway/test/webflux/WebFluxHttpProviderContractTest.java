@@ -17,7 +17,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.result.method.annotation
         .RequestMappingHandlerMapping;
-import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;

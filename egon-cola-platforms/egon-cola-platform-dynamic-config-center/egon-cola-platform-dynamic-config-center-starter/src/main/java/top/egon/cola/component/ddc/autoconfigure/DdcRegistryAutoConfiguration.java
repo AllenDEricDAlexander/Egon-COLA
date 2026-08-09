@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
@@ -15,7 +16,7 @@ import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
 /**
  * 在显式启用服务注册时装配服务键工厂和注册客户端。 Configures the service-key factory and registry client when service registry is explicitly enabled.
  */
-@AutoConfiguration(after = DdcAutoConfig.class)
+@AutoConfiguration(after = DdcAutoConfiguration.class)
 @EnableConfigurationProperties(DdcProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.component.ddc.registry",
@@ -23,7 +24,7 @@ import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
         havingValue = "true",
         matchIfMissing = false
 )
-public class DdcRegistryAutoConfig {
+public class DdcRegistryAutoConfiguration {
 
     /**
      * 创建从 DDC 作用域属性生成服务键的工厂。 Creates the factory that derives service keys from DDC scope properties.

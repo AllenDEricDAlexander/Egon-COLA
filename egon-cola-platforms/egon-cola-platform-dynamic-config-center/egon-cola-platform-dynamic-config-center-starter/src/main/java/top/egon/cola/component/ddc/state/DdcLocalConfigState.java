@@ -1,7 +1,5 @@
 package top.egon.cola.component.ddc.state;
 
-import org.springframework.stereotype.Repository;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -11,7 +9,6 @@ import java.util.function.Supplier;
  * 在线程安全的进程内结构中保存配置元数据和逐资源锁。
  * Stores configuration metadata and per-resource locks in thread-safe in-process structures.
  */
-@Repository
 public class DdcLocalConfigState {
 
     /**

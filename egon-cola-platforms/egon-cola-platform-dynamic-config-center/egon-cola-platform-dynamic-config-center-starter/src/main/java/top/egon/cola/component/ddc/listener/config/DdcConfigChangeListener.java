@@ -2,7 +2,7 @@ package top.egon.cola.component.ddc.listener.config;
 
 import org.redisson.api.listener.MessageListener;
 import top.egon.cola.component.ddc.format.DdcChecksum;
-import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
 import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.observability.DdcTraceSupport;

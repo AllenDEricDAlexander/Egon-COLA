@@ -10,8 +10,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.PropertySource;
-import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfig;
-import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfig;
+import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfiguration;
+import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 
 import java.nio.file.Files;
@@ -97,8 +97,8 @@ class DdcConfigDataSpringApplicationTest {
         );
         arguments.add(
                 "--spring.autoconfigure.exclude="
-                        + DdcAutoConfig.class.getName() + ','
-                        + DdcRegistryAutoConfig.class.getName()
+                        + DdcAutoConfiguration.class.getName() + ','
+                        + DdcRegistryAutoConfiguration.class.getName()
         );
         arguments.addAll(List.of(extraArguments));
         return application.run(arguments.toArray(String[]::new));

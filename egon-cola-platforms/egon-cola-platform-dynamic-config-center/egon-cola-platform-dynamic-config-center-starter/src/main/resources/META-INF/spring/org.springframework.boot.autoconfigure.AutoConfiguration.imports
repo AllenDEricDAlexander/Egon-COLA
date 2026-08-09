@@ -1,3 +1,3 @@
-top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfig
-top.egon.cola.component.ddc.autoconfigure.DdcAutoConfig
-top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfig
+top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfiguration
+top.egon.cola.component.ddc.autoconfigure.DdcAutoConfiguration
+top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration

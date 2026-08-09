@@ -1,7 +1,7 @@
 package top.egon.cola.component.ddc.configdata;
 
 import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
-import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 

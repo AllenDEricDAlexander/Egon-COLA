@@ -12,7 +12,9 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.state.DdcLocalConfigState;
@@ -25,6 +27,7 @@ import top.egon.cola.component.ddc.service.binding.DdcFieldBindingService;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -32,19 +35,39 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(OutputCaptureExtension.class)
-class DdcAutoConfigTest {
+class DdcAutoConfigurationTest {
+
+    @Test
+    void automaticConfigurationsUseExplicitBeanWiring() {
+        assertThat(DdcAutoConfiguration.class.isAnnotationPresent(ComponentScan.class))
+                .isFalse();
+        assertThat(DdcRedisAutoConfiguration.class.isAnnotationPresent(ComponentScan.class))
+                .isFalse();
+        assertThat(DdcRegistryAutoConfiguration.class.isAnnotationPresent(ComponentScan.class))
+                .isFalse();
+
+        assertThatThrownBy(() -> Class.forName(
+                "top.egon.cola.component.ddc.autoconfigure.DdcAutoConfig"
+        )).isInstanceOf(ClassNotFoundException.class);
+        assertThatThrownBy(() -> Class.forName(
+                "top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfig"
+        )).isInstanceOf(ClassNotFoundException.class);
+        assertThatThrownBy(() -> Class.forName(
+                "top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfig"
+        )).isInstanceOf(ClassNotFoundException.class);
+    }
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(
-                    DdcRedisAutoConfig.class,
-                    DdcAutoConfig.class
+                    DdcRedisAutoConfiguration.class,
+                    DdcAutoConfiguration.class
             ));
 
     private final ApplicationContextRunner redisContextRunner =
             new ApplicationContextRunner(NonStartingApplicationContext::new)
                     .withConfiguration(AutoConfigurations.of(
-                            DdcRedisAutoConfig.class,
-                            DdcAutoConfig.class
+                            DdcRedisAutoConfiguration.class,
+                            DdcAutoConfiguration.class
                     ))
                     .withInitializer(context -> context.getEnvironment()
                             .getPropertySources().addFirst(
@@ -191,7 +214,7 @@ class DdcAutoConfigTest {
         when(client.getTopic(DdcRedisKeys.topic("retail", "dev", "order")))
                 .thenReturn(topic);
 
-        RTopic result = new DdcAutoConfig().ddcRedisTopic(client, properties);
+        RTopic result = new DdcAutoConfiguration().ddcRedisTopic(client, properties);
 
         assertThat(result).isSameAs(topic);
         verify(client).getTopic(DdcRedisKeys.topic("retail", "dev", "order"));

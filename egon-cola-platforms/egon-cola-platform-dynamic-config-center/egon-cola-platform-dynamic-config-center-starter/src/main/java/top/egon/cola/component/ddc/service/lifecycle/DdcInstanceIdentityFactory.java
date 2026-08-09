@@ -4,7 +4,7 @@ import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceIdProvider;
 import top.egon.cola.component.ddc.error.DdcException;
-import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 
 import java.io.IOException;

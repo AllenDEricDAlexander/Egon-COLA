@@ -15,14 +15,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
-class DdcRegistryAutoConfigTest {
+class DdcRegistryAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
-                            DdcRedisAutoConfig.class,
-                            DdcAutoConfig.class,
-                            DdcRegistryAutoConfig.class
+                            DdcRedisAutoConfiguration.class,
+                            DdcAutoConfiguration.class,
+                            DdcRegistryAutoConfiguration.class
                     ))
                     .withPropertyValues(
                             "egon.cola.component.ddc.enabled=false",
@@ -107,9 +107,9 @@ class DdcRegistryAutoConfigTest {
     void configClientCanBeEnabledWhileRegistryIsDisabled() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
-                        DdcRedisAutoConfig.class,
-                        DdcAutoConfig.class,
-                        DdcRegistryAutoConfig.class
+                        DdcRedisAutoConfiguration.class,
+                        DdcAutoConfiguration.class,
+                        DdcRegistryAutoConfiguration.class
                 ))
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",

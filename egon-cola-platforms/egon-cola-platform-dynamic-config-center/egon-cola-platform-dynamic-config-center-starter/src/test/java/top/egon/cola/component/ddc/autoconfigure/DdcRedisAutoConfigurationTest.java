@@ -14,7 +14,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
-class DdcRedisAutoConfigTest {
+class DdcRedisAutoConfigurationTest {
 
     @Test
     void createsOneSharedClientWhenConfigurationAndRegistryAreEnabled() {
@@ -24,7 +24,7 @@ class DdcRedisAutoConfigTest {
             redisson.when(() -> Redisson.create(any(Config.class)))
                     .thenReturn(client);
             new ApplicationContextRunner()
-                    .withConfiguration(AutoConfigurations.of(DdcRedisAutoConfig.class))
+                    .withConfiguration(AutoConfigurations.of(DdcRedisAutoConfiguration.class))
                     .withPropertyValues(
                             "egon.cola.component.ddc.enabled=true",
                             "egon.cola.component.ddc.redis.enabled=true",
