@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package egon.ddc.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.component.rpc.ddc.contract.proto.v1";
+option java_outer_classname = "DdcServiceRegistryProto";
+
+import "ddc_common.proto";
+import "google/protobuf/timestamp.proto";
+
+service DdcServiceRegistryService {
+  rpc RegisterService(RegisterServiceRequest) returns (RegisterServiceResponse);
+  rpc HeartbeatService(HeartbeatServiceRequest) returns (HeartbeatServiceResponse);
+  rpc DeregisterService(DeregisterServiceRequest) returns (DeregisterServiceResponse);
+  rpc GetServiceInstances(GetServiceInstancesRequest) returns (GetServiceInstancesResponse);
+  rpc GetServices(GetServicesRequest) returns (GetServicesResponse);
+}
+
+message RegisterServiceRequest {
+  DdcServiceKey service_key = 1;
+  string instance_id = 2;
+  string host = 3;
+  int32 port = 4;
+  bool secure = 5;
+  map<string, string> metadata = 6;
+  int32 lease_seconds = 7;
+  int32 heartbeat_interval_seconds = 8;
+}
+
+message RegisterServiceResponse {
+  DdcLeaseSession session = 1;
+}
+
+message HeartbeatServiceRequest {
+  DdcServiceKey service_key = 1;
+  string instance_id = 2;
+  string lease_id = 3;
+}
+
+message HeartbeatServiceResponse {
+  DdcLeaseOperationResult result = 1;
+}
+
+message DeregisterServiceRequest {
+  DdcServiceKey service_key = 1;
+  string instance_id = 2;
+  string lease_id = 3;
+}
+
+message DeregisterServiceResponse {
+  DdcLeaseOperationResult result = 1;
+}
+
+message GetServiceInstancesRequest {
+  DdcServiceKey service_key = 1;
+}
+
+message GetServiceInstancesResponse {
+  DdcServiceKey service_key = 1;
+  int64 revision = 2;
+  repeated DdcServiceInstance instances = 3;
+  google.protobuf.Timestamp observed_at = 4;
+}
+
+message GetServicesRequest {
+  DdcServiceQuery query = 1;
+}
+
+message GetServicesResponse {
+  DdcServiceQuery query = 1;
+  int64 revision = 2;
+  repeated DdcServiceKey service_keys = 3;
+  google.protobuf.Timestamp observed_at = 4;
+}

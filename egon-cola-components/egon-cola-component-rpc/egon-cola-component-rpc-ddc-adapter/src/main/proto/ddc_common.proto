@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package egon.ddc.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.component.rpc.ddc.contract.proto.v1";
+option java_outer_classname = "DdcCommonProto";
+
+import "google/protobuf/timestamp.proto";
+
+enum DdcLeaseRole {
+  DDC_LEASE_ROLE_UNSPECIFIED = 0;
+  DDC_LEASE_ROLE_CONFIG_CLIENT = 1;
+  DDC_LEASE_ROLE_RPC_PROVIDER = 2;
+  DDC_LEASE_ROLE_HTTP_PROVIDER = 3;
+  DDC_LEASE_ROLE_INTERNAL_GATEWAY = 4;
+}
+
+enum DdcLeaseOperationStatus {
+  DDC_LEASE_OPERATION_STATUS_UNSPECIFIED = 0;
+  DDC_LEASE_OPERATION_STATUS_RENEWED = 1;
+  DDC_LEASE_OPERATION_STATUS_DELETED = 2;
+  DDC_LEASE_OPERATION_STATUS_NOT_FOUND = 3;
+  DDC_LEASE_OPERATION_STATUS_LEASE_MISMATCH = 4;
+  DDC_LEASE_OPERATION_STATUS_NOT_DELETED = 5;
+}
+
+enum DdcServiceKind {
+  DDC_SERVICE_KIND_UNSPECIFIED = 0;
+  DDC_SERVICE_KIND_RPC_PROVIDER = 1;
+  DDC_SERVICE_KIND_HTTP_PROVIDER = 2;
+  DDC_SERVICE_KIND_INTERNAL_GATEWAY = 3;
+}
+
+enum DdcAckStatus {
+  DDC_ACK_STATUS_UNSPECIFIED = 0;
+  DDC_ACK_STATUS_SUCCESS = 1;
+  DDC_ACK_STATUS_FAILED = 2;
+  DDC_ACK_STATUS_IGNORED = 3;
+  DDC_ACK_STATUS_TIMEOUT = 4;
+}
+
+enum DdcConfigFormat {
+  DDC_CONFIG_FORMAT_UNSPECIFIED = 0;
+  DDC_CONFIG_FORMAT_YAML = 1;
+}
+
+enum DdcPublishStatus {
+  DDC_PUBLISH_STATUS_UNSPECIFIED = 0;
+  DDC_PUBLISH_STATUS_PENDING = 1;
+  DDC_PUBLISH_STATUS_PUBLISHING = 2;
+  DDC_PUBLISH_STATUS_SUCCESS = 3;
+  DDC_PUBLISH_STATUS_PARTIAL_SUCCESS = 4;
+  DDC_PUBLISH_STATUS_FAILED = 5;
+  DDC_PUBLISH_STATUS_TIMEOUT = 6;
+  DDC_PUBLISH_STATUS_UNKNOWN = 7;
+}
+
+message DdcScope {
+  string biz_code = 1;
+  string env = 2;
+  string app_code = 3;
+}
+
+message DdcLeaseSession {
+  string instance_id = 1;
+  string lease_id = 2;
+  DdcLeaseRole role = 3;
+  int32 lease_seconds = 4;
+  int32 heartbeat_interval_seconds = 5;
+  google.protobuf.Timestamp registered_at = 6;
+  google.protobuf.Timestamp lease_expire_at = 7;
+}
+
+message DdcLeaseOperationResult {
+  DdcLeaseOperationStatus status = 1;
+  google.protobuf.Timestamp lease_expire_at = 2;
+}
+
+message DdcServiceKey {
+  DdcScope scope = 1;
+  string service_id = 2;
+  DdcServiceKind service_kind = 3;
+  string service_name = 4;
+  string group = 5;
+  string version = 6;
+  string protocol = 7;
+}
+
+message DdcServiceQuery {
+  optional string biz_code = 1;
+  optional string env = 2;
+  optional string app_code = 3;
+  optional DdcServiceKind service_kind = 4;
+  optional string protocol = 5;
+  optional string service_name = 6;
+  optional string group = 7;
+  optional string version = 8;
+}
+
+message DdcServiceInstance {
+  string instance_id = 1;
+  string lease_id = 2;
+  DdcServiceKey service_key = 3;
+  string host = 4;
+  int32 port = 5;
+  bool secure = 6;
+  map<string, string> metadata = 7;
+  int32 lease_seconds = 8;
+  int32 heartbeat_interval_seconds = 9;
+  google.protobuf.Timestamp registered_at = 10;
+  google.protobuf.Timestamp last_heartbeat_at = 11;
+  google.protobuf.Timestamp lease_expire_at = 12;
+  string status = 13;
+  int64 revision = 14;
+}
+
+message DdcConfig {
+  DdcScope scope = 1;
+  string resource_name = 2;
+  string content = 3;
+  DdcConfigFormat format = 4;
+  optional int64 version = 5;
+  optional string checksum = 6;
+  bool enabled = 7;
+  bool deleted = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message DdcPublishTarget {
+  string instance_id = 1;
+  string lease_id = 2;
+  optional int64 current_version = 3;
+  DdcAckStatus status = 4;
+  optional string error_message = 5;
+  google.protobuf.Timestamp acknowledged_at = 6;
+}
+
+message DdcRpcErrorDetail {
+  string code = 1;
+  string message = 2;
+  bool retryable = 3;
+}

@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package egon.ddc.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.component.rpc.ddc.contract.proto.v1";
+option java_outer_classname = "DdcConfigRuntimeProto";
+
+import "ddc_common.proto";
+import "google/protobuf/timestamp.proto";
+
+service DdcConfigRuntimeService {
+  rpc RegisterConfigClient(RegisterConfigClientRequest) returns (RegisterConfigClientResponse);
+  rpc HeartbeatConfigClient(HeartbeatConfigClientRequest) returns (HeartbeatConfigClientResponse);
+  rpc OfflineConfigClient(OfflineConfigClientRequest) returns (OfflineConfigClientResponse);
+  rpc PullConfig(PullConfigRequest) returns (PullConfigResponse);
+  rpc AcknowledgePublish(AcknowledgePublishRequest) returns (AcknowledgePublishResponse);
+}
+
+message RegisterConfigClientRequest {
+  DdcScope scope = 1;
+  string instance_id = 2;
+  string host = 3;
+  optional int32 port = 4;
+  string pid = 5;
+  string sdk_version = 6;
+  int32 lease_seconds = 7;
+  int32 heartbeat_interval_seconds = 8;
+  map<string, string> metadata = 9;
+}
+
+message RegisterConfigClientResponse {
+  DdcLeaseSession session = 1;
+}
+
+message HeartbeatConfigClientRequest {
+  DdcScope scope = 1;
+  string instance_id = 2;
+  string lease_id = 3;
+  string host = 4;
+  optional int32 port = 5;
+  string pid = 6;
+  string sdk_version = 7;
+  map<string, string> metadata = 8;
+}
+
+message HeartbeatConfigClientResponse {
+  DdcLeaseOperationResult result = 1;
+}
+
+message OfflineConfigClientRequest {
+  DdcScope scope = 1;
+  string instance_id = 2;
+  string lease_id = 3;
+}
+
+message OfflineConfigClientResponse {
+  DdcLeaseOperationResult result = 1;
+}
+
+message PullConfigRequest {
+  DdcScope scope = 1;
+}
+
+message PullConfigResponse {
+  repeated DdcConfig configs = 1;
+}
+
+message AcknowledgePublishRequest {
+  string change_id = 1;
+  DdcScope scope = 2;
+  string instance_id = 3;
+  string lease_id = 4;
+  string resource_name = 5;
+  optional int64 target_version = 6;
+  optional int64 current_version = 7;
+  optional string resource_checksum = 8;
+  DdcAckStatus status = 9;
+  optional string error_message = 10;
+  google.protobuf.Timestamp acknowledged_at = 11;
+}
+
+message AcknowledgePublishResponse {
+}

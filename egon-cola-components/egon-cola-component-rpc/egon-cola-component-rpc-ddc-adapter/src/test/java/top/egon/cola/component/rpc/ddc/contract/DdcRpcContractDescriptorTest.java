@@ -1,0 +1,55 @@
+package top.egon.cola.component.rpc.ddc.contract;
+
+import io.grpc.ServiceDescriptor;
+import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
+import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcConfigRuntimeServiceGrpc;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementServiceGrpc;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceRegistryServiceGrpc;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class DdcRpcContractDescriptorTest {
+
+    private final RpcContractValidator validator =
+            new RpcContractValidator();
+
+    @Test
+    void javaContractsMatchGeneratedGrpcDescriptorsExactly() {
+        assertContract(
+                DdcConfigRuntimeRpc.class,
+                DdcConfigRuntimeServiceGrpc.getServiceDescriptor()
+        );
+        assertContract(
+                DdcServiceRegistryRpc.class,
+                DdcServiceRegistryServiceGrpc.getServiceDescriptor()
+        );
+        assertContract(
+                DdcManagementRpc.class,
+                DdcManagementServiceGrpc.getServiceDescriptor()
+        );
+    }
+
+    private void assertContract(
+            Class<?> contractType,
+            ServiceDescriptor grpcService) {
+        RpcContractDescriptor contract = validator.validate(contractType);
+        List<String> javaMethods = contract.methods().stream()
+                .map(method -> method.methodName())
+                .sorted()
+                .toList();
+        List<String> grpcMethods = grpcService.getMethods().stream()
+                .map(method -> method.getBareMethodName())
+                .sorted()
+                .toList();
+
+        assertThat(contract.serviceName())
+                .isEqualTo(grpcService.getName());
+        assertThat(contract.group()).isEqualTo("ddc");
+        assertThat(contract.version()).isEqualTo("1.0.0");
+        assertThat(javaMethods).containsExactlyElementsOf(grpcMethods);
+    }
+}

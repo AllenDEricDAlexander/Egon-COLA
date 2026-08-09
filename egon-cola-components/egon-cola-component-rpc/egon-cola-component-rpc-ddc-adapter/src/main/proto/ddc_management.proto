@@ -1,0 +1,226 @@
+syntax = "proto3";
+
+package egon.ddc.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.component.rpc.ddc.contract.proto.v1";
+option java_outer_classname = "DdcManagementProto";
+
+import "ddc_common.proto";
+import "google/protobuf/timestamp.proto";
+
+service DdcManagementService {
+  rpc FindConfig(FindConfigRequest) returns (FindConfigResponse);
+  rpc UpsertConfig(UpsertConfigRequest) returns (UpsertConfigResponse);
+  rpc DeleteConfig(DeleteConfigRequest) returns (DeleteConfigResponse);
+  rpc PublishConfig(PublishConfigRequest) returns (PublishConfigResponse);
+  rpc GetPublishTask(GetPublishTaskRequest) returns (GetPublishTaskResponse);
+  rpc RetryPublishTask(RetryPublishTaskRequest) returns (RetryPublishTaskResponse);
+  rpc GetConfigClients(GetConfigClientsRequest) returns (GetConfigClientsResponse);
+  rpc GetScopeBindings(GetScopeBindingsRequest) returns (GetScopeBindingsResponse);
+  rpc GetServiceKeys(GetServiceKeysRequest) returns (GetServiceKeysResponse);
+  rpc GetInstances(GetInstancesRequest) returns (GetInstancesResponse);
+}
+
+message FindConfigRequest {
+  DdcScope scope = 1;
+  string resource_name = 2;
+}
+
+message FindConfigResponse {
+  bool found = 1;
+  DdcConfig config = 2;
+}
+
+message UpsertConfigRequest {
+  DdcScope scope = 1;
+  string resource_name = 2;
+  string content = 3;
+  DdcConfigFormat format = 4;
+  optional string description = 5;
+  optional int64 expected_version = 6;
+  string requested_operator = 7;
+}
+
+message UpsertConfigResponse {
+  DdcConfig config = 1;
+}
+
+message DeleteConfigRequest {
+  DdcScope scope = 1;
+  string resource_name = 2;
+  optional int64 expected_version = 3;
+  string requested_operator = 4;
+  optional string reason = 5;
+}
+
+message DeleteConfigResponse {
+}
+
+message PublishConfigRequest {
+  DdcScope scope = 1;
+  string resource_name = 2;
+  string content = 3;
+  DdcConfigFormat format = 4;
+  optional int64 expected_version = 5;
+  optional string change_id = 6;
+  int64 timeout_ms = 7;
+  string requested_operator = 8;
+}
+
+message DdcPublishResult {
+  string change_id = 1;
+  DdcPublishStatus status = 2;
+  optional int64 target_version = 3;
+  optional string resource_checksum = 4;
+  int32 target_count = 5;
+  repeated DdcPublishTarget targets = 6;
+  optional string error_message = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp dispatched_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+}
+
+message PublishConfigResponse {
+  DdcPublishResult result = 1;
+}
+
+message GetPublishTaskRequest {
+  string change_id = 1;
+}
+
+message DdcPublishTask {
+  string change_id = 1;
+  DdcPublishStatus status = 2;
+  optional int64 target_version = 3;
+  optional string resource_checksum = 4;
+  int32 target_count = 5;
+  int32 acknowledged_count = 6;
+  int32 failed_count = 7;
+  int32 ignored_count = 8;
+  int32 timeout_count = 9;
+  int32 attempt_count = 10;
+  repeated DdcPublishTarget targets = 11;
+  optional string error_message = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp dispatched_at = 14;
+  google.protobuf.Timestamp completed_at = 15;
+}
+
+message GetPublishTaskResponse {
+  bool found = 1;
+  DdcPublishTask task = 2;
+}
+
+message RetryPublishTaskRequest {
+  string change_id = 1;
+  string requested_operator = 2;
+}
+
+message RetryPublishTaskResponse {
+  DdcPublishResult result = 1;
+}
+
+message GetConfigClientsRequest {
+  DdcScope scope = 1;
+}
+
+message DdcConfigClientInstance {
+  DdcScope scope = 1;
+  string instance_id = 2;
+  string lease_id = 3;
+  string host = 4;
+  optional int32 port = 5;
+  DdcLeaseRole lease_role = 6;
+  string status = 7;
+  google.protobuf.Timestamp registered_at = 8;
+  google.protobuf.Timestamp last_heartbeat_at = 9;
+  google.protobuf.Timestamp expire_at = 10;
+  map<string, string> metadata = 11;
+}
+
+message GetConfigClientsResponse {
+  repeated DdcConfigClientInstance clients = 1;
+}
+
+message DdcScopeBindingQuery {
+  optional string biz_code = 1;
+  optional string namespace_code = 2;
+  optional string env = 3;
+  optional string app_code = 4;
+}
+
+message GetScopeBindingsRequest {
+  DdcScopeBindingQuery query = 1;
+}
+
+message DdcScopeBinding {
+  string binding_id = 1;
+  string biz_code = 2;
+  string namespace_code = 3;
+  string env = 4;
+  string app_id = 5;
+  string app_code = 6;
+  string app_name = 7;
+  bool enabled = 8;
+}
+
+message GetScopeBindingsResponse {
+  repeated DdcScopeBinding bindings = 1;
+}
+
+message DdcManagementServiceQuery {
+  optional string biz_code = 1;
+  optional string namespace_code = 2;
+  optional string env = 3;
+  optional string app_code = 4;
+  optional DdcServiceKind service_kind = 5;
+  optional string protocol = 6;
+  optional string service_name = 7;
+  optional string group = 8;
+  optional string version = 9;
+}
+
+message GetServiceKeysRequest {
+  DdcManagementServiceQuery query = 1;
+}
+
+message DdcManagementServiceKey {
+  DdcScope scope = 1;
+  string service_id = 2;
+  DdcServiceKind service_kind = 3;
+  string service_name = 4;
+  string group = 5;
+  string version = 6;
+  string protocol = 7;
+}
+
+message GetServiceKeysResponse {
+  int64 generation = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  repeated DdcManagementServiceKey service_keys = 3;
+}
+
+message GetInstancesRequest {
+  DdcManagementServiceQuery query = 1;
+}
+
+message DdcManagementServiceInstance {
+  string instance_id = 1;
+  string lease_id = 2;
+  string host = 3;
+  int32 port = 4;
+  bool secure = 5;
+  map<string, string> metadata = 6;
+  string status = 7;
+  google.protobuf.Timestamp registered_at = 8;
+  google.protobuf.Timestamp last_heartbeat_at = 9;
+  google.protobuf.Timestamp expire_at = 10;
+}
+
+message GetInstancesResponse {
+  DdcManagementServiceKey service_key = 1;
+  int64 generation = 2;
+  google.protobuf.Timestamp observed_at = 3;
+  repeated DdcManagementServiceInstance instances = 4;
+}
