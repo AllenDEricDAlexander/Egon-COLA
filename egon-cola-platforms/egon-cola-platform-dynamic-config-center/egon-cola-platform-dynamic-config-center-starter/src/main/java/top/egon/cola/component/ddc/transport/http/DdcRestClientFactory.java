@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.management.client;
+package top.egon.cola.component.ddc.transport.http;
 
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;

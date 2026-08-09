@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.model.security;
+package top.egon.cola.component.ddc.transport.http;
 
 import top.egon.cola.component.common.crypto.hmac.Hmacs;
 

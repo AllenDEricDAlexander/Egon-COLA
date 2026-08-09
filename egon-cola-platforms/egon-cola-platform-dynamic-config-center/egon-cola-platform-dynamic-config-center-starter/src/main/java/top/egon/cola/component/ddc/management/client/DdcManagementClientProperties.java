@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.management.client;
 
+import top.egon.cola.component.ddc.transport.http.DdcClientTransportSecurity;
+
 import java.net.URI;
 import java.time.Duration;
 

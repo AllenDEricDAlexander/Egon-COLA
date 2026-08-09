@@ -25,6 +25,9 @@ import top.egon.cola.component.ddc.management.model.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
+import top.egon.cola.component.ddc.transport.http.DdcOpenApiRequestException;
+import top.egon.cola.component.ddc.transport.http.DdcOpenApiRequestFactory;
+import top.egon.cola.component.ddc.transport.http.DdcRestClientFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -54,7 +57,7 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     /**
      * 创建规范 URI、请求体和 HMAC 认证头的请求工厂。 / Factory that creates canonical URIs, bodies, and HMAC authentication headers.
      */
-    private final DdcManagementRequestFactory requestFactory;
+    private final DdcOpenApiRequestFactory requestFactory;
 
     /**
      * 使用生产默认时钟、随机防重放值与按配置创建的 REST 传输构造客户端。 /
@@ -90,11 +93,13 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
     ) {
         require(properties, "properties");
         ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        this.requestFactory = new DdcManagementRequestFactory(
-                properties,
+        this.requestFactory = new DdcOpenApiRequestFactory(
                 objectMapper,
                 require(clock, "clock"),
-                require(nonceSupplier, "nonceSupplier")
+                require(nonceSupplier, "nonceSupplier"),
+                true,
+                properties.accessKey(),
+                properties.secretKey()
         );
         this.restClient = require(restClientBuilder, "restClientBuilder")
                 .baseUrl(properties.endpoint())
@@ -364,17 +369,23 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
             ParameterizedTypeReference<ResultRecord<T>> responseType,
             boolean required
     ) {
-        DdcManagementRequestFactory.SignedRequest signedRequest =
-                requestFactory.create(method, path, query, request);
         try {
+            DdcOpenApiRequestFactory.Request openApiRequest =
+                    requestFactory.create(method, path, query, request);
             RestClient.RequestBodySpec spec = restClient.method(method)
-                    .uri(signedRequest.target())
-                    .headers(headers -> headers.addAll(signedRequest.headers()));
-            if (signedRequest.hasBody()) {
-                spec.contentType(MediaType.APPLICATION_JSON).body(signedRequest.body());
+                    .uri(openApiRequest.target())
+                    .headers(headers -> headers.addAll(openApiRequest.headers()));
+            if (openApiRequest.hasBody()) {
+                spec.contentType(MediaType.APPLICATION_JSON).body(openApiRequest.body());
             }
             ResultRecord<T> result = spec.retrieve().body(responseType);
             return data(result, required);
+        } catch (DdcOpenApiRequestException exception) {
+            throw new DdcManagementClientException(
+                    "DDC_MANAGEMENT_SERIALIZATION_ERROR",
+                    "DDC management request serialization failed",
+                    exception
+            );
         } catch (DdcManagementClientException exception) {
             throw exception;
         } catch (RestClientException exception) {

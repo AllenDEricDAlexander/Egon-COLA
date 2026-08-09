@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.model.security;
+package top.egon.cola.component.ddc.transport.http;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

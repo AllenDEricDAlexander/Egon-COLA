@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.management.client;
+package top.egon.cola.component.ddc.transport.http;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;

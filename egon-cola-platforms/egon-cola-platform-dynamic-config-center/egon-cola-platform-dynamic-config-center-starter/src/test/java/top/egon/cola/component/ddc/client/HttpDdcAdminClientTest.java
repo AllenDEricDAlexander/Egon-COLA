@@ -13,8 +13,8 @@ import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.transport.http.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.transport.http.DdcRequestSigner;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 

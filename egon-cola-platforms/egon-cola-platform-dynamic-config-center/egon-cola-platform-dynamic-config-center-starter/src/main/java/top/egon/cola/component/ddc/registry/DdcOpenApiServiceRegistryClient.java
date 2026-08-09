@@ -1,11 +1,10 @@
 package top.egon.cola.component.ddc.registry;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.redisson.api.RedissonClient;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestClient;
@@ -13,8 +12,10 @@ import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.management.client.DdcClientTransportSecurity;
-import top.egon.cola.component.ddc.management.client.DdcRestClientFactory;
+import top.egon.cola.component.ddc.transport.http.DdcClientTransportSecurity;
+import top.egon.cola.component.ddc.transport.http.DdcOpenApiRequestException;
+import top.egon.cola.component.ddc.transport.http.DdcOpenApiRequestFactory;
+import top.egon.cola.component.ddc.transport.http.DdcRestClientFactory;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -22,17 +23,12 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.trace.DdcTraceSupport;
 
-import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
@@ -73,24 +69,14 @@ public final class DdcOpenApiServiceRegistryClient
             "/api/v1/ddc/openapi/registry/services";
 
     /**
-     * DDC 客户端、安全和注册中心配置。 / DDC client, security, and registry properties.
-     */
-    private final DdcProperties properties;
-
-    /**
      * 调用 DDC Admin OpenAPI 的 HTTP 客户端。 / HTTP client used to call the DDC Admin OpenAPI.
      */
     private final RestClient restClient;
 
     /**
-     * 请求序列化及响应反序列化使用的映射器。 / Mapper used for request serialization and response deserialization.
+     * 统一构造规范目标、追踪头、可选签名和 JSON 请求体。 / Builds canonical targets, trace headers, optional signatures, and JSON bodies.
      */
-    private final ObjectMapper objectMapper;
-
-    /**
-     * HMAC 请求签名器。 / HMAC request signer.
-     */
-    private final DdcRequestSigner signer = new DdcRequestSigner();
+    private final DdcOpenApiRequestFactory requestFactory;
 
     /**
      * 管理 Redis 事件和定时协调订阅的组件。 / Component managing Redis events and scheduled subscription reconciliation.
@@ -115,8 +101,7 @@ public final class DdcOpenApiServiceRegistryClient
      */
     public DdcOpenApiServiceRegistryClient(DdcProperties properties,
                                            RedissonClient redissonClient) {
-        this.properties = properties;
-        this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         DdcProperties.Admin admin = properties.getAdmin();
         String endpoint = admin.requireEndpoint();
         admin.validateCredentials();
@@ -152,6 +137,12 @@ public final class DdcOpenApiServiceRegistryClient
                     converters.add(new MappingJackson2HttpMessageConverter(objectMapper));
                 })
                 .build();
+        this.requestFactory = new DdcOpenApiRequestFactory(
+                objectMapper,
+                admin.isSignatureEnabled(),
+                admin.getAccessKey(),
+                admin.getSecretKey()
+        );
         this.subscriptionManager = new DdcRegistrySubscriptionManager(
                 this,
                 redissonClient,
@@ -405,11 +396,15 @@ public final class DdcOpenApiServiceRegistryClient
     private <T> T get(String path,
                       Map<String, List<String>> query,
                       ParameterizedTypeReference<ResultRecord<T>> responseType) {
-        DdcCanonicalRequest canonicalRequest =
-                canonicalRequest("GET", path, query, new byte[0]);
+        DdcOpenApiRequestFactory.Request request = request(
+                HttpMethod.GET,
+                path,
+                query,
+                null
+        );
         ResultRecord<T> result = restClient.get()
-                .uri(URI.create(path + "?" + canonicalRequest.canonicalQuery()))
-                .headers(headers -> prepareHeaders(headers, canonicalRequest))
+                .uri(request.target())
+                .headers(headers -> headers.addAll(request.headers()))
                 .retrieve()
                 .body(responseType);
         return data(result);
@@ -429,90 +424,43 @@ public final class DdcOpenApiServiceRegistryClient
     private <T> T post(String path,
                        Object request,
                        ParameterizedTypeReference<ResultRecord<T>> responseType) {
-        byte[] body = serialize(request);
-        DdcCanonicalRequest canonicalRequest =
-                canonicalRequest("POST", path, Map.of(), body);
+        DdcOpenApiRequestFactory.Request openApiRequest = request(
+                HttpMethod.POST,
+                path,
+                Map.of(),
+                request
+        );
         ResultRecord<T> result = restClient.post()
-                .uri(path)
+                .uri(openApiRequest.target())
                 .contentType(MediaType.APPLICATION_JSON)
-                .headers(headers -> prepareHeaders(headers, canonicalRequest))
-                .body(body)
+                .headers(headers -> headers.addAll(openApiRequest.headers()))
+                .body(openApiRequest.body())
                 .retrieve()
                 .body(responseType);
         return data(result);
     }
 
     /**
-     * 将请求对象序列化为 JSON 字节。
-     * / Serializes a request object to JSON bytes.
-     *
-     * @param request 请求对象 / request object
-     * @return JSON 请求体 / JSON request body
-     * @throws DdcException Jackson 无法序列化请求时抛出 / if Jackson cannot serialize the request
-     */
-    private byte[] serialize(Object request) {
-        try {
-            return objectMapper.writeValueAsBytes(request);
-        } catch (JsonProcessingException exception) {
-            throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE, exception);
-        }
-    }
-
-    /**
-     * 使用当前时间、随机 nonce 和请求体构造规范签名请求。
-     * / Builds a canonical signing request with the current time, a random nonce, and the body.
+     * 构造 OpenAPI 请求并将构造失败映射为 DDC 异常。
+     * / Builds an OpenAPI request and maps construction failures to DDC exceptions.
      *
      * @param method HTTP 方法 / HTTP method
      * @param path   请求路径 / request path
      * @param query  查询参数 / query parameters
-     * @param body   请求体字节 / request body bytes
-     * @return 规范请求 / canonical request
+     * @param body   可选请求体 / optional request body
+     * @return 已准备的 OpenAPI 请求 / prepared OpenAPI request
+     * @throws DdcException Jackson 无法序列化请求时抛出 / if Jackson cannot serialize the request
      */
-    private DdcCanonicalRequest canonicalRequest(String method,
-                                                 String path,
-                                                 Map<String, List<String>> query,
-                                                 byte[] body) {
-        return new DdcCanonicalRequest(
-                method,
-                path,
-                query,
-                System.currentTimeMillis(),
-                UUID.randomUUID().toString(),
-                body
-        );
-    }
-
-    /**
-     * 在启用签名时向请求头写入访问密钥、时间戳、nonce、内容摘要和签名。
-     * / Writes the access key, timestamp, nonce, content digest, and signature to headers when signing is enabled.
-     *
-     * @param headers 待补充的请求头 / headers to populate
-     * @param request 规范请求 / canonical request
-     */
-    private void sign(HttpHeaders headers, DdcCanonicalRequest request) {
-        if (!properties.getAdmin().isSignatureEnabled()) {
-            return;
+    private DdcOpenApiRequestFactory.Request request(
+            HttpMethod method,
+            String path,
+            Map<String, List<String>> query,
+            Object body) {
+        try {
+            return requestFactory.create(method, path, query, body);
+        } catch (DdcOpenApiRequestException exception) {
+            throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE, exception);
         }
-        headers.set(DdcRequestSigner.ACCESS_KEY_HEADER, properties.getAdmin().getAccessKey());
-        headers.set(DdcRequestSigner.TIMESTAMP_HEADER, Long.toString(request.timestamp()));
-        headers.set(DdcRequestSigner.NONCE_HEADER, request.nonce());
-        headers.set(DdcRequestSigner.CONTENT_SHA256_HEADER, request.contentSha256());
-        headers.set(
-                DdcRequestSigner.SIGNATURE_HEADER,
-                signer.sign(request, properties.getAdmin().getSecretKey())
-        );
-    }
-
-    /**
-     * 注入追踪上下文并按配置签名请求。
-     * / Injects trace context and signs the request according to configuration.
-     *
-     * @param headers 待补充的请求头 / headers to populate
-     * @param request 规范请求 / canonical request
-     */
-    private void prepareHeaders(HttpHeaders headers, DdcCanonicalRequest request) {
-        DdcTraceSupport.inject(headers);
-        sign(headers, request);
     }
 
     /**

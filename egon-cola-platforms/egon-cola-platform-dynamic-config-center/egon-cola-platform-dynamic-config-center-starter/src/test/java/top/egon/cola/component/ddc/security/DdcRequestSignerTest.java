@@ -1,8 +1,8 @@
 package top.egon.cola.component.ddc.security;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.model.security.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.model.security.DdcRequestSigner;
+import top.egon.cola.component.ddc.transport.http.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.transport.http.DdcRequestSigner;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;

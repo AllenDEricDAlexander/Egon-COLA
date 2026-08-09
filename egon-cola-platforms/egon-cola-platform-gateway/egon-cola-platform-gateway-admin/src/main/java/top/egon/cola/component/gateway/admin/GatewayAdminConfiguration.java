@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.client.DdcClientTransportSecurity;
+import top.egon.cola.component.ddc.transport.http.DdcClientTransportSecurity;
 import top.egon.cola.component.ddc.management.client.DdcManagementClientProperties;
 import top.egon.cola.component.ddc.management.client.HttpDdcManagementClient;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayCallEventIngestService;
