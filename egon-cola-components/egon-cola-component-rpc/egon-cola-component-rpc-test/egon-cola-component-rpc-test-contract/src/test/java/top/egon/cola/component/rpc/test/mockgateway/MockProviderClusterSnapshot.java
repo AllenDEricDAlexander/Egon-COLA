@@ -1,11 +1,11 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
 
 import java.util.List;
 
 record MockProviderClusterSnapshot(
-        DdcServiceKey serviceKey,
+        RpcServiceIdentity serviceIdentity,
         long revision,
         List<MockProviderEndpoint> endpoints
 ) {

@@ -1,37 +1,54 @@
 package top.egon.cola.component.rpc.context;
 
 import org.springframework.core.env.Environment;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
+import top.egon.cola.component.rpc.config.EgonRpcProperties;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class RpcProcessIdentityFactory {
 
     private final Environment environment;
 
-    private final DdcProperties ddcProperties;
-
-    private final DdcInstanceIdentity ddcIdentity;
+    private final EgonRpcProperties.Identity properties;
 
     public RpcProcessIdentityFactory(Environment environment,
-                                     DdcProperties ddcProperties,
-                                     DdcInstanceIdentity ddcIdentity) {
+                                     EgonRpcProperties properties) {
         this.environment = environment;
-        this.ddcProperties = ddcProperties;
-        this.ddcIdentity = ddcIdentity;
+        this.properties = properties.getIdentity();
     }
 
     public RpcProcessIdentity create() {
         String applicationName = environment.getProperty(
                 "spring.application.name",
-                ddcProperties.getAppCode()
+                "application"
         );
         long pid = ProcessHandle.current().pid();
+        String host = configuredOrDefault(properties.getHost(), localHost());
+        String instanceId = configuredOrDefault(
+                properties.getInstanceId(),
+                applicationName + "-" + host + "-" + pid
+        );
         return new RpcProcessIdentity(
                 applicationName,
-                ddcProperties.getEnv(),
-                ddcIdentity.host(),
+                configuredOrDefault(properties.getEnv(), "default"),
+                host,
                 pid,
-                ddcIdentity.instanceId()
+                instanceId
         );
+    }
+
+    private String localHost() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException exception) {
+            return "127.0.0.1";
+        }
+    }
+
+    private String configuredOrDefault(String configured, String fallback) {
+        return configured == null || configured.isBlank()
+                ? fallback
+                : configured.trim();
     }
 }

@@ -5,10 +5,6 @@ import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
@@ -18,15 +14,17 @@ import top.egon.cola.component.rpc.contract.RpcContractValidator;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
+import top.egon.cola.component.rpc.provider.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.RpcProviderLeaseIdentity;
+import top.egon.cola.component.rpc.provider.RpcProviderRegistration;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
 import top.egon.cola.component.rpc.test.contract.EchoRpc;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
-import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
-import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
-import top.egon.cola.component.rpc.test.support.TestDdcScopes;
+import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryBackend;
+import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryClient;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -49,15 +47,15 @@ class RpcTcpCancellationTest {
                 providerCancelled,
                 releaseProvider
         );
-        InMemoryDdcRegistryBackend backend =
-                new InMemoryDdcRegistryBackend();
-        InMemoryDdcServiceRegistryClient providerRegistry =
-                new InMemoryDdcServiceRegistryClient(backend);
-        DdcLeaseSession providerLease = providerRegistry.register(
+        InMemoryRpcRegistryBackend backend =
+                new InMemoryRpcRegistryBackend();
+        InMemoryRpcRegistryClient providerRegistry =
+                new InMemoryRpcRegistryClient(backend);
+        RpcProviderLease providerLease = providerRegistry.register(
                 providerRegistration(provider.getPort())
         );
         MockRpcGateway gateway = new MockRpcGateway(
-                new InMemoryDdcServiceRegistryClient(backend),
+                new InMemoryRpcRegistryClient(backend),
                 "test",
                 "mock-gateway-cancel",
                 MockGatewayProperties.defaults(),
@@ -78,11 +76,10 @@ class RpcTcpCancellationTest {
                     "consumer-cancel"
             );
             consumerGateway = new RpcConsumerGatewayManager(
-                    new InMemoryDdcServiceRegistryClient(backend),
+                    new InMemoryRpcRegistryClient(backend),
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity,
-                    TestDdcScopes.serviceKeyFactory()
+                    identity
             );
             consumerGateway.start();
             EchoRpc proxy = new RpcConsumerProxyFactory(
@@ -115,10 +112,7 @@ class RpcTcpCancellationTest {
                 consumerGateway.stop();
             }
             gateway.close();
-            providerRegistry.deregister(
-                    providerLease.instanceId(),
-                    providerLease.leaseId()
-            );
+            providerRegistry.deregister(leaseIdentity(providerLease));
             provider.shutdownNow().awaitTermination();
         }
     }
@@ -157,18 +151,15 @@ class RpcTcpCancellationTest {
                 .start();
     }
 
-    private DdcServiceRegistration providerRegistration(int port) {
-        return new DdcServiceRegistration(
-                "blocking-provider",
-                new DdcServiceKey(
-                        "test-biz",
+    private RpcProviderRegistration providerRegistration(int port) {
+        return new RpcProviderRegistration(
+                serviceIdentity(),
+                new RpcProcessIdentity(
+                        "provider-test",
                         "test",
-                        "test-app",
-                        DdcServiceKind.RPC_PROVIDER,
-                        "egon.rpc.test.v1.EchoService",
-                        "default",
-                        "1.0.0",
-                        "grpc"
+                        "127.0.0.1",
+                        1,
+                        "blocking-provider"
                 ),
                 "127.0.0.1",
                 port,
@@ -180,6 +171,22 @@ class RpcTcpCancellationTest {
                 ),
                 30,
                 10
+        );
+    }
+
+    private RpcProviderLeaseIdentity leaseIdentity(RpcProviderLease lease) {
+        return new RpcProviderLeaseIdentity(
+                serviceIdentity(),
+                lease.instanceId(),
+                lease.leaseId()
+        );
+    }
+
+    private RpcServiceIdentity serviceIdentity() {
+        return new RpcServiceIdentity(
+                "egon.rpc.test.v1.EchoService",
+                "default",
+                "1.0.0"
         );
     }
 

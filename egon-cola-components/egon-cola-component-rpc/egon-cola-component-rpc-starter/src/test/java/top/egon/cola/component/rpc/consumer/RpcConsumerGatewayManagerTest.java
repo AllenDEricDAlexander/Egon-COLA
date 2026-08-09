@@ -5,19 +5,6 @@ import io.grpc.ManagedChannel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
@@ -37,29 +24,32 @@ import static org.mockito.Mockito.when;
 class RpcConsumerGatewayManagerTest {
 
     @Test
-    void shouldRoundRobinAcrossMultipleGatewaysAndRemoveFailures() {
-        SnapshotRegistry registry = new SnapshotRegistry();
+    void roundRobinsAcrossDirectoryGatewaysAndRemovesFailures() {
+        SnapshotDirectory directory = new SnapshotDirectory();
         StubChannelFactory channels = new StubChannelFactory();
-        RpcConsumerGatewayManager manager = manager(registry, channels);
-        registry.snapshot = snapshot(instance("gateway-1", "lease-1", 19090));
+        RpcConsumerGatewayManager manager = manager(directory, channels);
+        directory.snapshot = snapshot(endpoint(
+                "gateway-1",
+                "lease-1",
+                19090
+        ));
 
         manager.start();
 
         assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
         assertThat(manager.endpoint().instanceId()).isEqualTo("gateway-1");
         assertThat(channels.createCount).isOne();
-        assertThat(registry.subscriptionKey.bizCode())
-                .isEqualTo("platform-biz");
-        assertThat(registry.subscriptionKey.appCode())
-                .isEqualTo("gateway-app");
-        assertThat(registry.subscriptionKey.env()).isEqualTo("test");
+        assertThat(directory.query.bizCode()).isEqualTo("platform-biz");
+        assertThat(directory.query.appCode()).isEqualTo("gateway-app");
+        assertThat(directory.query.env()).isEqualTo("test");
+        assertThat(directory.query.serviceName())
+                .isEqualTo("egon-gateway-rpc");
 
-        registry.publish(snapshot(
-                instance("gateway-1", "lease-1", 19090),
-                instance("gateway-2", "lease-2", 19091)
+        directory.publish(snapshot(
+                endpoint("gateway-1", "lease-1", 19090),
+                endpoint("gateway-2", "lease-2", 19091)
         ));
 
-        assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
         assertThat(manager.endpoints())
                 .extracting(RpcGatewayEndpoint::instanceId)
                 .containsExactly("gateway-1", "gateway-2");
@@ -75,30 +65,33 @@ class RpcConsumerGatewayManagerTest {
     }
 
     @Test
-    void shouldFailStartupAfterEmptyDiscoveryTimeout() {
-        SnapshotRegistry registry = new SnapshotRegistry();
-        registry.snapshot = snapshot();
-        RpcConsumerGatewayManager manager =
-                manager(registry, new StubChannelFactory());
+    void failsStartupAfterEmptyDiscoveryTimeout() {
+        SnapshotDirectory directory = new SnapshotDirectory();
+        directory.snapshot = snapshot();
+        RpcConsumerGatewayManager manager = manager(
+                directory,
+                new StubChannelFactory()
+        );
 
         assertThatThrownBy(manager::start)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode())
-                                .isEqualTo(
-                                        EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
-                                )
+                        assertThat(exception.getCode()).isEqualTo(
+                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                        )
                 );
     }
 
     @Test
-    void shouldStartWithMultipleGateways() {
-        SnapshotRegistry registry = new SnapshotRegistry();
-        registry.snapshot = snapshot(
-                instance("gateway-1", "lease-1", 19090),
-                instance("gateway-2", "lease-2", 19091)
+    void startsWithMultipleGateways() {
+        SnapshotDirectory directory = new SnapshotDirectory();
+        directory.snapshot = snapshot(
+                endpoint("gateway-1", "lease-1", 19090),
+                endpoint("gateway-2", "lease-2", 19091)
         );
-        RpcConsumerGatewayManager manager =
-                manager(registry, new StubChannelFactory());
+        RpcConsumerGatewayManager manager = manager(
+                directory,
+                new StubChannelFactory()
+        );
 
         manager.start();
 
@@ -107,49 +100,20 @@ class RpcConsumerGatewayManagerTest {
         manager.stop();
     }
 
-    @Test
-    void shouldAcceptOnlineGatewayStatus() {
-        SnapshotRegistry registry = new SnapshotRegistry();
-        registry.snapshot = snapshot(instance(
-                "gateway-1", "lease-1", 19090, "ONLINE",
-                Instant.now().plusSeconds(30)
-        ));
-        RpcConsumerGatewayManager manager =
-                manager(registry, new StubChannelFactory());
-
-        manager.start();
-
-        assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
-        manager.stop();
-    }
-
-    @Test
-    void shouldTreatMissingGatewayStatusAsUnavailable() {
-        SnapshotRegistry registry = new SnapshotRegistry();
-        registry.snapshot = snapshot(instance(
-                "gateway-1", "lease-1", 19090, null,
-                Instant.now().plusSeconds(30)
-        ));
-        RpcConsumerGatewayManager manager =
-                manager(registry, new StubChannelFactory());
-
-        assertThatThrownBy(manager::start)
-                .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode()).isEqualTo(
-                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
-                        )
-                );
-    }
-
     @ParameterizedTest
     @MethodSource("nonCurrentLeaseExpireAts")
-    void shouldRejectOnlineGatewayWithoutCurrentLease(Instant leaseExpireAt) {
-        SnapshotRegistry registry = new SnapshotRegistry();
-        registry.snapshot = snapshot(instance(
-                "gateway-1", "lease-1", 19090, "ONLINE", leaseExpireAt
+    void rejectsGatewayWithoutCurrentLease(Instant leaseExpireAt) {
+        SnapshotDirectory directory = new SnapshotDirectory();
+        directory.snapshot = snapshot(endpoint(
+                "gateway-1",
+                "lease-1",
+                19090,
+                leaseExpireAt
         ));
-        RpcConsumerGatewayManager manager =
-                manager(registry, new StubChannelFactory());
+        RpcConsumerGatewayManager manager = manager(
+                directory,
+                new StubChannelFactory()
+        );
 
         assertThatThrownBy(manager::start)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
@@ -160,15 +124,23 @@ class RpcConsumerGatewayManagerTest {
     }
 
     @Test
-    void shouldCloseDrainingChannelsAndRestartCleanly() {
-        SnapshotRegistry registry = new SnapshotRegistry();
+    void closesDrainingChannelsAndRestartsCleanly() {
+        SnapshotDirectory directory = new SnapshotDirectory();
         StubChannelFactory channels = new StubChannelFactory();
-        RpcConsumerGatewayManager manager = manager(registry, channels);
-        registry.snapshot = snapshot(instance("gateway-1", "lease-1", 19090));
+        RpcConsumerGatewayManager manager = manager(directory, channels);
+        directory.snapshot = snapshot(endpoint(
+                "gateway-1",
+                "lease-1",
+                19090
+        ));
 
         manager.start();
         ManagedChannel first = channels.lastChannel;
-        registry.publish(snapshot(instance("gateway-2", "lease-2", 19091)));
+        directory.publish(snapshot(endpoint(
+                "gateway-2",
+                "lease-2",
+                19091
+        )));
         ManagedChannel second = channels.lastChannel;
 
         verify(first).shutdown();
@@ -176,7 +148,11 @@ class RpcConsumerGatewayManagerTest {
         verify(first).shutdownNow();
         verify(second).shutdownNow();
 
-        registry.snapshot = snapshot(instance("gateway-3", "lease-3", 19092));
+        directory.snapshot = snapshot(endpoint(
+                "gateway-3",
+                "lease-3",
+                19092
+        ));
         manager.start();
 
         assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
@@ -184,38 +160,8 @@ class RpcConsumerGatewayManagerTest {
         manager.stop();
     }
 
-    @Test
-    void shouldTreatInvalidGatewayEndpointAsUnavailable() {
-        SnapshotRegistry registry = new SnapshotRegistry();
-        RpcConsumerGatewayManager manager =
-                manager(registry, new StubChannelFactory());
-        registry.snapshot = snapshot(new DdcServiceInstance(
-                "gateway-1",
-                "lease-1",
-                gatewayKey(),
-                "0.0.0.0",
-                19090,
-                false,
-                java.util.Map.of(),
-                30,
-                10,
-                Instant.now(),
-                Instant.now(),
-                Instant.now().plusSeconds(30),
-                "UP",
-                1
-        ));
-
-        assertThatThrownBy(manager::start)
-                .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode()).isEqualTo(
-                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
-                        )
-                );
-    }
-
     private RpcConsumerGatewayManager manager(
-            SnapshotRegistry registry,
+            SnapshotDirectory directory,
             StubChannelFactory channels) {
         EgonRpcProperties properties = new EgonRpcProperties();
         properties.getConsumer().setGatewayDiscoveryTimeoutMs(30);
@@ -223,71 +169,51 @@ class RpcConsumerGatewayManagerTest {
         properties.getConsumer().setGatewayBizCode("platform-biz");
         properties.getConsumer().setGatewayAppCode("gateway-app");
         return new RpcConsumerGatewayManager(
-                registry,
+                directory,
                 channels,
                 properties,
-                processIdentity(),
-                serviceKeyFactory()
+                processIdentity()
         );
     }
 
-    private DdcServiceSnapshot snapshot(DdcServiceInstance... instances) {
-        return new DdcServiceSnapshot(
-                gatewayKey(),
+    private RpcGatewaySnapshot snapshot(RpcGatewayEndpoint... endpoints) {
+        return new RpcGatewaySnapshot(
                 1,
-                List.of(instances),
-                Instant.now()
+                Instant.now(),
+                List.of(endpoints)
         );
     }
 
-    private DdcServiceInstance instance(
+    private RpcGatewayEndpoint endpoint(
             String instanceId,
             String leaseId,
             int port) {
-        Instant now = Instant.now();
-        return instance(instanceId, leaseId, port, "UP", now.plusSeconds(30));
+        return endpoint(
+                instanceId,
+                leaseId,
+                port,
+                Instant.now().plusSeconds(30)
+        );
     }
 
-    private DdcServiceInstance instance(
+    private RpcGatewayEndpoint endpoint(
             String instanceId,
             String leaseId,
             int port,
-            String status,
             Instant leaseExpireAt) {
-        return new DdcServiceInstance(
+        return new RpcGatewayEndpoint(
                 instanceId,
                 leaseId,
-                gatewayKey(),
                 "127.0.0.1",
                 port,
                 false,
-                java.util.Map.of(),
-                30,
-                10,
-                leaseExpireAt.minusSeconds(30),
-                leaseExpireAt.minusSeconds(10),
-                leaseExpireAt,
-                status,
-                1
+                leaseExpireAt
         );
     }
 
     private static Stream<Instant> nonCurrentLeaseExpireAts() {
         Instant now = Instant.now();
         return Stream.of(now.minusSeconds(1), now);
-    }
-
-    private DdcServiceKey gatewayKey() {
-        return new DdcServiceKey(
-                "platform-biz",
-                "test",
-                "gateway-app",
-                DdcServiceKind.INTERNAL_GATEWAY,
-                "egon-internal-rpc-gateway",
-                "default",
-                "1.0.0",
-                "grpc"
-        );
     }
 
     private RpcProcessIdentity processIdentity() {
@@ -299,15 +225,6 @@ class RpcConsumerGatewayManagerTest {
                 1,
                 "consumer-1"
         );
-    }
-
-    private DdcServiceKeyFactory serviceKeyFactory() {
-        DdcProperties properties = new DdcProperties();
-        properties.setBizCode("retail-biz");
-        properties.setAppCode("orders-app");
-        properties.setEnv("test");
-        properties.setNamespace("default");
-        return new DdcServiceKeyFactory(properties);
     }
 
     private static final class StubChannelFactory
@@ -332,65 +249,28 @@ class RpcConsumerGatewayManagerTest {
         }
     }
 
-    private static final class SnapshotRegistry
-            implements DdcServiceRegistryClient {
+    private static final class SnapshotDirectory
+            implements RpcGatewayDirectory {
 
-        private DdcServiceSnapshot snapshot;
+        private RpcGatewaySnapshot snapshot;
 
-        private Consumer<DdcServiceSnapshot> listener;
+        private Consumer<RpcGatewaySnapshot> listener;
 
-        private DdcServiceKey subscriptionKey;
+        private RpcGatewayQuery query;
 
         @Override
-        public DdcRegistrySubscription subscribe(
-                DdcServiceKey serviceKey,
-                Consumer<DdcServiceSnapshot> listener) {
-            this.subscriptionKey = serviceKey;
+        public RpcGatewaySubscription subscribe(
+                RpcGatewayQuery query,
+                Consumer<RpcGatewaySnapshot> listener) {
+            this.query = query;
             this.listener = listener;
             listener.accept(snapshot);
             return () -> this.listener = null;
         }
 
-        void publish(DdcServiceSnapshot next) {
+        void publish(RpcGatewaySnapshot next) {
             snapshot = next;
             listener.accept(next);
-        }
-
-        @Override
-        public DdcLeaseSession register(DdcServiceRegistration registration) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcLeaseOperationResult deregister(
-                String instanceId,
-                String leaseId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcServiceCatalogSnapshot getServiceKeys(
-                DdcServiceQuery query) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcRegistrySubscription subscribeServices(
-                DdcServiceQuery query,
-                Consumer<DdcServiceCatalogSnapshot> listener) {
-            throw new UnsupportedOperationException();
         }
     }
 }

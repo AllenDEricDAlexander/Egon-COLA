@@ -8,12 +8,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.env.Environment;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.RpcProcessIdentityFactory;
+import top.egon.cola.component.rpc.context.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
 import top.egon.cola.component.rpc.contract.DefaultRpcContractCatalog;
 import top.egon.cola.component.rpc.contract.RpcContractCatalog;
@@ -22,6 +19,7 @@ import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
 import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
+import top.egon.cola.component.rpc.consumer.RpcGatewayDirectory;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.provider.RpcProviderAvailabilityRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderBeanScanner;
@@ -30,11 +28,12 @@ import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
 import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
 import top.egon.cola.component.rpc.provider.RpcProviderMetadataMerger;
 import top.egon.cola.component.rpc.provider.RpcProviderMethodRegistry;
+import top.egon.cola.component.rpc.provider.RpcProviderRegistry;
 import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
 import top.egon.cola.component.rpc.provider.RpcServerServiceDefinitionFactory;
 
 @AutoConfiguration
-@EnableConfigurationProperties({EgonRpcProperties.class, DdcProperties.class})
+@EnableConfigurationProperties(EgonRpcProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.component.rpc",
         name = "enabled",
@@ -50,15 +49,19 @@ public class EgonRpcAutoConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public RpcProcessIdentity rpcProcessIdentity(
+    public RpcProcessIdentityProvider rpcProcessIdentityProvider(
             Environment environment,
-            DdcProperties ddcProperties,
-            DdcInstanceIdentity ddcIdentity) {
-        return new RpcProcessIdentityFactory(
-                environment,
-                ddcProperties,
-                ddcIdentity
-        ).create();
+            EgonRpcProperties properties) {
+        RpcProcessIdentityFactory factory =
+                new RpcProcessIdentityFactory(environment, properties);
+        return factory::create;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RpcProcessIdentity rpcProcessIdentity(
+            RpcProcessIdentityProvider identityProvider) {
+        return identityProvider.identity();
     }
 
     @Bean
@@ -112,10 +115,9 @@ public class EgonRpcAutoConfig {
     public RpcProviderLifecycle rpcProviderLifecycle(
             RpcProviderMethodRegistry methodRegistry,
             RpcProviderMetadataMerger metadataMerger,
-            DdcServiceRegistryClient registryClient,
+            ObjectProvider<RpcProviderRegistry> registryProvider,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
-            DdcServiceKeyFactory serviceKeyFactory,
             Environment environment) {
         String runtimeVersion = environment.getProperty(
                 "egon.rpc.runtime-version"
@@ -125,15 +127,17 @@ public class EgonRpcAutoConfig {
         }
         RpcProviderAvailabilityRegistry availability =
                 new RpcProviderAvailabilityRegistry();
-        RpcProviderLeaseManager leaseManager = new RpcProviderLeaseManager(
-                registryClient,
-                availability,
-                properties,
-                processIdentity,
-                runtimeVersion,
-                metadataMerger,
-                serviceKeyFactory
-        );
+        RpcProviderRegistry registry = registryProvider.getIfAvailable();
+        RpcProviderLeaseManager leaseManager = registry == null
+                ? null
+                : new RpcProviderLeaseManager(
+                        registry,
+                        availability,
+                        properties,
+                        processIdentity,
+                        runtimeVersion,
+                        metadataMerger
+                );
         return new RpcProviderLifecycle(
                 methodRegistry,
                 new RpcServerServiceDefinitionFactory(availability),
@@ -153,16 +157,14 @@ public class EgonRpcAutoConfig {
             havingValue = "true"
     )
     public RpcConsumerGatewayManager rpcConsumerGatewayManager(
-            DdcServiceRegistryClient registryClient,
+            RpcGatewayDirectory gatewayDirectory,
             EgonRpcProperties properties,
-            RpcProcessIdentity processIdentity,
-            DdcServiceKeyFactory serviceKeyFactory) {
+            RpcProcessIdentity processIdentity) {
         return new RpcConsumerGatewayManager(
-                registryClient,
+                gatewayDirectory,
                 new RpcConsumerChannelFactory(transportSecurity(properties)),
                 properties,
-                processIdentity,
-                serviceKeyFactory
+                processIdentity
         );
     }
 

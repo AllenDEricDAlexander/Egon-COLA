@@ -1,6 +1,7 @@
 package top.egon.cola.component.rpc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import top.egon.cola.component.rpc.provider.RpcProviderRegistrationMode;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -9,6 +10,8 @@ import java.util.Map;
 public class EgonRpcProperties {
 
     private boolean enabled;
+
+    private Identity identity = new Identity();
 
     private Provider provider = new Provider();
 
@@ -22,6 +25,14 @@ public class EgonRpcProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Identity getIdentity() {
+        return identity;
+    }
+
+    public void setIdentity(Identity identity) {
+        this.identity = identity;
     }
 
     public Provider getProvider() {
@@ -61,6 +72,9 @@ public class EgonRpcProperties {
         private Integer advertisedPort;
 
         private boolean registrationFailFast = true;
+
+        private RpcProviderRegistrationMode registrationMode =
+                RpcProviderRegistrationMode.REQUIRED;
 
         private int leaseSeconds = 30;
 
@@ -118,6 +132,15 @@ public class EgonRpcProperties {
             this.registrationFailFast = registrationFailFast;
         }
 
+        public RpcProviderRegistrationMode getRegistrationMode() {
+            return registrationMode;
+        }
+
+        public void setRegistrationMode(
+                RpcProviderRegistrationMode registrationMode) {
+            this.registrationMode = registrationMode;
+        }
+
         public int getLeaseSeconds() {
             return leaseSeconds;
         }
@@ -148,6 +171,39 @@ public class EgonRpcProperties {
 
         public void setMetadata(Map<String, String> metadata) {
             this.metadata = metadata;
+        }
+    }
+
+    public static class Identity {
+
+        private String env = "default";
+
+        private String host;
+
+        private String instanceId;
+
+        public String getEnv() {
+            return env;
+        }
+
+        public void setEnv(String env) {
+            this.env = env;
+        }
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public String getInstanceId() {
+            return instanceId;
+        }
+
+        public void setInstanceId(String instanceId) {
+            this.instanceId = instanceId;
         }
     }
 

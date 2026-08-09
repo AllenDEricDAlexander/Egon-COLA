@@ -11,12 +11,13 @@ import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.context.RpcProcessIdentity;
+import top.egon.cola.component.rpc.provider.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.RpcProviderLeaseIdentity;
+import top.egon.cola.component.rpc.provider.RpcProviderRegistration;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.test.support.TestRpcRegistry;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ public final class MockRpcGateway implements AutoCloseable {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(MockRpcGateway.class);
 
-    private final DdcServiceRegistryClient registryClient;
+    private final TestRpcRegistry registryClient;
 
     private final String env;
 
@@ -58,12 +59,12 @@ public final class MockRpcGateway implements AutoCloseable {
 
     private Server server;
 
-    private DdcLeaseSession lease;
+    private RpcProviderLease lease;
 
     private ScheduledExecutorService heartbeat;
 
     public MockRpcGateway(
-            DdcServiceRegistryClient registryClient,
+            TestRpcRegistry registryClient,
             String env,
             String instanceId,
             MockGatewayProperties properties,
@@ -93,9 +94,15 @@ public final class MockRpcGateway implements AutoCloseable {
                 .intercept(metadataInterceptor())
                 .build()
                 .start();
-        lease = registryClient.register(new DdcServiceRegistration(
-                instanceId,
-                gatewayKey(),
+        lease = registryClient.registerGateway(new RpcProviderRegistration(
+                gatewayServiceIdentity(),
+                new RpcProcessIdentity(
+                        properties.serviceName(),
+                        env,
+                        properties.advertisedHost(),
+                        ProcessHandle.current().pid(),
+                        instanceId
+                ),
                 properties.advertisedHost(),
                 server.getPort(),
                 false,
@@ -147,10 +154,11 @@ public final class MockRpcGateway implements AutoCloseable {
         }
         if (lease != null) {
             try {
-                registryClient.deregister(
+                registryClient.deregister(new RpcProviderLeaseIdentity(
+                        gatewayServiceIdentity(),
                         lease.instanceId(),
                         lease.leaseId()
-                );
+                ));
             } finally {
                 lease = null;
             }
@@ -182,15 +190,10 @@ public final class MockRpcGateway implements AutoCloseable {
                 RpcMetadataKeys.VERSION,
                 "1.0.0"
         );
-        DdcServiceKey serviceKey = new DdcServiceKey(
-                "test-biz",
-                env,
-                "test-app",
-                DdcServiceKind.RPC_PROVIDER,
+        RpcServiceIdentity serviceKey = new RpcServiceIdentity(
                 serviceName,
                 group,
-                version,
-                "grpc"
+                version
         );
         MockProviderEndpoint endpoint = selector.select(
                 directory.cluster(serviceKey).endpoints()
@@ -249,29 +252,25 @@ public final class MockRpcGateway implements AutoCloseable {
         };
     }
 
-    private DdcServiceKey gatewayKey() {
-        return new DdcServiceKey(
-                "test-biz",
-                env,
-                "test-app",
-                DdcServiceKind.INTERNAL_GATEWAY,
+    private RpcServiceIdentity gatewayServiceIdentity() {
+        return new RpcServiceIdentity(
                 properties.serviceName(),
                 properties.group(),
-                properties.version(),
-                "grpc"
+                properties.version()
         );
     }
 
     private void heartbeat() {
-        DdcLeaseSession current = lease;
+        RpcProviderLease current = lease;
         if (current == null) {
             return;
         }
         try {
-            registryClient.heartbeat(
+            registryClient.heartbeat(new RpcProviderLeaseIdentity(
+                    gatewayServiceIdentity(),
                     current.instanceId(),
                     current.leaseId()
-            );
+            ));
         } catch (RuntimeException exception) {
             LOGGER.warn("Mock Gateway heartbeat failed", exception);
         }

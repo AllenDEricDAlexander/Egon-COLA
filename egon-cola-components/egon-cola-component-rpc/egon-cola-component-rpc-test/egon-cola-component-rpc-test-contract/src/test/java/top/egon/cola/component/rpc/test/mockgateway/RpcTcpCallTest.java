@@ -3,7 +3,6 @@ package top.egon.cola.component.rpc.test.mockgateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
@@ -19,13 +18,13 @@ import top.egon.cola.component.rpc.provider.RpcProviderLeaseManager;
 import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
 import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
 import top.egon.cola.component.rpc.provider.RpcServerServiceDefinitionFactory;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.fixture.consumer.EchoRpcTestClient;
 import top.egon.cola.component.rpc.test.fixture.provider.EchoRpcTestProvider;
-import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
-import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
-import top.egon.cola.component.rpc.test.support.TestDdcScopes;
+import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryBackend;
+import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryClient;
 
 import java.util.List;
 
@@ -36,14 +35,14 @@ class RpcTcpCallTest {
     @Test
     void shouldCallConsumerThroughMockGatewayToProviderOverTcp()
             throws Exception {
-        InMemoryDdcRegistryBackend backend =
-                new InMemoryDdcRegistryBackend();
-        InMemoryDdcServiceRegistryClient providerRegistry =
-                new InMemoryDdcServiceRegistryClient(backend);
-        InMemoryDdcServiceRegistryClient gatewayRegistry =
-                new InMemoryDdcServiceRegistryClient(backend);
-        InMemoryDdcServiceRegistryClient consumerRegistry =
-                new InMemoryDdcServiceRegistryClient(backend);
+        InMemoryRpcRegistryBackend backend =
+                new InMemoryRpcRegistryBackend();
+        InMemoryRpcRegistryClient providerRegistry =
+                new InMemoryRpcRegistryClient(backend);
+        InMemoryRpcRegistryClient gatewayRegistry =
+                new InMemoryRpcRegistryClient(backend);
+        InMemoryRpcRegistryClient consumerRegistry =
+                new InMemoryRpcRegistryClient(backend);
         AnnotationConfigApplicationContext providerContext =
                 providerContext();
         RpcProviderLifecycle provider = providerLifecycle(
@@ -77,8 +76,7 @@ class RpcTcpCallTest {
                     consumerRegistry,
                     new RpcConsumerChannelFactory(),
                     consumerProperties,
-                    consumerIdentity,
-                    TestDdcScopes.serviceKeyFactory()
+                    consumerIdentity
             );
             consumerGateway.start();
             RpcConsumerProxyFactory proxyFactory =
@@ -105,14 +103,22 @@ class RpcTcpCallTest {
             assertThat(gateway.invocations().getFirst().providerInstanceId())
                     .contains("provider-process");
             assertThat(gateway.channelFactory().size()).isOne();
-            assertThat(consumerRegistry.subscribedKeys())
-                    .allSatisfy(key -> assertThat(key.serviceKind())
-                            .isEqualTo(DdcServiceKind.INTERNAL_GATEWAY));
+            assertThat(consumerRegistry.subscribedQueries())
+                    .allSatisfy(query -> assertThat(query.serviceName())
+                            .isEqualTo("egon-gateway-rpc"));
             assertThat(backend.allInstances())
-                    .extracting(instance -> instance.serviceKey().serviceKind())
+                    .extracting(instance -> instance.serviceIdentity())
                     .containsExactlyInAnyOrder(
-                            DdcServiceKind.RPC_PROVIDER,
-                            DdcServiceKind.INTERNAL_GATEWAY
+                            new RpcServiceIdentity(
+                                    "egon.rpc.test.v1.EchoService",
+                                    "default",
+                                    "1.0.0"
+                            ),
+                            new RpcServiceIdentity(
+                                    "egon-gateway-rpc",
+                                    "default",
+                                    "1.0.0"
+                            )
                     );
         } finally {
             if (consumerContext != null) {
@@ -144,7 +150,7 @@ class RpcTcpCallTest {
 
     private RpcProviderLifecycle providerLifecycle(
             AnnotationConfigApplicationContext context,
-            InMemoryDdcServiceRegistryClient registry,
+            InMemoryRpcRegistryClient registry,
             String providerId) {
         EgonRpcProperties properties = new EgonRpcProperties();
         properties.getProvider().setEnabled(true);
@@ -170,8 +176,7 @@ class RpcTcpCallTest {
                         availability,
                         properties,
                         identity,
-                        "test",
-                        TestDdcScopes.serviceKeyFactory()
+                        "test"
                 ),
                 availability,
                 new RpcProviderServerInterceptor(),

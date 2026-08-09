@@ -91,36 +91,32 @@ class RpcProviderMetadataMergerTest {
     }
 
     @Test
-    void validatesGatewayWeightTagsAndLocationFields() {
+    void leavesAdapterSpecificMetadataValidationOutsideRpcCore() {
         RpcProviderMetadataMerger merger =
                 new RpcProviderMetadataMerger(List.of());
 
         assertThat(merger.merge(SERVICE, Map.of(
-                "gateway.weight", "10000",
-                "gateway.tags", "canary=true,tenant=retail",
-                "gateway.zone", "cn-east-1a",
-                "gateway.region", "cn-east-1",
-                "gateway.management-path", "/actuator/health",
-                "gateway.protocol-version", "1.0.0",
-                "gateway.definition-set-id", "definition-1",
-                "gateway.artifact-version", "5.2.3",
-                "gateway.build-id", "build+42"
-        ))).hasSize(9);
-
-        List<Map<String, String>> invalid = List.of(
-                Map.of("gateway.weight", "0"),
-                Map.of("gateway.weight", "10001"),
-                Map.of("gateway.weight", "1.0"),
-                Map.of("gateway.tags", "tenant=retail,canary=true"),
-                Map.of("gateway.tags", "tenant"),
-                Map.of("gateway.zone", "zone a"),
-                Map.of("gateway.region", ""),
-                Map.of("gateway.management-path", "actuator/health")
+                "gateway.weight", "adapter-defined",
+                "ddc.extension", "adapter-owned",
+                "egon.internal.extension", "application-owned"
+        ))).containsExactly(
+                Map.entry("ddc.extension", "adapter-owned"),
+                Map.entry("egon.internal.extension", "application-owned"),
+                Map.entry("gateway.weight", "adapter-defined")
         );
-        invalid.forEach(metadata ->
-                assertThatThrownBy(() -> merger.merge(SERVICE, metadata))
-                        .as("invalid metadata %s", metadata)
-                        .isInstanceOf(IllegalArgumentException.class));
+    }
+
+    @Test
+    void rejectsBlankKeysAndValues() {
+        RpcProviderMetadataMerger merger =
+                new RpcProviderMetadataMerger(List.of());
+
+        assertThatThrownBy(() -> merger.merge(SERVICE, Map.of(" ", "value")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("blank");
+        assertThatThrownBy(() -> merger.merge(SERVICE, Map.of("custom", " ")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("blank");
     }
 
     @Test

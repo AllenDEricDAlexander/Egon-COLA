@@ -14,19 +14,6 @@ import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
@@ -157,8 +144,7 @@ class RpcConsumerInvocationHandlerTest {
                     registry,
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity,
-                    serviceKeyFactory()
+                    identity
             );
             manager.start();
             RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
@@ -233,8 +219,7 @@ class RpcConsumerInvocationHandlerTest {
                     new GatewayRegistry(first.getPort(), second.getPort()),
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity,
-                    serviceKeyFactory()
+                    identity
             );
             manager.start();
             RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
@@ -280,13 +265,6 @@ class RpcConsumerInvocationHandlerTest {
             first.shutdownNow().awaitTermination();
             second.shutdownNow().awaitTermination();
         }
-    }
-
-    private DdcServiceKeyFactory serviceKeyFactory() {
-        DdcProperties properties = new DdcProperties();
-        properties.setBizCode("test-biz");
-        properties.setAppCode("consumer-test");
-        return new DdcServiceKeyFactory(properties);
     }
 
     private Server startScenarioGateway(
@@ -438,7 +416,7 @@ class RpcConsumerInvocationHandlerTest {
     }
 
     private static final class GatewayRegistry
-            implements DdcServiceRegistryClient {
+            implements RpcGatewayDirectory {
 
         private final int[] ports;
 
@@ -447,74 +425,28 @@ class RpcConsumerInvocationHandlerTest {
         }
 
         @Override
-        public DdcRegistrySubscription subscribe(
-                DdcServiceKey serviceKey,
-                Consumer<DdcServiceSnapshot> listener) {
+        public RpcGatewaySubscription subscribe(
+                RpcGatewayQuery query,
+                Consumer<RpcGatewaySnapshot> listener) {
             Instant now = Instant.now();
-            List<DdcServiceInstance> instances = java.util.stream.IntStream
+            List<RpcGatewayEndpoint> instances = java.util.stream.IntStream
                     .range(0, ports.length)
-                    .mapToObj(index -> new DdcServiceInstance(
+                    .mapToObj(index -> new RpcGatewayEndpoint(
                             "gateway-" + (index + 1),
                             "lease-" + (index + 1),
-                            serviceKey,
                             "127.0.0.1",
                             ports[index],
                             false,
-                            java.util.Map.of(),
-                            30,
-                            10,
-                            now,
-                            now,
-                            now.plusSeconds(30),
-                            "UP",
-                            1
+                            now.plusSeconds(30)
                     ))
                     .toList();
-            listener.accept(new DdcServiceSnapshot(
-                    serviceKey,
+            listener.accept(new RpcGatewaySnapshot(
                     1,
-                    instances,
-                    now
+                    now,
+                    instances
             ));
             return () -> {
             };
-        }
-
-        @Override
-        public DdcLeaseSession register(DdcServiceRegistration registration) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcLeaseOperationResult deregister(
-                String instanceId,
-                String leaseId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcServiceCatalogSnapshot getServiceKeys(
-                DdcServiceQuery query) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcRegistrySubscription subscribeServices(
-                DdcServiceQuery query,
-                Consumer<DdcServiceCatalogSnapshot> listener) {
-            throw new UnsupportedOperationException();
         }
     }
 

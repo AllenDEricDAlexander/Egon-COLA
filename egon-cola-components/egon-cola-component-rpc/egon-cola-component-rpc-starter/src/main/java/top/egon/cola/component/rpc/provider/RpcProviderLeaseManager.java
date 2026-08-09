@@ -2,12 +2,6 @@ package top.egon.cola.component.rpc.provider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 
@@ -21,7 +15,7 @@ public class RpcProviderLeaseManager {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(RpcProviderLeaseManager.class);
 
-    private final DdcServiceRegistryClient registryClient;
+    private final RpcProviderRegistry registry;
 
     private final RpcProviderAvailabilityRegistry availability;
 
@@ -35,70 +29,56 @@ public class RpcProviderLeaseManager {
 
     private final RpcProviderMetadataMerger metadataMerger;
 
-    private final DdcServiceKeyFactory serviceKeyFactory;
-
-    private final Map<RpcServiceIdentity, DdcServiceRegistration> registrations =
+    private final Map<RpcServiceIdentity, RpcProviderRegistration> registrations =
             new ConcurrentHashMap<>();
 
-    private final Map<RpcServiceIdentity, DdcLeaseSession> leases =
+    private final Map<RpcServiceIdentity, RpcProviderLease> leases =
             new ConcurrentHashMap<>();
 
     private boolean recoveryEnabled;
 
     public RpcProviderLeaseManager(
-            DdcServiceRegistryClient registryClient,
+            RpcProviderRegistry registry,
             RpcProviderAvailabilityRegistry availability,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
-            String runtimeVersion,
-            DdcServiceKeyFactory serviceKeyFactory) {
+            String runtimeVersion) {
         this(
-                registryClient,
+                registry,
                 availability,
                 properties,
                 processIdentity,
                 runtimeVersion,
-                new RpcProviderMetadataMerger(List.of()),
-                serviceKeyFactory
+                new RpcProviderMetadataMerger(List.of())
         );
     }
 
     public RpcProviderLeaseManager(
-            DdcServiceRegistryClient registryClient,
+            RpcProviderRegistry registry,
             RpcProviderAvailabilityRegistry availability,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity,
             String runtimeVersion,
-            RpcProviderMetadataMerger metadataMerger,
-            DdcServiceKeyFactory serviceKeyFactory) {
-        this.registryClient = registryClient;
+            RpcProviderMetadataMerger metadataMerger) {
+        this.registry = registry;
         this.availability = availability;
         this.properties = properties.getProvider();
         this.secure = properties.getTls().isEnabled();
         this.processIdentity = processIdentity;
         this.runtimeVersion = runtimeVersion;
         this.metadataMerger = metadataMerger;
-        this.serviceKeyFactory = serviceKeyFactory;
     }
 
     public void prepare(Iterable<RpcProviderBinding> providers,
                         String advertisedHost,
                         int advertisedPort) {
-        Map<RpcServiceIdentity, DdcServiceRegistration> prepared =
+        Map<RpcServiceIdentity, RpcProviderRegistration> prepared =
                 new LinkedHashMap<>();
         for (RpcProviderBinding provider : providers) {
             RpcServiceIdentity service = provider.serviceIdentity();
-            var serviceKey = serviceKeyFactory.fromScope(
-                    processIdentity.env(),
-                    DdcServiceKind.RPC_PROVIDER,
-                    service.serviceName(),
-                    service.group(),
-                    service.version(),
-                    "grpc"
-            );
-            prepared.put(service, new DdcServiceRegistration(
-                    processIdentity.instanceId(),
-                    serviceKey,
+            prepared.put(service, new RpcProviderRegistration(
+                    service,
+                    processIdentity,
                     advertisedHost,
                     advertisedPort,
                     secure,
@@ -145,10 +125,7 @@ public class RpcProviderLeaseManager {
         registrations.keySet().forEach(availability::unavailable);
         leases.forEach((service, session) -> {
             try {
-                registryClient.deregister(
-                        session.instanceId(),
-                        session.leaseId()
-                );
+                registry.deregister(leaseIdentity(service, session));
             } catch (RuntimeException exception) {
                 LOGGER.warn(
                         "RPC Provider deregistration failed for {}",
@@ -160,20 +137,19 @@ public class RpcProviderLeaseManager {
         leases.clear();
     }
 
-    public Map<RpcServiceIdentity, DdcLeaseSession> currentLeases() {
+    public Map<RpcServiceIdentity, RpcProviderLease> currentLeases() {
         return Map.copyOf(leases);
     }
 
     private void heartbeatAndRecover(RpcServiceIdentity service) {
-        DdcLeaseSession session = leases.get(service);
+        RpcProviderLease session = leases.get(service);
         if (session == null) {
             recover(service);
             return;
         }
         try {
-            DdcLeaseOperationResult result = registryClient.heartbeat(
-                    session.instanceId(),
-                    session.leaseId()
+            RpcLeaseOperationResult result = registry.heartbeat(
+                    leaseIdentity(service, session)
             );
             if (!result.renewed()) {
                 leases.remove(service, session);
@@ -204,7 +180,7 @@ public class RpcProviderLeaseManager {
         if (!recoveryEnabled) {
             return;
         }
-        DdcLeaseSession session = registryClient.register(
+        RpcProviderLease session = registry.register(
                 registrations.get(service)
         );
         leases.put(service, session);
@@ -221,6 +197,16 @@ public class RpcProviderLeaseManager {
         metadata.put("egon.rpc.serialization", "protobuf");
         metadata.put("egon.rpc.runtime-version", runtimeVersion);
         return metadata;
+    }
+
+    private RpcProviderLeaseIdentity leaseIdentity(
+            RpcServiceIdentity service,
+            RpcProviderLease lease) {
+        return new RpcProviderLeaseIdentity(
+                service,
+                lease.instanceId(),
+                lease.leaseId()
+        );
     }
 
 }

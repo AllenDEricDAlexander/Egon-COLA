@@ -12,9 +12,8 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.ServerCalls;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
 
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
@@ -148,15 +147,10 @@ class MockUnaryForwarderTest {
     }
 
     private MockProviderEndpoint endpoint(int port) {
-        DdcServiceKey key = new DdcServiceKey(
-                "test-biz",
-                "test",
-                "test-app",
-                DdcServiceKind.RPC_PROVIDER,
+        RpcServiceIdentity key = new RpcServiceIdentity(
                 "egon.rpc.test.v1.RawService",
                 "default",
-                "1.0.0",
-                "grpc"
+                "1.0.0"
         );
         return new MockProviderEndpoint(
                 key,

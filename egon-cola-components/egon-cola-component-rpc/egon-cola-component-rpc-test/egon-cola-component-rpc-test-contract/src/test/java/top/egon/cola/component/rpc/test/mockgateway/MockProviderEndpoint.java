@@ -1,12 +1,12 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.test.support.TestRpcServiceInstance;
 
 import java.time.Instant;
 
 record MockProviderEndpoint(
-        DdcServiceKey serviceKey,
+        RpcServiceIdentity serviceIdentity,
         String instanceId,
         String leaseId,
         String host,
@@ -15,9 +15,9 @@ record MockProviderEndpoint(
         Instant leaseExpireAt
 ) implements Comparable<MockProviderEndpoint> {
 
-    static MockProviderEndpoint from(DdcServiceInstance instance) {
+    static MockProviderEndpoint from(TestRpcServiceInstance instance) {
         return new MockProviderEndpoint(
-                instance.serviceKey(),
+                instance.serviceIdentity(),
                 instance.instanceId(),
                 instance.leaseId(),
                 instance.host(),

@@ -1,7 +1,6 @@
 package top.egon.cola.component.rpc.provider;
 
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-import top.egon.cola.component.ddc.format.ServiceInstanceMetaCodec;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,13 +10,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Merges provider metadata from configuration and contributors into the map that is published
- * with the registration.
- *
- * <p>Validation of the {@code gateway.*} keys is delegated to {@link ServiceInstanceMetaCodec},
- * which is the single definition of that convention. It used to be re-implemented here with a
- * private copy of every pattern, while the gateway parsed the same keys back with a third set
- * of rules.
+ * Merges provider metadata without imposing registry-specific conventions.
  */
 public final class RpcProviderMetadataMerger {
 
@@ -47,7 +40,6 @@ public final class RpcProviderMetadataMerger {
         mergeSource(merged, configuredMetadata);
         contributors.forEach(contributor ->
                 mergeSource(merged, contributor.contribute(serviceIdentity)));
-        ServiceInstanceMetaCodec.validateAll(merged);
         return Collections.unmodifiableMap(merged);
     }
 
@@ -60,7 +52,12 @@ public final class RpcProviderMetadataMerger {
         }
         source.forEach((key, value) -> {
             validateCustomKey(key);
-            String normalizedValue = value == null ? "" : value;
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException(
+                        "RPC Provider metadata value must not be blank"
+                );
+            }
+            String normalizedValue = value.trim();
             String existing = merged.putIfAbsent(key, normalizedValue);
             if (existing != null && !existing.equals(normalizedValue)) {
                 throw new IllegalArgumentException(
@@ -73,13 +70,11 @@ public final class RpcProviderMetadataMerger {
     private void validateCustomKey(String key) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException(
-                    "RPC Provider metadata key is required"
+                    "RPC Provider metadata key must not be blank"
             );
         }
         String lower = key.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("ddc.")
-                || lower.startsWith("egon.internal.")
-                || lower.startsWith("egon.rpc.")) {
+        if (lower.startsWith("egon.rpc.")) {
             throw new IllegalArgumentException(
                     "RPC Provider metadata uses a reserved key"
             );

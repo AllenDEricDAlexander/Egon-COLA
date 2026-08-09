@@ -2,37 +2,46 @@ package top.egon.cola.component.rpc.context;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
+import top.egon.cola.component.rpc.config.EgonRpcProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcProcessIdentityFactoryTest {
 
     @Test
-    void reusesTheDdcRuntimeInstanceIdentity() {
-        DdcProperties properties = new DdcProperties();
-        properties.setAppCode("orders");
-        properties.setEnv("test");
-        DdcInstanceIdentity ddcIdentity = new DdcInstanceIdentity(
-                "019f-runtime-instance",
-                "retail",
-                "orders",
-                "test",
-                "127.0.0.1",
-                null,
-                "100",
-                "5.3.2"
-        );
+    void createsIdentityFromRpcOwnedProperties() {
+        EgonRpcProperties properties = new EgonRpcProperties();
+        properties.getIdentity().setEnv("test");
+        properties.getIdentity().setHost("127.0.0.1");
+        properties.getIdentity().setInstanceId("orders-api-100");
 
         RpcProcessIdentity identity = new RpcProcessIdentityFactory(
                 new MockEnvironment().withProperty("spring.application.name", "orders-api"),
-                properties,
-                ddcIdentity
+                properties
         ).create();
 
         assertThat(identity.applicationName()).isEqualTo("orders-api");
-        assertThat(identity.instanceId()).isEqualTo("019f-runtime-instance");
+        assertThat(identity.env()).isEqualTo("test");
+        assertThat(identity.instanceId()).isEqualTo("orders-api-100");
         assertThat(identity.host()).isEqualTo("127.0.0.1");
+        assertThat(identity.pid()).isEqualTo(ProcessHandle.current().pid());
+    }
+
+    @Test
+    void derivesStableProcessDefaultsWithoutDdc() {
+        RpcProcessIdentity identity = new RpcProcessIdentityFactory(
+                new MockEnvironment().withProperty(
+                        "spring.application.name",
+                        "orders-api"
+                ),
+                new EgonRpcProperties()
+        ).create();
+
+        assertThat(identity.applicationName()).isEqualTo("orders-api");
+        assertThat(identity.env()).isEqualTo("default");
+        assertThat(identity.host()).isNotBlank();
+        assertThat(identity.instanceId())
+                .startsWith("orders-api-")
+                .endsWith("-" + ProcessHandle.current().pid());
     }
 }

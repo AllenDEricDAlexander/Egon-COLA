@@ -2,13 +2,6 @@ package top.egon.cola.component.rpc.consumer;
 
 import io.grpc.ManagedChannel;
 import org.springframework.context.SmartLifecycle;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
@@ -22,7 +15,7 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -33,13 +26,13 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
 
     private final Object monitor = new Object();
 
-    private final DdcServiceRegistryClient registryClient;
+    private final RpcGatewayDirectory directory;
 
     private final RpcConsumerChannelFactory channelFactory;
 
     private final EgonRpcProperties.Consumer properties;
 
-    private final DdcServiceKey gatewayServiceKey;
+    private final RpcGatewayQuery gatewayQuery;
 
     private final Set<ManagedChannel> drainingChannels =
             Collections.newSetFromMap(new IdentityHashMap<>());
@@ -50,55 +43,38 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
 
     private volatile List<ActiveGateway> activeGateways = List.of();
 
-    private volatile DdcRegistrySubscription subscription;
+    private volatile RpcGatewaySubscription subscription;
 
     private volatile ScheduledExecutorService drainExecutor;
 
     public RpcConsumerGatewayManager(
-            DdcServiceRegistryClient registryClient,
+            RpcGatewayDirectory directory,
             RpcConsumerChannelFactory channelFactory,
             EgonRpcProperties properties,
-            RpcProcessIdentity processIdentity,
-            DdcServiceKeyFactory serviceKeyFactory) {
-        this.registryClient = registryClient;
+            RpcProcessIdentity processIdentity) {
+        this.directory = directory;
         this.channelFactory = channelFactory;
         this.properties = properties.getConsumer();
         validateProperties();
-        this.gatewayServiceKey = gatewayServiceKey(
-                processIdentity,
-                serviceKeyFactory
-        );
+        this.gatewayQuery = gatewayQuery(processIdentity);
     }
 
-    private DdcServiceKey gatewayServiceKey(
-            RpcProcessIdentity processIdentity,
-            DdcServiceKeyFactory serviceKeyFactory) {
+    private RpcGatewayQuery gatewayQuery(
+            RpcProcessIdentity processIdentity) {
         String bizCode = properties.getGatewayBizCode();
         String appCode = properties.getGatewayAppCode();
-        if (blank(bizCode) && blank(appCode)) {
-            return serviceKeyFactory.fromScope(
-                    processIdentity.env(),
-                    DdcServiceKind.INTERNAL_GATEWAY,
-                    properties.getGatewayServiceName(),
-                    properties.getGatewayGroup(),
-                    properties.getGatewayVersion(),
-                    "grpc"
-            );
-        }
-        if (blank(bizCode) || blank(appCode)) {
+        if (blank(bizCode) != blank(appCode)) {
             throw new IllegalArgumentException(
                     "RPC Gateway biz-code and app-code must be configured together"
             );
         }
-        return serviceKeyFactory.fromTargetScope(
+        return new RpcGatewayQuery(
+                processIdentity.env(),
                 bizCode,
                 appCode,
-                processIdentity.env(),
-                DdcServiceKind.INTERNAL_GATEWAY,
                 properties.getGatewayServiceName(),
                 properties.getGatewayGroup(),
-                properties.getGatewayVersion(),
-                "grpc"
+                properties.getGatewayVersion()
         );
     }
 
@@ -112,8 +88,8 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             state = RpcGatewayState.STARTING;
             drainExecutor = newDrainExecutor();
             try {
-                subscription = registryClient.subscribe(
-                        gatewayServiceKey,
+                subscription = directory.subscribe(
+                        gatewayQuery,
                         this::acceptSnapshot
                 );
                 drainExecutor.scheduleWithFixedDelay(
@@ -248,16 +224,14 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                 .toList();
     }
 
-    private void acceptSnapshot(DdcServiceSnapshot snapshot) {
+    private void acceptSnapshot(RpcGatewaySnapshot snapshot) {
         synchronized (monitor) {
             if (state == RpcGatewayState.STOPPED) {
                 return;
             }
             Instant now = Instant.now();
-            List<RpcGatewayEndpoint> desired = snapshot.instances().stream()
-                    .filter(instance -> isUp(instance, now))
-                    .map(this::validEndpoint)
-                    .flatMap(Optional::stream)
+            List<RpcGatewayEndpoint> desired = snapshot.endpoints().stream()
+                    .filter(Objects::nonNull)
                     .filter(endpoint -> endpoint.activeAt(now))
                     .sorted(Comparator
                             .comparing(RpcGatewayEndpoint::instanceId)
@@ -307,22 +281,6 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             return null;
         }
         return new ActiveGateway(endpoint, channel);
-    }
-
-    private boolean isUp(DdcServiceInstance instance, Instant now) {
-        return instance.normalizedStatus().isAvailable(
-                now,
-                instance.leaseExpireAt()
-        );
-    }
-
-    private Optional<RpcGatewayEndpoint> validEndpoint(
-            DdcServiceInstance instance) {
-        try {
-            return Optional.of(RpcGatewayEndpoint.from(instance));
-        } catch (IllegalArgumentException exception) {
-            return Optional.empty();
-        }
     }
 
     private void drain(ActiveGateway gateway) {

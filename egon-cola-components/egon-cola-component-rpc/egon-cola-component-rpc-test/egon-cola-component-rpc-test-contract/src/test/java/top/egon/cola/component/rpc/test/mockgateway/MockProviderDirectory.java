@@ -1,12 +1,9 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.test.support.TestRpcServiceSnapshot;
+import top.egon.cola.component.rpc.test.support.TestRpcRegistry;
+import top.egon.cola.component.rpc.test.support.TestRpcSubscription;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -19,47 +16,38 @@ import java.util.function.Consumer;
 
 final class MockProviderDirectory implements AutoCloseable {
 
-    private final DdcServiceRegistryClient registryClient;
+    private final TestRpcRegistry registryClient;
 
-    private final DdcServiceQuery query;
+    private final String env;
 
     private final Consumer<Collection<MockProviderEndpoint>> endpointListener;
 
-    private final Map<DdcServiceKey, MockProviderClusterSnapshot> clusters =
+    private final Map<RpcServiceIdentity, MockProviderClusterSnapshot> clusters =
             new ConcurrentHashMap<>();
 
-    private final Map<DdcServiceKey, DdcRegistrySubscription> subscriptions =
+    private final Map<RpcServiceIdentity, TestRpcSubscription> subscriptions =
             new ConcurrentHashMap<>();
 
-    private volatile DdcRegistrySubscription catalogSubscription;
+    private volatile TestRpcSubscription catalogSubscription;
 
     MockProviderDirectory(
-            DdcServiceRegistryClient registryClient,
+            TestRpcRegistry registryClient,
             String env,
             Consumer<Collection<MockProviderEndpoint>> endpointListener) {
         this.registryClient = registryClient;
-        this.query = new DdcServiceQuery(
-                "test-biz",
-                env,
-                "test-app",
-                DdcServiceKind.RPC_PROVIDER,
-                "grpc",
-                null,
-                null,
-                null
-        );
+        this.env = env;
         this.endpointListener = endpointListener;
     }
 
     void start() {
-        acceptCatalog(registryClient.getServiceKeys(query));
+        acceptCatalog(registryClient.getServiceIdentities(env));
         catalogSubscription = registryClient.subscribeServices(
-                query,
+                env,
                 this::acceptCatalog
         );
     }
 
-    MockProviderClusterSnapshot cluster(DdcServiceKey key) {
+    MockProviderClusterSnapshot cluster(RpcServiceIdentity key) {
         MockProviderClusterSnapshot snapshot = clusters.get(key);
         if (snapshot == null) {
             return new MockProviderClusterSnapshot(key, 0, List.of());
@@ -76,7 +64,9 @@ final class MockProviderDirectory implements AutoCloseable {
 
     List<MockProviderClusterSnapshot> clusters() {
         return clusters.keySet().stream()
-                .sorted()
+                .sorted((left, right) -> left.registrySuffix().compareTo(
+                        right.registrySuffix()
+                ))
                 .map(this::cluster)
                 .toList();
     }
@@ -87,17 +77,17 @@ final class MockProviderDirectory implements AutoCloseable {
             catalogSubscription.close();
             catalogSubscription = null;
         }
-        subscriptions.values().forEach(DdcRegistrySubscription::close);
+        subscriptions.values().forEach(TestRpcSubscription::close);
         subscriptions.clear();
         clusters.clear();
         endpointListener.accept(List.of());
     }
 
     private synchronized void acceptCatalog(
-            DdcServiceCatalogSnapshot catalog) {
-        List<DdcServiceKey> keys = catalog == null
+            List<RpcServiceIdentity> catalog) {
+        List<RpcServiceIdentity> keys = catalog == null
                 ? List.of()
-                : catalog.serviceKeys();
+                : catalog;
         subscriptions.keySet().stream()
                 .filter(key -> !keys.contains(key))
                 .toList()
@@ -105,28 +95,29 @@ final class MockProviderDirectory implements AutoCloseable {
                     subscriptions.remove(key).close();
                     clusters.remove(key);
                 });
-        for (DdcServiceKey key : keys) {
+        for (RpcServiceIdentity key : keys) {
             if (!subscriptions.containsKey(key)) {
                 acceptSnapshot(registryClient.getInstances(key));
                 subscriptions.put(
                         key,
-                        registryClient.subscribe(key, this::acceptSnapshot)
+                        registryClient.subscribeService(
+                                key,
+                                this::acceptSnapshot
+                        )
                 );
             }
         }
         publishEndpoints();
     }
 
-    private void acceptSnapshot(DdcServiceSnapshot snapshot) {
+    private void acceptSnapshot(TestRpcServiceSnapshot snapshot) {
         List<MockProviderEndpoint> endpoints = snapshot.instances().stream()
-                .filter(instance -> instance.status() == null
-                        || "UP".equalsIgnoreCase(instance.status()))
                 .map(MockProviderEndpoint::from)
                 .toList();
         clusters.put(
-                snapshot.serviceKey(),
+                snapshot.serviceIdentity(),
                 new MockProviderClusterSnapshot(
-                        snapshot.serviceKey(),
+                        snapshot.serviceIdentity(),
                         snapshot.revision(),
                         endpoints
                 )

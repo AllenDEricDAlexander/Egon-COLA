@@ -70,24 +70,36 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             throw startFailed("no RPC Provider bean was found", null);
         }
         try {
-            server = serverFactory.create(
+            Server preparedServer = serverFactory.create(
                     properties.getBindAddress(),
                     properties.getPort(),
                     definitionFactory.create(registry),
                     interceptor
-            ).start();
-            String advertisedHost = advertisedHost();
-            int advertisedPort = advertisedPort(server.getPort());
-            leaseManager.prepare(providers, advertisedHost, advertisedPort);
-            leaseManager.enableRecovery();
-            try {
-                leaseManager.registerAll();
-            } catch (RuntimeException exception) {
-                if (properties.isRegistrationFailFast()) {
-                    throw exception;
-                }
+            );
+            if (!registrationEnabled()) {
+                providers.forEach(binding -> availability.available(
+                        binding.serviceIdentity()
+                ));
             }
-            startHeartbeat();
+            server = preparedServer.start();
+            if (registrationEnabled()) {
+                String advertisedHost = advertisedHost();
+                int advertisedPort = advertisedPort(server.getPort());
+                leaseManager.prepare(
+                        providers,
+                        advertisedHost,
+                        advertisedPort
+                );
+                leaseManager.enableRecovery();
+                try {
+                    leaseManager.registerAll();
+                } catch (RuntimeException exception) {
+                    if (properties.isRegistrationFailFast()) {
+                        throw exception;
+                    }
+                }
+                startHeartbeat();
+            }
             running = true;
         } catch (IOException | RuntimeException exception) {
             stopInfrastructure();
@@ -103,9 +115,11 @@ public class RpcProviderLifecycle implements SmartLifecycle {
         availability.clear();
         // Recovery is disabled before deregistration so shutdown cannot publish
         // a replacement lease after the exact active lease was removed.
-        leaseManager.disableRecovery();
-        stopHeartbeat();
-        leaseManager.deregisterAll();
+        if (registrationEnabled()) {
+            leaseManager.disableRecovery();
+            stopHeartbeat();
+            leaseManager.deregisterAll();
+        }
         Server current = server;
         server = null;
         if (current != null) {
@@ -148,10 +162,25 @@ public class RpcProviderLifecycle implements SmartLifecycle {
         if (properties.getPort() < 0 || properties.getPort() > 65535) {
             throw startFailed("RPC Provider port is invalid", null);
         }
-        if (properties.getLeaseSeconds() <= 0
+        if (properties.getRegistrationMode() == null) {
+            throw startFailed(
+                    "RPC Provider registration mode is required",
+                    null
+            );
+        }
+        if (registrationEnabled() && leaseManager == null) {
+            throw startFailed(
+                    "RpcProviderRegistry is required; configure an adapter "
+                            + "or set egon.cola.component.rpc.provider."
+                            + "registration-mode=disabled",
+                    null
+            );
+        }
+        if (registrationEnabled()
+                && (properties.getLeaseSeconds() <= 0
                 || properties.getHeartbeatIntervalSeconds() <= 0
                 || properties.getHeartbeatIntervalSeconds()
-                >= properties.getLeaseSeconds()) {
+                >= properties.getLeaseSeconds())) {
             throw startFailed("RPC Provider lease settings are invalid", null);
         }
         if (properties.getGracefulShutdownTimeoutMs() < 0) {
@@ -216,15 +245,22 @@ public class RpcProviderLifecycle implements SmartLifecycle {
 
     private void stopInfrastructure() {
         availability.clear();
-        leaseManager.disableRecovery();
-        stopHeartbeat();
-        leaseManager.deregisterAll();
+        if (registrationEnabled() && leaseManager != null) {
+            leaseManager.disableRecovery();
+            stopHeartbeat();
+            leaseManager.deregisterAll();
+        }
         Server current = server;
         server = null;
         if (current != null) {
             current.shutdownNow();
         }
         running = false;
+    }
+
+    private boolean registrationEnabled() {
+        return properties.getRegistrationMode()
+                == RpcProviderRegistrationMode.REQUIRED;
     }
 
     private EgonRpcException startFailed(String message, Throwable cause) {

@@ -4,10 +4,6 @@ import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
@@ -15,13 +11,16 @@ import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.RpcContractValidator;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
+import top.egon.cola.component.rpc.provider.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.RpcProviderLeaseIdentity;
+import top.egon.cola.component.rpc.provider.RpcProviderRegistration;
+import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
 import top.egon.cola.component.rpc.test.contract.EchoRpc;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
-import top.egon.cola.component.rpc.test.support.InMemoryDdcRegistryBackend;
-import top.egon.cola.component.rpc.test.support.InMemoryDdcServiceRegistryClient;
-import top.egon.cola.component.rpc.test.support.TestDdcScopes;
+import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryBackend;
+import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryClient;
 
 import java.time.Duration;
 import java.util.List;
@@ -35,20 +34,20 @@ class RpcMultiProviderDirectoryTest {
     void shouldConvergeEvictAndAcceptReplacementLease() throws Exception {
         Server providerA = provider("provider-a");
         Server providerB = provider("provider-b");
-        InMemoryDdcRegistryBackend backend =
-                new InMemoryDdcRegistryBackend();
-        InMemoryDdcServiceRegistryClient providerRegistryA =
-                new InMemoryDdcServiceRegistryClient(backend);
-        InMemoryDdcServiceRegistryClient providerRegistryB =
-                new InMemoryDdcServiceRegistryClient(backend);
-        DdcServiceRegistration registrationA =
+        InMemoryRpcRegistryBackend backend =
+                new InMemoryRpcRegistryBackend();
+        InMemoryRpcRegistryClient providerRegistryA =
+                new InMemoryRpcRegistryClient(backend);
+        InMemoryRpcRegistryClient providerRegistryB =
+                new InMemoryRpcRegistryClient(backend);
+        RpcProviderRegistration registrationA =
                 registration("provider-a", providerA.getPort());
-        DdcServiceRegistration registrationB =
+        RpcProviderRegistration registrationB =
                 registration("provider-b", providerB.getPort());
-        DdcLeaseSession leaseA = providerRegistryA.register(registrationA);
-        DdcLeaseSession leaseB = providerRegistryB.register(registrationB);
+        RpcProviderLease leaseA = providerRegistryA.register(registrationA);
+        RpcProviderLease leaseB = providerRegistryB.register(registrationB);
         MockRpcGateway gateway = new MockRpcGateway(
-                new InMemoryDdcServiceRegistryClient(backend),
+                new InMemoryRpcRegistryClient(backend),
                 "test",
                 "mock-gateway-multi",
                 MockGatewayProperties.defaults(),
@@ -68,11 +67,10 @@ class RpcMultiProviderDirectoryTest {
             EgonRpcProperties properties = new EgonRpcProperties();
             properties.getConsumer().setGatewayDiscoveryTimeoutMs(2000);
             consumerGateway = new RpcConsumerGatewayManager(
-                    new InMemoryDdcServiceRegistryClient(backend),
+                    new InMemoryRpcRegistryClient(backend),
                     new RpcConsumerChannelFactory(),
                     properties,
-                    identity,
-                    TestDdcScopes.serviceKeyFactory()
+                    identity
             );
             consumerGateway.start();
             EchoRpc consumer = new RpcConsumerProxyFactory(
@@ -87,10 +85,7 @@ class RpcMultiProviderDirectoryTest {
             assertThat(call(consumer)).isEqualTo("provider-b");
             assertThat(gateway.channelFactory().size()).isEqualTo(2);
 
-            providerRegistryA.deregister(
-                    leaseA.instanceId(),
-                    leaseA.leaseId()
-            );
+            providerRegistryA.deregister(leaseIdentity(leaseA));
 
             assertThat(gateway.directory().clusters().getFirst().endpoints())
                     .extracting(MockProviderEndpoint::instanceId)
@@ -99,7 +94,7 @@ class RpcMultiProviderDirectoryTest {
             assertThat(call(consumer)).isEqualTo("provider-b");
             assertThat(call(consumer)).isEqualTo("provider-b");
 
-            DdcLeaseSession replacement =
+            RpcProviderLease replacement =
                     providerRegistryA.register(registrationA);
 
             assertThat(replacement.leaseId()).isNotEqualTo(leaseA.leaseId());
@@ -116,7 +111,8 @@ class RpcMultiProviderDirectoryTest {
                 consumerGateway.stop();
             }
             gateway.close();
-            providerRegistryA.deregister(
+            providerRegistryA.deregister(new RpcProviderLeaseIdentity(
+                    serviceIdentity(),
                     "provider-a",
                     backend.allInstances().stream()
                             .filter(instance -> "provider-a".equals(
@@ -125,11 +121,8 @@ class RpcMultiProviderDirectoryTest {
                             .map(instance -> instance.leaseId())
                             .findFirst()
                             .orElse("absent")
-            );
-            providerRegistryB.deregister(
-                    leaseB.instanceId(),
-                    leaseB.leaseId()
-            );
+            ));
+            providerRegistryB.deregister(leaseIdentity(leaseB));
             providerA.shutdownNow().awaitTermination();
             providerB.shutdownNow().awaitTermination();
         }
@@ -163,20 +156,17 @@ class RpcMultiProviderDirectoryTest {
                 .start();
     }
 
-    private DdcServiceRegistration registration(
+    private RpcProviderRegistration registration(
             String instanceId,
             int port) {
-        return new DdcServiceRegistration(
-                instanceId,
-                new DdcServiceKey(
-                        "test-biz",
+        return new RpcProviderRegistration(
+                serviceIdentity(),
+                new RpcProcessIdentity(
+                        "provider-test",
                         "test",
-                        "test-app",
-                        DdcServiceKind.RPC_PROVIDER,
-                        "egon.rpc.test.v1.EchoService",
-                        "default",
-                        "1.0.0",
-                        "grpc"
+                        "127.0.0.1",
+                        1,
+                        instanceId
                 ),
                 "127.0.0.1",
                 port,
@@ -188,6 +178,22 @@ class RpcMultiProviderDirectoryTest {
                 ),
                 5,
                 1
+        );
+    }
+
+    private RpcProviderLeaseIdentity leaseIdentity(RpcProviderLease lease) {
+        return new RpcProviderLeaseIdentity(
+                serviceIdentity(),
+                lease.instanceId(),
+                lease.leaseId()
+        );
+    }
+
+    private RpcServiceIdentity serviceIdentity() {
+        return new RpcServiceIdentity(
+                "egon.rpc.test.v1.EchoService",
+                "default",
+                "1.0.0"
         );
     }
 }
