@@ -70,6 +70,18 @@ egon:
           database: ${DDC_REGISTRY_REDIS_DATABASE:0}
         registry:
           enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
+          http:
+            enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
+            instance-id: ${MOCK_BACKEND_INSTANCE_ID:mock-backend-local-1}
+            service-name: mock-backend
+            group: default
+            version: ${MOCK_BACKEND_ARTIFACT_VERSION:5.3.2}
+            protocol: http
+            advertised-host: ${MOCK_BACKEND_ADVERTISED_HOST:127.0.0.1}
+            port: ${MOCK_BACKEND_PORT:18160}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true
       gateway:
         reporting:
           enabled: ${MOCK_BACKEND_GATEWAY_REPORTING_ENABLED:false}
@@ -84,16 +96,3 @@ egon:
           declared-hosts: ${MOCK_BACKEND_DECLARED_HOSTS:127.0.0.1}
           access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
           secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
-        provider:
-          http:
-            enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
-            instance-id: ${MOCK_BACKEND_INSTANCE_ID:mock-backend-local-1}
-            service-name: mock-backend
-            group: default
-            version: ${MOCK_BACKEND_ARTIFACT_VERSION:5.3.2}
-            protocol: http
-            advertised-host: ${MOCK_BACKEND_ADVERTISED_HOST:127.0.0.1}
-            port: ${MOCK_BACKEND_PORT:18160}
-            lease-seconds: 30
-            heartbeat-interval-seconds: 10
-            fail-fast: true

@@ -70,6 +70,9 @@ egon:
           password: ${DDC_REGISTRY_REDIS_PASSWORD:HomeLab666}
         registry:
           enabled: ${RBAC3_DDC_ENABLED:false}
+          http:
+            enabled: ${RBAC3_HTTP_PROVIDER_ENABLED:false}
+            port: 0
       gateway:
         reporting:
           enabled: false
@@ -77,10 +80,6 @@ egon:
           namespace: default
           application-code: rbac3-admin
           artifact-version: local
-        provider:
-          http:
-            enabled: ${RBAC3_HTTP_PROVIDER_ENABLED:false}
-            port: 0
       transactional-outbox:
         node-id: rbac3-local
         polling:

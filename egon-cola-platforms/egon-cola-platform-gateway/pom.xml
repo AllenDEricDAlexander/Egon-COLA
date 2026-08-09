@@ -23,7 +23,6 @@
         <module>egon-cola-platform-gateway-engine</module>
         <module>egon-cola-platform-gateway-admin</module>
         <module>egon-cola-platform-gateway-starter</module>
-        <module>egon-cola-platform-gateway-provider-runtime</module>
         <module>egon-cola-platform-gateway-test</module>
     </modules>
 
@@ -57,11 +56,6 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-gateway-starter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-platform-gateway-provider-runtime</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

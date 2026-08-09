@@ -15,8 +15,8 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
@@ -109,21 +109,21 @@ public class Rbac3PlatformIntegrationConfiguration {
 
     @Bean
     @ConditionalOnBean(GatewayDdcRuntimeStatusService.ServiceIdentity.class)
-    @ConditionalOnProperty(prefix = "egon.cola.component.gateway.provider.http",
+    @ConditionalOnProperty(prefix = "egon.cola.component.ddc.registry.http",
             name = "enabled", havingValue = "true")
     DdcProviderLeaseStatusService ddcProviderLeaseStatusService(
-            HttpProviderLeaseRuntime runtime,
+            DdcHttpRegistrationRuntime runtime,
             GatewayDdcRuntimeStatusService.ServiceIdentity identity) {
         return new DdcProviderLeaseStatusService(runtime, identity);
     }
 
-    @Bean(name = "gatewayHttpProviderServerReadyListener")
+    @Bean(name = "ddcHttpRegistrationServerReadyListener")
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc",
             name = "enabled", havingValue = "true")
-    ApplicationListener<ApplicationEvent> gatewayHttpProviderServerReadyListener(
+    ApplicationListener<ApplicationEvent> ddcHttpRegistrationServerReadyListener(
             DdcRuntimeCoordinator coordinator,
-            HttpProviderLeaseRuntime providerRuntime,
-            GatewayHttpProviderProperties providerProperties) {
+            DdcHttpRegistrationRuntime providerRuntime,
+            DdcHttpRegistrationProperties providerProperties) {
         return new Rbac3HttpProviderPublicationGate(
                 coordinator, providerRuntime, providerProperties);
     }

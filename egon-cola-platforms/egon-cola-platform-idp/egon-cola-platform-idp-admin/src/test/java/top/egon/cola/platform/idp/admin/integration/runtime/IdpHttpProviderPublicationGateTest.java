@@ -9,8 +9,8 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -30,7 +30,7 @@ class IdpHttpProviderPublicationGateTest {
     void providerRequiresDdcOauthAndOutboxReadiness() {
         IdpHttpProviderPublicationGate gate = new IdpHttpProviderPublicationGate(
                 readyCoordinator(),
-                mock(HttpProviderLeaseRuntime.class),
+                mock(DdcHttpRegistrationRuntime.class),
                 properties(0),
                 () -> status(true, true, true)
         );
@@ -43,7 +43,7 @@ class IdpHttpProviderPublicationGateTest {
     @Test
     void publishesOnceOnlyAfterRootPortApplicationAndAllRuntimesAreReady() {
         DdcRuntimeCoordinator coordinator = readyCoordinator();
-        HttpProviderLeaseRuntime provider = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         IdpHttpProviderPublicationGate gate = new IdpHttpProviderPublicationGate(
                 coordinator,
                 provider,
@@ -62,7 +62,7 @@ class IdpHttpProviderPublicationGateTest {
 
     @Test
     void ignoresManagementServerAndFailsClosedWhenOAuthIsNotReady() {
-        HttpProviderLeaseRuntime provider = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         IdpHttpProviderPublicationGate gate = new IdpHttpProviderPublicationGate(
                 readyCoordinator(),
                 provider,
@@ -85,7 +85,7 @@ class IdpHttpProviderPublicationGateTest {
         DdcRuntimeCoordinator coordinator = mock(DdcRuntimeCoordinator.class);
         when(coordinator.state()).thenReturn(DdcRuntimeState.READY);
         when(coordinator.currentSession()).thenReturn(Optional.empty());
-        HttpProviderLeaseRuntime provider = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         IdpHttpProviderPublicationGate missingSession =
                 new IdpHttpProviderPublicationGate(
                         coordinator,
@@ -144,9 +144,9 @@ class IdpHttpProviderPublicationGateTest {
         return coordinator;
     }
 
-    private GatewayHttpProviderProperties properties(int port) {
-        GatewayHttpProviderProperties properties =
-                new GatewayHttpProviderProperties();
+    private DdcHttpRegistrationProperties properties(int port) {
+        DdcHttpRegistrationProperties properties =
+                new DdcHttpRegistrationProperties();
         properties.setPort(port);
         return properties;
     }

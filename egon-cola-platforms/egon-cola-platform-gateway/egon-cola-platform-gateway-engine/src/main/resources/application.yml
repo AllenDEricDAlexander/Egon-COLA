@@ -94,8 +94,6 @@ egon:
           database: ${DDC_REDIS_DATABASE:0}
         registry:
           enabled: ${DDC_REGISTRY_ENABLED:true}
-      gateway:
-        provider:
           http:
             enabled: ${GATEWAY_ENGINE_DDC_REGISTRATION_ENABLED:true}
             instance-id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}
@@ -106,6 +104,7 @@ egon:
             port: ${GATEWAY_ENGINE_DDC_ADVERTISED_PORT:18081}
             metadata:
               gateway.component: engine
+      gateway:
         engine:
           mcp:
             enabled: ${GATEWAY_MCP_ENABLED:true}

@@ -9,8 +9,8 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3HttpProviderPublicationGate;
 
 import java.time.Instant;
@@ -28,7 +28,7 @@ class Rbac3HttpProviderPublicationGateTest {
     @Test
     void publishesOnceOnlyAfterRootPortApplicationReadyAndDdcReady() {
         DdcRuntimeCoordinator coordinator = readyCoordinator();
-        HttpProviderLeaseRuntime provider = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         Rbac3HttpProviderPublicationGate gate = new Rbac3HttpProviderPublicationGate(
                 coordinator, provider, properties(0));
 
@@ -44,7 +44,7 @@ class Rbac3HttpProviderPublicationGateTest {
     @Test
     void ignoresManagementServerAndSupportsReversedEventOrder() {
         DdcRuntimeCoordinator coordinator = readyCoordinator();
-        HttpProviderLeaseRuntime provider = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         Rbac3HttpProviderPublicationGate gate = new Rbac3HttpProviderPublicationGate(
                 coordinator, provider, properties(0));
 
@@ -61,7 +61,7 @@ class Rbac3HttpProviderPublicationGateTest {
         DdcRuntimeCoordinator coordinator = mock(DdcRuntimeCoordinator.class);
         when(coordinator.state()).thenReturn(DdcRuntimeState.RECOVERING);
         when(coordinator.currentSession()).thenReturn(Optional.empty());
-        HttpProviderLeaseRuntime provider = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         Rbac3HttpProviderPublicationGate gate = new Rbac3HttpProviderPublicationGate(
                 coordinator, provider, properties(0));
         gate.onApplicationEvent(webServerEvent(18101, null));
@@ -79,7 +79,7 @@ class Rbac3HttpProviderPublicationGateTest {
 
     @Test
     void rejectsAConfiguredProviderPortThatDiffersFromTheRootServer() {
-        HttpProviderLeaseRuntime provider = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         Rbac3HttpProviderPublicationGate gate = new Rbac3HttpProviderPublicationGate(
                 readyCoordinator(), provider, properties(18102));
         gate.onApplicationEvent(webServerEvent(18101, null));
@@ -100,8 +100,8 @@ class Rbac3HttpProviderPublicationGateTest {
         return coordinator;
     }
 
-    private GatewayHttpProviderProperties properties(int port) {
-        GatewayHttpProviderProperties properties = new GatewayHttpProviderProperties();
+    private DdcHttpRegistrationProperties properties(int port) {
+        DdcHttpRegistrationProperties properties = new DdcHttpRegistrationProperties();
         properties.setPort(port);
         return properties;
     }

@@ -307,7 +307,7 @@ java_property_key() {
       printf 'egon.cola.component.gateway.engine.http.internal-port'
       ;;
     EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST)
-      printf 'egon.cola.component.gateway.provider.http.fail-fast'
+      printf 'egon.cola.component.ddc.registry.http.fail-fast'
       ;;
     GATEWAY_ADMIN_DDC_ENABLED) printf 'gateway.admin.ddc.enabled' ;;
     GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)

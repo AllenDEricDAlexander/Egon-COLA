@@ -63,7 +63,7 @@ source "${function_file}"
     == 'gateway.admin.secrets.master-key-base64' ]] \
   || fail 'Gateway secret protection must use its canonical property key'
 [[ "$(java_property_key EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST)" \
-    == 'egon.cola.component.gateway.provider.http.fail-fast' ]] \
+    == 'egon.cola.component.ddc.registry.http.fail-fast' ]] \
   || fail 'Gateway Provider fail-fast must use its canonical property key'
 [[ "$(java_property_key EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST)" \
     == 'egon.cola.component.ddc.consistency.fail-fast' ]] \

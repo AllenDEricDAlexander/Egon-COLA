@@ -124,8 +124,6 @@ egon:
           database: ${DDC_REGISTRY_REDIS_DATABASE:0}
         registry:
           enabled: ${IDP_DDC_ENABLED:false}
-      gateway:
-        provider:
           http:
             enabled: ${IDP_HTTP_PROVIDER_ENABLED:false}
             env: ${DEPLOYMENT_ENV:local}
@@ -140,3 +138,4 @@ egon:
             lease-seconds: 30
             heartbeat-interval-seconds: 10
             fail-fast: true
+      gateway:

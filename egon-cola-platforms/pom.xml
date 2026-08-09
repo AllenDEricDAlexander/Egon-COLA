@@ -114,6 +114,11 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-dynamic-config-center-http-registration-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-dynamic-config-center-admin</artifactId>
                 <version>${project.version}</version>
             </dependency>

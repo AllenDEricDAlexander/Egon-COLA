@@ -42,7 +42,7 @@ class Rbac3AdminApplicationModeTest {
         assertThat(Rbac3AdminApplication.bootstrapRuntimeProperties())
                 .containsEntry("egon.cola.component.ddc.enabled", false)
                 .containsEntry("egon.cola.component.gateway.reporting.enabled", false)
-                .containsEntry("egon.cola.component.gateway.provider.http.enabled", false)
+                .containsEntry("egon.cola.component.ddc.registry.http.enabled", false)
                 .containsEntry(
                         "egon.cola.component.transactional-outbox.polling.enabled",
                         false)

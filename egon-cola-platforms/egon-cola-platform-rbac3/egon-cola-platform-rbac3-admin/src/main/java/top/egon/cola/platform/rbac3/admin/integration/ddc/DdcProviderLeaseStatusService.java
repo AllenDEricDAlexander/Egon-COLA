@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.integration.ddc;
 
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
 
 import java.time.Instant;
@@ -16,7 +16,7 @@ public final class DdcProviderLeaseStatusService {
     private final Supplier<ProviderLeaseStatus> status;
 
     public DdcProviderLeaseStatusService(
-            HttpProviderLeaseRuntime runtime,
+            DdcHttpRegistrationRuntime runtime,
             GatewayDdcRuntimeStatusService.ServiceIdentity identity) {
         Objects.requireNonNull(runtime, "runtime");
         Objects.requireNonNull(identity, "identity");

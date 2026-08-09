@@ -27,16 +27,11 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+            <artifactId>egon-cola-platform-dynamic-config-center-http-registration-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-rpc-starter</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
             <optional>true</optional>
         </dependency>
         <dependency>

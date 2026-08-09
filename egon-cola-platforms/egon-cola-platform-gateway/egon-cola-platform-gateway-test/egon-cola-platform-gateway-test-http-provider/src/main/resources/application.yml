@@ -48,13 +48,6 @@ egon:
               secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
         registry:
           enabled: false
-      gateway:
-        reporting:
-          enabled: false
-          biz-code: ${DDC_BIZ_CODE:test-biz}
-          application-code: ${DDC_APP_CODE:gateway-test-http-provider}
-          artifact-version: ${gateway.test.service-version}
-        provider:
           http:
             enabled: true
             instance-id: ${GATEWAY_TEST_DDC_INSTANCE_ID:${gateway.test.provider-id:http-provider-default}}
@@ -70,3 +63,9 @@ egon:
             metadata:
               gateway.zone: ${gateway.test.zone:zone-a}
               gateway.weight: ${gateway.test.weight:100}
+      gateway:
+        reporting:
+          enabled: false
+          biz-code: ${DDC_BIZ_CODE:test-biz}
+          application-code: ${DDC_APP_CODE:gateway-test-http-provider}
+          artifact-version: ${gateway.test.service-version}

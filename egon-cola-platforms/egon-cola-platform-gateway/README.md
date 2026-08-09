@@ -40,8 +40,7 @@ discovered Gateway set rather than connecting directly to Providers.
 | `egon-cola-platform-gateway-core` | Framework-free data-plane models, filters, routing, security, and SPI | No |
 | `egon-cola-platform-gateway-engine` | Executable HTTP/RPC data plane, listeners, upstream clients, health, and telemetry | No |
 | `egon-cola-platform-gateway-admin` | Executable management control plane, persistence, release compilation, authentication, and OpenAPI | No |
-| `egon-cola-platform-gateway-starter` | Provider interface-definition reporting and downstream integration | Yes |
-| `egon-cola-platform-gateway-provider-runtime` | HTTP Provider DDC registration and lease lifecycle | Yes |
+| `egon-cola-platform-gateway-starter` | Provider interface-definition reporting plus Gateway metadata contribution to DDC HTTP registration | Yes |
 | `egon-cola-platform-gateway-test` | Real HTTP/RPC providers, consumers, and live topology verification | No |
 
 The Admin Web is a private React application colocated at
@@ -83,15 +82,17 @@ the lightweight `common-trace` generator.
 
 ## Consumption and Build
 
-The Components BOM does not export Gateway artifacts. Business systems that need the
-provider-facing integration surface may depend on `egon-cola-platform-gateway-starter`
-or `egon-cola-platform-gateway-provider-runtime` with the repository release version.
+The Components BOM does not export Gateway artifacts. Business systems that publish
+Gateway definitions depend only on `egon-cola-platform-gateway-starter`; it composes
+the DDC HTTP registration starter. Applications that need HTTP registration without
+Gateway definition reporting may depend directly on
+`egon-cola-platform-dynamic-config-center-http-registration-starter` with the repository release version.
 Engine, Admin, Contract, Core, and test artifacts are internal platform modules and should
 be built or deployed through the repository's Gateway topology.
 
-The Java package namespace remains `top.egon.cola.component.gateway` in this migration to
-preserve source and binary compatibility. The Maven coordinates and reactor ownership are
-the authoritative platform boundary.
+HTTP registration Java types now live under
+`top.egon.cola.component.ddc.http.registration`; Gateway types remain under
+`top.egon.cola.component.gateway`.
 
 Run focused JVM verification:
 

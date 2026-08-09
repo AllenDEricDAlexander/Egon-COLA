@@ -49,6 +49,7 @@ ACK, operation, and configuration-client projection data.
 | Module | Responsibility |
 |---|---|
 | `egon-cola-platform-dynamic-config-center-starter` | Transport-neutral SDK runtime and ports: ConfigData, `@DdcValue`, selective refresh, ACK, leases, management and registry contracts |
+| `egon-cola-platform-dynamic-config-center-http-registration-starter` | Spring HTTP service registration, DDC lease heartbeat/recovery, and registration metadata contributor SPI |
 | `egon-cola-component-rpc-ddc-adapter` | Composition adapter under `components/rpc`: protobuf contracts, direct gRPC clients/providers, HMAC metadata, and Spring Boot wiring |
 | `egon-cola-platform-dynamic-config-center-admin` | Human REST Admin plus direct gRPC facades, PostgreSQL persistence, Redis cache/leases, and synchronous publish state machine |
 | `egon-cola-platform-dynamic-config-center-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
@@ -92,8 +93,10 @@ top.egon.cola.component.ddc
 
 `DdcConfigClient`, `DdcServiceRegistryClient`, and `DdcManagementClient` remain
 separate domain facades. The RPC-DDC Adapter implements them over three unary gRPC
-services. The starter does not depend on RPC; the dependency direction is
-`rpc-starter <- rpc-ddc-adapter -> ddc-starter`.
+services. The base starter does not depend on RPC. The HTTP registration starter is
+an application composition starter and therefore includes the RPC-DDC Adapter used
+to send registry operations to DDC. HTTP registration properties use the
+`egon.cola.component.ddc.registry.http` namespace.
 
 ## Operations Endpoints
 

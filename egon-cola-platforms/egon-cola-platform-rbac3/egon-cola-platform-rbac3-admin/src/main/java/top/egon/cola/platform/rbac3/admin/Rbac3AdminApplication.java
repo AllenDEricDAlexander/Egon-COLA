@@ -39,7 +39,7 @@ public class Rbac3AdminApplication {
         return Map.of(
                 "egon.cola.component.ddc.enabled", false,
                 "egon.cola.component.gateway.reporting.enabled", false,
-                "egon.cola.component.gateway.provider.http.enabled", false,
+                "egon.cola.component.ddc.registry.http.enabled", false,
                 "egon.cola.component.transactional-outbox.polling.enabled", false,
                 "management.endpoint.health.validate-group-membership", false);
     }

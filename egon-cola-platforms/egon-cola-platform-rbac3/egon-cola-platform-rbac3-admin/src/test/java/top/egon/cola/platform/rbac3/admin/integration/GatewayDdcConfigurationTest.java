@@ -7,9 +7,9 @@ import org.springframework.core.io.FileSystemResource;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
-import top.egon.cola.component.gateway.provider.HttpProviderRuntimeProperties;
-import top.egon.cola.component.gateway.provider.HttpProviderRuntimeState;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntimeProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationState;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcProviderLeaseStatusService;
 import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminControlPlaneStatusClient;
 import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayDefinitionStatusService;
@@ -42,10 +42,10 @@ class GatewayDdcConfigurationTest {
     @Test
     void productionProviderRequiresAnExplicitPortAndProductionYamlHasNoLocalFallback()
             throws Exception {
-        assertThatThrownBy(() -> new HttpProviderRuntimeProperties(
+        assertThatThrownBy(() -> new DdcHttpRegistrationRuntimeProperties(
                 true, "prod", "default", "instance-1", "rbac3-admin",
                 "default", "1.0.0", "http", "rbac3.internal", 0,
-                30, 10, true, Map.of(), null))
+                30, 10, true, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("port=0 is only allowed in local/test");
 
@@ -103,7 +103,7 @@ class GatewayDdcConfigurationTest {
                 "egon.cola.component.gateway.reporting.enabled"))
                 .isEqualTo(true);
         assertThat(production.getProperty(
-                "egon.cola.component.gateway.provider.http.enabled"))
+                "egon.cola.component.ddc.registry.http.enabled"))
                 .isEqualTo(true);
     }
 
@@ -118,25 +118,25 @@ class GatewayDdcConfigurationTest {
         assertThat(local.getProperty("egon.cola.component.gateway.reporting.enabled"))
                 .isEqualTo(false);
         assertThat(local.getProperty(
-                "egon.cola.component.gateway.provider.http.enabled"))
+                "egon.cola.component.ddc.registry.http.enabled"))
                 .isEqualTo("${RBAC3_HTTP_PROVIDER_ENABLED:false}");
     }
 
     @Test
     void ddcLeaseStatesRemainIndependent() {
-        HttpProviderLeaseRuntime runtime = mock(HttpProviderLeaseRuntime.class);
+        DdcHttpRegistrationRuntime runtime = mock(DdcHttpRegistrationRuntime.class);
         when(runtime.instanceId()).thenReturn("instance-1");
-        when(runtime.state()).thenReturn(HttpProviderRuntimeState.RECOVERING);
+        when(runtime.state()).thenReturn(DdcHttpRegistrationState.RECOVERING);
         when(runtime.lease()).thenReturn(Optional.empty());
         var service = new DdcProviderLeaseStatusService(runtime, IDENTITY);
 
         assertThat(service.status().state()).isEqualTo("RECOVERING");
-        when(runtime.state()).thenReturn(HttpProviderRuntimeState.REGISTERED);
+        when(runtime.state()).thenReturn(DdcHttpRegistrationState.REGISTERED);
         when(runtime.lease()).thenReturn(Optional.of(new DdcLeaseSession(
                 "instance-1", "lease-1", DdcLeaseRole.HTTP_PROVIDER, 30, 10,
                 NOW.minusSeconds(1), NOW.plusSeconds(30))));
         assertThat(service.status().state()).isEqualTo("REGISTERED");
-        when(runtime.state()).thenReturn(HttpProviderRuntimeState.STOPPED);
+        when(runtime.state()).thenReturn(DdcHttpRegistrationState.STOPPED);
         assertThat(service.status().state()).isEqualTo("STOPPED");
     }
 

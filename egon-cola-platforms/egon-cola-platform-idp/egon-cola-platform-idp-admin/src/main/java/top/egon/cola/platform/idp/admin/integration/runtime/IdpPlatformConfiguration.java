@@ -15,8 +15,8 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
 import top.egon.cola.platform.idp.admin.bootstrap.IdpBootstrapRunner;
 import top.egon.cola.platform.idp.admin.bootstrap.IdpBootstrapService;
@@ -141,16 +141,16 @@ public class IdpPlatformConfiguration {
         };
     }
 
-    @Bean(name = "gatewayHttpProviderServerReadyListener")
+    @Bean(name = "ddcHttpRegistrationServerReadyListener")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.provider.http",
+            prefix = "egon.cola.component.ddc.registry.http",
             name = "enabled",
             havingValue = "true"
     )
     IdpHttpProviderPublicationGate idpHttpProviderPublicationGate(
             DdcRuntimeCoordinator coordinator,
-            HttpProviderLeaseRuntime providerRuntime,
-            GatewayHttpProviderProperties providerProperties,
+            DdcHttpRegistrationRuntime providerRuntime,
+            DdcHttpRegistrationProperties providerProperties,
             IdpRuntimeReadiness readiness
     ) {
         return new IdpHttpProviderPublicationGate(

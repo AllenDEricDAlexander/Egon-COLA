@@ -37,8 +37,7 @@ Pub/Sub 仍承载变更通知。其他普通 RPC 服务仍由 DDC 支撑，业�
 | `egon-cola-platform-gateway-core` | 无框架数据面模型、过滤器、路由、安全和 SPI | 否 |
 | `egon-cola-platform-gateway-engine` | 可执行 HTTP/RPC 数据面、监听器、上游客户端、健康检查和遥测 | 否 |
 | `egon-cola-platform-gateway-admin` | 可执行管理控制面、持久化、规则编译、鉴权和 OpenAPI | 否 |
-| `egon-cola-platform-gateway-starter` | Provider 接口定义上报和下游集成 | 是 |
-| `egon-cola-platform-gateway-provider-runtime` | HTTP Provider 的 DDC 注册和租约生命周期 | 是 |
+| `egon-cola-platform-gateway-starter` | Provider 接口定义上报，并向 DDC HTTP 注册贡献 Gateway 元数据 | 是 |
 | `egon-cola-platform-gateway-test` | 真实 HTTP/RPC Provider、Consumer 和拓扑验证 | 否 |
 
 Admin Web 是与 Gateway 源码同目录的私有 React 应用，路径为
@@ -75,13 +74,14 @@ Gateway 已接入 Micrometer Observation / OpenTelemetry。存在有效 Observat
 
 ## 消费和构建
 
-Components BOM 不再导出 Gateway Artifact。业务系统如需 Provider 侧集成能力，可以
-使用仓库统一发布版本显式依赖 `egon-cola-platform-gateway-starter` 或
-`egon-cola-platform-gateway-provider-runtime`。Engine、Admin、Contract、Core 和 test
+Components BOM 不再导出 Gateway Artifact。需要上报 Gateway 接口定义的业务系统只需
+依赖 `egon-cola-platform-gateway-starter`，它会组装 DDC HTTP 注册 Starter；不需要
+Gateway 接口定义上报、只需注册 HTTP 服务的应用，才直接依赖
+`egon-cola-platform-dynamic-config-center-http-registration-starter`。Engine、Admin、Contract、Core 和 test
 属于平台内部模块，应通过仓库的 Gateway 拓扑构建或部署。
 
-本次迁移保留 `top.egon.cola.component.gateway` Java 包名，以维持源码和二进制兼容；
-Maven 坐标与 reactor 归属是 Gateway 的正式 platform 边界。
+HTTP 注册 Java 类型已迁入 `top.egon.cola.component.ddc.http.registration`，Gateway
+类型继续位于 `top.egon.cola.component.gateway`。
 
 执行 JVM 专项验证：
 

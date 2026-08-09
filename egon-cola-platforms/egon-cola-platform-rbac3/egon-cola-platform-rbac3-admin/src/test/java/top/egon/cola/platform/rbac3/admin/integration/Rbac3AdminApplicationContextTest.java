@@ -11,8 +11,8 @@ import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
@@ -139,13 +139,13 @@ class Rbac3AdminApplicationContextTest {
     void replacesTheDefaultProviderListenerOnlyWhenDdcIsEnabled()
             throws NoSuchMethodException {
         var method = Rbac3PlatformIntegrationConfiguration.class.getDeclaredMethod(
-                "gatewayHttpProviderServerReadyListener",
+                "ddcHttpRegistrationServerReadyListener",
                 DdcRuntimeCoordinator.class,
-                HttpProviderLeaseRuntime.class,
-                GatewayHttpProviderProperties.class);
+                DdcHttpRegistrationRuntime.class,
+                DdcHttpRegistrationProperties.class);
 
         assertThat(method.getAnnotation(Bean.class).name())
-                .containsExactly("gatewayHttpProviderServerReadyListener");
+                .containsExactly("ddcHttpRegistrationServerReadyListener");
         ConditionalOnProperty condition = method.getAnnotation(
                 ConditionalOnProperty.class);
         assertThat(condition.prefix()).isEqualTo("egon.cola.component.ddc");
@@ -160,7 +160,7 @@ class Rbac3AdminApplicationContextTest {
         var method = Rbac3PlatformIntegrationConfiguration.class
                 .getDeclaredMethod(
                         "ddcProviderLeaseStatusService",
-                        HttpProviderLeaseRuntime.class,
+                        DdcHttpRegistrationRuntime.class,
                         GatewayDdcRuntimeStatusService.ServiceIdentity.class
                 );
 

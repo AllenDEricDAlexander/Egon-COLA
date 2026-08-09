@@ -56,7 +56,7 @@ class GatewayCoreBoundaryTest {
                         "import top.egon.cola.component.gateway.starter."
                 )
                 || line.startsWith(
-                        "import top.egon.cola.component.gateway.provider."
+                        "import top.egon.cola.component.ddc.http.registration."
                 );
     }
 }

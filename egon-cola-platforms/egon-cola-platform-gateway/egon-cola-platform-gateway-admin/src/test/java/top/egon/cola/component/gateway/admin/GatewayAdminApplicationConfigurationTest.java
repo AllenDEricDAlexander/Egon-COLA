@@ -12,9 +12,9 @@ import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderAutoConfiguration;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationAutoConfiguration;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
 import top.egon.cola.component.rpc.ddc.client.config.RpcDdcConfigClient;
 
@@ -27,19 +27,19 @@ class GatewayAdminApplicationConfigurationTest {
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
-                            GatewayHttpProviderAutoConfiguration.class
+                            DdcHttpRegistrationAutoConfiguration.class
                     ))
                     .withUserConfiguration(DdcRegistryTestConfiguration.class)
                     .withPropertyValues(
                             "egon.cola.component.ddc.biz-code=infra",
                             "egon.cola.component.ddc.env=local",
                             "egon.cola.component.ddc.app-code=ga",
-                            "egon.cola.component.gateway.provider.http.enabled=true",
-                            "egon.cola.component.gateway.provider.http.service-name=egon-cola-gateway-admin",
-                            "egon.cola.component.gateway.provider.http.version=5.3.2",
-                            "egon.cola.component.gateway.provider.http.advertised-host=127.0.0.1",
-                            "egon.cola.component.gateway.provider.http.port=8080",
-                            "egon.cola.component.gateway.provider.http.metadata.gateway.component=admin"
+                            "egon.cola.component.ddc.registry.http.enabled=true",
+                            "egon.cola.component.ddc.registry.http.service-name=egon-cola-gateway-admin",
+                            "egon.cola.component.ddc.registry.http.version=5.3.2",
+                            "egon.cola.component.ddc.registry.http.advertised-host=127.0.0.1",
+                            "egon.cola.component.ddc.registry.http.port=8080",
+                            "egon.cola.component.ddc.registry.http.metadata.gateway.component=admin"
                     );
 
     @Test
@@ -59,14 +59,14 @@ class GatewayAdminApplicationConfigurationTest {
     void registersGatewayAdminAsInfraGaHttpProvider() {
         contextRunner.run(context -> {
             assertEquals(1, context.getBeansOfType(
-                    HttpProviderLeaseRuntime.class
+                    DdcHttpRegistrationRuntime.class
             ).size());
             DdcProperties properties = context.getBean(DdcProperties.class);
             assertEquals("infra", properties.getBizCode());
             assertEquals("local", properties.getEnv());
             assertEquals("ga", properties.getAppCode());
-            GatewayHttpProviderProperties provider = context.getBean(
-                    GatewayHttpProviderProperties.class
+            DdcHttpRegistrationProperties provider = context.getBean(
+                    DdcHttpRegistrationProperties.class
             );
             assertEquals("egon-cola-gateway-admin", provider.getServiceName());
             assertEquals(

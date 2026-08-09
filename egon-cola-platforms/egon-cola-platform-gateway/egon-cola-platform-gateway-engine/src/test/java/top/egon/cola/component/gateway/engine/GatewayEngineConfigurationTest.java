@@ -55,12 +55,12 @@ class GatewayEngineConfigurationTest {
         ));
         assertEquals("${GATEWAY_ENGINE_DDC_REGISTRATION_ENABLED:true}",
                 loader.getObject().getProperty(
-                        "egon.cola.component.gateway.provider.http.enabled"));
+                        "egon.cola.component.ddc.registry.http.enabled"));
         assertEquals("egon-cola-gateway-engine", loader.getObject()
                 .getProperty(
-                        "egon.cola.component.gateway.provider.http.service-name"));
+                        "egon.cola.component.ddc.registry.http.service-name"));
         assertEquals("engine", loader.getObject().getProperty(
-                "egon.cola.component.gateway.provider.http.metadata.gateway.component"));
+                "egon.cola.component.ddc.registry.http.metadata.gateway.component"));
     }
 
     @Test

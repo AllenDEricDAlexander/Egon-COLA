@@ -103,8 +103,6 @@ egon:
           database: ${DDC_REDIS_DATABASE:0}
         registry:
           enabled: ${DDC_REGISTRY_ENABLED:false}
-      gateway:
-        provider:
           http:
             enabled: ${GATEWAY_ADMIN_DDC_REGISTRATION_ENABLED:false}
             service-name: egon-cola-gateway-admin
@@ -114,3 +112,4 @@ egon:
             port: ${GATEWAY_ADMIN_DDC_ADVERTISED_PORT:0}
             metadata:
               gateway.component: admin
+      gateway:

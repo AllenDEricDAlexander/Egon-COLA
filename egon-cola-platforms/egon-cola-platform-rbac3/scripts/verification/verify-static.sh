@@ -50,7 +50,7 @@ verify() {
     || rbac3_die "production application.yml must enable the DDC config client"
   rg -Uq 'registry:\n[[:space:]]+enabled: true' "${production_yaml}" \
     || rbac3_die "production application.yml must enable DDC service registration"
-  rg -q 'gatewayHttpProviderServerReadyListener' "${integration_config}" \
+  rg -q 'ddcHttpRegistrationServerReadyListener' "${integration_config}" \
     || rbac3_die "RBAC3 must own the DDC-gated HTTP provider ready listener"
 
   local config_key

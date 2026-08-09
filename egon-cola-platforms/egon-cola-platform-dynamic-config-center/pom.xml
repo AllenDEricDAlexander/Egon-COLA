@@ -18,6 +18,7 @@
 
     <modules>
         <module>egon-cola-platform-dynamic-config-center-starter</module>
+        <module>egon-cola-platform-dynamic-config-center-http-registration-starter</module>
         <module>egon-cola-platform-dynamic-config-center-admin</module>
         <module>egon-cola-platform-dynamic-config-center-test</module>
     </modules>

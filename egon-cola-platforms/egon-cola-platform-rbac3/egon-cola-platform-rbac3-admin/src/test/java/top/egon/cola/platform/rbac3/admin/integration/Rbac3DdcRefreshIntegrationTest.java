@@ -31,8 +31,8 @@ import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
-import top.egon.cola.component.gateway.provider.HttpProviderRuntimeState;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationState;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;
@@ -250,8 +250,8 @@ class Rbac3DdcRefreshIntegrationTest {
         DdcLeaseSession providerSession = new DdcLeaseSession(
                 "rbac3-1", PROVIDER_LEASE_ID, DdcLeaseRole.HTTP_PROVIDER,
                 30, 10, NOW, NOW.plusSeconds(30));
-        HttpProviderLeaseRuntime providerRuntime = mock(HttpProviderLeaseRuntime.class);
-        when(providerRuntime.state()).thenReturn(HttpProviderRuntimeState.REGISTERED);
+        DdcHttpRegistrationRuntime providerRuntime = mock(DdcHttpRegistrationRuntime.class);
+        when(providerRuntime.state()).thenReturn(DdcHttpRegistrationState.REGISTERED);
         when(providerRuntime.instanceId()).thenReturn("rbac3-1");
         when(providerRuntime.lease()).thenReturn(java.util.Optional.of(providerSession));
         var providerStatus = new DdcProviderLeaseStatusService(

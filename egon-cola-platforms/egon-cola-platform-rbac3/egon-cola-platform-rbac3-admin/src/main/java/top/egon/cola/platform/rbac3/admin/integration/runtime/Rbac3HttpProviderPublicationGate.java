@@ -7,8 +7,8 @@ import org.springframework.context.ApplicationListener;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
-import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -20,8 +20,8 @@ public final class Rbac3HttpProviderPublicationGate
         implements ApplicationListener<ApplicationEvent> {
 
     private final DdcRuntimeCoordinator coordinator;
-    private final HttpProviderLeaseRuntime providerRuntime;
-    private final GatewayHttpProviderProperties providerProperties;
+    private final DdcHttpRegistrationRuntime providerRuntime;
+    private final DdcHttpRegistrationProperties providerProperties;
     private final AtomicBoolean applicationReady = new AtomicBoolean();
     private final AtomicBoolean published = new AtomicBoolean();
 
@@ -29,8 +29,8 @@ public final class Rbac3HttpProviderPublicationGate
 
     public Rbac3HttpProviderPublicationGate(
             DdcRuntimeCoordinator coordinator,
-            HttpProviderLeaseRuntime providerRuntime,
-            GatewayHttpProviderProperties providerProperties) {
+            DdcHttpRegistrationRuntime providerRuntime,
+            DdcHttpRegistrationProperties providerProperties) {
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator");
         this.providerRuntime = Objects.requireNonNull(providerRuntime, "providerRuntime");
         this.providerProperties = Objects.requireNonNull(

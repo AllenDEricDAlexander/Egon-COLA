@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.web.reactive.result.method.annotation
         .RequestMappingHandlerMapping;
+import top.egon.cola.component.ddc.http.registration
+        .DdcHttpRegistrationContributor;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.discovery.http.WebFluxGatewayDefinitionContributor;
@@ -38,6 +40,7 @@ class GatewayReportingAutoConfigurationTest {
     void remainsDisabledByDefault() {
         runner.run(context -> assertThat(context)
                 .doesNotHaveBean(GatewayDefinitionIdentity.class)
+                .doesNotHaveBean(DdcHttpRegistrationContributor.class)
                 .doesNotHaveBean(RpcProviderMetadataContributor.class));
     }
 
@@ -79,18 +82,22 @@ class GatewayReportingAutoConfigurationTest {
                     assertThat(context)
                             .hasSingleBean(GatewayDefinitionIdentity.class);
                     assertThat(context).hasSingleBean(
-                            top.egon.cola.component.gateway.contract.definition
-                                    .GatewayDefinitionIdentity.class
+                            DdcHttpRegistrationContributor.class
                     );
                     assertThat(context.getBean(
                             GatewayDefinitionIdentity.class
                     ).buildId()).isEqualTo("build-1");
-                    assertThat(context.getBean(
-                            top.egon.cola.component.gateway.contract.definition
-                                    .GatewayDefinitionIdentity.class
-                    ).definitionSetId()).isEqualTo(context.getBean(
-                            GatewayDefinitionIdentity.class
-                    ).definitionSetId());
+                    DdcHttpRegistrationContributor httpContributor =
+                            context.getBean(
+                                    DdcHttpRegistrationContributor.class
+                            );
+                    assertThat(httpContributor.serviceVersion())
+                            .isEqualTo("1.0.0");
+                    assertThat(httpContributor.metadata()).containsEntry(
+                            "gateway.definition-set-id",
+                            context.getBean(GatewayDefinitionIdentity.class)
+                                    .definitionSetId()
+                    );
                     Map<String, String> rpcMetadata =
                             new RpcProviderMetadataMerger(
                                     context.getBeansOfType(

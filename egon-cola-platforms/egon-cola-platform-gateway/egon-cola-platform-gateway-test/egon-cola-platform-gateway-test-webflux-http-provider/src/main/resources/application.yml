@@ -50,17 +50,6 @@ egon:
               secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
         registry:
           enabled: false
-      gateway:
-        reporting:
-          enabled: false
-          biz-code: ${DDC_BIZ_CODE:test-biz}
-          application-code: gateway-test-http-provider
-          application-name: Gateway Test HTTP Provider
-          env: test
-          namespace: gateway-test
-          artifact-version: ${gateway.test.service-version}
-          build-id: ${GATEWAY_TEST_BUILD_ID:local-webflux}
-        provider:
           http:
             enabled: true
             instance-id: ${gateway.test.provider-id:webflux-http-provider-default}
@@ -76,3 +65,13 @@ egon:
             metadata:
               gateway.zone: ${gateway.test.zone:zone-b}
               gateway.weight: ${gateway.test.weight:100}
+      gateway:
+        reporting:
+          enabled: false
+          biz-code: ${DDC_BIZ_CODE:test-biz}
+          application-code: gateway-test-http-provider
+          application-name: Gateway Test HTTP Provider
+          env: test
+          namespace: gateway-test
+          artifact-version: ${gateway.test.service-version}
+          build-id: ${GATEWAY_TEST_BUILD_ID:local-webflux}

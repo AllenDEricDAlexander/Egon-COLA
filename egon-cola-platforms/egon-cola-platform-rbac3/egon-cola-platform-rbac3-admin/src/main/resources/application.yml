@@ -137,6 +137,20 @@ egon:
           database: ${DDC_REGISTRY_REDIS_DATABASE:0}
         registry:
           enabled: true
+          http:
+            enabled: true
+            env: ${DEPLOYMENT_ENV}
+            namespace: ${DEPLOYMENT_NAMESPACE}
+            instance-id: ${RBAC3_INSTANCE_ID}
+            service-name: rbac3-admin
+            group: default
+            version: ${RBAC3_ARTIFACT_VERSION}
+            protocol: http
+            advertised-host: ${RBAC3_ADVERTISED_HOST}
+            port: ${RBAC3_ADVERTISED_PORT}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true
       gateway:
         reporting:
           enabled: true
@@ -153,22 +167,6 @@ egon:
           access-key: ${GATEWAY_REPORT_ACCESS_KEY}
           secret-key: ${GATEWAY_REPORT_SECRET_KEY}
           state-file: ${GATEWAY_REPORT_STATE_FILE}
-        provider:
-          http:
-            enabled: true
-            env: ${DEPLOYMENT_ENV}
-            namespace: ${DEPLOYMENT_NAMESPACE}
-            instance-id: ${RBAC3_INSTANCE_ID}
-            service-name: rbac3-admin
-            group: default
-            version: ${RBAC3_ARTIFACT_VERSION}
-            protocol: http
-            advertised-host: ${RBAC3_ADVERTISED_HOST}
-            port: ${RBAC3_ADVERTISED_PORT}
-            lease-seconds: 30
-            heartbeat-interval-seconds: 10
-            fail-fast: true
-
       transactional-outbox:
         enabled: true
         node-id: ${RBAC3_INSTANCE_ID}

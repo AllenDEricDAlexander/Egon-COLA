@@ -25,11 +25,11 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.gateway.contract.definition
-        .GatewayDefinitionIdentity;
+import top.egon.cola.component.ddc.http.registration
+        .DdcHttpRegistrationContributor;
 import top.egon.cola.component.gateway.contract.reporting
         .GatewayInterfaceDefinitionReport;
-import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
@@ -62,7 +62,7 @@ class HttpProviderContractTest {
     private ApplicationContext context;
 
     @Autowired
-    private HttpProviderLeaseRuntime runtime;
+    private DdcHttpRegistrationRuntime runtime;
 
     @Autowired
     private RecordingRegistry registry;
@@ -266,13 +266,24 @@ class HttpProviderContractTest {
         }
 
         @Bean
-        GatewayDefinitionIdentity gatewayProviderDefinitionIdentity(
+        DdcHttpRegistrationContributor httpRegistrationContributor(
                 GatewayReportingProperties properties) {
-            return new GatewayDefinitionIdentity(
-                    "test-definition-set",
-                    properties.getArtifactVersion(),
-                    "test-build"
-            );
+            return new DdcHttpRegistrationContributor() {
+                @Override
+                public String serviceVersion() {
+                    return properties.getArtifactVersion();
+                }
+
+                @Override
+                public Map<String, String> metadata() {
+                    return Map.of(
+                            "gateway.definition-set-id",
+                            "test-definition-set",
+                            "gateway.build-id",
+                            "test-build"
+                    );
+                }
+            };
         }
     }
 

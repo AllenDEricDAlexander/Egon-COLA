@@ -41,6 +41,7 @@ Admin HTTP 仅保留给人工管理 API 和 Actuator 健康检查。各 Admin �
 | 模块 | 职责 |
 |---|---|
 | `egon-cola-platform-dynamic-config-center-starter` | 传输无关 SDK 运行时与端口：ConfigData、`@DdcValue`、选择性刷新、ACK、租约、管理和注册契约 |
+| `egon-cola-platform-dynamic-config-center-http-registration-starter` | Spring HTTP 服务注册、DDC 租约心跳/恢复和注册元数据贡献 SPI |
 | `egon-cola-component-rpc-ddc-adapter` | 位于 `components/rpc` 的组装适配器：Protobuf 契约、直连 gRPC Client/Provider、HMAC Metadata 和 Spring Boot 装配 |
 | `egon-cola-platform-dynamic-config-center-admin` | 人工 REST Admin 与直连 gRPC Facade、PostgreSQL 持久化、Redis 缓存/租约和同步发布状态机 |
 | `egon-cola-platform-dynamic-config-center-admin-web` | 独立管理控制台（React + antd + Vite，纯 Node 工程，不进 Maven reactor）；构建与部署说明见 `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
@@ -82,8 +83,10 @@ top.egon.cola.component.ddc
 ```
 
 `DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 仍是三套独立
-领域门面，RPC-DDC Adapter 通过三个 unary gRPC Service 实现它们。Starter 不依赖
-RPC，依赖方向固定为 `rpc-starter <- rpc-ddc-adapter -> ddc-starter`。
+领域门面，RPC-DDC Adapter 通过三个 unary gRPC Service 实现它们。基础 Starter 不依赖
+RPC；HTTP 注册 Starter 属于应用组装 Starter，因此会引入向 DDC 发送注册操作所需的
+RPC-DDC Adapter。HTTP 注册配置统一使用
+`egon.cola.component.ddc.registry.http` 命名空间。
 
 ## 运维端点
 

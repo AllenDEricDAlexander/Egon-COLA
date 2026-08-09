@@ -14,6 +14,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.ddc.http.registration
+        .DdcHttpRegistrationContributor;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
@@ -103,23 +105,37 @@ public class GatewayReportingAutoConfiguration {
     }
 
     /**
-     * Adapts the reporting identity to the provider registration contract.
-     * 中文：将上报身份适配为 Provider 注册契约所需的身份对象。
+     * Contributes the reporting identity to DDC HTTP service registration.
+     * 中文：向 DDC HTTP 服务注册贡献接口上报身份元数据。
      *
      * @param identity reporting definition identity
-     * @return provider-facing definition identity
+     * @return DDC HTTP registration contributor
      */
     @Bean
-    @ConditionalOnMissingBean
-    public top.egon.cola.component.gateway.contract.definition
-            .GatewayDefinitionIdentity gatewayProviderDefinitionIdentity(
+    @ConditionalOnMissingBean(
+            name = "gatewayDefinitionIdentityHttpRegistrationContributor"
+    )
+    public DdcHttpRegistrationContributor
+            gatewayDefinitionIdentityHttpRegistrationContributor(
             GatewayDefinitionIdentity identity) {
-        return new top.egon.cola.component.gateway.contract.definition
-                .GatewayDefinitionIdentity(
-                identity.definitionSetId(),
-                identity.artifactVersion(),
-                identity.buildId()
-        );
+        return new DdcHttpRegistrationContributor() {
+            @Override
+            public String serviceVersion() {
+                return identity.artifactVersion();
+            }
+
+            @Override
+            public Map<String, String> metadata() {
+                return Map.of(
+                        "gateway.definition-set-id",
+                        identity.definitionSetId(),
+                        "gateway.artifact-version",
+                        identity.artifactVersion(),
+                        "gateway.build-id",
+                        identity.buildId()
+                );
+            }
+        };
     }
 
     /**

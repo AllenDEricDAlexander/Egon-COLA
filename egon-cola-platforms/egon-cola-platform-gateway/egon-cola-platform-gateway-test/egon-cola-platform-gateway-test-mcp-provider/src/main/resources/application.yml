@@ -51,6 +51,18 @@ egon:
           database: ${DDC_REGISTRY_REDIS_DATABASE:0}
         registry:
           enabled: ${DDC_REGISTRY_ENABLED:false}
+          http:
+            enabled: true
+            instance-id: ${MCP_TEST_PROVIDER_INSTANCE_ID:mcp-provider-1}
+            service-name: gateway-test-mcp-provider
+            group: default
+            version: 1.0.0
+            protocol: http
+            advertised-host: ${MCP_TEST_PROVIDER_HOST:127.0.0.1}
+            port: ${MCP_TEST_PROVIDER_PORT:18150}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: true
       gateway:
         reporting:
           enabled: ${GATEWAY_REPORTING_ENABLED:false}
@@ -65,16 +77,3 @@ egon:
           declared-hosts: ${MCP_TEST_PROVIDER_HOST:127.0.0.1}
           access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
           secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
-        provider:
-          http:
-            enabled: true
-            instance-id: ${MCP_TEST_PROVIDER_INSTANCE_ID:mcp-provider-1}
-            service-name: gateway-test-mcp-provider
-            group: default
-            version: 1.0.0
-            protocol: http
-            advertised-host: ${MCP_TEST_PROVIDER_HOST:127.0.0.1}
-            port: ${MCP_TEST_PROVIDER_PORT:18150}
-            lease-seconds: 30
-            heartbeat-interval-seconds: 10
-            fail-fast: true
