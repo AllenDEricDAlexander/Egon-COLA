@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry;
+package top.egon.cola.component.ddc.registry.state;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.common.DdcException;

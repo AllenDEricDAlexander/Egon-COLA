@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry;
+package top.egon.cola.component.ddc.registry.client;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
@@ -9,11 +9,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class DdcOpenApiServiceRegistryClientQueryTest {
+class HttpDdcServiceRegistryClientTest {
 
     @Test
     void instanceQueryIncludesTheCompleteBizApplicationScope() {
-        var query = DdcOpenApiServiceRegistryClient.serviceKeyQuery(
+        var query = HttpDdcServiceRegistryClient.serviceKeyQuery(
                 new DdcServiceKey(
                         "retail",
                         "local",
@@ -36,7 +36,7 @@ class DdcOpenApiServiceRegistryClientQueryTest {
 
     @Test
     void serviceCatalogQueryOnlyIncludesProvidedFilters() {
-        var query = DdcOpenApiServiceRegistryClient.serviceQuery(
+        var query = HttpDdcServiceRegistryClient.serviceQuery(
                 new DdcServiceQuery(
                         "retail",
                         "local",

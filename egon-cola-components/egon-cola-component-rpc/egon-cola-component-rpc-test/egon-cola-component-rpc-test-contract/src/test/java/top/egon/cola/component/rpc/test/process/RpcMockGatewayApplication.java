@@ -4,7 +4,7 @@ import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.registry.DdcOpenApiServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.client.HttpDdcServiceRegistryClient;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.mockgateway.MockGatewayProperties;
 import top.egon.cola.component.rpc.test.mockgateway.MockRpcGateway;
@@ -25,8 +25,8 @@ public final class RpcMockGatewayApplication {
         Map<String, String> values = parse(arguments);
         DdcProperties properties = properties(values);
         RedissonClient redisson = redisson(properties);
-        DdcOpenApiServiceRegistryClient registry =
-                new DdcOpenApiServiceRegistryClient(properties, redisson);
+        HttpDdcServiceRegistryClient registry =
+                new HttpDdcServiceRegistryClient(properties, redisson);
         MockRpcGateway gateway = new MockRpcGateway(
                 registry,
                 properties.getEnv(),

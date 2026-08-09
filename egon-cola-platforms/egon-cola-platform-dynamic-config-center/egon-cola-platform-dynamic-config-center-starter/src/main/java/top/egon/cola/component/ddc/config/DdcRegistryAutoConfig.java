@@ -8,9 +8,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import top.egon.cola.component.ddc.registry.DdcOpenApiServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.client.HttpDdcServiceRegistryClient;
 
 /**
  * 在显式启用服务注册时装配服务键工厂和注册客户端。 Configures the service-key factory and registry client when service registry is explicitly enabled.
@@ -52,6 +52,6 @@ public class DdcRegistryAutoConfig {
             DdcProperties properties,
             @Qualifier("ddcRedissonClient")
             RedissonClient redissonClient) {
-        return new DdcOpenApiServiceRegistryClient(properties, redissonClient);
+        return new HttpDdcServiceRegistryClient(properties, redissonClient);
     }
 }

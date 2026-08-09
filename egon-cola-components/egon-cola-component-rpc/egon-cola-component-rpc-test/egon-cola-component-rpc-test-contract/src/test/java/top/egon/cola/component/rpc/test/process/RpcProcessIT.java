@@ -8,7 +8,7 @@ import top.egon.cola.component.ddc.config.DdcProperties;
 import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.DdcOpenApiServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.client.HttpDdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 
 import java.nio.file.Path;
@@ -350,7 +350,7 @@ class RpcProcessIT {
         }
         RedissonClient redisson = Redisson.create(config);
         return new RegistryResources(
-                new DdcOpenApiServiceRegistryClient(properties, redisson),
+                new HttpDdcServiceRegistryClient(properties, redisson),
                 redisson
         );
     }

@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry;
+package top.egon.cola.component.ddc.registry.state;
 
 import top.egon.cola.component.ddc.common.DdcErrorStatus;
 import top.egon.cola.component.ddc.common.DdcException;
@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 按租约标识索引当前客户端进程创建的服务注册。
  * / Indexes service registrations created by the current client process by lease identifier.
  */
-final class DdcActiveRegistrationIndex {
+public final class DdcActiveRegistrationIndex {
 
     /**
      * 当前活跃注册，键为租约标识。 / Active registrations keyed by lease identifier.
@@ -26,7 +26,7 @@ final class DdcActiveRegistrationIndex {
      * @param serviceKey 注册使用的服务键 / service key used for registration
      * @param session    Admin 签发的租约会话 / lease session issued by Admin
      */
-    void put(DdcServiceKey serviceKey, DdcLeaseSession session) {
+    public void put(DdcServiceKey serviceKey, DdcLeaseSession session) {
         registrations.put(session.leaseId(), new ActiveRegistration(serviceKey, session.instanceId()));
     }
 
@@ -39,7 +39,7 @@ final class DdcActiveRegistrationIndex {
      * @return 注册时使用的服务键 / service key used for registration
      * @throws DdcException 租约不存在或实例不匹配时抛出 / if the lease is absent or the instance does not match
      */
-    DdcServiceKey require(String instanceId, String leaseId) {
+    public DdcServiceKey require(String instanceId, String leaseId) {
         ActiveRegistration registration = registrations.get(leaseId);
         if (registration == null || !registration.instanceId().equals(instanceId)) {
             throw new DdcException(DdcErrorStatus.LEASE_MISMATCH);
@@ -53,14 +53,14 @@ final class DdcActiveRegistrationIndex {
      *
      * @param leaseId 租约标识 / lease identifier
      */
-    void remove(String leaseId) {
+    public void remove(String leaseId) {
         registrations.remove(leaseId);
     }
 
     /**
      * 清空全部本地注册记录。 / Clears all local registration records.
      */
-    void clear() {
+    public void clear() {
         registrations.clear();
     }
 

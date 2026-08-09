@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry;
+package top.egon.cola.component.ddc.registry.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -25,6 +25,11 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.registry.state.DdcActiveRegistrationIndex;
+import top.egon.cola.component.ddc.registry.subscription.DdcRegistrySnapshotLoader;
+import top.egon.cola.component.ddc.registry.subscription.DdcRegistrySubscriptionCoordinator;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,8 +40,8 @@ import java.util.function.Consumer;
  * 通过带签名和传输安全校验的 DDC OpenAPI 实现服务注册中心客户端。
  * / Service registry client implemented through the signed and transport-secured DDC OpenAPI.
  */
-public final class DdcOpenApiServiceRegistryClient
-        implements DdcServiceRegistryClient, AutoCloseable {
+public final class HttpDdcServiceRegistryClient
+        implements DdcServiceRegistryClient, DdcRegistrySnapshotLoader, AutoCloseable {
 
     /**
      * 服务实例注册端点路径。 / Service instance registration endpoint path.
@@ -81,7 +86,7 @@ public final class DdcOpenApiServiceRegistryClient
     /**
      * 管理 Redis 事件和定时协调订阅的组件。 / Component managing Redis events and scheduled subscription reconciliation.
      */
-    private final DdcRegistrySubscriptionManager subscriptionManager;
+    private final DdcRegistrySubscriptionCoordinator subscriptionCoordinator;
 
     /**
      * 当前客户端创建的活跃注册索引。 / Index of active registrations created by this client.
@@ -99,8 +104,8 @@ public final class DdcOpenApiServiceRegistryClient
      * @throws IllegalStateException    必填端点或签名凭据缺失时抛出
      *                                  / if the required endpoint or signing credentials are missing
      */
-    public DdcOpenApiServiceRegistryClient(DdcProperties properties,
-                                           RedissonClient redissonClient) {
+    public HttpDdcServiceRegistryClient(DdcProperties properties,
+                                        RedissonClient redissonClient) {
         ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         DdcProperties.Admin admin = properties.getAdmin();
         String endpoint = admin.requireEndpoint();
@@ -143,7 +148,7 @@ public final class DdcOpenApiServiceRegistryClient
                 admin.getAccessKey(),
                 admin.getSecretKey()
         );
-        this.subscriptionManager = new DdcRegistrySubscriptionManager(
+        this.subscriptionCoordinator = new DdcRegistrySubscriptionCoordinator(
                 this,
                 redissonClient,
                 properties.getRegistry().getReconcileIntervalSeconds()
@@ -258,7 +263,7 @@ public final class DdcOpenApiServiceRegistryClient
     public DdcRegistrySubscription subscribe(
             DdcServiceKey serviceKey,
             Consumer<DdcServiceSnapshot> listener) {
-        return subscriptionManager.subscribe(serviceKey, listener);
+        return subscriptionCoordinator.subscribe(serviceKey, listener);
     }
 
     /**
@@ -314,7 +319,7 @@ public final class DdcOpenApiServiceRegistryClient
     public DdcRegistrySubscription subscribeServices(
             DdcServiceQuery query,
             Consumer<DdcServiceCatalogSnapshot> listener) {
-        return subscriptionManager.subscribeServices(query, listener);
+        return subscriptionCoordinator.subscribeServices(query, listener);
     }
 
     /**
@@ -323,7 +328,7 @@ public final class DdcOpenApiServiceRegistryClient
      */
     @Override
     public void close() {
-        subscriptionManager.close();
+        subscriptionCoordinator.close();
         registrations.clear();
     }
 

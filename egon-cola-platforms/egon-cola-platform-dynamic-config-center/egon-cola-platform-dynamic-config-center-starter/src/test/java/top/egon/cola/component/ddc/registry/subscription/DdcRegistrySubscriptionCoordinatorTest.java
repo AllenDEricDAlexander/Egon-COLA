@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry;
+package top.egon.cola.component.ddc.registry.subscription;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RTopic;
@@ -13,8 +13,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -28,7 +27,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,7 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class DdcRegistrySubscriptionManagerTest {
+class DdcRegistrySubscriptionCoordinatorTest {
 
     private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 
@@ -48,11 +46,11 @@ class DdcRegistrySubscriptionManagerTest {
         List<String> order = new ArrayList<>();
         AtomicReference<DdcServiceSnapshot> snapshot =
                 new AtomicReference<>(snapshot(1L, "instance-2"));
-        DdcServiceRegistryClient loader = loader(snapshot, order);
+        DdcRegistrySnapshotLoader loader = loader(snapshot, order);
         TopicFixture topic = topic(order);
         CountDownLatch refreshed = new CountDownLatch(1);
         List<DdcServiceSnapshot> observed = new ArrayList<>();
-        DdcRegistrySubscriptionManager manager = manager(loader, topic.redisson());
+        DdcRegistrySubscriptionCoordinator manager = manager(loader, topic.redisson());
 
         DdcRegistrySubscription subscription = manager.subscribe(SERVICE_KEY, value -> {
             observed.add(value);
@@ -85,10 +83,10 @@ class DdcRegistrySubscriptionManagerTest {
     void listenerFailureDoesNotStopLaterRefresh() throws Exception {
         AtomicReference<DdcServiceSnapshot> snapshot =
                 new AtomicReference<>(snapshot(1L, "instance-1"));
-        DdcServiceRegistryClient loader = loader(snapshot, new ArrayList<>());
+        DdcRegistrySnapshotLoader loader = loader(snapshot, new ArrayList<>());
         TopicFixture topic = topic(new ArrayList<>());
         CountDownLatch calls = new CountDownLatch(2);
-        DdcRegistrySubscriptionManager manager = manager(loader, topic.redisson());
+        DdcRegistrySubscriptionCoordinator manager = manager(loader, topic.redisson());
         manager.subscribe(SERVICE_KEY, value -> {
             calls.countDown();
             throw new IllegalStateException("listener failed");
@@ -105,10 +103,10 @@ class DdcRegistrySubscriptionManagerTest {
     void reconciliationRecoversDroppedEvents() throws Exception {
         AtomicReference<DdcServiceSnapshot> snapshot =
                 new AtomicReference<>(snapshot(1L, "instance-1"));
-        DdcServiceRegistryClient loader = loader(snapshot, new ArrayList<>());
+        DdcRegistrySnapshotLoader loader = loader(snapshot, new ArrayList<>());
         TopicFixture topic = topic(new ArrayList<>());
         CountDownLatch reconciled = new CountDownLatch(1);
-        DdcRegistrySubscriptionManager manager = manager(loader, topic.redisson());
+        DdcRegistrySubscriptionCoordinator manager = manager(loader, topic.redisson());
         manager.subscribe(SERVICE_KEY, value -> {
             if (value.revision() == 2L) {
                 reconciled.countDown();
@@ -126,7 +124,7 @@ class DdcRegistrySubscriptionManagerTest {
         MutableClock clock = new MutableClock(NOW);
         AtomicBoolean unavailable = new AtomicBoolean();
         DdcServiceSnapshot initial = snapshot(1L, "instance-1");
-        DdcServiceRegistryClient loader = new DelegatingRegistryClient() {
+        DdcRegistrySnapshotLoader loader = new DelegatingSnapshotLoader() {
             @Override
             public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey) {
                 if (unavailable.get()) {
@@ -137,7 +135,7 @@ class DdcRegistrySubscriptionManagerTest {
         };
         TopicFixture topic = topic(new ArrayList<>());
         CountDownLatch expired = new CountDownLatch(1);
-        DdcRegistrySubscriptionManager manager = new DdcRegistrySubscriptionManager(
+        DdcRegistrySubscriptionCoordinator manager = new DdcRegistrySubscriptionCoordinator(
                 loader,
                 topic.redisson(),
                 clock,
@@ -157,9 +155,9 @@ class DdcRegistrySubscriptionManagerTest {
         manager.close();
     }
 
-    private DdcRegistrySubscriptionManager manager(DdcServiceRegistryClient loader,
-                                                   RedissonClient redisson) {
-        return new DdcRegistrySubscriptionManager(
+    private DdcRegistrySubscriptionCoordinator manager(DdcRegistrySnapshotLoader loader,
+                                                       RedissonClient redisson) {
+        return new DdcRegistrySubscriptionCoordinator(
                 loader,
                 redisson,
                 Clock.fixed(NOW, ZoneOffset.UTC),
@@ -200,9 +198,9 @@ class DdcRegistrySubscriptionManagerTest {
                 """.formatted(serviceRevision);
     }
 
-    private DdcServiceRegistryClient loader(AtomicReference<DdcServiceSnapshot> snapshot,
-                                            List<String> order) {
-        return new DelegatingRegistryClient() {
+    private DdcRegistrySnapshotLoader loader(AtomicReference<DdcServiceSnapshot> snapshot,
+                                             List<String> order) {
+        return new DelegatingSnapshotLoader() {
             @Override
             public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey) {
                 order.add("pull");
@@ -211,43 +209,14 @@ class DdcRegistrySubscriptionManagerTest {
         };
     }
 
-    private abstract static class DelegatingRegistryClient
-            implements DdcServiceRegistryClient {
+    private abstract static class DelegatingSnapshotLoader
+            implements DdcRegistrySnapshotLoader {
 
         @Override
         public DdcServiceCatalogSnapshot getServiceKeys(DdcServiceQuery query) {
             throw new UnsupportedOperationException();
         }
 
-        @Override
-        public DdcLeaseSession register(
-                top.egon.cola.component.ddc.model.registry.DdcServiceRegistration registration) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcLeaseOperationResult heartbeat(String instanceId, String leaseId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcLeaseOperationResult deregister(String instanceId, String leaseId) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcRegistrySubscription subscribe(
-                DdcServiceKey serviceKey,
-                Consumer<DdcServiceSnapshot> listener) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public DdcRegistrySubscription subscribeServices(
-                DdcServiceQuery query,
-                Consumer<DdcServiceCatalogSnapshot> listener) {
-            throw new UnsupportedOperationException();
-        }
     }
 
     private DdcServiceSnapshot snapshot(long revision, String instanceId) {
