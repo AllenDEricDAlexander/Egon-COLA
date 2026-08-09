@@ -4,33 +4,25 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.ddc.admin.controller.DdcOpenApiController;
 import top.egon.cola.component.ddc.admin.controller.config.DdcCacheController;
 import top.egon.cola.component.ddc.admin.controller.config.DdcConfigController;
 import top.egon.cola.component.ddc.admin.controller.config.DdcPublishTaskController;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.ddc.admin.security.openapi.DdcSecurityFilterRegistration;
-import top.egon.cola.component.ddc.admin.security.rpc.DdcNonceStore;
-import top.egon.cola.component.ddc.admin.security.rpc.InMemoryDdcNonceStore;
 import top.egon.cola.component.ddc.admin.service.cache.DdcCacheService;
-import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
-import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
@@ -55,41 +47,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DdcConfigController.class,
         DdcPublishTaskController.class,
         DdcCacheController.class,
-        DdcOpenApiController.class,
         DdcAdminSecurityIntegrationTest.HealthInfoController.class,
         DdcAdminSecurityIntegrationTest.RegistryInfoController.class,
         DdcAdminSecurityIntegrationTest.BindingInfoController.class
 })
-@Import({
-        DdcAdminSecurityConfiguration.class,
-        DdcSecurityFilterRegistration.class,
-        DdcAdminSecurityIntegrationTest.NonceConfiguration.class
-})
+@Import(DdcAdminSecurityConfiguration.class)
 @TestPropertySource(properties = {
-        "egon.cola.component.ddc.admin.security.local-dev=true",
-        "egon.cola.component.ddc.admin.rpc.signature-enabled=true",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].credential-id=sdk-a",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].access-key=sdk-access",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].secret=sdk-secret",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].client-type=SDK",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].app-code-patterns[0]=app-a",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].env-patterns[0]=dev",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].biz-code-patterns[0]=biz-a",
-        "egon.cola.component.ddc.admin.rpc.credentials[0].allowed-operations[0]=CONFIG_PULL"
+        "egon.cola.component.ddc.admin.security.local-dev=true"
 })
 class DdcAdminSecurityIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private RequestMappingHandlerMapping handlerMapping;
+
     @MockBean
     private DdcConfigService configService;
 
     @MockBean
     private DdcPublishService publishService;
-
-    @MockBean
-    private DdcConfigFacade configFacade;
 
     @MockBean
     private DdcPublishTaskRepository publishTaskRepository;
@@ -143,12 +121,12 @@ class DdcAdminSecurityIntegrationTest {
     }
 
     @Test
-    void acceptsValidHmacOpenApiRequestWithoutJwt() throws Exception {
-        when(configFacade.pull("biz-a", "dev", "app-a"))
-                .thenReturn(List.of());
-
-        mockMvc.perform(signedPull())
-                .andExpect(status().isOk());
+    void machineOpenApiIsNotMapped() {
+        assertThat(handlerMapping.getHandlerMethods().keySet())
+                .flatExtracting(mapping -> mapping.getPatternValues())
+                .noneMatch(path -> path.startsWith(
+                        "/api/v1/ddc/" + "openapi"
+                ));
     }
 
     @Test
@@ -285,47 +263,6 @@ class DdcAdminSecurityIntegrationTest {
                         identity, snapshot, false));
     }
 
-    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
-    signedPull() {
-        long timestamp = Instant.now().toEpochMilli();
-        String path = "/api/v1/ddc/openapi/configs/pull";
-        Map<String, List<String>> query = Map.of(
-                "appCode", List.of("app-a"),
-                "env", List.of("dev"),
-                "bizCode", List.of("biz-a")
-        );
-        DdcCanonicalRequest canonical = new DdcCanonicalRequest(
-                "GET",
-                path,
-                query,
-                timestamp,
-                "nonce-security-integration",
-                new byte[0]
-        );
-        DdcRequestSigner signer = new DdcRequestSigner();
-        return get(path)
-                .param("appCode", "app-a")
-                .param("env", "dev")
-                .param("bizCode", "biz-a")
-                .header(DdcRequestSigner.ACCESS_KEY_HEADER, "sdk-access")
-                .header(
-                        DdcRequestSigner.TIMESTAMP_HEADER,
-                        Long.toString(timestamp)
-                )
-                .header(
-                        DdcRequestSigner.NONCE_HEADER,
-                        "nonce-security-integration"
-                )
-                .header(
-                        DdcRequestSigner.CONTENT_SHA256_HEADER,
-                        canonical.contentSha256()
-                )
-                .header(
-                        DdcRequestSigner.SIGNATURE_HEADER,
-                        signer.sign(canonical, "sdk-secret")
-                );
-    }
-
     private String configBody() {
         return """
                 {
@@ -374,15 +311,6 @@ class DdcAdminSecurityIntegrationTest {
         @PostMapping
         Map<String, String> createBinding() {
             return Map.of("status", "created");
-        }
-    }
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class NonceConfiguration {
-
-        @Bean
-        DdcNonceStore ddcNonceStore() {
-            return new InMemoryDdcNonceStore(100);
         }
     }
 }

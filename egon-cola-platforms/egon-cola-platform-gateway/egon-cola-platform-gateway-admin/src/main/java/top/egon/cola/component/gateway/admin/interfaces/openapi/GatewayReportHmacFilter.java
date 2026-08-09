@@ -14,14 +14,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
 import top.egon.cola.component.gateway.admin.application.credential.GatewayCredentialStore;
 import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.application.reporting.GatewayHmacNonceStore;
 import top.egon.cola.component.gateway.admin.application.reporting.GatewayReportAuthentication;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
+import top.egon.cola.component.gateway.contract.reporting.GatewayCanonicalRequest;
+import top.egon.cola.component.gateway.contract.reporting.GatewayRequestSigner;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -58,7 +58,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
 
     private final Clock clock;
 
-    private final DdcRequestSigner signer = new DdcRequestSigner();
+    private final GatewayRequestSigner signer = new GatewayRequestSigner();
 
     @Autowired
     public GatewayReportHmacFilter(
@@ -143,7 +143,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         }
         String accessKey = header(
                 request,
-                DdcRequestSigner.ACCESS_KEY_HEADER
+                GatewayRequestSigner.ACCESS_KEY_HEADER
         );
         long timestamp = timestamp(request);
         Instant now = clock.instant();
@@ -177,8 +177,8 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
                     "GATEWAY_REPORT_SECRET_PROTECTOR_UNAVAILABLE"
             );
         }
-        String nonce = header(request, DdcRequestSigner.NONCE_HEADER);
-        DdcCanonicalRequest canonical = new DdcCanonicalRequest(
+        String nonce = header(request, GatewayRequestSigner.NONCE_HEADER);
+        GatewayCanonicalRequest canonical = new GatewayCanonicalRequest(
                 request.getMethod(),
                 request.getRequestURI(),
                 query(request),
@@ -188,7 +188,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         );
         if (!signer.matches(
                 canonical.contentSha256(),
-                header(request, DdcRequestSigner.CONTENT_SHA256_HEADER)
+                header(request, GatewayRequestSigner.CONTENT_SHA256_HEADER)
         )) {
             throw failure("GATEWAY_REPORT_BODY_DIGEST_INVALID");
         }
@@ -206,7 +206,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         }
         if (!signer.matches(
                 signer.sign(canonical, secret),
-                header(request, DdcRequestSigner.SIGNATURE_HEADER)
+                header(request, GatewayRequestSigner.SIGNATURE_HEADER)
         )) {
             throw failure("GATEWAY_REPORT_SIGNATURE_INVALID");
         }
@@ -244,7 +244,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         try {
             return Long.parseLong(header(
                     request,
-                    DdcRequestSigner.TIMESTAMP_HEADER
+                    GatewayRequestSigner.TIMESTAMP_HEADER
             ));
         } catch (NumberFormatException invalid) {
             throw failure("GATEWAY_REPORT_TIMESTAMP_INVALID");

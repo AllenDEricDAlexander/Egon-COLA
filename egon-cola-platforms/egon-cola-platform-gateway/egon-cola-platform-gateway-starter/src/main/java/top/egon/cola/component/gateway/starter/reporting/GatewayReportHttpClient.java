@@ -4,9 +4,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
-import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
+import top.egon.cola.component.gateway.contract.reporting.GatewayCanonicalRequest;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
+import top.egon.cola.component.gateway.contract.reporting.GatewayRequestSigner;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 
 import java.net.http.HttpClient;
@@ -18,13 +18,13 @@ import java.util.UUID;
  * Sends signed Gateway definition reports to Gateway Admin and receives their
  * acknowledgement receipts.
  *
- * <p>Each request uses the DDC-compatible canonical request and HMAC signature
+ * <p>Each request uses the Gateway report canonical request and HMAC signature
  * configured by {@link GatewayReportingProperties}. HTTP status and transport
  * failures are translated into reporting exceptions; the coordinator performs
  * the fixed startup attempt limit.
  *
- * <p>中文：每个请求都使用 {@link GatewayReportingProperties} 配置的兼容 DDC
- * 的规范化请求和 HMAC 签名。HTTP 状态或传输失败会转换为上报异常，固定的启动
+ * <p>中文：每个请求都使用 {@link GatewayReportingProperties} 配置的 Gateway
+ * 报告规范化请求和 HMAC 签名。HTTP 状态或传输失败会转换为上报异常，固定的启动
  * 尝试次数由 {@link GatewayReportingCoordinator} 负责。
  */
 public final class GatewayReportHttpClient {
@@ -46,10 +46,10 @@ public final class GatewayReportHttpClient {
     private final RestClient client;
 
     /**
-     * Signer for DDC-compatible authenticated Admin requests.
-     * 兼容 DDC 认证请求的签名器。
+     * Signer for authenticated Gateway Admin report requests.
+     * Gateway Admin 报告认证请求的签名器。
      */
-    private final DdcRequestSigner signer = new DdcRequestSigner();
+    private final GatewayRequestSigner signer = new GatewayRequestSigner();
 
     /** Clock used to produce request-signing timestamps. 生成请求签名时间戳的时钟。 */
     private final Clock clock;
@@ -95,7 +95,7 @@ public final class GatewayReportHttpClient {
             GatewayDefinitionReportFactory.BuiltReport report) {
         long timestamp = clock.millis();
         String nonce = UUID.randomUUID().toString().replace("-", "");
-        DdcCanonicalRequest canonical = new DdcCanonicalRequest(
+        GatewayCanonicalRequest canonical = new GatewayCanonicalRequest(
                 "POST",
                 REPORT_PATH,
                 Map.of(),
@@ -108,20 +108,20 @@ public final class GatewayReportHttpClient {
                     .uri(REPORT_PATH)
                     .contentType(MediaType.APPLICATION_JSON)
                     .header(
-                            DdcRequestSigner.ACCESS_KEY_HEADER,
+                            GatewayRequestSigner.ACCESS_KEY_HEADER,
                             properties.getAccessKey()
                     )
                     .header(
-                            DdcRequestSigner.TIMESTAMP_HEADER,
+                            GatewayRequestSigner.TIMESTAMP_HEADER,
                             Long.toString(timestamp)
                     )
-                    .header(DdcRequestSigner.NONCE_HEADER, nonce)
+                    .header(GatewayRequestSigner.NONCE_HEADER, nonce)
                     .header(
-                            DdcRequestSigner.CONTENT_SHA256_HEADER,
+                            GatewayRequestSigner.CONTENT_SHA256_HEADER,
                             canonical.contentSha256()
                     )
                     .header(
-                            DdcRequestSigner.SIGNATURE_HEADER,
+                            GatewayRequestSigner.SIGNATURE_HEADER,
                             signer.sign(
                                     canonical,
                                     properties.getSecretKey()

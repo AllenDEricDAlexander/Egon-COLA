@@ -1,20 +1,21 @@
 package top.egon.cola.component.ddc.observability;
 
 import org.slf4j.MDC;
-import org.springframework.http.HttpHeaders;
 import org.springframework.lang.Nullable;
 import top.egon.cola.component.common.trace.TraceContext;
+
+import java.util.function.BiConsumer;
 
 /**
  * DDC 调用链与日志上下文辅助工具。
  * Helper for DDC tracing and logging context.
  *
- * <p>本类在公共 {@link TraceContext} 之上补充 DDC 组件标识和操作名称，并提供 HTTP 请求头注入、
- * 同步作用域开启及异步任务上下文传播能力。所有作用域都应通过 try-with-resources 关闭，以恢复执行线程
+ * <p>本类在公共 {@link TraceContext} 之上补充 DDC 组件标识和操作名称，并提供同步作用域开启及
+ * 异步任务上下文传播能力。所有作用域都应通过 try-with-resources 关闭，以恢复执行线程
  * 原有的 Trace 和 MDC 内容。</p>
  *
  * <p>This class augments the shared {@link TraceContext} with DDC component and operation identifiers, and provides
- * HTTP header injection, synchronous scope creation, and asynchronous context propagation. Every scope should be
+ * synchronous scope creation and asynchronous context propagation. Every scope should be
  * closed with try-with-resources to restore the executing thread's original trace and MDC values.</p>
  */
 public final class DdcTraceSupport {
@@ -36,19 +37,14 @@ public final class DdcTraceSupport {
     }
 
     /**
-     * 将当前调用链的子上下文注入 HTTP 请求头。
-     * Injects a child of the current trace context into HTTP request headers.
+     * 将当前调用链的子上下文写入传输元数据。
+     * Injects a child of the current trace context into transport metadata.
      *
-     * <p>如果当前线程没有完整 Trace，则先创建根上下文；随后创建子 Span，并写入 W3C
-     * {@code traceparent}、可选 {@code tracestate} 和请求编号等请求头。</p>
-     *
-     * <p>If the current thread has no complete trace, a root context is created first. A child span is then created
-     * and W3C {@code traceparent}, optional {@code tracestate}, and request identifiers are written to the headers.</p>
-     *
-     * @param headers 待写入调用链信息的 HTTP 请求头; HTTP request headers receiving trace information
+     * @param writer 接收请求头或元数据键值的写入器；writer receiving
+     *               request-header or metadata pairs
      */
-    public static void inject(HttpHeaders headers) {
-        TraceContext.currentOrCreate().child().inject(headers::set);
+    public static void inject(BiConsumer<String, String> writer) {
+        TraceContext.currentOrCreate().child().inject(writer);
     }
 
     /**

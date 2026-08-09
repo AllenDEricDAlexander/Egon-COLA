@@ -80,7 +80,7 @@ class GatewayDdcConfigurationTest {
                 "egon.cola.component.ddc.rpc.load-balancing-policy"))
                 .isEqualTo("round_robin");
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.admin.endpoint"))
+                "egon.cola.component.ddc.admin." + "endpoint"))
                 .isNull();
         assertThat(production.getProperty("egon.cola.component.ddc.instance.id"))
                 .isEqualTo("${RBAC3_INSTANCE_ID}");

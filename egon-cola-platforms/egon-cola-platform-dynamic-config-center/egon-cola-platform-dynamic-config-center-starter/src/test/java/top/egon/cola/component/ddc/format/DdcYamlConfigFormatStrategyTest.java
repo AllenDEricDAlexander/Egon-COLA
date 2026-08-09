@@ -108,7 +108,7 @@ class DdcYamlConfigFormatStrategyTest {
     @Test
     void reservedKeyMatchingIncludesDescendantsAndRelaxedUnderscores() {
         assertThat(DdcReservedConfigurationKeys.isReserved(
-                "egon.cola.component.ddc.admin.endpoint"
+                "egon.cola.component.ddc.rpc.target"
         )).isTrue();
         assertThat(DdcReservedConfigurationKeys.isReserved(
                 "spring.profiles.group.production[0]"

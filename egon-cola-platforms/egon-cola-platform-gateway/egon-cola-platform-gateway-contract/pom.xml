@@ -18,6 +18,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-crypto</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
         </dependency>

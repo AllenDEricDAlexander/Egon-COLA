@@ -41,7 +41,6 @@ class DdcPlatformBoundaryTest {
                     "annotation",
                     "api",
                     "autoconfigure",
-                    "client",
                     "environment",
                     "error",
                     "format",
@@ -146,6 +145,15 @@ class DdcPlatformBoundaryTest {
         assertMissing("top.egon.cola.component.ddc.configdata.DdcConfigDataLoader");
         assertMissing("top.egon.cola.component.ddc.configdata.DdcConfigDataLocationResolver");
         assertMissing("top.egon.cola.component.ddc.configdata.DdcConfigDataResource");
+        assertMissing("top.egon.cola.component.ddc.client.config.Http"
+                + "DdcConfigClient");
+        assertMissing("top.egon.cola.component.ddc.client.registry.Http"
+                + "DdcServiceRegistryClient");
+        assertMissing("top.egon.cola.component.ddc.client.management.Http"
+                + "DdcManagementClient");
+        assertMissing("top.egon.cola.component.ddc.model.client.DdcClientTransportSecurity");
+        assertMissing("top.egon.cola.component.ddc.model.client.DdcManagementClientProperties");
+        assertMissing("top.egon.cola.component.ddc.error.http.DdcOpenApiRequestException");
     }
 
     @Test

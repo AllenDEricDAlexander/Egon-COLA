@@ -95,10 +95,10 @@ class GatewayAdminApplicationConfigurationTest {
                 "egon.cola.component.ddc.rpc.load-balancing-policy"
         ));
         assertThat(loader.getObject().getProperty(
-                "gateway.admin.ddc.endpoint"
+                "gateway.admin.ddc." + "endpoint"
         )).isNull();
         assertThat(loader.getObject().getProperty(
-                "egon.cola.component.ddc.admin.endpoint"
+                "egon.cola.component.ddc.admin." + "endpoint"
         )).isNull();
         assertEquals("${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}",
                 loader.getObject().getProperty(

@@ -8,8 +8,6 @@ import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
 import top.egon.cola.component.gateway.admin.application.credential.GatewayCredentialStore;
 import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.application.reporting.GatewayHmacNonceStore;
@@ -17,6 +15,8 @@ import top.egon.cola.component.gateway.admin.application.reporting.GatewayReport
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
 import top.egon.cola.component.gateway.admin.infrastructure.security.AesGcmGatewaySecretProtector;
+import top.egon.cola.component.gateway.contract.reporting.GatewayCanonicalRequest;
+import top.egon.cola.component.gateway.contract.reporting.GatewayRequestSigner;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -158,7 +158,7 @@ class GatewayReportHmacFilterTest {
         String path =
                 "/api/v1/gateway/openapi/interface-definitions/reports";
         String nonce = "nonce-1";
-        DdcCanonicalRequest canonical = new DdcCanonicalRequest(
+        GatewayCanonicalRequest canonical = new GatewayCanonicalRequest(
                 "POST",
                 path,
                 Map.of(),
@@ -166,23 +166,23 @@ class GatewayReportHmacFilterTest {
                 nonce,
                 body
         );
-        DdcRequestSigner signer = new DdcRequestSigner();
+        GatewayRequestSigner signer = new GatewayRequestSigner();
         MockHttpServletRequest request =
                 new MockHttpServletRequest("POST", path);
         request.setRequestURI(path);
         request.setContent(body);
-        request.addHeader(DdcRequestSigner.ACCESS_KEY_HEADER, accessKey);
+        request.addHeader(GatewayRequestSigner.ACCESS_KEY_HEADER, accessKey);
         request.addHeader(
-                DdcRequestSigner.TIMESTAMP_HEADER,
+                GatewayRequestSigner.TIMESTAMP_HEADER,
                 Long.toString(now.toEpochMilli())
         );
-        request.addHeader(DdcRequestSigner.NONCE_HEADER, nonce);
+        request.addHeader(GatewayRequestSigner.NONCE_HEADER, nonce);
         request.addHeader(
-                DdcRequestSigner.CONTENT_SHA256_HEADER,
+                GatewayRequestSigner.CONTENT_SHA256_HEADER,
                 canonical.contentSha256()
         );
         request.addHeader(
-                DdcRequestSigner.SIGNATURE_HEADER,
+                GatewayRequestSigner.SIGNATURE_HEADER,
                 signer.sign(canonical, secret)
         );
         request.addHeader(

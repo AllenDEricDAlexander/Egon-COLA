@@ -5,7 +5,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
+import top.egon.cola.component.gateway.contract.reporting.GatewayRequestSigner;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 
@@ -44,7 +44,7 @@ class GatewayReportHttpClientTest {
                 ))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header(
-                        DdcRequestSigner.ACCESS_KEY_HEADER,
+                        GatewayRequestSigner.ACCESS_KEY_HEADER,
                         "access-key"
                 ))
                 .andExpect(header(
