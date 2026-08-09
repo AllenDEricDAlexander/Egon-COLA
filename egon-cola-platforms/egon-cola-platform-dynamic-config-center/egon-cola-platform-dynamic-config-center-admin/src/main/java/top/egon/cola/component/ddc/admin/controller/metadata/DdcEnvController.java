@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.controller;
+package top.egon.cola.component.ddc.admin.controller.metadata;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -8,6 +8,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.ddc.admin.controller.config.DdcConfigController;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;

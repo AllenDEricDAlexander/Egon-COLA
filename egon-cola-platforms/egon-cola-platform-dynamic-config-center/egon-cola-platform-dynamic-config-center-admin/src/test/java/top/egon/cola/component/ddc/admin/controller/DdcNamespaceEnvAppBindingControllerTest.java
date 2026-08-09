@@ -6,6 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.ddc.admin.controller.metadata.DdcNamespaceEnvAppBindingController;
 import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 

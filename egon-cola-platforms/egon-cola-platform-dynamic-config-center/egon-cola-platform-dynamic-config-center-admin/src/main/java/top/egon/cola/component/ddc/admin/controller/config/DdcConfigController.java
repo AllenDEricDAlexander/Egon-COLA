@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.controller;
+package top.egon.cola.component.ddc.admin.controller.config;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;

@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.ddc.admin.controller.metadata.DdcBizController;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcBizService;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 

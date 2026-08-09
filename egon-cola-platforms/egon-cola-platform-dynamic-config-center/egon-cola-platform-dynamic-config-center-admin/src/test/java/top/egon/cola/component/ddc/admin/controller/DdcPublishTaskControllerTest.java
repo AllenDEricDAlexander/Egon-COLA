@@ -6,6 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.ddc.admin.controller.config.DdcPublishTaskController;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;

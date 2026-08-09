@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.controller;
+package top.egon.cola.component.ddc.admin.controller.config;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
