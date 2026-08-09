@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.configdata;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
@@ -99,6 +100,7 @@ public class DdcConfigDataFetcher {
      * @return 已校验的配置；作用域无配置时返回 {@code null}。 the validated configuration, or {@code null} when the scope is empty
      * @throws IllegalStateException 配置数量、名称、类型、版本或大小不符合引导约束时抛出。 thrown when count, name, type, version, or size violates bootstrap constraints
      */
+    @Nullable
     public DdcConfigValue load(String resourceName) {
         List<DdcConfigValue> values = values();
         if (values.isEmpty()) {

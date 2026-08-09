@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.model.lease;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 
 import java.time.Instant;
@@ -13,7 +14,7 @@ import java.time.Instant;
  */
 public record DdcLeaseOperationResult(
         DdcLeaseOperationStatus status,
-        Instant leaseExpireAt
+        @Nullable Instant leaseExpireAt
 ) {
 
     /**

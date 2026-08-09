@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 import java.time.Instant;
 import java.util.Locale;
 
@@ -27,7 +29,7 @@ public enum DdcInstanceStatus {
      * @param value 服务端返回的状态文本 / status text returned by the server
      * @return 归一化状态；空值或未知值返回 {@link #UNKNOWN} / normalized status; {@link #UNKNOWN} for blank or unknown values
      */
-    public static DdcInstanceStatus fromWire(String value) {
+    public static DdcInstanceStatus fromWire(@Nullable String value) {
         if (value == null || value.isBlank()) {
             return UNKNOWN;
         }
@@ -46,7 +48,8 @@ public enum DdcInstanceStatus {
      * @param leaseExpireAt 租约过期时间 / lease expiration time
      * @return 在线且租约过期时间晚于当前时刻时为 {@code true} / {@code true} when online and the lease expires after the current instant
      */
-    public boolean isAvailable(Instant now, Instant leaseExpireAt) {
+    public boolean isAvailable(Instant now,
+                               @Nullable Instant leaseExpireAt) {
         return this == ONLINE && leaseExpireAt != null
                 && leaseExpireAt.isAfter(now);
     }

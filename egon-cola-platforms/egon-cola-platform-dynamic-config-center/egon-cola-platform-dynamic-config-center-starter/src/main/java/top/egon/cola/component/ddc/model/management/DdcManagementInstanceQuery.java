@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 /**
  * 配置客户端实例的作用域查询条件。 / Scope filters for configuration-client instances.
  *
@@ -8,8 +10,8 @@ package top.egon.cola.component.ddc.model.management;
  * @param appCode 应用编码，可为空以不按该项过滤 / application code, nullable to omit this filter
  */
 public record DdcManagementInstanceQuery(
-        String bizCode,
-        String env,
-        String appCode
+        @Nullable String bizCode,
+        @Nullable String env,
+        @Nullable String appCode
 ) {
 }

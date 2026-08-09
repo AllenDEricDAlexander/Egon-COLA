@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.service.refresh;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplier;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 
@@ -240,6 +241,7 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
          * @param configKey 配置键; configuration key
          * @return 显式应用器，未命中时为 {@code null}; explicit applier, or {@code null} on a miss
          */
+        @Nullable
         private DdcConfigApplier resolve(String configKey) {
             DdcConfigApplier exact = exactAppliers.get(configKey);
             if (exact != null) {

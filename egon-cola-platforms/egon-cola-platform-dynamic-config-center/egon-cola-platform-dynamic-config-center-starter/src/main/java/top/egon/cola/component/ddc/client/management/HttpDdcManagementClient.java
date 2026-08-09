@@ -6,6 +6,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriUtils;
@@ -364,11 +365,12 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      * @return 已解包的响应数据 / unwrapped response data
      * @throws DdcManagementClientException 当签名、传输或业务响应失败时 / when signing, transport, or the business response fails
      */
+    @Nullable
     private <T> T exchange(
             HttpMethod method,
             String path,
             Map<String, List<String>> query,
-            Object request,
+            @Nullable Object request,
             ParameterizedTypeReference<ResultRecord<T>> responseType,
             boolean required
     ) {
@@ -409,7 +411,9 @@ public final class HttpDdcManagementClient implements DdcManagementClient {
      * @return 结果数据；允许空数据时可能为空 / result data, possibly null when empty data is permitted
      * @throws DdcManagementClientException 当响应为空、业务失败或缺少必需数据时 / when the response is empty, reports failure, or lacks required data
      */
-    private <T> T data(ResultRecord<T> result, boolean required) {
+    @Nullable
+    private <T> T data(@Nullable ResultRecord<T> result,
+                       boolean required) {
         if (result == null) {
             throw new DdcManagementClientException(
                     "DDC_MANAGEMENT_EMPTY_RESPONSE",

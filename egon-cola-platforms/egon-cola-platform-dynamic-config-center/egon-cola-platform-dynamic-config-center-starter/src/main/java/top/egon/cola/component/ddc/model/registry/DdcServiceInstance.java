@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.model.management.DdcInstanceStatus;
 
 import java.time.Instant;
@@ -31,7 +32,7 @@ public record DdcServiceInstance(
         String host,
         int port,
         boolean secure,
-        Map<String, String> metadata,
+        @Nullable Map<String, String> metadata,
         int leaseSeconds,
         int heartbeatIntervalSeconds,
         Instant registeredAt,

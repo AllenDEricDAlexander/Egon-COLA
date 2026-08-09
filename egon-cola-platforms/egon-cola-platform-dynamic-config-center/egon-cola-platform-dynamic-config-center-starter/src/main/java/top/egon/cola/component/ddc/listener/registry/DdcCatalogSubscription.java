@@ -3,6 +3,7 @@ package top.egon.cola.component.ddc.listener.registry;
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 
 import org.redisson.api.RedissonClient;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -61,7 +62,7 @@ final class DdcCatalogSubscription extends DdcManagedRegistrySubscription {
     }
 
     @Override
-    protected boolean relevant(DdcRegistryEvent event) {
+    protected boolean relevant(@Nullable DdcRegistryEvent event) {
         return event != null
                 && event.serviceKey() != null
                 && query.matches(event.serviceKey());

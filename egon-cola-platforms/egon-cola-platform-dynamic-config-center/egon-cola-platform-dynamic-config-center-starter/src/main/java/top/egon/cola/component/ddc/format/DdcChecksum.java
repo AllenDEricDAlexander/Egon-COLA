@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.format;
 
+import org.springframework.lang.Nullable;
+
 import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
@@ -77,7 +79,7 @@ public final class DdcChecksum {
      * @param value 原始文本。 source text
      * @return 非空文本。 non-null text
      */
-    private static String safe(String value) {
+    private static String safe(@Nullable String value) {
         return value == null ? "" : value;
     }
 }

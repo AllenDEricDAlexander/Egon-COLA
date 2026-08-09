@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 /**
  * DDC 服务目录与实例快照的查询条件。 / Query filters for DDC service catalogs and instance snapshots.
  *
@@ -14,14 +16,14 @@ package top.egon.cola.component.ddc.model.management;
  * @param version       服务版本，可为空以不按该项过滤 / service version, nullable to omit this filter
  */
 public record DdcManagementServiceQuery(
-        String bizCode,
+        @Nullable String bizCode,
         String namespaceCode,
-        String env,
-        String appCode,
-        String serviceKind,
-        String protocol,
-        String serviceName,
-        String group,
-        String version
+        @Nullable String env,
+        @Nullable String appCode,
+        @Nullable String serviceKind,
+        @Nullable String protocol,
+        @Nullable String serviceName,
+        @Nullable String group,
+        @Nullable String version
 ) {
 }

@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import org.springframework.lang.Nullable;
+
 import java.util.Locale;
 
 /**
@@ -59,7 +61,7 @@ public enum InstanceHealthState {
      * @param value 元数据中的健康状态文本 / health-state text from metadata
      * @return 归一化状态；空值或未知值返回 {@link #UNKNOWN} / normalized state; {@link #UNKNOWN} for blank or unknown values
      */
-    public static InstanceHealthState fromWire(String value) {
+    public static InstanceHealthState fromWire(@Nullable String value) {
         if (value == null || value.isBlank()) {
             return UNKNOWN;
         }
@@ -84,7 +86,7 @@ public enum InstanceHealthState {
      * @param value 待检查的线格式值 / wire-format value to inspect
      * @return 值为已识别状态时返回 {@code true} / {@code true} when the value denotes a recognized state
      */
-    public static boolean isKnownWireValue(String value) {
+    public static boolean isKnownWireValue(@Nullable String value) {
         return value != null && !value.isBlank()
                 && (fromWire(value) != UNKNOWN || "UNKNOWN".equalsIgnoreCase(value.trim()));
     }

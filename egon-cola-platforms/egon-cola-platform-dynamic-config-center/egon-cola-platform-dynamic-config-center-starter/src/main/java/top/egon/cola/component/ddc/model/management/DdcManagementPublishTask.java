@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -33,8 +35,8 @@ public record DdcManagementPublishTask(
         int ignoredCount,
         int timeoutCount,
         int attemptCount,
-        List<DdcManagementPublishTarget> targets,
-        String errorMessage,
+        @Nullable List<DdcManagementPublishTarget> targets,
+        @Nullable String errorMessage,
         Instant createdAt,
         Instant dispatchedAt,
         Instant completedAt

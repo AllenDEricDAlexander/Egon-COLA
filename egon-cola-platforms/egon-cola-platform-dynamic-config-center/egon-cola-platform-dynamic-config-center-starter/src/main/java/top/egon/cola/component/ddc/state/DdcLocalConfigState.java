@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.state;
 
+import org.springframework.lang.Nullable;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -33,6 +35,7 @@ public class DdcLocalConfigState {
      * @param resourceName 配置资源名; configuration resource name
      * @return 本地版本，未记录时为 {@code null}; local version, or {@code null} when absent
      */
+    @Nullable
     public Long version(String resourceName) {
         return versions.get(resourceName);
     }
@@ -55,6 +58,7 @@ public class DdcLocalConfigState {
      * @param resourceName 配置资源名; configuration resource name
      * @return 资源校验和，未记录时为 {@code null}; resource checksum, or {@code null} when absent
      */
+    @Nullable
     public String checksum(String resourceName) {
         return checksums.get(resourceName);
     }
@@ -66,7 +70,8 @@ public class DdcLocalConfigState {
      * @param resourceName 配置资源名; configuration resource name
      * @param checksum     资源校验和，为 {@code null} 时删除; resource checksum, removed when {@code null}
      */
-    public void updateChecksum(String resourceName, String checksum) {
+    public void updateChecksum(String resourceName,
+                               @Nullable String checksum) {
         if (checksum == null) {
             checksums.remove(resourceName);
         } else {
@@ -82,7 +87,9 @@ public class DdcLocalConfigState {
      * @param version      待恢复版本，为 {@code null} 时删除; version to restore, removed when {@code null}
      * @param checksum     待恢复校验和，为 {@code null} 时删除; checksum to restore, removed when {@code null}
      */
-    public void restoreMetadata(String resourceName, Long version, String checksum) {
+    public void restoreMetadata(String resourceName,
+                                @Nullable Long version,
+                                @Nullable String checksum) {
         if (version == null) {
             versions.remove(resourceName);
         } else {

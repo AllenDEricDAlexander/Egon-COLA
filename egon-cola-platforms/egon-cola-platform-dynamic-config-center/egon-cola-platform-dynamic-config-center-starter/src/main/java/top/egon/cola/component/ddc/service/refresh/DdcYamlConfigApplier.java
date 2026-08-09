@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.model.config.DdcConfigFormat;
@@ -165,7 +166,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
     public DdcConfigurationChangedEvent apply(
             String content,
             long version,
-            String changeId) {
+            @Nullable String changeId) {
         validateSize(content);
         DdcDynamicPropertySource candidate = load(content, version);
         DdcDynamicPropertySource.Snapshot previous =
@@ -254,7 +255,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * @param content YAML 文本内容，可为 {@code null}; YAML text content, possibly {@code null}
      * @throws IllegalArgumentException 内容超限时抛出; thrown when the content exceeds the limit
      */
-    private void validateSize(String content) {
+    private void validateSize(@Nullable String content) {
         int size = content == null
                 ? 0
                 : content.getBytes(StandardCharsets.UTF_8).length;
@@ -401,7 +402,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      */
     private void rollback(DdcDynamicPropertySource.Snapshot previous,
                           Diff diff,
-                          DdcFieldBindingService.RefreshResult fieldRefresh,
+                          @Nullable DdcFieldBindingService.RefreshResult fieldRefresh,
                           List<AppliedLeaf> appliedLeaves) {
         propertySource.replace(previous);
         for (int index = appliedLeaves.size() - 1; index >= 0; index--) {
@@ -477,6 +478,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * @param source 待搜索的属性源; property source to search
      * @return 匹配的动态属性源，未找到时为 {@code null}; matching dynamic source, or {@code null} when absent
      */
+    @Nullable
     private DdcDynamicPropertySource findPropertySource(
             PropertySource<?> source) {
         if (source instanceof DdcDynamicPropertySource dynamic) {
@@ -521,7 +523,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      */
     private record AppliedLeaf(
             String key,
-            String previousValue,
+            @Nullable String previousValue,
             DdcConfigApplier applier
     ) {
     }

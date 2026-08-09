@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 
 /**
@@ -16,14 +17,14 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
  * @param version     服务版本 / service version
  */
 public record DdcServiceQuery(
-        String bizCode,
-        String env,
-        String appCode,
-        DdcServiceKind serviceKind,
-        String protocol,
-        String serviceName,
-        String group,
-        String version
+        @Nullable String bizCode,
+        @Nullable String env,
+        @Nullable String appCode,
+        @Nullable DdcServiceKind serviceKind,
+        @Nullable String protocol,
+        @Nullable String serviceName,
+        @Nullable String group,
+        @Nullable String version
 ) {
 
     /**
@@ -126,7 +127,7 @@ public record DdcServiceQuery(
      * @param actual   服务键实际值 / actual service-key value
      * @return 条件为空或值相等时为 {@code true} / {@code true} when the criterion is null or values are equal
      */
-    private boolean matches(String expected, String actual) {
+    private boolean matches(@Nullable String expected, String actual) {
         return expected == null || expected.equals(actual);
     }
 
@@ -138,7 +139,8 @@ public record DdcServiceQuery(
      * @return 去除首尾空白后的值；空白输入返回 {@code null}
      * / trimmed value, or {@code null} for blank input
      */
-    private static String normalized(String value) {
+    @Nullable
+    private static String normalized(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 }

@@ -4,6 +4,7 @@ import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginLookup;
 import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.core.env.EnumerablePropertySource;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.model.config.DdcConfigFormat;
 
 import java.util.Collections;
@@ -37,6 +38,7 @@ public final class DdcDynamicPropertySource
      * @return 属性值，不存在时为 {@code null}。 property value, or {@code null} when absent
      */
     @Override
+    @Nullable
     public Object getProperty(String name) {
         return unwrap(snapshot().rawValues().get(name));
     }
@@ -58,6 +60,7 @@ public final class DdcDynamicPropertySource
      * @return 属性来源，未跟踪来源时为 {@code null}。 property origin, or {@code null} when origin is not tracked
      */
     @Override
+    @Nullable
     public Origin getOrigin(String name) {
         Object value = snapshot().rawValues().get(name);
         return value instanceof OriginTrackedValue trackedValue

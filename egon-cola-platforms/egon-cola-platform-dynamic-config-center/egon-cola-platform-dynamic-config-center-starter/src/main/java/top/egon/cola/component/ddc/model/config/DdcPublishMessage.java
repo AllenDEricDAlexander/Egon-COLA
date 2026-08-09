@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.config;
 
+import org.springframework.lang.Nullable;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
@@ -364,7 +366,7 @@ public class DdcPublishMessage {
      *
      * @param targets 目标列表，空值按空列表处理 / target list, with null treated as an empty list
      */
-    public void setTargets(List<DdcPublishTarget> targets) {
+    public void setTargets(@Nullable List<DdcPublishTarget> targets) {
         this.targets = targets == null ? new ArrayList<>() : new ArrayList<>(targets);
     }
 

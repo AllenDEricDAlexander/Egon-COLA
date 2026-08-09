@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.observability;
 
 import org.slf4j.MDC;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.common.trace.TraceContext;
 
 /**
@@ -76,7 +77,7 @@ public final class DdcTraceSupport {
      * @param operation DDC 操作名称；为空时移除当前作用域内的操作标识; DDC operation name, removing the scoped identifier when blank
      * @return 关闭后可恢复原 Trace 和 MDC 的作用域; scope restoring the original trace and MDC when closed
      */
-    public static Scope openOperation(String operation) {
+    public static Scope openOperation(@Nullable String operation) {
         return new Scope(
                 TraceContext.currentOrCreate().open(),
                 operation
@@ -92,7 +93,7 @@ public final class DdcTraceSupport {
      * @return 关闭后可恢复线程原有 Trace 和 MDC 的作用域; scope restoring the thread's original trace and MDC when closed
      */
     public static Scope openContext(TraceContext context,
-                                    String operation) {
+                                    @Nullable String operation) {
         return new Scope(context.open(), operation);
     }
 
@@ -110,7 +111,7 @@ public final class DdcTraceSupport {
      * @param runnable  需要包装的任务; task to wrap
      * @return 带有自动开启和关闭操作作用域能力的任务; task that automatically opens and closes the operation scope
      */
-    public static Runnable wrapNewOperation(String operation,
+    public static Runnable wrapNewOperation(@Nullable String operation,
                                             Runnable runnable) {
         return () -> {
             try (Scope ignored = openOperation(operation)) {
@@ -132,7 +133,7 @@ public final class DdcTraceSupport {
      * @return 带有上下文安装和恢复能力的任务; task that installs and restores context
      */
     public static Runnable wrapContext(TraceContext context,
-                                       String operation,
+                                       @Nullable String operation,
                                        Runnable runnable) {
         return () -> {
             try (Scope ignored = openContext(context, operation)) {
@@ -148,7 +149,7 @@ public final class DdcTraceSupport {
      * @param key   MDC 键; MDC key
      * @param value 原有值；为空时删除该键; original value, removing the key when null
      */
-    private static void restore(String key, String value) {
+    private static void restore(String key, @Nullable String value) {
         if (value == null) {
             MDC.remove(key);
         } else {
@@ -188,7 +189,8 @@ public final class DdcTraceSupport {
          * @param traceScope 已安装 Trace 上下文的底层作用域; underlying scope with installed trace context
          * @param operation  DDC 操作名称；为空时删除操作标识; DDC operation name, removing the identifier when blank
          */
-        private Scope(TraceContext.Scope traceScope, String operation) {
+        private Scope(TraceContext.Scope traceScope,
+                      @Nullable String operation) {
             this.traceScope = traceScope;
             this.previousComponent = MDC.get(COMPONENT_KEY);
             this.previousOperation = MDC.get(OPERATION_KEY);

@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.service.refresh;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.format.DdcChecksum;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
@@ -197,7 +198,7 @@ public class DdcRefreshService {
      *
      * @param message Redis 发布消息; Redis publication message
      */
-    public void refresh(DdcPublishMessage message) {
+    public void refresh(@Nullable DdcPublishMessage message) {
         if (!isValid(message)) {
             return;
         }
@@ -388,7 +389,7 @@ public class DdcRefreshService {
     private void applyAndStore(String content,
                                long version,
                                String checksum,
-                               String changeId,
+                               @Nullable String changeId,
                                ConfigMetadata previous) {
         try {
             yamlConfigApplier.apply(content, version, changeId);
@@ -491,8 +492,8 @@ public class DdcRefreshService {
      */
     private record AckOutcome(
             DdcAckStatus status,
-            Long currentVersion,
-            String errorMessage
+            @Nullable Long currentVersion,
+            @Nullable String errorMessage
     ) {
     }
 
@@ -503,7 +504,9 @@ public class DdcRefreshService {
      * @param version  本地版本，可为空; local version, possibly null
      * @param checksum 本地资源校验和，可为空; local resource checksum, possibly null
      */
-    private record ConfigMetadata(Long version, String checksum) {
+    private record ConfigMetadata(
+            @Nullable Long version,
+            @Nullable String checksum) {
     }
 
     /**

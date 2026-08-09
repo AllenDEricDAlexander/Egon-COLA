@@ -6,6 +6,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
@@ -261,7 +262,9 @@ public class HttpDdcConfigClient implements DdcConfigClient {
      * @return 响应数据。 response data
      * @throws DdcException 响应缺失、失败或必需数据缺失时抛出。 thrown when the response is absent, failed, or lacks required data
      */
-    private <T> T data(ResultRecord<T> result, boolean required) {
+    @Nullable
+    private <T> T data(@Nullable ResultRecord<T> result,
+                       boolean required) {
         if (result == null) {
             throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE);
         }
@@ -288,7 +291,7 @@ public class HttpDdcConfigClient implements DdcConfigClient {
             HttpMethod method,
             String path,
             Map<String, List<String>> query,
-            Object body) {
+            @Nullable Object body) {
         try {
             return requestFactory.create(method, path, query, body);
         } catch (DdcOpenApiRequestException exception) {

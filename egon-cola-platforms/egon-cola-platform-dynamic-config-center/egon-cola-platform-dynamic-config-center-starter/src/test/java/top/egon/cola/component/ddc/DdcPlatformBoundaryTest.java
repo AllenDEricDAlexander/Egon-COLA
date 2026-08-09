@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
@@ -21,6 +22,7 @@ import top.egon.cola.component.ddc.state.DdcLocalConfigState;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DdcPlatformBoundaryTest {
 
     @Test
-    void starterContainsApprovedRolePackagesDuringMigration() throws Exception {
+    void starterContainsExactlyTheApprovedTopLevelRolePackages() throws Exception {
         Path packageRoot = Path.of(
                 "src/main/java/top/egon/cola/component/ddc"
         );
@@ -40,7 +42,7 @@ class DdcPlatformBoundaryTest {
                     .sorted()
                     .toList();
 
-            assertThat(topLevelPackages).contains(
+            assertThat(topLevelPackages).containsExactly(
                     "annotation",
                     "api",
                     "autoconfigure",
@@ -57,6 +59,62 @@ class DdcPlatformBoundaryTest {
                     "state"
             );
         }
+    }
+
+    @Test
+    void everyJavaSourceDirectoryIsAnApprovedDocumentedPackage() throws Exception {
+        Path packageRoot = Path.of(
+                "src/main/java/top/egon/cola/component/ddc"
+        );
+        List<Path> directories;
+        try (var paths = Files.walk(packageRoot)) {
+            directories = paths
+                    .filter(Files::isDirectory)
+                    .sorted()
+                    .toList();
+        }
+
+        List<String> sourcePackages = new ArrayList<>();
+        for (Path directory : directories) {
+            try (var children = Files.list(directory)) {
+                if (children.noneMatch(path -> path.getFileName().toString().endsWith(".java"))) {
+                    continue;
+                }
+            }
+
+            String suffix = packageRoot.equals(directory)
+                    ? ""
+                    : packageRoot.relativize(directory).toString().replace('/', '.');
+            sourcePackages.add(suffix);
+            assertThat(directory.resolve("package-info.java"))
+                    .as("package documentation for %s", suffix)
+                    .exists();
+        }
+
+        assertThat(sourcePackages)
+                .containsExactlyElementsOf(DdcPackageDocumentationTest.TARGET_PACKAGES.stream()
+                        .sorted()
+                        .toList());
+    }
+
+    @Test
+    void localConfigurationStateDeclaresItsNullableMetadataContract() throws Exception {
+        assertThat(DdcLocalConfigState.class.getMethod("version", String.class)
+                .getAnnotation(Nullable.class)).isNotNull();
+        assertThat(DdcLocalConfigState.class.getMethod("checksum", String.class)
+                .getAnnotation(Nullable.class)).isNotNull();
+        assertThat(DdcLocalConfigState.class
+                .getMethod("updateChecksum", String.class, String.class)
+                .getParameterAnnotations()[1])
+                .anyMatch(annotation -> annotation.annotationType() == Nullable.class);
+        assertThat(DdcLocalConfigState.class
+                .getMethod("restoreMetadata", String.class, Long.class, String.class)
+                .getParameterAnnotations()[1])
+                .anyMatch(annotation -> annotation.annotationType() == Nullable.class);
+        assertThat(DdcLocalConfigState.class
+                .getMethod("restoreMetadata", String.class, Long.class, String.class)
+                .getParameterAnnotations()[2])
+                .anyMatch(annotation -> annotation.annotationType() == Nullable.class);
     }
 
     @Test

@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -15,9 +17,9 @@ import java.time.Instant;
 public record DdcManagementPublishTarget(
         String instanceId,
         String leaseId,
-        Long currentVersion,
+        @Nullable Long currentVersion,
         String status,
-        String errorMessage,
-        Instant ackAt
+        @Nullable String errorMessage,
+        @Nullable Instant ackAt
 ) {
 }

@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 
@@ -24,8 +25,8 @@ public record DdcServiceKey(
         String appCode,
         DdcServiceKind serviceKind,
         String serviceName,
-        String group,
-        String version,
+        @Nullable String group,
+        @Nullable String version,
         String protocol
 ) implements Comparable<DdcServiceKey> {
 
@@ -196,7 +197,8 @@ public record DdcServiceKey(
      * @throws IllegalArgumentException 最终值包含不支持的控制字符时抛出
      *                                  / if the resulting value contains an unsupported control character
      */
-    private static String defaulted(String value, String defaultValue) {
+    private static String defaulted(@Nullable String value,
+                                    String defaultValue) {
         return value == null || value.isBlank() ? defaultValue : require(value, "service key value");
     }
 

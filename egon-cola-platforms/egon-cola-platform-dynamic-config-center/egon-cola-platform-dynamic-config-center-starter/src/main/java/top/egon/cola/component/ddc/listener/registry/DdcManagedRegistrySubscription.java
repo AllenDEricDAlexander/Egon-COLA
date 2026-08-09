@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
+import org.springframework.lang.Nullable;
 import org.redisson.client.codec.StringCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +98,7 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
         );
     }
 
-    protected abstract boolean relevant(DdcRegistryEvent event);
+    protected abstract boolean relevant(@Nullable DdcRegistryEvent event);
 
     protected abstract void refresh();
 

@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.client.http;
 
+import org.springframework.lang.Nullable;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -65,10 +67,10 @@ public final class DdcCanonicalRequest {
      */
     public DdcCanonicalRequest(String method,
                                String path,
-                               Map<String, ? extends Collection<String>> query,
+                               @Nullable Map<String, ? extends Collection<String>> query,
                                long timestamp,
                                String nonce,
-                               byte[] body) {
+                               @Nullable byte[] body) {
         this.method = require(method, "method").toUpperCase(Locale.ROOT);
         this.path = require(path, "path");
         this.canonicalQuery = canonicalizeQuery(query == null ? Map.of() : query);
@@ -163,7 +165,7 @@ public final class DdcCanonicalRequest {
      * @param value 待编码文本，空引用按空字符串处理。 text to encode, with null treated as empty
      * @return 使用大写十六进制的编码文本。 encoded text using uppercase hexadecimal digits
      */
-    private static String percentEncode(String value) {
+    private static String percentEncode(@Nullable String value) {
         byte[] bytes = (value == null ? "" : value).getBytes(StandardCharsets.UTF_8);
         StringBuilder encoded = new StringBuilder(bytes.length);
         for (byte valueByte : bytes) {

@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.listener.config;
 
+import org.springframework.lang.Nullable;
 import org.redisson.api.listener.MessageListener;
 import top.egon.cola.component.ddc.format.DdcChecksum;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
@@ -40,7 +41,8 @@ public class DdcConfigChangeListener implements MessageListener<DdcPublishMessag
      * @param message 发布消息。 publication message
      */
     @Override
-    public void onMessage(CharSequence channel, DdcPublishMessage message) {
+    public void onMessage(CharSequence channel,
+                          @Nullable DdcPublishMessage message) {
         try (DdcTraceSupport.Scope ignored =
                      DdcTraceSupport.openOperation("redis-change")) {
             if (message == null

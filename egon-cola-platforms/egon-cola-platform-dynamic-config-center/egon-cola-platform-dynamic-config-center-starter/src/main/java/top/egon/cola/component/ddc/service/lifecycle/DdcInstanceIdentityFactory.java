@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.service.lifecycle;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceIdProvider;
 import top.egon.cola.component.ddc.error.DdcException;
@@ -52,7 +53,7 @@ public class DdcInstanceIdentityFactory {
      */
     public DdcInstanceIdentityFactory(
             DdcProperties properties,
-            DdcInstanceIdProvider instanceIdProvider) {
+            @Nullable DdcInstanceIdProvider instanceIdProvider) {
         this.properties = properties;
         this.instanceIdProvider = instanceIdProvider;
     }
@@ -108,7 +109,8 @@ public class DdcInstanceIdentityFactory {
      * @param value 待归一化文本; text to normalize
      * @return 归一化文本或 {@code null}; normalized text or {@code null}
      */
-    private String normalized(String value) {
+    @Nullable
+    private String normalized(@Nullable String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 

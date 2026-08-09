@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.config;
 
+import org.springframework.lang.Nullable;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Map;
@@ -285,7 +287,7 @@ public class DdcHeartbeatRequest {
      * @param metadata 实例元数据，空值按空映射处理 / instance metadata, with null treated as an empty map
      * @throws NullPointerException 元数据包含空键或空值时抛出 / if metadata contains a null key or value
      */
-    public void setMetadata(Map<String, String> metadata) {
+    public void setMetadata(@Nullable Map<String, String> metadata) {
         this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     }
 }

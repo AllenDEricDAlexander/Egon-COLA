@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyN
 import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginLookup;
 import org.springframework.core.env.EnumerablePropertySource;
+import org.springframework.lang.Nullable;
 
 import java.util.List;
 
@@ -59,7 +60,7 @@ public final class DdcReservedConfigurationKeys {
      * @param propertyName 待判断属性名。 property name to inspect
      * @return 属性受保护时为 {@code true}。 {@code true} when the property is protected
      */
-    public static boolean isReserved(String propertyName) {
+    public static boolean isReserved(@Nullable String propertyName) {
         return isReserved(canonical(propertyName));
     }
 
@@ -80,7 +81,8 @@ public final class DdcReservedConfigurationKeys {
      * @param propertyName 原始属性名。 raw property name
      * @return 规范属性名，空输入返回 {@link ConfigurationPropertyName#EMPTY}。 canonical name, or {@link ConfigurationPropertyName#EMPTY} for blank input
      */
-    private static ConfigurationPropertyName canonical(String propertyName) {
+    private static ConfigurationPropertyName canonical(
+            @Nullable String propertyName) {
         if (propertyName == null || propertyName.isBlank()) {
             return ConfigurationPropertyName.EMPTY;
         }

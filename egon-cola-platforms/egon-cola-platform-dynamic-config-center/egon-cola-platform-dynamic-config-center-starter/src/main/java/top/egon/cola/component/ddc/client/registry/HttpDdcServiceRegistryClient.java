@@ -7,6 +7,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
@@ -460,7 +461,7 @@ public final class HttpDdcServiceRegistryClient
             HttpMethod method,
             String path,
             Map<String, List<String>> query,
-            Object body) {
+            @Nullable Object body) {
         try {
             return requestFactory.create(method, path, query, body);
         } catch (DdcOpenApiRequestException exception) {
@@ -477,7 +478,7 @@ public final class HttpDdcServiceRegistryClient
      * @return 非空响应数据 / non-null response data
      * @throws DdcException 结果为空、失败或数据为空时抛出 / if the result is null, unsuccessful, or has null data
      */
-    private <T> T data(ResultRecord<T> result) {
+    private <T> T data(@Nullable ResultRecord<T> result) {
         if (result == null) {
             throw new DdcException(DdcErrorStatus.INTERNAL_FAILURE);
         }

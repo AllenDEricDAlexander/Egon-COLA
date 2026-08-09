@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.client.http;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.common.crypto.hmac.Hmacs;
 
 import java.nio.charset.StandardCharsets;
@@ -57,7 +58,8 @@ public final class DdcRequestSigner {
      * @param actual   实际签名。 actual signature
      * @return 两个非空签名完全一致时为 {@code true}。 {@code true} when both non-null signatures match exactly
      */
-    public boolean matches(String expected, String actual) {
+    public boolean matches(@Nullable String expected,
+                           @Nullable String actual) {
         if (expected == null || actual == null) {
             return false;
         }

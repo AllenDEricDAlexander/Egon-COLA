@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 import java.time.Instant;
 import java.util.Map;
 
@@ -23,7 +25,7 @@ public record DdcManagementServiceInstance(
         String host,
         int port,
         boolean secure,
-        Map<String, String> metadata,
+        @Nullable Map<String, String> metadata,
         String status,
         Instant registeredAt,
         Instant lastHeartbeatAt,

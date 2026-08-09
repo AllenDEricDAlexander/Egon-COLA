@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import org.springframework.lang.Nullable;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -56,7 +58,7 @@ public record ServiceInstanceMeta(
         String managementPath,
         int warmupSeconds,
         InstanceHealthState healthState,
-        Instant lastHealthCheckAt
+        @Nullable Instant lastHealthCheckAt
 ) {
 
     /**
@@ -135,7 +137,8 @@ public record ServiceInstanceMeta(
      * @param registeredAt 实例加入时间；为空时禁用预热缩放 / time the instance joined; null disables warm-up scaling
      * @return 应用于路由选择的当前有效权重 / current effective weight for routing selection
      */
-    public int effectiveWeight(Instant now, Instant registeredAt) {
+    public int effectiveWeight(@Nullable Instant now,
+                               @Nullable Instant registeredAt) {
         int base = weight * healthState.weightPercent() / 100;
         if (base <= 0) {
             return 0;
@@ -153,7 +156,9 @@ public record ServiceInstanceMeta(
      * @param registeredAt 实例注册时间 / instance registration time
      * @return 预热进度调整后的权重 / weight adjusted for warm-up progress
      */
-    private int applyWarmup(int base, Instant now, Instant registeredAt) {
+    private int applyWarmup(int base,
+                            @Nullable Instant now,
+                            @Nullable Instant registeredAt) {
         if (warmupSeconds <= 0 || registeredAt == null || now == null) {
             return base;
         }
@@ -186,7 +191,8 @@ public record ServiceInstanceMeta(
      * @param value 标签值 / tag value
      * @return 标签键值匹配时返回 {@code true} / {@code true} when the tag key and value match
      */
-    public boolean hasTag(String tag, String value) {
+    public boolean hasTag(@Nullable String tag,
+                          @Nullable String value) {
         if (tag == null || value == null) {
             return false;
         }
@@ -201,7 +207,9 @@ public record ServiceInstanceMeta(
      * @param checkedAt 健康探测时间 / health-probe time
      * @return 更新后的不可变元数据 / updated immutable metadata
      */
-    public ServiceInstanceMeta withHealthState(InstanceHealthState state, Instant checkedAt) {
+    public ServiceInstanceMeta withHealthState(
+            @Nullable InstanceHealthState state,
+            @Nullable Instant checkedAt) {
         return new ServiceInstanceMeta(weight, region, zone, tags, protocolVersion, definitionSetId,
                 artifactVersion, buildId, managementPath, warmupSeconds, state, checkedAt);
     }
@@ -225,7 +233,7 @@ public record ServiceInstanceMeta(
      * @param value 待归一化文本 / text to normalize
      * @return 已去除首尾空白的文本，空值返回空字符串 / trimmed text, or an empty string for null
      */
-    private static String normalize(String value) {
+    private static String normalize(@Nullable String value) {
         return value == null ? "" : value.trim();
     }
 
@@ -237,7 +245,8 @@ public record ServiceInstanceMeta(
      * @return 规范化的不可变标签映射 / normalized immutable tag map
      * @throws IllegalArgumentException 当有效标签数量超过上限时 / when the number of valid tags exceeds the limit
      */
-    private static Map<String, String> normalizeTags(Map<String, String> tags) {
+    private static Map<String, String> normalizeTags(
+            @Nullable Map<String, String> tags) {
         if (tags == null || tags.isEmpty()) {
             return Map.of();
         }

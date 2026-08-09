@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.instance;
 
+import org.springframework.lang.Nullable;
+
 /**
  * 配置客户端实例的物理身份与运行端点信息。
  * / Physical identity and runtime endpoint of a configuration client instance.
@@ -19,7 +21,7 @@ public record DdcInstanceIdentity(
         String appCode,
         String env,
         String host,
-        Integer port,
+        @Nullable Integer port,
         String pid,
         String sdkVersion
 ) {
@@ -34,6 +36,7 @@ public record DdcInstanceIdentity(
      * / namespace is only a visibility view and is not part of physical instance identity.
      */
     @Deprecated(forRemoval = true)
+    @Nullable
     public String namespace() {
         return null;
     }

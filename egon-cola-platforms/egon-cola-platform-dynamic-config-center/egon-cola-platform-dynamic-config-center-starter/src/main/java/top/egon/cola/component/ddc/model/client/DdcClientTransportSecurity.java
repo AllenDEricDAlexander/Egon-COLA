@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.client;
 
+import org.springframework.lang.Nullable;
+
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -34,9 +36,9 @@ import java.util.List;
 public record DdcClientTransportSecurity(
         boolean enabled,
         boolean developmentPlaintext,
-        String certificateChainPath,
-        String privateKeyPath,
-        String trustCertificateCollectionPath
+        @Nullable String certificateChainPath,
+        @Nullable String privateKeyPath,
+        @Nullable String trustCertificateCollectionPath
 ) {
 
     /**

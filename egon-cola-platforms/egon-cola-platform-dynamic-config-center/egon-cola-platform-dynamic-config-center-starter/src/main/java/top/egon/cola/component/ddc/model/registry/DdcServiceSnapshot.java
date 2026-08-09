@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import org.springframework.lang.Nullable;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -15,8 +17,8 @@ import java.util.List;
 public record DdcServiceSnapshot(
         DdcServiceKey serviceKey,
         long revision,
-        List<DdcServiceInstance> instances,
-        Instant observedAt
+        @Nullable List<DdcServiceInstance> instances,
+        @Nullable Instant observedAt
 ) {
 
     /**

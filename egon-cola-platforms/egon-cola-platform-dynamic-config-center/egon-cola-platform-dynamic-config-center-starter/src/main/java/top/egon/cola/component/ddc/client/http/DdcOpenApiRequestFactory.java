@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.error.http.DdcOpenApiRequestException;
 import top.egon.cola.component.ddc.observability.DdcTraceSupport;
 
@@ -46,8 +47,8 @@ public final class DdcOpenApiRequestFactory {
      */
     public DdcOpenApiRequestFactory(ObjectMapper objectMapper,
                                     boolean signatureEnabled,
-                                    String accessKey,
-                                    String secretKey) {
+                                    @Nullable String accessKey,
+                                    @Nullable String secretKey) {
         this(
                 objectMapper,
                 Clock.systemUTC(),
@@ -73,8 +74,8 @@ public final class DdcOpenApiRequestFactory {
                                     Clock clock,
                                     Supplier<String> nonceSupplier,
                                     boolean signatureEnabled,
-                                    String accessKey,
-                                    String secretKey) {
+                                    @Nullable String accessKey,
+                                    @Nullable String secretKey) {
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.nonceSupplier = Objects.requireNonNull(nonceSupplier, "nonceSupplier");
@@ -99,8 +100,8 @@ public final class DdcOpenApiRequestFactory {
      */
     public Request create(HttpMethod method,
                           String path,
-                          Map<String, List<String>> query,
-                          Object request) {
+                          @Nullable Map<String, List<String>> query,
+                          @Nullable Object request) {
         Objects.requireNonNull(method, "method");
         byte[] body = request == null ? new byte[0] : serialize(request);
         DdcCanonicalRequest canonicalRequest = new DdcCanonicalRequest(

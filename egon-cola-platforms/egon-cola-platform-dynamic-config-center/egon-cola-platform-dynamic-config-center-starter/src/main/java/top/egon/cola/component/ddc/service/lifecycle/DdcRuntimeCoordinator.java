@@ -3,6 +3,7 @@ package top.egon.cola.component.ddc.service.lifecycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
@@ -347,7 +348,8 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
      *
      * @param currentScheduler 待停止调度器，可为空; scheduler to stop, possibly null
      */
-    private void requestShutdown(ScheduledExecutorService currentScheduler) {
+    private void requestShutdown(
+            @Nullable ScheduledExecutorService currentScheduler) {
         if (currentScheduler != null) {
             currentScheduler.shutdownNow();
         }
@@ -359,7 +361,8 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
      *
      * @param currentScheduler 待等待调度器，可为空; scheduler to await, possibly null
      */
-    private void awaitShutdown(ScheduledExecutorService currentScheduler) {
+    private void awaitShutdown(
+            @Nullable ScheduledExecutorService currentScheduler) {
         if (currentScheduler == null) {
             return;
         }

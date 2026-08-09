@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.format;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.model.registry.InstanceHealthState;
 import top.egon.cola.component.ddc.model.registry.ServiceInstanceMeta;
 
@@ -148,7 +149,7 @@ public final class ServiceInstanceMetaCodec {
      * @param key 元数据键 / metadata key
      * @return 键以保留前缀开头时返回 {@code true} / {@code true} when the key starts with the reserved prefix
      */
-    public static boolean isReservedKey(String key) {
+    public static boolean isReservedKey(@Nullable String key) {
         return key != null && key.toLowerCase(Locale.ROOT).startsWith(PREFIX);
     }
 
@@ -159,7 +160,8 @@ public final class ServiceInstanceMetaCodec {
      * @param meta 待编码的类型化实例元数据，空值视为全默认值 / typed instance metadata to encode, with null treated as all defaults
      * @return 仅含保留键的可变映射；全默认值时为空 / mutable map containing only reserved keys; empty for all defaults
      */
-    public static Map<String, String> encode(ServiceInstanceMeta meta) {
+    public static Map<String, String> encode(
+            @Nullable ServiceInstanceMeta meta) {
         Map<String, String> encoded = new LinkedHashMap<>();
         if (meta == null) {
             return encoded;
@@ -200,7 +202,8 @@ public final class ServiceInstanceMetaCodec {
      * @param metadata 待解码的扁平实例元数据 / flat instance metadata to decode
      * @return 类型化实例元数据；空映射或空值返回全默认实例 / typed instance metadata; all defaults for an empty map or null
      */
-    public static ServiceInstanceMeta decode(Map<String, String> metadata) {
+    public static ServiceInstanceMeta decode(
+            @Nullable Map<String, String> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return ServiceInstanceMeta.defaults();
         }
@@ -237,7 +240,9 @@ public final class ServiceInstanceMetaCodec {
      * @param meta             待编码并合并的结构化元数据 / structured metadata to encode and merge
      * @return 新映射，两个入参均不会被修改 / new map; neither argument is modified
      */
-    public static Map<String, String> merge(Map<String, String> businessMetadata, ServiceInstanceMeta meta) {
+    public static Map<String, String> merge(
+            @Nullable Map<String, String> businessMetadata,
+            @Nullable ServiceInstanceMeta meta) {
         Map<String, String> merged = new LinkedHashMap<>();
         if (businessMetadata != null) {
             businessMetadata.forEach((key, value) -> {
@@ -257,7 +262,8 @@ public final class ServiceInstanceMetaCodec {
      * @param metadata 包含业务键与保留键的元数据 / metadata containing business and reserved keys
      * @return 保持迭代顺序的业务元数据映射 / business metadata map preserving iteration order
      */
-    public static Map<String, String> businessMetadata(Map<String, String> metadata) {
+    public static Map<String, String> businessMetadata(
+            @Nullable Map<String, String> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return Map.of();
         }
@@ -308,7 +314,7 @@ public final class ServiceInstanceMetaCodec {
      * @param metadata 待校验的实例元数据 / instance metadata to validate
      * @throws IllegalArgumentException 当任一已知保留键的值无效时 / when any known reserved value is invalid
      */
-    public static void validateAll(Map<String, String> metadata) {
+    public static void validateAll(@Nullable Map<String, String> metadata) {
         if (metadata == null) {
             return;
         }
@@ -326,7 +332,7 @@ public final class ServiceInstanceMetaCodec {
      * @param tags 待编码的标签 / tags to encode
      * @return 规范标签字符串；空映射或空值返回空字符串 / canonical tag string; empty for an empty map or null
      */
-    public static String encodeTags(Map<String, String> tags) {
+    public static String encodeTags(@Nullable Map<String, String> tags) {
         if (tags == null || tags.isEmpty()) {
             return "";
         }
@@ -342,7 +348,7 @@ public final class ServiceInstanceMetaCodec {
      * @param value 待解码的标签字符串 / tag string to decode
      * @return 按键排序的不可变标签映射 / immutable tag map sorted by key
      */
-    public static Map<String, String> decodeTags(String value) {
+    public static Map<String, String> decodeTags(@Nullable String value) {
         if (value == null || value.isBlank()) {
             return Map.of();
         }
@@ -369,7 +375,9 @@ public final class ServiceInstanceMetaCodec {
      * @param key    元数据键 / metadata key
      * @param value  元数据值 / metadata value
      */
-    private static void putIfPresent(Map<String, String> target, String key, String value) {
+    private static void putIfPresent(Map<String, String> target,
+                                     String key,
+                                     @Nullable String value) {
         if (value != null && !value.isEmpty()) {
             target.put(key, value);
         }
@@ -448,6 +456,7 @@ public final class ServiceInstanceMetaCodec {
      * @param key      待读取的键 / key to read
      * @return 解析后的时间，无法解析时为空 / parsed instant, or null when unavailable
      */
+    @Nullable
     private static Instant readInstant(Map<String, String> metadata, String key) {
         String value = metadata.get(key);
         if (value == null || value.isBlank()) {

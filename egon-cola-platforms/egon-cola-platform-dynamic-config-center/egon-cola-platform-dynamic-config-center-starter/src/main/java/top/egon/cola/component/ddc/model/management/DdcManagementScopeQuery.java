@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 /**
  * DDC 作用域绑定的查询条件。 / Query filters for DDC scope bindings.
  *
@@ -9,9 +11,9 @@ package top.egon.cola.component.ddc.model.management;
  * @param appCode       应用编码，可为空以不按该项过滤 / application code, nullable to omit this filter
  */
 public record DdcManagementScopeQuery(
-        String bizCode,
-        String namespaceCode,
-        String env,
-        String appCode
+        @Nullable String bizCode,
+        @Nullable String namespaceCode,
+        @Nullable String env,
+        @Nullable String appCode
 ) {
 }

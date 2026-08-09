@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.model.registry;
 
+import org.springframework.lang.Nullable;
 import top.egon.cola.component.ddc.format.ServiceInstanceMetaCodec;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 
@@ -28,7 +29,7 @@ public record DdcServiceRegistration(
         String host,
         int port,
         boolean secure,
-        Map<String, String> metadata,
+        @Nullable Map<String, String> metadata,
         int leaseSeconds,
         int heartbeatIntervalSeconds
 ) {
@@ -81,7 +82,8 @@ public record DdcServiceRegistration(
      * @throws IllegalArgumentException 条目数量、键、值或敏感信息规则不满足时抛出
      *                                  / if entry counts, keys, values, or sensitive-information rules are violated
      */
-    static Map<String, String> validatedMetadata(Map<String, String> metadata) {
+    static Map<String, String> validatedMetadata(
+            @Nullable Map<String, String> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return Map.of();
         }

@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.management;
 
+import org.springframework.lang.Nullable;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -13,7 +15,7 @@ import java.util.List;
 public record DdcManagementServiceCatalog(
         long generation,
         Instant observedAt,
-        List<DdcManagementServiceKey> services
+        @Nullable List<DdcManagementServiceKey> services
 ) {
 
     /**
