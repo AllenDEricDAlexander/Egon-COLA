@@ -3,40 +3,36 @@ package top.egon.cola.component.gateway.admin;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class GatewayAdminConfigurationTest {
 
     @Test
-    void createsSignedDdcManagementClientWhenEnabled() throws Exception {
+    void createsDdcManagementClientThroughTheDirectRpcFactory() {
         GatewayAdminConfiguration configuration =
                 new GatewayAdminConfiguration();
-        DdcManagementClient client = configuration.ddcManagementClient(
-                "http://127.0.0.1:18080",
-                "gateway-admin",
-                "secret",
-                Duration.ofSeconds(2),
-                Duration.ofSeconds(7)
-        );
+        DdcRpcClientFactory factory = mock(DdcRpcClientFactory.class);
+        DdcManagementClient client = mock(DdcManagementClient.class);
+        DdcRpcClientHandle<DdcManagementClient> expected =
+                new DdcRpcClientHandle<>(client, () -> {
+                });
+        when(factory.managementClient()).thenReturn(expected);
 
-        assertThat(client).isNotNull();
-        Method method = GatewayAdminConfiguration.class.getDeclaredMethod(
-                "ddcManagementClient",
-                String.class,
-                String.class,
-                String.class,
-                Duration.class,
-                Duration.class
-        );
-        assertThat(method.getParameters())
-                .allSatisfy(parameter ->
-                        assertThat(parameter.getAnnotation(Value.class))
-                                .isNotNull());
+        DdcRpcClientHandle<DdcManagementClient> handle = configuration
+                .gatewayDdcManagementClientHandle(factory);
+
+        assertThat(handle).isSameAs(expected);
+        assertThat(configuration.ddcManagementClient(handle)).isSameAs(client);
+        verify(factory).managementClient();
     }
 
     @Test

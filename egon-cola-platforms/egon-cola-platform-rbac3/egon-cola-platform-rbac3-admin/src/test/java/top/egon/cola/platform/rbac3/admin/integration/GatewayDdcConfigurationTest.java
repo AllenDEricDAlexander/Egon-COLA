@@ -73,6 +73,15 @@ class GatewayDdcConfigurationTest {
                 .isEqualTo("${DEPLOYMENT_ENV}");
         assertThat(production.getProperty("egon.cola.component.ddc.namespace"))
                 .isEqualTo("${DEPLOYMENT_NAMESPACE}");
+        assertThat(production.getProperty(
+                "egon.cola.component.ddc.rpc.target"))
+                .isEqualTo("${DDC_RPC_TARGET:dns:///ddc-admin:19080}");
+        assertThat(production.getProperty(
+                "egon.cola.component.ddc.rpc.load-balancing-policy"))
+                .isEqualTo("round_robin");
+        assertThat(production.getProperty(
+                "egon.cola.component.ddc.admin.endpoint"))
+                .isNull();
         assertThat(production.getProperty("egon.cola.component.ddc.instance.id"))
                 .isEqualTo("${RBAC3_INSTANCE_ID}");
         assertThat(production.getProperty("egon.cola.component.ddc.instance.lease-seconds"))

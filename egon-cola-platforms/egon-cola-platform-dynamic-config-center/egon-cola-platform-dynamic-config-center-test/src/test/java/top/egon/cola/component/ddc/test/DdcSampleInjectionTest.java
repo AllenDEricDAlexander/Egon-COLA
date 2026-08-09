@@ -4,8 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
+import top.egon.cola.component.rpc.ddc.client.config.RpcDdcConfigClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,9 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
         "egon.cola.component.ddc.app-code=demo-app",
         "egon.cola.component.ddc.env=dev",
         "egon.cola.component.ddc.namespace=default",
-        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
-        "egon.cola.component.ddc.admin.signature-enabled=false",
-        "egon.cola.component.ddc.admin.tls.development-plaintext=true",
+        "egon.cola.component.ddc.rpc.target=dns:///127.0.0.1:19080",
+        "egon.cola.component.ddc.rpc.tls.development-plaintext=true",
+        "egon.cola.component.ddc.rpc.auth.runtime.access-key=test",
+        "egon.cola.component.ddc.rpc.auth.runtime.secret-key=test",
         "egon.cola.component.ddc.redis.enabled=false",
         "egon.cola.component.ddc.consistency.fail-fast=false",
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
@@ -32,9 +35,13 @@ class DdcSampleInjectionTest {
     @Autowired
     private ObjectProvider<DdcRuntimeCoordinator> runtimeCoordinator;
 
+    @Autowired
+    private DdcConfigClient configClient;
+
     @Test
     void offlineModeKeepsAnnotationDefaultsWithoutRegisteringOrPulling() {
         assertThat(runtimeCoordinator.getIfAvailable()).isNull();
+        assertThat(configClient).isInstanceOf(RpcDdcConfigClient.class);
         assertThat(sampleConfigService.getDowngradeSwitch()).isFalse();
         assertThat(sampleConfigService.getRateLimit()).isEqualTo(100);
     }

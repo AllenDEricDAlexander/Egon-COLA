@@ -2,13 +2,19 @@ package top.egon.cola.platform.idp.admin.integration.ddc;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.annotation.DdcValue;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
+import top.egon.cola.component.rpc.ddc.client.config.RpcDdcConfigClient;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -61,5 +67,29 @@ class IdpDdcPolicyConfigurationTest {
                     registry.resolve(key)
             );
         }
+    }
+
+    @Test
+    void enabledDdcUsesTheDirectRpcConfigPort() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        DdcRpcAutoConfiguration.class
+                ))
+                .withPropertyValues(
+                        "spring.application.name=idp-admin-test",
+                        "egon.cola.component.ddc.enabled=true",
+                        "egon.cola.component.ddc.biz-code=identity",
+                        "egon.cola.component.ddc.env=test",
+                        "egon.cola.component.ddc.app-code=idp-admin",
+                        "egon.cola.component.ddc.rpc.target=dns:///127.0.0.1:19080",
+                        "egon.cola.component.ddc.rpc.tls.development-plaintext=true",
+                        "egon.cola.component.ddc.rpc.auth.runtime.access-key=test",
+                        "egon.cola.component.ddc.rpc.auth.runtime.secret-key=test"
+                )
+                .run(context -> {
+                    assertThat(context).hasSingleBean(DdcConfigClient.class);
+                    assertThat(context.getBean(DdcConfigClient.class))
+                            .isInstanceOf(RpcDdcConfigClient.class);
+                });
     }
 }

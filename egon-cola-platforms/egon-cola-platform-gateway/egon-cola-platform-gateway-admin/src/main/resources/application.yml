@@ -40,14 +40,6 @@ gateway:
       jwk-set-uri: ${GATEWAY_ADMIN_JWT_JWK_SET_URI:}
     ddc:
       enabled: false
-      endpoint: http://127.0.0.1:18080
-      access-key:
-      secret-key:
-      connect-timeout: 3s
-      read-timeout: 10s
-      tls:
-        enabled: false
-        development-plaintext: true
       target-biz-code: ${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}
       target-app-code: ${GATEWAY_ADMIN_DDC_TARGET_APP_CODE:ge}
     hmac:
@@ -86,14 +78,22 @@ egon:
         biz-code: ${DDC_BIZ_CODE:infra}
         env: ${DDC_ENV:local}
         app-code: ${DDC_APP_CODE:ga}
-        admin:
-          endpoint: ${DDC_ADMIN_ENDPOINT:http://127.0.0.1:18080}
-          signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
-          access-key: ${DDC_OPENAPI_ACCESS_KEY:}
-          secret-key: ${DDC_OPENAPI_SECRET:}
+        rpc:
+          target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
+          load-balancing-policy: round_robin
           tls:
-            enabled: false
-            development-plaintext: true
+            enabled: ${DDC_RPC_TLS_ENABLED:false}
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+          auth:
+            runtime:
+              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+            registry:
+              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+            management:
+              access-key: ${DDC_RPC_MANAGEMENT_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_MANAGEMENT_SECRET_KEY:}
         redis:
           enabled: true
           mode: ${DDC_REDIS_MODE:SINGLE}

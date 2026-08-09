@@ -113,11 +113,19 @@ egon:
           fail-fast: true
           reconcile-enabled: true
           reconcile-interval-seconds: 30
-        admin:
-          endpoint: ${DDC_ADMIN_ENDPOINT}
-          signature-enabled: true
-          access-key: ${DDC_REPORT_ACCESS_KEY}
-          secret-key: ${DDC_REPORT_SECRET_KEY}
+        rpc:
+          target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
+          load-balancing-policy: round_robin
+          tls:
+            enabled: ${DDC_RPC_TLS_ENABLED:false}
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+          auth:
+            runtime:
+              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY}
+              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY}
+            registry:
+              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY}
+              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY}
         redis:
           enabled: true
           mode: ${DDC_REGISTRY_REDIS_MODE:SINGLE}

@@ -3,14 +3,18 @@ package top.egon.cola.platform.rbac3.admin.integration;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
@@ -112,6 +116,22 @@ class Rbac3AdminApplicationContextTest {
                         assertThat(registry.resolve(key))
                                 .isInstanceOf(Rbac3DdcPolicyApplier.class);
                     }
+                });
+    }
+
+    @Test
+    void disabledDdcDoesNotCreateADirectRpcClient() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        DdcRpcAutoConfiguration.class
+                ))
+                .withPropertyValues(
+                        "egon.cola.component.ddc.enabled=false",
+                        "egon.cola.component.ddc.registry.enabled=false"
+                )
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(DdcConfigClient.class);
+                    assertThat(context).doesNotHaveBean(DdcRpcClientHandle.class);
                 });
     }
 

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
@@ -14,7 +15,10 @@ import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.gateway.provider.GatewayHttpProviderAutoConfiguration;
 import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
+import top.egon.cola.component.rpc.ddc.client.config.RpcDdcConfigClient;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
@@ -83,6 +87,19 @@ class GatewayAdminApplicationConfigurationTest {
                 .getProperty("egon.cola.component.ddc.env"));
         assertEquals("${DDC_APP_CODE:ga}", loader.getObject()
                 .getProperty("egon.cola.component.ddc.app-code"));
+        assertEquals("${DDC_RPC_TARGET:dns:///ddc-admin:19080}",
+                loader.getObject().getProperty(
+                        "egon.cola.component.ddc.rpc.target"
+                ));
+        assertEquals("round_robin", loader.getObject().getProperty(
+                "egon.cola.component.ddc.rpc.load-balancing-policy"
+        ));
+        assertThat(loader.getObject().getProperty(
+                "gateway.admin.ddc.endpoint"
+        )).isNull();
+        assertThat(loader.getObject().getProperty(
+                "egon.cola.component.ddc.admin.endpoint"
+        )).isNull();
         assertEquals("${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}",
                 loader.getObject().getProperty(
                         "gateway.admin.ddc.target-biz-code"
@@ -91,6 +108,30 @@ class GatewayAdminApplicationConfigurationTest {
                 loader.getObject().getProperty(
                         "gateway.admin.ddc.target-app-code"
                 ));
+    }
+
+    @Test
+    void enabledDdcUsesTheDirectRpcConfigPort() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        DdcRpcAutoConfiguration.class
+                ))
+                .withPropertyValues(
+                        "spring.application.name=gateway-admin-test",
+                        "egon.cola.component.ddc.enabled=true",
+                        "egon.cola.component.ddc.biz-code=infra",
+                        "egon.cola.component.ddc.env=test",
+                        "egon.cola.component.ddc.app-code=ga",
+                        "egon.cola.component.ddc.rpc.target=dns:///127.0.0.1:19080",
+                        "egon.cola.component.ddc.rpc.tls.development-plaintext=true",
+                        "egon.cola.component.ddc.rpc.auth.runtime.access-key=test",
+                        "egon.cola.component.ddc.rpc.auth.runtime.secret-key=test"
+                )
+                .run(context -> {
+                    assertThat(context).hasSingleBean(DdcConfigClient.class);
+                    assertThat(context.getBean(DdcConfigClient.class))
+                            .isInstanceOf(RpcDdcConfigClient.class);
+                });
     }
 
     @Configuration(proxyBeanMethods = false)

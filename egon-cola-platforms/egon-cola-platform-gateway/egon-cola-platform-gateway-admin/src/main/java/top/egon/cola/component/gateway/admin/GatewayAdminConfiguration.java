@@ -2,18 +2,16 @@ package top.egon.cola.component.gateway.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
-import top.egon.cola.component.ddc.model.client.DdcClientTransportSecurity;
-import top.egon.cola.component.ddc.model.client.DdcManagementClientProperties;
-import top.egon.cola.component.ddc.client.management.HttpDdcManagementClient;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayCallEventIngestService;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityQueryService;
 import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityStore;
@@ -33,10 +31,12 @@ import top.egon.cola.component.gateway.admin.interfaces.scheduled.GatewayObserva
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
 import top.egon.cola.component.gateway.admin.mcp.artifact.FileSystemMcpAppArtifactStore;
 import top.egon.cola.component.gateway.mcp.app.McpAppSecurityValidator;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
-import java.nio.file.Path;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
@@ -58,20 +58,15 @@ public class GatewayAdminConfiguration {
         return new McpAppSecurityValidator();
     }
 
-    @Value("${gateway.admin.ddc.tls.enabled:false}")
-    private boolean ddcTlsEnabled;
-
-    @Value("${gateway.admin.ddc.tls.development-plaintext:false}")
-    private boolean ddcDevelopmentPlaintext = true;
-
-    @Value("${gateway.admin.ddc.tls.certificate-chain-path:}")
-    private String ddcCertificateChainPath = "";
-
-    @Value("${gateway.admin.ddc.tls.private-key-path:}")
-    private String ddcPrivateKeyPath = "";
-
-    @Value("${gateway.admin.ddc.tls.trust-certificate-collection-path:}")
-    private String ddcTrustCertificateCollectionPath = "";
+    @Bean(destroyMethod = "close")
+    @ConditionalOnProperty(
+            name = "gateway.admin.ddc.enabled",
+            havingValue = "true"
+    )
+    DdcRpcClientHandle<DdcManagementClient>
+            gatewayDdcManagementClientHandle(DdcRpcClientFactory factory) {
+        return factory.managementClient();
+    }
 
     @Bean
     @ConditionalOnProperty(
@@ -79,29 +74,9 @@ public class GatewayAdminConfiguration {
             havingValue = "true"
     )
     DdcManagementClient ddcManagementClient(
-            @Value("${gateway.admin.ddc.endpoint}") String endpoint,
-            @Value("${gateway.admin.ddc.access-key}") String accessKey,
-            @Value("${gateway.admin.ddc.secret-key}") String secretKey,
-            @Value("${gateway.admin.ddc.connect-timeout:PT3S}")
-            Duration connectTimeout,
-            @Value("${gateway.admin.ddc.read-timeout:PT10S}")
-            Duration readTimeout) {
-        return new HttpDdcManagementClient(
-                new DdcManagementClientProperties(
-                        endpoint,
-                        accessKey,
-                        secretKey,
-                        connectTimeout,
-                        readTimeout,
-                        new DdcClientTransportSecurity(
-                                ddcTlsEnabled,
-                                ddcDevelopmentPlaintext,
-                                ddcCertificateChainPath,
-                                ddcPrivateKeyPath,
-                                ddcTrustCertificateCollectionPath
-                        )
-                )
-        );
+            @Qualifier("gatewayDdcManagementClientHandle")
+            DdcRpcClientHandle<DdcManagementClient> handle) {
+        return handle.client();
     }
 
     @Bean

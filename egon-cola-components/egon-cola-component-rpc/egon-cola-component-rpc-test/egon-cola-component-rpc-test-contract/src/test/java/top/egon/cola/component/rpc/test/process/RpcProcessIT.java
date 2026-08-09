@@ -1,15 +1,15 @@
 package top.egon.cola.component.rpc.test.process;
 
 import org.junit.jupiter.api.Test;
-import org.redisson.Redisson;
-import org.redisson.api.RedissonClient;
-import org.redisson.config.Config;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.rpc.context.RpcProcessIdentity;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 
 import java.nio.file.Path;
 import java.sql.DriverManager;
@@ -40,6 +40,7 @@ class RpcProcessIT {
         String env = "process-" + scope;
         String namespace = "rpc-" + scope;
         int adminPort = RpcProcessHarness.availablePort();
+        int adminRpcPort = RpcProcessHarness.availablePort();
         int providerPort = RpcProcessHarness.availablePort();
         int gatewayPort = RpcProcessHarness.availablePort();
         Path database = Path.of(
@@ -50,6 +51,7 @@ class RpcProcessIT {
                 "ddc-" + scope + ".db"
         ).toAbsolutePath();
         String adminEndpoint = "http://127.0.0.1:" + adminPort;
+        String adminTarget = "dns:///127.0.0.1:" + adminRpcPort;
 
         try (RpcProcessHarness processes = new RpcProcessHarness(scope)) {
             RpcProcessHarness.Child admin = processes.start(
@@ -58,6 +60,7 @@ class RpcProcessIT {
                             + "DynamicConfigCenterAdminApplication",
                     adminArguments(
                             adminPort,
+                            adminRpcPort,
                             redisHost,
                             redisPort,
                             database
@@ -70,9 +73,7 @@ class RpcProcessIT {
             );
 
             try (RegistryResources registry = registry(
-                    adminEndpoint,
-                    redisHost,
-                    redisPort,
+                    adminTarget,
                     env,
                     namespace
             )) {
@@ -81,7 +82,7 @@ class RpcProcessIT {
                         "top.egon.cola.component.rpc.test.fixture.provider."
                                 + "RpcTestProviderApplication",
                         rpcArguments(
-                                adminEndpoint,
+                                adminTarget,
                                 redisHost,
                                 redisPort,
                                 env,
@@ -119,7 +120,9 @@ class RpcProcessIT {
 
                 java.util.ArrayList<String> gatewayArguments =
                         new java.util.ArrayList<>(List.of(
-                                "--ddc.endpoint=" + adminEndpoint,
+                                "--ddc.target=" + adminTarget,
+                                "--ddc.access-key=process-it",
+                                "--ddc.secret-key=process-it-secret-at-least-32-bytes",
                                 "--ddc.redis.host=" + redisHost,
                                 "--ddc.redis.port=" + redisPort,
                                 "--ddc.env=" + env,
@@ -162,7 +165,7 @@ class RpcProcessIT {
                         "top.egon.cola.component.rpc.test.fixture.consumer."
                                 + "RpcTestConsumerApplication",
                         rpcArguments(
-                                adminEndpoint,
+                                adminTarget,
                                 redisHost,
                                 redisPort,
                                 env,
@@ -246,6 +249,7 @@ class RpcProcessIT {
 
     private List<String> adminArguments(
             int adminPort,
+            int adminRpcPort,
             String redisHost,
             int redisPort,
             Path database) {
@@ -264,7 +268,21 @@ class RpcProcessIT {
                 "--egon.cola.component.ddc.enabled=false",
                 "--egon.cola.component.ddc.admin.redis.host=" + redisHost,
                 "--egon.cola.component.ddc.admin.redis.port=" + redisPort,
-                "--egon.cola.component.ddc.admin.openapi.signature-enabled=false"
+                "--egon.cola.component.rpc.enabled=true",
+                "--egon.cola.component.rpc.provider.enabled=true",
+                "--egon.cola.component.rpc.provider.port=" + adminRpcPort,
+                "--egon.cola.component.rpc.provider.registration-mode=DISABLED",
+                "--egon.cola.component.rpc.tls.development-plaintext=true",
+                "--egon.cola.component.ddc.admin.rpc.signature-enabled=true",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].credential-id=process-it",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].access-key=process-it",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].secret="
+                        + "process-it-secret-at-least-32-bytes",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].client-type=*",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].app-code-patterns[0]=*",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].env-patterns[0]=*",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].biz-code-patterns[0]=*",
+                "--egon.cola.component.ddc.admin.rpc.credentials[0].allowed-operations[0]=*"
         ));
         addPassword(
                 arguments,
@@ -275,7 +293,7 @@ class RpcProcessIT {
     }
 
     private List<String> rpcArguments(
-            String adminEndpoint,
+            String adminTarget,
             String redisHost,
             int redisPort,
             String env,
@@ -286,12 +304,17 @@ class RpcProcessIT {
                         "--spring.main.web-application-type=none",
                         "--egon.cola.component.ddc.enabled=false",
                         "--egon.cola.component.ddc.registry.enabled=true",
-                        "--egon.cola.component.ddc.admin.endpoint="
-                                + adminEndpoint,
-                        "--egon.cola.component.ddc.admin.tls."
+                        "--egon.cola.component.ddc.rpc.target="
+                                + adminTarget,
+                        "--egon.cola.component.ddc.rpc.tls."
                                 + "development-plaintext=true",
+                        "--egon.cola.component.ddc.rpc.auth.registry.access-key=process-it",
+                        "--egon.cola.component.ddc.rpc.auth.registry.secret-key="
+                                + "process-it-secret-at-least-32-bytes",
                         "--egon.cola.component.ddc.redis.host=" + redisHost,
                         "--egon.cola.component.ddc.redis.port=" + redisPort,
+                        "--egon.cola.component.ddc.biz-code=test-biz",
+                        "--egon.cola.component.ddc.app-code=test-app",
                         "--egon.cola.component.ddc.env=" + env,
                         "--egon.cola.component.ddc.namespace=" + namespace,
                         "--egon.cola.component.rpc.enabled=true",
@@ -328,30 +351,36 @@ class RpcProcessIT {
     }
 
     private RegistryResources registry(
-            String adminEndpoint,
-            String redisHost,
-            int redisPort,
+            String adminTarget,
             String env,
             String namespace) {
         DdcProperties properties = new DdcProperties();
-        properties.getAdmin().setEndpoint(adminEndpoint);
-        properties.getRedis().setHost(redisHost);
-        properties.getRedis().setPort(redisPort);
+        properties.setBizCode("test-biz");
+        properties.setAppCode("test-app");
         properties.setEnv(env);
         properties.setNamespace(namespace);
-        properties.getRegistry().setReconcileIntervalSeconds(1);
-        Config config = new Config();
-        config.useSingleServer()
-                .setAddress("redis://" + redisHost + ":" + redisPort);
-        String password = System.getenv("DDC_TEST_REDIS_PASSWORD");
-        if (password != null && !password.isBlank()) {
-            config.useSingleServer().setPassword(password);
-            properties.getRedis().setPassword(password);
-        }
-        RedissonClient redisson = Redisson.create(config);
+        DdcRpcProperties rpc = new DdcRpcProperties();
+        rpc.setTarget(adminTarget);
+        rpc.getTls().setDevelopmentPlaintext(true);
+        rpc.getAuth().getRegistry().setAccessKey("process-it");
+        rpc.getAuth().getRegistry().setSecretKey(
+                "process-it-secret-at-least-32-bytes"
+        );
+        DdcRpcClientHandle<DdcServiceRegistryClient> handle =
+                new DdcRpcClientFactory(
+                        rpc,
+                        properties,
+                        new RpcProcessIdentity(
+                                "rpc-process-it",
+                                env,
+                                "127.0.0.1",
+                                ProcessHandle.current().pid(),
+                                "rpc-process-it:" + ProcessHandle.current().pid()
+                        )
+                ).registryClient();
         return new RegistryResources(
-                new HttpDdcServiceRegistryClient(properties, redisson),
-                redisson
+                handle.client(),
+                handle
         );
     }
 
@@ -405,15 +434,12 @@ class RpcProcessIT {
 
     private record RegistryResources(
             DdcServiceRegistryClient client,
-            RedissonClient redisson
+            DdcRpcClientHandle<DdcServiceRegistryClient> handle
     ) implements AutoCloseable {
 
         @Override
         public void close() throws Exception {
-            if (client instanceof AutoCloseable closeable) {
-                closeable.close();
-            }
-            redisson.shutdown();
+            handle.close();
         }
     }
 }

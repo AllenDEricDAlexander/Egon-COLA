@@ -46,6 +46,13 @@ class GatewayEngineConfigurationTest {
                 .getProperty("egon.cola.component.ddc.env"));
         assertEquals("${DDC_APP_CODE:ge}", loader.getObject()
                 .getProperty("egon.cola.component.ddc.app-code"));
+        assertEquals("${DDC_RPC_TARGET:dns:///ddc-admin:19080}",
+                loader.getObject().getProperty(
+                        "egon.cola.component.ddc.rpc.target"
+                ));
+        assertEquals("round_robin", loader.getObject().getProperty(
+                "egon.cola.component.ddc.rpc.load-balancing-policy"
+        ));
         assertEquals("${GATEWAY_ENGINE_DDC_REGISTRATION_ENABLED:true}",
                 loader.getObject().getProperty(
                         "egon.cola.component.gateway.provider.http.enabled"));

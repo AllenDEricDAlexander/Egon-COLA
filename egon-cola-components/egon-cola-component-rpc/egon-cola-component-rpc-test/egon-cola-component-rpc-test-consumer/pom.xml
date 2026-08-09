@@ -26,6 +26,10 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-rpc-test-contract</artifactId>
             <version>${project.version}</version>
         </dependency>

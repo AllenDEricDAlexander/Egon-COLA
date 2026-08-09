@@ -5,7 +5,9 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.listener.registry.DdcRegistrySubscriptionCoordinator;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
@@ -16,6 +18,12 @@ import top.egon.cola.component.rpc.consumer.RpcGatewayEndpoint;
 import top.egon.cola.component.rpc.consumer.RpcGatewayQuery;
 import top.egon.cola.component.rpc.consumer.RpcGatewaySnapshot;
 import top.egon.cola.component.rpc.consumer.RpcGatewaySubscription;
+import top.egon.cola.component.rpc.context.RpcProcessIdentity;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
+import top.egon.cola.component.rpc.ddc.client.registry.RpcDdcServiceRegistryClient;
+import top.egon.cola.component.rpc.ddc.registry.RpcDdcRegistrySnapshotLoader;
 import top.egon.cola.component.rpc.provider.RpcLeaseOperationResult;
 import top.egon.cola.component.rpc.provider.RpcProviderLease;
 import top.egon.cola.component.rpc.provider.RpcProviderLeaseIdentity;
@@ -45,11 +53,9 @@ public final class RpcMockGatewayApplication {
     public static void main(String[] arguments) throws Exception {
         Map<String, String> values = parse(arguments);
         DdcProperties properties = properties(values);
-        RedissonClient redisson = redisson(properties);
-        HttpDdcServiceRegistryClient registry =
-                new HttpDdcServiceRegistryClient(properties, redisson);
+        RegistryResources registry = registry(values, properties);
         MockRpcGateway gateway = new MockRpcGateway(
-                new ProcessDdcRpcRegistry(registry, properties.getEnv()),
+                new ProcessDdcRpcRegistry(registry.client(), properties.getEnv()),
                 properties.getEnv(),
                 "mock-gateway:" + ProcessHandle.current().pid(),
                 new MockGatewayProperties(
@@ -72,7 +78,6 @@ public final class RpcMockGatewayApplication {
             if (closed.compareAndSet(false, true)) {
                 gateway.close();
                 registry.close();
-                redisson.shutdown();
             }
             shutdown.countDown();
         };
@@ -94,9 +99,8 @@ public final class RpcMockGatewayApplication {
 
     private static DdcProperties properties(Map<String, String> values) {
         DdcProperties properties = new DdcProperties();
-        properties.getAdmin().setEndpoint(
-                required(values, "ddc.endpoint")
-        );
+        properties.setBizCode("test-biz");
+        properties.setAppCode("test-app");
         properties.getRedis().setHost(
                 required(values, "ddc.redis.host")
         );
@@ -110,6 +114,57 @@ public final class RpcMockGatewayApplication {
         properties.setNamespace(required(values, "ddc.namespace"));
         properties.getRegistry().setReconcileIntervalSeconds(1);
         return properties;
+    }
+
+    private static RegistryResources registry(
+            Map<String, String> values,
+            DdcProperties properties) {
+        RedissonClient redisson = redisson(properties);
+        DdcRpcProperties rpc = new DdcRpcProperties();
+        rpc.setTarget(required(values, "ddc.target"));
+        rpc.getTls().setDevelopmentPlaintext(true);
+        rpc.getAuth().getRegistry().setAccessKey(
+                required(values, "ddc.access-key")
+        );
+        rpc.getAuth().getRegistry().setSecretKey(
+                required(values, "ddc.secret-key")
+        );
+        DdcRpcClientHandle<DdcServiceRegistryClient> handle =
+                new DdcRpcClientFactory(
+                        rpc,
+                        properties,
+                        new RpcProcessIdentity(
+                                "rpc-mock-gateway",
+                                properties.getEnv(),
+                                "127.0.0.1",
+                                ProcessHandle.current().pid(),
+                                "mock-gateway:" + ProcessHandle.current().pid()
+                        )
+                ).registryClient();
+        RpcDdcServiceRegistryClient client =
+                (RpcDdcServiceRegistryClient) handle.client();
+        DdcRegistrySubscriptionCoordinator subscriptions =
+                new DdcRegistrySubscriptionCoordinator(
+                        new RpcDdcRegistrySnapshotLoader(client),
+                        redisson,
+                        properties.getRegistry().getReconcileIntervalSeconds()
+                );
+        client.subscriptions(new RpcDdcServiceRegistryClient.RegistrySubscriptions() {
+            @Override
+            public DdcRegistrySubscription subscribe(
+                    DdcServiceKey key,
+                    Consumer<DdcServiceSnapshot> listener) {
+                return subscriptions.subscribe(key, listener);
+            }
+
+            @Override
+            public DdcRegistrySubscription subscribeServices(
+                    DdcServiceQuery query,
+                    Consumer<DdcServiceCatalogSnapshot> listener) {
+                return subscriptions.subscribeServices(query, listener);
+            }
+        });
+        return new RegistryResources(client, handle, subscriptions, redisson);
     }
 
     private static RedissonClient redisson(DdcProperties properties) {
@@ -126,6 +181,21 @@ public final class RpcMockGatewayApplication {
             config.useSingleServer().setPassword(password);
         }
         return Redisson.create(config);
+    }
+
+    private record RegistryResources(
+            DdcServiceRegistryClient client,
+            DdcRpcClientHandle<DdcServiceRegistryClient> handle,
+            DdcRegistrySubscriptionCoordinator subscriptions,
+            RedissonClient redisson
+    ) implements AutoCloseable {
+
+        @Override
+        public void close() {
+            subscriptions.close();
+            handle.close();
+            redisson.shutdown();
+        }
     }
 
     private static final class ProcessDdcRpcRegistry

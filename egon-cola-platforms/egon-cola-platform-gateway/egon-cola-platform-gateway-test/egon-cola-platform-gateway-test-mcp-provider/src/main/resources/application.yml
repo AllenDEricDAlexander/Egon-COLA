@@ -30,11 +30,18 @@ egon:
         app-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
         env: ${DDC_ENV:local}
         namespace: ${DDC_NAMESPACE:gateway-test}
-        admin:
-          endpoint: ${DDC_ADMIN_ENDPOINT:http://127.0.0.1:18080}
-          signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
-          access-key: ${DDC_OPENAPI_ACCESS_KEY:}
-          secret-key: ${DDC_OPENAPI_SECRET:}
+        rpc:
+          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          load-balancing-policy: round_robin
+          tls:
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+          auth:
+            runtime:
+              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+            registry:
+              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
         redis:
           enabled: ${DDC_REGISTRY_ENABLED:false}
           mode: SINGLE

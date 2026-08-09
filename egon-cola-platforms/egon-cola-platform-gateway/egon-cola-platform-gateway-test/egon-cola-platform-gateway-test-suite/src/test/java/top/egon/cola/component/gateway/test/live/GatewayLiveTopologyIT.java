@@ -78,6 +78,8 @@ class GatewayLiveTopologyIT {
             .connectTimeout(Duration.ofSeconds(3))
             .build();
 
+    private final Map<Integer, Integer> ddcRpcPorts = new LinkedHashMap<>();
+
     void verifyHttpProvidersLifecycle() throws Exception {
         try (GatewayLiveEnvironment environment =
                      new GatewayLiveEnvironment("http-topology")) {
@@ -1058,6 +1060,8 @@ class GatewayLiveTopologyIT {
             ddcClients.forEach(spec -> softly.assertThat(spec.arguments())
                     .as(spec.name())
                     .contains(
+                            "--egon.cola.component.ddc.rpc.target="
+                                    + ddcRpcTarget(ddcBase),
                             "--egon.cola.component.ddc.redis.host="
                                     + infrastructure.ddcRedisHost(),
                             "--egon.cola.component.ddc.redis.port="
@@ -1102,21 +1106,20 @@ class GatewayLiveTopologyIT {
                         + Base64.getEncoder().encodeToString(
                         ADMIN_JWT_SECRET
                 ),
-                "--egon.cola.component.ddc.admin.openapi."
+                "--egon.cola.component.rpc.provider.port="
+                        + ddcRpcPort(18070),
+                "--egon.cola.component.rpc.provider.registration-mode=DISABLED",
+                "--egon.cola.component.ddc.admin.rpc."
                         + "signature-enabled=true",
-                "--egon.cola.component.ddc.admin.openapi.credentials[0]."
+                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
                         + "credential-id=gateway-live-service",
-                "--egon.cola.component.ddc.admin.openapi.credentials[0]."
+                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
                         + "access-key=" + DDC_ACCESS_KEY,
-                "--egon.cola.component.ddc.admin.openapi.credentials[0]."
+                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
                         + "secret=" + DDC_SECRET_KEY,
-                "--egon.cola.component.ddc.admin.openapi.credentials[0]."
+                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
                         + "client-type=*"
-        ).noneMatch(argument -> argument.startsWith(
-                "--egon.cola.component.ddc.admin.openapi.access-key="
-        ) || argument.startsWith(
-                "--egon.cola.component.ddc.admin.openapi.secret-key="
-        ));
+        );
     }
 
     @Test
@@ -1162,8 +1165,9 @@ class GatewayLiveTopologyIT {
 
     private GatewayProcessSpec.Builder ddcClient(
             GatewayProcessSpec.Builder builder,
-            GatewayTestInfrastructure infrastructure) {
-        return builder
+            GatewayTestInfrastructure infrastructure,
+            URI ddcBase) {
+        return ddcRuntimeRpc(builder, ddcBase)
                 .argument(
                         "egon.cola.component.ddc.redis.host",
                         infrastructure.ddcRedisHost()
@@ -1172,6 +1176,59 @@ class GatewayLiveTopologyIT {
                         "egon.cola.component.ddc.redis.port",
                         infrastructure.ddcRedisPort()
                 );
+    }
+
+    private GatewayProcessSpec.Builder ddcRuntimeRpc(
+            GatewayProcessSpec.Builder builder,
+            URI ddcBase) {
+        return builder
+                .argument(
+                        "egon.cola.component.ddc.rpc.target",
+                        ddcRpcTarget(ddcBase)
+                )
+                .argument(
+                        "egon.cola.component.ddc.rpc.tls."
+                                + "development-plaintext",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.ddc.rpc.auth.runtime.access-key",
+                        DDC_ACCESS_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.rpc.auth.runtime.secret-key",
+                        DDC_SECRET_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.rpc.auth.registry.access-key",
+                        DDC_ACCESS_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.rpc.auth.registry.secret-key",
+                        DDC_SECRET_KEY
+                );
+    }
+
+    private String ddcRpcTarget(URI ddcBase) {
+        return "dns:///127.0.0.1:" + ddcRpcPort(ddcBase.getPort());
+    }
+
+    private int ddcRpcPort(int httpPort) {
+        return ddcRpcPorts.computeIfAbsent(
+                httpPort,
+                ignored -> availableDdcRpcPort()
+        );
+    }
+
+    private int availableDdcRpcPort() {
+        try {
+            return GatewayProcessHarness.availablePort();
+        } catch (IOException exception) {
+            throw new IllegalStateException(
+                    "failed to allocate DDC RPC port",
+                    exception
+            );
+        }
     }
 
     private GatewayProcessSpec ddcSpec(
@@ -1214,48 +1271,61 @@ class GatewayLiveTopologyIT {
                                 ADMIN_JWT_SECRET
                         )
                 )
+                .argument("egon.cola.component.rpc.enabled", true)
+                .argument("egon.cola.component.rpc.provider.enabled", true)
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
-                                + "signature-enabled",
+                        "egon.cola.component.rpc.provider.port",
+                        ddcRpcPort(port)
+                )
+                .argument(
+                        "egon.cola.component.rpc.provider.registration-mode",
+                        "DISABLED"
+                )
+                .argument(
+                        "egon.cola.component.rpc.tls.development-plaintext",
                         true
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
+                        "egon.cola.component.ddc.admin.rpc.signature-enabled",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].credential-id",
                         "gateway-live-service"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
+                        "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].access-key",
                         DDC_ACCESS_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
+                        "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].secret",
                         DDC_SECRET_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
+                        "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].client-type",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
+                        "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].app-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
+                        "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].env-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
-                                + "credentials[0].namespace-patterns[0]",
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[0].biz-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.openapi."
+                        "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].allowed-operations[0]",
                         "*"
                 )
@@ -1299,18 +1369,28 @@ class GatewayLiveTopologyIT {
                         infrastructure.ddcRedisPort()
                 )
                 .argument("gateway.admin.ddc.enabled", true)
-                .argument("gateway.admin.ddc.endpoint", ddcBase)
                 .argument(
-                        "gateway.admin.definition-reconcile-delay",
-                        "500ms"
+                        "egon.cola.component.ddc.rpc.target",
+                        ddcRpcTarget(ddcBase)
                 )
                 .argument(
-                        "gateway.admin.ddc.access-key",
+                        "egon.cola.component.ddc.rpc.tls."
+                                + "development-plaintext",
+                        true
+                )
+                .argument(
+                        "egon.cola.component.ddc.rpc.auth.management."
+                                + "access-key",
                         DDC_ACCESS_KEY
                 )
                 .argument(
-                        "gateway.admin.ddc.secret-key",
+                        "egon.cola.component.ddc.rpc.auth.management."
+                                + "secret-key",
                         DDC_SECRET_KEY
+                )
+                .argument(
+                        "gateway.admin.definition-reconcile-delay",
+                        "500ms"
                 )
                 .argument(
                         "gateway.admin.secrets.master-key-base64",
@@ -1401,7 +1481,8 @@ class GatewayLiveTopologyIT {
                                 processName,
                                 mainClass
                         ),
-                infrastructure
+                infrastructure,
+                ddcBase
         )
                 .argument("server.port", port)
                 .argument("egon.cola.component.ddc.enabled", true)
@@ -1413,27 +1494,6 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.ddc.namespace",
                         NAMESPACE
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.endpoint",
-                        ddcBase
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.tls."
-                                + "development-plaintext",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.signature-enabled",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.access-key",
-                        DDC_ACCESS_KEY
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.secret-key",
-                        DDC_SECRET_KEY
                 )
                 .argument("egon.cola.component.ddc.registry.enabled", true)
                 .argument("gateway.test.env", ENV)
@@ -1500,7 +1560,8 @@ class GatewayLiveTopologyIT {
                                         + "provider."
                                         + "GatewayRpcTestProviderApplication"
                         ),
-                infrastructure
+                infrastructure,
+                ddcBase
         )
                 .argument("server.port", managementPort)
                 .argument("egon.cola.component.ddc.enabled", true)
@@ -1512,27 +1573,6 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.ddc.namespace",
                         NAMESPACE
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.endpoint",
-                        ddcBase
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.tls."
-                                + "development-plaintext",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.signature-enabled",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.access-key",
-                        DDC_ACCESS_KEY
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.secret-key",
-                        DDC_SECRET_KEY
                 )
                 .argument("egon.cola.component.ddc.registry.enabled", true)
                 .argument("egon.cola.component.rpc.enabled", true)
@@ -1620,7 +1660,8 @@ class GatewayLiveTopologyIT {
                                         + "consumer."
                                         + "GatewayRpcTestConsumerApplication"
                         ),
-                infrastructure
+                infrastructure,
+                ddcBase
         )
                 .argument("server.port", port)
                 .argument("egon.cola.component.ddc.enabled", true)
@@ -1632,27 +1673,6 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.ddc.namespace",
                         NAMESPACE
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.endpoint",
-                        ddcBase
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.tls."
-                                + "development-plaintext",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.signature-enabled",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.access-key",
-                        DDC_ACCESS_KEY
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.secret-key",
-                        DDC_SECRET_KEY
                 )
                 .argument("egon.cola.component.ddc.registry.enabled", true)
                 .argument("egon.cola.component.rpc.enabled", true)
@@ -1744,7 +1764,8 @@ class GatewayLiveTopologyIT {
                                 "top.egon.cola.component.gateway.engine."
                                         + "GatewayEngineApplication"
                         ),
-                infrastructure
+                infrastructure,
+                ddcBase
         )
                 .argument("server.port", managementPort)
                 .argument("egon.cola.component.ddc.enabled", true)
@@ -1756,27 +1777,6 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.ddc.namespace",
                         NAMESPACE
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.endpoint",
-                        ddcBase
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.tls."
-                                + "development-plaintext",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.signature-enabled",
-                        true
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.access-key",
-                        DDC_ACCESS_KEY
-                )
-                .argument(
-                        "egon.cola.component.ddc.admin.secret-key",
-                        DDC_SECRET_KEY
                 )
                 .argument("egon.cola.component.ddc.registry.enabled", true)
                 .argument(

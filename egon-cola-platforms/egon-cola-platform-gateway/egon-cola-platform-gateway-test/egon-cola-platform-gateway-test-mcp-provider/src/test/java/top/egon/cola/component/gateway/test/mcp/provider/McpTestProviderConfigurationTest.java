@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.ConfigDataApplicationContextInitial
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,9 +22,9 @@ class McpTestProviderConfigurationTest {
     @Test
     void bindsHostLocalDdcAndGatewayReportingEnvironment() {
         contextRunner.withSystemProperties(
-                        "DDC_ADMIN_ENDPOINT=http://127.0.0.1:18110",
-                        "DDC_OPENAPI_ACCESS_KEY=ddc-access",
-                        "DDC_OPENAPI_SECRET=ddc-secret",
+                        "DDC_RPC_TARGET=dns:///127.0.0.1:19110",
+                        "DDC_RPC_RUNTIME_ACCESS_KEY=ddc-access",
+                        "DDC_RPC_RUNTIME_SECRET_KEY=ddc-secret",
                         "DDC_REGISTRY_REDIS_PASSWORD=redis-secret",
                         "GATEWAY_ADMIN_BASE_URL=http://127.0.0.1:18140",
                         "GATEWAY_REPORT_ACCESS_KEY=gateway-access",
@@ -32,15 +33,18 @@ class McpTestProviderConfigurationTest {
                 )
                 .run(context -> {
                     DdcProperties ddc = context.getBean(DdcProperties.class);
+                    DdcRpcProperties rpc = context.getBean(
+                            DdcRpcProperties.class
+                    );
                     GatewayReportingProperties reporting = context.getBean(
                             GatewayReportingProperties.class
                     );
 
-                    assertThat(ddc.getAdmin().getEndpoint())
-                            .isEqualTo("http://127.0.0.1:18110");
-                    assertThat(ddc.getAdmin().getAccessKey())
+                    assertThat(rpc.getTarget())
+                            .isEqualTo("dns:///127.0.0.1:19110");
+                    assertThat(rpc.getAuth().getRuntime().getAccessKey())
                             .isEqualTo("ddc-access");
-                    assertThat(ddc.getAdmin().getSecretKey())
+                    assertThat(rpc.getAuth().getRuntime().getSecretKey())
                             .isEqualTo("ddc-secret");
                     assertThat(ddc.getRedis().getPassword())
                             .isEqualTo("redis-secret");
@@ -55,6 +59,7 @@ class McpTestProviderConfigurationTest {
 
     @EnableConfigurationProperties({
             DdcProperties.class,
+            DdcRpcProperties.class,
             GatewayReportingProperties.class
     })
     static class TestConfiguration {

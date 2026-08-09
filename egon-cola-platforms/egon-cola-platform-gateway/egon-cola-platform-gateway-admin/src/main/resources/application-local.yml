@@ -19,5 +19,9 @@ egon:
           service-credential-file: ${GATEWAY_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/gateway-admin.service.jwt}
     component:
       ddc:
+        rpc:
+          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          tls:
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
           password: ${DDC_REDIS_PASSWORD:HomeLab666}

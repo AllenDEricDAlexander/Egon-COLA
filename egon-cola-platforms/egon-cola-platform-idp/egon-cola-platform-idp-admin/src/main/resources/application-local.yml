@@ -34,5 +34,9 @@ egon:
   cola:
     component:
       ddc:
+        rpc:
+          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          tls:
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
           password: ${DDC_REGISTRY_REDIS_PASSWORD:HomeLab666}

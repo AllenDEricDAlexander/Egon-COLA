@@ -64,6 +64,10 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-rpc-starter</artifactId>
         </dependency>
         <dependency>
