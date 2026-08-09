@@ -9,9 +9,10 @@ for one YAML business-configuration document, typed management APIs, a standalon
 Admin application, and a Redis-backed service registry for RPC Providers and
 internal Gateways.
 
-The Maven modules use the `egon-cola-platform-*` prefix. Existing Java packages and
-the `egon.cola.component.ddc` configuration namespace remain unchanged for source and
-configuration compatibility.
+The Maven modules use the `egon-cola-platform-*` prefix. The Starter Java API is
+organized by domain and does not retain forwarding types for its former technical
+packages. The external `egon.cola.component.ddc` configuration namespace remains
+unchanged.
 
 V1 supports one logical control plane backed by shared PostgreSQL and Redis. Multiple
 Admin processes can serve the same control plane: publish preparation uses PostgreSQL
@@ -54,6 +55,42 @@ by Admin). The console deploys as its own container, points at Admin via
 `DDC_ADMIN_API_BASE_URL`, and proxies `/api` same-origin through its static
 server, so Admin needs no CORS configuration.
 
+## Starter Package Layout
+
+```text
+top.egon.cola.component.ddc
+├── annotation
+├── autoconfigure
+├── configuration
+│   ├── binding
+│   ├── bootstrap
+│   ├── client
+│   ├── environment
+│   ├── format
+│   ├── model
+│   ├── refresh
+│   ├── runtime
+│   └── subscription
+├── error
+├── lease
+├── management
+│   ├── client
+│   └── model
+├── observability
+├── registry
+│   ├── client
+│   ├── model
+│   ├── state
+│   └── subscription
+└── transport
+    ├── http
+    └── redis
+```
+
+`DdcConfigClient`, `DdcServiceRegistryClient`, and `DdcManagementClient` remain
+separate domain facades. They share HTTP/TLS/HMAC and Redis transport resources,
+but not domain error handling or lifecycle logic.
+
 ## Operations Endpoints
 
 DDC Admin exposes `GET /actuator/health/readiness` for startup and readiness
@@ -82,7 +119,7 @@ VIP, or load balancer; Starter does not discover Admin processes.
 
 ## Trace Propagation
 
-The Starter uses `egon-cola-component-common-trace` in `HttpDdcAdminClient`, the
+The Starter uses `egon-cola-component-common-trace` in `HttpDdcConfigClient`, the
 OpenAPI registry client, heartbeat, pull, ACK retry, Redis topic callbacks, and
 lease recovery tasks. DDC calls triggered by a business request inherit the
 current `traceId` and create a child span. Background tasks without an upstream

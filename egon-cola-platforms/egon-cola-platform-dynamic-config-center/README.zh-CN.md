@@ -8,8 +8,8 @@
 一份 YAML 业务配置文档的 SDK、类型化管理 API、可独立部署的 Admin 应用，以及面向
 RPC Provider 和内部 Gateway 的 Redis 服务注册中心。
 
-Maven 模块统一使用 `egon-cola-platform-*` 前缀。为保持源码和配置兼容，现有 Java 包名
-以及 `egon.cola.component.ddc` 配置命名空间保持不变。
+Maven 模块统一使用 `egon-cola-platform-*` 前缀。Starter Java API 已按领域重新组织，
+不为旧技术分层包保留转发类型；外部 `egon.cola.component.ddc` 配置命名空间保持不变。
 
 V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 Admin 进程可以服务
 同一个控制面：发布准备通过 PostgreSQL 行锁、版本条件更新和持久化发布任务完成，
@@ -47,6 +47,41 @@ Admin 的 webui 已从 jar 中摘出（`/ddc-admin` 不再由 Admin 提供服务
 独立容器部署，经 `DDC_ADMIN_API_BASE_URL` 指向 Admin，`/api` 请求由 static-server
 同源反代，Admin 侧无需 CORS 配置。
 
+## Starter 分包
+
+```text
+top.egon.cola.component.ddc
+├── annotation
+├── autoconfigure
+├── configuration
+│   ├── binding
+│   ├── bootstrap
+│   ├── client
+│   ├── environment
+│   ├── format
+│   ├── model
+│   ├── refresh
+│   ├── runtime
+│   └── subscription
+├── error
+├── lease
+├── management
+│   ├── client
+│   └── model
+├── observability
+├── registry
+│   ├── client
+│   ├── model
+│   ├── state
+│   └── subscription
+└── transport
+    ├── http
+    └── redis
+```
+
+`DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 仍是三套独立
+领域门面；它们复用 HTTP/TLS/HMAC 和 Redis 传输资源，但不合并领域错误处理与生命周期。
+
 ## 运维端点
 
 DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
@@ -72,7 +107,7 @@ DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
 
 ## Trace 传播
 
-Starter 的 `HttpDdcAdminClient`、OpenAPI 注册客户端、心跳、拉取、ACK 重试、Redis
+Starter 的 `HttpDdcConfigClient`、OpenAPI 注册客户端、心跳、拉取、ACK 重试、Redis
 Topic 回调和租约恢复任务统一使用 `egon-cola-component-common-trace`。业务请求触发的
 DDC 调用会继承当前 `traceId` 并创建 child span；后台任务没有上游 Trace 时会为每次
 逻辑操作打开新的 `TraceContext`，并在结束后恢复原线程 MDC。出站只写
