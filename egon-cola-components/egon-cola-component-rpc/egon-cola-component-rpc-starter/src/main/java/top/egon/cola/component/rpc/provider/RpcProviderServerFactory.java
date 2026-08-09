@@ -2,12 +2,14 @@ package top.egon.cola.component.rpc.provider;
 
 import io.grpc.Server;
 import io.grpc.ServerInterceptor;
+import io.grpc.ServerInterceptors;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import top.egon.cola.component.rpc.config.RpcTransportSecurity;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
+import java.util.List;
 
 public class RpcProviderServerFactory {
 
@@ -25,14 +27,19 @@ public class RpcProviderServerFactory {
     public Server create(String bindAddress,
                          int port,
                          Collection<ServerServiceDefinition> services,
-                         ServerInterceptor interceptor) {
+                         List<ServerInterceptor> interceptors) {
         NettyServerBuilder builder = NettyServerBuilder.forAddress(
                 new InetSocketAddress(bindAddress, port)
-        ).intercept(interceptor);
+        );
         if (transportSecurity.enabled()) {
             builder.sslContext(transportSecurity.serverContext());
         }
-        services.forEach(builder::addService);
+        services.stream()
+                .map(service -> ServerInterceptors.interceptForward(
+                        service,
+                        interceptors
+                ))
+                .forEach(builder::addService);
         return builder.build();
     }
 }

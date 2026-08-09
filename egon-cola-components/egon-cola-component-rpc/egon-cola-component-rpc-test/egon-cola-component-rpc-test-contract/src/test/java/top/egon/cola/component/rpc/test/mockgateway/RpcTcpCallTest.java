@@ -7,6 +7,7 @@ import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
+import top.egon.cola.component.rpc.consumer.GatewayRpcInvocationChannelProvider;
 import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
@@ -82,7 +83,9 @@ class RpcTcpCallTest {
             RpcConsumerProxyFactory proxyFactory =
                     new RpcConsumerProxyFactory(
                             new RpcContractValidator(),
-                            consumerGateway,
+                            new GatewayRpcInvocationChannelProvider(
+                                    consumerGateway
+                            ),
                             consumerIdentity,
                             new RpcStatusExceptionMapper(),
                             3000
@@ -179,7 +182,7 @@ class RpcTcpCallTest {
                         "test"
                 ),
                 availability,
-                new RpcProviderServerInterceptor(),
+                List.of(new RpcProviderServerInterceptor()),
                 properties,
                 identity
         );

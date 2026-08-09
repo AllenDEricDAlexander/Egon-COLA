@@ -3,11 +3,14 @@ package top.egon.cola.component.rpc.consumer;
 import com.google.protobuf.Message;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
+import io.grpc.ClientInterceptor;
 import io.grpc.ClientInterceptors;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
+import top.egon.cola.component.rpc.context.RpcClientInterceptorFactory;
+import top.egon.cola.component.rpc.context.RpcClientInvocation;
 import top.egon.cola.component.rpc.context.RpcConsumerClientInterceptor;
 import top.egon.cola.component.rpc.context.RpcFailureStage;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
@@ -19,8 +22,10 @@ import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +33,7 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
 
     private final RpcContractDescriptor contract;
 
-    private final RpcConsumerGatewayManager gatewayManager;
+    private final RpcInvocationChannelProvider channelProvider;
 
     private final RpcProcessIdentity processIdentity;
 
@@ -36,17 +41,21 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
 
     private final long timeoutMs;
 
+    private final List<RpcClientInterceptorFactory> interceptorFactories;
+
     public RpcConsumerInvocationHandler(
             RpcContractDescriptor contract,
-            RpcConsumerGatewayManager gatewayManager,
+            RpcInvocationChannelProvider channelProvider,
             RpcProcessIdentity processIdentity,
             RpcStatusExceptionMapper statusMapper,
-            long timeoutMs) {
+            long timeoutMs,
+            List<RpcClientInterceptorFactory> interceptorFactories) {
         this.contract = contract;
-        this.gatewayManager = gatewayManager;
+        this.channelProvider = channelProvider;
         this.processIdentity = processIdentity;
         this.statusMapper = statusMapper;
         this.timeoutMs = timeoutMs;
+        this.interceptorFactories = List.copyOf(interceptorFactories);
     }
 
     @Override
@@ -61,8 +70,20 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
             );
         }
         RpcMethodDescriptor rpcMethod = contract.method(method);
-        var interceptor =
-                new RpcConsumerClientInterceptor(contract, processIdentity);
+        Message request = (Message) args[0];
+        List<ClientInterceptor> interceptors = new ArrayList<>();
+        interceptors.add(
+                new RpcConsumerClientInterceptor(contract, processIdentity)
+        );
+        RpcClientInvocation invocation = new RpcClientInvocation(
+                contract,
+                rpcMethod,
+                request,
+                processIdentity
+        );
+        interceptorFactories.stream()
+                .map(factory -> factory.create(invocation))
+                .forEach(interceptors::add);
         Set<ManagedChannel> attempted = Collections.newSetFromMap(
                 new IdentityHashMap<>()
         );
@@ -70,14 +91,14 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
                 + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
         StatusRuntimeException lastFailure = null;
         for (int attempt = 0;
-             attempt < gatewayManager.maxAttempts();
+             attempt < channelProvider.maxAttempts();
              attempt++) {
             ManagedChannel managedChannel =
-                    gatewayManager.currentChannel(attempted);
+                    channelProvider.currentChannel(attempted);
             attempted.add(managedChannel);
-            Channel gatewayChannel = ClientInterceptors.intercept(
+            Channel invocationChannel = ClientInterceptors.interceptForward(
                     managedChannel,
-                    interceptor
+                    interceptors
             );
             long remainingNanos = deadline - System.nanoTime();
             if (remainingNanos <= 0) {
@@ -89,18 +110,18 @@ public class RpcConsumerInvocationHandler implements InvocationHandler {
             );
             try {
                 return ClientCalls.blockingUnaryCall(
-                        gatewayChannel,
+                        invocationChannel,
                         rpcMethod.grpcMethod(),
                         callOptions,
-                        (Message) args[0]
+                        request
                 );
             } catch (StatusRuntimeException exception) {
                 lastFailure = exception;
                 if (!retryableGatewayFailure(rpcMethod, exception)
-                        || attempt + 1 >= gatewayManager.maxAttempts()) {
+                        || attempt + 1 >= channelProvider.maxAttempts()) {
                     throw statusMapper.map(exception);
                 }
-                gatewayManager.recordFailure(managedChannel);
+                channelProvider.recordFailure(managedChannel);
             }
         }
         throw lastFailure == null

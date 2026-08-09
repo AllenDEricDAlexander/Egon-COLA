@@ -1,10 +1,10 @@
 package top.egon.cola.component.rpc.provider;
 
 import io.grpc.Server;
+import io.grpc.ServerInterceptor;
 import org.springframework.context.SmartLifecycle;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
-import top.egon.cola.component.rpc.context.RpcProviderServerInterceptor;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 
@@ -28,7 +28,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
 
     private final RpcProviderAvailabilityRegistry availability;
 
-    private final RpcProviderServerInterceptor interceptor;
+    private final List<ServerInterceptor> interceptors;
 
     private final EgonRpcProperties.Provider properties;
 
@@ -46,7 +46,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             RpcProviderServerFactory serverFactory,
             RpcProviderLeaseManager leaseManager,
             RpcProviderAvailabilityRegistry availability,
-            RpcProviderServerInterceptor interceptor,
+            List<ServerInterceptor> interceptors,
             EgonRpcProperties rpcProperties,
             RpcProcessIdentity processIdentity) {
         this.registry = registry;
@@ -54,7 +54,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
         this.serverFactory = serverFactory;
         this.leaseManager = leaseManager;
         this.availability = availability;
-        this.interceptor = interceptor;
+        this.interceptors = List.copyOf(interceptors);
         this.properties = rpcProperties.getProvider();
         this.processIdentity = processIdentity;
     }
@@ -74,7 +74,7 @@ public class RpcProviderLifecycle implements SmartLifecycle {
                     properties.getBindAddress(),
                     properties.getPort(),
                     definitionFactory.create(registry),
-                    interceptor
+                    interceptors
             );
             if (!registrationEnabled()) {
                 providers.forEach(binding -> availability.available(

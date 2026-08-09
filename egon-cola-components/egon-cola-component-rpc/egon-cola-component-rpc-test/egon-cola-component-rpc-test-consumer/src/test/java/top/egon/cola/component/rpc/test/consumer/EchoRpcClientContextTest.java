@@ -2,6 +2,7 @@ package top.egon.cola.component.rpc.test.consumer;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
+import top.egon.cola.component.rpc.consumer.GatewayRpcInvocationChannelProvider;
 import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
 import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
@@ -19,7 +20,9 @@ class EchoRpcClientContextTest {
     void shouldInjectJdkProxyWithoutProviderAddress() {
         RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
                 new RpcContractValidator(),
-                mock(RpcConsumerGatewayManager.class),
+                new GatewayRpcInvocationChannelProvider(
+                        mock(RpcConsumerGatewayManager.class)
+                ),
                 new RpcProcessIdentity(
                         "consumer-test",
                         "test",

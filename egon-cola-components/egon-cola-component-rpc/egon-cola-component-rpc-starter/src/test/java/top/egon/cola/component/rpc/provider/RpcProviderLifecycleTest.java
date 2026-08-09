@@ -1,5 +1,18 @@
 package top.egon.cola.component.rpc.provider;
 
+import com.google.protobuf.Message;
+import com.google.protobuf.StringValue;
+import io.grpc.CallOptions;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.MethodDescriptor;
+import io.grpc.Server;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.ServerServiceDefinition;
+import io.grpc.stub.ClientCalls;
+import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
@@ -12,11 +25,65 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcProviderLifecycleTest {
+
+    @Test
+    void serverFactoryExecutesInterceptorsInDeclaredOrder() throws Exception {
+        List<String> order = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        MethodDescriptor<Message, Message> method =
+                (MethodDescriptor<Message, Message>)
+                        (MethodDescriptor<?, ?>) new RpcContractValidator()
+                                .validate(
+                                        RpcProviderTestFixtures.EchoContract.class
+                                )
+                                .methods()
+                                .getFirst()
+                                .grpcMethod();
+        ServerServiceDefinition service = ServerServiceDefinition.builder(
+                        method.getServiceName()
+                )
+                .addMethod(method, ServerCalls.asyncUnaryCall(
+                        (request, observer) -> {
+                            observer.onNext(request);
+                            observer.onCompleted();
+                        }
+                ))
+                .build();
+        ServerInterceptor first = interceptor("first", order);
+        ServerInterceptor second = interceptor("second", order);
+        Server server = new RpcProviderServerFactory().create(
+                "127.0.0.1",
+                0,
+                List.of(service),
+                List.of(first, second)
+        ).start();
+        ManagedChannel channel = ManagedChannelBuilder.forAddress(
+                        "127.0.0.1",
+                        server.getPort()
+                )
+                .usePlaintext()
+                .build();
+        try {
+            Message response = ClientCalls.blockingUnaryCall(
+                    channel,
+                    method,
+                    CallOptions.DEFAULT,
+                    StringValue.of("hello")
+            );
+
+            assertThat(response).isEqualTo(StringValue.of("hello"));
+            assertThat(order).containsExactly("first", "second");
+        } finally {
+            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
+            server.shutdownNow().awaitTermination();
+        }
+    }
 
     @Test
     void bindsRegistersAndDeregistersThroughTheNeutralRegistry() {
@@ -71,7 +138,7 @@ class RpcProviderLifecycleTest {
                     new RpcProviderServerFactory(),
                     null,
                     availability,
-                    new RpcProviderServerInterceptor(),
+                    List.of(new RpcProviderServerInterceptor()),
                     properties,
                     processIdentity()
             );
@@ -104,7 +171,7 @@ class RpcProviderLifecycleTest {
                     new RpcProviderServerFactory(),
                     null,
                     availability,
-                    new RpcProviderServerInterceptor(),
+                    List.of(new RpcProviderServerInterceptor()),
                     configuredProperties(),
                     processIdentity()
             );
@@ -147,7 +214,7 @@ class RpcProviderLifecycleTest {
                 new RpcProviderServerFactory(),
                 leaseManager(registry, availability, properties, identity),
                 availability,
-                new RpcProviderServerInterceptor(),
+                List.of(new RpcProviderServerInterceptor()),
                 properties,
                 identity
         );
@@ -183,7 +250,7 @@ class RpcProviderLifecycleTest {
                             metadataMerger
                     ),
                     availability,
-                    new RpcProviderServerInterceptor(),
+                    List.of(new RpcProviderServerInterceptor()),
                     properties,
                     identity
             );
@@ -225,7 +292,7 @@ class RpcProviderLifecycleTest {
                 new RpcProviderServerFactory(),
                 leaseManager(registry, availability, properties, identity),
                 availability,
-                new RpcProviderServerInterceptor(),
+                List.of(new RpcProviderServerInterceptor()),
                 properties,
                 identity
         );
@@ -265,6 +332,19 @@ class RpcProviderLifecycleTest {
                 1,
                 "provider-process"
         );
+    }
+
+    private ServerInterceptor interceptor(String name, List<String> order) {
+        return new ServerInterceptor() {
+            @Override
+            public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+                    ServerCall<ReqT, RespT> call,
+                    io.grpc.Metadata headers,
+                    ServerCallHandler<ReqT, RespT> next) {
+                order.add(name);
+                return next.startCall(call, headers);
+            }
+        };
     }
 
     private static final class RecordingRegistry

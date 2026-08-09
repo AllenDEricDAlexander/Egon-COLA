@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
+import top.egon.cola.component.rpc.consumer.GatewayRpcInvocationChannelProvider;
 import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.RpcContractValidator;
@@ -75,7 +76,7 @@ class RpcMultiProviderDirectoryTest {
             consumerGateway.start();
             EchoRpc consumer = new RpcConsumerProxyFactory(
                     new RpcContractValidator(),
-                    consumerGateway,
+                    new GatewayRpcInvocationChannelProvider(consumerGateway),
                     identity,
                     new RpcStatusExceptionMapper(),
                     3000

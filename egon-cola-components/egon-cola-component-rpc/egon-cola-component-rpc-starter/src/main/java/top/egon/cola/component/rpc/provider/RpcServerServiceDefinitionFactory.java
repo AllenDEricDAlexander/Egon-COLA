@@ -21,9 +21,18 @@ public class RpcServerServiceDefinitionFactory {
 
     private final RpcProviderAvailabilityRegistry availability;
 
+    private final List<RpcProviderExceptionMapper> exceptionMappers;
+
     public RpcServerServiceDefinitionFactory(
             RpcProviderAvailabilityRegistry availability) {
+        this(availability, List.of());
+    }
+
+    public RpcServerServiceDefinitionFactory(
+            RpcProviderAvailabilityRegistry availability,
+            List<RpcProviderExceptionMapper> exceptionMappers) {
         this.availability = availability;
+        this.exceptionMappers = List.copyOf(exceptionMappers);
     }
 
     public List<ServerServiceDefinition> create(
@@ -66,7 +75,6 @@ public class RpcServerServiceDefinitionFactory {
                     .asRuntimeException());
             return;
         }
-        RpcInvocationMetadata metadata = RpcInvocationMetadata.current();
         try {
             Object response = binding.method().javaMethod().invoke(
                     binding.provider().bean(),
@@ -90,6 +98,21 @@ public class RpcServerServiceDefinitionFactory {
             RpcProviderMethodBinding binding,
             StreamObserver<Message> observer,
             Throwable throwable) {
+        for (RpcProviderExceptionMapper mapper : exceptionMappers) {
+            try {
+                var mapped = mapper.map(throwable);
+                if (mapped.isPresent()) {
+                    observer.onError(mapped.get());
+                    return;
+                }
+            } catch (RuntimeException mapperFailure) {
+                LOGGER.error(
+                        "RPC Provider exception mapper failed mapper={}",
+                        mapper.getClass().getName(),
+                        mapperFailure
+                );
+            }
+        }
         if (throwable instanceof EgonRpcRejectedException) {
             observer.onError(Status.PERMISSION_DENIED
                     .withDescription("RPC provider rejected the request")

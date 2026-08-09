@@ -14,8 +14,10 @@ import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
+import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcFailureStage;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
@@ -26,7 +28,9 @@ import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
+import java.lang.reflect.Proxy;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -35,8 +39,46 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class RpcConsumerInvocationHandlerTest {
+
+    @Test
+    void autoConfiguredBusinessReferencesUseOnlyGatewayStrategy() {
+        RpcProcessIdentity identity = new RpcProcessIdentity(
+                "consumer-test",
+                "test",
+                "default",
+                "127.0.0.1",
+                1,
+                "consumer-1"
+        );
+        EgonRpcAutoConfig autoConfig = new EgonRpcAutoConfig();
+        GatewayRpcInvocationChannelProvider channelProvider = autoConfig
+                .gatewayRpcInvocationChannelProvider(
+                        mock(RpcConsumerGatewayManager.class)
+                );
+        RpcConsumerProxyFactory factory = autoConfig.rpcConsumerProxyFactory(
+                        new RpcContractValidator(),
+                        channelProvider,
+                        identity,
+                        new EgonRpcProperties()
+                );
+
+        EchoConsumer proxy = factory.create(EchoConsumer.class, 500);
+        Object configuredChannelProvider = org.springframework.test.util
+                .ReflectionTestUtils.getField(
+                        Proxy.getInvocationHandler(proxy),
+                        "channelProvider"
+                );
+
+        assertThat(configuredChannelProvider)
+                .isInstanceOf(GatewayRpcInvocationChannelProvider.class);
+        assertThat(Arrays.stream(EgonRpcReference.class.getDeclaredMethods())
+                .map(java.lang.reflect.Method::getName))
+                .noneMatch(name -> name.toLowerCase().contains("direct"))
+                .noneMatch(name -> name.toLowerCase().contains("route"));
+    }
 
     @Test
     void shouldRetryIdempotentGatewayFailureWithOriginalCallContext()
@@ -149,7 +191,7 @@ class RpcConsumerInvocationHandlerTest {
             manager.start();
             RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
                     new RpcContractValidator(),
-                    manager,
+                    new GatewayRpcInvocationChannelProvider(manager),
                     identity,
                     new RpcStatusExceptionMapper(),
                     1000
@@ -224,7 +266,7 @@ class RpcConsumerInvocationHandlerTest {
             manager.start();
             RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
                     new RpcContractValidator(),
-                    manager,
+                    new GatewayRpcInvocationChannelProvider(manager),
                     identity,
                     new RpcStatusExceptionMapper(),
                     500
