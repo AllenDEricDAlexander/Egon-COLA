@@ -5,11 +5,14 @@ import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
@@ -26,6 +29,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -538,6 +542,12 @@ class GatewayProjectionServiceTest {
     ) implements DdcManagementClient {
 
         @Override
+        public Optional<DdcManagementConfig> findConfig(
+                DdcManagementConfigQuery query) {
+            return Optional.empty();
+        }
+
+        @Override
         public DdcManagementServiceCatalog getServiceKeys(
                 DdcManagementServiceQuery query) {
             if ("https".equals(query.protocol())) {
@@ -611,6 +621,12 @@ class GatewayProjectionServiceTest {
         public List<DdcManagementConfigClientInstance> getConfigClients(
                 DdcManagementInstanceQuery query) {
             return engines;
+        }
+
+        @Override
+        public List<DdcManagementScopeBinding> getScopeBindings(
+                DdcManagementScopeQuery query) {
+            return List.of();
         }
     }
 }

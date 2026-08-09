@@ -2,6 +2,7 @@ package top.egon.cola.component.rpc.consumer;
 
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.shaded.io.netty.channel.ChannelOption;
 import top.egon.cola.component.rpc.config.RpcTransportSecurity;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
@@ -103,6 +104,10 @@ public final class DirectRpcInvocationChannelProvider
                 )
                 .maxInboundMessageSize(
                         directSettings.maxInboundMessageSize()
+                )
+                .withOption(
+                        ChannelOption.CONNECT_TIMEOUT_MILLIS,
+                        directSettings.connectTimeoutMs()
                 )
                 .disableRetry();
         RpcTransportSecurity security =

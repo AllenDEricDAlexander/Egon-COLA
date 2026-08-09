@@ -29,11 +29,8 @@ public interface DdcManagementClient {
      *
      * @param query 配置作用域查询条件 / configuration-scope query
      * @return 找到的配置，未找到时为空 / matching configuration, or empty when none exists
-     * @throws UnsupportedOperationException 当实现不支持精确配置查询时 / when exact configuration lookup is unsupported
      */
-    default Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query) {
-        throw new UnsupportedOperationException("Exact config lookup is not supported");
-    }
+    Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query);
 
     /**
      * 新增或更新指定作用域的配置。 / Creates or updates the configuration in the requested scope.
@@ -89,13 +86,9 @@ public interface DdcManagementClient {
      *
      * @param query 作用域绑定筛选条件 / scope-binding filters
      * @return 匹配的作用域绑定 / matching scope bindings
-     * @throws UnsupportedOperationException 当实现不支持作用域绑定查询时 / when scope-binding lookup is unsupported
      */
-    default List<DdcManagementScopeBinding> getScopeBindings(
-            DdcManagementScopeQuery query) {
-        throw new UnsupportedOperationException(
-                "Scope binding lookup is not supported");
-    }
+    List<DdcManagementScopeBinding> getScopeBindings(
+            DdcManagementScopeQuery query);
 
     /**
      * 查询匹配的服务键目录。 / Retrieves the catalog of matching service keys.

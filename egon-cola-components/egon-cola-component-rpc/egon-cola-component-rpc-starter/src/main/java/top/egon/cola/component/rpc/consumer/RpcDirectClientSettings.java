@@ -15,6 +15,7 @@ import top.egon.cola.component.rpc.context.RpcProcessIdentity;
  * @param loadBalancingPolicy 负载均衡策略 / load-balancing policy
  * @param maxInboundMessageSize 最大入站消息字节数 / maximum inbound bytes
  * @param shutdownTimeoutMs 关闭等待时间 / shutdown wait time
+ * @param connectTimeoutMs TCP 连接超时 / TCP connect timeout
  */
 public record RpcDirectClientSettings(
         String target,
@@ -23,8 +24,29 @@ public record RpcDirectClientSettings(
         long deadlineMs,
         String loadBalancingPolicy,
         int maxInboundMessageSize,
-        long shutdownTimeoutMs
+        long shutdownTimeoutMs,
+        int connectTimeoutMs
 ) {
+
+    public RpcDirectClientSettings(
+            String target,
+            RpcProcessIdentity processIdentity,
+            RpcTransportSecurity transportSecurity,
+            long deadlineMs,
+            String loadBalancingPolicy,
+            int maxInboundMessageSize,
+            long shutdownTimeoutMs) {
+        this(
+                target,
+                processIdentity,
+                transportSecurity,
+                deadlineMs,
+                loadBalancingPolicy,
+                maxInboundMessageSize,
+                shutdownTimeoutMs,
+                3000
+        );
+    }
 
     public RpcDirectClientSettings {
         if (target == null || target.isBlank()) {
@@ -60,6 +82,11 @@ public record RpcDirectClientSettings(
                     "RPC direct shutdown timeout must not be negative"
             );
         }
+        if (connectTimeoutMs <= 0) {
+            throw new IllegalArgumentException(
+                    "RPC direct connect timeout must be positive"
+            );
+        }
         target = target.trim();
         loadBalancingPolicy = loadBalancingPolicy.trim();
     }
@@ -87,7 +114,8 @@ public record RpcDirectClientSettings(
                 deadlineMs,
                 "round_robin",
                 4 * 1024 * 1024,
-                5000
+                5000,
+                3000
         );
     }
 }

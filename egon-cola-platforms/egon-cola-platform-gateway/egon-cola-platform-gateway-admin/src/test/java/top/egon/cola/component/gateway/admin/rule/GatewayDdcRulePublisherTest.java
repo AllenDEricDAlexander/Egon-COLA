@@ -6,12 +6,15 @@ import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
@@ -159,6 +162,12 @@ class GatewayDdcRulePublisherTest {
         );
 
         @Override
+        public java.util.Optional<DdcManagementConfig> findConfig(
+                DdcManagementConfigQuery query) {
+            return java.util.Optional.empty();
+        }
+
+        @Override
         public DdcManagementConfig upsert(
                 DdcManagementConfigUpsertRequest request) {
             return null;
@@ -200,6 +209,12 @@ class GatewayDdcRulePublisherTest {
         public List<DdcManagementConfigClientInstance> getConfigClients(
                 DdcManagementInstanceQuery query) {
             return targets;
+        }
+
+        @Override
+        public List<DdcManagementScopeBinding> getScopeBindings(
+                DdcManagementScopeQuery query) {
+            return List.of();
         }
 
         @Override

@@ -16,6 +16,8 @@ import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
@@ -778,6 +780,12 @@ class GatewayReleasePublicationCoordinatorTest {
                     Instant.parse("2099-01-01T00:00:00Z"),
                     Map.of()
             ));
+        }
+
+        @Override
+        public List<DdcManagementScopeBinding> getScopeBindings(
+                DdcManagementScopeQuery query) {
+            return List.of();
         }
 
         @Override

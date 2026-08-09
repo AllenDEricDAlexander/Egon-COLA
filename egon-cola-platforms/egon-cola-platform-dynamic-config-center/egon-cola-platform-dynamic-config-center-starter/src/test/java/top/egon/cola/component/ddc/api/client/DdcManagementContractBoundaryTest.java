@@ -7,6 +7,7 @@ import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.lang.reflect.Modifier;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DdcManagementContractBoundaryTest {
 
     @Test
-    void publicContractsDoNotExposeAdminPersistenceOrRuntimeInfrastructure() throws IOException {
+    void publicContractsDoNotExposeAdminPersistenceOrRuntimeInfrastructure() throws Exception {
         StringBuilder sources = new StringBuilder();
         for (Path sourceRoot : contractRoots("src/main/java")) {
             try (var paths = Files.walk(sourceRoot)) {
@@ -34,6 +35,12 @@ class DdcManagementContractBoundaryTest {
         assertThat(DdcManagementClient.class).isInterface();
         assertThat(DdcManagementConfig.class.isRecord()).isTrue();
         assertThat(DdcManagementPublishTask.class.isRecord()).isTrue();
+        assertThat(Modifier.isAbstract(DdcManagementClient.class
+                .getMethod("findConfig", top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery.class)
+                .getModifiers())).isTrue();
+        assertThat(Modifier.isAbstract(DdcManagementClient.class
+                .getMethod("getScopeBindings", top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery.class)
+                .getModifiers())).isTrue();
     }
 
     @Test
