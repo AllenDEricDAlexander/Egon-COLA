@@ -22,3 +22,6 @@ egon:
         admin:
           redis:
             password: ${DDC_REDIS_PASSWORD:HomeLab666}
+      rpc:
+        tls:
+          development-plaintext: true

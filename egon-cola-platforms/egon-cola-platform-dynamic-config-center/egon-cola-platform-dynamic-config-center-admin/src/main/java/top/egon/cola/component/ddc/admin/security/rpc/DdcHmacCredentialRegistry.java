@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security.openapi;
+package top.egon.cola.component.ddc.admin.security.rpc;
 
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
@@ -15,7 +15,7 @@ public final class DdcHmacCredentialRegistry {
     private final Map<String, DdcHmacCredential> credentialsByAccessKey;
 
     public DdcHmacCredentialRegistry(DdcAdminProperties properties) {
-        credentialsByAccessKey = build(properties.getOpenapi());
+        credentialsByAccessKey = build(properties.getRpc());
     }
 
     public Optional<DdcHmacCredential> resolve(String accessKey) {
@@ -30,11 +30,11 @@ public final class DdcHmacCredentialRegistry {
     }
 
     private Map<String, DdcHmacCredential> build(
-            DdcAdminProperties.Openapi openapi) {
+            DdcAdminProperties.Rpc rpc) {
         List<DdcAdminProperties.Credential> configured =
-                openapi.getCredentials() == null
+                rpc.getCredentials() == null
                         ? List.of()
-                        : openapi.getCredentials();
+                        : rpc.getCredentials();
         LinkedHashMap<String, DdcHmacCredential> result =
                 new LinkedHashMap<>();
         for (DdcAdminProperties.Credential value : configured) {
@@ -57,26 +57,7 @@ public final class DdcHmacCredentialRegistry {
                 );
             }
         }
-        if (result.isEmpty()
-                && hasText(openapi.getAccessKey())
-                && hasText(openapi.getSecretKey())) {
-            DdcHmacCredential legacy = new DdcHmacCredential(
-                    "legacy-service",
-                    openapi.getAccessKey(),
-                    openapi.getSecretKey(),
-                    "*",
-                    Set.of("*"),
-                    Set.of("*"),
-                    Set.of("*"),
-                    Set.of("*")
-            );
-            result.put(legacy.accessKey(), legacy);
-        }
         return Map.copyOf(result);
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
     }
 
     private Set<String> bizCodePatterns(

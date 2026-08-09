@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.admin.rpc.provider;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import top.egon.cola.component.ddc.admin.service.registry.DdcRegistryFacade;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
 import top.egon.cola.component.rpc.ddc.contract.DdcServiceRegistryRpc;
@@ -56,6 +57,7 @@ public class DdcRegistryRpcProvider implements DdcServiceRegistryRpc {
 
     @Override
     public RegisterServiceResponse registerService(RegisterServiceRequest request) {
+        DdcServicePrincipal.current();
         return RegisterServiceResponse.newBuilder()
                 .setSession(common.toProto(
                         facade.register(mapper.fromRegisterRequest(request))))
@@ -65,6 +67,7 @@ public class DdcRegistryRpcProvider implements DdcServiceRegistryRpc {
     @Override
     public HeartbeatServiceResponse heartbeatService(
             HeartbeatServiceRequest request) {
+        DdcServicePrincipal.current();
         return HeartbeatServiceResponse.newBuilder()
                 .setResult(common.toProto(
                         facade.heartbeat(mapper.fromHeartbeatRequest(request))))
@@ -74,6 +77,7 @@ public class DdcRegistryRpcProvider implements DdcServiceRegistryRpc {
     @Override
     public DeregisterServiceResponse deregisterService(
             DeregisterServiceRequest request) {
+        DdcServicePrincipal.current();
         return DeregisterServiceResponse.newBuilder()
                 .setResult(common.toProto(
                         facade.deregister(mapper.fromDeregisterRequest(request))))
@@ -83,6 +87,7 @@ public class DdcRegistryRpcProvider implements DdcServiceRegistryRpc {
     @Override
     public GetServiceInstancesResponse getServiceInstances(
             GetServiceInstancesRequest request) {
+        DdcServicePrincipal.current();
         common.checked(request);
         if (!request.hasServiceKey()) {
             throw new IllegalArgumentException("serviceKey is required");
@@ -93,6 +98,7 @@ public class DdcRegistryRpcProvider implements DdcServiceRegistryRpc {
 
     @Override
     public GetServicesResponse getServices(GetServicesRequest request) {
+        DdcServicePrincipal.current();
         common.checked(request);
         if (!request.hasQuery()) {
             throw new IllegalArgumentException("service query is required");

@@ -14,7 +14,7 @@ public class DdcAdminProperties {
 
     private Lease lease = new Lease();
 
-    private Openapi openapi = new Openapi();
+    private Rpc rpc = new Rpc();
 
     private Security security = new Security();
 
@@ -44,12 +44,12 @@ public class DdcAdminProperties {
         this.lease = lease;
     }
 
-    public Openapi getOpenapi() {
-        return openapi;
+    public Rpc getRpc() {
+        return rpc;
     }
 
-    public void setOpenapi(Openapi openapi) {
-        this.openapi = openapi;
+    public void setRpc(Rpc rpc) {
+        this.rpc = rpc;
     }
 
     public Security getSecurity() {
@@ -184,13 +184,9 @@ public class DdcAdminProperties {
         }
     }
 
-    public static class Openapi {
+    public static class Rpc {
 
         private boolean signatureEnabled;
-
-        private String accessKey;
-
-        private String secretKey;
 
         private int allowedClockSkewSeconds = 300;
 
@@ -204,22 +200,6 @@ public class DdcAdminProperties {
 
         public void setSignatureEnabled(boolean signatureEnabled) {
             this.signatureEnabled = signatureEnabled;
-        }
-
-        public String getAccessKey() {
-            return accessKey;
-        }
-
-        public void setAccessKey(String accessKey) {
-            this.accessKey = accessKey;
-        }
-
-        public String getSecretKey() {
-            return secretKey;
-        }
-
-        public void setSecretKey(String secretKey) {
-            this.secretKey = secretKey;
         }
 
         public int getAllowedClockSkewSeconds() {

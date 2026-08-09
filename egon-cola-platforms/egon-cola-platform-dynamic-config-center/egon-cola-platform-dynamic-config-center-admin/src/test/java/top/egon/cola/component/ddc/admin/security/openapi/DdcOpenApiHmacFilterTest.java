@@ -9,6 +9,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
+import top.egon.cola.component.ddc.admin.security.rpc.InMemoryDdcNonceStore;
 import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
 
@@ -40,11 +41,10 @@ class DdcOpenApiHmacFilterTest {
     @BeforeEach
     void setUp() {
         properties = new DdcAdminProperties();
-        properties.getOpenapi().setSignatureEnabled(true);
-        properties.getOpenapi().setAccessKey("access");
-        properties.getOpenapi().setSecretKey("secret");
-        properties.getOpenapi().setAllowedClockSkewSeconds(300);
-        properties.getOpenapi().setNonceCacheMaxSize(10);
+        properties.getRpc().setSignatureEnabled(true);
+        properties.getRpc().setCredentials(List.of(credential()));
+        properties.getRpc().setAllowedClockSkewSeconds(300);
+        properties.getRpc().setNonceCacheMaxSize(10);
         filter = filter();
     }
 
@@ -215,7 +215,7 @@ class DdcOpenApiHmacFilterTest {
 
     @Test
     void disabledVerificationBypassesHeadersAndBodyWrapping() throws Exception {
-        properties.getOpenapi().setSignatureEnabled(false);
+        properties.getRpc().setSignatureEnabled(false);
         filter = filter();
         MockHttpServletResponse response = new MockHttpServletResponse();
         MockFilterChain chain = new MockFilterChain();
@@ -231,10 +231,24 @@ class DdcOpenApiHmacFilterTest {
                 properties,
                 new ObjectMapper(),
                 new InMemoryDdcNonceStore(
-                        properties.getOpenapi().getNonceCacheMaxSize()
+                        properties.getRpc().getNonceCacheMaxSize()
                 ),
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
+    }
+
+    private DdcAdminProperties.Credential credential() {
+        DdcAdminProperties.Credential credential =
+                new DdcAdminProperties.Credential();
+        credential.setCredentialId("legacy-http-test");
+        credential.setAccessKey("access");
+        credential.setSecret("secret");
+        credential.setClientType("*");
+        credential.setAppCodePatterns(List.of("*"));
+        credential.setEnvPatterns(List.of("*"));
+        credential.setBizCodePatterns(List.of("*"));
+        credential.setAllowedOperations(List.of("*"));
+        return credential;
     }
 
     private MockHttpServletRequest signedRequest(long timestamp, String nonce, byte[] body) {

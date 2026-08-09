@@ -18,6 +18,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriUtils;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcHmacCredential;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcHmacCredentialRegistry;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcNonceStore;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
@@ -91,7 +95,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
         this.nonceStore = nonceStore;
         this.credentialRegistry = credentialRegistry;
         this.clock = clock;
-        validateConfiguration(properties.getOpenapi(), credentialRegistry);
+        validateConfiguration(properties.getRpc(), credentialRegistry);
     }
 
     @Override
@@ -104,8 +108,8 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
-        DdcAdminProperties.Openapi openapi = properties.getOpenapi();
-        if (!openapi.isSignatureEnabled()) {
+        DdcAdminProperties.Rpc rpc = properties.getRpc();
+        if (!rpc.isSignatureEnabled()) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -123,7 +127,7 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
             return;
         }
         long now = clock.millis();
-        long allowedSkewMillis = openapi.getAllowedClockSkewSeconds() * 1000L;
+        long allowedSkewMillis = rpc.getAllowedClockSkewSeconds() * 1000L;
         if (timestamp < now - allowedSkewMillis || timestamp > now + allowedSkewMillis) {
             reject(response, DdcErrorStatus.SIGNATURE_EXPIRED);
             return;
@@ -216,14 +220,14 @@ public class DdcOpenApiHmacFilter extends OncePerRequestFilter {
     }
 
     private void validateConfiguration(
-            DdcAdminProperties.Openapi openapi,
+            DdcAdminProperties.Rpc rpc,
             DdcHmacCredentialRegistry registry) {
-        if (openapi.getAllowedClockSkewSeconds() <= 0) {
-            throw new IllegalStateException("DDC OpenAPI allowed clock skew must be positive");
+        if (rpc.getAllowedClockSkewSeconds() <= 0) {
+            throw new IllegalStateException("DDC RPC allowed clock skew must be positive");
         }
-        if (openapi.isSignatureEnabled() && registry.isEmpty()) {
+        if (rpc.isSignatureEnabled() && registry.isEmpty()) {
             throw new IllegalStateException(
-                    "DDC OpenAPI access key and secret key are required when signatures are enabled"
+                    "DDC RPC credentials are required when signatures are enabled"
             );
         }
     }

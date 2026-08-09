@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security.openapi;
+package top.egon.cola.component.ddc.admin.security.rpc;
 
 import org.springframework.util.PatternMatchUtils;
 
@@ -62,6 +62,18 @@ public record DdcHmacCredential(
                 env,
                 bizCode
         );
+    }
+
+    /** 返回不暴露 HMAC Secret 的诊断文本。 / Returns diagnostic text without exposing the HMAC secret. */
+    @Override
+    public String toString() {
+        return "DdcHmacCredential[credentialId=" + credentialId
+                + ", accessKey=" + accessKey
+                + ", secret=<redacted>, clientType=" + clientType
+                + ", appCodePatterns=" + appCodePatterns
+                + ", envPatterns=" + envPatterns
+                + ", bizCodePatterns=" + bizCodePatterns
+                + ", allowedOperations=" + allowedOperations + ']';
     }
 
     private boolean matches(Set<String> patterns, String value) {

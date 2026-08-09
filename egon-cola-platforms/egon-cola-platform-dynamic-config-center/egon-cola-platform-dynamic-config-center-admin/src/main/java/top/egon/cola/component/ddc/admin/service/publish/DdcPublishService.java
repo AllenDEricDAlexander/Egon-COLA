@@ -202,6 +202,10 @@ public class DdcPublishService {
     }
 
     public DdcPublishResultVO retry(String changeId) {
+        return retry(changeId, null);
+    }
+
+    public DdcPublishResultVO retry(String changeId, String operator) {
         requireText(changeId, "changeId");
         DdcPublishTaskEntity task = requiredTask(changeId);
         requireRetryable(task);
@@ -212,7 +216,8 @@ public class DdcPublishService {
 
         RetryPrepareResult prepared;
         try {
-            prepared = transactionTemplate.execute(status -> prepareRetry(changeId));
+            prepared = transactionTemplate.execute(status ->
+                    prepareRetry(changeId, operator));
             if (prepared == null) {
                 throw new DdcAdminException("publish retry prepare failed");
             }
@@ -426,7 +431,9 @@ public class DdcPublishService {
         return new PublishPrepareResult(task, true);
     }
 
-    private RetryPrepareResult prepareRetry(String changeId) {
+    private RetryPrepareResult prepareRetry(
+            String changeId,
+            String operator) {
         DdcPublishTaskEntity task = requiredTask(changeId);
         requireRetryable(task);
         List<DdcPublishAckEntity> targetRows =
@@ -456,6 +463,7 @@ public class DdcPublishService {
         int reset = publishTaskRepository.resetForRetry(
                 changeId,
                 PublishStatus.PENDING.name(),
+                operator,
                 now(),
                 RETRYABLE_STATUSES
         );

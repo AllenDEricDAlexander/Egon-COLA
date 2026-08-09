@@ -16,6 +16,17 @@ egon:
     component:
       ddc:
         enabled: false
+        registry:
+          enabled: false
         admin:
+          security:
+            local-dev: true
+          rpc:
+            signature-enabled: false
           redis:
             enabled: false
+      rpc:
+        provider:
+          port: 0
+        tls:
+          development-plaintext: true

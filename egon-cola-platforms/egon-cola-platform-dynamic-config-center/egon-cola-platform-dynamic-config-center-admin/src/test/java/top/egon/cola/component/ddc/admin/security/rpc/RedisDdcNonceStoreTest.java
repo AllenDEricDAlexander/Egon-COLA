@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.admin.security.openapi;
+package top.egon.cola.component.ddc.admin.security.rpc;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;

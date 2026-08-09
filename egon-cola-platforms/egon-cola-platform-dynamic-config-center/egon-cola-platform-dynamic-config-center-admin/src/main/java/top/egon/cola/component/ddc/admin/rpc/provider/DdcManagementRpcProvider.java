@@ -2,7 +2,11 @@ package top.egon.cola.component.ddc.admin.rpc.provider;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
 import top.egon.cola.component.rpc.ddc.contract.DdcManagementRpc;
@@ -68,6 +72,7 @@ public class DdcManagementRpcProvider implements DdcManagementRpc {
 
     @Override
     public FindConfigResponse findConfig(FindConfigRequest request) {
+        DdcServicePrincipal.current();
         return FindConfigResponse.newBuilder()
                 .setFound(true)
                 .setConfig(mapper.toConfig(
@@ -77,29 +82,66 @@ public class DdcManagementRpcProvider implements DdcManagementRpc {
 
     @Override
     public UpsertConfigResponse upsertConfig(UpsertConfigRequest request) {
+        DdcServicePrincipal principal = DdcServicePrincipal.current();
+        var command = mapper.fromUpsertRequest(request);
+        command = new DdcManagementConfigUpsertRequest(
+                command.bizCode(),
+                command.env(),
+                command.appCode(),
+                command.resourceName(),
+                command.content(),
+                command.format(),
+                command.description(),
+                command.expectedVersion(),
+                principal.auditOperator(command.operator())
+        );
         return UpsertConfigResponse.newBuilder()
                 .setConfig(mapper.toConfig(
-                        facade.upsert(mapper.fromUpsertRequest(request))))
+                        facade.upsert(command)))
                 .build();
     }
 
     @Override
     public DeleteConfigResponse deleteConfig(DeleteConfigRequest request) {
-        facade.delete(mapper.fromDeleteRequest(request));
+        DdcServicePrincipal principal = DdcServicePrincipal.current();
+        var command = mapper.fromDeleteRequest(request);
+        facade.delete(new DdcManagementConfigDeleteRequest(
+                command.bizCode(),
+                command.env(),
+                command.appCode(),
+                command.expectedVersion(),
+                principal.auditOperator(command.operator()),
+                command.reason()
+        ));
         return DeleteConfigResponse.getDefaultInstance();
     }
 
     @Override
     public PublishConfigResponse publishConfig(PublishConfigRequest request) {
+        DdcServicePrincipal principal = DdcServicePrincipal.current();
+        var command = mapper.fromPublishRequest(request);
+        command = new DdcManagementPublishRequest(
+                command.bizCode(),
+                command.env(),
+                command.appCode(),
+                command.resourceName(),
+                command.content(),
+                command.format(),
+                command.expectedVersion(),
+                command.changeId(),
+                command.timeoutMs(),
+                principal.auditOperator(command.operator())
+        );
         return PublishConfigResponse.newBuilder()
                 .setResult(mapper.toPublishResult(
-                        facade.publish(mapper.fromPublishRequest(request))))
+                        facade.publish(command)))
                 .build();
     }
 
     @Override
     public GetPublishTaskResponse getPublishTask(
             GetPublishTaskRequest request) {
+        DdcServicePrincipal.current();
         return GetPublishTaskResponse.newBuilder()
                 .setFound(true)
                 .setTask(mapper.toPublishTask(
@@ -110,15 +152,20 @@ public class DdcManagementRpcProvider implements DdcManagementRpc {
     @Override
     public RetryPublishTaskResponse retryPublishTask(
             RetryPublishTaskRequest request) {
+        DdcServicePrincipal principal = DdcServicePrincipal.current();
         return RetryPublishTaskResponse.newBuilder()
                 .setResult(mapper.toPublishResult(
-                        facade.retry(request.getChangeId())))
+                        facade.retry(
+                                request.getChangeId(),
+                                principal.auditOperator(
+                                        request.getRequestedOperator()))))
                 .build();
     }
 
     @Override
     public GetConfigClientsResponse getConfigClients(
             GetConfigClientsRequest request) {
+        DdcServicePrincipal.current();
         return mapper.toConfigClientsResponse(facade.getConfigClients(
                 mapper.fromConfigClientsRequest(request)));
     }
@@ -126,18 +173,21 @@ public class DdcManagementRpcProvider implements DdcManagementRpc {
     @Override
     public GetScopeBindingsResponse getScopeBindings(
             GetScopeBindingsRequest request) {
+        DdcServicePrincipal.current();
         return mapper.toScopeBindingsResponse(facade.getScopeBindings(
                 mapper.fromScopeBindingsRequest(request)));
     }
 
     @Override
     public GetServiceKeysResponse getServiceKeys(GetServiceKeysRequest request) {
+        DdcServicePrincipal.current();
         return mapper.toServiceKeysResponse(facade.getServiceKeys(
                 mapper.fromServiceKeysRequest(request)));
     }
 
     @Override
     public GetInstancesResponse getInstances(GetInstancesRequest request) {
+        DdcServicePrincipal.current();
         return mapper.toInstancesResponse(facade.getInstances(
                 mapper.fromInstancesRequest(request)));
     }

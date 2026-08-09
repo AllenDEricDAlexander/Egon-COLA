@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.admin.rpc.provider;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
@@ -70,6 +71,7 @@ public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
     @Override
     public RegisterConfigClientResponse registerConfigClient(
             RegisterConfigClientRequest request) {
+        DdcServicePrincipal.current();
         return RegisterConfigClientResponse.newBuilder()
                 .setSession(common.toProto(
                         facade.register(mapper.fromRegisterRequest(request))))
@@ -79,6 +81,7 @@ public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
     @Override
     public HeartbeatConfigClientResponse heartbeatConfigClient(
             HeartbeatConfigClientRequest request) {
+        DdcServicePrincipal.current();
         return HeartbeatConfigClientResponse.newBuilder()
                 .setResult(common.toProto(
                         facade.heartbeat(mapper.fromHeartbeatRequest(request))))
@@ -88,6 +91,7 @@ public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
     @Override
     public OfflineConfigClientResponse offlineConfigClient(
             OfflineConfigClientRequest request) {
+        DdcServicePrincipal.current();
         return OfflineConfigClientResponse.newBuilder()
                 .setResult(common.toProto(
                         facade.offline(mapper.fromOfflineRequest(request))))
@@ -96,6 +100,7 @@ public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
 
     @Override
     public PullConfigResponse pullConfig(PullConfigRequest request) {
+        DdcServicePrincipal.current();
         common.checked(request);
         if (!request.hasScope()) {
             throw new IllegalArgumentException("scope is required");
@@ -110,6 +115,7 @@ public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
     @Override
     public AcknowledgePublishResponse acknowledgePublish(
             AcknowledgePublishRequest request) {
+        DdcServicePrincipal.current();
         facade.ack(mapper.fromAcknowledgeRequest(request));
         return AcknowledgePublishResponse.getDefaultInstance();
     }

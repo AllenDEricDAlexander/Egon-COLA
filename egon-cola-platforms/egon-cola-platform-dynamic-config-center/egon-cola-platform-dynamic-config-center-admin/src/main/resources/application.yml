@@ -58,6 +58,8 @@ egon:
     component:
       ddc:
         enabled: false
+        registry:
+          enabled: false
         admin:
           security:
             local-dev: ${DDC_ADMIN_SECURITY_LOCAL_DEV:false}
@@ -76,18 +78,18 @@ egon:
             host: 127.0.0.1
             port: 6379
             database: 0
-          openapi:
-            signature-enabled: ${DDC_OPENAPI_SIGNATURE_ENABLED:true}
+          rpc:
+            signature-enabled: ${DDC_RPC_SIGNATURE_ENABLED:true}
             credentials:
-              - credential-id: ${DDC_OPENAPI_CREDENTIAL_ID:default-service}
-                access-key: ${DDC_OPENAPI_ACCESS_KEY:}
-                secret: ${DDC_OPENAPI_SECRET:}
-                client-type: ${DDC_OPENAPI_CLIENT_TYPE:}
-                app-code-patterns: ${DDC_OPENAPI_APP_CODE_PATTERNS:}
-                env-patterns: ${DDC_OPENAPI_ENV_PATTERNS:}
-                biz-code-patterns: ${DDC_OPENAPI_BIZ_CODE_PATTERNS:}
-                namespace-patterns: ${DDC_OPENAPI_NAMESPACE_PATTERNS:}
-                allowed-operations: ${DDC_OPENAPI_ALLOWED_OPERATIONS:}
+              - credential-id: ${DDC_RPC_CREDENTIAL_ID:default-service}
+                access-key: ${DDC_RPC_ACCESS_KEY:}
+                secret: ${DDC_RPC_SECRET:}
+                client-type: ${DDC_RPC_CLIENT_TYPE:}
+                app-code-patterns: ${DDC_RPC_APP_CODE_PATTERNS:}
+                env-patterns: ${DDC_RPC_ENV_PATTERNS:}
+                biz-code-patterns: ${DDC_RPC_BIZ_CODE_PATTERNS:}
+                namespace-patterns: ${DDC_RPC_NAMESPACE_PATTERNS:}
+                allowed-operations: ${DDC_RPC_ALLOWED_OPERATIONS:}
             allowed-clock-skew-seconds: 300
             nonce-cache-max-size: 10000
           publish:
@@ -97,3 +99,17 @@ egon:
             scan-interval-ms: 1000
             completion-poll-interval-ms: 100
             recovery-stale-ms: 120000
+      rpc:
+        enabled: true
+        provider:
+          enabled: true
+          port: ${DDC_RPC_PORT:19080}
+          registration-mode: DISABLED
+        consumer:
+          enabled: false
+        tls:
+          enabled: ${DDC_RPC_TLS_ENABLED:false}
+          development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+          certificate-chain-path: ${DDC_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${DDC_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${DDC_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}

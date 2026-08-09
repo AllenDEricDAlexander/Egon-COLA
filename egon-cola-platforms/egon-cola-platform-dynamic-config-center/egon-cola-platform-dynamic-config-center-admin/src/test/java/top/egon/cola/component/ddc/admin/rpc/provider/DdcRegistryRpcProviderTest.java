@@ -1,6 +1,8 @@
 package top.egon.cola.component.ddc.admin.rpc.provider;
 
 import org.junit.jupiter.api.Test;
+import io.grpc.Context;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.admin.service.registry.DdcRegistryFacade;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
@@ -21,6 +23,7 @@ import top.egon.cola.component.rpc.ddc.mapping.DdcRegistryProtoMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -67,18 +70,20 @@ class DdcRegistryRpcProviderTest {
         when(facade.getInstances(key)).thenReturn(snapshot);
         when(facade.getServiceKeys(query)).thenReturn(catalog);
 
-        assertThat(provider.registerService(mapper.toRegisterRequest(registration))
-                .getSession()).isEqualTo(common.toProto(session));
-        assertThat(provider.heartbeatService(mapper.toHeartbeatRequest(lease))
-                .getResult()).isEqualTo(common.toProto(renewed));
-        assertThat(provider.deregisterService(mapper.toDeregisterRequest(lease))
-                .getResult()).isEqualTo(common.toProto(deleted));
-        assertThat(provider.getServiceInstances(GetServiceInstancesRequest
-                .newBuilder().setServiceKey(common.toProto(key)).build()))
-                .isEqualTo(mapper.toInstancesResponse(snapshot));
-        assertThat(provider.getServices(GetServicesRequest.newBuilder()
-                .setQuery(common.toProto(query)).build()))
-                .isEqualTo(mapper.toServicesResponse(catalog));
+        principal().bind(Context.current()).run(() -> {
+            assertThat(provider.registerService(mapper.toRegisterRequest(registration))
+                    .getSession()).isEqualTo(common.toProto(session));
+            assertThat(provider.heartbeatService(mapper.toHeartbeatRequest(lease))
+                    .getResult()).isEqualTo(common.toProto(renewed));
+            assertThat(provider.deregisterService(mapper.toDeregisterRequest(lease))
+                    .getResult()).isEqualTo(common.toProto(deleted));
+            assertThat(provider.getServiceInstances(GetServiceInstancesRequest
+                    .newBuilder().setServiceKey(common.toProto(key)).build()))
+                    .isEqualTo(mapper.toInstancesResponse(snapshot));
+            assertThat(provider.getServices(GetServicesRequest.newBuilder()
+                    .setQuery(common.toProto(query)).build()))
+                    .isEqualTo(mapper.toServicesResponse(catalog));
+        });
 
         verify(facade).register(registration);
         verify(facade).heartbeat(argThat(value ->
@@ -89,6 +94,12 @@ class DdcRegistryRpcProviderTest {
                         && value.getLeaseId().equals("lease-1")));
         verify(facade).getInstances(key);
         verify(facade).getServiceKeys(query);
+    }
+
+    private DdcServicePrincipal principal() {
+        return new DdcServicePrincipal(
+                "registry-a", "REGISTRY", Set.of("*"), Set.of("*"),
+                Set.of("*"), Set.of("*"), "app", "test", "biz");
     }
 
     private DdcServiceKey key() {

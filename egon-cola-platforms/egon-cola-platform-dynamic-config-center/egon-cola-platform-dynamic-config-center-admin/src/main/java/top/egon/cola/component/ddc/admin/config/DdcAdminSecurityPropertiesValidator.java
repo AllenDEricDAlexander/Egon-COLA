@@ -27,43 +27,36 @@ public final class DdcAdminSecurityPropertiesValidator {
                     security.getJwt().getAudience(),
                     "DDC Admin JWT audience is required"
             );
-            if (!properties.getOpenapi().isSignatureEnabled()) {
+            if (!properties.getRpc().isSignatureEnabled()) {
                 throw new IllegalStateException(
-                        "DDC OpenAPI signatures are required outside local-dev"
+                        "DDC RPC signatures are required outside local-dev"
                 );
             }
         }
-        validateOpenApi(properties.getOpenapi(), security.isLocalDev());
+        validateRpc(properties.getRpc());
     }
 
-    private static void validateOpenApi(
-            DdcAdminProperties.Openapi openapi,
-            boolean localDev) {
-        if (openapi.getAllowedClockSkewSeconds() <= 0) {
+    private static void validateRpc(DdcAdminProperties.Rpc rpc) {
+        if (rpc.getAllowedClockSkewSeconds() <= 0) {
             throw new IllegalStateException(
-                    "DDC OpenAPI allowed clock skew must be positive"
+                    "DDC RPC allowed clock skew must be positive"
             );
         }
-        if (openapi.getNonceCacheMaxSize() <= 0) {
+        if (rpc.getNonceCacheMaxSize() <= 0) {
             throw new IllegalStateException(
-                    "DDC OpenAPI nonce cache size must be positive"
+                    "DDC RPC nonce cache size must be positive"
             );
         }
-        if (!openapi.isSignatureEnabled()) {
+        if (!rpc.isSignatureEnabled()) {
             return;
         }
         List<DdcAdminProperties.Credential> credentials =
-                openapi.getCredentials() == null
+                rpc.getCredentials() == null
                         ? List.of()
-                        : openapi.getCredentials();
+                        : rpc.getCredentials();
         if (credentials.isEmpty()) {
-            if (localDev
-                    && hasText(openapi.getAccessKey())
-                    && hasText(openapi.getSecretKey())) {
-                return;
-            }
             throw new IllegalStateException(
-                    "DDC OpenAPI credentials are required"
+                    "DDC RPC credentials are required"
             );
         }
         Set<String> credentialIds = new HashSet<>();
@@ -71,32 +64,32 @@ public final class DdcAdminSecurityPropertiesValidator {
         for (DdcAdminProperties.Credential credential : credentials) {
             String credentialId = required(
                     credential.getCredentialId(),
-                    "DDC OpenAPI credential id is required"
+                    "DDC RPC credential id is required"
             );
             if (!credentialIds.add(credentialId)) {
                 throw new IllegalStateException(
-                        "Duplicate DDC OpenAPI credential id: "
+                        "Duplicate DDC RPC credential id: "
                                 + credentialId
                 );
             }
             String accessKey = required(
                     credential.getAccessKey(),
-                    "DDC OpenAPI credential access key is required: "
+                    "DDC RPC credential access key is required: "
                             + credentialId
             );
             if (!accessKeys.add(accessKey)) {
                 throw new IllegalStateException(
-                        "Duplicate DDC OpenAPI credential access key"
+                        "Duplicate DDC RPC credential access key"
                 );
             }
             required(
                     credential.getSecret(),
-                    "DDC OpenAPI credential secret is required: "
+                    "DDC RPC credential secret is required: "
                             + credentialId
             );
             required(
                     credential.getClientType(),
-                    "DDC OpenAPI credential client type is required: "
+                    "DDC RPC credential client type is required: "
                             + credentialId
             );
         }

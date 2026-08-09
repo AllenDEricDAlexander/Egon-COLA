@@ -223,6 +223,17 @@ public class DdcManagementFacade {
         return result(getPublishTask(changeId));
     }
 
+    /** 使用可信操作者重试发布任务。 / Retries a publication task with a trusted operator. */
+    public DdcManagementPublishResult retry(
+            String changeId,
+            String operator) {
+        publishService.retry(
+                requireText(changeId, "changeId"),
+                requireText(operator, "operator")
+        );
+        return result(getPublishTask(changeId));
+    }
+
     public List<DdcManagementConfigClientInstance> getConfigClients(
             DdcManagementInstanceQuery query
     ) {

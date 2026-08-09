@@ -5,7 +5,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.info.InfoContributorAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.info.InfoEndpointAutoConfiguration;
 import org.springframework.boot.actuate.info.InfoEndpoint;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
@@ -16,7 +21,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
+import top.egon.cola.component.ddc.admin.rpc.provider.DdcConfigRpcProvider;
+import top.egon.cola.component.ddc.admin.rpc.provider.DdcManagementRpcProvider;
+import top.egon.cola.component.ddc.admin.rpc.provider.DdcRegistryRpcProvider;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcHmacCredentialRegistry;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcRpcSecurityConfiguration;
+import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
+import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.registry.DdcRegistryFacade;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
+import top.egon.cola.component.rpc.config.EgonRpcProperties;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
+import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
+import top.egon.cola.component.rpc.provider.RpcProviderRegistrationMode;
+import top.egon.cola.component.rpc.provider.RpcProviderRegistry;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * Guards the shipped {@code application.yml} against placeholders that no property source
@@ -93,5 +120,102 @@ class DdcAdminContextSmokeTest {
         assertThat(unresolved)
                 .as("shipped configuration must not contain unresolvable placeholders")
                 .isEmpty();
+    }
+
+    @Test
+    void adminRpcServerStartsWithoutDiscoveringOrRegisteringItself() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        DdcRpcAutoConfiguration.class,
+                        EgonRpcAutoConfig.class
+                ))
+                .withUserConfiguration(AdminRpcTestConfiguration.class)
+                .withPropertyValues(
+                        "spring.application.name=egon-cola-ddc-admin",
+                        "egon.cola.component.ddc.enabled=false",
+                        "egon.cola.component.ddc.registry.enabled=false",
+                        "egon.cola.component.ddc.admin.security.local-dev=true",
+                        "egon.cola.component.ddc.admin.rpc.signature-enabled=false",
+                        "egon.cola.component.rpc.enabled=true",
+                        "egon.cola.component.rpc.provider.enabled=true",
+                        "egon.cola.component.rpc.provider.port=0",
+                        "egon.cola.component.rpc.provider.registration-mode=DISABLED",
+                        "egon.cola.component.rpc.consumer.enabled=false",
+                        "egon.cola.component.rpc.tls.development-plaintext=true"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(RpcProviderLifecycle.class);
+                    assertThat(context.getBean(RpcProviderLifecycle.class)
+                            .boundPort()).isPositive();
+                    assertThat(context).doesNotHaveBean(RpcProviderRegistry.class);
+                    assertThat(context).doesNotHaveBean(DdcConfigClient.class);
+                    assertThat(context).doesNotHaveBean(
+                            DdcServiceRegistryClient.class);
+                    assertThat(context).doesNotHaveBean(DdcRpcClientHandle.class);
+                    assertThat(context.getEnvironment().getProperty(
+                            "egon.cola.component.ddc.rpc.target")).isNull();
+                    EgonRpcProperties rpc = context.getBean(
+                            EgonRpcProperties.class);
+                    assertThat(rpc.getProvider().getRegistrationMode())
+                            .isEqualTo(RpcProviderRegistrationMode.DISABLED);
+                    assertThat(rpc.getConsumer().isEnabled()).isFalse();
+                });
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties({
+            DdcAdminProperties.class,
+            DdcProperties.class,
+            DdcRpcProperties.class
+    })
+    @Import(DdcRpcSecurityConfiguration.class)
+    static class AdminRpcTestConfiguration {
+
+        @Bean
+        DdcHmacCredentialRegistry ddcHmacCredentialRegistry(
+                DdcAdminProperties properties) {
+            return new DdcHmacCredentialRegistry(properties);
+        }
+
+        @Bean
+        DdcConfigFacade ddcConfigFacade() {
+            return mock(DdcConfigFacade.class);
+        }
+
+        @Bean
+        DdcRegistryFacade ddcRegistryFacade() {
+            return mock(DdcRegistryFacade.class);
+        }
+
+        @Bean
+        DdcManagementFacade ddcManagementFacade() {
+            return mock(DdcManagementFacade.class);
+        }
+
+        @Bean
+        DdcConfigRpcProvider ddcConfigRpcProvider(
+                DdcConfigFacade facade,
+                DdcProperties ddcProperties,
+                DdcRpcProperties rpcProperties) {
+            return new DdcConfigRpcProvider(
+                    facade, ddcProperties, rpcProperties);
+        }
+
+        @Bean
+        DdcRegistryRpcProvider ddcRegistryRpcProvider(
+                DdcRegistryFacade facade,
+                DdcRpcProperties rpcProperties) {
+            return new DdcRegistryRpcProvider(facade, rpcProperties);
+        }
+
+        @Bean
+        DdcManagementRpcProvider ddcManagementRpcProvider(
+                DdcManagementFacade facade,
+                DdcProperties ddcProperties,
+                DdcRpcProperties rpcProperties) {
+            return new DdcManagementRpcProvider(
+                    facade, ddcProperties, rpcProperties);
+        }
     }
 }

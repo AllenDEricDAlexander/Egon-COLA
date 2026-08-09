@@ -22,9 +22,9 @@ import top.egon.cola.component.ddc.admin.controller.config.DdcConfigController;
 import top.egon.cola.component.ddc.admin.controller.config.DdcPublishTaskController;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.ddc.admin.security.openapi.DdcNonceStore;
 import top.egon.cola.component.ddc.admin.security.openapi.DdcSecurityFilterRegistration;
-import top.egon.cola.component.ddc.admin.security.openapi.InMemoryDdcNonceStore;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcNonceStore;
+import top.egon.cola.component.ddc.admin.security.rpc.InMemoryDdcNonceStore;
 import top.egon.cola.component.ddc.admin.service.cache.DdcCacheService;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
@@ -67,15 +67,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @TestPropertySource(properties = {
         "egon.cola.component.ddc.admin.security.local-dev=true",
-        "egon.cola.component.ddc.admin.openapi.signature-enabled=true",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].credential-id=sdk-a",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].access-key=sdk-access",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].secret=sdk-secret",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].client-type=SDK",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].app-code-patterns[0]=app-a",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].env-patterns[0]=dev",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].biz-code-patterns[0]=biz-a",
-        "egon.cola.component.ddc.admin.openapi.credentials[0].allowed-operations[0]=CONFIG_PULL"
+        "egon.cola.component.ddc.admin.rpc.signature-enabled=true",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].credential-id=sdk-a",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].access-key=sdk-access",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].secret=sdk-secret",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].client-type=SDK",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].app-code-patterns[0]=app-a",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].env-patterns[0]=dev",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].biz-code-patterns[0]=biz-a",
+        "egon.cola.component.ddc.admin.rpc.credentials[0].allowed-operations[0]=CONFIG_PULL"
 })
 class DdcAdminSecurityIntegrationTest {
 

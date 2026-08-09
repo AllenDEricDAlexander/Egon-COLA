@@ -14,9 +14,8 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepositor
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
-import top.egon.cola.component.ddc.admin.security.openapi.DdcNonceStore;
-import top.egon.cola.component.ddc.admin.security.openapi.InMemoryDdcNonceStore;
-import top.egon.cola.component.ddc.admin.security.openapi.RedisDdcNonceStore;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcNonceStore;
+import top.egon.cola.component.ddc.admin.security.rpc.RedisDdcNonceStore;
 import top.egon.cola.component.ddc.admin.service.lease.DdcConfigLeaseService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseExpiryScanner;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
@@ -59,20 +58,6 @@ public class DdcAdminRedisConfig {
             @Qualifier("ddcAdminRedissonClient")
             RedissonClient redissonClient) {
         return new RedisDdcNonceStore(redissonClient);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(DdcNonceStore.class)
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.admin.security",
-            name = "local-dev",
-            havingValue = "true"
-    )
-    public DdcNonceStore inMemoryDdcNonceStore(
-            DdcAdminProperties properties) {
-        return new InMemoryDdcNonceStore(
-                properties.getOpenapi().getNonceCacheMaxSize()
-        );
     }
 
     @Bean

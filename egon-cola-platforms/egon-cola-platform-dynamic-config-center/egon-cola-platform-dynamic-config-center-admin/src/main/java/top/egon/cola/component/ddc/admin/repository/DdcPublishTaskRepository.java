@@ -105,12 +105,14 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
                    task.failedCount = 0,
                    task.ignoredCount = 0,
                    task.timeoutCount = 0,
+                   task.operator = coalesce(:operator, task.operator),
                    task.updatedAt = :updatedAt
              where task.changeId = :changeId
                and task.status in :retryableStatuses
             """)
     int resetForRetry(@Param("changeId") String changeId,
                       @Param("pendingStatus") String pendingStatus,
+                      @Param("operator") String operator,
                       @Param("updatedAt") LocalDateTime updatedAt,
                       @Param("retryableStatuses") Collection<String> retryableStatuses);
 

@@ -1,6 +1,8 @@
 package top.egon.cola.component.ddc.admin.rpc.provider;
 
 import org.junit.jupiter.api.Test;
+import io.grpc.Context;
+import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
 import top.egon.cola.component.ddc.model.config.DdcAckRequest;
 import top.egon.cola.component.ddc.model.config.DdcAckStatus;
@@ -17,6 +19,7 @@ import top.egon.cola.component.rpc.ddc.mapping.DdcConfigProtoMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,16 +54,18 @@ class DdcConfigRpcProviderTest {
         when(facade.offline(any(DdcHeartbeatRequest.class))).thenReturn(deleted);
         when(facade.pull("biz", "test", "app")).thenReturn(List.of(config));
 
-        assertThat(provider.registerConfigClient(mapper.toRegisterRequest(registration))
-                .getSession()).isEqualTo(common.toProto(session));
-        assertThat(provider.heartbeatConfigClient(mapper.toHeartbeatRequest(heartbeat))
-                .getResult()).isEqualTo(common.toProto(renewed));
-        assertThat(provider.offlineConfigClient(mapper.toOfflineRequest(heartbeat))
-                .getResult()).isEqualTo(common.toProto(deleted));
-        assertThat(provider.pullConfig(mapper.toPullRequest("biz", "test", "app"))
-                .getConfigsList()).containsExactly(mapper.toConfig(config));
-        assertThat(provider.acknowledgePublish(mapper.toAcknowledgeRequest(ack)))
-                .isNotNull();
+        principal("SDK").bind(Context.current()).run(() -> {
+            assertThat(provider.registerConfigClient(mapper.toRegisterRequest(registration))
+                    .getSession()).isEqualTo(common.toProto(session));
+            assertThat(provider.heartbeatConfigClient(mapper.toHeartbeatRequest(heartbeat))
+                    .getResult()).isEqualTo(common.toProto(renewed));
+            assertThat(provider.offlineConfigClient(mapper.toOfflineRequest(heartbeat))
+                    .getResult()).isEqualTo(common.toProto(deleted));
+            assertThat(provider.pullConfig(mapper.toPullRequest("biz", "test", "app"))
+                    .getConfigsList()).containsExactly(mapper.toConfig(config));
+            assertThat(provider.acknowledgePublish(mapper.toAcknowledgeRequest(ack)))
+                    .isNotNull();
+        });
 
         verify(facade).register(argThat(value ->
                 value.getInstanceId().equals("instance-1")
@@ -75,6 +80,12 @@ class DdcConfigRpcProviderTest {
         verify(facade).ack(argThat(value ->
                 value.getChangeId().equals("change-1")
                         && value.getStatus() == DdcAckStatus.SUCCESS));
+    }
+
+    private DdcServicePrincipal principal(String clientType) {
+        return new DdcServicePrincipal(
+                "sdk-a", clientType, Set.of("*"), Set.of("*"),
+                Set.of("*"), Set.of("*"), "app", "test", "biz");
     }
 
     private DdcInstanceRegisterRequest registration() {

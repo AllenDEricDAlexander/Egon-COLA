@@ -135,9 +135,11 @@ class DdcPublishRetryTest {
         )) {
             DdcPublishTaskEntity task =
                     saveRetryable(status, "retry-" + status.name().toLowerCase());
+            String auditOperator = "rpc:retry-" + status.name().toLowerCase();
             try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
                 Future<DdcPublishResultVO> result =
-                        executor.submit(() -> publishService.retry(task.getChangeId()));
+                        executor.submit(() -> publishService.retry(
+                                task.getChangeId(), auditOperator));
                 DdcPublishMessage message = published.poll(2, TimeUnit.SECONDS);
                 assertThat(message).isNotNull();
                 assertThat(message.getTargets()).containsExactly(
@@ -151,6 +153,10 @@ class DdcPublishRetryTest {
                             assertThat(retried.getStatus()).isEqualTo("SUCCESS");
                             assertThat(retried.getAttemptCount()).isEqualTo(1);
                         });
+                assertThat(taskRepository.findByChangeId(task.getChangeId()))
+                        .get()
+                        .extracting(DdcPublishTaskEntity::getOperator)
+                        .isEqualTo(auditOperator);
             }
         }
 
