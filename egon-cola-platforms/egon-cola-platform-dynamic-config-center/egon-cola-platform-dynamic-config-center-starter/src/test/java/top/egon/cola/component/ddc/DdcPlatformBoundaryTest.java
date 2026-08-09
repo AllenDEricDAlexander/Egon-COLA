@@ -7,12 +7,14 @@ import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
 import top.egon.cola.component.ddc.client.http.DdcOpenApiRequestFactory;
 import top.egon.cola.component.ddc.client.management.HttpDdcManagementClient;
 import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
-import top.egon.cola.component.ddc.configuration.bootstrap.DdcConfigDataFetcher;
-import top.egon.cola.component.ddc.configuration.runtime.DdcLocalConfigState;
+import top.egon.cola.component.ddc.configdata.DdcConfigDataFetcher;
 import top.egon.cola.component.ddc.format.DdcChecksum;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.service.binding.DdcFieldBindingService;
+import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.state.DdcLocalConfigState;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -75,9 +77,13 @@ class DdcPlatformBoundaryTest {
         assertThat(DdcOpenApiRequestFactory.class.getPackageName())
                 .isEqualTo("top.egon.cola.component.ddc.client.http");
         assertThat(DdcConfigDataFetcher.class.getPackageName())
-                .isEqualTo("top.egon.cola.component.ddc.configuration.bootstrap");
+                .isEqualTo("top.egon.cola.component.ddc.configdata");
+        assertThat(DdcFieldBindingService.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.service.binding");
+        assertThat(DdcRuntimeCoordinator.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.service.lifecycle");
         assertThat(DdcLocalConfigState.class.getPackageName())
-                .isEqualTo("top.egon.cola.component.ddc.configuration.runtime");
+                .isEqualTo("top.egon.cola.component.ddc.state");
     }
 
     @Test

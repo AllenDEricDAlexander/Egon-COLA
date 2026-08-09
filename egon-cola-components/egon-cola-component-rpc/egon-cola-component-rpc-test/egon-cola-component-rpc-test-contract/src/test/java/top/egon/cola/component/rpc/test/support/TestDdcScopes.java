@@ -1,7 +1,7 @@
 package top.egon.cola.component.rpc.test.support;
 
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
+import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 
 public final class TestDdcScopes {
 

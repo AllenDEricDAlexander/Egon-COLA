@@ -15,12 +15,12 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.configuration.runtime.DdcLocalConfigState;
+import top.egon.cola.component.ddc.state.DdcLocalConfigState;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
-import top.egon.cola.component.ddc.configuration.runtime.DdcAckDelivery;
-import top.egon.cola.component.ddc.configuration.runtime.DdcAckDeliveryProperties;
-import top.egon.cola.component.ddc.configuration.refresh.DefaultDdcConfigApplierRegistry;
-import top.egon.cola.component.ddc.configuration.binding.DdcFieldBindingService;
+import top.egon.cola.component.ddc.service.lifecycle.DdcAckDelivery;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcAckDeliveryProperties;
+import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.service.binding.DdcFieldBindingService;
 
 import java.util.concurrent.atomic.AtomicReference;
 

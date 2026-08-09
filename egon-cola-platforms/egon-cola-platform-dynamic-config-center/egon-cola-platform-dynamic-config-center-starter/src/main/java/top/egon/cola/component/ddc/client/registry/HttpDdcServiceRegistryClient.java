@@ -27,8 +27,8 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.registry.state.DdcActiveRegistrationIndex;
-import top.egon.cola.component.ddc.registry.subscription.DdcRegistrySnapshotLoader;
+import top.egon.cola.component.ddc.state.DdcActiveRegistrationIndex;
+import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 import top.egon.cola.component.ddc.registry.subscription.DdcRegistrySubscriptionCoordinator;
 
 import java.util.LinkedHashMap;

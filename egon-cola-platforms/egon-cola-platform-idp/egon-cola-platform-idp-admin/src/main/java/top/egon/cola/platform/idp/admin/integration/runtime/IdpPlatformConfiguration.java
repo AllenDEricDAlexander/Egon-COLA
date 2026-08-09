@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;

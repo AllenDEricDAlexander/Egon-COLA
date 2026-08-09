@@ -6,6 +6,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 
 import java.time.Clock;
 import java.util.List;

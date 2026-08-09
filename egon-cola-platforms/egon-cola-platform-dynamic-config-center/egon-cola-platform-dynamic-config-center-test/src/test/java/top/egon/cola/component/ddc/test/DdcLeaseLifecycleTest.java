@@ -13,10 +13,10 @@ import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceService;
-import top.egon.cola.component.ddc.configuration.runtime.DdcLeaseSessionHolder;
-import top.egon.cola.component.ddc.configuration.refresh.DdcRefreshService;
-import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.service.lifecycle.DdcInstanceService;
+import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
+import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
+import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 

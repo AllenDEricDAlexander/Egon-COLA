@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.registry.subscription;
 
+import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
+
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;

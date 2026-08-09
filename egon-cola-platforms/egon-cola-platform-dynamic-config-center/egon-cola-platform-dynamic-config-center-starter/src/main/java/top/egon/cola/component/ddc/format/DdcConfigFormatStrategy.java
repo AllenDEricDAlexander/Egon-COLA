@@ -1,6 +1,6 @@
 package top.egon.cola.component.ddc.format;
 
-import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
 import top.egon.cola.component.ddc.model.config.DdcConfigFormat;
 
 import java.io.IOException;

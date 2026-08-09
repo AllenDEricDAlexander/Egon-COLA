@@ -5,8 +5,8 @@ import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.ByteArrayResource;
 import top.egon.cola.component.ddc.format.DdcChecksum;
-import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.configuration.environment.DdcReservedConfigurationKeys;
+import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.environment.DdcReservedConfigurationKeys;
 import top.egon.cola.component.ddc.model.config.DdcConfigFormat;
 
 import java.io.IOException;
