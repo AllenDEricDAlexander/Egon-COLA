@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
+import top.egon.cola.component.ddc.admin.service.registry.DdcRegistryFacade;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -22,28 +22,28 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 @RequestMapping("/api/v1/ddc/openapi/registry")
 public class DdcRegistryOpenApiController {
 
-    private final DdcServiceRegistryService registryService;
+    private final DdcRegistryFacade facade;
 
-    public DdcRegistryOpenApiController(DdcServiceRegistryService registryService) {
-        this.registryService = registryService;
+    public DdcRegistryOpenApiController(DdcRegistryFacade facade) {
+        this.facade = facade;
     }
 
     @PostMapping("/instances/register")
     public ResultRecord<DdcLeaseSession> register(
             @RequestBody DdcServiceRegistration registration) {
-        return ResultRecord.success(registryService.register(registration));
+        return ResultRecord.success(facade.register(registration));
     }
 
     @PostMapping("/instances/heartbeat")
     public ResultRecord<DdcLeaseOperationResult> heartbeat(
             @RequestBody DdcServiceLeaseRequest request) {
-        return ResultRecord.success(registryService.heartbeat(request));
+        return ResultRecord.success(facade.heartbeat(request));
     }
 
     @PostMapping("/instances/deregister")
     public ResultRecord<DdcLeaseOperationResult> deregister(
             @RequestBody DdcServiceLeaseRequest request) {
-        return ResultRecord.success(registryService.deregister(request));
+        return ResultRecord.success(facade.deregister(request));
     }
 
     @GetMapping("/instances")
@@ -56,7 +56,7 @@ public class DdcRegistryOpenApiController {
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version,
             @RequestParam("protocol") String protocol) {
-        return ResultRecord.success(registryService.getInstances(new DdcServiceKey(
+        return ResultRecord.success(facade.getInstances(new DdcServiceKey(
                 bizCode,
                 env,
                 appCode,
@@ -78,7 +78,7 @@ public class DdcRegistryOpenApiController {
             @RequestParam(value = "serviceName", required = false) String serviceName,
             @RequestParam(value = "group", required = false) String group,
             @RequestParam(value = "version", required = false) String version) {
-        return ResultRecord.success(registryService.getServiceKeys(new DdcServiceQuery(
+        return ResultRecord.success(facade.getServiceKeys(new DdcServiceQuery(
                 bizCode,
                 env,
                 appCode,

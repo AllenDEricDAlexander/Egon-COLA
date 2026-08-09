@@ -258,9 +258,13 @@ public final class DdcManagementProtoMapper {
                 .setChangeId(value.changeId())
                 .setStatus(common.toProto(value.status()))
                 .setTargetCount(value.targetCount())
-                .setCreatedAt(common.toTimestamp(value.createdAt()))
-                .setDispatchedAt(common.toTimestamp(value.dispatchedAt()))
-                .setCompletedAt(common.toTimestamp(value.completedAt()));
+                .setCreatedAt(common.toTimestamp(value.createdAt()));
+        if (value.dispatchedAt() != null) {
+            builder.setDispatchedAt(common.toTimestamp(value.dispatchedAt()));
+        }
+        if (value.completedAt() != null) {
+            builder.setCompletedAt(common.toTimestamp(value.completedAt()));
+        }
         if (value.targetVersion() != null) {
             builder.setTargetVersion(value.targetVersion());
         }
@@ -282,8 +286,10 @@ public final class DdcManagementProtoMapper {
                         .map(this::fromPublishTarget).toList(),
                 value.hasErrorMessage() ? value.getErrorMessage() : null,
                 common.fromTimestamp(value.getCreatedAt()),
-                common.fromTimestamp(value.getDispatchedAt()),
-                common.fromTimestamp(value.getCompletedAt())
+                value.hasDispatchedAt()
+                        ? common.fromTimestamp(value.getDispatchedAt()) : null,
+                value.hasCompletedAt()
+                        ? common.fromTimestamp(value.getCompletedAt()) : null
         );
     }
 
@@ -298,9 +304,13 @@ public final class DdcManagementProtoMapper {
                 .setIgnoredCount(value.ignoredCount())
                 .setTimeoutCount(value.timeoutCount())
                 .setAttemptCount(value.attemptCount())
-                .setCreatedAt(common.toTimestamp(value.createdAt()))
-                .setDispatchedAt(common.toTimestamp(value.dispatchedAt()))
-                .setCompletedAt(common.toTimestamp(value.completedAt()));
+                .setCreatedAt(common.toTimestamp(value.createdAt()));
+        if (value.dispatchedAt() != null) {
+            builder.setDispatchedAt(common.toTimestamp(value.dispatchedAt()));
+        }
+        if (value.completedAt() != null) {
+            builder.setCompletedAt(common.toTimestamp(value.completedAt()));
+        }
         if (value.targetVersion() != null) {
             builder.setTargetVersion(value.targetVersion());
         }
@@ -327,8 +337,10 @@ public final class DdcManagementProtoMapper {
                         .map(this::fromPublishTarget).toList(),
                 value.hasErrorMessage() ? value.getErrorMessage() : null,
                 common.fromTimestamp(value.getCreatedAt()),
-                common.fromTimestamp(value.getDispatchedAt()),
-                common.fromTimestamp(value.getCompletedAt())
+                value.hasDispatchedAt()
+                        ? common.fromTimestamp(value.getDispatchedAt()) : null,
+                value.hasCompletedAt()
+                        ? common.fromTimestamp(value.getCompletedAt()) : null
         );
     }
 

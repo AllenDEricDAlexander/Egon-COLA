@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.security.openapi.DdcServicePrincipal;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
-import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientInstance;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
@@ -24,6 +23,7 @@ import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
 import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
@@ -36,13 +36,8 @@ public class DdcManagementOpenApiController {
 
     private final DdcManagementFacade facade;
 
-    private final DdcNamespaceEnvAppBindingService bindingService;
-
-    public DdcManagementOpenApiController(
-            DdcManagementFacade facade,
-            DdcNamespaceEnvAppBindingService bindingService) {
+    public DdcManagementOpenApiController(DdcManagementFacade facade) {
         this.facade = facade;
-        this.bindingService = bindingService;
     }
 
     @GetMapping("/configs/{bizCode}/{env}/{appCode}")
@@ -153,23 +148,9 @@ public class DdcManagementOpenApiController {
             @RequestParam(value = "env", required = false) String env,
             @RequestParam(value = "appCode", required = false) String appCode
     ) {
-        return ResultRecord.success(bindingService.list(
-                        bizCode,
-                        namespaceCode,
-                        env,
-                        appCode
-                ).stream()
-                .map(value -> new DdcManagementScopeBinding(
-                        value.id(),
-                        value.bizCode(),
-                        value.namespaceCode(),
-                        value.env(),
-                        value.appId(),
-                        value.appCode(),
-                        value.appName(),
-                        value.enabled()
-                ))
-                .toList());
+        return ResultRecord.success(facade.getScopeBindings(
+                new DdcManagementScopeQuery(
+                        bizCode, namespaceCode, env, appCode)));
     }
 
     @GetMapping("/registry/services")

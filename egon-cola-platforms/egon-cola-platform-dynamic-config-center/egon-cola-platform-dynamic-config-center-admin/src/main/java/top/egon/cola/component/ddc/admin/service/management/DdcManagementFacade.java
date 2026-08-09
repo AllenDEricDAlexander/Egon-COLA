@@ -14,6 +14,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
@@ -29,6 +30,8 @@ import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
@@ -69,6 +72,8 @@ public class DdcManagementFacade {
 
     private final DdcNamespaceEnvAppBindingRepository bindingRepository;
 
+    private final DdcNamespaceEnvAppBindingService bindingService;
+
     @Autowired
     public DdcManagementFacade(
             DdcConfigService configService,
@@ -78,7 +83,8 @@ public class DdcManagementFacade {
             DdcInstanceAdminService instanceAdminService,
             DdcServiceRegistryService registryService,
             DdcScopeGate scopeGate,
-            DdcNamespaceEnvAppBindingRepository bindingRepository
+            DdcNamespaceEnvAppBindingRepository bindingRepository,
+            DdcNamespaceEnvAppBindingService bindingService
     ) {
         this.configService = configService;
         this.publishService = publishService;
@@ -88,27 +94,7 @@ public class DdcManagementFacade {
         this.registryService = registryService;
         this.scopeGate = scopeGate;
         this.bindingRepository = bindingRepository;
-    }
-
-    public DdcManagementFacade(
-            DdcConfigService configService,
-            DdcPublishService publishService,
-            DdcPublishTaskRepository publishTaskRepository,
-            DdcPublishAckRepository publishAckRepository,
-            DdcInstanceAdminService instanceAdminService,
-            DdcServiceRegistryService registryService,
-            DdcScopeGate scopeGate
-    ) {
-        this(
-                configService,
-                publishService,
-                publishTaskRepository,
-                publishAckRepository,
-                instanceAdminService,
-                registryService,
-                scopeGate,
-                null
-        );
+        this.bindingService = bindingService;
     }
 
     public DdcManagementConfig findConfig(DdcManagementConfigQuery query) {
@@ -251,6 +237,35 @@ public class DdcManagementFacade {
                 ).stream()
                 .sorted(Comparator.comparing(DdcInstanceEntity::getInstanceId))
                 .map(this::configClient)
+                .toList();
+    }
+
+    /**
+     * 查询匹配的作用域绑定并转换为稳定管理模型。
+     * / Retrieves matching scope bindings and maps them to the stable management model.
+     *
+     * @param query 作用域绑定筛选条件 / scope-binding filters
+     * @return 匹配的作用域绑定 / matching scope bindings
+     */
+    public List<DdcManagementScopeBinding> getScopeBindings(
+            DdcManagementScopeQuery query) {
+        require(query, "scope query");
+        return bindingService.list(
+                        query.bizCode(),
+                        query.namespaceCode(),
+                        query.env(),
+                        query.appCode()
+                ).stream()
+                .map(value -> new DdcManagementScopeBinding(
+                        value.id(),
+                        value.bizCode(),
+                        value.namespaceCode(),
+                        value.env(),
+                        value.appId(),
+                        value.appCode(),
+                        value.appName(),
+                        value.enabled()
+                ))
                 .toList();
     }
 

@@ -7,9 +7,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
-import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
-import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
+import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
@@ -31,17 +29,11 @@ class DdcOpenApiControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private DdcInstanceAdminService instanceAdminService;
-
-    @MockBean
-    private DdcConfigService configService;
-
-    @MockBean
-    private DdcPublishService publishService;
+    private DdcConfigFacade facade;
 
     @Test
     void registrationReturnsTheAdminIssuedLease() throws Exception {
-        when(instanceAdminService.register(any())).thenReturn(new DdcLeaseSession(
+        when(facade.register(any())).thenReturn(new DdcLeaseSession(
                 "instance-1",
                 "lease-1",
                 DdcLeaseRole.CONFIG_CLIENT,
@@ -65,11 +57,11 @@ class DdcOpenApiControllerTest {
 
     @Test
     void heartbeatAndOfflineReturnLeaseOperationResults() throws Exception {
-        when(instanceAdminService.heartbeat(any())).thenReturn(new DdcLeaseOperationResult(
+        when(facade.heartbeat(any())).thenReturn(new DdcLeaseOperationResult(
                 DdcLeaseOperationStatus.RENEWED,
                 Instant.parse("2026-07-24T12:01:00Z")
         ));
-        when(instanceAdminService.offline(any())).thenReturn(new DdcLeaseOperationResult(
+        when(facade.offline(any())).thenReturn(new DdcLeaseOperationResult(
                 DdcLeaseOperationStatus.DELETED,
                 null
         ));

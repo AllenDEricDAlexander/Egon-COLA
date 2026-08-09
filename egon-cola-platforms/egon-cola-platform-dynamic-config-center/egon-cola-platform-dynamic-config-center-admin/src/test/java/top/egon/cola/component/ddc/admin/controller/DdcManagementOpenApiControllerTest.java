@@ -7,13 +7,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
-import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,9 +33,6 @@ class DdcManagementOpenApiControllerTest {
 
     @MockBean
     private DdcManagementFacade facade;
-
-    @MockBean
-    private DdcNamespaceEnvAppBindingService bindingService;
 
     @Test
     void pathScopeOverridesDuplicatedBodyIdentity() throws Exception {
@@ -141,11 +137,10 @@ class DdcManagementOpenApiControllerTest {
 
     @Test
     void scopeBindingsAcceptAnySubsetOfFilters() throws Exception {
-        when(bindingService.list("retail", null, null, "order"))
-                .thenReturn(List.of(new DdcNamespaceEnvAppBindingVO(
+        when(facade.getScopeBindings(any()))
+                .thenReturn(List.of(new DdcManagementScopeBinding(
                         "binding-1",
                         "retail",
-                        "ns-ops",
                         "ops",
                         "local",
                         "app-order",

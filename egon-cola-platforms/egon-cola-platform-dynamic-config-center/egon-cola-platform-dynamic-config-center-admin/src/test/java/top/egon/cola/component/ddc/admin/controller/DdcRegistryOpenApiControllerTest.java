@@ -6,7 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
+import top.egon.cola.component.ddc.admin.service.registry.DdcRegistryFacade;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
@@ -31,11 +31,11 @@ class DdcRegistryOpenApiControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private DdcServiceRegistryService registryService;
+    private DdcRegistryFacade facade;
 
     @Test
     void registrationReturnsIssuedLease() throws Exception {
-        when(registryService.register(any())).thenReturn(new DdcLeaseSession(
+        when(facade.register(any())).thenReturn(new DdcLeaseSession(
                 "provider-1",
                 "lease-1",
                 DdcLeaseRole.RPC_PROVIDER,
@@ -75,7 +75,7 @@ class DdcRegistryOpenApiControllerTest {
 
     @Test
     void serviceCatalogEndpointAcceptsPartialFilters() throws Exception {
-        when(registryService.getServiceKeys(any())).thenAnswer(invocation -> {
+        when(facade.getServiceKeys(any())).thenAnswer(invocation -> {
             DdcServiceQuery query = invocation.getArgument(0);
             org.assertj.core.api.Assertions.assertThat(query.bizCode()).isEqualTo("pay-biz");
             org.assertj.core.api.Assertions.assertThat(query.appCode()).isNull();

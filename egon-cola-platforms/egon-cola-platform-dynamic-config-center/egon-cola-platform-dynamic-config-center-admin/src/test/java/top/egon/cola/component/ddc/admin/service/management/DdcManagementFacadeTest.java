@@ -10,6 +10,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
@@ -20,6 +21,7 @@ import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,11 +46,14 @@ class DdcManagementFacadeTest {
 
     private DdcManagementFacade facade;
 
+    private DdcNamespaceEnvAppBindingService bindingService;
+
     @BeforeEach
     void setUp() {
         configService = mock(DdcConfigService.class);
         publishTaskRepository = mock(DdcPublishTaskRepository.class);
         publishAckRepository = mock(DdcPublishAckRepository.class);
+        bindingService = mock(DdcNamespaceEnvAppBindingService.class);
         facade = new DdcManagementFacade(
                 configService,
                 mock(DdcPublishService.class),
@@ -56,7 +61,9 @@ class DdcManagementFacadeTest {
                 publishAckRepository,
                 mock(DdcInstanceAdminService.class),
                 mock(DdcServiceRegistryService.class),
-                mock(DdcScopeGate.class)
+                mock(DdcScopeGate.class),
+                null,
+                bindingService
         );
     }
 
@@ -203,6 +210,26 @@ class DdcManagementFacadeTest {
             assertThat(item.leaseId()).isEqualTo("lease-1");
             assertThat(item.status()).isEqualTo("SUCCESS");
         });
+    }
+
+    @Test
+    void scopeBindingsAreOwnedAndMappedByTheManagementFacade() {
+        var query = new DdcManagementScopeQuery(
+                "biz", "namespace", "test", "app");
+        var binding = new top.egon.cola.component.ddc.admin.model.vo
+                .DdcNamespaceEnvAppBindingVO(
+                "binding-1", "biz", "namespace-id", "namespace", "test",
+                "app-id", "app", "Application", true);
+        when(bindingService.list("biz", "namespace", "test", "app"))
+                .thenReturn(List.of(binding));
+
+        assertThat(facade.getScopeBindings(query)).singleElement().satisfies(value -> {
+            assertThat(value.bindingId()).isEqualTo("binding-1");
+            assertThat(value.namespaceCode()).isEqualTo("namespace");
+            assertThat(value.appCode()).isEqualTo("app");
+            assertThat(value.enabled()).isTrue();
+        });
+        verify(bindingService).list("biz", "namespace", "test", "app");
     }
 
     private DdcConfigVO config(

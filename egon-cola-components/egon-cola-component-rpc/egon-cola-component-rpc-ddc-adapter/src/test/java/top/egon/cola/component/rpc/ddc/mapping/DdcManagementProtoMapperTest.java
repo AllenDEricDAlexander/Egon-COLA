@@ -104,6 +104,24 @@ class DdcManagementProtoMapperTest {
     }
 
     @Test
+    void preservesMissingPublicationLifecycleTimestamps() {
+        Instant now = Instant.parse("2026-08-09T08:00:00Z");
+        DdcManagementPublishResult result = new DdcManagementPublishResult(
+                "change-1", DdcManagementPublishStatus.PUBLISHING,
+                7L, "abc", 1, List.of(), null,
+                now, null, null);
+        assertThat(mapper.fromPublishResult(mapper.toPublishResult(result)))
+                .isEqualTo(result);
+
+        DdcManagementPublishTask task = new DdcManagementPublishTask(
+                "change-1", DdcManagementPublishStatus.PUBLISHING,
+                7L, "abc", 1, 0, 0, 0, 0, 1,
+                List.of(), null, now, null, null);
+        assertThat(mapper.fromPublishTask(mapper.toPublishTask(task)))
+                .isEqualTo(task);
+    }
+
+    @Test
     void roundTripsManagementViewsQueriesAndSnapshots() {
         Instant now = Instant.parse("2026-08-09T08:00:00Z");
         DdcManagementConfigClientInstance client =

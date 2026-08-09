@@ -26,8 +26,8 @@ import top.egon.cola.component.ddc.admin.security.openapi.DdcNonceStore;
 import top.egon.cola.component.ddc.admin.security.openapi.DdcSecurityFilterRegistration;
 import top.egon.cola.component.ddc.admin.security.openapi.InMemoryDdcNonceStore;
 import top.egon.cola.component.ddc.admin.service.cache.DdcCacheService;
+import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
-import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
@@ -89,7 +89,7 @@ class DdcAdminSecurityIntegrationTest {
     private DdcPublishService publishService;
 
     @MockBean
-    private DdcInstanceAdminService instanceAdminService;
+    private DdcConfigFacade configFacade;
 
     @MockBean
     private DdcPublishTaskRepository publishTaskRepository;
@@ -144,7 +144,7 @@ class DdcAdminSecurityIntegrationTest {
 
     @Test
     void acceptsValidHmacOpenApiRequestWithoutJwt() throws Exception {
-        when(configService.pull("biz-a", "dev", "app-a"))
+        when(configFacade.pull("biz-a", "dev", "app-a"))
                 .thenReturn(List.of());
 
         mockMvc.perform(signedPull())
