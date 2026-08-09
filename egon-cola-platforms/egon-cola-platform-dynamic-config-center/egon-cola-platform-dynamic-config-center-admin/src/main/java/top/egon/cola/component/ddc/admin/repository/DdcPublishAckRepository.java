@@ -1,6 +1,8 @@
 package top.egon.cola.component.ddc.admin.repository;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +15,13 @@ import java.util.Optional;
 public interface DdcPublishAckRepository extends JpaRepository<DdcPublishAckEntity, String> {
 
     Optional<DdcPublishAckEntity> findByChangeIdAndInstanceIdAndLeaseId(
+            String changeId,
+            String instanceId,
+            String leaseId
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<DdcPublishAckEntity> findForUpdateByChangeIdAndInstanceIdAndLeaseId(
             String changeId,
             String instanceId,
             String leaseId

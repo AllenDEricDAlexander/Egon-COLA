@@ -40,6 +40,7 @@ import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
 import top.egon.cola.component.ddc.model.config.DdcAckStatus;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -49,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -214,6 +216,19 @@ class DdcSyncPublishFlowTest {
             DdcPublishMessage first = published.poll(2, TimeUnit.SECONDS);
             assertThat(first).isNotNull();
 
+            await().atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+                assertThat(configItemRepository
+                        .findByBizCodeAndEnvAndAppCodeAndResourceName(
+                                "default", "dev", "demo", "application.yml"
+                        ))
+                        .get()
+                        .extracting(DdcConfigItemEntity::getPublishedVersion)
+                        .isEqualTo(2L);
+                assertThat(taskRepository.findByChangeId(request.getChangeId()))
+                        .get()
+                        .satisfies(task -> assertThat(task.getStatus())
+                                .isEqualTo(PublishStatus.PUBLISHING.name()));
+            });
             var persistedTask = taskRepository.findByChangeId(
                     request.getChangeId()
             ).orElseThrow();

@@ -13,7 +13,9 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +42,40 @@ class PublishStartupRecoveryTest {
                 PublishStatus.PUBLISHING.name(),
                 PublishStatus.UNKNOWN.name()
         ), staleBefore)).thenReturn(List.of(pending, publishing, unknown));
+        LocalDateTime claimedAt = LocalDateTime.ofInstant(
+                now,
+                ZoneId.systemDefault()
+        );
+        when(repository.claimStaleForRecovery(
+                "pending",
+                List.of(
+                        PublishStatus.PENDING.name(),
+                        PublishStatus.PUBLISHING.name(),
+                        PublishStatus.UNKNOWN.name()
+                ),
+                staleBefore,
+                claimedAt
+        )).thenReturn(1);
+        when(repository.claimStaleForRecovery(
+                "publishing",
+                List.of(
+                        PublishStatus.PENDING.name(),
+                        PublishStatus.PUBLISHING.name(),
+                        PublishStatus.UNKNOWN.name()
+                ),
+                staleBefore,
+                claimedAt
+        )).thenReturn(0);
+        when(repository.claimStaleForRecovery(
+                "unknown",
+                List.of(
+                        PublishStatus.PENDING.name(),
+                        PublishStatus.PUBLISHING.name(),
+                        PublishStatus.UNKNOWN.name()
+                ),
+                staleBefore,
+                claimedAt
+        )).thenReturn(1);
         PublishStartupRecovery recovery =
                 new PublishStartupRecovery(
                         repository,
@@ -48,10 +84,10 @@ class PublishStartupRecoveryTest {
                         Clock.fixed(now, ZoneOffset.UTC)
                 );
 
-        recovery.run(null);
+        assertThat(recovery.recoverStale()).isEqualTo(2);
 
         verify(dispatcher).dispatch("pending");
-        verify(dispatcher).dispatch("publishing");
+        verify(dispatcher, never()).dispatch("publishing");
         verify(dispatcher).dispatch("unknown");
     }
 

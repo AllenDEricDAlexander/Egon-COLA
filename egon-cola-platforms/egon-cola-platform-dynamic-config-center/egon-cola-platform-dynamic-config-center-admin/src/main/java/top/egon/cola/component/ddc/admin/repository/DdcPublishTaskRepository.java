@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,21 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
     List<DdcPublishTaskEntity> findByStatusInAndUpdatedAtBefore(
             Collection<String> statuses,
             LocalDateTime updatedAt);
+
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update DdcPublishTaskEntity task
+               set task.updatedAt = :claimedAt
+             where task.changeId = :changeId
+               and task.status in :activeStatuses
+               and task.updatedAt < :staleBefore
+            """)
+    int claimStaleForRecovery(
+            @Param("changeId") String changeId,
+            @Param("activeStatuses") Collection<String> activeStatuses,
+            @Param("staleBefore") LocalDateTime staleBefore,
+            @Param("claimedAt") LocalDateTime claimedAt);
 
     Optional<DdcPublishTaskEntity>
     findFirstByBizCodeAndEnvAndAppCodeAndResourceNameAndStatusIn(

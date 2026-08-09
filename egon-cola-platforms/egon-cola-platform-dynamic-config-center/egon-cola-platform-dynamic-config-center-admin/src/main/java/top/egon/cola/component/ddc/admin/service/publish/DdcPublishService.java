@@ -255,7 +255,7 @@ public class DdcPublishService {
             return DdcPublishResultVO.from(task);
         }
         DdcPublishAckEntity target =
-                publishAckRepository.findByChangeIdAndInstanceIdAndLeaseId(
+                publishAckRepository.findForUpdateByChangeIdAndInstanceIdAndLeaseId(
                                 request.getChangeId(),
                                 request.getInstanceId(),
                                 request.getLeaseId()
