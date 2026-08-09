@@ -3,6 +3,10 @@ package top.egon.cola.component.ddc;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
+import top.egon.cola.component.ddc.client.http.DdcOpenApiRequestFactory;
+import top.egon.cola.component.ddc.client.management.HttpDdcManagementClient;
+import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
 import top.egon.cola.component.ddc.configuration.bootstrap.DdcConfigDataFetcher;
 import top.egon.cola.component.ddc.configuration.runtime.DdcLocalConfigState;
 import top.egon.cola.component.ddc.format.DdcChecksum;
@@ -62,6 +66,14 @@ class DdcPlatformBoundaryTest {
                 .isEqualTo("top.egon.cola.component.ddc.model.registry");
         assertThat(DdcChecksum.class.getPackageName())
                 .isEqualTo("top.egon.cola.component.ddc.format");
+        assertThat(HttpDdcConfigClient.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.client.config");
+        assertThat(HttpDdcManagementClient.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.client.management");
+        assertThat(HttpDdcServiceRegistryClient.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.client.registry");
+        assertThat(DdcOpenApiRequestFactory.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.client.http");
         assertThat(DdcConfigDataFetcher.class.getPackageName())
                 .isEqualTo("top.egon.cola.component.ddc.configuration.bootstrap");
         assertThat(DdcLocalConfigState.class.getPackageName())

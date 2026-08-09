@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry.client;
+package top.egon.cola.component.ddc.client.registry;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -14,8 +14,8 @@ import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
 import top.egon.cola.component.ddc.model.client.DdcClientTransportSecurity;
 import top.egon.cola.component.ddc.error.http.DdcOpenApiRequestException;
-import top.egon.cola.component.ddc.transport.http.DdcOpenApiRequestFactory;
-import top.egon.cola.component.ddc.transport.http.DdcRestClientFactory;
+import top.egon.cola.component.ddc.client.http.DdcOpenApiRequestFactory;
+import top.egon.cola.component.ddc.client.http.DdcRestClientFactory;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;

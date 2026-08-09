@@ -24,7 +24,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.configuration.binding.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
-import top.egon.cola.component.ddc.configuration.client.HttpDdcConfigClient;
+import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.configuration.subscription.DdcConfigChangeListener;

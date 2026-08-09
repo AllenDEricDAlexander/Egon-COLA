@@ -8,7 +8,7 @@ import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.client.HttpDdcServiceRegistryClient;
+import top.egon.cola.component.ddc.client.registry.HttpDdcServiceRegistryClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 
 import java.nio.file.Path;

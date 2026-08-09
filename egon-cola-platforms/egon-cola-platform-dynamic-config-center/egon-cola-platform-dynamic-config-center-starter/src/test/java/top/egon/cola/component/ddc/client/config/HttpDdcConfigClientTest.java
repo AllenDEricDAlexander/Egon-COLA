@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configuration.client;
+package top.egon.cola.component.ddc.client.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -13,8 +13,8 @@ import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.transport.http.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.transport.http.DdcRequestSigner;
+import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 

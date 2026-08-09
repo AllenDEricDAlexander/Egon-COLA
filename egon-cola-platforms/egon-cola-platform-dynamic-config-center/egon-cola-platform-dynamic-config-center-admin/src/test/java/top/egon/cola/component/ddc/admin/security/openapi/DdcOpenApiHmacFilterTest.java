@@ -9,8 +9,8 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
-import top.egon.cola.component.ddc.transport.http.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.transport.http.DdcRequestSigner;
+import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;

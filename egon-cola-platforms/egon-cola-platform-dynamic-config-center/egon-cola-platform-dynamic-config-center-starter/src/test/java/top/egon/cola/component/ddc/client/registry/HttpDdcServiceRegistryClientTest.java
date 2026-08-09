@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry.client;
+package top.egon.cola.component.ddc.client.registry;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;

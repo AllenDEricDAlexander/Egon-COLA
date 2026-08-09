@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.management.client;
+package top.egon.cola.component.ddc.client.management;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -15,8 +15,8 @@ import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
 import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
-import top.egon.cola.component.ddc.transport.http.DdcCanonicalRequest;
-import top.egon.cola.component.ddc.transport.http.DdcRequestSigner;
+import top.egon.cola.component.ddc.client.http.DdcCanonicalRequest;
+import top.egon.cola.component.ddc.client.http.DdcRequestSigner;
 
 import java.time.Clock;
 import java.time.Duration;

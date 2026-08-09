@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.transport.http;
+package top.egon.cola.component.ddc.client.http;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
