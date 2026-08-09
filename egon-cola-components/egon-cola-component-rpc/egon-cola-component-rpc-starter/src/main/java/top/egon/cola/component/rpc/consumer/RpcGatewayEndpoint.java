@@ -1,6 +1,6 @@
 package top.egon.cola.component.rpc.consumer;
 
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
 
 import java.time.Instant;
 

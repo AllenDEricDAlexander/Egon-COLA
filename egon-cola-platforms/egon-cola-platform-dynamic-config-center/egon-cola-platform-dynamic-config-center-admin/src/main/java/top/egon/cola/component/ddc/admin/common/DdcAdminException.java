@@ -2,7 +2,7 @@ package top.egon.cola.component.ddc.admin.common;
 
 import top.egon.cola.component.common.core.enums.ErrorStatus;
 import top.egon.cola.component.common.core.exception.CommonException;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.io.Serial;
 

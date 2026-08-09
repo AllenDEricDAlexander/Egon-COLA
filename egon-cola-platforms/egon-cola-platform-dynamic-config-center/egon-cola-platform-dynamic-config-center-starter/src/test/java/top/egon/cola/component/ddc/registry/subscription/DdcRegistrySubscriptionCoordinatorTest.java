@@ -5,14 +5,14 @@ import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.redisson.api.listener.MessageListener;
-import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
-import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcRegistryEvent;
+import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
+import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 
 import java.time.Clock;
@@ -64,7 +64,7 @@ class DdcRegistrySubscriptionCoordinatorTest {
         assertThat(refreshed.await(2, TimeUnit.SECONDS)).isTrue();
         assertThat(order.subList(0, 2)).containsExactly("subscribe", "pull");
         verify(topic.redisson()).getTopic(
-                DdcKeys.registryTopic(
+                DdcRedisKeys.registryTopic(
                         "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER, "grpc"
                 ),
                 StringCodec.INSTANCE

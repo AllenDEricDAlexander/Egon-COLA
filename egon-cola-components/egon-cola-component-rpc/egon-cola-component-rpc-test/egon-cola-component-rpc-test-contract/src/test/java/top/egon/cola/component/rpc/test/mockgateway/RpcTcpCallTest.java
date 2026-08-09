@@ -3,7 +3,7 @@ package top.egon.cola.component.rpc.test.mockgateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;

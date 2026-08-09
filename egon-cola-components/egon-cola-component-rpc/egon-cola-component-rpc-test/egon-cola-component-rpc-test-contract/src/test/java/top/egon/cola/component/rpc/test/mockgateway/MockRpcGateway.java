@@ -11,10 +11,10 @@ import io.grpc.Status;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.registry.model.DdcServiceRegistration;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 

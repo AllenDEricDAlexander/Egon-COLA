@@ -1,9 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.integration.ddc;
 
 import org.springframework.beans.factory.ObjectProvider;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
 import top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntimeStatusPort;
 
 import java.nio.charset.StandardCharsets;

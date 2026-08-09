@@ -2,9 +2,9 @@ package top.egon.cola.component.ddc.admin.service.lease;
 
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.registry.model.DdcServiceRegistration;
 
 public class DdcLeaseValidator {
 

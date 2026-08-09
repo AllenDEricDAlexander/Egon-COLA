@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.integration.ddc;
 
-import top.egon.cola.component.ddc.service.DdcConfigApplier;
+import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplier;
 
 import java.util.Objects;
 

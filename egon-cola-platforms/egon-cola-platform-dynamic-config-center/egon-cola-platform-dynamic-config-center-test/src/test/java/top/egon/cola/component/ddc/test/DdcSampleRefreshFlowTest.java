@@ -3,31 +3,31 @@ package top.egon.cola.component.ddc.test;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import top.egon.cola.component.ddc.client.DdcAdminClient;
-import top.egon.cola.component.ddc.common.DdcChecksum;
-import top.egon.cola.component.ddc.config.DdcBeanPostProcessor;
-import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
-import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
-import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
-import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
-import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
-import top.egon.cola.component.ddc.repository.DdcValueBindingRegistry;
-import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
-import top.egon.cola.component.ddc.service.DdcFieldBindingService;
-import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
-import top.egon.cola.component.ddc.service.DdcRefreshService;
+import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
+import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
+import top.egon.cola.component.ddc.configuration.binding.DdcBeanPostProcessor;
+import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishTarget;
+import top.egon.cola.component.ddc.configuration.model.DdcAckStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.configuration.refresh.DdcConfigurationPropertiesRebinder;
+import top.egon.cola.component.ddc.configuration.refresh.DdcYamlConfigApplier;
+import top.egon.cola.component.ddc.configuration.runtime.DdcLocalConfigState;
+import top.egon.cola.component.ddc.configuration.binding.DdcValueBindingRegistry;
+import top.egon.cola.component.ddc.configuration.refresh.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.configuration.binding.DdcFieldBindingService;
+import top.egon.cola.component.ddc.configuration.runtime.DdcLeaseSessionHolder;
+import top.egon.cola.component.ddc.configuration.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
 
 import java.time.Instant;
@@ -44,7 +44,7 @@ class DdcSampleRefreshFlowTest {
     @Test
     void refreshUpdatesBoundFieldAndReportsSuccessAck() throws Exception {
         RecordingAdminClient adminClient = new RecordingAdminClient();
-        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        DdcLocalConfigState repository = new DdcLocalConfigState();
         AnnotationConfigApplicationContext context =
                 new AnnotationConfigApplicationContext();
         context.getBeanFactory().setConversionService(
@@ -138,7 +138,7 @@ class DdcSampleRefreshFlowTest {
         return message;
     }
 
-    static class RecordingAdminClient implements DdcAdminClient {
+    static class RecordingAdminClient implements DdcConfigClient {
 
         private DdcAckRequest lastAck;
 

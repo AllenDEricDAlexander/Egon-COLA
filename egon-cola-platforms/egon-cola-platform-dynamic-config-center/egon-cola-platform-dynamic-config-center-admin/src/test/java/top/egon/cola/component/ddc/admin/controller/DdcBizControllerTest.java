@@ -8,7 +8,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcBizService;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;

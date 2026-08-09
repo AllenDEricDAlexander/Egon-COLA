@@ -4,12 +4,12 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.registry.model.DdcServiceRegistration;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
 
 import java.time.Clock;
 import java.time.Instant;

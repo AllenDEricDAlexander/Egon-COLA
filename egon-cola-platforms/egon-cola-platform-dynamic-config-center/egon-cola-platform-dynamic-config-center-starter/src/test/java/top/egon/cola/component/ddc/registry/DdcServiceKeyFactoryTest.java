@@ -1,8 +1,8 @@
 package top.egon.cola.component.ddc.registry;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
+import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

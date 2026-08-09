@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.annotation.DdcValue;
-import top.egon.cola.component.ddc.service.DdcConfigApplier;
-import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplier;
+import top.egon.cola.component.ddc.configuration.refresh.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
 
 import java.lang.reflect.Field;

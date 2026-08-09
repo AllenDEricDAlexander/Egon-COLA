@@ -18,7 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriUtils;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.transport.http.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.transport.http.DdcRequestSigner;
 

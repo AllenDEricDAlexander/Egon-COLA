@@ -11,19 +11,19 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
-import top.egon.cola.component.ddc.client.DdcAdminClient;
-import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.service.DdcRuntimeState;
+import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
+import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeState;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
 
 import java.time.Instant;
@@ -60,7 +60,7 @@ class DdcStarterRuntimeFlowTest {
     private DdcRuntimeCoordinator runtimeCoordinator;
 
     @Autowired
-    private RecordingDdcAdminClient adminClient;
+    private RecordingDdcConfigClient adminClient;
 
     @Autowired
     private SampleConfigService sampleConfigService;
@@ -84,8 +84,8 @@ class DdcStarterRuntimeFlowTest {
     static class RuntimeTestConfiguration {
 
         @Bean
-        RecordingDdcAdminClient recordingDdcAdminClient() {
-            return new RecordingDdcAdminClient();
+        RecordingDdcConfigClient recordingDdcConfigClient() {
+            return new RecordingDdcConfigClient();
         }
 
         @Bean(name = "ddcRedissonClient", destroyMethod = "")
@@ -111,7 +111,7 @@ class DdcStarterRuntimeFlowTest {
         }
     }
 
-    static final class RecordingDdcAdminClient implements DdcAdminClient {
+    static final class RecordingDdcConfigClient implements DdcConfigClient {
 
         private final List<String> events = new ArrayList<>();
 

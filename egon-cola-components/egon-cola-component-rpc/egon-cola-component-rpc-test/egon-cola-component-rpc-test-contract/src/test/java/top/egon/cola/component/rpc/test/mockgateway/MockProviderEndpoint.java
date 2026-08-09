@@ -1,7 +1,7 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
 
 import java.time.Instant;
 

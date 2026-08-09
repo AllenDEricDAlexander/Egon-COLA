@@ -10,7 +10,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcEnvRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceRepository;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.util.Optional;
 

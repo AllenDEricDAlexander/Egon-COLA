@@ -1,7 +1,7 @@
 package top.egon.cola.component.gateway.admin.application.release;
 
 import top.egon.cola.component.common.id.uuid.UuidV7;
-import top.egon.cola.component.ddc.common.DdcChecksum;
+import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
 import top.egon.cola.component.ddc.management.DdcManagementClient;
 import top.egon.cola.component.ddc.management.client.DdcManagementClientException;
 import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;

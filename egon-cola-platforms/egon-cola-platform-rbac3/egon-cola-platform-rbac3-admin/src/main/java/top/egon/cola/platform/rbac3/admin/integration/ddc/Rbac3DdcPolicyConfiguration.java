@@ -7,8 +7,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
-import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
 
 /**

@@ -7,12 +7,12 @@ import org.redisson.api.RLock;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
-import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -42,11 +42,11 @@ class DdcConfigLeaseRedisRepositoryTest {
         Set<String> members = new HashSet<>();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
+                DdcRedisKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(redisson.<String>getSet(
-                DdcKeys.configLeaseInstances("retail", "dev", "demo"),
+                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo"),
                 StringCodec.INSTANCE
         )).thenReturn(instances);
         when(bucket.get()).thenAnswer(invocation -> stored.get());
@@ -88,7 +88,7 @@ class DdcConfigLeaseRedisRepositoryTest {
         RBucket<String> bucket = bucket();
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
+                DdcRedisKeys.configLeaseInstance("retail", "dev", "demo", "instance-1"),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(new ObjectMapper().writeValueAsString(

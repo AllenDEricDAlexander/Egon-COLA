@@ -7,10 +7,10 @@ import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.vo.DdcAtomicPublishCommand;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
-import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
 
 public class DdcRedisRepository {
 
@@ -29,9 +29,9 @@ public class DdcRedisRepository {
         lock.lock();
         try {
             redissonClient.<String>getBucket(
-                    DdcKeys.config(bizCode, env, appCode, key)).set(value);
+                    DdcRedisKeys.config(bizCode, env, appCode, key)).set(value);
             redissonClient.<Long>getBucket(
-                    DdcKeys.version(bizCode, env, appCode, key)).set(version);
+                    DdcRedisKeys.version(bizCode, env, appCode, key)).set(version);
         } finally {
             lock.unlock();
         }
@@ -41,11 +41,11 @@ public class DdcRedisRepository {
         RLock lock = configLock(command.bizCode(), command.env(), command.appCode());
         lock.lock();
         try {
-            String configKey = DdcKeys.config(
+            String configKey = DdcRedisKeys.config(
                     command.bizCode(), command.env(), command.appCode(), command.resourceName());
-            String versionKey = DdcKeys.version(
+            String versionKey = DdcRedisKeys.version(
                     command.bizCode(), command.env(), command.appCode(), command.resourceName());
-            String idempotencyKey = DdcKeys.publishIdempotency(
+            String idempotencyKey = DdcRedisKeys.publishIdempotency(
                     command.bizCode(), command.env(), command.appCode(), command.changeId());
             String fingerprint = command.changeId() + ":" + command.eventChecksum();
             String existing = redissonClient.<String>getBucket(idempotencyKey).get();
@@ -75,7 +75,7 @@ public class DdcRedisRepository {
             redissonClient.<String>getBucket(configKey).set(command.content());
             redissonClient.<Long>getBucket(versionKey).set(command.targetVersion());
             redissonClient.<String>getBucket(idempotencyKey).set(fingerprint);
-            redissonClient.getTopic(DdcKeys.topic(
+            redissonClient.getTopic(DdcRedisKeys.topic(
                     command.bizCode(), command.env(), command.appCode()
             )).publish(command.message());
         } finally {
@@ -86,19 +86,19 @@ public class DdcRedisRepository {
     public String readConfigValue(
             String bizCode, String env, String appCode, String key) {
         return redissonClient.<String>getBucket(
-                DdcKeys.config(bizCode, env, appCode, key)
+                DdcRedisKeys.config(bizCode, env, appCode, key)
         ).get();
     }
 
     public Long readConfigVersion(
             String bizCode, String env, String appCode, String key) {
         return redissonClient.<Long>getBucket(
-                DdcKeys.version(bizCode, env, appCode, key)
+                DdcRedisKeys.version(bizCode, env, appCode, key)
         ).get();
     }
 
     public void publish(DdcPublishMessage message) {
-        redissonClient.getTopic(DdcKeys.topic(
+        redissonClient.getTopic(DdcRedisKeys.topic(
                 message.getBizCode(),
                 message.getEnv(),
                 message.getAppCode()
@@ -109,7 +109,7 @@ public class DdcRedisRepository {
         RLock lock = configLock(request.getBizCode(), request.getEnv(), request.getAppCode());
         lock.lock();
         try {
-            redissonClient.<String>getBucket(DdcKeys.configLeaseInstance(
+            redissonClient.<String>getBucket(DdcRedisKeys.configLeaseInstance(
                             request.getBizCode(), request.getEnv(),
                             request.getAppCode(), request.getInstanceId()))
                     .set(toJson(request));
@@ -125,7 +125,7 @@ public class DdcRedisRepository {
         RLock lock = configLock(bizCode, env, appCode);
         lock.lock();
         try {
-            redissonClient.getBucket(DdcKeys.configLeaseInstance(
+            redissonClient.getBucket(DdcRedisKeys.configLeaseInstance(
                     bizCode, env, appCode, instanceId)).delete();
             instances(bizCode, env, appCode).remove(instanceId);
         } finally {
@@ -143,11 +143,11 @@ public class DdcRedisRepository {
 
     private RSet<String> instances(String bizCode, String env, String appCode) {
         return redissonClient.getSet(
-                DdcKeys.configLeaseInstances(bizCode, env, appCode));
+                DdcRedisKeys.configLeaseInstances(bizCode, env, appCode));
     }
 
     private RLock configLock(String bizCode, String env, String appCode) {
         return redissonClient.getLock(
-                DdcKeys.topic(bizCode, env, appCode) + ":lock");
+                DdcRedisKeys.topic(bizCode, env, appCode) + ":lock");
     }
 }

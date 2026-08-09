@@ -11,7 +11,7 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.core.io.FileSystemResource;
 import org.yaml.snakeyaml.Yaml;
-import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
 import top.egon.cola.component.gateway.engine.GatewayEngineRuntimeProperties;
 
 import java.io.IOException;

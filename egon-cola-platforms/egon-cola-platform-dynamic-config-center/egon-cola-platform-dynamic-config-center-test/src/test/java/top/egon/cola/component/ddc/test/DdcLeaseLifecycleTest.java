@@ -1,23 +1,23 @@
 package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.client.DdcAdminClient;
-import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
-import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.service.DdcInstanceService;
-import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
-import top.egon.cola.component.ddc.service.DdcRefreshService;
-import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.service.DdcRuntimeState;
+import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
+import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceService;
+import top.egon.cola.component.ddc.configuration.runtime.DdcLeaseSessionHolder;
+import top.egon.cola.component.ddc.configuration.refresh.DdcRefreshService;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeState;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 
 import java.time.Instant;
@@ -102,7 +102,7 @@ class DdcLeaseLifecycleTest {
         return properties;
     }
 
-    private static final class RecordingAdminClient implements DdcAdminClient {
+    private static final class RecordingAdminClient implements DdcConfigClient {
 
         private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 

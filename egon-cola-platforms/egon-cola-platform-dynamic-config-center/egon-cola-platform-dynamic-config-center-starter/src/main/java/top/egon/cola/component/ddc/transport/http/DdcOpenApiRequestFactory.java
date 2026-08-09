@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import top.egon.cola.component.ddc.trace.DdcTraceSupport;
+import top.egon.cola.component.ddc.observability.DdcTraceSupport;
 
 import java.net.URI;
 import java.time.Clock;

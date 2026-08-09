@@ -8,9 +8,9 @@ import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
+import top.egon.cola.component.ddc.registry.model.DdcRegistryEvent;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
-import top.egon.cola.component.ddc.trace.DdcTraceSupport;
+import top.egon.cola.component.ddc.observability.DdcTraceSupport;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 
 import java.util.List;

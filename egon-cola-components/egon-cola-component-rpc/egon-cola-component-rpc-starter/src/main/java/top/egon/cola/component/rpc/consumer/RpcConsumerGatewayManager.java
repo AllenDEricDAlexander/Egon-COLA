@@ -2,10 +2,10 @@ package top.egon.cola.component.rpc.consumer;
 
 import io.grpc.ManagedChannel;
 import org.springframework.context.SmartLifecycle;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;

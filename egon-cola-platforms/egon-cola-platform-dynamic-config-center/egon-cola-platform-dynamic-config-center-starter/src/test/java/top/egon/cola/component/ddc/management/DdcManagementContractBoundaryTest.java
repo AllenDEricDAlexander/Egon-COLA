@@ -65,7 +65,7 @@ class DdcManagementContractBoundaryTest {
         Path packageRoot = Path.of(root, "top/egon/cola/component/ddc");
         return List.of(
                 packageRoot.resolve("management"),
-                packageRoot.resolve("model/security")
+                packageRoot.resolve("transport/http")
         );
     }
 

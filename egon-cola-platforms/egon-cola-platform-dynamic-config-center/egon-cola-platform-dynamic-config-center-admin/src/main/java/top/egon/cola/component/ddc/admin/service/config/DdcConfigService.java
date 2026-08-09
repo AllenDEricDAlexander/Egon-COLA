@@ -21,10 +21,10 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
-import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
-import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
+import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigFormat;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
 
 import java.time.LocalDateTime;
 import java.util.List;

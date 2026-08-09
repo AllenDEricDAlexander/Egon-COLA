@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 @RestControllerAdvice
 public class DdcGlobalExceptionHandler {

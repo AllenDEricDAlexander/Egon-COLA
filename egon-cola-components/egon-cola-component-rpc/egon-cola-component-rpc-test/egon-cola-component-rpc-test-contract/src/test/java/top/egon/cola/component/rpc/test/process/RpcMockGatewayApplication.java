@@ -3,7 +3,7 @@ package top.egon.cola.component.rpc.test.process;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
-import top.egon.cola.component.ddc.config.DdcProperties;
+import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
 import top.egon.cola.component.ddc.registry.client.HttpDdcServiceRegistryClient;
 import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.mockgateway.MockGatewayProperties;

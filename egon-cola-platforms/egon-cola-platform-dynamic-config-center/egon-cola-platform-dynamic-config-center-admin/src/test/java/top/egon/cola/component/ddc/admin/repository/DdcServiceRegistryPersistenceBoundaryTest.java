@@ -3,7 +3,7 @@ package top.egon.cola.component.ddc.admin.repository;
 import jakarta.persistence.Entity;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

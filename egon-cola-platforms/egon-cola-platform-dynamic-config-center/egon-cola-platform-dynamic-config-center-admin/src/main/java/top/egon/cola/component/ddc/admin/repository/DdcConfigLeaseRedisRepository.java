@@ -9,14 +9,14 @@ import org.redisson.api.RLock;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
-import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishTarget;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -175,21 +175,21 @@ public class DdcConfigLeaseRedisRepository {
 
     private RBucket<String> lease(String bizCode, String env, String appCode, String instanceId) {
         return redissonClient.getBucket(
-                DdcKeys.configLeaseInstance(bizCode, env, appCode, instanceId),
+                DdcRedisKeys.configLeaseInstance(bizCode, env, appCode, instanceId),
                 StringCodec.INSTANCE
         );
     }
 
     private RSet<String> instances(String bizCode, String env, String appCode) {
         return redissonClient.getSet(
-                DdcKeys.configLeaseInstances(bizCode, env, appCode),
+                DdcRedisKeys.configLeaseInstances(bizCode, env, appCode),
                 StringCodec.INSTANCE
         );
     }
 
     private RLock scopeLock(String bizCode, String env, String appCode) {
         return redissonClient.getLock(
-                DdcKeys.configLeaseInstances(bizCode, env, appCode) + ":lock");
+                DdcRedisKeys.configLeaseInstances(bizCode, env, appCode) + ":lock");
     }
 
     private String toJson(DdcInstanceIdentity identity,

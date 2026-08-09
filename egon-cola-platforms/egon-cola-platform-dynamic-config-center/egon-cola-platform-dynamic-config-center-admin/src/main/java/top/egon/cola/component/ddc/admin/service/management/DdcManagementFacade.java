@@ -34,11 +34,11 @@ import top.egon.cola.component.ddc.management.model.DdcManagementServiceInstance
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
+import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -370,7 +370,7 @@ public class DdcManagementFacade {
     }
 
     private DdcManagementServiceInstance serviceInstance(
-            top.egon.cola.component.ddc.model.registry.DdcServiceInstance value
+            top.egon.cola.component.ddc.registry.model.DdcServiceInstance value
     ) {
         return new DdcManagementServiceInstance(
                 value.instanceId(),

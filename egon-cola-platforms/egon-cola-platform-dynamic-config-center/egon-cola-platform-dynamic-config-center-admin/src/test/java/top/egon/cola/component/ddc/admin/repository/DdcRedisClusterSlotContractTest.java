@@ -2,9 +2,9 @@ package top.egon.cola.component.ddc.admin.repository;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.connection.CRC16;
-import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -16,16 +16,16 @@ class DdcRedisClusterSlotContractTest {
     @Test
     void configProjectionLeaseAndLockKeysShareTheScopeSlot() {
         List<String> keys = List.of(
-                DdcKeys.config("retail", "dev", "demo", "switch"),
-                DdcKeys.version("retail", "dev", "demo", "switch"),
-                DdcKeys.publishIdempotency(
+                DdcRedisKeys.config("retail", "dev", "demo", "switch"),
+                DdcRedisKeys.version("retail", "dev", "demo", "switch"),
+                DdcRedisKeys.publishIdempotency(
                         "retail", "dev", "demo", "change-1"),
-                DdcKeys.topic("retail", "dev", "demo"),
-                DdcKeys.topic("retail", "dev", "demo") + ":lock",
-                DdcKeys.configLeaseInstance(
+                DdcRedisKeys.topic("retail", "dev", "demo"),
+                DdcRedisKeys.topic("retail", "dev", "demo") + ":lock",
+                DdcRedisKeys.configLeaseInstance(
                         "retail", "dev", "demo", "instance-1"),
-                DdcKeys.configLeaseInstances("retail", "dev", "demo"),
-                DdcKeys.configLeaseInstances("retail", "dev", "demo") + ":lock"
+                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo"),
+                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo") + ":lock"
         );
 
         assertOneSlot(keys);
@@ -38,19 +38,19 @@ class DdcRedisClusterSlotContractTest {
                 "order.v1.OrderQueryService", "default", "1.0.0", "grpc"
         );
         List<String> keys = List.of(
-                DdcKeys.registryInstance(serviceKey, "provider-1"),
-                DdcKeys.registryService(serviceKey),
-                DdcKeys.registryRevision(serviceKey),
-                DdcKeys.registryCatalog(
+                DdcRedisKeys.registryInstance(serviceKey, "provider-1"),
+                DdcRedisKeys.registryService(serviceKey),
+                DdcRedisKeys.registryRevision(serviceKey),
+                DdcRedisKeys.registryCatalog(
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcKeys.registryCatalogRevision(
+                DdcRedisKeys.registryCatalogRevision(
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcKeys.registryTopic(
+                DdcRedisKeys.registryTopic(
                         serviceKey.bizCode(), serviceKey.env(), serviceKey.appCode(),
                         serviceKey.serviceKind(), serviceKey.protocol()),
-                DdcKeys.registryInstance(serviceKey, "scope") + ":lock"
+                DdcRedisKeys.registryInstance(serviceKey, "scope") + ":lock"
         );
 
         assertThat(keys).allMatch(key -> key.startsWith("ddc:v3:{"));

@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.rule;
 
-import top.egon.cola.component.ddc.service.DdcConfigApplier;
+import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplier;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleChunkRef;
 

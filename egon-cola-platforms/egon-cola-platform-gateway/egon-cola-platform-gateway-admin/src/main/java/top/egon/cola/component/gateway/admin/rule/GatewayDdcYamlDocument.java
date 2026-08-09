@@ -4,8 +4,8 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
-import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
+import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigFormat;
 
 import java.io.IOException;
 import java.util.ArrayList;

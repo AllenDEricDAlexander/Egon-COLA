@@ -6,10 +6,10 @@ import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.ddc.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

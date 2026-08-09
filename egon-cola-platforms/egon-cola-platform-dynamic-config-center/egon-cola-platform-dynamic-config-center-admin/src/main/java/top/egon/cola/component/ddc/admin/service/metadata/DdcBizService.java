@@ -8,7 +8,7 @@ import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcBizEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcBizRepository;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;

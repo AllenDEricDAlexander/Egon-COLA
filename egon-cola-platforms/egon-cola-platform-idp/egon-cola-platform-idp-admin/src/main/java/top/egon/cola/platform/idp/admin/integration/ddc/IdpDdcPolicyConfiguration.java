@@ -4,7 +4,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplierRegistry;
 
 @Configuration(proxyBeanMethods = false)
 public class IdpDdcPolicyConfiguration {

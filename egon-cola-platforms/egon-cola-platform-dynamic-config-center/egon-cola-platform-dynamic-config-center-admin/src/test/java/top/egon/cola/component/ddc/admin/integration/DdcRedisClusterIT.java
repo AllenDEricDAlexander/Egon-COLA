@@ -18,15 +18,15 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepositor
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
-import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
+import top.egon.cola.component.ddc.registry.model.DdcServiceLeaseRequest;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
 
 import java.time.Duration;
 import java.time.Instant;

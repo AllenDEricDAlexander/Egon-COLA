@@ -1,9 +1,9 @@
 package top.egon.cola.component.ddc.registry.state;
 
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
-import top.egon.cola.component.ddc.common.DdcException;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcException;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

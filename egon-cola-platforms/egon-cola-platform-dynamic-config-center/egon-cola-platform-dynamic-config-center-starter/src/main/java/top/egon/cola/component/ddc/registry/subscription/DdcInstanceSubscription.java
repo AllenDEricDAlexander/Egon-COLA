@@ -1,10 +1,10 @@
 package top.egon.cola.component.ddc.registry.subscription;
 
 import org.redisson.api.RedissonClient;
-import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.registry.model.DdcRegistryEvent;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
 
 import java.time.Clock;
 import java.util.List;
@@ -48,7 +48,7 @@ final class DdcInstanceSubscription extends DdcManagedRegistrySubscription {
 
     void start() {
         start(List.of(
-                DdcKeys.registryTopic(
+                DdcRedisKeys.registryTopic(
                         serviceKey.bizCode(),
                         serviceKey.env(),
                         serviceKey.appCode(),

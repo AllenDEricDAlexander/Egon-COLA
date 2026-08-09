@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
-import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
 import top.egon.cola.component.ddc.registry.client.HttpDdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
 

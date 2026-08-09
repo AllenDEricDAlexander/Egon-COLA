@@ -14,12 +14,12 @@ import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
-import top.egon.cola.component.ddc.common.DdcKeys;
-import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.registry.model.DdcServiceLeaseRequest;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.registry.model.DdcServiceInstance;
+import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -53,17 +53,17 @@ class DdcServiceRegistryRedisRepositoryTest {
         RTopic topic = mock(RTopic.class);
         RSet<String> globalCatalog = set();
         RAtomicLong globalRevision = mock(RAtomicLong.class);
-        when(redisson.getLock(DdcKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
+        when(redisson.getLock(DdcRedisKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
                 .thenReturn(scopeLock);
-        when(redisson.getLock(DdcKeys.globalRegistryCatalog() + ":lock"))
+        when(redisson.getLock(DdcRedisKeys.globalRegistryCatalog() + ":lock"))
                 .thenReturn(globalLock);
         when(redisson.<String>getBucket(
-                DdcKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(redisson.<String>getScoredSortedSet(
-                DdcKeys.registryService(SERVICE_KEY), StringCodec.INSTANCE
+                DdcRedisKeys.registryService(SERVICE_KEY), StringCodec.INSTANCE
         )).thenReturn(instances);
-        when(redisson.getAtomicLong(DdcKeys.registryRevision(SERVICE_KEY)))
+        when(redisson.getAtomicLong(DdcRedisKeys.registryRevision(SERVICE_KEY)))
                 .thenReturn(serviceRevision);
         when(serviceRevision.incrementAndGet()).thenReturn(7L);
         when(redisson.<String>getSet(catalogKey(), StringCodec.INSTANCE)).thenReturn(catalog);
@@ -72,10 +72,10 @@ class DdcServiceRegistryRedisRepositoryTest {
         when(catalogRevision.incrementAndGet()).thenReturn(3L);
         when(redisson.getTopic(topicKey(), StringCodec.INSTANCE)).thenReturn(topic);
         when(redisson.<String>getSet(
-                DdcKeys.globalRegistryCatalog(), StringCodec.INSTANCE
+                DdcRedisKeys.globalRegistryCatalog(), StringCodec.INSTANCE
         )).thenReturn(globalCatalog);
         when(globalCatalog.add(SERVICE_KEY.canonicalValue())).thenReturn(true);
-        when(redisson.getAtomicLong(DdcKeys.globalRegistryCatalogRevision()))
+        when(redisson.getAtomicLong(DdcRedisKeys.globalRegistryCatalogRevision()))
                 .thenReturn(globalRevision);
         DdcServiceRegistryRedisRepository repository =
                 new DdcServiceRegistryRedisRepository(redisson, objectMapper);
@@ -108,10 +108,10 @@ class DdcServiceRegistryRedisRepositoryTest {
                 "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER,
                 "order.v1.OtherService", "default", "1.0.0", "grpc"
         );
-        when(redisson.getLock(DdcKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
+        when(redisson.getLock(DdcRedisKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
                 .thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(objectMapper.writeValueAsString(
                 instance(otherService, "lease-1")));
@@ -128,10 +128,10 @@ class DdcServiceRegistryRedisRepositoryTest {
         RedissonClient redisson = mock(RedissonClient.class);
         RLock lock = mock(RLock.class);
         RBucket<String> bucket = bucket();
-        when(redisson.getLock(DdcKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
+        when(redisson.getLock(DdcRedisKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"))
                 .thenReturn(lock);
         when(redisson.<String>getBucket(
-                DdcKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
         when(bucket.get()).thenReturn(objectMapper.writeValueAsString(instance()));
         DdcServiceRegistryRedisRepository repository =
@@ -166,19 +166,19 @@ class DdcServiceRegistryRedisRepositoryTest {
     }
 
     private String catalogKey() {
-        return DdcKeys.registryCatalog(
+        return DdcRedisKeys.registryCatalog(
                 SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
                 SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
     }
 
     private String catalogRevisionKey() {
-        return DdcKeys.registryCatalogRevision(
+        return DdcRedisKeys.registryCatalogRevision(
                 SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
                 SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
     }
 
     private String topicKey() {
-        return DdcKeys.registryTopic(
+        return DdcRedisKeys.registryTopic(
                 SERVICE_KEY.bizCode(), SERVICE_KEY.env(), SERVICE_KEY.appCode(),
                 SERVICE_KEY.serviceKind(), SERVICE_KEY.protocol());
     }

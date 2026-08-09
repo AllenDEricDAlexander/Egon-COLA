@@ -4,33 +4,33 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.mock.env.MockEnvironment;
-import top.egon.cola.component.ddc.client.DdcAdminClient;
-import top.egon.cola.component.ddc.common.DdcChecksum;
-import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
-import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
-import top.egon.cola.component.ddc.model.dto.DdcPublishTarget;
-import top.egon.cola.component.ddc.model.enums.DdcAckStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
-import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
-import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
-import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
-import top.egon.cola.component.ddc.service.DdcAckDelivery;
-import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
-import top.egon.cola.component.ddc.service.DdcFieldBindingService;
-import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
-import top.egon.cola.component.ddc.service.DdcRefreshService;
-import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.service.DdcRuntimeState;
-import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
+import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
+import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
+import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
+import top.egon.cola.component.ddc.configuration.model.DdcPublishTarget;
+import top.egon.cola.component.ddc.configuration.model.DdcAckStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.configuration.refresh.DdcConfigurationPropertiesRebinder;
+import top.egon.cola.component.ddc.configuration.refresh.DdcYamlConfigApplier;
+import top.egon.cola.component.ddc.configuration.runtime.DdcLocalConfigState;
+import top.egon.cola.component.ddc.configuration.runtime.DdcAckDelivery;
+import top.egon.cola.component.ddc.configuration.runtime.DdcAckDeliveryProperties;
+import top.egon.cola.component.ddc.configuration.binding.DdcFieldBindingService;
+import top.egon.cola.component.ddc.configuration.runtime.DdcLeaseSessionHolder;
+import top.egon.cola.component.ddc.configuration.refresh.DdcRefreshService;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
+import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeState;
+import top.egon.cola.component.ddc.configuration.refresh.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
 import top.egon.cola.component.gateway.provider.HttpProviderRuntimeState;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
@@ -75,7 +75,7 @@ class Rbac3DdcRefreshIntegrationTest {
     void realRefreshRegistryAndAckDeliveryPreserveLkgAndRecover() throws Exception {
         AtomicRbac3RuntimePolicy policy = policy();
         DefaultDdcConfigApplierRegistry registry = registry(policy);
-        DdcLocalConfigRepository repository = new DdcLocalConfigRepository();
+        DdcLocalConfigState repository = new DdcLocalConfigState();
         DdcLeaseSession configSession = configSession();
         DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
         holder.replace(configSession);
@@ -301,20 +301,24 @@ class Rbac3DdcRefreshIntegrationTest {
         message.setBizCode("rbac3");
         message.setAppCode("rbac3-admin");
         message.setEnv("prod");
-        message.setConfigKey("application.yml");
-        message.setConfigValue(yaml);
-        message.setValueType("YAML");
+        message.setResourceName("application.yml");
+        message.setContent(yaml);
+        message.setFormat("YAML");
         message.setTargetVersion(version);
-        message.setContentChecksum(DdcChecksum.content(yaml));
+        message.setResourceChecksum(DdcChecksum.resource(
+                "application.yml",
+                "YAML",
+                yaml
+        ));
         message.setTargets(List.of(new DdcPublishTarget("rbac3-1", CONFIG_LEASE_ID)));
         return message;
     }
 
     private DdcConfigValue config(String value, long version) {
         DdcConfigValue config = new DdcConfigValue();
-        config.setConfigKey("application.yml");
-        config.setConfigValue(value);
-        config.setValueType("YAML");
+        config.setResourceName("application.yml");
+        config.setContent(value);
+        config.setFormat("YAML");
         config.setVersion(version);
         return config;
     }
@@ -330,7 +334,7 @@ class Rbac3DdcRefreshIntegrationTest {
         return yaml.toString();
     }
 
-    private static final class RecordingAdminClient implements DdcAdminClient {
+    private static final class RecordingAdminClient implements DdcConfigClient {
 
         private final BlockingQueue<DdcAckRequest> pending = new LinkedBlockingQueue<>();
         private final List<DdcAckRequest> delivered = new ArrayList<>();

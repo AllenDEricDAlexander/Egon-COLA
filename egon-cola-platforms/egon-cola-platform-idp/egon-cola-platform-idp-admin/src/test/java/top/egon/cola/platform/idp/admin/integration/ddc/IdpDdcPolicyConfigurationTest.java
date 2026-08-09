@@ -3,7 +3,7 @@ package top.egon.cola.platform.idp.admin.integration.ddc;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.InitializingBean;
 import top.egon.cola.component.ddc.annotation.DdcValue;
-import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.configuration.refresh.DefaultDdcConfigApplierRegistry;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;

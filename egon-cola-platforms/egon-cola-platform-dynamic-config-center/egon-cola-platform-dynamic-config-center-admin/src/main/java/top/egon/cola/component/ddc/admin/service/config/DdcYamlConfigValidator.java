@@ -1,9 +1,9 @@
 package top.egon.cola.component.ddc.admin.service.config;
 
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
-import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.model.enums.DdcConfigFormat;
+import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.configuration.model.DdcConfigFormat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

@@ -3,7 +3,7 @@ package top.egon.cola.component.ddc.admin.config;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
-import top.egon.cola.component.ddc.common.DdcErrorStatus;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
