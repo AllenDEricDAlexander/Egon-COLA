@@ -1,8 +1,9 @@
-package top.egon.cola.component.gateway.starter.discovery;
+package top.egon.cola.component.gateway.starter.discovery.mcp;
 
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
+import top.egon.cola.component.gateway.starter.discovery.GatewayRequestParameter;
 
 import java.util.Arrays;
 import java.util.List;

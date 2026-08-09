@@ -10,7 +10,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.discovery.GatewayOperationSemantics;
-import top.egon.cola.component.gateway.starter.discovery.McpExposureMapper;
+import top.egon.cola.component.gateway.starter.discovery.mcp.McpExposureMapper;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

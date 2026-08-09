@@ -1,7 +1,5 @@
 package top.egon.cola.component.ddc.lease;
 
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-
 import java.time.Instant;
 
 /**
