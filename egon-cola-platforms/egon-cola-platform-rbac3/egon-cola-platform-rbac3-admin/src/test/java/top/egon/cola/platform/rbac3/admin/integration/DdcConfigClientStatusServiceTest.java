@@ -1,10 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.integration;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeState;
+import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;

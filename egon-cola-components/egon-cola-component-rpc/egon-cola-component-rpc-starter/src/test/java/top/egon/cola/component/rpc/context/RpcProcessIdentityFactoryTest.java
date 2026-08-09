@@ -3,7 +3,7 @@ package top.egon.cola.component.rpc.context;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

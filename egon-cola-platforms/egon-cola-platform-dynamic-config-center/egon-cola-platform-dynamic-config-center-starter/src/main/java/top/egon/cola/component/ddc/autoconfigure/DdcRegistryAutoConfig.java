@@ -9,7 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
-import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.client.HttpDdcServiceRegistryClient;
 
 /**

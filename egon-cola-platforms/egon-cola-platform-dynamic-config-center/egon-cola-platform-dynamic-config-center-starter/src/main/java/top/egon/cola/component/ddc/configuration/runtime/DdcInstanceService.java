@@ -1,14 +1,15 @@
 package top.egon.cola.component.ddc.configuration.runtime;
 
-import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor;
 import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.util.LinkedHashMap;
 import java.util.List;

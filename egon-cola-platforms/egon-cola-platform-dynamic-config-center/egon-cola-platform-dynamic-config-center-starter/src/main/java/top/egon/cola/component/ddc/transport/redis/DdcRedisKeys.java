@@ -1,8 +1,8 @@
 package top.egon.cola.component.ddc.transport.redis;
 
 import top.egon.cola.component.common.crypto.digest.Digests;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 
 /**
  * 生成 DDC 配置、租约、发布和服务注册使用的 Redis 键。

@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.uuid.UuidV7;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.gateway.admin.application.projection.GatewayProjectionService;
 import top.egon.cola.component.gateway.admin.application.reporting.GatewayDefinitionLifecycleStore;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;

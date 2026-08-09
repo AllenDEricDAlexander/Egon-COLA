@@ -1,9 +1,9 @@
 package top.egon.cola.component.ddc.registry.client;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 
 import java.util.List;
 

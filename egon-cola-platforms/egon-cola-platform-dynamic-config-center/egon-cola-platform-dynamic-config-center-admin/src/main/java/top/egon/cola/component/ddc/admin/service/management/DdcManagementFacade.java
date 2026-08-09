@@ -17,28 +17,28 @@ import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
-import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigDeleteRequest;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
-import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTarget;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceInstance;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceKey;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
-import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.error.management.DdcManagementErrorCode;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientInstance;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -370,7 +370,7 @@ public class DdcManagementFacade {
     }
 
     private DdcManagementServiceInstance serviceInstance(
-            top.egon.cola.component.ddc.registry.model.DdcServiceInstance value
+            top.egon.cola.component.ddc.model.registry.DdcServiceInstance value
     ) {
         return new DdcManagementServiceInstance(
                 value.instanceId(),

@@ -1,7 +1,7 @@
 package top.egon.cola.component.ddc.configuration.bootstrap;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;

@@ -1,8 +1,8 @@
 package top.egon.cola.component.ddc.registry;
 
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 
 /**
  * 基于 SDK 配置构建注册中心服务键，使业务调用方无需重复传递业务与应用范围。

@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.provider;
 
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 public final class GatewayHttpProviderHealthIndicator
         implements HealthIndicator {

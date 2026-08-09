@@ -2,10 +2,10 @@ package top.egon.cola.component.ddc.registry.state;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.error.DdcException;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.time.Instant;
 

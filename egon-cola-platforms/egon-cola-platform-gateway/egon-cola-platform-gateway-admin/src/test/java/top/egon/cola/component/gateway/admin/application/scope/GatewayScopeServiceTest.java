@@ -2,9 +2,9 @@ package top.egon.cola.component.gateway.admin.application.scope;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.client.DdcManagementClientException;
-import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.ddc.error.management.DdcManagementClientException;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
 

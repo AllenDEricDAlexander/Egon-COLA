@@ -8,7 +8,7 @@ import org.redisson.api.RedissonClient;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.vo.DdcAtomicPublishCommand;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
+import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;

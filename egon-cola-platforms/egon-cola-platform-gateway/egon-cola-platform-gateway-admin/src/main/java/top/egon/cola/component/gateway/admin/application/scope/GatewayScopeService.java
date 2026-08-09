@@ -3,10 +3,10 @@ package top.egon.cola.component.gateway.admin.application.scope;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.client.DdcManagementClientException;
-import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
-import top.egon.cola.component.ddc.management.model.DdcManagementScopeQuery;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.ddc.error.management.DdcManagementClientException;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
 

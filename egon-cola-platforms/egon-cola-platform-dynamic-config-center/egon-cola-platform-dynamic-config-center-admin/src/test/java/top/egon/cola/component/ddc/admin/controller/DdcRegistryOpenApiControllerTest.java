@@ -7,11 +7,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.time.Instant;
 import java.util.List;

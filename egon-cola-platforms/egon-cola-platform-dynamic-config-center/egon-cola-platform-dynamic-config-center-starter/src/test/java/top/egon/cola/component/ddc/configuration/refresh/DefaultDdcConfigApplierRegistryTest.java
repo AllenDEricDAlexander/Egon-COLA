@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.configuration.refresh;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplier;
 
 import java.util.concurrent.atomic.AtomicReference;
 

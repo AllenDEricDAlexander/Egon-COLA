@@ -2,9 +2,9 @@ package top.egon.cola.component.ddc.registry.subscription;
 
 import org.redisson.api.RedissonClient;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
-import top.egon.cola.component.ddc.registry.model.DdcRegistryEvent;
-import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;

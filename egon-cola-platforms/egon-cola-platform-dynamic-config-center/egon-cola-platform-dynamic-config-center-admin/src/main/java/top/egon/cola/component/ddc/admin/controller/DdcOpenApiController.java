@@ -10,12 +10,12 @@ import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
-import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.config.DdcAckRequest;
+import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.config.DdcConfigValue;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.util.List;
 

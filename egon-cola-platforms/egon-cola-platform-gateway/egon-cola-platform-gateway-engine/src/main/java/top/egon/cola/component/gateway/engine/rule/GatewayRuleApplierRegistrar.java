@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.rule;
 
-import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 
 import java.util.Objects;
 

@@ -6,8 +6,8 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 import top.egon.cola.component.common.trace.TraceContext;
-import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
-import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.model.config.DdcAckRequest;
 import top.egon.cola.component.ddc.observability.DdcTraceSupport;
 
 import java.time.Duration;

@@ -1,11 +1,11 @@
 package top.egon.cola.component.gateway.admin.rule;
 
-import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigClientInstance;
-import top.egon.cola.component.ddc.management.model.DdcInstanceStatus;
-import top.egon.cola.component.ddc.management.model.DdcManagementInstanceQuery;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientInstance;
+import top.egon.cola.component.ddc.model.management.DdcInstanceStatus;
+import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 
 import java.time.Instant;
 import java.util.List;

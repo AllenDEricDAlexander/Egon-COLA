@@ -7,7 +7,7 @@ import org.springframework.boot.context.config.ConfigData;
 import org.springframework.boot.context.config.ConfigDataLoaderContext;
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 
 import java.util.List;
 

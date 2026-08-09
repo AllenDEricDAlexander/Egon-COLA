@@ -8,11 +8,11 @@ import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
-import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.configuration.runtime.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.time.Duration;
 import java.time.Instant;

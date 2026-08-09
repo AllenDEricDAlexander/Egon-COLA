@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import top.egon.cola.component.ddc.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
-import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

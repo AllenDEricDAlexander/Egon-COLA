@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.engine.rule;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplier;
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplier;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;

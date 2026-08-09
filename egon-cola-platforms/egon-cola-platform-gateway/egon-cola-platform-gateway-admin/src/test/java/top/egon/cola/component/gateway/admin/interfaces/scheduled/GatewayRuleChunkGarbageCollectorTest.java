@@ -2,11 +2,11 @@ package top.egon.cola.component.gateway.admin.interfaces.scheduled;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishRequest;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
 import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcYamlDocument;

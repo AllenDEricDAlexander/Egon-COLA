@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.integration.ddc;
 
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
 

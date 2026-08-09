@@ -10,10 +10,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.time.Instant;
 

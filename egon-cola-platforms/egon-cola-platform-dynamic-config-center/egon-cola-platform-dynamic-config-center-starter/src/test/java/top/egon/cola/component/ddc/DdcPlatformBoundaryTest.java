@@ -1,9 +1,14 @@
 package top.egon.cola.component.ddc;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.configuration.bootstrap.DdcConfigDataFetcher;
-import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
 import top.egon.cola.component.ddc.configuration.runtime.DdcLocalConfigState;
+import top.egon.cola.component.ddc.format.DdcChecksum;
+import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DdcPlatformBoundaryTest {
 
     @Test
-    void starterPackagesFollowApprovedDomainTree() throws Exception {
+    void starterContainsApprovedRolePackagesDuringMigration() throws Exception {
         Path packageRoot = Path.of(
                 "src/main/java/top/egon/cola/component/ddc"
         );
@@ -26,16 +31,21 @@ class DdcPlatformBoundaryTest {
                     .sorted()
                     .toList();
 
-            assertThat(topLevelPackages).containsExactly(
+            assertThat(topLevelPackages).contains(
                     "annotation",
+                    "api",
                     "autoconfigure",
-                    "configuration",
+                    "client",
+                    "configdata",
+                    "environment",
                     "error",
-                    "lease",
-                    "management",
+                    "format",
+                    "listener",
+                    "model",
                     "observability",
-                    "registry",
-                    "transport"
+                    "redis",
+                    "service",
+                    "state"
             );
         }
     }
@@ -43,7 +53,15 @@ class DdcPlatformBoundaryTest {
     @Test
     void configurationContractsResolveFromDomainPackages() {
         assertThat(DdcConfigClient.class.getPackageName())
-                .isEqualTo("top.egon.cola.component.ddc.configuration.client");
+                .isEqualTo("top.egon.cola.component.ddc.api.client");
+        assertThat(DdcInstanceIdentity.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.model.instance");
+        assertThat(DdcLeaseSession.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.model.lease");
+        assertThat(DdcServiceKey.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.model.registry");
+        assertThat(DdcChecksum.class.getPackageName())
+                .isEqualTo("top.egon.cola.component.ddc.format");
         assertThat(DdcConfigDataFetcher.class.getPackageName())
                 .isEqualTo("top.egon.cola.component.ddc.configuration.bootstrap");
         assertThat(DdcLocalConfigState.class.getPackageName())
@@ -70,7 +88,7 @@ class DdcPlatformBoundaryTest {
 
     @Test
     void managementContractsArePackagedByStarter() {
-        String location = top.egon.cola.component.ddc.management.DdcManagementClient.class
+        String location = DdcManagementClient.class
                 .getProtectionDomain()
                 .getCodeSource()
                 .getLocation()

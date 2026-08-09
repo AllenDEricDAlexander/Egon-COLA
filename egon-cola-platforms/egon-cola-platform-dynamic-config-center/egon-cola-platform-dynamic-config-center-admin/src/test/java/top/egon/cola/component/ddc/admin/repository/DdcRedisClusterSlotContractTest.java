@@ -3,8 +3,8 @@ package top.egon.cola.component.ddc.admin.repository;
 import org.junit.jupiter.api.Test;
 import org.redisson.connection.CRC16;
 import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;

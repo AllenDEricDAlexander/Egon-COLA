@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.id.uuid.UuidV7;
-import top.egon.cola.component.ddc.management.model.DdcInstanceStatus;
+import top.egon.cola.component.ddc.model.management.DdcInstanceStatus;
 import top.egon.cola.component.gateway.test.process.GatewayProcessHarness;
 import top.egon.cola.component.gateway.test.process.GatewayProcessSpec;
 import top.egon.cola.component.gateway.test.process.GatewayTestInfrastructure;

@@ -4,21 +4,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.mock.env.MockEnvironment;
-import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
-import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.format.DdcChecksum;
 import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
-import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcHeartbeatRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcInstanceRegisterRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishTarget;
-import top.egon.cola.component.ddc.configuration.model.DdcAckStatus;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.configuration.refresh.DdcConfigurationChangedEvent;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.model.config.DdcAckRequest;
+import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
+import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
+import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
+import top.egon.cola.component.ddc.model.config.DdcAckStatus;
+import top.egon.cola.component.ddc.model.config.DdcConfigValue;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.config.DdcConfigurationChangedEvent;
 import top.egon.cola.component.ddc.configuration.refresh.DdcConfigurationPropertiesRebinder;
 import top.egon.cola.component.ddc.configuration.refresh.DdcYamlConfigApplier;
 import top.egon.cola.component.ddc.configuration.runtime.DdcLocalConfigState;
@@ -372,7 +372,7 @@ class DdcRefreshServiceTest {
         holder.replace(new DdcLeaseSession(
                 "instance-1",
                 "lease-1",
-                top.egon.cola.component.ddc.lease.DdcLeaseRole.CONFIG_CLIENT,
+                top.egon.cola.component.ddc.model.lease.DdcLeaseRole.CONFIG_CLIENT,
                 30,
                 10,
                 registeredAt,

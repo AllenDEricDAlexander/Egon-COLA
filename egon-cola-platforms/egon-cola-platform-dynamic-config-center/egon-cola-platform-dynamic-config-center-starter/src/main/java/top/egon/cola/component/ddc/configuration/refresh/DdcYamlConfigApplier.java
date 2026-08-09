@@ -8,11 +8,12 @@ import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigFormat;
-import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplier;
-import top.egon.cola.component.ddc.configuration.refresh.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.model.config.DdcConfigFormat;
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplier;
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.configuration.binding.DdcFieldBindingService;
+import top.egon.cola.component.ddc.model.config.DdcConfigurationChangedEvent;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

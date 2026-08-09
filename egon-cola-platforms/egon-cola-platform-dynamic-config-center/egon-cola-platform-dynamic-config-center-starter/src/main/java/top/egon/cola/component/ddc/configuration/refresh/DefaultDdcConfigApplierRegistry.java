@@ -1,5 +1,8 @@
 package top.egon.cola.component.ddc.configuration.refresh;
 
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplier;
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;

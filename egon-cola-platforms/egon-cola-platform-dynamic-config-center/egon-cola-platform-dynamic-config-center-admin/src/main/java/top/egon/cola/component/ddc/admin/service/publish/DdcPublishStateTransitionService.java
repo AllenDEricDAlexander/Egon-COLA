@@ -12,7 +12,7 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcConfigResourceKey;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.ddc.configuration.model.DdcAckStatus;
+import top.egon.cola.component.ddc.model.config.DdcAckStatus;
 
 import java.time.Clock;
 import java.time.LocalDateTime;

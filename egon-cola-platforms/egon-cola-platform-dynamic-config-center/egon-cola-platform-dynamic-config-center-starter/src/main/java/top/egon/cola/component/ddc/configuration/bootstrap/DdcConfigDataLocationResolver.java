@@ -7,8 +7,8 @@ import org.springframework.boot.context.config.ConfigDataLocationResolverContext
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.boot.context.properties.bind.Bindable;
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import java.util.List;
 

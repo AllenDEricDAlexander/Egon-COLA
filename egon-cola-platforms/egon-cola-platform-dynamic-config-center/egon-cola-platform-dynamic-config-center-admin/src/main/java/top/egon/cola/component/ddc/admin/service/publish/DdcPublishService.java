@@ -27,11 +27,11 @@ import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.config.DdcYamlConfigValidator;
 import top.egon.cola.component.ddc.admin.service.lease.DdcConfigLeaseService;
-import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
+import top.egon.cola.component.ddc.format.DdcChecksum;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
-import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishTarget;
-import top.egon.cola.component.ddc.configuration.model.DdcAckStatus;
+import top.egon.cola.component.ddc.model.config.DdcAckRequest;
+import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
+import top.egon.cola.component.ddc.model.config.DdcAckStatus;
 
 import java.time.Clock;
 import java.time.Duration;

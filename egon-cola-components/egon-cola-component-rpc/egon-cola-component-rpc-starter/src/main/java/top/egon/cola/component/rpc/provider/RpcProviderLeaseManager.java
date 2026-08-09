@@ -2,11 +2,11 @@ package top.egon.cola.component.rpc.provider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceRegistration;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.RpcProcessIdentity;

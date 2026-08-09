@@ -8,15 +8,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
-import top.egon.cola.component.ddc.registry.model.DdcServiceLeaseRequest;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
-import top.egon.cola.component.ddc.registry.model.DdcServiceRegistration;
-import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 @RestController
 @RequestMapping("/api/v1/ddc/openapi/registry")

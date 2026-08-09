@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTarget;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
 import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;

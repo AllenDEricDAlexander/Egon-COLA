@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
-import top.egon.cola.component.ddc.management.model.DdcManagementScopeBinding;
+import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
 import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;

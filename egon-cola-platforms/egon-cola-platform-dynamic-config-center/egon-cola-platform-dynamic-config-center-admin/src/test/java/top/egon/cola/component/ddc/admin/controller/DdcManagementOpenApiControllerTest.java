@@ -10,10 +10,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTarget;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
 
 import java.time.Instant;
 import java.util.List;

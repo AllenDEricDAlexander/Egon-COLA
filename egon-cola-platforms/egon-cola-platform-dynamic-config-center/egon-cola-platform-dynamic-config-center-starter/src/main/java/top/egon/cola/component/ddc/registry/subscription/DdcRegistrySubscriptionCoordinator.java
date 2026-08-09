@@ -1,11 +1,11 @@
 package top.egon.cola.component.ddc.registry.subscription;
 
 import org.redisson.api.RedissonClient;
-import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
-import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 
 import java.time.Clock;
 import java.util.List;

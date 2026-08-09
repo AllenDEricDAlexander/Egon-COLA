@@ -4,7 +4,7 @@ import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginLookup;
 import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.core.env.EnumerablePropertySource;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigFormat;
+import top.egon.cola.component.ddc.model.config.DdcConfigFormat;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

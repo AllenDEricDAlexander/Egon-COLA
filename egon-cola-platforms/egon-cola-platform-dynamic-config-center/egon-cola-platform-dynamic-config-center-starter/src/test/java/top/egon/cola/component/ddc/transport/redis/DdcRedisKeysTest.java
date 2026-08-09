@@ -1,8 +1,8 @@
 package top.egon.cola.component.ddc.transport.redis;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 
 import java.lang.reflect.Modifier;
 import java.util.Arrays;

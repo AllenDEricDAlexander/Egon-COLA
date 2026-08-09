@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.uuid.UuidV7;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTarget;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
 import top.egon.cola.component.gateway.admin.application.GatewayAdminNotFoundException;
 import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
 import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;

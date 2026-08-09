@@ -17,9 +17,9 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
-import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishTarget;
+import top.egon.cola.component.ddc.format.DdcChecksum;
+import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
+import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
 
 import java.time.Clock;
 import java.time.LocalDateTime;

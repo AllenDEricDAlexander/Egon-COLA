@@ -1,7 +1,7 @@
 package top.egon.cola.component.rpc.provider;
 
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-import top.egon.cola.component.ddc.management.model.ServiceInstanceMetaCodec;
+import top.egon.cola.component.ddc.format.ServiceInstanceMetaCodec;
 
 import java.util.ArrayList;
 import java.util.Collections;

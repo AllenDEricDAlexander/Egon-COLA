@@ -12,7 +12,7 @@ import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.controller.DdcManagementOpenApiController;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.transport.http.DdcCanonicalRequest;
 import top.egon.cola.component.ddc.transport.http.DdcRequestSigner;
 

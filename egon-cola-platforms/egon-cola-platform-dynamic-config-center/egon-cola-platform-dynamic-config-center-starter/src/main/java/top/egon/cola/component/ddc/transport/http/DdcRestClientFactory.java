@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.transport.http;
 
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+import top.egon.cola.component.ddc.model.client.DdcClientTransportSecurity;
 
 import java.net.http.HttpClient;
 import java.time.Duration;

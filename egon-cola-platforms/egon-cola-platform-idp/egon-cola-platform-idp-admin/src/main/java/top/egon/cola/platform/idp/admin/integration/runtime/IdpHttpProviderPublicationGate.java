@@ -4,9 +4,9 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.configuration.runtime.DdcRuntimeState;
+import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.gateway.provider.GatewayHttpProviderProperties;
 import top.egon.cola.component.gateway.provider.HttpProviderLeaseRuntime;
 

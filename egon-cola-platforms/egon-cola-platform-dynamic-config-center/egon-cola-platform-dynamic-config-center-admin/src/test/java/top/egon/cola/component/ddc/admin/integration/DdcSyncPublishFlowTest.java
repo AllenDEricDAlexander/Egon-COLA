@@ -34,11 +34,11 @@ import top.egon.cola.component.ddc.admin.service.publish.PublishCompletionWaiter
 import top.egon.cola.component.ddc.admin.service.publish.PublishFailureRecorder;
 import top.egon.cola.component.ddc.admin.service.publish.PublishResourceLockRegistry;
 import top.egon.cola.component.ddc.admin.service.publish.PublishStartupRecovery;
-import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
-import top.egon.cola.component.ddc.configuration.model.DdcAckRequest;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishMessage;
-import top.egon.cola.component.ddc.configuration.model.DdcPublishTarget;
-import top.egon.cola.component.ddc.configuration.model.DdcAckStatus;
+import top.egon.cola.component.ddc.format.DdcChecksum;
+import top.egon.cola.component.ddc.model.config.DdcAckRequest;
+import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
+import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
+import top.egon.cola.component.ddc.model.config.DdcAckStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;

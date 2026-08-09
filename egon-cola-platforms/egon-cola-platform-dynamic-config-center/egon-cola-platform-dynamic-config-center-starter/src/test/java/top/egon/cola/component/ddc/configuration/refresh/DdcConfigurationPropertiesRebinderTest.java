@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.MapPropertySource;
 import top.egon.cola.component.ddc.annotation.DdcRefreshable;
 import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import java.util.Map;
 import java.util.Set;

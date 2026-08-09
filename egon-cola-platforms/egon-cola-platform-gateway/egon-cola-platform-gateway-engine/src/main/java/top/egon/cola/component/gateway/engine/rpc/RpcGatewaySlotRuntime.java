@@ -1,9 +1,9 @@
 package top.egon.cola.component.gateway.engine.rpc;
 
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceRegistration;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 
 import java.time.Instant;

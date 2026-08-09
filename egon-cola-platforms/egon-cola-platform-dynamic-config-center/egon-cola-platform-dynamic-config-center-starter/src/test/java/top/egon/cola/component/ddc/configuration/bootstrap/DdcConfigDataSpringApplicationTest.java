@@ -12,7 +12,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.PropertySource;
 import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfig;
 import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfig;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

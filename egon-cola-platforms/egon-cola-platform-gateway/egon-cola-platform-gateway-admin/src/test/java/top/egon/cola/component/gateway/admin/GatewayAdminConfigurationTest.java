@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.admin;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;

@@ -3,6 +3,7 @@ package top.egon.cola.component.ddc.transport.http;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import top.egon.cola.component.ddc.error.http.DdcOpenApiRequestException;
 
 import java.time.Clock;
 import java.time.Instant;

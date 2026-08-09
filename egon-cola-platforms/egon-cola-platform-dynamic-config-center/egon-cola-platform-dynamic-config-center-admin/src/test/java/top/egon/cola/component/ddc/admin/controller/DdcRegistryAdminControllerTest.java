@@ -6,11 +6,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.component.ddc.admin.config.DdcGlobalExceptionHandler;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceCatalog;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceInstance;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceKey;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceQuery;
-import top.egon.cola.component.ddc.management.model.DdcManagementServiceSnapshot;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
 
 import java.time.Instant;
 import java.util.List;

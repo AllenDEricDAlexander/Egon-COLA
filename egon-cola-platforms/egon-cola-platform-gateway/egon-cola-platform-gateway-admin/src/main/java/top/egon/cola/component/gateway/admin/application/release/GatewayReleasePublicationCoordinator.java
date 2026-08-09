@@ -1,16 +1,16 @@
 package top.egon.cola.component.gateway.admin.application.release;
 
 import top.egon.cola.component.common.id.uuid.UuidV7;
-import top.egon.cola.component.ddc.configuration.model.DdcChecksum;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
-import top.egon.cola.component.ddc.management.client.DdcManagementClientException;
-import top.egon.cola.component.ddc.management.client.DdcManagementErrorCode;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfig;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigQuery;
-import top.egon.cola.component.ddc.management.model.DdcManagementConfigUpsertRequest;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishResult;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishStatus;
-import top.egon.cola.component.ddc.management.model.DdcManagementPublishTask;
+import top.egon.cola.component.ddc.format.DdcChecksum;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.ddc.error.management.DdcManagementClientException;
+import top.egon.cola.component.ddc.error.management.DdcManagementErrorCode;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
 import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcPublicationCommand;
 import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;

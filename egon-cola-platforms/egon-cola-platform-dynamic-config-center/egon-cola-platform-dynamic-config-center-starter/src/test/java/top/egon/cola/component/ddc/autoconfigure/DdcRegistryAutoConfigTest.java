@@ -7,8 +7,8 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import top.egon.cola.component.ddc.configuration.client.DdcConfigClient;
-import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;

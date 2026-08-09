@@ -2,7 +2,7 @@ package top.egon.cola.component.ddc.registry;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

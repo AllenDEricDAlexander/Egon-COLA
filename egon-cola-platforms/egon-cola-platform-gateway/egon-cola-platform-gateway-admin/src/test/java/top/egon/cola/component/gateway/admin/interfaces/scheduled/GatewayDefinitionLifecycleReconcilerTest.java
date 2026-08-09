@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.admin.interfaces.scheduled;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.ddc.management.DdcManagementClient;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.gateway.admin.application.projection.GatewayProjectionService;
 import top.egon.cola.component.gateway.admin.application.reporting.GatewayDefinitionLifecycleStore;
 import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;

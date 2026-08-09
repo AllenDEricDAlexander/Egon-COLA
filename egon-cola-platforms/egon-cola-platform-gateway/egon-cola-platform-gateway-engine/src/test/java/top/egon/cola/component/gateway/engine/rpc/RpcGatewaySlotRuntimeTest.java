@@ -2,17 +2,17 @@ package top.egon.cola.component.gateway.engine.rpc;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationStatus;
-import top.egon.cola.component.ddc.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
-import top.egon.cola.component.ddc.registry.model.DdcServiceRegistration;
-import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
-import top.egon.cola.component.ddc.lease.DdcLeaseOperationResult;
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.registry.DdcRegistrySubscription;
-import top.egon.cola.component.ddc.registry.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
+import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.registry.DdcServiceKeyFactory;
 
 import java.time.Instant;

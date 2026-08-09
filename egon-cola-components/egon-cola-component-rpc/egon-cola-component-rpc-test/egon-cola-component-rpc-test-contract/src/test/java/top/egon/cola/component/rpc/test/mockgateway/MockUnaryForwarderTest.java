@@ -12,8 +12,8 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.ServerCalls;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKind;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.rpc.context.RpcMetadataKeys;
 
 import java.time.Instant;

@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.admin.rule;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.configuration.environment.DdcDynamicPropertySource;
-import top.egon.cola.component.ddc.configuration.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

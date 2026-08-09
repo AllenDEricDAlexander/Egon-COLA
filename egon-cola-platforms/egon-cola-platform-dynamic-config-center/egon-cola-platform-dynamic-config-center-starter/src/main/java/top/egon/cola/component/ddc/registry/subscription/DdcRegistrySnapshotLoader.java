@@ -1,9 +1,9 @@
 package top.egon.cola.component.ddc.registry.subscription;
 
-import top.egon.cola.component.ddc.registry.model.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.registry.model.DdcServiceKey;
-import top.egon.cola.component.ddc.registry.model.DdcServiceQuery;
-import top.egon.cola.component.ddc.registry.model.DdcServiceSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
+import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 
 /**
  * 为注册中心订阅提供只读全量快照。 / Provides read-only full snapshots to registry subscriptions.

@@ -1,6 +1,6 @@
 package top.egon.cola.component.ddc.configuration.runtime;
 
-import top.egon.cola.component.ddc.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 
 import java.util.Objects;
 import java.util.Optional;

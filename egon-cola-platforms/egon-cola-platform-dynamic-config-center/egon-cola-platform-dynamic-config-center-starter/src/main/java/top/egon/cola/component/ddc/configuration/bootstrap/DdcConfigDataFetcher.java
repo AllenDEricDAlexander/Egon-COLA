@@ -2,8 +2,8 @@ package top.egon.cola.component.ddc.configuration.bootstrap;
 
 import top.egon.cola.component.ddc.configuration.client.HttpDdcConfigClient;
 import top.egon.cola.component.ddc.autoconfigure.DdcProperties;
-import top.egon.cola.component.ddc.configuration.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.configuration.model.DdcConfigValue;
+import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
+import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
