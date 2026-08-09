@@ -1,19 +1,53 @@
-package top.egon.cola.component.ddc.config;
+package top.egon.cola.component.ddc.transport.redis;
 
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 
 import java.util.List;
 import java.util.Locale;
 
 /**
- * 根据 DDC Redis 属性创建并校验 Redisson 拓扑配置。 Creates and validates a Redisson topology configuration from DDC Redis properties.
+ * 创建并校验 DDC Redisson 客户端及其拓扑配置。 Creates and validates DDC Redisson clients and their topology configurations.
  */
-public final class DdcRedisTopology {
+public final class DdcRedisClientFactory {
 
     /**
      * 禁止实例化 Redis 拓扑工具类。 Prevents instantiation of the Redis topology utility.
      */
-    private DdcRedisTopology() {
+    private DdcRedisClientFactory() {
+    }
+
+    /**
+     * 创建 SINGLE、SENTINEL 或 CLUSTER 拓扑的 Redisson 客户端。 /
+     * Creates a Redisson client for a SINGLE, SENTINEL, or CLUSTER topology.
+     *
+     * @param mode       拓扑模式 / topology mode
+     * @param nodes      节点 URL 列表 / node URLs
+     * @param masterName 哨兵主节点名称 / sentinel master name
+     * @param host       单机回退主机 / standalone fallback host
+     * @param port       单机回退端口 / standalone fallback port
+     * @param password   可选密码 / optional password
+     * @param database   单机或哨兵逻辑数据库 / standalone or sentinel logical database
+     * @return 已创建的 Redisson 客户端 / created Redisson client
+     */
+    public static RedissonClient create(
+            String mode,
+            List<String> nodes,
+            String masterName,
+            String host,
+            int port,
+            String password,
+            int database) {
+        return Redisson.create(configuration(
+                mode,
+                nodes,
+                masterName,
+                host,
+                port,
+                password,
+                database
+        ));
     }
 
     /**
@@ -29,7 +63,7 @@ public final class DdcRedisTopology {
      * @return 已配置的 Redisson 配置。 configured Redisson configuration
      * @throws IllegalArgumentException 模式或所需连接参数无效时抛出。 thrown when the mode or required connection parameters are invalid
      */
-    public static Config create(
+    public static Config configuration(
             String mode,
             List<String> nodes,
             String masterName,
@@ -41,7 +75,7 @@ public final class DdcRedisTopology {
         List<String> addresses = nodes == null
                 ? List.of()
                 : nodes.stream()
-                .map(DdcRedisTopology::requireRedisUrl)
+                .map(DdcRedisClientFactory::requireRedisUrl)
                 .toList();
         Config config = new Config();
         switch (topology) {

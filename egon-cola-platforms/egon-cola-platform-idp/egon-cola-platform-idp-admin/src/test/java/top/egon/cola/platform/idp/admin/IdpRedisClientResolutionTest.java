@@ -34,11 +34,6 @@ class IdpRedisClientResolutionTest {
                     RedissonClient.class,
                     () -> mock(RedissonClient.class)
             );
-            context.registerBean(
-                    "ddcRegistryRedissonClient",
-                    RedissonClient.class,
-                    () -> mock(RedissonClient.class)
-            );
             context.refresh();
 
             for (Method method : redisDependentBeanMethods()) {

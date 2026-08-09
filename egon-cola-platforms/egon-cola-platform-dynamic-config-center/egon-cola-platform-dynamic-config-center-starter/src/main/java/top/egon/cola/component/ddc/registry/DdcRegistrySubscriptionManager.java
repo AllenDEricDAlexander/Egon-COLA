@@ -15,9 +15,9 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.trace.DdcTraceSupport;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -210,7 +210,7 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         /**
          * 当前订阅注册的 Redis 主题监听器。 / Redis topic listeners registered by this subscription.
          */
-        private List<TopicRegistration> topicRegistrations = List.of();
+        private DdcRedisTopicSubscription<String> topicSubscription;
 
         /**
          * 定时协调任务句柄。 / Periodic reconciliation task handle.
@@ -225,20 +225,17 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
          * @throws RuntimeException 监听器注册或首次刷新失败时抛出 / if listener registration or initial refresh fails
          */
         protected void start(List<String> topicNames) {
-            List<TopicRegistration> registered = new ArrayList<>();
-            try {
-                for (String topicName : topicNames) {
-                    RTopic topic = redissonClient.getTopic(topicName, StringCodec.INSTANCE);
-                    registered.add(new TopicRegistration(
-                            topic,
-                            topic.addListener(String.class, this::onEvent)
-                    ));
-                }
-            } catch (RuntimeException exception) {
-                registered.forEach(TopicRegistration::remove);
-                throw exception;
-            }
-            topicRegistrations = List.copyOf(registered);
+            List<RTopic> topics = topicNames.stream()
+                    .map(topicName -> redissonClient.getTopic(
+                            topicName,
+                            StringCodec.INSTANCE
+                    ))
+                    .toList();
+            topicSubscription = new DdcRedisTopicSubscription<>(
+                    topics,
+                    String.class,
+                    this::onEvent
+            );
             refreshWithTrace();
             reconciliation = scheduler.scheduleWithFixedDelay(
                     DdcTraceSupport.wrapNewOperation(
@@ -365,7 +362,9 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
             if (reconciliation != null) {
                 reconciliation.cancel(false);
             }
-            topicRegistrations.forEach(TopicRegistration::remove);
+            if (topicSubscription != null) {
+                topicSubscription.close();
+            }
             subscriptions.remove(this);
         }
     }
@@ -580,20 +579,4 @@ public final class DdcRegistrySubscriptionManager implements AutoCloseable {
         }
     }
 
-    /**
-     * Redis 主题及其监听器标识的注册句柄。
-     * / Registration handle for a Redis topic and listener identifier.
-     *
-     * @param topic      已注册监听器的 Redis 主题 / Redis topic with the registered listener
-     * @param listenerId Redisson 监听器标识 / Redisson listener identifier
-     */
-    private record TopicRegistration(RTopic topic, int listenerId) {
-
-        /**
-         * 从 Redis 主题移除监听器。 / Removes the listener from the Redis topic.
-         */
-        private void remove() {
-            topic.removeListener(listenerId);
-        }
-    }
 }

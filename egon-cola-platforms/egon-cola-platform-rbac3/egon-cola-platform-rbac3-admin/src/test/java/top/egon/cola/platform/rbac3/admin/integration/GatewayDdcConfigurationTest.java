@@ -55,7 +55,7 @@ class GatewayDdcConfigurationTest {
             assertThat(Files.readString(yaml))
                     .doesNotContain("localhost", "127.0.0.1")
                     .contains("DDC_BIZ_CODE", "RBAC3_ADVERTISED_PORT",
-                            "ddcRegistryRedissonClient",
+                            "ddcRedissonClient",
                             "rbac3RuntimeRedissonClient");
         }
     }

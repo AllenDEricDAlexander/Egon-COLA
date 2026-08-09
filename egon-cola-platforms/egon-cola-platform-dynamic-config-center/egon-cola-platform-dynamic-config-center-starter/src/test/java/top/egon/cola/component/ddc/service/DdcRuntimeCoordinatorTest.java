@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
@@ -15,6 +15,7 @@ import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ class DdcRuntimeCoordinatorTest {
             events.add("snapshot");
             return null;
         }).when(refreshService).applySnapshots(List.of(adminClient.snapshot));
-        DdcRedisChangeSubscription subscription = subscription(events);
+        DdcRedisTopicSubscription<DdcPublishMessage> subscription = subscription(events);
         DdcRuntimeCoordinator coordinator = coordinator(adminClient, refreshService, subscription, true);
 
         coordinator.start();
@@ -258,7 +259,7 @@ class DdcRuntimeCoordinatorTest {
 
     private DdcRuntimeCoordinator coordinator(RecordingAdminClient adminClient,
                                               DdcRefreshService refreshService,
-                                              DdcRedisChangeSubscription subscription,
+                                              DdcRedisTopicSubscription<DdcPublishMessage> subscription,
                                               boolean failFast) {
         return coordinator(adminClient, refreshService, subscription, properties(failFast));
     }
@@ -277,7 +278,7 @@ class DdcRuntimeCoordinatorTest {
 
     private DdcRuntimeCoordinator coordinator(RecordingAdminClient adminClient,
                                               DdcRefreshService refreshService,
-                                              DdcRedisChangeSubscription subscription,
+                                              DdcRedisTopicSubscription<DdcPublishMessage> subscription,
                                               DdcProperties properties) {
         return coordinator(
                 adminClient,
@@ -290,7 +291,7 @@ class DdcRuntimeCoordinatorTest {
 
     private DdcRuntimeCoordinator coordinator(RecordingAdminClient adminClient,
                                               DdcRefreshService refreshService,
-                                              DdcRedisChangeSubscription subscription,
+                                              DdcRedisTopicSubscription<DdcPublishMessage> subscription,
                                               DdcProperties properties,
                                               DdcLocalConfigRepository repository) {
         DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
@@ -316,8 +317,10 @@ class DdcRuntimeCoordinatorTest {
         );
     }
 
-    private DdcRedisChangeSubscription subscription(List<String> events) {
-        DdcRedisChangeSubscription subscription = mock(DdcRedisChangeSubscription.class);
+    private DdcRedisTopicSubscription<DdcPublishMessage> subscription(List<String> events) {
+        DdcRedisTopicSubscription<DdcPublishMessage> subscription = mock(
+                DdcRedisTopicSubscription.class
+        );
         when(subscription.isActive()).thenReturn(true);
         doAnswer(invocation -> {
             events.add("unsubscribe");

@@ -3,10 +3,10 @@ package top.egon.cola.component.ddc.test;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
 import top.egon.cola.component.ddc.model.dto.DdcAckRequest;
 import top.egon.cola.component.ddc.model.dto.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.dto.DdcInstanceRegisterRequest;
+import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.vo.DdcConfigValue;
@@ -18,6 +18,7 @@ import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.DdcRuntimeState;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -51,8 +52,8 @@ class DdcLeaseLifecycleTest {
                 ),
                 sessionHolder
         );
-        DdcRedisChangeSubscription subscription =
-                mock(DdcRedisChangeSubscription.class);
+        DdcRedisTopicSubscription<DdcPublishMessage> subscription =
+                mock(DdcRedisTopicSubscription.class);
         when(subscription.isActive()).thenReturn(true);
         DdcRuntimeCoordinator coordinator = new DdcRuntimeCoordinator(
                 properties,

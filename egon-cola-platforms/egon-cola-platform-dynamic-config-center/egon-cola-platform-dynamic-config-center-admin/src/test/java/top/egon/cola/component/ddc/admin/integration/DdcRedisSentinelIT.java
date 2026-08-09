@@ -14,7 +14,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
-import top.egon.cola.component.ddc.config.DdcRedisTopology;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -68,7 +68,7 @@ class DdcRedisSentinelIT {
             sentinels.add(sentinel);
         }
 
-        Config config = DdcRedisTopology.create(
+        Config config = DdcRedisClientFactory.configuration(
                 "SENTINEL",
                 sentinels.stream().map(this::address).toList(),
                 MASTER_NAME,

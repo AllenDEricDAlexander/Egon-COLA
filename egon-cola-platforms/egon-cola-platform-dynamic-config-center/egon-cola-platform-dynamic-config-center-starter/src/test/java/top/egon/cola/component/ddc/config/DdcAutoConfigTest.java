@@ -16,7 +16,6 @@ import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.repository.DdcLocalConfigRepository;
-import top.egon.cola.component.ddc.repository.DdcRedisConfigRepository;
 import top.egon.cola.component.ddc.service.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.DdcAckDelivery;
 import top.egon.cola.component.ddc.service.DdcAckDeliveryProperties;
@@ -36,11 +35,17 @@ import static org.mockito.Mockito.when;
 class DdcAutoConfigTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(DdcAutoConfig.class));
+            .withConfiguration(AutoConfigurations.of(
+                    DdcRedisAutoConfig.class,
+                    DdcAutoConfig.class
+            ));
 
     private final ApplicationContextRunner redisContextRunner =
             new ApplicationContextRunner(NonStartingApplicationContext::new)
-                    .withConfiguration(AutoConfigurations.of(DdcAutoConfig.class))
+                    .withConfiguration(AutoConfigurations.of(
+                            DdcRedisAutoConfig.class,
+                            DdcAutoConfig.class
+                    ))
                     .withInitializer(context -> context.getEnvironment()
                             .getPropertySources().addFirst(
                                     new DdcYamlConfigFormatStrategy()
@@ -52,7 +57,6 @@ class DdcAutoConfigTest {
         contextRunner.withPropertyValues("egon.cola.component.ddc.enabled=false")
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(DdcLocalConfigRepository.class);
-                    assertThat(context).doesNotHaveBean(DdcRedisConfigRepository.class);
                     assertThat(context).doesNotHaveBean(DdcFieldBindingService.class);
                 });
     }
@@ -96,7 +100,6 @@ class DdcAutoConfigTest {
                     assertThat(context).hasSingleBean(DdcAckDelivery.class);
                     assertThat(context).hasSingleBean(DdcFieldBindingService.class);
                     assertThat(context).hasSingleBean(DdcLocalConfigRepository.class);
-                    assertThat(context).doesNotHaveBean(DdcRedisConfigRepository.class);
                     assertThat(context).hasSingleBean(DdcConfigApplierRegistry.class);
                     assertThat(context).hasSingleBean(DdcAdminClient.class);
                     assertThat(context.getBean(DdcAckDelivery.class).isRunning())
@@ -133,7 +136,6 @@ class DdcAutoConfigTest {
                                 .isSameAs(dedicatedClient);
                         assertThat(context.getBean("applicationRedissonClient"))
                                 .isSameAs(applicationClient);
-                        assertThat(context).hasSingleBean(DdcRedisConfigRepository.class);
                     });
         }
     }
@@ -159,7 +161,6 @@ class DdcAutoConfigTest {
                 .run(context -> {
                     assertThat(context.getBean("ddcRedissonClient"))
                             .isSameAs(dedicatedClient);
-                    assertThat(context).hasSingleBean(DdcRedisConfigRepository.class);
                 });
     }
 

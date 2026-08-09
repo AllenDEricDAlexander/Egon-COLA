@@ -42,7 +42,7 @@ verify() {
 
   rg -q 'flyway_schema_history_rbac3' "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/src/main"
   rg -q 'flyway_schema_history_outbox' "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/src/main"
-  rg -q 'ddcRegistryRedissonClient' "${RBAC3_MODULE_ROOT}"
+  rg -q 'ddcRedissonClient' "${RBAC3_MODULE_ROOT}"
   rg -q 'gatewayRateLimitRedissonClient' "${RBAC3_MODULE_ROOT}"
   rg -q 'rbac3RuntimeRedissonClient' "${RBAC3_MODULE_ROOT}"
 

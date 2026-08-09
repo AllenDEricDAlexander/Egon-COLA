@@ -1,6 +1,5 @@
 package top.egon.cola.component.ddc.config;
 
-import org.redisson.Redisson;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -28,7 +27,7 @@ import top.egon.cola.component.ddc.client.HttpDdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcKeys;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.listener.DdcRedisChangeListener;
-import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
+import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.vo.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.refresh.DdcConfigurationPropertiesRebinder;
 import top.egon.cola.component.ddc.refresh.DdcYamlConfigApplier;
@@ -46,6 +45,7 @@ import top.egon.cola.component.ddc.service.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.DdcRefreshService;
 import top.egon.cola.component.ddc.service.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.DefaultDdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 
 import java.util.List;
 
@@ -277,28 +277,6 @@ public class DdcAutoConfig {
     }
 
     /**
-     * 创建 DDC 配置生命周期专用且随容器关闭的 Redisson 客户端。 Creates the dedicated Redisson client for DDC configuration lifecycle and shuts it down with the container.
-     *
-     * @param properties DDC 属性。 DDC properties
-     * @return DDC Redisson 客户端。 DDC Redisson client
-     */
-    @Bean(name = "ddcRedissonClient", destroyMethod = "shutdown")
-    @ConditionalOnMissingBean(name = "ddcRedissonClient")
-    @ConditionalOnProperty(prefix = "egon.cola.component.ddc.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public RedissonClient ddcRedissonClient(DdcProperties properties) {
-        DdcProperties.Redis redis = properties.getRedis();
-        return Redisson.create(DdcRedisTopology.create(
-                redis.getMode(),
-                redis.getNodes(),
-                redis.getMasterName(),
-                redis.getHost(),
-                redis.getPort(),
-                redis.getPassword(),
-                redis.getDatabase()
-        ));
-    }
-
-    /**
      * 创建负责校验发布消息并触发刷新的 Redis 监听器。 Creates the Redis listener that validates publication messages and triggers refresh.
      *
      * @param properties     DDC 作用域属性。 DDC scope properties
@@ -346,10 +324,14 @@ public class DdcAutoConfig {
      */
     @Bean
     @ConditionalOnBean(name = "ddcRedisTopic")
-    public DdcRedisChangeSubscription ddcRedisChangeSubscription(
+    public DdcRedisTopicSubscription<DdcPublishMessage> ddcRedisChangeSubscription(
             @Qualifier("ddcRedisTopic") RTopic topic,
             DdcRedisChangeListener listener) {
-        return new DdcRedisChangeSubscription(List.of(topic), listener);
+        return new DdcRedisTopicSubscription<>(
+                List.of(topic),
+                DdcPublishMessage.class,
+                listener
+        );
     }
 
     /**
@@ -417,13 +399,13 @@ public class DdcAutoConfig {
      * @return DDC 运行时协调器。 DDC runtime coordinator
      */
     @Bean
-    @ConditionalOnBean(DdcRedisChangeSubscription.class)
+    @ConditionalOnBean(DdcRedisTopicSubscription.class)
     public DdcRuntimeCoordinator ddcRuntimeCoordinator(
             DdcProperties properties,
             DdcInstanceService instanceService,
             DdcAdminClient adminClient,
             DdcRefreshService refreshService,
-            DdcRedisChangeSubscription subscription,
+            DdcRedisTopicSubscription<DdcPublishMessage> subscription,
             DdcLeaseSessionHolder sessionHolder) {
         return new DdcRuntimeCoordinator(
                 properties,

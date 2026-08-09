@@ -20,6 +20,7 @@ class DdcRegistryAutoConfigTest {
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
+                            DdcRedisAutoConfig.class,
                             DdcAutoConfig.class,
                             DdcRegistryAutoConfig.class
                     ))
@@ -35,7 +36,7 @@ class DdcRegistryAutoConfigTest {
     void registryCanBeEnabledWhileConfigClientIsDisabled() {
         contextRunner
                 .withBean(
-                        "ddcRegistryRedissonClient",
+                        "ddcRedissonClient",
                         RedissonClient.class,
                         () -> mock(RedissonClient.class)
                 )
@@ -50,7 +51,7 @@ class DdcRegistryAutoConfigTest {
     void registryFailsBeforeNetworkAccessWhenEndpointIsMissing() {
         contextRunner
                 .withBean(
-                        "ddcRegistryRedissonClient",
+                        "ddcRedissonClient",
                         RedissonClient.class,
                         () -> mock(RedissonClient.class)
                 )
@@ -66,7 +67,7 @@ class DdcRegistryAutoConfigTest {
     }
 
     @Test
-    void createsDedicatedRegistryClientWhenApplicationClientExists() {
+    void createsSharedDdcClientWhenApplicationClientExists() {
         RedissonClient applicationClient = mock(RedissonClient.class);
         RedissonClient dedicatedClient = mock(RedissonClient.class);
 
@@ -79,7 +80,7 @@ class DdcRegistryAutoConfigTest {
                             () -> applicationClient
                     )
                     .run(context -> {
-                        assertThat(context.getBean("ddcRegistryRedissonClient"))
+                        assertThat(context.getBean("ddcRedissonClient"))
                                 .isSameAs(dedicatedClient);
                         assertThat(context.getBean("applicationRedissonClient"))
                                 .isSameAs(applicationClient);
@@ -88,16 +89,16 @@ class DdcRegistryAutoConfigTest {
     }
 
     @Test
-    void retainsUserProvidedDedicatedRegistryClient() {
+    void retainsUserProvidedSharedDdcClient() {
         RedissonClient dedicatedClient = mock(RedissonClient.class);
 
         contextRunner.withBean(
-                        "ddcRegistryRedissonClient",
+                        "ddcRedissonClient",
                         RedissonClient.class,
                         () -> dedicatedClient
                 )
                 .run(context -> assertThat(context.getBean(
-                                "ddcRegistryRedissonClient"
+                                "ddcRedissonClient"
                         ))
                         .isSameAs(dedicatedClient));
     }
@@ -105,7 +106,11 @@ class DdcRegistryAutoConfigTest {
     @Test
     void configClientCanBeEnabledWhileRegistryIsDisabled() {
         new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(DdcAutoConfig.class, DdcRegistryAutoConfig.class))
+                .withConfiguration(AutoConfigurations.of(
+                        DdcRedisAutoConfig.class,
+                        DdcAutoConfig.class,
+                        DdcRegistryAutoConfig.class
+                ))
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=false",

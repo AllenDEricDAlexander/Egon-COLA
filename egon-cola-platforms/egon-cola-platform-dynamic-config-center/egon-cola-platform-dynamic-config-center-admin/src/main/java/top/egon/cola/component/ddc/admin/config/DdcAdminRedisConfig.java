@@ -1,7 +1,6 @@
 package top.egon.cola.component.ddc.admin.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -23,7 +22,7 @@ import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseExpiryScanner;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
-import top.egon.cola.component.ddc.config.DdcRedisTopology;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
 
 @Configuration
 @EnableScheduling
@@ -35,7 +34,7 @@ public class DdcAdminRedisConfig {
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.admin.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcAdminRedissonClient(DdcAdminProperties properties) {
         DdcAdminProperties.Redis redis = properties.getRedis();
-        return Redisson.create(DdcRedisTopology.create(
+        return DdcRedisClientFactory.create(
                 redis.getMode(),
                 redis.getNodes(),
                 redis.getMasterName(),
@@ -43,7 +42,7 @@ public class DdcAdminRedisConfig {
                 redis.getPort(),
                 redis.getPassword(),
                 redis.getDatabase()
-        ));
+        );
     }
 
     @Bean

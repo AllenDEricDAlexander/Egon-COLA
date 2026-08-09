@@ -17,7 +17,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
-import top.egon.cola.component.ddc.config.DdcRedisTopology;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
 import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.dto.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
@@ -70,7 +70,7 @@ class DdcRedisClusterIT {
         assertThat(create.getExitCode()).isZero();
         assertThat(create.getStdout()).contains("[OK] All 16384 slots covered");
 
-        Config config = DdcRedisTopology.create(
+        Config config = DdcRedisClientFactory.configuration(
                 "CLUSTER",
                 nodes.stream().map(this::address).toList(),
                 null,

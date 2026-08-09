@@ -92,7 +92,7 @@ egon:
       audiences: ${RBAC3_JWT_AUDIENCES}
       audit-cursor-secret-file: ${RBAC3_AUDIT_CURSOR_SECRET_FILE}
     topology:
-      ddc-registry-client-bean: ddcRegistryRedissonClient
+      ddc-registry-client-bean: ddcRedissonClient
       runtime-client-bean: rbac3RuntimeRedissonClient
   cola:
     component:

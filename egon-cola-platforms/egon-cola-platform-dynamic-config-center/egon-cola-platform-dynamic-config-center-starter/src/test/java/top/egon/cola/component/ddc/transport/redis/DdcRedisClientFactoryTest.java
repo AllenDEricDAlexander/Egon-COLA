@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.config;
+package top.egon.cola.component.ddc.transport.redis;
 
 import org.junit.jupiter.api.Test;
 
@@ -7,12 +7,12 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class DdcRedisTopologyTest {
+class DdcRedisClientFactoryTest {
 
     @Test
     void createsSentinelAndClusterTopologiesFromRedisUrls()
             throws Exception {
-        var sentinel = DdcRedisTopology.create(
+        var sentinel = DdcRedisClientFactory.configuration(
                 "SENTINEL",
                 List.of(
                         "redis://redis-sentinel-1:26379",
@@ -31,7 +31,7 @@ class DdcRedisTopologyTest {
                 .contains("redis://redis-sentinel-2:26379")
                 .contains("database: 2");
 
-        var cluster = DdcRedisTopology.create(
+        var cluster = DdcRedisClientFactory.configuration(
                 "CLUSTER",
                 List.of(
                         "rediss://redis-cluster-1:6379",
@@ -51,7 +51,7 @@ class DdcRedisTopologyTest {
 
     @Test
     void rejectsSentinelWithoutMasterAndNonUrlClusterNodes() {
-        assertThatThrownBy(() -> DdcRedisTopology.create(
+        assertThatThrownBy(() -> DdcRedisClientFactory.configuration(
                 "SENTINEL",
                 List.of("redis://redis-sentinel:26379"),
                 "",
@@ -62,7 +62,7 @@ class DdcRedisTopologyTest {
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("master");
 
-        assertThatThrownBy(() -> DdcRedisTopology.create(
+        assertThatThrownBy(() -> DdcRedisClientFactory.configuration(
                 "CLUSTER",
                 List.of("redis-cluster:6379"),
                 "",

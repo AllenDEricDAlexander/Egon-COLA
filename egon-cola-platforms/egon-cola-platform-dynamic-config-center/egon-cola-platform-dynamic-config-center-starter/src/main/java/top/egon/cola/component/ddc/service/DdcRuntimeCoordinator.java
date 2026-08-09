@@ -6,11 +6,12 @@ import org.springframework.context.SmartLifecycle;
 import top.egon.cola.component.ddc.client.DdcAdminClient;
 import top.egon.cola.component.ddc.common.DdcException;
 import top.egon.cola.component.ddc.config.DdcProperties;
-import top.egon.cola.component.ddc.listener.DdcRedisChangeSubscription;
+import top.egon.cola.component.ddc.model.dto.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.enums.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.vo.DdcLeaseSession;
 import top.egon.cola.component.ddc.trace.DdcTraceSupport;
+import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
 
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -53,7 +54,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     /**
      * Redis 配置变化订阅。 Redis configuration-change subscription.
      */
-    private final DdcRedisChangeSubscription subscription;
+    private final DdcRedisTopicSubscription<DdcPublishMessage> subscription;
 
     /**
      * 当前配置客户端租约会话持有器。 Holder of the current configuration-client lease session.
@@ -95,7 +96,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
                                  DdcInstanceService instanceService,
                                  DdcAdminClient adminClient,
                                  DdcRefreshService refreshService,
-                                 DdcRedisChangeSubscription subscription,
+                                 DdcRedisTopicSubscription<DdcPublishMessage> subscription,
                                  DdcLeaseSessionHolder sessionHolder) {
         this.properties = properties;
         this.instanceService = instanceService;

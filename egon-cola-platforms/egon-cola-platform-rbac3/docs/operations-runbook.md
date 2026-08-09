@@ -47,7 +47,7 @@ unqualified primary bean:
 
 | Bean | Owner | Data |
 | --- | --- | --- |
-| `ddcRegistryRedissonClient` | DDC registry integration | Provider leases and DDC registry state |
+| `ddcRedissonClient` | DDC configuration and registry integration | Configuration events, provider leases, and DDC registry state |
 | `gatewayRateLimitRedissonClient` | Gateway Engine | Gateway policies, release/rate-limit runtime state |
 | `rbac3RuntimeRedissonClient` | RBAC3 | Session snapshots, versions, fences and projection checkpoints |
 
